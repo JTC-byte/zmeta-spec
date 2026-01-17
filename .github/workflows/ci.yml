@@ -1,0 +1,39 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python 3.13
+        id: setup_py
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+        continue-on-error: true
+
+      - name: Setup Python 3.11
+        if: steps.setup_py.outcome == 'failure'
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: python -m pip install -r gateway/requirements.txt
+
+      - name: Validate examples
+        run: |
+          if [ -f examples/zmeta-examples-1.0.jsonl ]; then python tools/validate.py --file examples/zmeta-examples-1.0.jsonl --profile H; fi
+          if [ -f examples/zmeta-profile-L-examples.jsonl ]; then python tools/validate.py --file examples/zmeta-profile-L-examples.jsonl --profile L; fi
+          if [ -f examples/zmeta-profile-M-examples.jsonl ]; then python tools/validate.py --file examples/zmeta-profile-M-examples.jsonl --profile M; fi
+          if [ -f examples/zmeta-profile-H-examples.jsonl ]; then python tools/validate.py --file examples/zmeta-profile-H-examples.jsonl --profile H; fi
+          if [ -f examples/zmeta-command-examples.jsonl ]; then python tools/validate.py --file examples/zmeta-command-examples.jsonl --profile L; fi
+
+      - name: Run tests
+        run: python -m pytest -q gateway/tests adapters

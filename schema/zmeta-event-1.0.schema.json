@@ -1,0 +1,629 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://praesens.io/schemas/zmeta-event-1.0.schema.json",
+  "title": "ZMeta Event Schema v1.0",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "zmeta_version",
+    "event",
+    "source",
+    "payload"
+  ],
+  "properties": {
+    "zmeta_version": {
+      "const": "1.0"
+    },
+    "event": {
+      "$ref": "#/$defs/event"
+    },
+    "source": {
+      "$ref": "#/$defs/source"
+    },
+    "payload": {
+      "type": "object"
+    },
+    "confidence": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "lineage": {
+      "$ref": "#/$defs/lineage"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "required": [
+          "event"
+        ],
+        "properties": {
+          "event": {
+            "required": [
+              "event_type"
+            ],
+            "properties": {
+              "event_type": {
+                "const": "OBSERVATION_EVENT"
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "$ref": "#/$defs/ObservationPayload"
+          },
+          "confidence": false
+        }
+      }
+    },
+    {
+      "if": {
+        "required": [
+          "event"
+        ],
+        "properties": {
+          "event": {
+            "required": [
+              "event_type"
+            ],
+            "properties": {
+              "event_type": {
+                "const": "INFERENCE_EVENT"
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "$ref": "#/$defs/InferencePayload"
+          }
+        },
+        "required": [
+          "confidence",
+          "lineage"
+        ]
+      }
+    },
+    {
+      "if": {
+        "required": [
+          "event"
+        ],
+        "properties": {
+          "event": {
+            "required": [
+              "event_type"
+            ],
+            "properties": {
+              "event_type": {
+                "const": "FUSION_EVENT"
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "$ref": "#/$defs/FusionPayload"
+          }
+        },
+        "required": [
+          "confidence",
+          "lineage"
+        ]
+      }
+    },
+    {
+      "if": {
+        "required": [
+          "event"
+        ],
+        "properties": {
+          "event": {
+            "required": [
+              "event_type"
+            ],
+            "properties": {
+              "event_type": {
+                "const": "STATE_EVENT"
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "$ref": "#/$defs/TrackStatePayload"
+          }
+        },
+        "required": [
+          "confidence",
+          "lineage"
+        ]
+      }
+    },
+    {
+      "if": {
+        "required": [
+          "event"
+        ],
+        "properties": {
+          "event": {
+            "required": [
+              "event_type"
+            ],
+            "properties": {
+              "event_type": {
+                "const": "COMMAND_EVENT"
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "$ref": "#/$defs/CommandPayload"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "required": [
+          "event"
+        ],
+        "properties": {
+          "event": {
+            "required": [
+              "event_type"
+            ],
+            "properties": {
+              "event_type": {
+                "const": "SYSTEM_EVENT"
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "$ref": "#/$defs/SystemPayload"
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "uuid": {
+      "type": "string",
+      "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$"
+    },
+    "event": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "event_id",
+        "event_type",
+        "event_subtype",
+        "ts"
+      ],
+      "properties": {
+        "event_id": {
+          "$ref": "#/$defs/uuid"
+        },
+        "event_type": {
+          "type": "string",
+          "enum": [
+            "OBSERVATION_EVENT",
+            "INFERENCE_EVENT",
+            "FUSION_EVENT",
+            "STATE_EVENT",
+            "COMMAND_EVENT",
+            "SYSTEM_EVENT"
+          ]
+        },
+        "event_subtype": {
+          "type": "string",
+          "minLength": 1
+        },
+        "ts": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "platform_id",
+        "node_role",
+        "producer"
+      ],
+      "properties": {
+        "platform_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "node_role": {
+          "type": "string",
+          "enum": [
+            "EDGE",
+            "GATEWAY",
+            "APEX",
+            "DMZ",
+            "CLOUD"
+          ]
+        },
+        "producer": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sensor_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "sw_version": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "geo": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "lat",
+        "lon",
+        "alt_m"
+      ],
+      "properties": {
+        "lat": {
+          "type": "number",
+          "minimum": -90,
+          "maximum": 90
+        },
+        "lon": {
+          "type": "number",
+          "minimum": -180,
+          "maximum": 180
+        },
+        "alt_m": {
+          "type": "number"
+        }
+      }
+    },
+    "geo2d": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "lat",
+        "lon"
+      ],
+      "properties": {
+        "lat": {
+          "type": "number",
+          "minimum": -90,
+          "maximum": 90
+        },
+        "lon": {
+          "type": "number",
+          "minimum": -180,
+          "maximum": 180
+        }
+      }
+    },
+    "bearing": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "az_deg"
+      ],
+      "properties": {
+        "az_deg": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 360
+        },
+        "el_deg": {
+          "type": "number",
+          "minimum": -90,
+          "maximum": 90
+        }
+      }
+    },
+    "ObservationPayload": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "modality",
+        "features"
+      ],
+      "properties": {
+        "modality": {
+          "type": "string",
+          "enum": [
+            "RF",
+            "EO",
+            "IR",
+            "ACOUSTIC",
+            "NETWORK"
+          ]
+        },
+        "geo": {
+          "$ref": "#/$defs/geo"
+        },
+        "bearing": {
+          "$ref": "#/$defs/bearing"
+        },
+        "features": {
+          "type": "object"
+        },
+        "quality": {
+          "type": "object"
+        },
+        "t_start": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "t_end": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "InferencePayload": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "inference_type",
+        "claim",
+        "model",
+        "based_on"
+      ],
+      "properties": {
+        "inference_type": {
+          "type": "string",
+          "enum": [
+            "CLASSIFICATION",
+            "ASSOCIATION",
+            "ANOMALY",
+            "BEHAVIOR"
+          ]
+        },
+        "claim": {
+          "type": "object"
+        },
+        "model": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "name",
+            "version"
+          ],
+          "properties": {
+            "name": {
+              "type": "string",
+              "minLength": 1
+            },
+            "version": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "based_on": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/uuid"
+          }
+        }
+      }
+    },
+    "FusionPayload": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "track_id",
+        "members",
+        "stability",
+        "last_seen_ts"
+      ],
+      "properties": {
+        "track_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "members": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/uuid"
+          }
+        },
+        "estimated_state": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "geo": {
+              "$ref": "#/$defs/geo"
+            },
+            "bearing": {
+              "$ref": "#/$defs/bearing"
+            },
+            "heading_deg": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 360
+            },
+            "speed_mps": {
+              "type": "number"
+            }
+          }
+        },
+        "stability": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "last_seen_ts": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    },
+    "TrackStatePayload": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "track_id",
+        "geo",
+        "valid_for_ms"
+      ],
+      "properties": {
+        "track_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "geo": {
+          "$ref": "#/$defs/geo"
+        },
+        "class": {
+          "type": "string"
+        },
+        "source_summary": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "heading_deg": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 360
+        },
+        "speed_mps": {
+          "type": "number"
+        },
+        "valid_for_ms": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "CommandPayload": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "task_id",
+        "task_type",
+        "valid_for_ms",
+        "requires_deconfliction"
+      ],
+      "properties": {
+        "task_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "task_type": {
+          "type": "string",
+          "enum": [
+            "GOTO",
+            "ORBIT",
+            "HOLD",
+            "SEARCH_BOX"
+          ]
+        },
+        "target_geo": {
+          "$ref": "#/$defs/geo2d"
+        },
+        "geometry": {
+          "type": "object"
+        },
+        "valid_from_ts": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "valid_for_ms": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "priority": {
+          "type": "string",
+          "enum": [
+            "LOW",
+            "MED",
+            "HIGH"
+          ]
+        },
+        "requires_deconfliction": {
+          "const": true
+        }
+      }
+    },
+    "SystemPayload": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "system_type",
+        "state"
+      ],
+      "properties": {
+        "system_type": {
+          "type": "string",
+          "minLength": 1,
+          "enum": [
+            "LINK_STATUS",
+            "TIME_STATUS",
+            "SCHEMA_VIOLATION",
+            "TASK_ACK"
+          ]
+        },
+        "state": {
+          "type": "string",
+          "minLength": 1
+        },
+        "metrics": {
+          "type": "object"
+        }
+      }
+    },
+    "lineage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "based_on"
+      ],
+      "properties": {
+        "based_on": {
+          "type": "array",
+          "minItems": 0,
+          "items": {
+            "$ref": "#/$defs/uuid"
+          }
+        },
+        "transform": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,21 @@
+profiles:
+  L:
+    allowed_event_types:
+      - STATE_EVENT
+      - SYSTEM_EVENT
+      - COMMAND_EVENT
+  M:
+    allowed_event_types:
+      - STATE_EVENT
+      - FUSION_EVENT
+      - SYSTEM_EVENT
+      - COMMAND_EVENT
+      - OBSERVATION_EVENT
+  H:
+    allowed_event_types:
+      - OBSERVATION_EVENT
+      - INFERENCE_EVENT
+      - FUSION_EVENT
+      - STATE_EVENT
+      - COMMAND_EVENT
+      - SYSTEM_EVENT

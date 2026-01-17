@@ -1,0 +1,10 @@
+{
+  "platform_id": "example-node-01",
+  "sensor_id": "rf-01",
+  "ts": "2025-01-17T15:20:00Z",
+  "lat": 34.1001,
+  "lon": -118.1001,
+  "alt_m": 150.0,
+  "center_freq_hz": 915000000,
+  "power_dbm": -42.5
+}

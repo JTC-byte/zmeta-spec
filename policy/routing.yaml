@@ -1,0 +1,10 @@
+routing:
+  command_event:
+    required_origin: SensorOps
+    must_pass_through: SensorOps
+  producers:
+    Torch:
+      allowed_emit:
+        - CUE_RECOMMENDATION
+      forbidden_event_types:
+        - COMMAND_EVENT

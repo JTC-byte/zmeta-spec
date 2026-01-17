@@ -1,0 +1,20 @@
+semantics:
+  observation_event:
+    payload_must_not_contain:
+      - track_id
+      - class
+      - entity_class
+  state_event:
+    payload_must_not_contain:
+      - features
+      - raw_features
+  command_event:
+    requires_deconfliction: true
+    target_geo_must_not_include:
+      - alt
+      - alt_m
+      - altitude
+    dedupe_key: task_id
+  system_event:
+    task_ack_requires_metrics_fields:
+      - task_id

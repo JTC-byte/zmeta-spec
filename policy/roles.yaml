@@ -1,0 +1,35 @@
+roles:
+  EDGE:
+    allowed_event_types:
+      - OBSERVATION_EVENT
+      - STATE_EVENT
+      - SYSTEM_EVENT
+  GATEWAY:
+    allowed_event_types:
+      - OBSERVATION_EVENT
+      - INFERENCE_EVENT
+      - FUSION_EVENT
+      - STATE_EVENT
+      - COMMAND_EVENT
+      - SYSTEM_EVENT
+  APEX:
+    allowed_event_types:
+      - FUSION_EVENT
+      - STATE_EVENT
+      - SYSTEM_EVENT
+  DMZ:
+    allowed_event_types:
+      - SYSTEM_EVENT
+      - STATE_EVENT
+  CLOUD:
+    allowed_event_types:
+      - SYSTEM_EVENT
+      - STATE_EVENT
+
+deny:
+  - name: no_command_from_edge
+    node_role: EDGE
+    event_type: COMMAND_EVENT
+  - name: no_command_from_torch
+    producer: Torch
+    event_type: COMMAND_EVENT

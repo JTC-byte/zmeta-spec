@@ -1,0 +1,20 @@
+schema_id: vendor:example_rf:v1
+zmeta_event_type: OBSERVATION_EVENT
+zmeta_event_subtype: RF_OBSERVATION
+
+source:
+  platform_id: input.platform_id
+  node_role: EDGE
+  producer: example-vendor
+  sensor_id: input.sensor_id
+
+event:
+  ts: input.ts
+
+payload:
+  modality: RF
+  geo.lat: input.lat
+  geo.lon: input.lon
+  geo.alt_m: input.alt_m
+  features.center_freq_hz: input.center_freq_hz
+  features.power_dbm: input.power_dbm

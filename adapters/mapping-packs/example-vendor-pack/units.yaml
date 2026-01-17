@@ -1,0 +1,6 @@
+units:
+  center_freq_hz: hz
+  power_dbm: dbm
+  lat: degrees
+  lon: degrees
+  alt_m: meters_hae

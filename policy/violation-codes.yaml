@@ -1,0 +1,17 @@
+violation_codes:
+  - code: SCHEMA_INVALID
+    severity: fail
+  - code: EVENT_TYPE_NOT_ALLOWED_FOR_ROLE
+    severity: fail
+  - code: EVENT_TYPE_NOT_ALLOWED_FOR_PROFILE
+    severity: fail
+  - code: COMMAND_NOT_DECONFLICTED
+    severity: fail
+  - code: COMMAND_HAS_ALTITUDE
+    severity: fail
+  - code: OBSERVATION_HAS_IDENTITY
+    severity: fail
+  - code: STATE_HAS_RAW_FEATURES
+    severity: fail
+  - code: TASK_ACK_MISSING_TASK_ID
+    severity: warn
