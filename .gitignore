@@ -208,3 +208,6 @@ __marimo__/
 
 # Local notes
 LOCAL_NOTES.md
+
+# Release artifacts
+release/*.zip

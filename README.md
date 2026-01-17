@@ -52,13 +52,18 @@ Makefile targets run the same commands with `python` directly; ensure dependenci
 - v1.1+ = backward-compatible extensions
 - v2.0 = breaking changes
 
+See `spec/versioning.md` for the full policy.
+
 ## Quickstart
+
+Prereqs: Python 3.11+ and Docker.
 
 See `spec/quickstart.md` for a runnable gateway + UDP replay walkthrough.
 
 ## Normative vs Reference
 
 Normative (contract): `spec/semantics-contract.md`, `schema/zmeta-event-1.0.schema.json`, `policy/*.yaml`
+Normative also includes: `spec/versioning.md`
 Reference: `gateway/*`, `tools/*`, `adapters/*`, `examples/*`
 
 Normative files define compliance. Reference components exist to accelerate adoption.
