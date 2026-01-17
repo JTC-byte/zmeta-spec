@@ -45,7 +45,7 @@ python tools/validate.py --file examples/zmeta-command-examples.jsonl --profile 
 ```
 
 Makefile targets run the same commands with `python` directly; ensure dependencies are installed
-(`python -m pip install -r gateway/requirements.txt`).
+(`python -m pip install -r gateway/requirements.txt -r requirements-dev.txt`).
 
 ## Versioning
 - v1.0.x = clarifications and fixes
