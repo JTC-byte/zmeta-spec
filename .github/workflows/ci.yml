@@ -29,6 +29,17 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -r gateway/requirements.txt -r requirements-dev.txt
 
+      - name: Lint schema
+        run: |
+          python - <<'PY'
+          import json
+          from jsonschema import Draft202012Validator
+          with open("schema/zmeta-event-1.0.schema.json", "r", encoding="utf-8") as handle:
+              schema = json.load(handle)
+          Draft202012Validator.check_schema(schema)
+          print("schema ok")
+          PY
+
       - name: Validate examples
         run: |
           if [ -f examples/zmeta-examples-1.0.jsonl ]; then python tools/validate.py --file examples/zmeta-examples-1.0.jsonl --profile H; fi

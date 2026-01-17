@@ -16,6 +16,7 @@ def collect_sources(root):
 
     optional = [
         root / "spec" / "quickstart.md",
+        root / "spec" / "versioning.md",
         root / "spec" / "cot-mapping.md",
         root / "spec" / "klv-jreap-projection-notes.md",
     ]

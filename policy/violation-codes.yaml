@@ -1,3 +1,5 @@
+# Severity is advisory for reference implementations; compliance is defined
+# by the semantic contract and schema.
 violation_codes:
   - code: SCHEMA_INVALID
     severity: fail
