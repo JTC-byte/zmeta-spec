@@ -1,5 +1,7 @@
 ## ZMeta State to JREAP Track (Reference)
 
+Overview: see `adapters/README.md`.
+
 This adapter produces a minimal JSON "tactical track" projection for a downstream
 JREAP gateway. It is NOT a Link-16/JREAP encoder.
 

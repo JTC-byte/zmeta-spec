@@ -1,5 +1,7 @@
 ## Mapping Packs
 
+Overview: see `adapters/README.md`.
+
 Mapping packs describe how to translate vendor payloads into ZMeta v1.0.
 
 ### schema_id naming convention

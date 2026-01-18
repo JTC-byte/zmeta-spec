@@ -1,5 +1,7 @@
 ## ZMeta to CoT (Reference)
 
+Overview: see `adapters/README.md`.
+
 This is a reference egress adapter that converts ZMeta STATE_EVENT/Track State
 into CoT XML for interoperability.
 

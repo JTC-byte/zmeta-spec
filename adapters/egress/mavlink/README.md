@@ -1,5 +1,7 @@
 ## ZMeta Command to Mission Intent (Reference)
 
+Overview: see `adapters/README.md`.
+
 ZMeta is not a control protocol. This adapter produces a minimal MissionIntent
 payload that the Comms/Deconfliction Node (SensorOps) can translate to MAVLink/Swarm API
 out-of-band.

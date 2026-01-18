@@ -1,5 +1,7 @@
 ## KLV to ZMeta (Template)
 
+Overview: see `adapters/README.md`.
+
 Purpose: normalize decoded KLV metadata into ZMeta OBSERVATION_EVENT.
 
 Assumption: input is already decoded into a dict of KLV tags. This repo does not

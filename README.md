@@ -32,6 +32,11 @@
 - `adapters/` Ingress and egress adapter patterns and templates.
 - `tools/` Utilities for validation and development workflows.
 
+## Adapters
+
+Reference adapters show how to translate between ZMeta and external systems.
+See `adapters/README.md` for ingress templates, mapping packs, and egress projections.
+
 ## Tools
 
 Quick helpers for local validation and UDP replay:

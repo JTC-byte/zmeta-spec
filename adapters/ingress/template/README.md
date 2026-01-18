@@ -1,5 +1,7 @@
 ## Ingress Adapter Template
 
+Overview: see `adapters/README.md`.
+
 Purpose: convert external payloads into ZMeta v1.0.
 
 ### Required functions
