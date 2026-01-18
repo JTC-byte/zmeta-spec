@@ -1,0 +1,2 @@
+# Runtime deps for gateway/tools.
+-r gateway/requirements.txt
