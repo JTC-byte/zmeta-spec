@@ -4,7 +4,7 @@ routing:
     must_pass_through: SensorOps
   producers:
     Torch:
-      allowed_emit:
-        - CUE_RECOMMENDATION
+      allowed_event_types:
+        - INFERENCE_EVENT
       forbidden_event_types:
         - COMMAND_EVENT

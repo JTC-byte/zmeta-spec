@@ -1,6 +1,8 @@
 import shutil
 from pathlib import Path
 
+VERSION = "1.0.1"
+
 
 def collect_sources(root):
     sources = []
@@ -17,6 +19,7 @@ def collect_sources(root):
     optional = [
         root / "spec" / "quickstart.md",
         root / "spec" / "versioning.md",
+        root / "spec" / "installation-guide.md",
         root / "spec" / "cot-mapping.md",
         root / "spec" / "klv-jreap-projection-notes.md",
     ]
@@ -58,7 +61,7 @@ def main():
     copy_tree(root / "policy", dist / "policy")
     copy_tree(root / "examples", dist / "examples")
 
-    (dist / "VERSION.txt").write_text("1.0.0\n", encoding="utf-8")
+    (dist / "VERSION.txt").write_text(f"{VERSION}\n", encoding="utf-8")
 
     rel_paths = []
     for path in sorted(dist.rglob("*")):
@@ -66,6 +69,12 @@ def main():
             rel_paths.append(path.relative_to(dist).as_posix())
 
     write_manifest(dist, rel_paths)
+
+    archive_base = root / "release" / f"zmeta-v{VERSION}-dist"
+    archive_path = archive_base.with_suffix(".zip")
+    if archive_path.exists():
+        archive_path.unlink()
+    shutil.make_archive(str(archive_base), "zip", root_dir=dist)
 
 
 if __name__ == "__main__":

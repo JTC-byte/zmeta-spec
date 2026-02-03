@@ -18,6 +18,32 @@ Optional helper:
 python tools/run_gateway.py --profile H
 ```
 
+### Config file (recommended)
+
+Generate a deterministic config with the wizard:
+
+```
+python tools/gateway_wizard.py --output gateway-config.json
+```
+
+Run with the config:
+
+```
+python gateway/src/gateway.py --config gateway-config.json
+```
+
+Example config: `gateway/config/gateway-config.example.json`.
+
+The config file keys are:
+
+- `profile` (L/M/H)
+- `listen` host/port
+- `forward` host/port
+- `emit_cot` and `cot` host/port
+- `schema_path` and `policy_dir` (resolved relative to the config file)
+
+CLI flags like `--profile` and `--listen-port` override the config when needed.
+
 ### COMMAND_EVENT dedupe
 
 The gateway deduplicates `COMMAND_EVENT` by `task_id` using an in-memory TTL cache.

@@ -47,7 +47,10 @@ python tools/udp_receiver.py
 python tools/udp_sender.py --file examples/zmeta-command-examples.jsonl
 python tools/replay.py --file examples/zmeta-command-examples.jsonl --delay-ms 200
 python tools/validate.py --file examples/zmeta-command-examples.jsonl --profile H
+python tools/test_gateway_live.py
 ```
+
+`tools/test_gateway_live.py` exercises live UDP forwarding, COMMAND dedupe, and CoT emission.
 
 Makefile targets run the same commands with `python` directly; ensure dependencies are installed
 (`python -m pip install -r gateway/requirements.txt -r requirements-dev.txt`).
@@ -63,7 +66,27 @@ See `spec/versioning.md` for the full policy.
 
 Prereqs: Python 3.11+ and Docker.
 
+Install runtime dependencies:
+```
+python -m pip install -r requirements.txt
+```
+
+Optional (tests/dev tools):
+```
+python -m pip install -r requirements-dev.txt
+```
+
+Windows Docker note: Docker Desktop requires virtualization + WSL2 enabled. If Docker is not available, run the gateway directly with Python.
+
 See `spec/quickstart.md` for a runnable gateway + UDP replay walkthrough.
+
+## Installation and Packaging
+
+See `spec/installation-guide.md` for a deterministic install guide, gateway wizard,
+and mapping pack installs for drone and sensor configs.
+
+Note on timing metadata: `event.t_publish` (emit time) and `event.t_receive`
+(ingest time) are optional fields used for latency debugging and AAR.
 
 ## Normative vs Reference
 

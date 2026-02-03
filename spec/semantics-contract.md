@@ -282,6 +282,8 @@ ZMetaEvent {
     event_type: EVENT_TYPE
     event_subtype: EVENT_SUBTYPE
     ts: UTC_TIMESTAMP
+    t_publish?: UTC_TIMESTAMP
+    t_receive?: UTC_TIMESTAMP
   }
   source: {
     platform_id: string
@@ -299,7 +301,7 @@ ZMetaEvent {
 }
 ```
 
-**Envelope Rules:** - Envelope fields are **immutable and globally consistent**. - payload semantics are determined exclusively by event_type and event_subtype. - confidence is mandatory for all non-observation events.
+**Envelope Rules:** - Envelope fields are **immutable and globally consistent**. - payload semantics are determined exclusively by event_type and event_subtype. - confidence is mandatory for INFERENCE/FUSION/STATE events (not for OBSERVATION/COMMAND/SYSTEM).
 
 ### 4.2 Event Types (Authoritative)
 
@@ -333,7 +335,11 @@ ObservationPayload {
 }
 ```
 
-**Rules:** - No track_id permitted - No entity_class permitted - ts represents capture time or midpoint of window
+**Rules:** - No track_id permitted - No entity_class permitted - No classification/label permitted - ts represents capture time or midpoint of window
+
+**Quality guidance:** `payload.quality` is the place for observation measurement quality and uncertainty
+(e.g., SNR, error bounds, timing quality, calibration state). Do not use envelope
+`confidence` for observations; confidence is reserved for non-observation events.
 
 #### 4.3.2 RF Observation Features (Minimum)
 

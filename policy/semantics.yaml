@@ -2,8 +2,9 @@ semantics:
   observation_event:
     payload_must_not_contain:
       - track_id
-      - class
       - entity_class
+      - classification
+      - label
   state_event:
     payload_must_not_contain:
       - features

@@ -55,6 +55,25 @@ def _violation(code, message, details=None, severity_map=None):
     }
 
 
+def _find_forbidden_key(value, forbidden_keys):
+    if isinstance(value, dict):
+        for key, item in value.items():
+            key_str = str(key)
+            if key_str.lower() in forbidden_keys:
+                return key_str, [key_str]
+            found = _find_forbidden_key(item, forbidden_keys)
+            if found:
+                found_key, path = found
+                return found_key, [key_str] + path
+    elif isinstance(value, list):
+        for idx, item in enumerate(value):
+            found = _find_forbidden_key(item, forbidden_keys)
+            if found:
+                found_key, path = found
+                return found_key, [str(idx)] + path
+    return None
+
+
 def validate_schema(event, schema, severity_map=None):
     errors = sorted(schema.iter_errors(event), key=lambda e: e.path)
     violations = []
@@ -154,16 +173,18 @@ def validate_semantics(event, semantics_policy, severity_map=None):
 
     if event_type == "OBSERVATION_EVENT":
         forbidden = semantics_policy.get("observation_event", {}).get("payload_must_not_contain", [])
-        for key in forbidden:
-            if key in payload:
-                return False, [
-                    _violation(
-                        "OBSERVATION_HAS_IDENTITY",
-                        "observation payload contains identity fields",
-                        details={"field": key},
-                        severity_map=severity_map,
-                    )
-                ]
+        forbidden_keys = {str(key).lower() for key in forbidden}
+        found = _find_forbidden_key(payload, forbidden_keys)
+        if found:
+            found_key, path = found
+            return False, [
+                _violation(
+                    "OBSERVATION_HAS_IDENTITY",
+                    "observation payload contains identity fields",
+                    details={"field": found_key, "path": "/".join(path)},
+                    severity_map=severity_map,
+                )
+            ]
 
     if event_type == "STATE_EVENT":
         forbidden = semantics_policy.get("state_event", {}).get("payload_must_not_contain", [])
@@ -179,7 +200,10 @@ def validate_semantics(event, semantics_policy, severity_map=None):
                 ]
 
     if event_type == "COMMAND_EVENT":
-        if payload.get("requires_deconfliction") is not True:
+        requires_deconfliction = (
+            semantics_policy.get("command_event", {}).get("requires_deconfliction", True)
+        )
+        if requires_deconfliction and payload.get("requires_deconfliction") is not True:
             return False, [
                 _violation(
                     "COMMAND_NOT_DECONFLICTED",
@@ -219,7 +243,7 @@ def validate_semantics(event, semantics_policy, severity_map=None):
 
 
 def _is_comms_producer(producer, routing_policy):
-    producer_lc = (producer or "").lower()
+    producer_lc = (producer or "").strip().lower()
     cmd_cfg = routing_policy.get("command_event", {})
     allowlist = []
     for key in ("allowed_producers", "required_origin", "must_pass_through"):
@@ -230,12 +254,52 @@ def _is_comms_producer(producer, routing_policy):
             allowlist.append(value)
     if not allowlist:
         allowlist = ["sensorops"]
-    return any(token.lower() in producer_lc for token in allowlist)
+    allowset = {str(token).strip().lower() for token in allowlist if str(token).strip()}
+    return producer_lc in allowset
 
 
 def validate_routing(event, routing_policy, severity_map=None):
     event_type = event.get("event", {}).get("event_type")
-    producer = event.get("source", {}).get("producer")
+    event_subtype = event.get("event", {}).get("event_subtype")
+    producer = (event.get("source", {}).get("producer") or "").strip().lower()
+    producer_rules = routing_policy.get("producers", {})
+    if producer_rules:
+        normalized_rules = {
+            str(key).strip().lower(): value for key, value in producer_rules.items() if str(key).strip()
+        }
+        rule = normalized_rules.get(producer)
+        if isinstance(rule, dict):
+            allowed_types = rule.get("allowed_event_types")
+            if isinstance(allowed_types, list) and event_type not in allowed_types:
+                return False, [
+                    _violation(
+                        "EVENT_TYPE_NOT_ALLOWED_FOR_ROLE",
+                        "event_type not allowed for producer",
+                        details={"event_type": event_type, "producer": producer},
+                        severity_map=severity_map,
+                    )
+                ]
+            allowed_subtypes = rule.get("allowed_event_subtypes")
+            if isinstance(allowed_subtypes, list) and event_subtype not in allowed_subtypes:
+                return False, [
+                    _violation(
+                        "EVENT_TYPE_NOT_ALLOWED_FOR_ROLE",
+                        "event_subtype not allowed for producer",
+                        details={"event_subtype": event_subtype, "producer": producer},
+                        severity_map=severity_map,
+                    )
+                ]
+            forbidden = rule.get("forbidden_event_types")
+            if isinstance(forbidden, list) and event_type in forbidden:
+                return False, [
+                    _violation(
+                        "EVENT_TYPE_NOT_ALLOWED_FOR_ROLE",
+                        "event_type forbidden for producer",
+                        details={"event_type": event_type, "producer": producer},
+                        severity_map=severity_map,
+                    )
+                ]
+
     if event_type != "COMMAND_EVENT":
         return True, []
     if not _is_comms_producer(producer, routing_policy):

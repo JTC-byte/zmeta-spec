@@ -1,7 +1,10 @@
-.PHONY: gateway-run udp-recv replay-core replay-command validate-examples release-bundle
+.PHONY: gateway-run gateway-live-test udp-recv replay-core replay-command validate-examples release-bundle
 
 gateway-run:
 	python tools/run_gateway.py --profile H
+
+gateway-live-test:
+	python tools/test_gateway_live.py
 
 udp-recv:
 	python tools/udp_receiver.py --host 127.0.0.1 --port 5556

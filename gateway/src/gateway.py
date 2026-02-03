@@ -8,8 +8,10 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 MODULE_DIR = Path(__file__).resolve().parent
-if str(MODULE_DIR) not in sys.path:
-    sys.path.insert(0, str(MODULE_DIR))
+ROOT_DIR = MODULE_DIR.parents[1]
+for path in (MODULE_DIR, ROOT_DIR):
+    if str(path) not in sys.path:
+        sys.path.insert(0, str(path))
 
 from validators import (
     load_policy,
@@ -22,6 +24,8 @@ from validators import (
 )
 
 from adapters.egress.cot.zmeta_to_cot import zmeta_to_cot
+
+PROFILE_CHOICES = {"L", "M", "H"}
 
 
 def utc_now():
@@ -56,6 +60,114 @@ def ttl_ms_from_payload(payload):
     if ttl_ms <= 0:
         ttl_ms = 60000
     return min(ttl_ms, 300000)
+
+
+def _resolve_relative_path(base_dir, value):
+    path = Path(value)
+    if not path.is_absolute():
+        path = (base_dir / path).resolve()
+    return path
+
+
+def load_config(path):
+    if not path:
+        return {}
+    config_path = Path(path)
+    if not config_path.is_file():
+        raise FileNotFoundError(f"config not found: {config_path}")
+    data = json.loads(config_path.read_text(encoding="utf-8"))
+    if not isinstance(data, dict):
+        raise ValueError("config must be a JSON object")
+    base_dir = config_path.resolve().parent
+    if "schema_path" in data:
+        data["schema_path"] = _resolve_relative_path(base_dir, data["schema_path"])
+    if "policy_dir" in data:
+        data["policy_dir"] = _resolve_relative_path(base_dir, data["policy_dir"])
+    return data
+
+
+def _apply_address(config_value, host_key, port_key, settings):
+    if not isinstance(config_value, dict):
+        return
+    host = config_value.get("host")
+    port = config_value.get("port")
+    if host:
+        settings[host_key] = host
+    if port is not None:
+        settings[port_key] = port
+
+
+def _validate_port(port, label):
+    try:
+        value = int(port)
+    except (TypeError, ValueError) as exc:
+        raise ValueError(f"{label} must be an integer") from exc
+    if not (1 <= value <= 65535):
+        raise ValueError(f"{label} must be between 1 and 65535")
+    return value
+
+
+def build_settings(root, args, config):
+    settings = {
+        "profile": None,
+        "listen_host": "0.0.0.0",
+        "listen_port": 5555,
+        "forward_host": "127.0.0.1",
+        "forward_port": 5556,
+        "emit_cot": False,
+        "cot_host": "127.0.0.1",
+        "cot_port": 6969,
+        "schema_path": root / "schema" / "zmeta-event-1.0.schema.json",
+        "policy_dir": root / "policy",
+    }
+
+    if config:
+        settings["profile"] = config.get("profile", settings["profile"])
+        _apply_address(config.get("listen"), "listen_host", "listen_port", settings)
+        _apply_address(config.get("forward"), "forward_host", "forward_port", settings)
+        _apply_address(config.get("cot"), "cot_host", "cot_port", settings)
+        if "emit_cot" in config:
+            settings["emit_cot"] = bool(config["emit_cot"])
+        if "schema_path" in config:
+            settings["schema_path"] = Path(config["schema_path"])
+        if "policy_dir" in config:
+            settings["policy_dir"] = Path(config["policy_dir"])
+
+    if args.profile:
+        settings["profile"] = args.profile
+    if args.listen_host:
+        settings["listen_host"] = args.listen_host
+    if args.listen_port is not None:
+        settings["listen_port"] = args.listen_port
+    if args.forward_host:
+        settings["forward_host"] = args.forward_host
+    if args.forward_port is not None:
+        settings["forward_port"] = args.forward_port
+    if args.cot_host:
+        settings["cot_host"] = args.cot_host
+    if args.cot_port is not None:
+        settings["cot_port"] = args.cot_port
+    if args.schema_path:
+        settings["schema_path"] = Path(args.schema_path)
+    if args.policy_dir:
+        settings["policy_dir"] = Path(args.policy_dir)
+    if args.emit_cot:
+        settings["emit_cot"] = True
+    if args.no_emit_cot:
+        settings["emit_cot"] = False
+
+    if settings["profile"] not in PROFILE_CHOICES:
+        raise ValueError("profile is required and must be one of L, M, H")
+    settings["listen_port"] = _validate_port(settings["listen_port"], "listen_port")
+    settings["forward_port"] = _validate_port(settings["forward_port"], "forward_port")
+    settings["cot_port"] = _validate_port(settings["cot_port"], "cot_port")
+
+    if not settings["schema_path"].is_file():
+        raise FileNotFoundError(f"schema not found: {settings['schema_path']}")
+    if not settings["policy_dir"].is_dir():
+        raise FileNotFoundError(f"policy dir not found: {settings['policy_dir']}")
+
+    return settings
 
 
 def build_violation_event(reason_code, original=None, details=None):
@@ -252,41 +364,55 @@ def process_message(message, validator, policy, profile, dedupe_cache):
 
 def parse_args():
     parser = argparse.ArgumentParser(description="ZMeta minimal reference gateway")
-    parser.add_argument("--profile", choices=["L", "M", "H"], required=True)
-    parser.add_argument("--emit-cot", action="store_true")
+    parser.add_argument("--config", help="Path to gateway config JSON")
+    parser.add_argument("--profile", choices=sorted(PROFILE_CHOICES))
+    parser.add_argument("--listen-host")
+    parser.add_argument("--listen-port", type=int)
+    parser.add_argument("--forward-host")
+    parser.add_argument("--forward-port", type=int)
+    parser.add_argument("--cot-host")
+    parser.add_argument("--cot-port", type=int)
+    parser.add_argument("--schema-path")
+    parser.add_argument("--policy-dir")
+    emit_group = parser.add_mutually_exclusive_group()
+    emit_group.add_argument("--emit-cot", action="store_true")
+    emit_group.add_argument("--no-emit-cot", action="store_true")
     return parser.parse_args()
 
 
 def main():
     args = parse_args()
     root = Path(__file__).resolve().parents[2]
-    schema_path = root / "schema" / "zmeta-event-1.0.schema.json"
-    policy_dir = root / "policy"
+    try:
+        config = load_config(args.config)
+        settings = build_settings(root, args, config)
+    except (ValueError, FileNotFoundError) as exc:
+        raise SystemExit(str(exc))
 
-    validator = load_schema(schema_path)
-    policy = load_policy(policy_dir)
+    validator = load_schema(settings["schema_path"])
+    policy = load_policy(settings["policy_dir"])
 
-    listen_addr = ("0.0.0.0", 5555)
-    forward_addr = ("127.0.0.1", 5556)
+    listen_addr = (settings["listen_host"], settings["listen_port"])
+    forward_addr = (settings["forward_host"], settings["forward_port"])
 
     sock_in = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     sock_in.bind(listen_addr)
     sock_out = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
-    print(f"gateway listening on {listen_addr[0]}:{listen_addr[1]} (profile {args.profile})")
+    print(f"gateway listening on {listen_addr[0]}:{listen_addr[1]} (profile {settings['profile']})")
     print(f"forwarding to {forward_addr[0]}:{forward_addr[1]}")
 
     dedupe_cache = TaskDedupeCache()
 
-    cot_addr = ("127.0.0.1", 6969)
+    cot_addr = (settings["cot_host"], settings["cot_port"])
 
     while True:
         data, _addr = sock_in.recvfrom(65535)
-        out_events = process_message(data, validator, policy, args.profile, dedupe_cache)
+        out_events = process_message(data, validator, policy, settings["profile"], dedupe_cache)
         for outgoing in out_events:
             payload = json.dumps(outgoing, separators=(",", ":"), ensure_ascii=True).encode("utf-8")
             sock_out.sendto(payload, forward_addr)
-            if args.emit_cot:
+            if settings["emit_cot"]:
                 cot_xml = zmeta_to_cot(outgoing)
                 if cot_xml:
                     sock_out.sendto(cot_xml.encode("utf-8"), cot_addr)

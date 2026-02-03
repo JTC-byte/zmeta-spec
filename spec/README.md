@@ -6,3 +6,4 @@ Key documents:
 - `semantics-contract.md` canonical semantic contract (normative)
 - `versioning.md` versioning and compatibility policy
 - `quickstart.md` runnable reference workflow (if present)
+- `installation-guide.md` packaging and deterministic install guidance

@@ -239,6 +239,14 @@
         "ts": {
           "type": "string",
           "format": "date-time"
+        },
+        "t_publish": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "t_receive": {
+          "type": "string",
+          "format": "date-time"
         }
       }
     },

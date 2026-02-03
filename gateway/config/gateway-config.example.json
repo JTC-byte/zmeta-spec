@@ -1,0 +1,18 @@
+{
+  "profile": "H",
+  "listen": {
+    "host": "0.0.0.0",
+    "port": 5555
+  },
+  "forward": {
+    "host": "127.0.0.1",
+    "port": 5556
+  },
+  "emit_cot": false,
+  "cot": {
+    "host": "127.0.0.1",
+    "port": 6969
+  },
+  "schema_path": "schema/zmeta-event-1.0.schema.json",
+  "policy_dir": "policy"
+}

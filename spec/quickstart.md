@@ -4,6 +4,17 @@
 
 - Python 3.11+ (3.13 recommended)
 - Docker + Docker Compose
+- Windows Docker Desktop requires virtualization + WSL2 enabled.
+
+Install runtime dependencies:
+```
+python -m pip install -r requirements.txt
+```
+
+Optional (tests/dev tools):
+```
+python -m pip install -r requirements-dev.txt
+```
 
 ## Run gateway via docker-compose
 
@@ -14,6 +25,11 @@ docker compose up
 ```
 
 This listens on UDP `0.0.0.0:5555` and forwards to `127.0.0.1:5556`.
+
+If Docker is unavailable, run the gateway directly:
+```
+python gateway/src/gateway.py --profile H
+```
 
 ## Run udp_receiver on 5556
 
@@ -33,6 +49,12 @@ python tools/replay.py --file examples/zmeta-examples-1.0.jsonl --host 127.0.0.1
 
 ```
 python tools/replay.py --file examples/zmeta-command-examples.jsonl --host 127.0.0.1 --port 5555
+```
+
+## Live gateway test (dedupe + CoT)
+
+```
+python tools/test_gateway_live.py
 ```
 
 ## What success looks like

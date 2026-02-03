@@ -1,0 +1,6 @@
+{
+  "schema_id": "vendor:example_rf:v1",
+  "pack_slug": "example-vendor-pack",
+  "version": "1.0.0",
+  "description": "Example mapping pack for RF sensor payloads."
+}

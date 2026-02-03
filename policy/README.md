@@ -11,3 +11,7 @@ Files:
 
 Normative compliance is defined by the semantic contract and schema; this policy pack
 drives reference enforcement behavior.
+
+Notes:
+- `routing.yaml` producer rules support `allowed_event_types` and `allowed_event_subtypes`
+  for fine-grained gating, plus `forbidden_event_types` for hard blocks.

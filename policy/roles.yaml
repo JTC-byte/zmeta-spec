@@ -2,7 +2,6 @@ roles:
   EDGE:
     allowed_event_types:
       - OBSERVATION_EVENT
-      - STATE_EVENT
       - SYSTEM_EVENT
   GATEWAY:
     allowed_event_types:
