@@ -1,7 +1,7 @@
 import json
 from datetime import datetime, timezone
 from pathlib import Path
-import uuid
+from zmeta_uuid import uuid7
 
 import yaml
 from jsonschema import Draft202012Validator, FormatChecker
@@ -54,7 +54,7 @@ def emit_schema_violation(original_event_id, source_platform_id, producer, detai
     return {
         "zmeta_version": "1.0",
         "event": {
-            "event_id": str(uuid.uuid4()),
+            "event_id": str(uuid7()),
             "event_type": "SYSTEM_EVENT",
             "event_subtype": "SCHEMA_VIOLATION",
             "ts": _utc_now(),

@@ -1,4 +1,4 @@
-import uuid
+from zmeta_uuid import uuid7
 from datetime import datetime, timezone
 
 
@@ -52,6 +52,14 @@ def jreap_track_dict_to_zmeta_track_state(track: dict) -> dict:
     ts = track.get("timestamp") or track.get("time") or track.get("ts") or _iso_now()
     valid_for_ms = _compute_valid_for_ms(ts, track.get("stale_time") or track.get("stale"))
 
+    confidence = track.get("confidence")
+    if confidence is None:
+        raise ValueError("track must include confidence")
+
+    based_on = track.get("based_on") or track.get("lineage")
+    if not based_on:
+        raise ValueError("track must include based_on lineage event ids")
+
     payload = {
         "track_id": str(track_id),
         "geo": {"lat": lat, "lon": lon, "alt_m": hae_m},
@@ -64,7 +72,7 @@ def jreap_track_dict_to_zmeta_track_state(track: dict) -> dict:
     event = {
         "zmeta_version": "1.0",
         "event": {
-            "event_id": str(uuid.uuid4()),
+            "event_id": str(uuid7()),
             "event_type": "STATE_EVENT",
             "event_subtype": "TRACK_STATE",
             "ts": ts,
@@ -75,10 +83,11 @@ def jreap_track_dict_to_zmeta_track_state(track: dict) -> dict:
             "producer": str(track.get("producer") or "jreap-ingress"),
         },
         "payload": payload,
-        "lineage": {"based_on": [], "transform": "translate:jreap@template"},
+        "confidence": confidence,
+        "lineage": {
+            "based_on": [str(item) for item in based_on],
+            "transform": "translate:jreap@template",
+        },
     }
-
-    if "confidence" in track and track["confidence"] is not None:
-        event["confidence"] = track["confidence"]
 
     return event

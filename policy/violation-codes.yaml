@@ -13,7 +13,13 @@ violation_codes:
     severity: fail
   - code: OBSERVATION_HAS_IDENTITY
     severity: fail
+  - code: INFERENCE_HAS_TRACK_ID
+    severity: fail
   - code: STATE_HAS_RAW_FEATURES
     severity: fail
   - code: TASK_ACK_MISSING_TASK_ID
     severity: warn
+  - code: TASK_ACK_MISSING_REQUIRED_FIELD
+    severity: warn
+  - code: PRODUCER_NOT_ALLOWED
+    severity: fail

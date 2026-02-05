@@ -8,3 +8,4 @@ Notes:
 - This is NOT a STANAG 4609 binary encoder.
 - Output is a tag dict intended for external video pipelines to embed.
 - Input is limited to ZMeta `OBSERVATION_EVENT`.
+- This is a sensor-metadata projection, not an operator-facing track state.

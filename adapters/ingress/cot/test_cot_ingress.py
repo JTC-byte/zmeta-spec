@@ -4,6 +4,7 @@ from pathlib import Path
 from jsonschema import Draft202012Validator
 
 from adapters.ingress.cot.cot_to_zmeta_template import cot_dict_to_zmeta_track_state
+from zmeta_uuid import uuid7
 
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -20,6 +21,7 @@ def test_cot_to_track_state_schema_valid():
         "stale": "2025-01-17T15:20:05Z",
         "point": {"lat": 34.0, "lon": -118.0, "hae": 120.0},
         "confidence": 0.7,
+        "based_on": [str(uuid7())],
     }
 
     event = cot_dict_to_zmeta_track_state(cot)

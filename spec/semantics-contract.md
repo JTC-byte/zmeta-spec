@@ -4,6 +4,20 @@
 
 **Purpose:** This document captures the *agreed semantic foundations* that govern ZMeta. It is intended to precede and constrain the formal ZMeta v1.0 schema. As additional sections are finalized (Units & Geodesy, Schema, Profiles), they will be appended to this document.
 
+## 0. Operating Model (Non-Normative)
+
+ZMeta is a translation- and transport-agnostic metadata layer that decouples sensors, gateways, and visualization systems.
+
+- Sensors and vendors can emit any native format; mapping packs normalize to ZMeta OBSERVATION events.
+- The semantic pipeline is Observation -> Inference -> Fusion -> State. STATE_EVENT is a snapshot summary of best available belief.
+- Profiles (L/M/H) thin what is exported to match bandwidth without changing meaning.
+- STATE_EVENT is the projection point for visualization/interop formats (e.g., CoT for TAK, JREAP/Link 16 gateways).
+- COMMAND_EVENT carries low-rate cueing/retasking when links are constrained and must route through a Comms/Deconfliction Node.
+- Raw data used to generate a snapshot SHOULD be retained locally for AAR and deeper analysis; snapshots may reference local stores or external IDs when available.
+- Optional data references may be attached as lightweight pointers; these references never replace or reinterpret the event payload.
+
+These constraints let you plug systems together while preserving near-real-time fidelity under bandwidth constraints.
+
 ## 1. Core Semantic Contract (Pre-Schema)
 
 The following semantics are **locked** and non-negotiable for the MVP. All schema design, partner integrations, and demos must conform to these rules.
@@ -20,7 +34,7 @@ The following semantics are **locked** and non-negotiable for the MVP. All schem
 - Once emitted, an event is never modified or deleted.
 - Corrections, reinterpretations, or refinements must be represented as **new events** with lineage references.
 
-### 1.3 Layer Separation (Fact → Opinion → Belief → State)
+### 1.3 Layer Separation (Fact -> Opinion -> Belief -> State)
 
 ZMeta enforces strict separation between semantic layers:
 
@@ -37,6 +51,11 @@ No layer may collapse into another. Violations are considered contract breaches.
 - AI/analytics modules may emit **Inference** events only.
 - Fusion nodes are the only components permitted to create **Track identity**.
 - Operator interfaces (e.g., TAK) **do not author or modify ZMeta events**.
+
+Note: `node_role` expresses deployment tier, not physical location. If analytics or fusion runs on-device,
+use a non-EDGE role (e.g., GATEWAY) for those producers to preserve authority boundaries.
+If a single software stack performs multiple roles (e.g., analytics + fusion), it MUST respect
+the event-type boundaries above and MAY emit separate producer identities for each role.
 
 ### 1.5 Transport Is Non-Semantic
 
@@ -65,6 +84,11 @@ No layer may collapse into another. Violations are considered contract breaches.
   - State
 - Lineage enables auditability, AARs, debugging, and trust assessment.
 
+Lineage scope:
+- Lineage SHOULD reference immediate parent events only (not full ancestry) to keep payloads bounded.
+- Full ancestry MAY be reconstructed from local storage or AAR data stores when needed.
+- Under constrained profiles (especially Profile L), lineage MAY reference non-exported events; consumers must tolerate unresolved references.
+
 ### 1.8 Explicit Uncertainty
 
 - ZMeta never implies certainty by omission.
@@ -78,11 +102,8 @@ No layer may collapse into another. Violations are considered contract breaches.
 - A narrow, explicitly-scoped mission tasking capability is permitted via ZMeta only for degraded profiles (e.g., Profile M/L), to preserve tipping/cueing and waypoint-level autonomy when other links are constrained.
 
 **The Comms/Deconfliction Node is responsible for:**
-
-- Converting permitted mission tasks into      MAVLink/Swarm API tasking for execution
-
+- Converting permitted mission tasks into MAVLink/Swarm API tasking for execution
 - Deconflicting airspace and mission intent
-
 - Validating and deduplicating task messages
 
 AI/analytics producers (e.g., Torch) SHALL NOT directly command platforms.
@@ -93,17 +114,14 @@ All mission tasking carried in ZMeta SHALL be routed through a designated Comms/
 
 Permitted via ZMeta (strict):
 
-• Low-rate cueing / retask messages
-
-• Discrete waypoint / GPS mission updates (e.g.,   GOTO, ORBIT, HOLD, SEARCH_BOX)
+- Low-rate cueing / retask messages
+- Discrete waypoint / GPS mission updates (e.g., GOTO, ORBIT, HOLD, SEARCH_BOX)
 
 Not permitted via ZMeta:
 
-• Safety-critical actuator commands without deconfliction
-
-• High-rate flight control
-
-• Continuous control loops
+- Safety-critical actuator commands without deconfliction
+- High-rate flight control
+- Continuous control loops
 
 ### 1.11 Vendor Extensibility Rules
 
@@ -164,9 +182,9 @@ If only one field can be supported, est_error_ms is **mandatory** for RF use cas
 ### 2.5 Minimum Acceptable Sync Approaches (MVP)
 
 - **Preferred (Gold):** GPS PPS disciplined clock per node
-  - Expected error: ≤ 1 ms
+  - Expected error: <= 1 ms
 - **Acceptable (Silver):** NTP-disciplined clock on stable network
-  - Expected error: ~10–50 ms
+  - Expected error: ~10-50 ms
 - **Degraded (Bronze):** Unsynced clocks
   - Must be flagged as UNSYNCED with realistic error bounds
 
@@ -205,10 +223,10 @@ This section defines the **mandatory geospatial and unit conventions** used by Z
 
 ### 3.1 Coordinate Reference System
 
-- All geospatial coordinates shall use **WGS‑84**.
+- All geospatial coordinates shall use **WGS-84**.
 - Latitude and longitude shall be expressed in **decimal degrees**.
-- Latitude range: −90.0 to +90.0
-- Longitude range: −180.0 to +180.0
+- Latitude range: -90.0 to +90.0
+- Longitude range: -180.0 to +180.0
 
 No alternative datums or coordinate systems are permitted in ZMeta v1.0.
 
@@ -218,36 +236,36 @@ No alternative datums or coordinate systems are permitted in ZMeta v1.0.
 - Units: **meters**
 - Altitude field names shall explicitly imply HAE (e.g., alt_m).
 
-Mean Sea Level (MSL), Above Ground Level (AGL), or terrain‑relative heights are **not permitted** in ZMeta v1.0.
+Mean Sea Level (MSL), Above Ground Level (AGL), or terrain-relative heights are **not permitted** in ZMeta v1.0.
 
 ### 3.3 Velocity and Motion
 
 - Linear speed: **meters per second (m/s)**
-- Velocity vectors, when present, shall be earth‑referenced unless explicitly stated otherwise.
-- Acceleration (if present): **meters per second squared (m/s²)**
+- Velocity vectors, when present, shall be earth-referenced unless explicitly stated otherwise.
+- Acceleration (if present): **meters per second squared (m/s^2)**
 
 ### 3.4 Bearings, Angles, and Orientation
 
 - Bearings and headings shall be expressed in **degrees**.
 - Reference: **true north** (not magnetic).
-- Range: 0–360 degrees, increasing clockwise.
+- Range: 0-360 degrees, increasing clockwise.
 
 Pitch, roll, and yaw (if present) shall also be expressed in degrees.
 
 ### 3.5 Distance and Range
 
 - All distances and ranges shall be expressed in **meters**.
-- No mixed‑unit or implicit unit representations are allowed.
+- No mixed-unit or implicit unit representations are allowed.
 
-### 3.6 RF‑Specific Units
+### 3.6 RF-Specific Units
 
 - Frequency: **Hertz (Hz)**
 - Bandwidth: **Hertz (Hz)**
 - Power: **decibels referenced to one milliwatt (dBm)** unless explicitly stated otherwise
 
-If alternate RF units are used internally (e.g., dBFS), they must be converted before emission into ZMeta or clearly labeled with unit‑specific field names.
+If alternate RF units are used internally (e.g., dBFS), they must be converted before emission into ZMeta or clearly labeled with unit-specific field names.
 
-### 3.7 Time Units (Cross‑Reference)
+### 3.7 Time Units (Cross-Reference)
 
 - All timestamps are expressed in **UTC**.
 - Durations and time deltas are expressed in **milliseconds (ms)** unless otherwise specified.
@@ -263,7 +281,8 @@ If alternate RF units are used internally (e.g., dBFS), they must be converted b
 ### 3.9 Degraded or Partial Geospatial Data
 
 - Events with incomplete geospatial information may still be emitted.
-- Missing fields must be omitted (not zero‑filled).
+- `geo` is all-or-nothing: if any of lat/lon/alt_m is missing, omit `geo` entirely.
+- Missing fields must be omitted (not zero-filled).
 - Confidence and quality metadata must reflect reduced spatial certainty.
 
 ## 4. ZMeta v1.0 Schema (Normative)
@@ -293,7 +312,7 @@ ZMetaEvent {
     sw_version?: string
   }
   payload: OBJECT   // Defined by event_type
-  confidence: float // 0.0 – 1.0 (worst-case interpretation)
+  confidence: float // 0.0 - 1.0 (worst-case interpretation)
   lineage?: {
     based_on: UUIDv7[]
     transform?: string
@@ -301,7 +320,10 @@ ZMetaEvent {
 }
 ```
 
-**Envelope Rules:** - Envelope fields are **immutable and globally consistent**. - payload semantics are determined exclusively by event_type and event_subtype. - confidence is mandatory for INFERENCE/FUSION/STATE events (not for OBSERVATION/COMMAND/SYSTEM).
+**Envelope Rules:**
+- Envelope fields are **immutable and globally consistent**.
+- Payload semantics are determined exclusively by event_type and event_subtype.
+- confidence is mandatory for INFERENCE/FUSION/STATE events (not for OBSERVATION/COMMAND/SYSTEM).
 
 ### 4.2 Event Types (Authoritative)
 
@@ -335,7 +357,11 @@ ObservationPayload {
 }
 ```
 
-**Rules:** - No track_id permitted - No entity_class permitted - No classification/label permitted - ts represents capture time or midpoint of window
+**Rules:**
+- No track_id permitted
+- No entity_class permitted
+- No classification/label permitted
+- ts represents capture time or midpoint of window
 
 **Quality guidance:** `payload.quality` is the place for observation measurement quality and uncertainty
 (e.g., SNR, error bounds, timing quality, calibration state). Do not use envelope
@@ -369,7 +395,10 @@ InferencePayload {
 }
 ```
 
-**Rules:** - Must reference upstream observations - Must not emit track_id - Confidence reflects model belief, not truth
+**Rules:**
+- Must reference upstream observations
+- Must not emit track_id
+- Confidence reflects model belief, not truth
 
 ### 4.5 FUSION_EVENT
 
@@ -391,7 +420,9 @@ FusionPayload {
 }
 ```
 
-**Rules:** - Only fusion nodes may create track_id - Track identity is provisional and revisable
+**Rules:**
+- Only fusion nodes may create track_id
+- Track identity is provisional and revisable
 
 ### 4.6 STATE_EVENT
 
@@ -411,7 +442,11 @@ TrackStatePayload {
 }
 ```
 
-**Rules:** - This is the **only** payload translated to CoT - Derived from FusionEvents - No raw sensor features allowed
+**Rules:**
+- This is the **only** payload translated to operator-facing track projections (e.g., CoT/TAK, JREAP/Link 16 gateways).
+- Sensor-metadata projections (e.g., KLV-style observation exports) remain OBSERVATION-based and are not operator track state.
+- Derived from FusionEvents
+- No raw sensor features allowed
 
 ### 4.7 COMMAND_EVENT
 
@@ -432,7 +467,11 @@ CommandPayload {
 }
 ```
 
-Rules: - Not continuous control - Must be idempotent (dedupe by task_id) - Must route through Comms/Deconfliction Node - Executed out-of-band via MAVLink/Swarm API
+**Rules:**
+- Not continuous control
+- Must be idempotent (dedupe by task_id)
+- Must route through Comms/Deconfliction Node
+- Executed out-of-band via MAVLink/Swarm API
 - `task_id` MUST be treated as an idempotent key across retransmissions.
 - COMMAND_EVENT SHALL NOT specify altitude. Vertical deconfliction and altitude selection are the responsibility of the autonomy layer.
 
@@ -454,9 +493,9 @@ Used for diagnostics, AARs, and gating fusion logic.
 
 ### 4.9 Profile Compliance
 
-Profiles define **transport-driven transmission constraints**, not semantic shortcuts. The internal semantic pipeline (Observation → Inference → Fusion → State) remains valid in all profiles; profiles constrain **what is exported** and **at what fidelity**.
+Profiles define **transport-driven transmission constraints**, not semantic shortcuts. The internal semantic pipeline (Observation -> Inference -> Fusion -> State) remains valid in all profiles; profiles constrain **what is exported** and **at what fidelity**.
 
-#### Profile L (LoRa Thin) — Severe Constraint / Denied Environment
+#### Profile L (LoRa Thin) - Severe Constraint / Denied Environment
 
 **Purpose:** Preserve operator-relevant awareness under extreme bandwidth constraint.
 
@@ -465,6 +504,7 @@ Profiles define **transport-driven transmission constraints**, not semantic shor
 - Transmit: STATE_EVENT, SYSTEM_EVENT, and COMMAND_EVENT (mission directives only).
 
 - Behavior: Nodes SHALL perform whatever local processing is necessary to emit an honest, time-bounded STATE_EVENT reflecting the best available belief.
+- Lineage MUST still be included even when upstream events are not transmitted; references may point to non-exported local events.
 - COMMAND_EVENT is permitted only for discrete waypoint / GPS mission directives and must be TTL-bound, idempotent (task_id), and routed through the Comms/Deconfliction Node.
 
 - **Uncertainty:** Confidence, timing quality, and short TTL **MUST** explicitly reflect degraded conditions.
@@ -475,7 +515,7 @@ Profiles define **transport-driven transmission constraints**, not semantic shor
 
 **Rationale:** The pipe can carry belief-state only; exporting belief-state preserves semantics while respecting the link.
 
-#### Profile M (IP Radio) — Constrained IP / Intermittent Backhaul
+#### Profile M (IP Radio) - Constrained IP / Intermittent Backhaul
 
 **Purpose:** Balance fidelity and robustness on bandwidth-limited IP links.
 
@@ -492,7 +532,7 @@ Profiles define **transport-driven transmission constraints**, not semantic shor
 
 **Rationale:** Profile M enables selective richness without changing meaning.
 
-#### Profile H (LTE Fat) — Full Fidelity / Preferred Operation
+#### Profile H (LTE Fat) - Full Fidelity / Preferred Operation
 
 **Purpose:** Maximize observability and analytic potential when bandwidth permits.
 
@@ -510,3 +550,40 @@ Profiles define **transport-driven transmission constraints**, not semantic shor
 **Rationale:** Full fidelity enables best fusion, auditability, and downstream projection.
 
 **Profile Rule (Global):** Profiles may remove fields or reduce rate/precision, but **never reinterpret meaning** or rename fields.
+
+## Appendix A (Informative): Data Reference Convention (Optional)
+
+Some deployments retain raw data locally or in upstream stores for AAR, reprocessing, or vectorization. To link
+lightweight ZMeta events to those datasets without inflating payloads, use an optional reference pointer.
+
+Guidance:
+- Use `payload.data_ref` for a single pointer, or `payload.data_refs` for multiple pointers.
+- References are metadata only; they must not contain raw data or override event semantics.
+- References may point to local storage, gateway caches, or external data stores.
+
+Recommended fields (all optional except `ref_id`):
+- ref_id: string (unique within the referenced store)
+- store: string (e.g., "local", "gateway-cache", "s3-bucket:region/path")
+- kind: RAW | VECTOR | FILE
+- format: string (e.g., "iq", "wav", "mp4", "pcap", "npy")
+- hash: string (e.g., "sha256:...") 
+- size_bytes: integer
+- t_start: UTC_TIMESTAMP
+- t_end: UTC_TIMESTAMP
+
+Example:
+```
+payload: {
+  ...,
+  data_ref: {
+    ref_id: "rf-capture-20250117-143000Z-0001",
+    store: "local",
+    kind: "RAW",
+    format: "iq",
+    hash: "sha256:abc123...",
+    size_bytes: 10485760,
+    t_start: "2025-01-17T14:29:58Z",
+    t_end: "2025-01-17T14:30:02Z"
+  }
+}
+```

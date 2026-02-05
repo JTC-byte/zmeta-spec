@@ -1,4 +1,4 @@
-import uuid
+from zmeta_uuid import uuid7
 
 
 def klv_decoded_to_zmeta_observation(
@@ -19,7 +19,7 @@ def klv_decoded_to_zmeta_observation(
     event = {
         "zmeta_version": "1.0",
         "event": {
-            "event_id": str(uuid.uuid4()),
+            "event_id": str(uuid7()),
             "event_type": "OBSERVATION_EVENT",
             "event_subtype": "KLV_OBSERVATION",
             "ts": ts,

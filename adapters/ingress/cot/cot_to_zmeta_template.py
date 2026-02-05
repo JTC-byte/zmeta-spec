@@ -1,4 +1,4 @@
-import uuid
+from zmeta_uuid import uuid7
 from datetime import datetime, timezone
 
 
@@ -58,6 +58,17 @@ def cot_dict_to_zmeta_track_state(cot: dict) -> dict:
     ts = base_ts or _iso_now()
     valid_for_ms = _compute_valid_for_ms(base_ts, cot.get("stale"))
 
+    confidence = _extract_confidence(cot)
+    if confidence is None:
+        raise ValueError("cot must include confidence for STATE_EVENT")
+
+    detail = cot.get("detail")
+    based_on = cot.get("based_on")
+    if based_on is None and isinstance(detail, dict):
+        based_on = detail.get("based_on")
+    if not based_on:
+        raise ValueError("cot must include based_on lineage event ids")
+
     payload = {
         "track_id": str(uid),
         "geo": {"lat": lat, "lon": lon, "alt_m": hae},
@@ -70,7 +81,7 @@ def cot_dict_to_zmeta_track_state(cot: dict) -> dict:
     event = {
         "zmeta_version": "1.0",
         "event": {
-            "event_id": str(uuid.uuid4()),
+            "event_id": str(uuid7()),
             "event_type": "STATE_EVENT",
             "event_subtype": "TRACK_STATE",
             "ts": ts,
@@ -81,11 +92,11 @@ def cot_dict_to_zmeta_track_state(cot: dict) -> dict:
             "producer": str(cot.get("producer") or "cot-ingress"),
         },
         "payload": payload,
-        "lineage": {"based_on": [], "transform": "translate:cot@template"},
+        "confidence": confidence,
+        "lineage": {
+            "based_on": [str(item) for item in based_on],
+            "transform": "translate:cot@template",
+        },
     }
-
-    confidence = _extract_confidence(cot)
-    if confidence is not None:
-        event["confidence"] = confidence
 
     return event

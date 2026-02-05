@@ -30,5 +30,5 @@ deny:
     node_role: EDGE
     event_type: COMMAND_EVENT
   - name: no_command_from_torch
-    producer: Torch
+    producer: torch
     event_type: COMMAND_EVENT

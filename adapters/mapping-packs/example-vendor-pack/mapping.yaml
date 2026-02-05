@@ -17,4 +17,5 @@ payload:
   geo.lon: input.lon
   geo.alt_m: input.alt_m
   features.center_freq_hz: input.center_freq_hz
+  features.bandwidth_hz: input.bandwidth_hz
   features.power_dbm: input.power_dbm

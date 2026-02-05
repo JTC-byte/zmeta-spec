@@ -5,7 +5,7 @@ def test_observation_to_klv_tagdict():
     event = {
         "zmeta_version": "1.0",
         "event": {
-            "event_id": "7b9a8f9a-2d2a-4c3f-9e6b-7a7f3a6d2c10",
+            "event_id": "019c2b5d-0ba0-7536-ad67-ba859248dc5c",
             "event_type": "OBSERVATION_EVENT",
             "event_subtype": "RF_OBSERVATION",
             "ts": "2025-01-17T15:20:00Z",
@@ -18,7 +18,11 @@ def test_observation_to_klv_tagdict():
         },
         "payload": {
             "modality": "RF",
-            "features": {"center_freq_hz": 2450000000},
+            "features": {
+                "center_freq_hz": 2450000000,
+                "bandwidth_hz": 20000000,
+                "power_dbm": -35.2,
+            },
             "geo": {"lat": 34.0, "lon": -118.0, "alt_m": 120.0},
         },
     }

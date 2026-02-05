@@ -1,7 +1,7 @@
 import shutil
 from pathlib import Path
 
-VERSION = "1.0.1"
+VERSION = "1.0.2"
 
 
 def collect_sources(root):

@@ -1,11 +1,11 @@
-import uuid
+from zmeta_uuid import uuid7
 
 
 def _make_event(system_type, state, *, platform_id, producer, ts, metrics=None):
     event = {
         "zmeta_version": "1.0",
         "event": {
-            "event_id": str(uuid.uuid4()),
+            "event_id": str(uuid7()),
             "event_type": "SYSTEM_EVENT",
             "event_subtype": system_type,
             "ts": ts,
@@ -53,6 +53,12 @@ def mavlink_decoded_to_zmeta_system_events(
     if "time_usec" in msg or "gps_time" in msg or msg_type in {"SYSTEM_TIME", "TIMESYNC"}:
         state = msg.get("state") or "SYNCED"
         metrics = {}
+        metrics["time_source"] = msg.get("time_source") or "UNKNOWN"
+        metrics["sync_state"] = msg.get("sync_state") or "UNSYNCED"
+        metrics["est_error_ms"] = msg.get("est_error_ms")
+        metrics["last_sync_ts"] = msg.get("last_sync_ts")
+        if metrics["est_error_ms"] is None or metrics["last_sync_ts"] is None:
+            raise ValueError("TIME_STATUS requires est_error_ms and last_sync_ts")
         if "time_usec" in msg:
             metrics["time_usec"] = msg["time_usec"]
         if "gps_time" in msg:

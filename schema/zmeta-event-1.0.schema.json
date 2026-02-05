@@ -172,7 +172,8 @@
         "properties": {
           "payload": {
             "$ref": "#/$defs/CommandPayload"
-          }
+          },
+          "confidence": false
         }
       }
     },
@@ -198,7 +199,8 @@
         "properties": {
           "payload": {
             "$ref": "#/$defs/SystemPayload"
-          }
+          },
+          "confidence": false
         }
       }
     }
@@ -206,7 +208,7 @@
   "$defs": {
     "uuid": {
       "type": "string",
-      "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$"
+      "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$"
     },
     "event": {
       "type": "object",
@@ -392,7 +394,45 @@
           "type": "string",
           "format": "date-time"
         }
-      }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "modality": {
+                "const": "RF"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "features": {
+                "type": "object",
+                "additionalProperties": true,
+                "required": [
+                  "center_freq_hz",
+                  "bandwidth_hz",
+                  "power_dbm"
+                ],
+                "properties": {
+                  "center_freq_hz": {
+                    "type": "number"
+                  },
+                  "bandwidth_hz": {
+                    "type": "number"
+                  },
+                  "power_dbm": {
+                    "type": "number"
+                  },
+                  "signature_hash": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        }
+      ]
     },
     "InferencePayload": {
       "type": "object",
@@ -609,7 +649,63 @@
         "metrics": {
           "type": "object"
         }
-      }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "system_type": {
+                "const": "TIME_STATUS"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "metrics"
+            ],
+            "properties": {
+              "metrics": {
+                "type": "object",
+                "required": [
+                  "time_source",
+                  "sync_state",
+                  "est_error_ms",
+                  "last_sync_ts"
+                ],
+                "properties": {
+                  "time_source": {
+                    "type": "string",
+                    "enum": [
+                      "GPS_PPS",
+                      "GPS_NMEA",
+                      "NTP",
+                      "PTP",
+                      "MANUAL",
+                      "UNKNOWN"
+                    ]
+                  },
+                  "sync_state": {
+                    "type": "string",
+                    "enum": [
+                      "LOCKED",
+                      "HOLDOVER",
+                      "UNSYNCED"
+                    ]
+                  },
+                  "est_error_ms": {
+                    "type": "number",
+                    "minimum": 0
+                  },
+                  "last_sync_ts": {
+                    "type": "string",
+                    "format": "date-time"
+                  }
+                }
+              }
+            }
+          }
+        }
+      ]
     },
     "lineage": {
       "type": "object",
@@ -620,7 +716,7 @@
       "properties": {
         "based_on": {
           "type": "array",
-          "minItems": 0,
+          "minItems": 1,
           "items": {
             "$ref": "#/$defs/uuid"
           }

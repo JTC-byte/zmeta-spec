@@ -90,7 +90,7 @@ import socket
 msg = {
   "zmeta_version": "1.0",
   "event": {
-    "event_id": "7b9a8f9a-2d2a-4c3f-9e6b-7a7f3a6d2c10",
+    "event_id": "019c2b5d-7c82-7388-8c21-50e4f126d7a0",
     "event_type": "COMMAND_EVENT",
     "event_subtype": "MISSION_TASK",
     "ts": "2025-01-17T14:32:10Z"

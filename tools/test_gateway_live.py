@@ -50,7 +50,7 @@ def main():
         cmd_event = {
             "zmeta_version": "1.0",
             "event": {
-                "event_id": "22222222-2222-4333-8444-555555555555",
+                "event_id": "019c2b5d-4cd9-770e-b02d-55d63910a2e7",
                 "event_type": "COMMAND_EVENT",
                 "event_subtype": "MISSION_TASK",
                 "ts": "2025-01-17T14:31:00Z",
@@ -72,7 +72,7 @@ def main():
         state_event = {
             "zmeta_version": "1.0",
             "event": {
-                "event_id": "33333333-2222-4333-8444-555555555555",
+                "event_id": "019c2b5d-4cd9-770e-b02d-55d71e516898",
                 "event_type": "STATE_EVENT",
                 "event_subtype": "TRACK_STATE",
                 "ts": "2025-01-17T14:31:05Z",
@@ -80,7 +80,7 @@ def main():
             "source": {
                 "platform_id": "fusion-node-01",
                 "node_role": "GATEWAY",
-                "producer": "fusion-engine",
+                "producer": "torch",
             },
             "payload": {
                 "track_id": "track-001",
@@ -88,7 +88,7 @@ def main():
                 "valid_for_ms": 1500,
             },
             "confidence": 0.76,
-            "lineage": {"based_on": ["22222222-2222-4333-8444-555555555555"]},
+            "lineage": {"based_on": ["019c2b5d-4cd9-770e-b02d-55d8793c6fa7"]},
         }
 
         recv = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)

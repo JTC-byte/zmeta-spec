@@ -3,7 +3,6 @@ import json
 import socket
 import sys
 import time
-import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -24,6 +23,7 @@ from validators import (
 )
 
 from adapters.egress.cot.zmeta_to_cot import zmeta_to_cot
+from zmeta_uuid import uuid7
 
 PROFILE_CHOICES = {"L", "M", "H"}
 
@@ -194,7 +194,7 @@ def build_violation_event(reason_code, original=None, details=None):
     return {
         "zmeta_version": "1.0",
         "event": {
-            "event_id": str(uuid.uuid4()),
+            "event_id": str(uuid7()),
             "event_type": "SYSTEM_EVENT",
             "event_subtype": event_subtype,
             "ts": utc_now(),
@@ -229,7 +229,7 @@ def build_warning_event(reason_code, original=None, details=None):
     return {
         "zmeta_version": "1.0",
         "event": {
-            "event_id": str(uuid.uuid4()),
+            "event_id": str(uuid7()),
             "event_type": "SYSTEM_EVENT",
             "event_subtype": "SCHEMA_VIOLATION",
             "ts": utc_now(),
@@ -260,7 +260,7 @@ def build_duplicate_ack(original):
     return {
         "zmeta_version": "1.0",
         "event": {
-            "event_id": str(uuid.uuid4()),
+            "event_id": str(uuid7()),
             "event_type": "SYSTEM_EVENT",
             "event_subtype": "TASK_ACK",
             "ts": utc_now(),

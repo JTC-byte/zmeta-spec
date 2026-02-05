@@ -211,3 +211,13 @@ LOCAL_NOTES.md
 
 # Release artifacts
 release/*.zip
+
+# Local git config override
+.gitconfig-local
+
+# Local smoke artifacts
+release/bundles/
+release/smoke-*/
+
+# Local pytest cache artifacts
+pytest-cache-files-*

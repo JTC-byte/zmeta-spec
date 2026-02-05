@@ -186,6 +186,21 @@ def validate_semantics(event, semantics_policy, severity_map=None):
                 )
             ]
 
+    if event_type == "INFERENCE_EVENT":
+        forbidden = semantics_policy.get("inference_event", {}).get("payload_must_not_contain", [])
+        forbidden_keys = {str(key).lower() for key in forbidden}
+        found = _find_forbidden_key(payload, forbidden_keys)
+        if found:
+            found_key, path = found
+            return False, [
+                _violation(
+                    "INFERENCE_HAS_TRACK_ID",
+                    "inference payload contains track identity",
+                    details={"field": found_key, "path": "/".join(path)},
+                    severity_map=severity_map,
+                )
+            ]
+
     if event_type == "STATE_EVENT":
         forbidden = semantics_policy.get("state_event", {}).get("payload_must_not_contain", [])
         for key in forbidden:
@@ -212,29 +227,46 @@ def validate_semantics(event, semantics_policy, severity_map=None):
                     severity_map=severity_map,
                 )
             ]
-        target_geo = payload.get("target_geo")
-        if isinstance(target_geo, dict):
+        forbidden = semantics_policy.get("command_event", {}).get("payload_must_not_contain", [])
+        if not forbidden:
             forbidden = semantics_policy.get("command_event", {}).get("target_geo_must_not_include", [])
-            for key in forbidden:
-                if key in target_geo:
-                    return False, [
-                        _violation(
-                            "COMMAND_HAS_ALTITUDE",
-                            "target_geo must not include altitude",
-                            details={"field": key},
-                            severity_map=severity_map,
-                        )
-                    ]
+        forbidden_keys = {str(key).lower() for key in forbidden}
+        found = _find_forbidden_key(payload, forbidden_keys) if forbidden_keys else None
+        if found:
+            found_key, path = found
+            return False, [
+                _violation(
+                    "COMMAND_HAS_ALTITUDE",
+                    "command payload must not include altitude",
+                    details={"field": found_key, "path": "/".join(path)},
+                    severity_map=severity_map,
+                )
+            ]
 
     if event_type == "SYSTEM_EVENT":
         if event_subtype == "TASK_ACK" or payload.get("system_type") == "TASK_ACK":
             metrics = payload.get("metrics")
-            if not isinstance(metrics, dict) or "task_id" not in metrics:
+            required_fields = (
+                semantics_policy.get("system_event", {}).get("task_ack_requires_metrics_fields", [])
+            )
+            required_fields = [str(field) for field in required_fields if str(field).strip()]
+            if not isinstance(metrics, dict):
+                missing = required_fields or ["task_id"]
                 return False, [
                     _violation(
-                        "TASK_ACK_MISSING_TASK_ID",
-                        "TASK_ACK metrics requires task_id",
-                        details={"field": "metrics.task_id"},
+                        "TASK_ACK_MISSING_TASK_ID" if "task_id" in missing else "TASK_ACK_MISSING_REQUIRED_FIELD",
+                        "TASK_ACK metrics missing required fields",
+                        details={"missing": missing},
+                        severity_map=severity_map,
+                    )
+                ]
+            missing = [field for field in required_fields if field not in metrics]
+            if missing:
+                return False, [
+                    _violation(
+                        "TASK_ACK_MISSING_TASK_ID" if "task_id" in missing else "TASK_ACK_MISSING_REQUIRED_FIELD",
+                        "TASK_ACK metrics missing required fields",
+                        details={"missing": missing},
                         severity_map=severity_map,
                     )
                 ]
@@ -263,10 +295,22 @@ def validate_routing(event, routing_policy, severity_map=None):
     event_subtype = event.get("event", {}).get("event_subtype")
     producer = (event.get("source", {}).get("producer") or "").strip().lower()
     producer_rules = routing_policy.get("producers", {})
+    enforcement = routing_policy.get("producer_enforcement", {})
+    require_allowlist = enforcement.get("require_allowlist_for_event_types", [])
+    require_allowlist = {str(value).strip() for value in require_allowlist if str(value).strip()}
     if producer_rules:
         normalized_rules = {
             str(key).strip().lower(): value for key, value in producer_rules.items() if str(key).strip()
         }
+        if require_allowlist and event_type in require_allowlist and producer not in normalized_rules:
+            return False, [
+                _violation(
+                    "PRODUCER_NOT_ALLOWED",
+                    "producer not allowlisted for event_type",
+                    details={"event_type": event_type, "producer": producer},
+                    severity_map=severity_map,
+                )
+            ]
         rule = normalized_rules.get(producer)
         if isinstance(rule, dict):
             allowed_types = rule.get("allowed_event_types")

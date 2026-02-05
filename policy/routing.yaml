@@ -1,10 +1,26 @@
 routing:
+  producer_enforcement:
+    require_allowlist_for_event_types:
+      - INFERENCE_EVENT
+      - FUSION_EVENT
+      - STATE_EVENT
+      - COMMAND_EVENT
   command_event:
-    required_origin: SensorOps
-    must_pass_through: SensorOps
+    required_origin: sensorops
+    must_pass_through: sensorops
   producers:
-    Torch:
+    torch:
       allowed_event_types:
         - INFERENCE_EVENT
+        - FUSION_EVENT
+        - STATE_EVENT
       forbidden_event_types:
         - COMMAND_EVENT
+    sensorops:
+      allowed_event_types:
+        - OBSERVATION_EVENT
+        - INFERENCE_EVENT
+        - FUSION_EVENT
+        - STATE_EVENT
+        - COMMAND_EVENT
+        - SYSTEM_EVENT

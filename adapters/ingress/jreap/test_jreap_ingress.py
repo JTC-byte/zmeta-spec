@@ -4,6 +4,7 @@ from pathlib import Path
 from jsonschema import Draft202012Validator
 
 from adapters.ingress.jreap.jreap_track_to_zmeta_template import jreap_track_dict_to_zmeta_track_state
+from zmeta_uuid import uuid7
 
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -22,6 +23,7 @@ def test_jreap_track_to_state_schema_valid():
         "stale_time": "2025-01-17T15:20:05Z",
         "track_type": "UNKNOWN",
         "confidence": 0.6,
+        "based_on": [str(uuid7())],
     }
 
     event = jreap_track_dict_to_zmeta_track_state(track)

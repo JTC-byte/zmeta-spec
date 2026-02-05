@@ -1,7 +1,7 @@
 {
   "zmeta_version": "1.0",
   "event": {
-    "event_id": "d7e8f9a0-b1c2-4d3e-8f90-1a2b3c4d5e6f",
+    "event_id": "019c2b5c-db1e-7307-877c-f5522ac68036",
     "event_type": "OBSERVATION_EVENT",
     "event_subtype": "RF_OBSERVATION",
     "ts": "2025-01-17T15:20:00Z"
@@ -21,7 +21,8 @@
     },
     "features": {
       "center_freq_hz": 915000000,
-      "power_dbm": -42.5
+      "power_dbm": -42.5,
+      "bandwidth_hz": 1000000
     }
   }
 }

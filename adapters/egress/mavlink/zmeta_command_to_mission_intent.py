@@ -1,3 +1,18 @@
+def _contains_altitude(value):
+    if isinstance(value, dict):
+        for key, item in value.items():
+            key_lc = str(key).lower()
+            if key_lc in {"alt", "alt_m", "altitude"}:
+                return True
+            if _contains_altitude(item):
+                return True
+    elif isinstance(value, list):
+        for item in value:
+            if _contains_altitude(item):
+                return True
+    return False
+
+
 def zmeta_command_to_mission_intent(event):
     """
     Convert a ZMeta COMMAND_EVENT to a MissionIntent dict.
@@ -23,7 +38,7 @@ def zmeta_command_to_mission_intent(event):
     target_lat = None
     target_lon = None
     if target_geo is not None:
-        if any(key in target_geo for key in ("alt", "alt_m", "altitude")):
+        if _contains_altitude(target_geo):
             raise ValueError("target_geo must be 2D (lat/lon only)")
         target_lat = target_geo.get("lat")
         target_lon = target_geo.get("lon")
@@ -43,6 +58,8 @@ def zmeta_command_to_mission_intent(event):
 
     geometry = payload.get("geometry")
     if geometry is not None:
+        if _contains_altitude(geometry):
+            raise ValueError("command geometry must not include altitude")
         mission["geometry"] = geometry
 
     return mission

@@ -6,5 +6,6 @@
   "lon": -118.1001,
   "alt_m": 150.0,
   "center_freq_hz": 915000000,
+  "bandwidth_hz": 1000000,
   "power_dbm": -42.5
 }

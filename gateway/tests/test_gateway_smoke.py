@@ -1,7 +1,7 @@
 import importlib.util
 import json
 import unittest
-import uuid
+from zmeta_uuid import uuid7
 from pathlib import Path
 
 
@@ -29,7 +29,7 @@ class GatewaySmokeTest(unittest.TestCase):
         event = {
             "zmeta_version": "1.0",
             "event": {
-                "event_id": str(uuid.uuid4()),
+                "event_id": str(uuid7()),
                 "event_type": "STATE_EVENT",
                 "event_subtype": "TEST",
                 "ts": "2025-01-17T14:32:10Z",
@@ -37,7 +37,7 @@ class GatewaySmokeTest(unittest.TestCase):
             "source": {
                 "platform_id": "platform-1",
                 "node_role": "GATEWAY",
-                "producer": "sensorops",
+                "producer": "torch",
             },
             "payload": {
                 "track_id": "track-1",
@@ -45,7 +45,7 @@ class GatewaySmokeTest(unittest.TestCase):
                 "valid_for_ms": 1000,
             },
             "confidence": 0.9,
-            "lineage": {"based_on": [str(uuid.uuid4())]},
+            "lineage": {"based_on": [str(uuid7())]},
         }
 
         ok, violations = validators.validate_schema(event, self.validator, self.policy["violation_severities"])
@@ -65,7 +65,7 @@ class GatewaySmokeTest(unittest.TestCase):
         event = {
             "zmeta_version": "1.0",
             "event": {
-                "event_id": str(uuid.uuid4()),
+                "event_id": str(uuid7()),
                 "event_type": "OBSERVATION_EVENT",
                 "event_subtype": "TEST",
                 "ts": "2025-01-17T14:32:10Z",
@@ -77,7 +77,11 @@ class GatewaySmokeTest(unittest.TestCase):
             },
             "payload": {
                 "modality": "RF",
-                "features": {},
+                "features": {
+                    "center_freq_hz": 2450000000,
+                    "bandwidth_hz": 20000000,
+                    "power_dbm": -35.2,
+                },
                 "track_id": "track-1",
             },
         }
@@ -92,7 +96,7 @@ class GatewaySmokeTest(unittest.TestCase):
         event = {
             "zmeta_version": "1.0",
             "event": {
-                "event_id": str(uuid.uuid4()),
+                "event_id": str(uuid7()),
                 "event_type": "STATE_EVENT",
                 "event_subtype": "TRACK_STATE",
                 "ts": "2025-01-17T14:32:10Z",
@@ -100,7 +104,7 @@ class GatewaySmokeTest(unittest.TestCase):
             "source": {
                 "platform_id": "fusion-node-01",
                 "node_role": "GATEWAY",
-                "producer": "fusion-engine",
+                "producer": "torch",
             },
             "payload": {
                 "track_id": "track-1",
@@ -109,7 +113,7 @@ class GatewaySmokeTest(unittest.TestCase):
                 "valid_for_ms": 1000,
             },
             "confidence": 0.9,
-            "lineage": {"based_on": [str(uuid.uuid4())]},
+            "lineage": {"based_on": [str(uuid7())]},
         }
 
         ok, violations = validators.validate_schema(event, self.validator, self.policy["violation_severities"])
@@ -122,7 +126,7 @@ class GatewaySmokeTest(unittest.TestCase):
         event = {
             "zmeta_version": "1.0",
             "event": {
-                "event_id": str(uuid.uuid4()),
+                "event_id": str(uuid7()),
                 "event_type": "OBSERVATION_EVENT",
                 "event_subtype": "RF_OBSERVATION",
                 "ts": "2025-01-17T14:32:10Z",
@@ -134,7 +138,11 @@ class GatewaySmokeTest(unittest.TestCase):
             },
             "payload": {
                 "modality": "RF",
-                "features": {"center_freq_hz": 2450000000, "power_dbm": -35.2},
+                "features": {
+                    "center_freq_hz": 2450000000,
+                    "bandwidth_hz": 20000000,
+                    "power_dbm": -35.2,
+                },
                 "geo": {"lat": 34.0522, "lon": -118.2437, "alt_m": 120.5},
             },
         }
@@ -151,7 +159,7 @@ class GatewaySmokeTest(unittest.TestCase):
         event = {
             "zmeta_version": "1.0",
             "event": {
-                "event_id": str(uuid.uuid4()),
+                "event_id": str(uuid7()),
                 "event_type": "FUSION_EVENT",
                 "event_subtype": "TRACK_FUSION",
                 "ts": "2025-01-17T14:32:10Z",
@@ -159,16 +167,16 @@ class GatewaySmokeTest(unittest.TestCase):
             "source": {
                 "platform_id": "edge-node-01",
                 "node_role": "EDGE",
-                "producer": "fusion-engine",
+                "producer": "torch",
             },
             "payload": {
                 "track_id": "track-1",
-                "members": [str(uuid.uuid4())],
+                "members": [str(uuid7())],
                 "stability": 0.5,
                 "last_seen_ts": "2025-01-17T14:32:09Z",
             },
             "confidence": 0.8,
-            "lineage": {"based_on": [str(uuid.uuid4())]},
+            "lineage": {"based_on": [str(uuid7())]},
         }
 
         ok, violations = validators.validate_schema(event, self.validator, self.policy["violation_severities"])
@@ -183,7 +191,7 @@ class GatewaySmokeTest(unittest.TestCase):
         event = {
             "zmeta_version": "1.0",
             "event": {
-                "event_id": str(uuid.uuid4()),
+                "event_id": str(uuid7()),
                 "event_type": "COMMAND_EVENT",
                 "event_subtype": "MISSION_TASK",
                 "ts": "2025-01-17T14:32:10Z",
@@ -210,7 +218,7 @@ class GatewaySmokeTest(unittest.TestCase):
         event = {
             "zmeta_version": "1.0",
             "event": {
-                "event_id": str(uuid.uuid4()),
+                "event_id": str(uuid7()),
                 "event_type": "SYSTEM_EVENT",
                 "event_subtype": "TASK_ACK",
                 "ts": "2025-01-17T14:32:10Z",
@@ -238,7 +246,7 @@ class GatewaySmokeTest(unittest.TestCase):
         event = {
             "zmeta_version": "1.0",
             "event": {
-                "event_id": str(uuid.uuid4()),
+                "event_id": str(uuid7()),
                 "event_type": "COMMAND_EVENT",
                 "event_subtype": "MISSION_TASK",
                 "ts": "2025-01-17T15:05:00Z",

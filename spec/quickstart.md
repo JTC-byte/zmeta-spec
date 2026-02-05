@@ -1,5 +1,8 @@
 # ZMeta Quickstart
 
+This is a developer-oriented walkthrough. For a full installation guide with
+step-by-step bundle installs, see `spec/installation-guide.md`.
+
 ## Prereqs
 
 - Python 3.11+ (3.13 recommended)
@@ -74,6 +77,15 @@ python tools/run_gateway.py --profile M
 python tools/run_gateway.py --profile H
 ```
 
+## End-to-end workflow test
+
+```
+python tools/test_workflow_end_to_end.py --profile H
+python tools/test_workflow_end_to_end.py --profile M
+python tools/test_workflow_end_to_end.py --profile L
+python tools/test_workflow_end_to_end.py --profile M --expect COMMAND_EVENT,SYSTEM_EVENT
+```
+
 Docker:
 
 ```
@@ -81,6 +93,18 @@ docker compose run --rm gateway python /app/gateway/src/gateway.py --profile L
 docker compose run --rm gateway python /app/gateway/src/gateway.py --profile M
 docker compose run --rm gateway python /app/gateway/src/gateway.py --profile H
 ```
+
+## MVP Docker deploy (edge + gateway)
+
+```
+docker compose -f deploy/edge/docker-compose.yml up
+docker compose -f deploy/gateway/docker-compose.yml up
+```
+
+Edit `configs/edge-config.json` and `configs/gateway-config.json` before running.
+
+If you run edge and gateway on the same host, change one of the UDP port mappings
+to avoid collisions. Both default to UDP `5555`.
 
 ## Where to look
 
