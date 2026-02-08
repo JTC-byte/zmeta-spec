@@ -3,6 +3,14 @@
 ## [Unreleased]
 - TBD
 
+## [1.0.3]
+- Added compact binary mapping for Profile L plus reference CBOR/compact encoders and size tooling.
+- Expanded schema/policy to cover Observation/Inference/Fusion payloads and SystemEvent requirements.
+- Enhanced gateway with JSON/CBOR/compact I/O, strict validation, rate limiting/metrics logs,
+  contract-hash gating, and COMMAND_EVENT dedupe.
+- Added conformance pack, example validators, and encoding roundtrip examples/tests.
+- Added new documentation for compact mapping, field dictionary, profile compatibility, and refreshed specs.
+
 ## [1.0.2]
 - Expanded installation docs with bundle-based step-by-step guidance, prerequisites,
   config references, verification, and troubleshooting.

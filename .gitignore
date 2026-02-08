@@ -221,3 +221,4 @@ release/smoke-*/
 
 # Local pytest cache artifacts
 pytest-cache-files-*
+.pytest_cache_custom/

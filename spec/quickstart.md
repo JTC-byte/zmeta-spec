@@ -64,6 +64,10 @@ python tools/test_gateway_live.py
 
 - Valid events are forwarded unchanged to the receiver.
 - Violations are emitted as SYSTEM_EVENT (SCHEMA_VIOLATION or TASK_ACK) with reason codes.
+  TASK_ACK requires `metrics.task_id` and `metrics.original_event_id`, and `reason_code` for
+  failure states (REJECTED/FAILED/CANCELLED/EXPIRED/DUPLICATE_IGNORED).
+- Forwarded events are stamped with `event.t_receive` (default for profiles H/M); if
+  `event.t_publish` is missing it is set to the same value to help with AAR latency analysis.
 
 Reference gateway implements severity tiers; schema remains the normative contract.
 
@@ -76,6 +80,9 @@ python tools/run_gateway.py --profile L
 python tools/run_gateway.py --profile M
 python tools/run_gateway.py --profile H
 ```
+
+Note: The reference gateway stamps outgoing events with top-level `profile` (L/M/H) when missing to make UI
+visualization easier. Upstream producers may set it explicitly.
 
 ## End-to-end workflow test
 

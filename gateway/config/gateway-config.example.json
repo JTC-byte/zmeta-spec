@@ -9,6 +9,43 @@
     "port": 5556
   },
   "emit_cot": false,
+  "input_encoding": "json",
+  "output_encoding": "json",
+  "stamp_profile": true,
+  "stamp_profile_profiles": [
+    "L",
+    "M",
+    "H"
+  ],
+  "stamp_timing": true,
+  "stamp_timing_profiles": [
+    "H",
+    "M"
+  ],
+  "strip_optional_fields": [
+    "source.sensor_id",
+    "source.sw_version",
+    "payload.data_ref",
+    "payload.data_refs",
+    "payload.quality"
+  ],
+  "strip_optional_fields_profiles": [
+    "L",
+    "M",
+    "H"
+  ],
+  "strict_validation": false,
+  "emit_metrics": true,
+  "metrics_interval_sec": 30,
+  "rate_limit_per_sec": 0,
+  "rate_limit_producer_per_sec": 0,
+  "metrics_log_path": null,
+  "metrics_log_max_bytes": 5000000,
+  "metrics_log_backups": 3,
+  "stamp_contract_hash": false,
+  "require_schema_hash": null,
+  "require_policy_hash": null,
+  "require_contract_hash": null,
   "cot": {
     "host": "127.0.0.1",
     "port": 6969

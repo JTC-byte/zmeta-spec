@@ -2,7 +2,27 @@ import argparse
 import json
 import socket
 import time
+import sys
+from pathlib import Path
 
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+try:
+    import cbor2
+except ImportError:  # pragma: no cover - optional dependency
+    cbor2 = None
+
+try:
+    import zmeta_cbor
+except ImportError:  # pragma: no cover - optional dependency
+    zmeta_cbor = None
+
+try:
+    import zmeta_compact
+except ImportError:  # pragma: no cover - optional dependency
+    zmeta_compact = None
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Replay ZMeta JSONL over UDP")
@@ -12,6 +32,7 @@ def parse_args():
     parser.add_argument("--delay-ms", type=int, default=200)
     parser.add_argument("--loop", action="store_true")
     parser.add_argument("--count", type=int)
+    parser.add_argument("--encoding", choices=["json", "cbor", "compact"], default="json")
     return parser.parse_args()
 
 
@@ -41,7 +62,19 @@ def main():
             event_subtype = event.get("event_subtype", "UNKNOWN")
             event_id = event.get("event_id", "UNKNOWN")
 
-            sock.sendto(raw.encode("utf-8"), (args.host, args.port))
+            if args.encoding == "json":
+                sock.sendto(raw.encode("utf-8"), (args.host, args.port))
+            elif args.encoding == "compact":
+                if zmeta_compact is None:
+                    raise SystemExit("Compact encoding requires zmeta_compact.")
+                sock.sendto(zmeta_compact.dumps(msg), (args.host, args.port))
+            else:
+                if cbor2 is None and zmeta_cbor is None:
+                    raise SystemExit("CBOR support requires cbor2 or zmeta_cbor.")
+                if cbor2 is not None:
+                    sock.sendto(cbor2.dumps(msg), (args.host, args.port))
+                else:
+                    sock.sendto(zmeta_cbor.dumps(msg), (args.host, args.port))
             print(f"{event_type} {event_subtype} {event_id}")
 
             sent += 1

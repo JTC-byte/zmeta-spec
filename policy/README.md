@@ -15,6 +15,9 @@ drives reference enforcement behavior.
 Notes:
 - `routing.yaml` producer rules support `allowed_event_types` and `allowed_event_subtypes`
   for fine-grained gating, plus `forbidden_event_types` for hard blocks.
+- `semantics.yaml` enforces TASK_ACK lifecycle rules (required metrics, allowed states,
+  and reason_code requirements), LINK_STATUS health metrics, and SCHEMA_VIOLATION
+  reason_code requirements.
 - When you introduce new producers, update `routing.yaml` allowlists to keep
   authority boundaries enforced.
 - `producer_enforcement.require_allowlist_for_event_types` can require that

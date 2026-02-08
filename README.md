@@ -32,11 +32,14 @@
 - New to ZMeta: read `spec/installation-guide.md` for a full step-by-step install.
 - Developer walkthrough: read `spec/quickstart.md` for runnable examples.
 - Contract and semantics: read `spec/semantics-contract.md`.
+- Profile compatibility matrix: read `spec/profile-compatibility.md`.
+- Field dictionary for UIs: read `spec/field-dictionary.md`.
 
 ## Repository Structure
 - `spec/` Core specification and normative text.
 - `schema/` JSON schema definitions for ZMeta artifacts.
 - `examples/` Sample payloads and usage patterns.
+- `conformance/` Must-pass/must-fail regression corpus.
 - `policy/` Policy language and enforcement guidance.
 - `gateway/` Reference gateway implementation and tests.
 - `adapters/` Ingress and egress adapter patterns and templates.
@@ -57,6 +60,8 @@ python tools/udp_receiver.py
 python tools/udp_sender.py --file examples/zmeta-command-examples.jsonl
 python tools/replay.py --file examples/zmeta-command-examples.jsonl --delay-ms 200
 python tools/validate.py --file examples/zmeta-command-examples.jsonl --profile H
+python tools/validate_conformance.py --strict
+python tools/compute_contract_hash.py
 python tools/test_gateway_live.py
 python tools/test_workflow_end_to_end.py
 ```
@@ -110,6 +115,17 @@ Deployment helpers:
 - Config templates: `configs/edge-config.json`, `configs/gateway-config.json`
 - Docker Compose: `deploy/edge/docker-compose.yml`, `deploy/gateway/docker-compose.yml`
 - MVP bundle builder: `python release/build_mvp_packages.py`
+
+## Deployment Checklist (Compact)
+
+Use this to lock down schema/policy drift and verify a clean deployment:
+
+1. Compute contract hashes: `python tools/compute_contract_hash.py`
+1. Set `require_contract_hash` (and optionally `require_schema_hash`/`require_policy_hash`) in config.
+1. Run self-test: `python tools/run_gateway.py --profile H --self-test`
+1. Run conformance: `python tools/validate_conformance.py --strict`
+1. Start gateway with strict mode (optional): `python tools/run_gateway.py --config configs/gateway-config.json --strict-validation`
+1. Verify metrics and drops in logs (enable `metrics_log_path` if needed).
 
 ## Normative vs Reference
 

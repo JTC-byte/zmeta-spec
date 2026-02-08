@@ -6,6 +6,25 @@ import sys
 import time
 from pathlib import Path
 
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+try:
+    import cbor2
+except ImportError:  # pragma: no cover - optional dependency
+    cbor2 = None
+
+try:
+    import zmeta_cbor
+except ImportError:  # pragma: no cover - optional dependency
+    zmeta_cbor = None
+
+try:
+    import zmeta_compact
+except ImportError:  # pragma: no cover - optional dependency
+    zmeta_compact = None
+
 
 def build_args():
     parser = argparse.ArgumentParser(description="Live UDP test for gateway (dedupe + CoT)")
@@ -14,6 +33,10 @@ def build_args():
     parser.add_argument("--forward-port", type=int, default=5576)
     parser.add_argument("--cot-port", type=int, default=6970)
     parser.add_argument("--timeout", type=float, default=3.0)
+    parser.add_argument("--encoding", choices=["json", "cbor", "compact"], default="json")
+    parser.add_argument(
+        "--input-encoding", choices=["json", "cbor", "compact", "auto"], default="json"
+    )
     parser.add_argument("--no-cot", action="store_true", help="Skip CoT emission test")
     return parser.parse_args()
 
@@ -39,6 +62,8 @@ def main():
         str(args.listen_port),
         "--forward-port",
         str(args.forward_port),
+        "--input-encoding",
+        args.input_encoding,
     ]
     if not args.no_cot:
         cmd.extend(["--emit-cot", "--cot-port", str(args.cot_port)])
@@ -102,15 +127,32 @@ def main():
         send = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
         # Send command twice to trigger dedupe.
-        send.sendto(json.dumps(cmd_event).encode("utf-8"), ("127.0.0.1", args.listen_port))
+        payload_cmd = json.dumps(cmd_event).encode("utf-8")
+        payload_state = json.dumps(state_event).encode("utf-8")
+        if args.encoding == "compact":
+            if zmeta_compact is None:
+                raise SystemExit("Compact encoding requires zmeta_compact.")
+            payload_cmd = zmeta_compact.dumps(cmd_event)
+            payload_state = zmeta_compact.dumps(state_event)
+        elif args.encoding == "cbor":
+            if cbor2 is None and zmeta_cbor is None:
+                raise SystemExit("CBOR support requires cbor2 or zmeta_cbor.")
+            if cbor2 is not None:
+                payload_cmd = cbor2.dumps(cmd_event)
+                payload_state = cbor2.dumps(state_event)
+            else:
+                payload_cmd = zmeta_cbor.dumps(cmd_event)
+                payload_state = zmeta_cbor.dumps(state_event)
+
+        send.sendto(payload_cmd, ("127.0.0.1", args.listen_port))
         print("forwarded-1", recv_or_fail(recv, args.timeout, "first command"))
 
-        send.sendto(json.dumps(cmd_event).encode("utf-8"), ("127.0.0.1", args.listen_port))
+        send.sendto(payload_cmd, ("127.0.0.1", args.listen_port))
         print("forwarded-2", recv_or_fail(recv, args.timeout, "dedupe ack"))
 
         if not args.no_cot:
             # Send state to generate CoT.
-            send.sendto(json.dumps(state_event).encode("utf-8"), ("127.0.0.1", args.listen_port))
+            send.sendto(payload_state, ("127.0.0.1", args.listen_port))
             print("forwarded-state", recv_or_fail(recv, args.timeout, "state forward"))
             print("cot", recv_or_fail(cot_recv, args.timeout, "cot output"))
     finally:

@@ -214,7 +214,7 @@ class GatewaySmokeTest(unittest.TestCase):
         self.assertFalse(ok)
         self.assertEqual(violations[0]["code"], "SCHEMA_INVALID")
 
-    def test_task_ack_missing_task_id_severity(self):
+    def test_task_ack_missing_reason_code_severity(self):
         event = {
             "zmeta_version": "1.0",
             "event": {
@@ -230,17 +230,17 @@ class GatewaySmokeTest(unittest.TestCase):
             },
             "payload": {
                 "system_type": "TASK_ACK",
-                "state": "RECEIVED",
-                "metrics": {},
+                "state": "FAILED",
+                "metrics": {
+                    "task_id": "task-1",
+                    "original_event_id": str(uuid7()),
+                },
             },
         }
 
         ok, violations = validators.validate_schema(event, self.validator, self.policy["violation_severities"])
-        self.assertTrue(ok)
-        ok, violations = validators.validate_semantics(event, self.policy["semantics"], self.policy["violation_severities"])
         self.assertFalse(ok)
-        self.assertEqual(violations[0]["code"], "TASK_ACK_MISSING_TASK_ID")
-        self.assertEqual(violations[0]["severity"], "warn")
+        self.assertEqual(violations[0]["code"], "SCHEMA_INVALID")
 
     def test_command_event_deduped(self):
         event = {
@@ -268,11 +268,11 @@ class GatewaySmokeTest(unittest.TestCase):
         dedupe_cache = gateway.TaskDedupeCache()
         raw = json.dumps(event).encode("utf-8")
 
-        first = gateway.process_message(raw, self.validator, self.policy, "L", dedupe_cache)
+        first = gateway.process_message(raw, self.validator, self.policy, "L", dedupe_cache, "json")
         self.assertEqual(len(first), 1)
         self.assertEqual(first[0]["event"]["event_type"], "COMMAND_EVENT")
 
-        second = gateway.process_message(raw, self.validator, self.policy, "L", dedupe_cache)
+        second = gateway.process_message(raw, self.validator, self.policy, "L", dedupe_cache, "json")
         self.assertEqual(len(second), 1)
         self.assertEqual(second[0]["event"]["event_type"], "SYSTEM_EVENT")
         self.assertEqual(second[0]["event"]["event_subtype"], "TASK_ACK")

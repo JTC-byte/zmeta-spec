@@ -20,6 +20,14 @@
     "source": {
       "$ref": "#/$defs/source"
     },
+    "profile": {
+      "type": "string",
+      "enum": [
+        "L",
+        "M",
+        "H"
+      ]
+    },
     "payload": {
       "type": "object"
     },
@@ -701,6 +709,278 @@
                     "format": "date-time"
                   }
                 }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "system_type": {
+                "const": "LINK_STATUS"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "metrics"
+            ],
+            "properties": {
+              "state": {
+                "type": "string",
+                "enum": [
+                  "UP",
+                  "DEGRADED",
+                  "DOWN",
+                  "UNKNOWN"
+                ]
+              },
+              "metrics": {
+                "type": "object",
+                "required": [
+                  "link_id",
+                  "latency_ms",
+                  "packet_loss_pct",
+                  "throughput_bps"
+                ],
+                "properties": {
+                  "link_id": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "interface": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "latency_ms": {
+                    "type": "number",
+                    "minimum": 0
+                  },
+                  "packet_loss_pct": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 100
+                  },
+                  "throughput_bps": {
+                    "type": "number",
+                    "minimum": 0
+                  },
+                  "rssi_dbm": {
+                    "type": "number"
+                  },
+                  "snr_db": {
+                    "type": "number"
+                  },
+                  "jitter_ms": {
+                    "type": "number",
+                    "minimum": 0
+                  },
+                  "reason_code": {
+                    "type": "string",
+                    "minLength": 1,
+                    "enum": [
+                      "LINK_LOSS",
+                      "LOW_RSSI",
+                      "HIGH_LATENCY",
+                      "HIGH_PACKET_LOSS",
+                      "LOW_THROUGHPUT",
+                      "INTERFERENCE",
+                      "JAMMED",
+                      "BACKHAUL_DOWN",
+                      "NO_ROUTE",
+                      "CONFIG_ERROR",
+                      "POWER_SAVE",
+                      "UNKNOWN_CAUSE"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "system_type": {
+                "const": "LINK_STATUS"
+              },
+              "state": {
+                "enum": [
+                  "DEGRADED",
+                  "DOWN"
+                ]
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "metrics"
+            ],
+            "properties": {
+              "metrics": {
+                "type": "object",
+                "required": [
+                  "reason_code"
+                ]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "system_type": {
+                "const": "SCHEMA_VIOLATION"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "metrics"
+            ],
+            "properties": {
+              "metrics": {
+                "type": "object",
+                "required": [
+                  "reason_code",
+                  "original_event_id"
+                ],
+                "properties": {
+                  "reason_code": {
+                    "type": "string",
+                    "minLength": 1,
+                    "enum": [
+                      "SCHEMA_INVALID",
+                      "EVENT_TYPE_NOT_ALLOWED_FOR_ROLE",
+                      "EVENT_TYPE_NOT_ALLOWED_FOR_PROFILE",
+                      "COMMAND_NOT_DECONFLICTED",
+                      "COMMAND_HAS_ALTITUDE",
+                      "OBSERVATION_HAS_IDENTITY",
+                      "INFERENCE_HAS_TRACK_ID",
+                      "STATE_HAS_RAW_FEATURES",
+                      "SCHEMA_VIOLATION_MISSING_REASON_CODE",
+                      "SCHEMA_VIOLATION_MISSING_ORIGINAL_EVENT_ID",
+                      "SCHEMA_VIOLATION_INVALID_REASON_CODE",
+                      "TASK_ACK_MISSING_TASK_ID",
+                      "TASK_ACK_MISSING_REQUIRED_FIELD",
+                      "TASK_ACK_MISSING_ORIGINAL_EVENT_ID",
+                      "TASK_ACK_MISSING_REASON_CODE",
+                      "TASK_ACK_INVALID_STATE",
+                      "TASK_ACK_INVALID_REASON_CODE",
+                      "LINK_STATUS_MISSING_REQUIRED_FIELD",
+                      "LINK_STATUS_INVALID_STATE",
+                      "LINK_STATUS_MISSING_REASON_CODE",
+                      "LINK_STATUS_INVALID_REASON_CODE",
+                      "PRODUCER_NOT_ALLOWED"
+                    ]
+                  },
+                  "original_event_id": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "path": {
+                    "type": "string"
+                  },
+                  "error": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "system_type": {
+                "const": "TASK_ACK"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "metrics"
+            ],
+            "properties": {
+              "state": {
+                "type": "string",
+                "enum": [
+                  "RECEIVED",
+                  "ACCEPTED",
+                  "REJECTED",
+                  "EXECUTING",
+                  "COMPLETED",
+                  "FAILED",
+                  "CANCELLED",
+                  "EXPIRED",
+                  "DUPLICATE_IGNORED"
+                ]
+              },
+              "metrics": {
+                "type": "object",
+                "required": [
+                  "task_id",
+                  "original_event_id"
+                ],
+                "properties": {
+                  "task_id": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "original_event_id": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "reason_code": {
+                    "type": "string",
+                    "minLength": 1,
+                    "enum": [
+                      "SCHEMA_INVALID",
+                      "EVENT_TYPE_NOT_ALLOWED_FOR_ROLE",
+                      "EVENT_TYPE_NOT_ALLOWED_FOR_PROFILE",
+                      "PRODUCER_NOT_ALLOWED",
+                      "COMMAND_NOT_DECONFLICTED",
+                      "COMMAND_HAS_ALTITUDE",
+                      "TASK_DUPLICATE",
+                      "TASK_EXPIRED",
+                      "TASK_CANCELLED",
+                      "TASK_FAILED",
+                      "TASK_ABORTED",
+                      "TASK_REJECTED"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "system_type": {
+                "const": "TASK_ACK"
+              },
+              "state": {
+                "enum": [
+                  "REJECTED",
+                  "FAILED",
+                  "CANCELLED",
+                  "EXPIRED",
+                  "DUPLICATE_IGNORED"
+                ]
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "metrics"
+            ],
+            "properties": {
+              "metrics": {
+                "type": "object",
+                "required": [
+                  "reason_code"
+                ]
               }
             }
           }

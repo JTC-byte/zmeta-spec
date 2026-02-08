@@ -1,16 +1,16 @@
 {
-  "profile": "L",
+  "profile": "H",
   "listen": {
     "host": "0.0.0.0",
     "port": 5555
   },
   "forward": {
-    "host": "GATEWAY_HOST",
+    "host": "127.0.0.1",
     "port": 5556
   },
-  "emit_cot": false,
+  "emit_cot": true,
   "input_encoding": "auto",
-  "output_encoding": "compact",
+  "output_encoding": "json",
   "stamp_profile": true,
   "stamp_profile_profiles": [
     "L",
@@ -34,7 +34,7 @@
     "M",
     "H"
   ],
-  "strict_validation": false,
+  "strict_validation": true,
   "emit_metrics": true,
   "metrics_interval_sec": 30,
   "rate_limit_per_sec": 0,
@@ -42,10 +42,14 @@
   "metrics_log_path": null,
   "metrics_log_max_bytes": 5000000,
   "metrics_log_backups": 3,
-  "stamp_contract_hash": false,
+  "stamp_contract_hash": true,
   "require_schema_hash": null,
   "require_policy_hash": null,
   "require_contract_hash": null,
+  "cot": {
+    "host": "127.0.0.1",
+    "port": 6969
+  },
   "schema_path": "../schema/zmeta-event-1.0.schema.json",
   "policy_dir": "../policy"
 }

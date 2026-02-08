@@ -11,6 +11,21 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+try:
+    import cbor2
+except ImportError:  # pragma: no cover - optional dependency
+    cbor2 = None
+
+try:
+    import zmeta_cbor
+except ImportError:  # pragma: no cover - optional dependency
+    zmeta_cbor = None
+
+try:
+    import zmeta_compact
+except ImportError:  # pragma: no cover - optional dependency
+    zmeta_compact = None
+
 from zmeta_uuid import uuid7
 
 
@@ -24,6 +39,10 @@ def build_args():
     parser.add_argument("--cot-port", type=int, default=6980)
     parser.add_argument("--timeout", type=float, default=3.0)
     parser.add_argument("--no-cot", action="store_true", help="Skip CoT output check")
+    parser.add_argument("--encoding", choices=["json", "cbor", "compact"], default="json")
+    parser.add_argument(
+        "--input-encoding", choices=["json", "cbor", "compact", "auto"], default="json"
+    )
     parser.add_argument(
         "--expect",
         default="",
@@ -32,8 +51,20 @@ def build_args():
     return parser.parse_args()
 
 
-def _send(sock, host, port, obj):
-    payload = json.dumps(obj, separators=(",", ":"), ensure_ascii=True).encode("utf-8")
+def _send(sock, host, port, obj, encoding):
+    if encoding == "json":
+        payload = json.dumps(obj, separators=(",", ":"), ensure_ascii=True).encode("utf-8")
+    elif encoding == "compact":
+        if zmeta_compact is None:
+            raise SystemExit("Compact encoding requires zmeta_compact.")
+        payload = zmeta_compact.dumps(obj)
+    else:
+        if cbor2 is None and zmeta_cbor is None:
+            raise SystemExit("CBOR support requires cbor2 or zmeta_cbor.")
+        if cbor2 is not None:
+            payload = cbor2.dumps(obj)
+        else:
+            payload = zmeta_cbor.dumps(obj)
     sock.sendto(payload, (host, port))
 
 
@@ -165,7 +196,18 @@ def _build_events(profile, expect):
             "ts": "2025-01-17T14:30:06Z",
         },
         "source": {"platform_id": "sensor-node-01", "node_role": "EDGE", "producer": "rf-sensor"},
-        "payload": {"system_type": "LINK_STATUS", "state": "DEGRADED", "metrics": {"rssi_dbm": -98.2}},
+        "payload": {
+            "system_type": "LINK_STATUS",
+            "state": "DEGRADED",
+            "metrics": {
+                "link_id": "uplink-01",
+                "latency_ms": 120.0,
+                "packet_loss_pct": 4.2,
+                "throughput_bps": 1200000,
+                "rssi_dbm": -98.2,
+                "reason_code": "LOW_RSSI",
+            },
+        },
     }
 
     extras = []
@@ -197,6 +239,8 @@ def main():
         "--forward-port",
         str(args.forward_port),
     ]
+    if args.input_encoding:
+        cmd.extend(["--input-encoding", args.input_encoding])
     if not args.no_cot:
         cmd.extend(["--emit-cot", "--cot-port", str(args.cot_port)])
 
@@ -217,7 +261,7 @@ def main():
         events = _build_events(args.profile, expect)
 
         for event in events:
-            _send(send_sock, "127.0.0.1", args.listen_port, event)
+            _send(send_sock, "127.0.0.1", args.listen_port, event, args.encoding)
 
         forwarded = []
         for _ in range(len(events)):

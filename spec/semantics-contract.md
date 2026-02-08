@@ -157,6 +157,13 @@ Interpretation by event type:
 
 Only event.ts is universally required. Others are for debugging and AARs.
 
+Gateway behavior:
+- Gateways SHOULD stamp `t_receive` on forwarded events when it is missing.
+- If `t_publish` is missing, gateways MAY set it to the same value as `t_receive`
+  and SHOULD document that it was gateway-supplied.
+- For bandwidth-constrained profiles, implementations MAY disable timing stamps;
+  the reference gateway defaults to stamping for profiles H/M and can be turned off.
+
 ### 2.3 Timing Quality Metadata
 
 Each node must expose timing quality, either per-event or periodically via SystemEvents.
@@ -311,6 +318,7 @@ ZMetaEvent {
     sensor_id?: string
     sw_version?: string
   }
+  profile?: L | M | H
   payload: OBJECT   // Defined by event_type
   confidence: float // 0.0 - 1.0 (worst-case interpretation)
   lineage?: {
@@ -324,6 +332,7 @@ ZMetaEvent {
 - Envelope fields are **immutable and globally consistent**.
 - Payload semantics are determined exclusively by event_type and event_subtype.
 - confidence is mandatory for INFERENCE/FUSION/STATE events (not for OBSERVATION/COMMAND/SYSTEM).
+- profile is optional and reflects the **export profile** applied at emission time; do not encode profile into event_id.
 
 ### 4.2 Event Types (Authoritative)
 
@@ -490,6 +499,89 @@ SystemPayload {
 ```
 
 Used for diagnostics, AARs, and gating fusion logic.
+
+#### 4.8.2 TASK_ACK (Command Acknowledgement)
+
+TASK_ACK provides an auditable lifecycle for COMMAND_EVENTs.
+
+Required `metrics` fields:
+- `task_id`
+- `original_event_id`
+
+Allowed `state` values:
+- `RECEIVED` received by the comms/edge node.
+- `ACCEPTED` validated and queued for execution.
+- `REJECTED` rejected by policy or validation.
+- `EXECUTING` accepted and currently executing.
+- `COMPLETED` executed successfully.
+- `FAILED` execution attempted but failed.
+- `CANCELLED` cancelled by operator/system before completion.
+- `EXPIRED` TTL expired before execution.
+- `DUPLICATE_IGNORED` duplicate command ignored.
+
+Reason code rules:
+- `metrics.reason_code` is required for `REJECTED`, `FAILED`, `CANCELLED`, `EXPIRED`, and `DUPLICATE_IGNORED`.
+- `metrics.reason_code` must be one of:
+  `SCHEMA_INVALID`,
+  `EVENT_TYPE_NOT_ALLOWED_FOR_ROLE`,
+  `EVENT_TYPE_NOT_ALLOWED_FOR_PROFILE`,
+  `PRODUCER_NOT_ALLOWED`,
+  `COMMAND_NOT_DECONFLICTED`,
+  `COMMAND_HAS_ALTITUDE`,
+  `TASK_DUPLICATE`,
+  `TASK_EXPIRED`,
+  `TASK_CANCELLED`,
+  `TASK_FAILED`,
+  `TASK_ABORTED`,
+  `TASK_REJECTED`.
+
+#### 4.8.3 LINK_STATUS (Transport Health)
+
+LINK_STATUS provides standardized transport health for AAR/debug and UI overlays.
+
+Required `metrics` fields:
+- `link_id` (string)
+- `latency_ms`
+- `packet_loss_pct`
+- `throughput_bps`
+
+Allowed `state` values:
+- `UP`
+- `DEGRADED`
+- `DOWN`
+- `UNKNOWN`
+
+Reason code rules:
+- `metrics.reason_code` is required for `DEGRADED` and `DOWN`.
+- `metrics.reason_code` must be one of:
+  `LINK_LOSS`,
+  `LOW_RSSI`,
+  `HIGH_LATENCY`,
+  `HIGH_PACKET_LOSS`,
+  `LOW_THROUGHPUT`,
+  `INTERFERENCE`,
+  `JAMMED`,
+  `BACKHAUL_DOWN`,
+  `NO_ROUTE`,
+  `CONFIG_ERROR`,
+  `POWER_SAVE`,
+  `UNKNOWN_CAUSE`.
+
+#### 4.8.4 SCHEMA_VIOLATION (Validation Failure)
+
+SCHEMA_VIOLATION represents a rejected or malformed event and provides auditability
+for AAR/debug.
+
+Required `metrics` fields:
+- `reason_code`
+- `original_event_id`
+
+Allowed `reason_code` values:
+- All codes defined in `policy/violation-codes.yaml`.
+
+Recommended optional fields:
+- `metrics.path` (schema pointer)
+- `metrics.error` (short error message)
 
 ### 4.9 Profile Compliance
 

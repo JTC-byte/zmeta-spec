@@ -1,0 +1,107 @@
+import argparse
+import importlib.util
+import json
+from pathlib import Path
+
+
+ROOT = Path(__file__).resolve().parents[1]
+VALIDATORS_PATH = ROOT / "gateway" / "src" / "validators.py"
+spec = importlib.util.spec_from_file_location("zmeta_validators", VALIDATORS_PATH)
+validators = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(validators)
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(description="Validate conformance pack.")
+    parser.add_argument("--strict", action="store_true", help="Treat warnings as failures.")
+    parser.add_argument(
+        "--pass-file",
+        default=str(ROOT / "conformance" / "must-pass.jsonl"),
+        help="Path to must-pass JSONL",
+    )
+    parser.add_argument(
+        "--fail-file",
+        default=str(ROOT / "conformance" / "must-fail.jsonl"),
+        help="Path to must-fail JSONL",
+    )
+    return parser.parse_args()
+
+
+def _iter_jsonl(path):
+    lines = Path(path).read_text(encoding="utf-8").splitlines()
+    for line_no, line in enumerate(lines, start=1):
+        line = line.strip()
+        if not line:
+            continue
+        yield line_no, json.loads(line)
+
+
+def _run_checks(event, profile, policy, validator, strict):
+    severity_map = policy.get("violation_severities", {})
+    checks = []
+    ok, violations = validators.validate_schema(event, validator, severity_map)
+    if violations:
+        checks.extend(violations)
+        return checks
+
+    checks.extend(
+        validators.validate_role(event, {"roles": policy["roles"], "deny": policy["deny"]}, severity_map)[1]
+    )
+    checks.extend(validators.validate_profile(event, profile, policy["profiles"], severity_map)[1])
+    checks.extend(validators.validate_semantics(event, policy["semantics"], severity_map)[1])
+    checks.extend(validators.validate_routing(event, policy["routing"], severity_map)[1])
+    if strict:
+        for violation in checks:
+            if violation.get("severity") == "warn":
+                violation["severity"] = "fail"
+    return checks
+
+
+def main():
+    args = parse_args()
+    schema_path = ROOT / "schema" / "zmeta-event-1.0.schema.json"
+    policy_dir = ROOT / "policy"
+    validator = validators.load_schema(schema_path)
+    policy = validators.load_policy(policy_dir)
+
+    failures = 0
+
+    for line_no, item in _iter_jsonl(args.pass_file):
+        profile = item.get("profile", "H")
+        event = item.get("event")
+        if not event:
+            failures += 1
+            print(f"FAIL pass line={line_no} missing event")
+            continue
+        violations = _run_checks(event, profile, policy, validator, args.strict)
+        if not args.strict:
+            violations = [violation for violation in violations if violation.get("severity") != "warn"]
+        if violations:
+            failures += 1
+            print(f"FAIL pass line={line_no} profile={profile} code={violations[0]['code']}")
+
+    for line_no, item in _iter_jsonl(args.fail_file):
+        profile = item.get("profile", "H")
+        event = item.get("event")
+        expected = item.get("expect_code")
+        if not event or not expected:
+            failures += 1
+            print(f"FAIL fail line={line_no} missing event/expect_code")
+            continue
+        violations = _run_checks(event, profile, policy, validator, args.strict)
+        codes = [violation.get("code") for violation in violations]
+        if expected not in codes:
+            failures += 1
+            code_str = ",".join(code for code in codes if code) or "none"
+            print(
+                f"FAIL fail line={line_no} profile={profile} expected={expected} got={code_str}"
+            )
+
+    if failures:
+        raise SystemExit(1)
+
+    print("conformance ok")
+
+
+if __name__ == "__main__":
+    main()

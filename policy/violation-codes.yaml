@@ -17,9 +17,31 @@ violation_codes:
     severity: fail
   - code: STATE_HAS_RAW_FEATURES
     severity: fail
+  - code: SCHEMA_VIOLATION_MISSING_REASON_CODE
+    severity: fail
+  - code: SCHEMA_VIOLATION_MISSING_ORIGINAL_EVENT_ID
+    severity: fail
+  - code: SCHEMA_VIOLATION_INVALID_REASON_CODE
+    severity: fail
   - code: TASK_ACK_MISSING_TASK_ID
-    severity: warn
+    severity: fail
   - code: TASK_ACK_MISSING_REQUIRED_FIELD
-    severity: warn
+    severity: fail
+  - code: TASK_ACK_MISSING_ORIGINAL_EVENT_ID
+    severity: fail
+  - code: TASK_ACK_MISSING_REASON_CODE
+    severity: fail
+  - code: TASK_ACK_INVALID_STATE
+    severity: fail
+  - code: TASK_ACK_INVALID_REASON_CODE
+    severity: fail
+  - code: LINK_STATUS_MISSING_REQUIRED_FIELD
+    severity: fail
+  - code: LINK_STATUS_INVALID_STATE
+    severity: fail
+  - code: LINK_STATUS_MISSING_REASON_CODE
+    severity: fail
+  - code: LINK_STATUS_INVALID_REASON_CODE
+    severity: fail
   - code: PRODUCER_NOT_ALLOWED
     severity: fail

@@ -244,18 +244,83 @@ def validate_semantics(event, semantics_policy, severity_map=None):
             ]
 
     if event_type == "SYSTEM_EVENT":
-        if event_subtype == "TASK_ACK" or payload.get("system_type") == "TASK_ACK":
+        system_policy = semantics_policy.get("system_event", {})
+        system_type = payload.get("system_type")
+
+        if system_type == "SCHEMA_VIOLATION":
             metrics = payload.get("metrics")
-            required_fields = (
-                semantics_policy.get("system_event", {}).get("task_ack_requires_metrics_fields", [])
-            )
+            required_fields = system_policy.get("schema_violation_required_metrics_fields", [])
             required_fields = [str(field) for field in required_fields if str(field).strip()]
             if not isinstance(metrics, dict):
-                missing = required_fields or ["task_id"]
+                missing = required_fields or ["reason_code", "original_event_id"]
+                if "reason_code" in missing:
+                    code = "SCHEMA_VIOLATION_MISSING_REASON_CODE"
+                elif "original_event_id" in missing:
+                    code = "SCHEMA_VIOLATION_MISSING_ORIGINAL_EVENT_ID"
+                else:
+                    code = "SCHEMA_VIOLATION_MISSING_REASON_CODE"
                 return False, [
                     _violation(
-                        "TASK_ACK_MISSING_TASK_ID" if "task_id" in missing else "TASK_ACK_MISSING_REQUIRED_FIELD",
-                        "TASK_ACK metrics missing required fields",
+                        code,
+                        "SCHEMA_VIOLATION metrics missing required fields",
+                        details={"missing": missing},
+                        severity_map=severity_map,
+                    )
+                ]
+            missing = [field for field in required_fields if field not in metrics]
+            if missing:
+                if "reason_code" in missing:
+                    code = "SCHEMA_VIOLATION_MISSING_REASON_CODE"
+                elif "original_event_id" in missing:
+                    code = "SCHEMA_VIOLATION_MISSING_ORIGINAL_EVENT_ID"
+                else:
+                    code = "SCHEMA_VIOLATION_MISSING_REASON_CODE"
+                return False, [
+                    _violation(
+                        code,
+                        "SCHEMA_VIOLATION metrics missing required fields",
+                        details={"missing": missing},
+                        severity_map=severity_map,
+                    )
+                ]
+
+            reason_code = metrics.get("reason_code") if isinstance(metrics, dict) else None
+            allowed_reason_codes = system_policy.get("schema_violation_allowed_reason_codes", [])
+            allowed_reason_codes = [str(value) for value in allowed_reason_codes if str(value).strip()]
+            if allowed_reason_codes and isinstance(reason_code, str) and reason_code.strip():
+                if reason_code not in allowed_reason_codes:
+                    return False, [
+                        _violation(
+                            "SCHEMA_VIOLATION_INVALID_REASON_CODE",
+                            "SCHEMA_VIOLATION reason_code not allowed",
+                            details={"reason_code": reason_code},
+                            severity_map=severity_map,
+                        )
+                    ]
+
+        if system_type == "LINK_STATUS":
+            state = payload.get("state")
+            allowed_states = system_policy.get("link_status_allowed_states", [])
+            allowed_states = [str(value) for value in allowed_states if str(value).strip()]
+            if allowed_states and state not in allowed_states:
+                return False, [
+                    _violation(
+                        "LINK_STATUS_INVALID_STATE",
+                        "LINK_STATUS state not allowed",
+                        details={"state": state},
+                        severity_map=severity_map,
+                    )
+                ]
+
+            metrics = payload.get("metrics")
+            required_fields = system_policy.get("link_status_required_metrics_fields", [])
+            required_fields = [str(field) for field in required_fields if str(field).strip()]
+            if not isinstance(metrics, dict):
+                missing = required_fields or ["link_id"]
+                return False, [
+                    _violation(
+                        "LINK_STATUS_MISSING_REQUIRED_FIELD",
+                        "LINK_STATUS metrics missing required fields",
                         details={"missing": missing},
                         severity_map=severity_map,
                     )
@@ -264,12 +329,118 @@ def validate_semantics(event, semantics_policy, severity_map=None):
             if missing:
                 return False, [
                     _violation(
-                        "TASK_ACK_MISSING_TASK_ID" if "task_id" in missing else "TASK_ACK_MISSING_REQUIRED_FIELD",
+                        "LINK_STATUS_MISSING_REQUIRED_FIELD",
+                        "LINK_STATUS metrics missing required fields",
+                        details={"missing": missing},
+                        severity_map=severity_map,
+                    )
+                ]
+
+            reason_code = metrics.get("reason_code") if isinstance(metrics, dict) else None
+            require_reason_states = system_policy.get("link_status_reason_code_required_states", [])
+            require_reason_states = [str(value) for value in require_reason_states if str(value).strip()]
+            if require_reason_states and state in require_reason_states:
+                if not isinstance(reason_code, str) or not reason_code.strip():
+                    return False, [
+                        _violation(
+                            "LINK_STATUS_MISSING_REASON_CODE",
+                            "LINK_STATUS reason_code required for state",
+                            details={"state": state},
+                            severity_map=severity_map,
+                        )
+                    ]
+
+            allowed_reason_codes = system_policy.get("link_status_allowed_reason_codes", [])
+            allowed_reason_codes = [str(value) for value in allowed_reason_codes if str(value).strip()]
+            if allowed_reason_codes and isinstance(reason_code, str) and reason_code.strip():
+                if reason_code not in allowed_reason_codes:
+                    return False, [
+                        _violation(
+                            "LINK_STATUS_INVALID_REASON_CODE",
+                            "LINK_STATUS reason_code not allowed",
+                            details={"reason_code": reason_code, "state": state},
+                            severity_map=severity_map,
+                        )
+                    ]
+
+        if event_subtype == "TASK_ACK" or system_type == "TASK_ACK":
+            state = payload.get("state")
+            allowed_states = system_policy.get("task_ack_allowed_states", [])
+            allowed_states = [str(value) for value in allowed_states if str(value).strip()]
+            if allowed_states and state not in allowed_states:
+                return False, [
+                    _violation(
+                        "TASK_ACK_INVALID_STATE",
+                        "TASK_ACK state not allowed",
+                        details={"state": state},
+                        severity_map=severity_map,
+                    )
+                ]
+
+            metrics = payload.get("metrics")
+            required_fields = system_policy.get("task_ack_required_metrics_fields")
+            if not required_fields:
+                required_fields = system_policy.get("task_ack_requires_metrics_fields", [])
+            required_fields = [str(field) for field in required_fields if str(field).strip()]
+            if not isinstance(metrics, dict):
+                missing = required_fields or ["task_id"]
+                if "task_id" in missing:
+                    code = "TASK_ACK_MISSING_TASK_ID"
+                elif "original_event_id" in missing:
+                    code = "TASK_ACK_MISSING_ORIGINAL_EVENT_ID"
+                else:
+                    code = "TASK_ACK_MISSING_REQUIRED_FIELD"
+                return False, [
+                    _violation(
+                        code,
                         "TASK_ACK metrics missing required fields",
                         details={"missing": missing},
                         severity_map=severity_map,
                     )
                 ]
+            missing = [field for field in required_fields if field not in metrics]
+            if missing:
+                if "task_id" in missing:
+                    code = "TASK_ACK_MISSING_TASK_ID"
+                elif "original_event_id" in missing:
+                    code = "TASK_ACK_MISSING_ORIGINAL_EVENT_ID"
+                else:
+                    code = "TASK_ACK_MISSING_REQUIRED_FIELD"
+                return False, [
+                    _violation(
+                        code,
+                        "TASK_ACK metrics missing required fields",
+                        details={"missing": missing},
+                        severity_map=severity_map,
+                    )
+                ]
+
+            reason_code = metrics.get("reason_code") if isinstance(metrics, dict) else None
+            require_reason_states = system_policy.get("task_ack_reason_code_required_states", [])
+            require_reason_states = [str(value) for value in require_reason_states if str(value).strip()]
+            if require_reason_states and state in require_reason_states:
+                if not isinstance(reason_code, str) or not reason_code.strip():
+                    return False, [
+                        _violation(
+                            "TASK_ACK_MISSING_REASON_CODE",
+                            "TASK_ACK reason_code required for state",
+                            details={"state": state},
+                            severity_map=severity_map,
+                        )
+                    ]
+
+            allowed_reason_codes = system_policy.get("task_ack_allowed_reason_codes", [])
+            allowed_reason_codes = [str(value) for value in allowed_reason_codes if str(value).strip()]
+            if allowed_reason_codes and isinstance(reason_code, str) and reason_code.strip():
+                if reason_code not in allowed_reason_codes:
+                    return False, [
+                        _violation(
+                            "TASK_ACK_INVALID_REASON_CODE",
+                            "TASK_ACK reason_code not allowed",
+                            details={"reason_code": reason_code, "state": state},
+                            severity_map=severity_map,
+                        )
+                    ]
 
     return True, []
 

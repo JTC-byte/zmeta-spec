@@ -18,6 +18,19 @@ Optional helper:
 python tools/run_gateway.py --profile H
 ```
 
+Self-test (schema + policy + examples + encoding):
+
+```
+python gateway/src/gateway.py --profile H --self-test
+```
+
+Self-test + hash gate (example):
+
+```
+python tools/compute_contract_hash.py
+python gateway/src/gateway.py --profile H --self-test --require-contract-hash <HASH>
+```
+
 ### Config file (recommended)
 
 Generate a deterministic config with the wizard:
@@ -40,15 +53,65 @@ The config file keys are:
 - `listen` host/port
 - `forward` host/port
 - `emit_cot` and `cot` host/port
+- `input_encoding` (`json`, `cbor`, `compact`, `auto`) and `output_encoding` (`json`, `cbor`, `compact`)
+- `stamp_profile` and `stamp_profile_profiles` (profile field stamping)
+- `stamp_timing` and `stamp_timing_profiles` (t_receive/t_publish stamping; default H/M)
+- `strip_optional_fields` and `strip_optional_fields_profiles` (bandwidth compaction)
+- `strict_validation` (treat warnings as failures)
+- `emit_metrics` and `metrics_interval_sec` (periodic gateway metrics logs)
+- `rate_limit_per_sec` (drop packets above receive rate)
+- `rate_limit_producer_per_sec` (drop per-producer above receive rate)
+- `metrics_log_path`, `metrics_log_max_bytes`, `metrics_log_backups` (JSONL metrics logs)
+- `stamp_contract_hash` (include schema/policy hashes in gateway-generated system events)
+- `require_schema_hash`, `require_policy_hash`, `require_contract_hash` (startup gate)
 - `schema_path` and `policy_dir` (resolved relative to the config file)
 
 CLI flags like `--profile` and `--listen-port` override the config when needed.
+Additional flags include `--strict-validation`, `--rate-limit-per-sec`,
+`--metrics-interval-sec`, `--no-metrics`, `--rate-limit-producer-per-sec`,
+`--metrics-log-path`, `--metrics-log-max-bytes`, `--metrics-log-backups`,
+and `--self-test`.
+
+### Encoding
+
+The gateway accepts `input_encoding` of `json`, `cbor`, `compact`, or `auto`, and emits `output_encoding`
+of `json`, `cbor`, or `compact`. CBOR requires `cbor2` or the built-in `zmeta_cbor` fallback. A common pattern is compact
+encoding on Profile L edge links (edge `output_encoding=compact`) and JSON on gateway egress.
+Use `compact` for the Profile L compact mapping (see `spec/compact-binary-mapping.md`).
 
 ### COMMAND_EVENT dedupe
 
 The gateway deduplicates `COMMAND_EVENT` by `task_id` using an in-memory TTL cache.
 TTL comes from `payload.valid_for_ms` (default 60000 ms, max 300000 ms). Duplicates are
-not forwarded; the gateway emits a `SYSTEM_EVENT` `TASK_ACK` with state `DUPLICATE_IGNORED`.
+not forwarded; the gateway emits a `SYSTEM_EVENT` `TASK_ACK` with state `DUPLICATE_IGNORED`
+and metrics including `task_id`, `original_event_id`, and `reason_code=TASK_DUPLICATE`.
+
+### Timing stamps
+
+For AAR/latency analysis, the gateway stamps `event.t_receive` on forwarded events
+when it is missing (default for profiles H/M). If `event.t_publish` is missing, it is
+set to the same value as `t_receive`. Use `stamp_timing`/`stamp_timing_profiles` to
+change this behavior.
+
+### Telemetry and rate limiting
+
+The gateway logs periodic metrics (received, forwarded, drops, violations, warnings) at
+`metrics_interval_sec` when `emit_metrics` is true. Use `rate_limit_per_sec` to drop
+packets above a configured receive rate. `rate_limit_producer_per_sec` applies per producer.
+
+If `metrics_log_path` is set, the gateway writes JSONL metrics/violation/drop records
+and rotates logs based on `metrics_log_max_bytes` and `metrics_log_backups`.
+
+### Strict validation
+
+When `strict_validation` is enabled, warnings are treated as failures and the original
+event is not forwarded.
+
+### Contract hash gate
+
+On startup, the gateway prints schema/policy/contract hashes. If `require_*_hash` is set
+and does not match, the gateway exits to prevent drift. Use `stamp_contract_hash` to include
+hashes in gateway-generated system events for AAR traceability.
 
 ### CoT emission (optional)
 

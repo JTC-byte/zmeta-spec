@@ -27,12 +27,16 @@
     "source.sw_version",
     "payload.data_ref",
     "payload.data_refs",
-    "payload.quality"
+    "payload.quality",
+    "payload.source_summary",
+    "payload.heading_deg",
+    "payload.speed_mps",
+    "payload.class",
+    "confidence",
+    "lineage"
   ],
   "strip_optional_fields_profiles": [
-    "L",
-    "M",
-    "H"
+    "L"
   ],
   "strict_validation": false,
   "emit_metrics": true,
