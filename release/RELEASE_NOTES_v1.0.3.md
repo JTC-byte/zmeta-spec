@@ -5,6 +5,8 @@
 - Expanded the reference gateway with JSON/CBOR/compact I/O, strict validation, rate limiting,
   metrics logs, and contract-hash gating.
 - Added a conformance pack and validation tooling plus encoding roundtrip examples.
+- Fixed MAVLink TASK_ACK ingress to require original_event_id in metrics.
+- Set pytest cache to a repo-local path to avoid teardown hangs in restricted environments.
 
 ## Semantics and Policy
 - Expanded the v1.0 schema for Observation/Inference/Fusion payloads and SystemEvent requirements

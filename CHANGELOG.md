@@ -10,6 +10,8 @@
   contract-hash gating, and COMMAND_EVENT dedupe.
 - Added conformance pack, example validators, and encoding roundtrip examples/tests.
 - Added new documentation for compact mapping, field dictionary, profile compatibility, and refreshed specs.
+- Fixed MAVLink TASK_ACK ingress to require original_event_id in metrics.
+- Set pytest cache to repo-local path to avoid teardown hangs in restricted environments.
 
 ## [1.0.2]
 - Expanded installation docs with bundle-based step-by-step guidance, prerequisites,
