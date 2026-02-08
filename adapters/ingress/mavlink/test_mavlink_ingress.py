@@ -13,7 +13,12 @@ VALIDATOR = Draft202012Validator(SCHEMA)
 
 
 def test_mavlink_task_ack_schema_valid():
-    msg = {"msg_type": "MISSION_ACK", "task_id": "task-1", "state": "RECEIVED"}
+    msg = {
+        "msg_type": "MISSION_ACK",
+        "task_id": "task-1",
+        "original_event_id": "019c3ef3-98c4-7c99-8daf-3643ed0bc8ef",
+        "state": "RECEIVED",
+    }
     events = mavlink_decoded_to_zmeta_system_events(
         msg,
         platform_id="uav-1",

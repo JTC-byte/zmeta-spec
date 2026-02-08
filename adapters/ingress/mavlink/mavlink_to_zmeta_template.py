@@ -43,11 +43,20 @@ def mavlink_decoded_to_zmeta_system_events(
 
     if "task_id" in msg or "mission_ack" in msg or "mission_state" in msg or "ack" in msg:
         state = msg.get("state") or msg.get("mission_state") or msg.get("ack") or "RECEIVED"
-        metrics = {}
-        if "task_id" in msg and msg["task_id"] is not None:
-            metrics["task_id"] = msg["task_id"]
+        task_id = msg.get("task_id")
+        original_event_id = (
+            msg.get("original_event_id")
+            or msg.get("command_event_id")
+            or msg.get("event_id")
+        )
+        if task_id is None or original_event_id is None:
+            raise ValueError("TASK_ACK requires task_id and original_event_id")
+        metrics = {
+            "task_id": task_id,
+            "original_event_id": original_event_id,
+        }
         return [
-            _make_event("TASK_ACK", state, platform_id=platform_id, producer=producer, ts=ts, metrics=metrics or None)
+            _make_event("TASK_ACK", state, platform_id=platform_id, producer=producer, ts=ts, metrics=metrics)
         ]
 
     if "time_usec" in msg or "gps_time" in msg or msg_type in {"SYSTEM_TIME", "TIMESYNC"}:
