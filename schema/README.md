@@ -2,5 +2,60 @@
 
 JSON Schema definitions for ZMeta.
 
-Primary schema:
-- `zmeta-event-1.0.schema.json` (Draft 2020-12)
+- `zmeta-event-1.0.schema.json` — ZMeta v1.0 (Draft 2020-12)
+- `zmeta-event-1.1.0.schema.json` — ZMeta v1.1.0 (Draft 2020-12, backward-compatible extension)
+
+## v1.1.0 Changes (relative to v1.0)
+
+### Modality-Specific Feature Schemas
+Conditional feature validation for all modalities (extends existing RF pattern):
+- **EO** requires `class_name`, `confidence`; optional `bbox`, `fov_deg`, `resolution_px`
+- **IR** requires `band` (MWIR/LWIR/SWIR/NIR); optional `temperature_k`, `emissivity`
+- **ACOUSTIC** requires `center_freq_hz`, `power_db`; optional `duration_ms`, `source_type`
+- **NETWORK** requires `protocol`; optional `source_addr`, `dest_addr`, `port`
+
+### Expanded Modality Enum
+Added: `RADAR`, `LIDAR`, `MAGNETIC`, `SEISMIC`, `CYBER`, `SIGINT`
+
+### Structured Quality Block
+`quality` now has typed optional properties: `measurement_error`, `error_metric`,
+`snr_db`, `calibration_state`, `geo_status`. All optional, `additionalProperties: true`.
+
+### Geo-Absent Support
+`quality.geo_status` enum: `AVAILABLE | UNAVAILABLE | ESTIMATED | STALE | CONFIGURED`.
+Eliminates (0,0,0) sentinel pattern for GPS-denied edges.
+
+### Error Ellipse
+`geo` object now allows `error_ellipse_m` with `semi_major`, `semi_minor`,
+`orientation_deg`, and optional `probability` (1_SIGMA/CEP/CE_90/CE_95).
+`geo.additionalProperties` changed to `true` to support this.
+
+### Expanded COMMAND_EVENT Task Types
+Added: `RETURN_TO_BASE`, `LAND`, `LOITER`, `SCAN_RF`, `TRACK_TARGET`, `CHANGE_SENSOR_MODE`
+
+### Formalized Orbit Geometry
+`geometry` now references `$defs/orbit_geometry` with `pattern`, `radius_m`,
+`direction`, `lobe_separation_m`, `arc_degrees`.
+
+### SENSOR_STATUS and PLATFORM_STATUS
+New `system_type` values with conditional metrics validation:
+- **SENSOR_STATUS**: requires `sensor_id`, `operational_state`; optional `modality`, `mode`, `freq_range_hz`, etc.
+- **PLATFORM_STATUS**: requires `battery_pct`; optional `endurance_remaining_sec`, `flight_mode`, `platform_type`, etc.
+
+### data_ref
+Optional `data_ref` object on `ObservationPayload` for linking events to raw captures
+(IQ, video, PCAP). Requires `ref_id`; optional `store`, `kind`, `format`, `hash`, `size_bytes`.
+
+### UUID Pattern
+UUID regex relaxed to accept any valid UUID (v4, v7, etc.) for broader vendor
+compatibility. Producers SHOULD use UUIDv7 for time-ordering benefits but the
+schema does not enforce a specific version.
+
+### Profile Field
+Inherited from v1.0.3: `profile` top-level field (L/M/H) for export profile tagging.
+
+### Backward Compatibility
+- Accepts `zmeta_version` values: `"1.0"`, `"1.0.2"`, `"1.0.3"`, `"1.1"`, `"1.1.0"`
+- All new fields are optional or additive enum extensions
+- Existing valid v1.0 events pass v1.1.0 validation
+- `additionalProperties: true` preserved on all payload types
