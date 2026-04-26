@@ -14,7 +14,9 @@ When to use the lean Profile L config:
 Notes:
 - `schema_path` and `policy_dir` are resolved relative to the config file location.
 - Replace `GATEWAY_HOST` in `edge-config.json` with the actual gateway IP/hostname.
-- MVP roles: `sensorops` runs comms + edge export; `torch` runs gateway fusion/retasking.
+- Default producer IDs in the reference policy include `sensorops` for command/comms
+  examples and `torch` for analytics/fusion examples. Replace or extend the policy
+  allowlists for your deployment.
 - Debug/optimization controls:
   - `stamp_profile` and `stamp_profile_profiles` control when `profile` is stamped.
   - `stamp_timing` and `stamp_timing_profiles` control gateway `t_receive`/`t_publish` stamps.

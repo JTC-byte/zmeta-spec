@@ -13,11 +13,6 @@
 - Experimental extension: `schema/zmeta-event-1.1.0.schema.json` is provided for proposed
   compatibility testing only; v1.1.0-only fields are not part of the locked v1.0 contract.
 
-## MVP Roles (Demo)
-- `swarmint`: drone + EO/IR payload platform only (no ZMeta producer role)
-- `sensorops`: comms + edge export module (edge broadcast + gateway command emission)
-- `torch`: gateway fusion + retasking analytics
-
 ## What ZMeta Is
 - A semantic contract
 - A JSON schema
