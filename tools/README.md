@@ -63,7 +63,7 @@ python tools/validate_conformance.py --strict
 ```
 python tools/measure_packet_size.py --file examples/zmeta-profile-L-examples.jsonl
 python tools/measure_packet_size.py --file examples/zmeta-profile-L-examples.jsonl --event-type STATE_EVENT --event-subtype TRACK_STATE
-python tools/measure_packet_size.py --file examples/zmeta-profile-L-examples.jsonl --strip confidence --strip lineage --strip payload.data_ref
+python tools/measure_packet_size.py --file examples/zmeta-profile-L-examples.jsonl --strip payload.data_ref --strip payload.source_summary --strip payload.heading_deg --strip payload.speed_mps
 python tools/measure_packet_size.py --file examples/zmeta-profile-L-examples.jsonl --encodings compact --max-bytes 250 --summary-only
 ```
 

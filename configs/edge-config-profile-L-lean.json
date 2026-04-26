@@ -11,6 +11,31 @@
   "emit_cot": false,
   "input_encoding": "auto",
   "output_encoding": "compact",
+  "failure_modes": {
+    "timing_loss": {
+      "enabled": true,
+      "confidence_reduction_factor": 2.0,
+      "gate_fusion_threshold": 0.4
+    },
+    "observation_timeout": {
+      "enabled": true,
+      "valid_for_ms_reduction": 0.5,
+      "confidence_reduction_per_cycle": 0.1,
+      "max_age_ms": 300000
+    },
+    "deconfliction_offline": {
+      "enabled": true,
+      "queue_max_size": 100,
+      "queue_ttl_ms": 600000,
+      "emit_backpressure_event": true
+    },
+    "fusion_instability": {
+      "enabled": true,
+      "stability_threshold": 0.3,
+      "hold_until_stable": true,
+      "force_emit_after_ms": 5000
+    }
+  },
   "stamp_profile": true,
   "stamp_profile_profiles": [
     "L",
@@ -31,9 +56,7 @@
     "payload.source_summary",
     "payload.heading_deg",
     "payload.speed_mps",
-    "payload.class",
-    "confidence",
-    "lineage"
+    "payload.class"
   ],
   "strip_optional_fields_profiles": [
     "L"

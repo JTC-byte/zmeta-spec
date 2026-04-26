@@ -34,7 +34,21 @@ The following semantics are **locked** and non-negotiable for the MVP. All schem
 - Once emitted, an event is never modified or deleted.
 - Corrections, reinterpretations, or refinements must be represented as **new events** with lineage references.
 
-### 1.3 Layer Separation (Fact -> Opinion -> Belief -> State)
+### 1.3 Event Identity (UUIDv7 Requirement)
+
+- All ZMeta `event_id` values **MUST** be UUIDv7 (RFC 9562).
+- UUIDv7 provides sortable, timestamp-grounded identity required for:
+  - Lineage reconstruction and auditing
+  - Deduplication under high-rate emission
+  - Track persistence across profiles
+  - Ordering under constrained timing
+- Adapters translating legacy systems with UUIDv4 or other identifier formats
+  **MUST** regenerate `event_id` to UUIDv7 at the adapter boundary.
+- Legacy event identifiers MAY be preserved in `payload.source_event_id` or an
+  equivalent payload-scoped provenance field for traceability.
+- Profile, transport, producer, and event type MUST NOT be encoded into `event_id`.
+
+### 1.4 Layer Separation (Fact -> Opinion -> Belief -> State)
 
 ZMeta enforces strict separation between semantic layers:
 
@@ -45,7 +59,7 @@ ZMeta enforces strict separation between semantic layers:
 
 No layer may collapse into another. Violations are considered contract breaches.
 
-### 1.4 Authority Boundaries
+### 1.5 Authority Boundaries
 
 - Sensors may emit **Observation** events only.
 - AI/analytics modules may emit **Inference** events only.
@@ -57,13 +71,13 @@ use a non-EDGE role (e.g., GATEWAY) for those producers to preserve authority bo
 If a single software stack performs multiple roles (e.g., analytics + fusion), it MUST respect
 the event-type boundaries above and MAY emit separate producer identities for each role.
 
-### 1.5 Transport Is Non-Semantic
+### 1.6 Transport Is Non-Semantic
 
 - Transport choice (LTE, IP radio, LoRa) carries **no semantic meaning**.
 - Transport may affect payload density, rate, or precision, but **never interpretation**.
 - Identical events flowing over different transports must remain semantically identical.
 
-### 1.6 Profiles Thin Data, Never Reinterpret It
+### 1.7 Profiles Thin Data, Never Reinterpret It
 
 - Thin / Medium / Fat profiles may:
   - Remove optional fields
@@ -75,13 +89,14 @@ the event-type boundaries above and MAY emit separate producer identities for ea
   - Change meanings
   - Introduce implicit defaults
 
-### 1.7 Mandatory Lineage
+### 1.8 Mandatory Lineage
 
-- All non-observation events must reference upstream events via lineage.
 - Lineage is required for:
   - Inference
   - Fusion
   - State
+- COMMAND_EVENT and SYSTEM_EVENT lineage is optional unless a specific subtype
+  or deployment policy requires it.
 - Lineage enables auditability, AARs, debugging, and trust assessment.
 
 Lineage scope:
@@ -89,13 +104,13 @@ Lineage scope:
 - Full ancestry MAY be reconstructed from local storage or AAR data stores when needed.
 - Under constrained profiles (especially Profile L), lineage MAY reference non-exported events; consumers must tolerate unresolved references.
 
-### 1.8 Explicit Uncertainty
+### 1.9 Explicit Uncertainty
 
 - ZMeta never implies certainty by omission.
 - Confidence and uncertainty must be explicit.
 - Degraded or low-quality data is still valid, but must be marked as such.
 
-### 1.9 Telemetry-First; Limited Mission Tasking Under Constraint
+### 1.10 Telemetry-First; Limited Mission Tasking Under Constraint
 
 - ZMeta is telemetry-first and is not intended for continuous control.
 - Out-of-band control remains the default under unrestricted bandwidth (e.g., MAVLink, Swarm API).
@@ -110,7 +125,7 @@ AI/analytics producers (e.g., Torch) SHALL NOT directly command platforms.
 
 All mission tasking carried in ZMeta SHALL be routed through a designated Comms/Deconfliction Node (e.g., SensorOps).
 
-### 1.10 Tasking Governance and Deconfliction
+### 1.11 Tasking Governance and Deconfliction
 
 Permitted via ZMeta (strict):
 
@@ -123,7 +138,7 @@ Not permitted via ZMeta:
 - High-rate flight control
 - Continuous control loops
 
-### 1.11 Vendor Extensibility Rules
+### 1.12 Vendor Extensibility Rules
 
 - Vendors may extend payloads **within their domain**.
 - Vendors may not:
@@ -164,21 +179,23 @@ Gateway behavior:
 - For bandwidth-constrained profiles, implementations MAY disable timing stamps;
   the reference gateway defaults to stamping for profiles H/M and can be turned off.
 
-### 2.3 Timing Quality Metadata
+### 2.3 Timing Quality Metadata (Mandatory)
 
-Each node must expose timing quality, either per-event or periodically via SystemEvents.
+Timing quality metadata is **mandatory for all profiles** (L, M, H). Each node
+MUST expose timing quality either per-event or periodically via `SYSTEM_EVENT` /
+`TIME_STATUS`. A consumer that receives multiple events from a node MAY apply the
+latest `TIME_STATUS` from that node until a newer status supersedes it.
 
-Minimum required fields:
+Minimum required fields for `TIME_STATUS`:
 
-- time_source: GPS_PPS | GPS_NMEA | NTP | PTP | MANUAL | UNKNOWN
+- `time_source`: GPS_PPS | GPS_NMEA | NTP | PTP | MANUAL | UNKNOWN
+- `sync_state`: LOCKED | HOLDOVER | UNSYNCED
+- `est_error_ms`: **worst-case absolute timestamp error (upper bound)** - REQUIRED
+- `last_sync_ts`: last known sync time (UTC)
 
-- sync_state: LOCKED | HOLDOVER | UNSYNCED
-
-- est_error_ms: **worst-case absolute timestamp error (upper bound)**
-
-- last_sync_ts: last known sync time (UTC)
-
-If only one field can be supported, est_error_ms is **mandatory** for RF use cases.
+If bandwidth or implementation maturity forces a minimal timing report,
+`est_error_ms` remains mandatory for RF and time-correlated fusion use cases.
+Best practice is to emit all four fields whenever possible.
 
 ### 2.4 Worst-Case Error Semantics
 
@@ -220,9 +237,12 @@ This is critical for synthetic aperture DF and multi-sensor RF correlation.
 
 - **Profile L (LoRa Thin):**
   - event.ts required
-  - Timing quality may be sent periodically via SystemEvents
+  - Timing quality metadata required
+  - `est_error_ms` MUST NOT be omitted
+  - Timing quality may be sent periodically via `TIME_STATUS` SystemEvents when bandwidth is critical
 - **Profiles M/H (IP Radio / LTE):**
-  - Full timing quality metadata strongly recommended
+  - Timing quality metadata required
+  - Full timing quality SHOULD be emitted per-event when practical, or via periodic SystemEvents otherwise
 
 ## 3. Units & Geodesy Standard (MVP)
 
@@ -320,7 +340,7 @@ ZMetaEvent {
   }
   profile?: L | M | H
   payload: OBJECT   // Defined by event_type
-  confidence: float // 0.0 - 1.0 (worst-case interpretation)
+  confidence: float // 0.0 - 1.0 (worst-case interpretation, REQUIRED for INFERENCE/FUSION/STATE)
   lineage?: {
     based_on: UUIDv7[]
     transform?: string
@@ -331,8 +351,15 @@ ZMetaEvent {
 **Envelope Rules:**
 - Envelope fields are **immutable and globally consistent**.
 - Payload semantics are determined exclusively by event_type and event_subtype.
-- confidence is mandatory for INFERENCE/FUSION/STATE events (not for OBSERVATION/COMMAND/SYSTEM).
-- profile is optional and reflects the **export profile** applied at emission time; do not encode profile into event_id.
+- `confidence` is mandatory for INFERENCE/FUSION/STATE events and prohibited for
+  OBSERVATION/COMMAND/SYSTEM events.
+  - It reflects worst-case consumption confidence: how safe the event is for
+    downstream fusion or state projection.
+  - It MUST account for input data quality, timing uncertainty, model confidence,
+    and any active profile or failure-mode degradation.
+  - Under degraded timing (HOLDOVER/UNSYNCED), confidence MUST be reduced
+    proportionally to `est_error_ms` according to the producer's documented policy.
+- `profile` is optional and reflects the **export profile** applied at emission time; do not encode profile into event_id.
 
 ### 4.2 Event Types (Authoritative)
 
@@ -432,6 +459,9 @@ FusionPayload {
 **Rules:**
 - Only fusion nodes may create track_id
 - Track identity is provisional and revisable
+- Once assigned, a `track_id` MUST persist unchanged for subsequent events that
+  reference the same track
+- `track_id` values MUST be globally unique and MUST NOT be reused after track loss
 
 ### 4.6 STATE_EVENT
 
@@ -643,6 +673,201 @@ Profiles define **transport-driven transmission constraints**, not semantic shor
 
 **Profile Rule (Global):** Profiles may remove fields or reduce rate/precision, but **never reinterpret meaning** or rename fields.
 
+## 5. Track Persistence and Deduplication (Normative)
+
+Track identity must persist across profile transitions, time gaps, and network
+boundaries. Deduplication and continuity rely on immutable event identity,
+idempotent task identity, and explicit lineage.
+
+### 5.1 Primary Identification Method: Track ID
+
+Track identity is anchored in `payload.track_id`, which is assigned only by a
+fusion node (see Section 1.5 Authority Boundaries).
+
+**Rules:**
+- `track_id` is assigned by fusion nodes only.
+- `track_id` MUST persist unchanged across all subsequent events referencing the same track.
+- `track_id` is profile-agnostic and remains valid across Profile L, M, and H exports.
+- `track_id` SHOULD be human-readable when practical (for example, `TRACK-20250117-001`) but MUST be globally unique.
+- `track_id` MUST NOT be reused after a track is lost, merged, or retired.
+
+### 5.2 Deduplication Rules
+
+Event deduplication uses the immutable `event_id` unless the event type has an
+explicit idempotency key.
+
+**FUSION_EVENT / STATE_EVENT deduplication:**
+- Use `event_id` as the primary deduplication key.
+- If an identical event with the same `event_id` arrives more than once, consumers SHOULD drop subsequent copies without changing state.
+- Consumers maintaining local state MUST record the `event_id` values already applied.
+
+**COMMAND_EVENT deduplication:**
+- Use `payload.task_id` as the idempotent key, not `event_id`.
+- Retransmitted COMMAND_EVENTs with the same `task_id` MUST be treated as the same command.
+- A duplicate command MUST NOT be forwarded for execution a second time.
+- The node detecting the duplicate SHOULD emit a `SYSTEM_EVENT` / `TASK_ACK` with:
+  - `payload.state: DUPLICATE_IGNORED`
+  - `payload.metrics.task_id`
+  - `payload.metrics.original_event_id`
+  - `payload.metrics.reason_code: TASK_DUPLICATE`
+
+**TASK_ACK deduplication:**
+- Use `payload.metrics.task_id` + `payload.metrics.original_event_id` + `payload.state` as the composite key.
+- A task may be acknowledged once per state transition.
+- Multiple acknowledgements for different states of the same task are valid lifecycle updates.
+
+### 5.3 Track Lifecycle and Revisability
+
+Track identity is **provisional and revisable**, but revisability is represented
+with new events and lineage, never by mutating old events or reusing IDs.
+
+**Lifecycle states:**
+- **NEW:** A fusion node emits an initial FUSION_EVENT with a new `track_id`.
+- **ACTIVE:** The node continues emitting FUSION_EVENT and STATE_EVENT updates for the same `track_id`.
+- **MERGED:** If two tracks are determined to be the same entity:
+  - Emit a new FUSION_EVENT with the canonical `track_id`.
+  - Include lineage references to the events that supported both prior tracks.
+  - Retire the non-canonical `track_id`; do not reuse it.
+  - Record the merge in local AAR/operator logs, or in an implementation-defined system event if supported by that schema version.
+- **LOST:** If observations for a track exceed a configurable age threshold:
+  - Stop emitting STATE_EVENTs for that `track_id`, or emit only low-confidence updates that truthfully represent stale state.
+  - Allow existing `valid_for_ms` windows to expire.
+  - Retire the `track_id`; do not reuse it after any quiet period.
+
+### 5.4 Lineage-Based Continuity
+
+Track continuity is validated via lineage:
+
+- Every FUSION_EVENT and STATE_EVENT **MUST** include `lineage.based_on` referencing parent observations, inferences, or fusion events.
+- Lineage establishes causality: this track update is derived from these prior events.
+- Under Profile L, lineage MAY reference non-exported events; consumers must tolerate unresolved references.
+- Full ancestry MAY be reconstructed from local AAR stores when needed.
+
+Example:
+
+```json
+{
+  "event_type": "STATE_EVENT",
+  "payload": {
+    "track_id": "TRACK-20250117-001",
+    "geo": { "lat": 40.7128, "lon": -74.0060, "alt_m": 100 },
+    "valid_for_ms": 1000
+  },
+  "lineage": {
+    "based_on": [
+      "019c2b5c-c046-70e1-b6aa-34bf14c8a247",
+      "019c2b5c-c047-73ea-8f1a-3027c7ac09aa"
+    ]
+  }
+}
+```
+
+### 5.5 Handling Track Persistence Across Profiles
+
+Invariant: `track_id` is profile-agnostic. A track exported in Profile H remains
+the same track when exported in Profile L, and vice versa.
+
+**Profile L edge behavior:**
+- An edge node that receives a FUSION_EVENT with `track_id: T123` MAY emit a Profile L STATE_EVENT with `track_id: T123`.
+- The `track_id` is preserved; only optional fields may be dropped.
+- Lineage may reference non-exported fusion events under bandwidth constraint.
+
+**Profile M/H gateway behavior:**
+- A gateway that receives a Profile L STATE_EVENT with `track_id: T123` preserves `track_id`.
+- The gateway MAY enrich the event with fuller lineage or emit a FUSION_EVENT if it has access to upstream data.
+- Enrichment must be transparent to downstream consumers and MUST NOT modify or replace the existing event.
+
+## 6. Edge Operator Failure Mode Configuration (Normative)
+
+Edge nodes in Profile L or M deployments must support user-configurable failure
+mode handling while preserving semantic contract invariants. Configuration may
+change rates, TTLs, confidence reductions, queueing, and local gating behavior;
+it may not change event meaning.
+
+### 6.1 Default Failure Mode Behavior
+
+All edge nodes **MUST** implement defensible defaults for the following failure
+modes. Operators MAY override the thresholds and factors in deployment config.
+
+| Failure Mode | Default Behavior | User Configurable |
+|---|---|---|
+| **Timing Loss (UNSYNCED)** | Emit TIME_STATUS with `sync_state: UNSYNCED`; reduce STATE_EVENT confidence by factor of 2; gate high-precision fusion | Yes |
+| **Observation Timeout** | Continue STATE_EVENT emission only while `valid_for_ms` truthfully represents stale data; reduce `valid_for_ms` by 50%; reduce confidence by 10% per update cycle | Yes |
+| **Deconfliction Node Offline** | Queue COMMAND_EVENTs locally with TTL; do not execute undeconflicted commands; emit TASK_ACK failure/expiry when applicable | Yes |
+| **Memory/Storage Exhausted** | Preserve required envelope, confidence, and lineage fields; drop optional references first; drop least-confident observations before stronger state | Yes |
+| **Link Degradation** | Emit LINK_STATUS; thin optional payload fields per profile rules; may reduce STATE_EVENT emission rate | Yes |
+| **Fusion Instability** | If `stability < 0.3`, hold STATE_EVENT emission until stability improves or TTL expires unless operator policy requires degraded-state emission | Yes |
+
+`SCHEMA_VIOLATION` MUST be used only for rejected or malformed events. It MUST
+NOT be used to report normal operational degradation such as memory pressure,
+track merge, timing loss, or link degradation unless the degradation directly
+caused schema validation failure.
+
+### 6.2 User-Configurable Profile Example
+
+Edge operators may override defaults via configuration:
+
+```json
+{
+  "failure_modes": {
+    "timing_loss": {
+      "enabled": true,
+      "confidence_reduction_factor": 2.0,
+      "gate_fusion_threshold": 0.4
+    },
+    "observation_timeout": {
+      "enabled": true,
+      "valid_for_ms_reduction": 0.5,
+      "confidence_reduction_per_cycle": 0.1,
+      "max_age_ms": 300000
+    },
+    "deconfliction_offline": {
+      "enabled": true,
+      "queue_max_size": 100,
+      "queue_ttl_ms": 600000,
+      "emit_backpressure_event": true
+    },
+    "fusion_instability": {
+      "enabled": true,
+      "stability_threshold": 0.3,
+      "hold_until_stable": true,
+      "force_emit_after_ms": 5000
+    }
+  },
+  "profile": "L",
+  "time_source": "GPS_PPS",
+  "max_lineage_depth": 3,
+  "max_payload_bytes": 256
+}
+```
+
+### 6.3 Semantic Invariants Under Degradation
+
+Even when failure modes are active, the following invariants MUST be maintained:
+
+- **No semantic reinterpretation:** Degraded STATE_EVENTs remain STATE_EVENTs.
+- **Explicit uncertainty:** Confidence and timing metadata always reflect current conditions.
+- **Auditability:** Significant degradation transitions are emitted as standardized SystemEvents when available and logged for AAR.
+- **Immutability:** Once an event is emitted, it cannot be modified; corrections are new events.
+- **Lineage preservation:** Required `lineage.based_on` references must be included, even if unresolved under Profile L.
+
+### 6.4 Recommended Operational Practices
+
+Monitoring:
+- Track `est_error_ms` and `sync_state` to anticipate fusion reliability.
+- Alert if confidence remains below an operator-defined threshold such as `0.3`.
+- Log all failure mode activations for post-mission AAR.
+
+Testing:
+- Validate behavior under each failure mode before deployment.
+- Test Profile L -> M -> H transitions to ensure track continuity.
+- Verify deduplication under high-loss and retransmission conditions.
+
+Escalation:
+- Define recovery objectives for UNSYNCED operation.
+- Define observation timeout recovery behavior.
+- Document manual recovery procedures for persistent failure modes.
+
 ## Appendix A (Informative): Data Reference Convention (Optional)
 
 Some deployments retain raw data locally or in upstream stores for AAR, reprocessing, or vectorization. To link
@@ -679,3 +904,91 @@ payload: {
   }
 }
 ```
+
+## Appendix B (Informative): Confidence Computation Guidelines
+
+This appendix provides non-normative guidance for computing `confidence` values
+for FUSION and STATE events. Operators and producers SHOULD document their chosen
+formula in operational runbooks.
+
+### B.1 Input Confidence Aggregation
+
+When fusing multiple observations or inferences:
+
+```text
+confidence = min(input_confidences) * aggregation_factor
+```
+
+Where:
+- `min(input_confidences)` is the lowest confidence among all inputs.
+- `aggregation_factor` is a domain-specific multiplier, such as `0.8` for a
+  conservative two-sensor fusion model or `0.9` for high-quality inputs.
+
+Rationale: a fused track should not appear more reliable than its weakest
+material input unless the producer's model explicitly justifies that increase.
+
+### B.2 Timing Quality Degradation
+
+If timing synchronization is degraded:
+
+```text
+timing_factor = max(0.0, 1.0 - (est_error_ms / sync_threshold_ms))
+confidence_with_timing = base_confidence * timing_factor
+```
+
+Where:
+- `est_error_ms` is the node's current timing error from `TIME_STATUS`.
+- `sync_threshold_ms` is a configurable threshold, such as `100 ms` for RF fusion
+  or `500 ms` for general tracking.
+
+Example:
+- Base confidence: `0.8`
+- Timing error: `50 ms`
+- Threshold: `100 ms`
+- Timing factor: `1.0 - (50 / 100) = 0.5`
+- Final confidence: `0.8 * 0.5 = 0.4`
+
+### B.3 Profile and Precision Effects
+
+Profile L events MUST NOT reduce confidence merely because they are Profile L.
+However, confidence SHOULD reflect any real loss of precision, missing optional
+context, unresolved lineage, or active degradation introduced by profile
+constraint.
+
+Example:
+
+```text
+profile_precision_factor = 0.8  # only when quantization or omitted context materially reduces use safety
+confidence_with_profile = base_confidence * profile_precision_factor
+```
+
+### B.4 Observation Freshness
+
+If a STATE_EVENT is based on observations older than a configured threshold:
+
+```text
+age_ms = now_ts - oldest_input_ts
+freshness_factor = max(0.0, 1.0 - (age_ms / max_age_ms))
+confidence_with_freshness = base_confidence * freshness_factor
+```
+
+Where `max_age_ms` is typically 30-60 seconds for real-time tracking, but should
+be tuned by mission and sensor modality.
+
+### B.5 Recommended Formula
+
+For a complete confidence computation in a fusion node:
+
+```text
+confidence =
+  min(input_confidences)
+  * aggregation_factor
+  * timing_factor
+  * profile_precision_factor
+  * freshness_factor
+
+confidence = clip(confidence, 0.0, 1.0)
+```
+
+All factors are computed independently, then multiplied. Clamping ensures the
+result remains in `[0, 1]`.

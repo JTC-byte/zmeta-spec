@@ -79,15 +79,18 @@ capability-aware retasking without out-of-band configuration.
 Optional `data_ref` object on `ObservationPayload` for linking events to raw
 captures. Formalizes the Appendix A convention from the semantic contract.
 
-### UUID Pattern Relaxation
+### UUIDv7 Event Identity
 
-UUID regex relaxed from strict UUIDv7 to accept any valid UUID format.
-Producers SHOULD use UUIDv7 for time-ordering benefits, but the schema
-does not reject v4 or other variants.
+UUID validation is aligned with the semantic contract: ZMeta `event_id` values,
+lineage references, and fusion member IDs must be UUIDv7. Adapters translating
+legacy UUIDv4 or vendor identifiers must regenerate ZMeta event IDs at the
+adapter boundary and preserve legacy IDs in payload provenance when needed.
 
 ## Migration Guide
 
-No migration required. All existing v1.0 events are valid under v1.1.0.
+Existing semantically compliant v1.0 events are valid under v1.1.0. Producers
+that emitted non-UUIDv7 identifiers must regenerate ZMeta event IDs before
+validation.
 
 Producers upgrading to v1.1.0 should:
 1. Set `zmeta_version` to `"1.1.0"` (or `"1.1"`)

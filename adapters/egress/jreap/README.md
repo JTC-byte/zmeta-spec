@@ -9,7 +9,9 @@ Input: ZMeta STATE_EVENT/TRACK_STATE
 Output: minimal tactical track JSON
 
 Notes:
-- This is a lossy projection: lineage dropped, confidence optional, limited taxonomy.
+- This is a lossy projection: ZMeta input requires confidence and lineage for
+  STATE_EVENT, but the downstream tactical track JSON may omit lineage and may
+  carry confidence only when the receiving gateway supports it.
 - A program-of-record JREAP gateway handles real formatting and transport.
 
 ### Smoke test

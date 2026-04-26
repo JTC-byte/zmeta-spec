@@ -8,7 +8,7 @@ and downstream translation (e.g., CoT/TAK).
 
 Profile L links are bandwidth-constrained. The compact mapping reduces overhead by:
 - Using CBOR with **integer keys** instead of string field names.
-- Encoding UUIDs as **16-byte binary** values.
+- Encoding UUIDv7 values as **16-byte binary** values.
 - Encoding timestamps as **epoch milliseconds** (int64).
 - Mapping common enums to small integers.
 
@@ -169,12 +169,14 @@ omit them at the producer (gateway stripping does not reduce link size).
 
 Common high-impact optional fields:
 - `payload.data_ref` / `payload.data_refs`
-- `confidence`
-- `lineage`
 - `payload.source_summary`
 - `payload.heading_deg`
 - `payload.speed_mps`
 - `payload.class`
+
+Do not strip required STATE_EVENT fields such as `confidence` or `lineage`.
+Profile L may reference non-exported lineage parents, but the lineage field
+itself remains required for STATE_EVENT.
 
 ## Versioning
 
@@ -189,6 +191,6 @@ Profile L examples. Actual sizes vary with field lengths and optional fields.
 
 | Event Type | JSON (bytes) | CBOR (bytes) | COMPACT (bytes) | Notes |
 | --- | --- | --- | --- | --- |
-| STATE_EVENT/TRACK_STATE | 558 | 476 | 231 | At ~200 bytes if you drop `confidence` + `lineage` (200) or `payload.data_ref` (150). |
+| STATE_EVENT/TRACK_STATE | 558 | 476 | 231 | Tight budgets should drop optional payload fields such as `payload.data_ref`, `source_summary`, `heading_deg`, `speed_mps`, or `class`; keep `confidence` and `lineage`. |
 | SYSTEM_EVENT/TIME_STATUS | 444 | 373 | 101 | Already within tight budgets. |
 | COMMAND_EVENT/MISSION_TASK | 422 | 353 | 115 | Already within tight budgets. |

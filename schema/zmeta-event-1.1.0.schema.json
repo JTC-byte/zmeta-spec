@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://praesens.io/schemas/zmeta-event-1.1.0.schema.json",
   "title": "ZMeta Event Schema v1.1.0",
-  "description": "Backward-compatible extension of ZMeta v1.0. Adds modality-specific feature schemas, structured quality block, error ellipse, expanded task types, orbit geometry, SENSOR_STATUS, and PLATFORM_STATUS.",
+  "description": "Extension of ZMeta v1.0. Adds modality-specific feature schemas, structured quality block, error ellipse, expanded task types, orbit geometry, SENSOR_STATUS, PLATFORM_STATUS, and strict UUIDv7 event identity.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -160,7 +160,8 @@
   "$defs": {
     "uuid": {
       "type": "string",
-      "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+      "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$",
+      "description": "UUIDv7 per RFC 9562"
     },
     "event": {
       "type": "object",

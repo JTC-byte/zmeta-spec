@@ -10,6 +10,8 @@
 
 - Minor and patch releases must not invalidate existing 1.x payloads.
 - Optional fields may be added; required fields may not be removed or redefined.
+- A payload that violates a core semantic invariant (for example, non-UUIDv7
+  `event_id`) is not considered compliant for compatibility purposes.
 
 ## Deprecation policy
 

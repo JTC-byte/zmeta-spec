@@ -18,6 +18,8 @@ Notes:
 - Debug/optimization controls:
   - `stamp_profile` and `stamp_profile_profiles` control when `profile` is stamped.
   - `stamp_timing` and `stamp_timing_profiles` control gateway `t_receive`/`t_publish` stamps.
+  - `failure_modes` controls timing-loss, observation-timeout, deconfliction-offline,
+    and fusion-instability defaults for edge operation.
   - `strip_optional_fields` and `strip_optional_fields_profiles` remove optional fields
     for bandwidth efficiency.
   - `strict_validation` treats warnings as failures (no forward).
@@ -60,9 +62,7 @@ Suggested preset snippet (apply on the producer/edge that emits Profile L):
     "payload.source_summary",
     "payload.heading_deg",
     "payload.speed_mps",
-    "payload.class",
-    "confidence",
-    "lineage"
+    "payload.class"
   ],
   "strip_optional_fields_profiles": ["L"]
 }
@@ -71,4 +71,4 @@ Suggested preset snippet (apply on the producer/edge that emits Profile L):
 Gating rules:
 - Keep all required schema fields (event block + core payload fields).
 - Only strip `payload.data_ref(s)` if you do not rely on out-of-band retrieval.
-- Keep `confidence`/`lineage` if needed for AAR or fusion traceability.
+- Keep required STATE_EVENT fields including `confidence` and `lineage`.

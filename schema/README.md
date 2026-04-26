@@ -2,8 +2,8 @@
 
 JSON Schema definitions for ZMeta.
 
-- `zmeta-event-1.0.schema.json` — ZMeta v1.0 (Draft 2020-12)
-- `zmeta-event-1.1.0.schema.json` — ZMeta v1.1.0 (Draft 2020-12, backward-compatible extension)
+- `zmeta-event-1.0.schema.json` - ZMeta v1.0 (Draft 2020-12)
+- `zmeta-event-1.1.0.schema.json` - ZMeta v1.1.0 (Draft 2020-12 extension)
 
 ## v1.1.0 Changes (relative to v1.0)
 
@@ -46,16 +46,17 @@ New `system_type` values with conditional metrics validation:
 Optional `data_ref` object on `ObservationPayload` for linking events to raw captures
 (IQ, video, PCAP). Requires `ref_id`; optional `store`, `kind`, `format`, `hash`, `size_bytes`.
 
-### UUID Pattern
-UUID regex relaxed to accept any valid UUID (v4, v7, etc.) for broader vendor
-compatibility. Producers SHOULD use UUIDv7 for time-ordering benefits but the
-schema does not enforce a specific version.
+### UUIDv7 Event Identity
+`event.event_id`, `lineage.based_on`, and fusion `members` are constrained to
+UUIDv7 (RFC 9562). Adapters that ingest legacy UUIDv4 or vendor identifiers must
+regenerate ZMeta `event_id` values at the adapter boundary and preserve legacy
+IDs in payload-scoped provenance fields when traceability is needed.
 
 ### Profile Field
 Inherited from v1.0.3: `profile` top-level field (L/M/H) for export profile tagging.
 
-### Backward Compatibility
+### Compatibility
 - Accepts `zmeta_version` values: `"1.0"`, `"1.0.2"`, `"1.0.3"`, `"1.1"`, `"1.1.0"`
 - All new fields are optional or additive enum extensions
-- Existing valid v1.0 events pass v1.1.0 validation
+- Existing semantically compliant v1.0 events pass v1.1.0 validation
 - `additionalProperties: true` preserved on all payload types

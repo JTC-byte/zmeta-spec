@@ -88,6 +88,8 @@ Capture these in configuration or release notes:
 - Policy version and schema version
 - Mapping pack `schema_id` and `version`
 - Node role (`EDGE`, `GATEWAY`, `FUSION`) and producer IDs
+- Failure mode thresholds and confidence reduction policy
+- Timing quality source, sync-state reporting cadence, and `est_error_ms` policy
 
 ## Recommended bundle layout
 
