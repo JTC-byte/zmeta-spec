@@ -1,6 +1,6 @@
 # ZMeta Semantic Contract
 
-**Status:** Working Draft (v0.x)
+**Status:** v1.0 Locked (Normative)
 
 **Purpose:** This document captures the *agreed semantic foundations* that govern ZMeta. It is intended to precede and constrain the formal ZMeta v1.0 schema. As additional sections are finalized (Units & Geodesy, Schema, Profiles), they will be appended to this document.
 
@@ -691,6 +691,13 @@ fusion node (see Section 1.5 Authority Boundaries).
 - `track_id` SHOULD be human-readable when practical (for example, `TRACK-20250117-001`) but MUST be globally unique.
 - `track_id` MUST NOT be reused after a track is lost, merged, or retired.
 
+**Global uniqueness strategies:**
+- **UUID-based:** Use UUIDs directly as `track_id` values. This is opaque but globally unique, for example `550e8400-e29b-41d4-a716-446655440000`.
+- **Human-readable with namespace:** Prefix with producer or node identifier, for example `FUSION-NODE-A-TRACK-001` or `GATEWAY-B-T042`.
+- **Hybrid:** Combine a human-readable prefix with a UUID suffix for both clarity and uniqueness, for example `TRACK-20250117-550e8400e29b41d4`.
+
+Choose one strategy per deployment and document it in the operational runbook.
+
 ### 5.2 Deduplication Rules
 
 Event deduplication uses the immutable `event_id` unless the event type has an
@@ -729,6 +736,11 @@ with new events and lineage, never by mutating old events or reusing IDs.
   - Include lineage references to the events that supported both prior tracks.
   - Retire the non-canonical `track_id`; do not reuse it.
   - Record the merge in local AAR/operator logs, or in an implementation-defined system event if supported by that schema version.
+- **SPLIT:** If a single track is determined to be two distinct entities:
+  - Emit new FUSION_EVENTs with distinct `track_id` values for each entity.
+  - Include `lineage.based_on` references to events from the original track for auditability.
+  - Optionally emit a SYSTEM_EVENT documenting the split if supported by that schema version.
+  - Downstream consumers can reconstruct the split relationship via lineage.
 - **LOST:** If observations for a track exceed a configurable age threshold:
   - Stop emitting STATE_EVENTs for that `track_id`, or emit only low-confidence updates that truthfully represent stale state.
   - Allow existing `valid_for_ms` windows to expire.
@@ -794,7 +806,7 @@ modes. Operators MAY override the thresholds and factors in deployment config.
 | **Timing Loss (UNSYNCED)** | Emit TIME_STATUS with `sync_state: UNSYNCED`; reduce STATE_EVENT confidence by factor of 2; gate high-precision fusion | Yes |
 | **Observation Timeout** | Continue STATE_EVENT emission only while `valid_for_ms` truthfully represents stale data; reduce `valid_for_ms` by 50%; reduce confidence by 10% per update cycle | Yes |
 | **Deconfliction Node Offline** | Queue COMMAND_EVENTs locally with TTL; do not execute undeconflicted commands; emit TASK_ACK failure/expiry when applicable | Yes |
-| **Memory/Storage Exhausted** | Preserve required envelope, confidence, and lineage fields; drop optional references first; drop least-confident observations before stronger state | Yes |
+| **Memory/Storage Exhausted** | Drop in order: (1) non-lineage optional fields such as `source_summary`, `heading_deg`, and `speed_mps`; (2) observation references in payload; (3) oldest lineage references while retaining the most recent; (4) only then drop observations. Emit a SYSTEM_EVENT or operator log documenting the memory event. | Yes |
 | **Link Degradation** | Emit LINK_STATUS; thin optional payload fields per profile rules; may reduce STATE_EVENT emission rate | Yes |
 | **Fusion Instability** | If `stability < 0.3`, hold STATE_EVENT emission until stability improves or TTL expires unless operator policy requires degraded-state emission | Yes |
 
