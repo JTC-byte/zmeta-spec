@@ -130,10 +130,10 @@ def translate_serial_line(line, *, platform_id, sensor_geo=None, sensor_id=None,
         ts_ms / 1000.0, tz=timezone.utc
     ).isoformat(timespec="milliseconds")
 
-    geo = sensor_geo or {"lat": 0.0, "lon": 0.0, "alt_m": 0.0}
+    geo = dict(sensor_geo) if sensor_geo else None
     sid = sensor_id or DEFAULT_SENSOR_ID
 
-    return {
+    event = {
         "zmeta_version": "1.0",
         "event": {
             "event_id": str(uuid7()),
@@ -149,7 +149,6 @@ def translate_serial_line(line, *, platform_id, sensor_geo=None, sensor_id=None,
         },
         "payload": {
             "modality": "RF",
-            "geo": geo,
             "bearing": {"az_deg": 0.0},
             "features": {
                 "center_freq_hz": peak_freq_mhz * 1e6,
@@ -160,12 +159,18 @@ def translate_serial_line(line, *, platform_id, sensor_geo=None, sensor_id=None,
                 "source_format": "serial",
                 "peak_freq_mhz": peak_freq_mhz,
             },
+            "quality": {
+                "geo_status": "AVAILABLE" if geo else "UNAVAILABLE",
+            },
         },
         "lineage": {
             "based_on": [str(uuid7())],
             "transform": f"translate:{SCHEMA_ID_SERIAL}@{ADAPTER_VERSION}",
         },
     }
+    if geo:
+        event["payload"]["geo"] = geo
+    return event
 
 
 def translate_tunnel_payload(payload_bytes, *, platform_id, sensor_geo=None,
@@ -191,7 +196,7 @@ def translate_tunnel_payload(payload_bytes, *, platform_id, sensor_geo=None,
         ts_ms / 1000.0, tz=timezone.utc
     ).isoformat(timespec="milliseconds")
 
-    geo = sensor_geo or {"lat": 0.0, "lon": 0.0, "alt_m": 0.0}
+    geo = dict(sensor_geo) if sensor_geo else None
     sid = sensor_id or DEFAULT_SENSOR_ID
 
     bearing = {"az_deg": raw["bearing_deg"]}
@@ -232,7 +237,6 @@ def translate_tunnel_payload(payload_bytes, *, platform_id, sensor_geo=None,
         },
         "payload": {
             "modality": "RF",
-            "geo": geo,
             "bearing": bearing,
             "features": features,
             "quality": quality,
@@ -242,9 +246,14 @@ def translate_tunnel_payload(payload_bytes, *, platform_id, sensor_geo=None,
             "transform": f"translate:{SCHEMA_ID_TUNNEL}@{ADAPTER_VERSION}",
         },
     }
+    if geo:
+        event["payload"]["geo"] = geo
+        quality["geo_status"] = "AVAILABLE"
+    else:
+        quality["geo_status"] = "UNAVAILABLE"
 
     if raw["confidence"] > 0:
-        event["confidence"] = min(1.0, raw["confidence"])
+        quality["sensor_confidence"] = min(1.0, raw["confidence"])
 
     return event
 
@@ -283,10 +292,10 @@ def translate_custom_mavlink(frame_bytes, *, platform_id, sensor_geo=None,
         ts_ms / 1000.0, tz=timezone.utc
     ).isoformat(timespec="milliseconds")
 
-    geo = sensor_geo or {"lat": 0.0, "lon": 0.0, "alt_m": 0.0}
+    geo = dict(sensor_geo) if sensor_geo else None
     sid = sensor_id or DEFAULT_SENSOR_ID
 
-    return {
+    event = {
         "zmeta_version": "1.0",
         "event": {
             "event_id": str(uuid7()),
@@ -302,7 +311,6 @@ def translate_custom_mavlink(frame_bytes, *, platform_id, sensor_geo=None,
         },
         "payload": {
             "modality": "RF",
-            "geo": geo,
             "bearing": {"az_deg": 0.0},
             "features": {
                 "center_freq_hz": freq_mhz * 1e6,
@@ -313,12 +321,18 @@ def translate_custom_mavlink(frame_bytes, *, platform_id, sensor_geo=None,
                 "source_format": "mavlink_custom",
                 "peak_freq_mhz": freq_mhz,
             },
+            "quality": {
+                "geo_status": "AVAILABLE" if geo else "UNAVAILABLE",
+            },
         },
         "lineage": {
             "based_on": [str(uuid7())],
             "transform": f"translate:{SCHEMA_ID_MAVLINK}@{ADAPTER_VERSION}",
         },
     }
+    if geo:
+        event["payload"]["geo"] = geo
+    return event
 
 
 def translate_json_replay(raw, *, platform_id, sensor_geo=None, sensor_id=None):
@@ -350,7 +364,7 @@ def translate_json_replay(raw, *, platform_id, sensor_geo=None, sensor_id=None):
         {"lat": sensor_pos["lat"], "lon": sensor_pos["lon"],
          "alt_m": sensor_pos.get("alt_m", 0.0)}
         if sensor_pos.get("lat") is not None
-        else {"lat": 0.0, "lon": 0.0, "alt_m": 0.0}
+        else None
     )
 
     sid = sensor_id or DEFAULT_SENSOR_ID
@@ -379,7 +393,7 @@ def translate_json_replay(raw, *, platform_id, sensor_geo=None, sensor_id=None):
 
     classification = raw.get("classification")
     if classification:
-        features["classification"] = classification
+        quality["source_classification"] = classification
 
     event = {
         "zmeta_version": "1.0",
@@ -397,7 +411,6 @@ def translate_json_replay(raw, *, platform_id, sensor_geo=None, sensor_id=None):
         },
         "payload": {
             "modality": "RF",
-            "geo": geo,
             "bearing": bearing,
             "features": features,
             "quality": quality,
@@ -407,8 +420,13 @@ def translate_json_replay(raw, *, platform_id, sensor_geo=None, sensor_id=None):
             "transform": f"translate:{SCHEMA_ID_SERIAL}@{ADAPTER_VERSION}",
         },
     }
+    if geo:
+        event["payload"]["geo"] = geo
+        quality["geo_status"] = "AVAILABLE"
+    else:
+        quality["geo_status"] = "UNAVAILABLE"
 
     if bearing_obj.get("confidence") is not None:
-        event["confidence"] = bearing_obj["confidence"]
+        quality["sensor_confidence"] = bearing_obj["confidence"]
 
     return event

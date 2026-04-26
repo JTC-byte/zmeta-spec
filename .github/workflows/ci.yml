@@ -29,28 +29,59 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -r gateway/requirements.txt -r requirements-dev.txt
 
-      - name: Lint schema
+      - name: Lint schemas
         run: |
           python - <<'PY'
           import json
           from jsonschema import Draft202012Validator
-          with open("schema/zmeta-event-1.0.schema.json", "r", encoding="utf-8") as handle:
-              schema = json.load(handle)
-          Draft202012Validator.check_schema(schema)
-          print("schema ok")
+          for path in ("schema/zmeta-event-1.0.schema.json", "schema/zmeta-event-1.1.0.schema.json"):
+              with open(path, "r", encoding="utf-8") as handle:
+                  schema = json.load(handle)
+              Draft202012Validator.check_schema(schema)
+              print(f"{path} ok")
           PY
 
       - name: Validate examples
         run: |
-          python tools/validate_examples.py --require-all
+          python tools/validate_examples.py --strict --require-all
+
+      - name: Validate v1.1 examples
+        run: |
+          python - <<'PY'
+          import json
+          from jsonschema import Draft202012Validator
+          with open("schema/zmeta-event-1.1.0.schema.json", "r", encoding="utf-8") as handle:
+              schema = json.load(handle)
+          validator = Draft202012Validator(schema)
+          failures = 0
+          with open("examples/zmeta-v1.1-examples.jsonl", "r", encoding="utf-8") as handle:
+              for line_number, line in enumerate(handle, 1):
+                  if not line.strip():
+                      continue
+                  instance = json.loads(line)
+                  errors = sorted(validator.iter_errors(instance), key=lambda e: list(e.path))
+                  for error in errors:
+                      path = "/".join(str(part) for part in error.path)
+                      print(f"line {line_number}: {path}: {error.message}")
+                  failures += len(errors)
+          raise SystemExit(1 if failures else 0)
+          PY
 
       - name: Conformance pack
         run: |
           python tools/validate_conformance.py --strict
 
+      - name: Contract hash
+        run: |
+          python tools/compute_contract_hash.py
+
       - name: Packet size summary
         run: |
           python tools/measure_packet_size.py --file examples/zmeta-profile-L-examples.jsonl --encodings compact --max-bytes 240 --summary-only
+
+      - name: Gateway self-test
+        run: |
+          python gateway/src/gateway.py --profile H --self-test
 
       - name: Run tests
         run: python -m pytest -q gateway/tests adapters

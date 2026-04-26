@@ -18,6 +18,11 @@ def parse_args():
         help="Schema path",
     )
     parser.add_argument("--policy", default=str(ROOT / "policy"), help="Policy directory")
+    parser.add_argument(
+        "--semantics",
+        default=str(ROOT / "spec" / "semantics-contract.md"),
+        help="Semantic contract markdown path",
+    )
     return parser.parse_args()
 
 
@@ -25,9 +30,12 @@ def main():
     args = parse_args()
     schema_path = Path(args.schema)
     policy_dir = Path(args.policy)
-    hashes = gateway.compute_contract_hash(schema_path, policy_dir)
+    semantics_path = Path(args.semantics)
+    hashes = gateway.compute_contract_hash(schema_path, policy_dir, semantics_path)
     print(f"schema_hash={hashes['schema_hash']}")
     print(f"policy_hash={hashes['policy_hash']}")
+    if hashes.get("semantics_hash"):
+        print(f"semantics_hash={hashes['semantics_hash']}")
     print(f"contract_hash={hashes['contract_hash']}")
 
 

@@ -55,14 +55,14 @@ The config file keys are:
 - `emit_cot` and `cot` host/port
 - `input_encoding` (`json`, `cbor`, `compact`, `auto`) and `output_encoding` (`json`, `cbor`, `compact`)
 - `stamp_profile` and `stamp_profile_profiles` (profile field stamping)
-- `stamp_timing` and `stamp_timing_profiles` (t_receive/t_publish stamping; default H/M)
+- `stamp_timing` and `stamp_timing_profiles` (t_receive/t_publish stamping; default L/M/H)
 - `strip_optional_fields` and `strip_optional_fields_profiles` (bandwidth compaction)
 - `strict_validation` (treat warnings as failures)
 - `emit_metrics` and `metrics_interval_sec` (periodic gateway metrics logs)
 - `rate_limit_per_sec` (drop packets above receive rate)
 - `rate_limit_producer_per_sec` (drop per-producer above receive rate)
 - `metrics_log_path`, `metrics_log_max_bytes`, `metrics_log_backups` (JSONL metrics logs)
-- `stamp_contract_hash` (include schema/policy hashes in gateway-generated system events)
+- `stamp_contract_hash` (include schema, policy, semantic-contract, and combined hashes in gateway-generated system events)
 - `require_schema_hash`, `require_policy_hash`, `require_contract_hash` (startup gate)
 - `schema_path` and `policy_dir` (resolved relative to the config file)
 
@@ -109,9 +109,10 @@ event is not forwarded.
 
 ### Contract hash gate
 
-On startup, the gateway prints schema/policy/contract hashes. If `require_*_hash` is set
-and does not match, the gateway exits to prevent drift. Use `stamp_contract_hash` to include
-hashes in gateway-generated system events for AAR traceability.
+On startup, the gateway prints schema, policy, semantic-contract, and combined
+contract hashes. If `require_*_hash` is set and does not match, the gateway exits
+to prevent drift. Use `stamp_contract_hash` to include hashes in
+gateway-generated system events for AAR traceability.
 
 ### CoT emission (optional)
 
@@ -168,7 +169,13 @@ msg = {
     "task_type": "GOTO",
     "target_geo": {"lat": 34.0522, "lon": -118.2437},
     "valid_for_ms": 600000,
-    "requires_deconfliction": True
+    "requires_deconfliction": True,
+    "timing_quality": {
+      "time_source": "GPS_PPS",
+      "sync_state": "LOCKED",
+      "est_error_ms": 1.5,
+      "last_sync_ts": "2025-01-17T14:32:09Z"
+    }
   }
 }
 s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)

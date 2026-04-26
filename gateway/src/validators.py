@@ -5,6 +5,50 @@ import yaml
 from jsonschema import Draft202012Validator, FormatChecker
 
 
+class ValidationState:
+    def __init__(self):
+        self.timing_sources = set()
+        self.latest_timing = {}
+        self.event_ids = set()
+        self.command_task_ids = set()
+        self.task_ack_keys = set()
+
+    def has_timing(self, event):
+        return _source_key(event) in self.timing_sources
+
+    def record(self, event):
+        self.record_timing(event)
+        event_block = event.get("event", {}) if isinstance(event, dict) else {}
+        payload = event.get("payload", {}) if isinstance(event, dict) else {}
+        event_type = event_block.get("event_type")
+        system_type = payload.get("system_type") if isinstance(payload, dict) else None
+        event_id = event_block.get("event_id")
+        if event_id:
+            self.event_ids.add(event_id)
+        if event_type == "COMMAND_EVENT" and isinstance(payload, dict):
+            task_id = payload.get("task_id")
+            if task_id:
+                self.command_task_ids.add(task_id)
+        if event_type == "SYSTEM_EVENT" and system_type == "TASK_ACK" and isinstance(payload, dict):
+            metrics = payload.get("metrics", {})
+            if isinstance(metrics, dict):
+                key = (metrics.get("task_id"), metrics.get("original_event_id"), payload.get("state"))
+                if all(key):
+                    self.task_ack_keys.add(key)
+
+    def record_timing(self, event):
+        event_block = event.get("event", {}) if isinstance(event, dict) else {}
+        payload = event.get("payload", {}) if isinstance(event, dict) else {}
+        event_type = event_block.get("event_type")
+        system_type = payload.get("system_type") if isinstance(payload, dict) else None
+        if event_type == "SYSTEM_EVENT" and system_type == "TIME_STATUS":
+            key = _source_key(event)
+            self.timing_sources.add(key)
+            metrics = payload.get("metrics", {}) if isinstance(payload, dict) else {}
+            if isinstance(metrics, dict):
+                self.latest_timing[key] = dict(metrics)
+
+
 def load_schema(schema_path):
     with open(schema_path, "r", encoding="utf-8") as handle:
         schema = json.load(handle)
@@ -53,6 +97,26 @@ def _violation(code, message, details=None, severity_map=None):
         "severity": _resolve_severity(code, severity_map),
         "details": details or {},
     }
+
+
+def _source_key(event):
+    source = event.get("source", {}) if isinstance(event, dict) else {}
+    return (
+        str(source.get("platform_id") or "UNKNOWN"),
+        str(source.get("producer") or "UNKNOWN"),
+        str(source.get("node_role") or "UNKNOWN"),
+    )
+
+
+def _resolve_path(value, dotted_path):
+    target = value
+    for part in str(dotted_path).split("."):
+        if not part:
+            continue
+        if not isinstance(target, dict):
+            return None
+        target = target.get(part)
+    return target
 
 
 def _find_forbidden_key(value, forbidden_keys):
@@ -141,6 +205,16 @@ def validate_role(event, roles_policy, severity_map=None):
 
 def validate_profile(event, profile, profiles_policy, severity_map=None):
     event_type = event.get("event", {}).get("event_type")
+    event_profile = event.get("profile")
+    if event_profile is not None and event_profile != profile:
+        return False, [
+            _violation(
+                "PROFILE_MISMATCH",
+                "event profile does not match validation/export profile",
+                details={"event_profile": event_profile, "profile": profile},
+                severity_map=severity_map,
+            )
+        ]
     profile_cfg = profiles_policy.get(profile)
     if not profile_cfg:
         return False, [
@@ -161,6 +235,101 @@ def validate_profile(event, profile, profiles_policy, severity_map=None):
                 severity_map=severity_map,
             )
         ]
+    return True, []
+
+
+def _has_per_event_timing(event, timing_policy):
+    required = [str(field) for field in timing_policy.get("required_fields", []) if str(field).strip()]
+    if not required:
+        required = ["time_source", "sync_state", "est_error_ms", "last_sync_ts"]
+    for path in timing_policy.get("per_event_paths", []):
+        value = _resolve_path(event, path)
+        if isinstance(value, dict) and all(field in value for field in required):
+            return True
+    return False
+
+
+def validate_timing_quality(event, semantics_policy, state=None, severity_map=None):
+    timing_policy = semantics_policy.get("timing_quality", {})
+    if not timing_policy.get("required", False):
+        return True, []
+
+    event_type = event.get("event", {}).get("event_type")
+    payload = event.get("payload", {}) if isinstance(event, dict) else {}
+    system_type = payload.get("system_type") if isinstance(payload, dict) else None
+
+    if event_type == "SYSTEM_EVENT" and system_type == "TIME_STATUS":
+        return True, []
+
+    required_event_types = timing_policy.get("required_event_types", [])
+    required_event_types = {str(value) for value in required_event_types if str(value).strip()}
+    if required_event_types and event_type not in required_event_types:
+        return True, []
+
+    if _has_per_event_timing(event, timing_policy):
+        return True, []
+
+    if state is not None and state.has_timing(event):
+        return True, []
+
+    return False, [
+        _violation(
+            "TIMING_STATUS_MISSING",
+            "node has not exposed timing quality for this event",
+            details={"source": "/".join(_source_key(event)), "event_type": event_type},
+            severity_map=severity_map,
+        )
+    ]
+
+
+def validate_deduplication(event, state=None, severity_map=None):
+    if state is None:
+        return True, []
+    event_block = event.get("event", {}) if isinstance(event, dict) else {}
+    payload = event.get("payload", {}) if isinstance(event, dict) else {}
+    event_type = event_block.get("event_type")
+    event_id = event_block.get("event_id")
+
+    if event_id and event_id in state.event_ids:
+        return False, [
+            _violation(
+                "EVENT_DUPLICATE",
+                "event_id has already been applied",
+                details={"event_id": event_id},
+                severity_map=severity_map,
+            )
+        ]
+
+    if event_type == "COMMAND_EVENT" and isinstance(payload, dict):
+        task_id = payload.get("task_id")
+        if task_id and task_id in state.command_task_ids:
+            return False, [
+                _violation(
+                    "TASK_DUPLICATE",
+                    "COMMAND_EVENT task_id has already been applied",
+                    details={"task_id": task_id},
+                    severity_map=severity_map,
+                )
+            ]
+
+    if event_type == "SYSTEM_EVENT" and isinstance(payload, dict) and payload.get("system_type") == "TASK_ACK":
+        metrics = payload.get("metrics", {})
+        if isinstance(metrics, dict):
+            key = (metrics.get("task_id"), metrics.get("original_event_id"), payload.get("state"))
+            if all(key) and key in state.task_ack_keys:
+                return False, [
+                    _violation(
+                        "TASK_ACK_DUPLICATE",
+                        "TASK_ACK state transition has already been applied",
+                        details={
+                            "task_id": key[0],
+                            "original_event_id": key[1],
+                            "state": key[2],
+                        },
+                        severity_map=severity_map,
+                    )
+                ]
+
     return True, []
 
 

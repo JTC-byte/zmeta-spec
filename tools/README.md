@@ -12,6 +12,9 @@ python tools/udp_receiver.py
 python tools/udp_sender.py --file examples/zmeta-command-examples.jsonl
 ```
 
+For JSONL files, `udp_sender.py` sends each non-empty line as a separate UDP
+datagram.
+
 ### Run gateway
 
 ```

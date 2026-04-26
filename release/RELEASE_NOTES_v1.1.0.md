@@ -1,7 +1,7 @@
 # ZMeta v1.1.0 Release Notes
 
-**Status:** Proposed (develop branch)
-**Compatibility:** Backward-compatible with v1.0
+**Status:** Proposed / Experimental (not locked)
+**Compatibility:** Backward-compatible with semantically compliant v1.0 events
 
 ## Summary
 
@@ -9,8 +9,9 @@ ZMeta v1.1.0 is a backward-compatible extension of v1.0 driven by findings from
 the Idaho Falls ISR demo (April 7-8, 2026), KrakenSDR bench testing, and
 production Z-ISR fusion implementation experience.
 
-All changes are additive. Existing valid v1.0 events pass v1.1.0 validation
-without modification.
+Existing semantically compliant v1.0 events pass v1.1.0 validation without
+modification. Proposed v1.1 fields must still respect the locked v1.0 semantic
+contract, especially the OBSERVATION vs INFERENCE boundary.
 
 ## Changes
 
@@ -22,7 +23,7 @@ Only RF had conditional feature validation in v1.0. v1.1.0 adds conditional
 | Modality  | Required Features                 | New in v1.1 |
 |-----------|-----------------------------------|-------------|
 | RF        | `center_freq_hz`, `bandwidth_hz`, `power_dbm` | No (v1.0) |
-| EO        | `class_name`, `confidence`        | Yes |
+| EO        | Raw image geometry such as `bbox`, `fov_deg`, `resolution_px` | Yes |
 | IR        | `band`                            | Yes |
 | ACOUSTIC  | `center_freq_hz`, `power_db`      | Yes |
 | NETWORK   | `protocol`                        | Yes |
@@ -65,7 +66,7 @@ New `task_type` values:
 `geometry` now references a typed `orbit_geometry` definition with `pattern`,
 `radius_m`, `direction`, `lobe_separation_m`, `arc_degrees`.
 
-### SENSOR_STATUS and PLATFORM_STATUS
+### SENSOR_STATUS and PLATFORM_STATUS (Proposed)
 
 New `system_type` values for health reporting:
 - **SENSOR_STATUS**: sensor health, calibration, mode, capabilities

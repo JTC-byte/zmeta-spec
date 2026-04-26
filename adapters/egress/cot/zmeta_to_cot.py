@@ -18,7 +18,6 @@ Supports:
 Source: Z-ISR zisr/transport/publisher.py (_builtin_zmeta_to_cot)
 """
 
-import uuid
 from datetime import datetime, timedelta, timezone
 
 
@@ -69,7 +68,9 @@ def zmeta_to_cot(event, cot_config=None):
     if not geo or geo.get("lat") is None or geo.get("lon") is None:
         return None
 
-    track_id = payload.get("track_id", str(uuid.uuid4()))
+    track_id = payload.get("track_id")
+    if not track_id:
+        return None
 
     # Timestamps: wall-clock mode (default) keeps TAK markers fresh during
     # replay; event-time mode uses the original event timestamp.

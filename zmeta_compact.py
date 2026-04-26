@@ -554,6 +554,7 @@ def _decode_command_payload(payload: Dict[int, Any]) -> Dict[str, Any]:
     for key, value in payload.items():
         if key not in COMMAND_PAYLOAD_KEYS.values():
             out[str(key)] = value
+    out.setdefault("requires_deconfliction", True)
     return out
 
 

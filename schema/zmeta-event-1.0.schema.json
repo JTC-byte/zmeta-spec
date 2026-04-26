@@ -390,7 +390,15 @@
           "$ref": "#/$defs/bearing"
         },
         "features": {
-          "type": "object"
+          "type": "object",
+          "properties": {
+            "track_id": false,
+            "entity_class": false,
+            "classification": false,
+            "class_name": false,
+            "label": false,
+            "confidence": false
+          }
         },
         "quality": {
           "type": "object"
@@ -402,7 +410,13 @@
         "t_end": {
           "type": "string",
           "format": "date-time"
-        }
+        },
+        "track_id": false,
+        "entity_class": false,
+        "classification": false,
+        "class_name": false,
+        "label": false,
+        "confidence": false
       },
       "allOf": [
         {

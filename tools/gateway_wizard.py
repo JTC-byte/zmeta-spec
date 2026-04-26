@@ -15,13 +15,12 @@ DEFAULTS = {
     "stamp_profile": True,
     "stamp_profile_profiles": ["L", "M", "H"],
     "stamp_timing": True,
-    "stamp_timing_profiles": ["H", "M"],
+    "stamp_timing_profiles": ["L", "M", "H"],
     "strip_optional_fields": [
         "source.sensor_id",
         "source.sw_version",
         "payload.data_ref",
         "payload.data_refs",
-        "payload.quality",
     ],
     "strip_optional_fields_profiles": ["L", "M", "H"],
     "strict_validation": False,
@@ -131,7 +130,7 @@ def main():
     stamp_profile = prompt_bool("Stamp profile field", DEFAULTS["stamp_profile"])
     stamp_timing = prompt_bool("Stamp timing fields (t_receive/t_publish)", DEFAULTS["stamp_timing"])
     strip_optional_fields = prompt_bool(
-        "Strip optional fields (sensor_id, sw_version, data_ref(s), quality)",
+        "Strip optional fields (sensor_id, sw_version, data_ref(s))",
         True,
     )
     strict_validation = prompt_bool("Strict validation (treat warnings as failures)", DEFAULTS["strict_validation"])

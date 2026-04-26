@@ -36,7 +36,7 @@ def _iter_jsonl(path):
         yield line_no, json.loads(line)
 
 
-def _run_checks(event, profile, policy, validator, strict):
+def _run_checks(event, profile, policy, validator, strict, state=None):
     severity_map = policy.get("violation_severities", {})
     checks = []
     ok, violations = validators.validate_schema(event, validator, severity_map)
@@ -48,8 +48,12 @@ def _run_checks(event, profile, policy, validator, strict):
         validators.validate_role(event, {"roles": policy["roles"], "deny": policy["deny"]}, severity_map)[1]
     )
     checks.extend(validators.validate_profile(event, profile, policy["profiles"], severity_map)[1])
+    checks.extend(
+        validators.validate_timing_quality(event, policy["semantics"], state=state, severity_map=severity_map)[1]
+    )
     checks.extend(validators.validate_semantics(event, policy["semantics"], severity_map)[1])
     checks.extend(validators.validate_routing(event, policy["routing"], severity_map)[1])
+    checks.extend(validators.validate_deduplication(event, state=state, severity_map=severity_map)[1])
     if strict:
         for violation in checks:
             if violation.get("severity") == "warn":
@@ -66,6 +70,7 @@ def main():
 
     failures = 0
 
+    pass_state = validators.ValidationState()
     for line_no, item in _iter_jsonl(args.pass_file):
         profile = item.get("profile", "H")
         event = item.get("event")
@@ -73,12 +78,14 @@ def main():
             failures += 1
             print(f"FAIL pass line={line_no} missing event")
             continue
-        violations = _run_checks(event, profile, policy, validator, args.strict)
+        violations = _run_checks(event, profile, policy, validator, args.strict, state=pass_state)
         if not args.strict:
             violations = [violation for violation in violations if violation.get("severity") != "warn"]
         if violations:
             failures += 1
             print(f"FAIL pass line={line_no} profile={profile} code={violations[0]['code']}")
+        else:
+            pass_state.record(event)
 
     for line_no, item in _iter_jsonl(args.fail_file):
         profile = item.get("profile", "H")
@@ -88,7 +95,11 @@ def main():
             failures += 1
             print(f"FAIL fail line={line_no} missing event/expect_code")
             continue
-        violations = _run_checks(event, profile, policy, validator, args.strict)
+        state = validators.ValidationState()
+        for seed in item.get("preload", []):
+            if isinstance(seed, dict):
+                state.record(seed)
+        violations = _run_checks(event, profile, policy, validator, args.strict, state=state)
         codes = [violation.get("code") for violation in violations]
         if expected not in codes:
             failures += 1

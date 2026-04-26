@@ -341,11 +341,6 @@ def translate_bin_file(
                 },
                 "payload": {
                     "modality": "RF",
-                    "geo": {
-                        "lat": current_lat,
-                        "lon": current_lon,
-                        "alt_m": 0.0,
-                    },
                     "bearing": {"az_deg": bearing},
                     "features": {
                         "center_freq_hz": peak["freq_hz"],
@@ -361,6 +356,11 @@ def translate_bin_file(
                         "measurement_error": bearing_error_deg,
                         "error_metric": "1_SIGMA",
                         "calibration_state": "UNCALIBRATED",
+                        "geo_status": "UNAVAILABLE",
+                        "sensor_position_2d": {
+                            "lat": current_lat,
+                            "lon": current_lon,
+                        },
                     },
                 },
                 "lineage": {

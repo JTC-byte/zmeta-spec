@@ -92,10 +92,10 @@ def translate_csv_row(fields, *, platform_id, sensor_geo=None, sensor_id=None):
         ts_ms / 1000.0, tz=timezone.utc
     ).isoformat(timespec="milliseconds")
 
-    geo = sensor_geo or {"lat": 0.0, "lon": 0.0, "alt_m": 0.0}
+    geo = dict(sensor_geo) if sensor_geo else None
     sid = sensor_id or DEFAULT_SENSOR_ID
 
-    return {
+    event = {
         "zmeta_version": "1.0",
         "event": {
             "event_id": str(uuid7()),
@@ -111,7 +111,6 @@ def translate_csv_row(fields, *, platform_id, sensor_geo=None, sensor_id=None):
         },
         "payload": {
             "modality": "RF",
-            "geo": geo,
             "bearing": {"az_deg": az_deg},
             "features": {
                 "center_freq_hz": freq_hz,
@@ -126,6 +125,7 @@ def translate_csv_row(fields, *, platform_id, sensor_geo=None, sensor_id=None):
                 "error_metric": "1_SIGMA",
                 "snr_db": rssi_db + 100.0,
                 "calibration_state": "CALIBRATED",
+                "geo_status": "AVAILABLE" if geo else "UNAVAILABLE",
             },
         },
         "lineage": {
@@ -133,6 +133,9 @@ def translate_csv_row(fields, *, platform_id, sensor_geo=None, sensor_id=None):
             "transform": f"translate:{SCHEMA_ID}@{ADAPTER_VERSION}",
         },
     }
+    if geo:
+        event["payload"]["geo"] = geo
+    return event
 
 
 def translate_json(raw, *, platform_id, sensor_geo=None, sensor_id=None):
@@ -164,7 +167,7 @@ def translate_json(raw, *, platform_id, sensor_geo=None, sensor_id=None):
         ts_ms / 1000.0, tz=timezone.utc
     ).isoformat(timespec="milliseconds")
 
-    geo = sensor_geo or {"lat": 0.0, "lon": 0.0, "alt_m": 0.0}
+    geo = dict(sensor_geo) if sensor_geo else None
     sid = sensor_id or meta.get("zmeta_sensor_id", DEFAULT_SENSOR_ID)
 
     features = {
@@ -189,7 +192,7 @@ def translate_json(raw, *, platform_id, sensor_geo=None, sensor_id=None):
     if conf is not None:
         quality["bearing_confidence"] = conf
 
-    return {
+    event = {
         "zmeta_version": "1.0",
         "event": {
             "event_id": str(uuid7()),
@@ -205,7 +208,6 @@ def translate_json(raw, *, platform_id, sensor_geo=None, sensor_id=None):
         },
         "payload": {
             "modality": "RF",
-            "geo": geo,
             "bearing": {"az_deg": bearing},
             "features": features,
             "quality": quality,
@@ -215,6 +217,10 @@ def translate_json(raw, *, platform_id, sensor_geo=None, sensor_id=None):
             "transform": f"translate:{SCHEMA_ID}@{ADAPTER_VERSION}",
         },
     }
+    quality["geo_status"] = "AVAILABLE" if geo else "UNAVAILABLE"
+    if geo:
+        event["payload"]["geo"] = geo
+    return event
 
 
 def translate_http_body(body, *, platform_id, sensor_geo=None, sensor_id=None):

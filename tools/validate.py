@@ -48,6 +48,7 @@ def main():
     validator = validators.load_schema(schema_path)
     policy = validators.load_policy(policy_dir)
     severity_map = policy.get("violation_severities", {})
+    state = validators.ValidationState()
 
     total = 0
     passed = 0
@@ -67,7 +68,7 @@ def main():
             failed = 1
             print(f"FAIL SCHEMA_INVALID event_id=UNKNOWN error={exc}")
             print(f"total={total} passed={passed} failed={failed} warnings={warnings}")
-            return
+            raise SystemExit(1)
         if isinstance(obj, list):
             items = [(index + 1, json.dumps(item)) for index, item in enumerate(obj)]
         else:
@@ -97,8 +98,10 @@ def main():
         checks = [
             validators.validate_role(instance, {"roles": policy["roles"], "deny": policy["deny"]}, severity_map),
             validators.validate_profile(instance, args.profile, policy["profiles"], severity_map),
+            validators.validate_timing_quality(instance, policy["semantics"], state=state, severity_map=severity_map),
             validators.validate_semantics(instance, policy["semantics"], severity_map),
             validators.validate_routing(instance, policy["routing"], severity_map),
+            validators.validate_deduplication(instance, state=state, severity_map=severity_map),
         ]
 
         event_id = event_id_from_instance(instance)
@@ -114,7 +117,10 @@ def main():
                     failed += 1
                     failed_local = True
                     print(f"FAIL {violation['code']} event_id={event_id}")
-        if failed_local or warned_local:
+        if failed_local:
+            continue
+        state.record(instance)
+        if warned_local:
             continue
 
         passed += 1
@@ -124,6 +130,8 @@ def main():
         warnings = 0
 
     print(f"total={total} passed={passed} failed={failed} warnings={warnings}")
+    if failed:
+        raise SystemExit(1)
 
 
 if __name__ == "__main__":

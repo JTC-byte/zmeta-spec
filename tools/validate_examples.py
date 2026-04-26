@@ -53,6 +53,7 @@ def validate_file(path: Path, profile: str, validator, policy, severity_map, str
     passed = 0
     failed = 0
     warnings = 0
+    state = validators.ValidationState()
 
     items = list(iter_jsonl(path))
 
@@ -80,8 +81,10 @@ def validate_file(path: Path, profile: str, validator, policy, severity_map, str
         checks = [
             validators.validate_role(instance, {"roles": policy["roles"], "deny": policy["deny"]}, severity_map),
             validators.validate_profile(instance, profile, policy["profiles"], severity_map),
+            validators.validate_timing_quality(instance, policy["semantics"], state=state, severity_map=severity_map),
             validators.validate_semantics(instance, policy["semantics"], severity_map),
             validators.validate_routing(instance, policy["routing"], severity_map),
+            validators.validate_deduplication(instance, state=state, severity_map=severity_map),
         ]
 
         event_id = event_id_from_instance(instance)
@@ -97,7 +100,10 @@ def validate_file(path: Path, profile: str, validator, policy, severity_map, str
                     failed += 1
                     failed_local = True
                     print(f"FAIL {violation['code']} event_id={event_id} file={path}")
-        if failed_local or warned_local:
+        if failed_local:
+            continue
+        state.record(instance)
+        if warned_local:
             continue
 
         passed += 1

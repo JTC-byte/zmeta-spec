@@ -108,8 +108,10 @@ See `spec/quickstart.md` for a runnable gateway + UDP replay walkthrough.
 See `spec/installation-guide.md` for a deterministic install guide, gateway wizard,
 and mapping pack installs for drone and sensor configs.
 
-Note on timing metadata: `event.t_publish` (emit time) and `event.t_receive`
-(ingest time) are optional fields used for latency debugging and AAR.
+Timing quality metadata (`time_source`, `sync_state`, `est_error_ms`,
+`last_sync_ts`) is required by the semantic contract for operational events.
+Gateway `event.t_receive` / `event.t_publish` stamps are separate latency and
+AAR fields added by the reference gateway when configured.
 
 Deployment helpers:
 - Config templates: `configs/edge-config.json`, `configs/gateway-config.json`
@@ -120,7 +122,7 @@ Deployment helpers:
 
 Use this to lock down schema/policy drift and verify a clean deployment:
 
-1. Compute contract hashes: `python tools/compute_contract_hash.py`
+1. Compute schema, policy, semantic-contract, and combined contract hashes: `python tools/compute_contract_hash.py`
 1. Set `require_contract_hash` (and optionally `require_schema_hash`/`require_policy_hash`) in config.
 1. Run self-test: `python tools/run_gateway.py --profile H --self-test`
 1. Run conformance: `python tools/validate_conformance.py --strict`
@@ -129,8 +131,7 @@ Use this to lock down schema/policy drift and verify a clean deployment:
 
 ## Normative vs Reference
 
-Normative (contract): `spec/semantics-contract.md`, `schema/zmeta-event-1.0.schema.json`, `policy/*.yaml`
-Normative also includes: `spec/versioning.md`
+Normative (contract): `spec/semantics-contract.md`, `schema/zmeta-event-1.0.schema.json`, `policy/*.yaml`, `spec/versioning.md`
 Reference: `gateway/*`, `tools/*`, `adapters/*`, `examples/*`
 
 Normative files define compliance. Reference components exist to accelerate adoption.

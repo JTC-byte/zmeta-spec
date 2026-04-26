@@ -3,14 +3,17 @@
 JSON Schema definitions for ZMeta.
 
 - `zmeta-event-1.0.schema.json` - ZMeta v1.0 (Draft 2020-12)
-- `zmeta-event-1.1.0.schema.json` - ZMeta v1.1.0 (Draft 2020-12 extension)
+- `zmeta-event-1.1.0.schema.json` - experimental ZMeta v1.1.0 extension (Draft 2020-12)
+
+The locked normative contract is v1.0. v1.1.0 is kept as a proposed compatibility
+extension and must still preserve the v1.0 semantic boundaries.
 
 ## v1.1.0 Changes (relative to v1.0)
 
 ### Modality-Specific Feature Schemas
 Conditional feature validation for all modalities (extends existing RF pattern):
-- **EO** requires `class_name`, `confidence`; optional `bbox`, `fov_deg`, `resolution_px`
-- **IR** requires `band` (MWIR/LWIR/SWIR/NIR); optional `temperature_k`, `emissivity`
+- **EO** supports raw sensor geometry such as `bbox`, `fov_deg`, and `resolution_px`; semantic labels and detector confidence remain INFERENCE_EVENT fields.
+- **IR** requires `band` (MWIR/LWIR/SWIR/NIR); optional `temperature_k`, `emissivity`; semantic labels and detector confidence remain INFERENCE_EVENT fields.
 - **ACOUSTIC** requires `center_freq_hz`, `power_db`; optional `duration_ms`, `source_type`
 - **NETWORK** requires `protocol`; optional `source_addr`, `dest_addr`, `port`
 

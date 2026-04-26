@@ -27,7 +27,7 @@ Notes:
   - `rate_limit_per_sec` drops packets above the configured receive rate.
   - `rate_limit_producer_per_sec` drops packets per producer above the configured rate.
   - `metrics_log_path`, `metrics_log_max_bytes`, `metrics_log_backups` enable JSONL metrics logs.
-  - `stamp_contract_hash` adds schema/policy hashes to gateway‑generated system events.
+  - `stamp_contract_hash` adds schema, policy, semantic-contract, and combined contract hashes to gateway-generated system events.
   - `require_schema_hash`, `require_policy_hash`, `require_contract_hash` gate startup on expected hashes.
 - Encoding controls:
   - `input_encoding`: `json`, `cbor`, `compact`, or `auto`.
@@ -58,7 +58,6 @@ Suggested preset snippet (apply on the producer/edge that emits Profile L):
     "source.sw_version",
     "payload.data_ref",
     "payload.data_refs",
-    "payload.quality",
     "payload.source_summary",
     "payload.heading_deg",
     "payload.speed_mps",

@@ -62,11 +62,12 @@ python tools/test_gateway_live.py
 
 ## What success looks like
 
-- Valid events are forwarded unchanged to the receiver.
+- Valid events are validated and forwarded to the receiver after configured gateway transforms
+  such as profile stamping, timing stamps, optional-field stripping, or output encoding.
 - Violations are emitted as SYSTEM_EVENT (SCHEMA_VIOLATION or TASK_ACK) with reason codes.
   TASK_ACK requires `metrics.task_id` and `metrics.original_event_id`, and `reason_code` for
   failure states (REJECTED/FAILED/CANCELLED/EXPIRED/DUPLICATE_IGNORED).
-- Forwarded events are stamped with `event.t_receive` (default for profiles H/M); if
+- Forwarded events are stamped with `event.t_receive` (default for profiles L/M/H); if
   `event.t_publish` is missing it is set to the same value to help with AAR latency analysis.
 
 Reference gateway implements severity tiers; schema remains the normative contract.
@@ -81,8 +82,8 @@ python tools/run_gateway.py --profile M
 python tools/run_gateway.py --profile H
 ```
 
-Note: The reference gateway stamps outgoing events with top-level `profile` (L/M/H) when missing to make UI
-visualization easier. Upstream producers may set it explicitly.
+Note: The reference gateway stamps outgoing events with the configured top-level
+export `profile` (L/M/H) so downstream consumers know which profile was applied.
 
 ## End-to-end workflow test
 
@@ -109,6 +110,8 @@ docker compose -f deploy/gateway/docker-compose.yml up
 ```
 
 Edit `configs/edge-config.json` and `configs/gateway-config.json` before running.
+At minimum, replace `GATEWAY_HOST` in the edge config with the actual gateway
+IP or DNS name.
 
 If you run edge and gateway on the same host, change one of the UDP port mappings
 to avoid collisions. Both default to UDP `5555`.

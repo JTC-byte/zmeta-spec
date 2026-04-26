@@ -87,7 +87,8 @@ class GatewaySmokeTest(unittest.TestCase):
         }
 
         ok, violations = validators.validate_schema(event, self.validator, self.policy["violation_severities"])
-        self.assertTrue(ok)
+        self.assertFalse(ok)
+        self.assertEqual(violations[0]["code"], "SCHEMA_INVALID")
         ok, violations = validators.validate_semantics(event, self.policy["semantics"], self.policy["violation_severities"])
         self.assertFalse(ok)
         self.assertEqual(violations[0]["code"], "OBSERVATION_HAS_IDENTITY")

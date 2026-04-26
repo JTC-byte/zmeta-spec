@@ -67,7 +67,7 @@ deterministic interpretation of vendor telemetry.
 
 Sensors should emit OBSERVATION events only. If an on-drone processor performs
 inference, fusion, or track/state generation, treat it as an edge analytics node
-and set `node_role` accordingly (`GATEWAY` or `FUSION`).
+and set `node_role` accordingly (`GATEWAY` or `APEX`).
 
 Notes:
 - OBSERVATION events do not include `confidence` by schema. Confidence is required
@@ -75,7 +75,7 @@ Notes:
 - If you need a quality threshold for observations, gate internally and emit only
   when the threshold is met.
 - Profiles constrain what leaves the device, not the internal pipeline.
-  Profile L exports STATE/SYSTEM/COMMAND only; Profile M allows OBSERVATION/FUSION/STATE;
+  Profile L exports STATE/SYSTEM/COMMAND; Profile M allows OBSERVATION/FUSION/STATE/SYSTEM/COMMAND;
   Profile H allows the full pipeline.
 - When bandwidth is constrained, keep the internal pipeline intact, export only
   the allowed event types, and retain the raw data locally for recall.
@@ -87,7 +87,7 @@ Capture these in configuration or release notes:
 - Ports and hosts (listen, forward, CoT)
 - Policy version and schema version
 - Mapping pack `schema_id` and `version`
-- Node role (`EDGE`, `GATEWAY`, `FUSION`) and producer IDs
+- Node role (`EDGE`, `GATEWAY`, `APEX`, `DMZ`, or `CLOUD`) and producer IDs
 - Failure mode thresholds and confidence reduction policy
 - Timing quality source, sync-state reporting cadence, and `est_error_ms` policy
 

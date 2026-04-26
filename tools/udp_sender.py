@@ -40,35 +40,45 @@ def read_payload(path):
     return sys.stdin.read().strip()
 
 
+def iter_payloads(payload):
+    lines = [line.strip() for line in payload.splitlines() if line.strip()]
+    if len(lines) > 1:
+        return lines
+    return [payload]
+
+
+def encode_payload(raw, encoding):
+    if encoding == "json":
+        return raw.encode("utf-8")
+
+    try:
+        obj = json.loads(raw)
+    except json.JSONDecodeError as exc:
+        raise SystemExit(f"invalid JSON for {encoding.upper()} encoding: {exc}") from exc
+
+    if encoding == "compact":
+        if zmeta_compact is None:
+            raise SystemExit("Compact encoding requires zmeta_compact.")
+        return zmeta_compact.dumps(obj)
+
+    if cbor2 is None and zmeta_cbor is None:
+        raise SystemExit("CBOR support requires cbor2 or zmeta_cbor.")
+    if cbor2 is not None:
+        return cbor2.dumps(obj)
+    return zmeta_cbor.dumps(obj)
+
+
 def main():
     args = parse_args()
     payload = read_payload(args.file)
     if not payload:
         raise SystemExit("no payload provided")
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    if args.encoding == "json":
-        sock.sendto(payload.encode("utf-8"), (args.host, args.port))
-        return
-
-    # For JSONL input, send the first non-empty line.
-    raw = next((line for line in payload.splitlines() if line.strip()), payload)
-    try:
-        obj = json.loads(raw)
-    except json.JSONDecodeError as exc:
-        raise SystemExit(f"invalid JSON for CBOR encoding: {exc}") from exc
-
-    if args.encoding == "compact":
-        if zmeta_compact is None:
-            raise SystemExit("Compact encoding requires zmeta_compact.")
-        sock.sendto(zmeta_compact.dumps(obj), (args.host, args.port))
-        return
-
-    if cbor2 is None and zmeta_cbor is None:
-        raise SystemExit("CBOR support requires cbor2 or zmeta_cbor.")
-    if cbor2 is not None:
-        sock.sendto(cbor2.dumps(obj), (args.host, args.port))
-    else:
-        sock.sendto(zmeta_cbor.dumps(obj), (args.host, args.port))
+    sent = 0
+    for raw in iter_payloads(payload):
+        sock.sendto(encode_payload(raw, args.encoding), (args.host, args.port))
+        sent += 1
+    print(f"sent={sent}")
 
 
 if __name__ == "__main__":

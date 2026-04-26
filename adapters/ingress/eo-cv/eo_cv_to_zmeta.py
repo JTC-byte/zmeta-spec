@@ -1,7 +1,7 @@
-"""EO (Computer Vision) detection to ZMeta OBSERVATION_EVENT translator.
+"""EO (Computer Vision) detection to ZMeta INFERENCE_EVENT translator.
 
 Translates CV inference service JSON detections into ZMeta EO
-OBSERVATION_EVENTs. Handles GPS destructuring, confidence filtering,
+INFERENCE_EVENTs. Handles GPS destructuring, confidence filtering,
 sensor geo fallback, and plausibility checks.
 
 Input format:
@@ -82,7 +82,7 @@ def translate(
     strip_thumbnail: bool = True,
     strip_embedding: bool = True,
 ) -> Optional[dict]:
-    """Translate a CV detection JSON into a ZMeta EO OBSERVATION_EVENT.
+    """Translate a CV detection JSON into a ZMeta EO INFERENCE_EVENT.
 
     Handles the full GPS resolution logic from the Z-ISR edge:
       1. If detection has GPS [lat, lon] and it's not (0, 0) sentinel,
@@ -91,7 +91,7 @@ def translate(
          (e.g. from flight controller).
       3. If detection GPS is implausibly far from sensor_geo (>10km),
          fall back to sensor_geo.
-      4. If neither is available, use (0, 0, 0) with geo_source="unavailable".
+      4. If neither is available, omit geo and set geo_status="UNAVAILABLE".
 
     Args:
         detection: Raw detection dict. Supports both wrapped envelope
@@ -138,7 +138,7 @@ def translate(
                 geo = dict(sensor_geo)
                 geo_source = "fc_fallback"
             else:
-                geo = {"lat": 0.0, "lon": 0.0, "alt_m": 0.0}
+                geo = {}
                 geo_source = "unavailable"
         else:
             detection_geo = {"lat": lat, "lon": lon, "alt_m": altitude or 0.0}
@@ -154,54 +154,58 @@ def translate(
         geo = dict(sensor_geo)
         geo_source = "fc_fallback"
     else:
-        geo = {"lat": 0.0, "lon": 0.0, "alt_m": 0.0}
+        geo = {}
         geo_source = "unavailable"
 
-    features: Dict[str, Any] = {
-        "class_name": payload.get("class_name", "unknown"),
-        "confidence": confidence,
+    claim: Dict[str, Any] = {
+        "label": payload.get("class_name", "unknown"),
         "geo_source": geo_source,
     }
+    if geo:
+        claim["geo"] = geo
 
     bbox = payload.get("bbox")
     if bbox:
-        features["bbox"] = bbox
+        claim["bbox"] = bbox
 
-    track_id = payload.get("track_id")
-    if track_id is not None:
-        features["track_id"] = str(track_id)
+    source_object_id = payload.get("track_id")
+    if source_object_id is not None:
+        claim["source_object_id"] = str(source_object_id)
 
     stream_id = payload.get("stream_id")
-    if stream_id:
-        features["sensor_id"] = stream_id
-
-    if sensor_geo:
-        features["sensor_geo"] = sensor_geo
 
     ts = payload.get("timestamp", _utc_now())
     sid = stream_id or DEFAULT_SENSOR_ID
+    parent_event_id = str(uuid7())
+    if payload.get("source_event_id"):
+        claim["source_event_id"] = str(payload.get("source_event_id"))
 
     return {
         "zmeta_version": "1.0",
         "event": {
             "event_id": str(uuid7()),
-            "event_type": "OBSERVATION_EVENT",
-            "event_subtype": "EO_DETECTION",
+            "event_type": "INFERENCE_EVENT",
+            "event_subtype": "CLASSIFICATION",
             "ts": ts,
         },
         "source": {
             "platform_id": platform_id,
-            "node_role": "EDGE",
+            "node_role": "GATEWAY",
             "producer": "eo-cv-adapter",
             "sensor_id": sid,
         },
         "payload": {
-            "modality": "EO",
-            "geo": geo,
-            "features": features,
+            "inference_type": "CLASSIFICATION",
+            "claim": claim,
+            "model": {
+                "name": str(payload.get("model_name") or "eo-cv"),
+                "version": str(payload.get("model_version") or ADAPTER_VERSION),
+            },
+            "based_on": [parent_event_id],
         },
+        "confidence": confidence,
         "lineage": {
-            "based_on": [str(uuid7())],
+            "based_on": [parent_event_id],
             "transform": f"translate:{SCHEMA_ID}@{ADAPTER_VERSION}",
         },
     }

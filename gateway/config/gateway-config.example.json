@@ -19,6 +19,7 @@
   ],
   "stamp_timing": true,
   "stamp_timing_profiles": [
+    "L",
     "H",
     "M"
   ],
@@ -26,8 +27,7 @@
     "source.sensor_id",
     "source.sw_version",
     "payload.data_ref",
-    "payload.data_refs",
-    "payload.quality"
+    "payload.data_refs"
   ],
   "strip_optional_fields_profiles": [
     "L",
@@ -50,6 +50,6 @@
     "host": "127.0.0.1",
     "port": 6969
   },
-  "schema_path": "schema/zmeta-event-1.0.schema.json",
-  "policy_dir": "policy"
+  "schema_path": "../../schema/zmeta-event-1.0.schema.json",
+  "policy_dir": "../../policy"
 }

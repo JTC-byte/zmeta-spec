@@ -16,7 +16,7 @@ replay-command:
 	python tools/replay.py --file examples/zmeta-command-examples.jsonl --host 127.0.0.1 --port 5555
 
 validate-examples:
-	python tools/validate_examples.py --require-all
+	python tools/validate_examples.py --strict --require-all
 
 validate-conformance:
 	python tools/validate_conformance.py --strict

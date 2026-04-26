@@ -57,7 +57,7 @@ validation rules, see the JSON schemas in `schema/` and the semantic contract in
 ### SYSTEM_EVENT
 
 Common fields:
-- `system_type` (enum) - `TASK_ACK`, `LINK_STATUS`, `TIME_STATUS`, `SCHEMA_VIOLATION`; v1.1.0 also supports `SENSOR_STATUS` and `PLATFORM_STATUS`.
+- `system_type` (enum) - `TASK_ACK`, `LINK_STATUS`, `TIME_STATUS`, `SCHEMA_VIOLATION`; the experimental v1.1.0 schema also defines `SENSOR_STATUS` and `PLATFORM_STATUS`.
 - `state` (enum/string).
 - `metrics` (object) - required keys vary by system type.
 
@@ -99,11 +99,11 @@ Common fields:
 
 `system_type`:
 - `TASK_ACK`, `LINK_STATUS`, `TIME_STATUS`, `SCHEMA_VIOLATION`
-- v1.1.0: `SENSOR_STATUS`, `PLATFORM_STATUS`
+- Experimental v1.1.0: `SENSOR_STATUS`, `PLATFORM_STATUS`
 
 `task_type`:
 - `GOTO`, `ORBIT`, `HOLD`, `SEARCH_BOX`
-- v1.1.0: `RETURN_TO_BASE`, `LAND`, `LOITER`, `SCAN_RF`, `TRACK_TARGET`, `CHANGE_SENSOR_MODE`
+- Experimental v1.1.0: `RETURN_TO_BASE`, `LAND`, `LOITER`, `SCAN_RF`, `TRACK_TARGET`, `CHANGE_SENSOR_MODE`
 
 `priority`:
 - `LOW`, `MED`, `HIGH`

@@ -5,6 +5,8 @@ semantics:
       - entity_class
       - classification
       - label
+      - class_name
+      - confidence
   inference_event:
     payload_must_not_contain:
       - track_id
@@ -19,6 +21,23 @@ semantics:
       - alt_m
       - altitude
     dedupe_key: task_id
+  timing_quality:
+    required: true
+    required_event_types:
+      - OBSERVATION_EVENT
+      - INFERENCE_EVENT
+      - FUSION_EVENT
+      - STATE_EVENT
+      - COMMAND_EVENT
+    per_event_paths:
+      - payload.timing_quality
+      - payload.quality.timing_quality
+      - payload.quality
+    required_fields:
+      - time_source
+      - sync_state
+      - est_error_ms
+      - last_sync_ts
   system_event:
     schema_violation_required_metrics_fields:
       - reason_code
@@ -46,6 +65,10 @@ semantics:
       - LINK_STATUS_MISSING_REASON_CODE
       - LINK_STATUS_INVALID_REASON_CODE
       - PRODUCER_NOT_ALLOWED
+      - PROFILE_MISMATCH
+      - TIMING_STATUS_MISSING
+      - EVENT_DUPLICATE
+      - TASK_ACK_DUPLICATE
     task_ack_required_metrics_fields:
       - task_id
       - original_event_id

@@ -45,3 +45,13 @@ violation_codes:
     severity: fail
   - code: PRODUCER_NOT_ALLOWED
     severity: fail
+  - code: PROFILE_MISMATCH
+    severity: fail
+  - code: TIMING_STATUS_MISSING
+    severity: fail
+  - code: EVENT_DUPLICATE
+    severity: fail
+  - code: TASK_DUPLICATE
+    severity: fail
+  - code: TASK_ACK_DUPLICATE
+    severity: fail

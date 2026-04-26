@@ -1,7 +1,7 @@
 import shutil
 from pathlib import Path
 
-VERSION_TAG = "mvp"
+VERSION_TAG = "v1.0.4"
 IGNORE_NAMES = (
     "__pycache__",
     ".pytest_cache",
@@ -78,6 +78,10 @@ def main() -> None:
         "README.md",
         "LICENSE",
         "requirements.txt",
+        "requirements-dev.txt",
+        "zmeta_uuid.py",
+        "zmeta_cbor.py",
+        "zmeta_compact.py",
         "deploy/README.md",
     ]
 

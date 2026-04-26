@@ -24,3 +24,32 @@ routing:
         - STATE_EVENT
         - COMMAND_EVENT
         - SYSTEM_EVENT
+    cot-ingress:
+      allowed_event_types:
+        - STATE_EVENT
+        - SYSTEM_EVENT
+    jreap-ingress:
+      allowed_event_types:
+        - STATE_EVENT
+        - SYSTEM_EVENT
+    klv-ingress:
+      allowed_event_types:
+        - OBSERVATION_EVENT
+        - SYSTEM_EVENT
+    eo-cv-adapter:
+      allowed_event_types:
+        - INFERENCE_EVENT
+        - SYSTEM_EVENT
+    mavlink-adapter:
+      allowed_event_types:
+        - STATE_EVENT
+        - SYSTEM_EVENT
+    fusion-engine:
+      allowed_event_types:
+        - INFERENCE_EVENT
+        - FUSION_EVENT
+        - STATE_EVENT
+        - SYSTEM_EVENT
+    zmeta-gateway:
+      allowed_event_types:
+        - SYSTEM_EVENT

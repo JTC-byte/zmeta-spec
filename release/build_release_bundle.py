@@ -1,7 +1,7 @@
 import shutil
 from pathlib import Path
 
-VERSION = "1.0.2"
+VERSION = "1.0.4"
 
 
 def collect_sources(root):
@@ -17,11 +17,20 @@ def collect_sources(root):
         sources.append(path)
 
     optional = [
+        root / "README.md",
+        root / "CHANGELOG.md",
+        root / "schema" / "README.md",
+        root / "schema" / "zmeta-event-1.1.0.schema.json",
+        root / "release" / f"RELEASE_NOTES_v{VERSION}.md",
         root / "spec" / "quickstart.md",
         root / "spec" / "versioning.md",
         root / "spec" / "installation-guide.md",
         root / "spec" / "cot-mapping.md",
         root / "spec" / "klv-jreap-projection-notes.md",
+        root / "spec" / "compact-binary-mapping.md",
+        root / "spec" / "field-dictionary.md",
+        root / "spec" / "profile-compatibility.md",
+        root / "spec" / "README.md",
     ]
     for path in optional:
         if path.is_file():

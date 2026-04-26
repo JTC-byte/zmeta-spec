@@ -1,10 +1,14 @@
 # Changelog
 
 ## [Unreleased]
+
+## [1.0.4] - 2026-04-26
 - Added UUIDv7 event identity requirements and aligned schema validation.
 - Made timing quality metadata mandatory across all profiles.
 - Added normative track persistence, deduplication, and edge failure-mode configuration guidance.
 - Clarified confidence semantics and Profile L compact stripping rules.
+- Aligned schema, policy, validators, adapters, configs, examples, conformance tests, and CI with the locked semantic contract.
+- Added timing-quality enforcement, profile mismatch checks, event/TASK_ACK dedupe checks, and semantic-contract hashing in the reference gateway tooling.
 
 ## [1.0.3]
 - Added compact binary mapping for Profile L plus reference CBOR/compact encoders and size tooling.

@@ -44,6 +44,7 @@
   ],
   "stamp_timing": true,
   "stamp_timing_profiles": [
+    "L",
     "H",
     "M"
   ],
@@ -52,7 +53,6 @@
     "source.sw_version",
     "payload.data_ref",
     "payload.data_refs",
-    "payload.quality",
     "payload.source_summary",
     "payload.heading_deg",
     "payload.speed_mps",

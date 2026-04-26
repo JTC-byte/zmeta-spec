@@ -28,6 +28,13 @@ except ImportError:  # pragma: no cover - optional dependency
 
 from zmeta_uuid import uuid7
 
+TIMING_QUALITY = {
+    "time_source": "GPS_PPS",
+    "sync_state": "LOCKED",
+    "est_error_ms": 1,
+    "last_sync_ts": "2025-01-17T14:29:59Z",
+}
+
 
 def build_args():
     parser = argparse.ArgumentParser(
@@ -108,6 +115,7 @@ def _build_events(profile, expect):
                 "power_dbm": -35.2,
             },
             "geo": {"lat": 34.0522, "lon": -118.2437, "alt_m": 120.5},
+            "timing_quality": dict(TIMING_QUALITY),
         },
     }
 
@@ -125,6 +133,7 @@ def _build_events(profile, expect):
             "claim": {"label": "drone"},
             "model": {"name": "rf-classifier", "version": "1.0.0"},
             "based_on": [obs_id],
+            "timing_quality": dict(TIMING_QUALITY),
         },
         "confidence": 0.82,
         "lineage": {"based_on": [obs_id]},
@@ -144,6 +153,7 @@ def _build_events(profile, expect):
             "members": [obs_id],
             "stability": 0.6,
             "last_seen_ts": "2025-01-17T14:30:03Z",
+            "timing_quality": dict(TIMING_QUALITY),
         },
         "confidence": 0.75,
         "lineage": {"based_on": [inf_id]},
@@ -164,6 +174,7 @@ def _build_events(profile, expect):
             "track_id": "track-001",
             "geo": {"lat": 34.0524, "lon": -118.2435, "alt_m": 121.0},
             "valid_for_ms": 1500,
+            "timing_quality": dict(TIMING_QUALITY),
         },
         "confidence": 0.7,
         "lineage": {"based_on": [fus_id]},
@@ -184,6 +195,7 @@ def _build_events(profile, expect):
             "target_geo": {"lat": 34.0525, "lon": -118.2436},
             "valid_for_ms": 600000,
             "requires_deconfliction": True,
+            "timing_quality": dict(TIMING_QUALITY),
         },
     }
 

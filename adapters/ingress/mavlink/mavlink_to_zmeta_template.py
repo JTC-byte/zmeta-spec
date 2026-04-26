@@ -114,29 +114,31 @@ def translate_platform_state(
     geo = {"lat": lat, "lon": lon, "alt_m": alt_m}
     confidence = _gps_fix_confidence(gps_fix_type)
 
-    features = {
+    quality = {
         "gps_fix_type": gps_fix_type,
         "satellites_visible": satellites_visible,
     }
     if gps_fix_type < 3:
-        features["geo_stale"] = True
+        quality["geo_status"] = "STALE"
+    else:
+        quality["geo_status"] = "AVAILABLE"
 
     # Optional attitude fields
     for attr in ("roll_deg", "pitch_deg", "yaw_deg", "vx", "vy", "vz"):
         val = _get(attr)
         if val is not None:
-            features[attr] = val
+            quality[attr] = val
 
     # Optional battery/mode fields
     battery_v = _get("battery_voltage")
     if battery_v is not None and battery_v > 0:
-        features["battery_voltage"] = battery_v
+        quality["battery_voltage"] = battery_v
     battery_pct = _get("battery_remaining_pct")
     if battery_pct is not None and battery_pct >= 0:
-        features["battery_remaining_pct"] = battery_pct
+        quality["battery_remaining_pct"] = battery_pct
     custom_mode = _get("custom_mode")
     if custom_mode is not None:
-        features["custom_mode"] = custom_mode
+        quality["custom_mode"] = custom_mode
 
     event = {
         "zmeta_version": "1.0",
@@ -148,16 +150,16 @@ def translate_platform_state(
         },
         "source": {
             "platform_id": platform_id,
-            "node_role": "EDGE",
+            "node_role": "GATEWAY",
             "producer": producer,
         },
         "payload": {
-            "track_id": f"{platform_id}-position",
+            "track_id": f"{producer}-{platform_id}-platform-position",
             "geo": geo,
             "valid_for_ms": 30000,
             "heading_deg": heading_deg,
             "speed_mps": speed_mps,
-            "features": features,
+            "quality": quality,
         },
         "confidence": confidence,
         "lineage": {
@@ -352,17 +354,20 @@ def translate_time_status(
     time_source="UNKNOWN",
     sync_state="UNSYNCED",
     est_error_ms=0.0,
+    last_sync_ts=None,
     producer="mavlink-adapter",
     ts=None,
 ):
     """Build a TIME_STATUS SYSTEM_EVENT from MAVLink SYSTEM_TIME data."""
+    event_ts = ts or _utc_now()
+    normalized_sync_state = "LOCKED" if sync_state == "SYNCED" else sync_state
     return {
         "zmeta_version": "1.0",
         "event": {
             "event_id": str(uuid7()),
             "event_type": "SYSTEM_EVENT",
             "event_subtype": "TIME_STATUS",
-            "ts": ts or _utc_now(),
+            "ts": event_ts,
         },
         "source": {
             "platform_id": platform_id,
@@ -371,15 +376,12 @@ def translate_time_status(
         },
         "payload": {
             "system_type": "TIME_STATUS",
-            "state": "UP" if sync_state == "SYNCED" else "DEGRADED",
+            "state": "UP" if normalized_sync_state == "LOCKED" else "DEGRADED",
             "metrics": {
-                "link_id": f"edge-comms-{platform_id}",
                 "time_source": time_source,
-                "sync_state": sync_state,
+                "sync_state": normalized_sync_state,
                 "est_error_ms": est_error_ms,
-                "latency_ms": 0,
-                "packet_loss_pct": 0.0,
-                "throughput_bps": 0,
+                "last_sync_ts": last_sync_ts or event_ts,
             },
         },
         "lineage": {

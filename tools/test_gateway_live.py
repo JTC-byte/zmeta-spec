@@ -25,6 +25,13 @@ try:
 except ImportError:  # pragma: no cover - optional dependency
     zmeta_compact = None
 
+TIMING_QUALITY = {
+    "time_source": "GPS_PPS",
+    "sync_state": "LOCKED",
+    "est_error_ms": 1,
+    "last_sync_ts": "2025-01-17T14:29:59Z",
+}
+
 
 def build_args():
     parser = argparse.ArgumentParser(description="Live UDP test for gateway (dedupe + CoT)")
@@ -91,6 +98,7 @@ def main():
                 "target_geo": {"lat": 34.0005, "lon": -118.0004},
                 "valid_for_ms": 600000,
                 "requires_deconfliction": True,
+                "timing_quality": dict(TIMING_QUALITY),
             },
         }
 
@@ -111,6 +119,7 @@ def main():
                 "track_id": "track-001",
                 "geo": {"lat": 34.0524, "lon": -118.2435, "alt_m": 121.0},
                 "valid_for_ms": 1500,
+                "timing_quality": dict(TIMING_QUALITY),
             },
             "confidence": 0.76,
             "lineage": {"based_on": ["019c2b5d-4cd9-770e-b02d-55d8793c6fa7"]},

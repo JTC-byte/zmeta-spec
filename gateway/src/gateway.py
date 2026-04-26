@@ -30,6 +30,7 @@ except ImportError:  # pragma: no cover - optional dependency
     zmeta_compact = None
 
 from validators import (
+    ValidationState,
     load_policy,
     load_schema,
     validate_profile,
@@ -37,6 +38,7 @@ from validators import (
     validate_routing,
     validate_schema,
     validate_semantics,
+    validate_timing_quality,
 )
 
 from adapters.egress.cot.zmeta_to_cot import zmeta_to_cot
@@ -46,13 +48,12 @@ PROFILE_CHOICES = {"L", "M", "H"}
 INPUT_ENCODING_CHOICES = {"json", "cbor", "compact", "auto"}
 OUTPUT_ENCODING_CHOICES = {"json", "cbor", "compact"}
 DEFAULT_STAMP_PROFILE_PROFILES = ["L", "M", "H"]
-DEFAULT_STAMP_TIMING_PROFILES = ["H", "M"]
+DEFAULT_STAMP_TIMING_PROFILES = ["L", "M", "H"]
 DEFAULT_STRIP_OPTIONAL_FIELDS = [
     "source.sensor_id",
     "source.sw_version",
     "payload.data_ref",
     "payload.data_refs",
-    "payload.quality",
 ]
 DEFAULT_STRIP_OPTIONAL_FIELDS_PROFILES = ["L", "M", "H"]
 DEFAULT_METRICS_INTERVAL_SEC = 30
@@ -88,20 +89,28 @@ def _hash_dir(dir_path: Path) -> bytes:
     return hasher.digest()
 
 
-def compute_contract_hash(schema_path: Path, policy_dir: Path) -> dict:
+def compute_contract_hash(schema_path: Path, policy_dir: Path, semantics_path: Path | None = None) -> dict:
     schema_digest = _hash_file(schema_path)
     policy_digest = _hash_dir(policy_dir)
     schema_hash = hashlib.sha256(schema_digest).hexdigest()
     policy_hash = hashlib.sha256(policy_digest).hexdigest()
+    semantics_hash = None
+    if semantics_path and semantics_path.is_file():
+        semantics_hash = hashlib.sha256(_hash_file(semantics_path)).hexdigest()
     contract_hasher = hashlib.sha256()
     contract_hasher.update(schema_hash.encode("utf-8"))
     contract_hasher.update(policy_hash.encode("utf-8"))
+    if semantics_hash:
+        contract_hasher.update(semantics_hash.encode("utf-8"))
     contract_hash = contract_hasher.hexdigest()
-    return {
+    hashes = {
         "schema_hash": schema_hash,
         "policy_hash": policy_hash,
         "contract_hash": contract_hash,
     }
+    if semantics_hash:
+        hashes["semantics_hash"] = semantics_hash
+    return hashes
 
 
 class TaskDedupeCache:
@@ -120,6 +129,57 @@ class TaskDedupeCache:
         if expiry and expiry > now:
             return True
         self._cache[task_id] = now + (ttl_ms / 1000.0)
+        return False
+
+
+class EventDedupeCache:
+    def __init__(self, ttl_ms=300000):
+        self.ttl_ms = int(ttl_ms)
+        self._cache = {}
+
+    def _purge(self, now):
+        expired = [key for key, expiry in self._cache.items() if expiry <= now]
+        for key in expired:
+            del self._cache[key]
+
+    def check_and_set(self, event_id):
+        if not event_id:
+            return False
+        now = time.monotonic()
+        self._purge(now)
+        expiry = self._cache.get(event_id)
+        if expiry and expiry > now:
+            return True
+        self._cache[event_id] = now + (self.ttl_ms / 1000.0)
+        return False
+
+
+class TaskAckDedupeCache:
+    def __init__(self, ttl_ms=300000):
+        self.ttl_ms = int(ttl_ms)
+        self._cache = {}
+
+    def _purge(self, now):
+        expired = [key for key, expiry in self._cache.items() if expiry <= now]
+        for key in expired:
+            del self._cache[key]
+
+    def check_and_set(self, event):
+        payload = event.get("payload", {}) if isinstance(event, dict) else {}
+        if payload.get("system_type") != "TASK_ACK":
+            return False
+        metrics = payload.get("metrics", {})
+        if not isinstance(metrics, dict):
+            return False
+        key = (metrics.get("task_id"), metrics.get("original_event_id"), payload.get("state"))
+        if not all(key):
+            return False
+        now = time.monotonic()
+        self._purge(now)
+        expiry = self._cache.get(key)
+        if expiry and expiry > now:
+            return True
+        self._cache[key] = now + (self.ttl_ms / 1000.0)
         return False
 
 
@@ -575,6 +635,52 @@ def _strip_optional_fields(event, fields):
             target.pop(parts[-1], None)
 
 
+def _source_key(event):
+    source = event.get("source", {}) if isinstance(event, dict) else {}
+    return (
+        str(source.get("platform_id") or "UNKNOWN"),
+        str(source.get("producer") or "UNKNOWN"),
+        str(source.get("node_role") or "UNKNOWN"),
+    )
+
+
+def _apply_failure_mode_degradation(event, failure_modes, timing_state):
+    if not failure_modes or not isinstance(event, dict):
+        return
+    if event.get("event", {}).get("event_type") != "STATE_EVENT":
+        return
+    timing_loss = failure_modes.get("timing_loss", {})
+    if not isinstance(timing_loss, dict) or not timing_loss.get("enabled", False):
+        return
+    latest = getattr(timing_state, "latest_timing", {}).get(_source_key(event)) if timing_state else None
+    if not latest or latest.get("sync_state") != "UNSYNCED":
+        return
+    try:
+        factor = float(timing_loss.get("confidence_reduction_factor", 2.0))
+    except (TypeError, ValueError):
+        factor = 2.0
+    if factor <= 0:
+        return
+    confidence = event.get("confidence")
+    if isinstance(confidence, (int, float)):
+        event["confidence"] = max(0.0, min(1.0, confidence / factor))
+
+
+def validate_outgoing_event(event, validator, policy, profile):
+    severity_map = policy.get("violation_severities", {})
+    checks = []
+    checks.extend(validate_schema(event, validator, severity_map)[1])
+    if checks:
+        return checks
+    checks.extend(
+        validate_role(event, {"roles": policy["roles"], "deny": policy["deny"]}, severity_map)[1]
+    )
+    checks.extend(validate_profile(event, profile, policy["profiles"], severity_map)[1])
+    checks.extend(validate_semantics(event, policy["semantics"], severity_map)[1])
+    checks.extend(validate_routing(event, policy["routing"], severity_map)[1])
+    return [violation for violation in checks if violation.get("severity") != "warn"]
+
+
 def build_settings(root, args, config):
     settings = {
         "profile": None,
@@ -607,6 +713,7 @@ def build_settings(root, args, config):
         "require_schema_hash": None,
         "require_policy_hash": None,
         "require_contract_hash": None,
+        "failure_modes": {},
     }
 
     if config:
@@ -689,6 +796,8 @@ def build_settings(root, args, config):
         if "require_contract_hash" in config:
             value = config["require_contract_hash"]
             settings["require_contract_hash"] = str(value).strip() if value is not None else None
+        if "failure_modes" in config and isinstance(config["failure_modes"], dict):
+            settings["failure_modes"] = config["failure_modes"]
 
     if args.profile:
         settings["profile"] = args.profile
@@ -802,6 +911,8 @@ def _attach_contract_hash(metrics, contract_hashes=None, stamp_contract_hash=Fal
     metrics["contract_hash"] = contract_hashes.get("contract_hash")
     metrics["schema_hash"] = contract_hashes.get("schema_hash")
     metrics["policy_hash"] = contract_hashes.get("policy_hash")
+    if contract_hashes.get("semantics_hash"):
+        metrics["semantics_hash"] = contract_hashes.get("semantics_hash")
 
 
 def build_violation_event(reason_code, original=None, details=None, contract_hashes=None, stamp_contract_hash=False):
@@ -934,6 +1045,9 @@ def process_message(
     profile,
     dedupe_cache,
     input_encoding,
+    event_dedupe_cache=None,
+    task_ack_dedupe_cache=None,
+    timing_state=None,
     strict_validation=False,
     metrics=None,
     rate_limiter=None,
@@ -1019,6 +1133,27 @@ def process_message(
             ]
         warnings.extend(warns)
 
+    if timing_state is not None:
+        ok, violations = validate_timing_quality(
+            instance, policy["semantics"], state=timing_state, severity_map=severity_map
+        )
+        if violations:
+            fails, warns = _split_violations(violations)
+            if fails:
+                violation = fails[0]
+                if metrics:
+                    metrics.record_violation(violation["code"], event_id=event_id, producer=producer)
+                return [
+                    build_violation_event(
+                        violation["code"],
+                        original=instance,
+                        details=violation.get("details"),
+                        contract_hashes=contract_hashes,
+                        stamp_contract_hash=stamp_contract_hash,
+                    )
+                ]
+            warnings.extend(warns)
+
     ok, violations = validate_semantics(instance, policy["semantics"], severity_map)
     if violations:
         fails, warns = _split_violations(violations)
@@ -1055,6 +1190,19 @@ def process_message(
             ]
         warnings.extend(warns)
 
+    event_type = instance.get("event", {}).get("event_type")
+    if event_type != "COMMAND_EVENT" and event_dedupe_cache:
+        if event_dedupe_cache.check_and_set(event_id):
+            if metrics:
+                metrics.record_duplicate()
+            return []
+
+    if event_type == "SYSTEM_EVENT" and task_ack_dedupe_cache:
+        if task_ack_dedupe_cache.check_and_set(instance):
+            if metrics:
+                metrics.record_duplicate()
+            return []
+
     if strict_validation and warnings:
         violation = warnings[0]
         if metrics:
@@ -1069,7 +1217,7 @@ def process_message(
             )
         ]
 
-    if instance.get("event", {}).get("event_type") == "COMMAND_EVENT":
+    if event_type == "COMMAND_EVENT":
         payload = instance.get("payload", {})
         task_id = payload.get("task_id")
         if task_id and dedupe_cache:
@@ -1085,6 +1233,9 @@ def process_message(
                         stamp_contract_hash=stamp_contract_hash,
                     )
                 ]
+
+    if timing_state is not None:
+        timing_state.record_timing(instance)
 
     outgoing = [instance]
     for warning in warnings:
@@ -1149,7 +1300,8 @@ def main():
     except (ValueError, FileNotFoundError) as exc:
         raise SystemExit(str(exc))
 
-    contract_hashes = compute_contract_hash(settings["schema_path"], settings["policy_dir"])
+    semantics_path = root / "spec" / "semantics-contract.md"
+    contract_hashes = compute_contract_hash(settings["schema_path"], settings["policy_dir"], semantics_path)
     if settings["require_schema_hash"] and settings["require_schema_hash"] != contract_hashes["schema_hash"]:
         raise SystemExit("schema hash mismatch: update config or schema")
     if settings["require_policy_hash"] and settings["require_policy_hash"] != contract_hashes["policy_hash"]:
@@ -1184,6 +1336,8 @@ def main():
     print(f"forwarding to {forward_addr[0]}:{forward_addr[1]}")
     print(f"schema_hash={contract_hashes['schema_hash']}")
     print(f"policy_hash={contract_hashes['policy_hash']}")
+    if contract_hashes.get("semantics_hash"):
+        print(f"semantics_hash={contract_hashes['semantics_hash']}")
     print(f"contract_hash={contract_hashes['contract_hash']}")
     if settings["rate_limit_per_sec"]:
         print(f"rate limit: {settings['rate_limit_per_sec']} msg/s")
@@ -1197,6 +1351,9 @@ def main():
         print("strict validation enabled (warnings treated as failures)")
 
     dedupe_cache = TaskDedupeCache()
+    event_dedupe_cache = EventDedupeCache()
+    task_ack_dedupe_cache = TaskAckDedupeCache()
+    validation_state = ValidationState()
     logger = None
     if settings["metrics_log_path"]:
         logger = MetricsLogger(
@@ -1243,6 +1400,9 @@ def main():
             settings["profile"],
             dedupe_cache,
             settings["input_encoding"],
+            event_dedupe_cache=event_dedupe_cache,
+            task_ack_dedupe_cache=task_ack_dedupe_cache,
+            timing_state=validation_state,
             strict_validation=settings["strict_validation"],
             metrics=metrics,
             rate_limiter=producer_rate_limiter,
@@ -1266,7 +1426,7 @@ def main():
             should_stamp_profile = _should_apply(
                 settings["profile"], settings["stamp_profile"], settings["stamp_profile_profiles"]
             )
-            if should_stamp_profile and "profile" not in outgoing:
+            if should_stamp_profile:
                 outgoing["profile"] = settings["profile"]
 
             should_strip = _should_apply(
@@ -1276,6 +1436,27 @@ def main():
             )
             if should_strip:
                 _strip_optional_fields(outgoing, settings["strip_optional_fields"])
+            _apply_failure_mode_degradation(outgoing, settings["failure_modes"], validation_state)
+            violations = validate_outgoing_event(outgoing, validator, policy, settings["profile"])
+            if violations:
+                violation = violations[0]
+                if metrics:
+                    event_block = outgoing.get("event", {}) if isinstance(outgoing, dict) else {}
+                    source = outgoing.get("source", {}) if isinstance(outgoing, dict) else {}
+                    metrics.record_violation(
+                        violation["code"],
+                        event_id=event_block.get("event_id"),
+                        producer=source.get("producer") if isinstance(source, dict) else None,
+                    )
+                outgoing = build_violation_event(
+                    violation["code"],
+                    original=outgoing,
+                    details=violation.get("details"),
+                    contract_hashes=contract_hashes,
+                    stamp_contract_hash=settings["stamp_contract_hash"],
+                )
+                if should_stamp_profile:
+                    outgoing["profile"] = settings["profile"]
             payload = _encode_message(outgoing, settings["output_encoding"])
             sock_out.sendto(payload, forward_addr)
             if metrics:
