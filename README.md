@@ -1,9 +1,17 @@
-# ZMeta Specification (v1.0)
+# ZMeta Specification (v1.0 Locked, current release v1.0.4)
 
 ## Overview
 - ZMeta is a transport-agnostic, event-based metadata standard for resilient ISR.
 - Designed to survive degraded and denied environments.
 - Separates observation, inference, fusion, state, and command semantics.
+
+## Current Release
+
+- Current release: `v1.0.4`
+- Release notes and assets: <https://github.com/JTC-byte/zmeta-spec/releases/tag/v1.0.4>
+- Normative contract: v1.0 locked semantic contract, v1.0 JSON schema, and policy pack.
+- Experimental extension: `schema/zmeta-event-1.1.0.schema.json` is provided for proposed
+  compatibility testing only; v1.1.0-only fields are not part of the locked v1.0 contract.
 
 ## MVP Roles (Demo)
 - `swarmint`: drone + EO/IR payload platform only (no ZMeta producer role)
@@ -80,7 +88,7 @@ Makefile targets run the same commands with `python` directly; ensure dependenci
 
 ## Versioning
 - v1.0.x = clarifications and fixes
-- v1.1+ = backward-compatible extensions
+- v1.1+ = proposed backward-compatible extensions until explicitly locked
 - v2.0 = breaking changes
 
 See `spec/versioning.md` for the full policy.
@@ -116,11 +124,13 @@ AAR fields added by the reference gateway when configured.
 Deployment helpers:
 - Config templates: `configs/edge-config.json`, `configs/gateway-config.json`
 - Docker Compose: `deploy/edge/docker-compose.yml`, `deploy/gateway/docker-compose.yml`
-- MVP bundle builder: `python release/build_mvp_packages.py`
+- Bundle builders:
+  - `python release/build_mvp_packages.py` produces `zmeta-edge-v1.0.4.zip` and `zmeta-gateway-v1.0.4.zip`
+  - `python release/build_release_bundle.py` produces `zmeta-v1.0.4-dist.zip`
 
 ## Deployment Checklist (Compact)
 
-Use this to lock down schema/policy drift and verify a clean deployment:
+Use this to lock down schema, policy, and semantic-contract drift and verify a clean deployment:
 
 1. Compute schema, policy, semantic-contract, and combined contract hashes: `python tools/compute_contract_hash.py`
 1. Set `require_contract_hash` (and optionally `require_schema_hash`/`require_policy_hash`) in config.
