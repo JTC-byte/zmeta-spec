@@ -2,7 +2,7 @@
 
 **Status:** v1.0 Locked (Normative)
 
-**Purpose:** This document captures the *agreed semantic foundations* that govern ZMeta. It is intended to precede and constrain the formal ZMeta v1.0 schema. As additional sections are finalized (Units & Geodesy, Schema, Profiles), they will be appended to this document.
+**Purpose:** This document captures the *agreed semantic foundations* that govern ZMeta v1.0. It constrains the formal schema, policy pack, reference gateway, adapters, and conformance suite.
 
 ## 0. Operating Model (Non-Normative)
 
@@ -20,7 +20,7 @@ These constraints let you plug systems together while preserving near-real-time 
 
 ## 1. Core Semantic Contract (Pre-Schema)
 
-The following semantics are **locked** and non-negotiable for the MVP. All schema design, partner integrations, and demos must conform to these rules.
+The following semantics are **locked** and non-negotiable for ZMeta v1.0. All schema design, policy enforcement, reference implementations, and integrations must conform to these rules.
 
 ### 1.1 Event-Based Worldview
 
@@ -33,6 +33,19 @@ The following semantics are **locked** and non-negotiable for the MVP. All schem
 - ZMeta events are **append-only**.
 - Once emitted, an event is never modified or deleted.
 - Corrections, reinterpretations, or refinements must be represented as **new events** with lineage references.
+- Source-authored semantic content is immutable. A gateway, bridge, or exporter
+  MUST NOT change `event.ts`, `event.event_id`, `event.event_type`,
+  `event.event_subtype`, `source`, `track_id`, lineage, or payload meaning to
+  "fix" an event.
+- Profile exports MAY be represented as **projections** of the same event when
+  they only add non-semantic export metadata (for example `profile`,
+  `event.t_receive`, or gateway-supplied `event.t_publish`), omit optional
+  fields for bandwidth, reduce numeric precision, or conservatively lower
+  `confidence` / `valid_for_ms` to reflect export-path degradation. Such
+  projections preserve the original `event_id`.
+- Any semantic payload change, reinterpretation, correction, or replacement of
+  source-authored fields, including any increase in confidence, TTL, precision,
+  or specificity, requires a new event with a new `event_id` and lineage.
 
 ### 1.3 Event Identity (UUIDv7 Requirement)
 
@@ -47,6 +60,10 @@ The following semantics are **locked** and non-negotiable for the MVP. All schem
 - Legacy event identifiers MAY be preserved in `payload.source_event_id` or an
   equivalent payload-scoped provenance field for traceability.
 - Profile, transport, producer, and event type MUST NOT be encoded into `event_id`.
+- The timestamp bits inside UUIDv7 represent identity-generation time only.
+  `event.ts` remains the authoritative capture, observation, or validity time.
+- Consumers MUST NOT infer event timing, ordering, or freshness from UUIDv7
+  timestamp bits when `event.ts` and timing quality metadata are available.
 
 ### 1.4 Layer Separation (Fact -> Opinion -> Belief -> State)
 
@@ -65,6 +82,10 @@ No layer may collapse into another. Violations are considered contract breaches.
 - AI/analytics modules may emit **Inference** events only.
 - Fusion nodes are the only components permitted to create **Track identity**.
 - Operator interfaces (e.g., TAK) **do not author or modify ZMeta events**.
+- Authority is assigned to logical functions and producer identities, not merely
+  to hardware location or deployment tier. A single physical node may host
+  multiple logical functions, but each function must emit only the event types it
+  is authorized to produce.
 
 Note: `node_role` expresses deployment tier, not physical location. If analytics or fusion runs on-device,
 use a non-EDGE role (e.g., GATEWAY) for those producers to preserve authority boundaries.
@@ -103,6 +124,10 @@ Lineage scope:
 - Lineage SHOULD reference immediate parent events only (not full ancestry) to keep payloads bounded.
 - Full ancestry MAY be reconstructed from local storage or AAR data stores when needed.
 - Under constrained profiles (especially Profile L), lineage MAY reference non-exported events; consumers must tolerate unresolved references.
+- Envelope `lineage.based_on` is the authoritative audit lineage. Payload-local
+  provenance fields such as `payload.based_on` MAY be used for claim-specific
+  convenience, but when both are present the payload-local references MUST be
+  equal to or a subset of envelope lineage.
 
 ### 1.9 Explicit Uncertainty
 
@@ -114,16 +139,16 @@ Lineage scope:
 
 - ZMeta is telemetry-first and is not intended for continuous control.
 - Out-of-band control remains the default under unrestricted bandwidth (e.g., MAVLink, Swarm API).
-- A narrow, explicitly-scoped mission tasking capability is permitted via ZMeta only for degraded profiles (e.g., Profile M/L), to preserve tipping/cueing and waypoint-level autonomy when other links are constrained.
+- A narrow, explicitly-scoped mission tasking capability is permitted via ZMeta for low-rate tipping/cueing and waypoint-level autonomy. It is most important under constrained profiles, but remains subject to the same deconfliction and idempotency rules in every profile that permits COMMAND_EVENT.
 
 **The Comms/Deconfliction Node is responsible for:**
 - Converting permitted mission tasks into MAVLink/Swarm API tasking for execution
 - Deconflicting airspace and mission intent
 - Validating and deduplicating task messages
 
-AI/analytics producers (e.g., Torch) SHALL NOT directly command platforms.
+AI/analytics producers SHALL NOT directly command platforms.
 
-All mission tasking carried in ZMeta SHALL be routed through a designated Comms/Deconfliction Node (e.g., SensorOps).
+All mission tasking carried in ZMeta SHALL be routed through a designated Comms/Deconfliction Node or command-authorized producer.
 
 ### 1.11 Tasking Governance and Deconfliction
 
@@ -147,7 +172,7 @@ Not permitted via ZMeta:
   - Collapse semantic layers
 - Extensions must remain ignorable by other consumers.
 
-## 2. Time Synchronization Contract (MVP)
+## 2. Time Synchronization Contract
 
 Time semantics are critical for RF correlation, fusion, and track continuity. The following rules define how time is represented and interpreted in ZMeta.
 
@@ -176,8 +201,9 @@ Gateway behavior:
 - Gateways SHOULD stamp `t_receive` on forwarded events when it is missing.
 - If `t_publish` is missing, gateways MAY set it to the same value as `t_receive`
   and SHOULD document that it was gateway-supplied.
-- For bandwidth-constrained profiles, implementations MAY disable timing stamps;
-  the reference gateway defaults to stamping for profiles H/M and can be turned off.
+- For bandwidth-constrained profiles, implementations MAY disable gateway latency
+  stamps; the reference gateway defaults to stamping profiles L/M/H and can be
+  configured otherwise.
 
 ### 2.3 Timing Quality Metadata (Mandatory)
 
@@ -197,13 +223,21 @@ If bandwidth or implementation maturity forces a minimal timing report,
 `est_error_ms` remains mandatory for RF and time-correlated fusion use cases.
 Best practice is to emit all four fields whenever possible.
 
+Freshness rules:
+- Producers SHOULD document their `TIME_STATUS` reporting cadence.
+- Deployments SHOULD define `max_timing_status_age_ms` per profile or mission.
+- Consumers MUST NOT treat a periodic `TIME_STATUS` as valid indefinitely. If no
+  current timing status is available, consumers SHOULD treat timing quality as
+  unknown/stale and degrade confidence, gate time-correlated fusion, or raise a
+  local timing-status warning according to deployment policy.
+
 ### 2.4 Worst-Case Error Semantics
 
 - est_error_ms represents a **conservative upper bound**, not a statistical measure.
 - It is **not** 1-sigma or RMS.
 - Internal implementations may use statistical models, but ZMeta exposes worst-case bounds.
 
-### 2.5 Minimum Acceptable Sync Approaches (MVP)
+### 2.5 Minimum Acceptable Sync Approaches
 
 - **Preferred (Gold):** GPS PPS disciplined clock per node
   - Expected error: <= 1 ms
@@ -244,9 +278,9 @@ This is critical for synthetic aperture DF and multi-sensor RF correlation.
   - Timing quality metadata required
   - Full timing quality SHOULD be emitted per-event when practical, or via periodic SystemEvents otherwise
 
-## 3. Units & Geodesy Standard (MVP)
+## 3. Units & Geodesy Standard
 
-This section defines the **mandatory geospatial and unit conventions** used by ZMeta. These conventions are fixed for the MVP and must be applied consistently across all partners, sensors, transports, and processing layers.
+This section defines the **mandatory geospatial and unit conventions** used by ZMeta v1.0. These conventions are fixed for conforming producers, consumers, sensors, transports, and processing layers.
 
 ### 3.1 Coordinate Reference System
 
@@ -349,7 +383,10 @@ ZMetaEvent {
 ```
 
 **Envelope Rules:**
-- Envelope fields are **immutable and globally consistent**.
+- Source-authored envelope fields are **immutable and globally consistent**.
+- Exporters MAY add export/profile annotations and conservative projection
+  changes as defined in Section 1.2; they MUST NOT reinterpret the event or
+  replace source-authored semantics.
 - Payload semantics are determined exclusively by event_type and event_subtype.
 - `confidence` is mandatory for INFERENCE/FUSION/STATE events and prohibited for
   OBSERVATION/COMMAND/SYSTEM events.
@@ -357,8 +394,8 @@ ZMetaEvent {
     downstream fusion or state projection.
   - It MUST account for input data quality, timing uncertainty, model confidence,
     and any active profile or failure-mode degradation.
-  - Under degraded timing (HOLDOVER/UNSYNCED), confidence MUST be reduced
-    proportionally to `est_error_ms` according to the producer's documented policy.
+  - Under degraded timing (HOLDOVER/UNSYNCED), confidence MUST be reduced or
+    capped according to the producer's documented timing-degradation policy.
 - `profile` is optional and reflects the **export profile** applied at emission time; do not encode profile into event_id.
 
 ### 4.2 Event Types (Authoritative)
@@ -397,11 +434,16 @@ ObservationPayload {
 - No track_id permitted
 - No entity_class permitted
 - No classification/label permitted
+- No class_name permitted
+- No confidence permitted
 - ts represents capture time or midpoint of window
 
 **Quality guidance:** `payload.quality` is the place for observation measurement quality and uncertainty
 (e.g., SNR, error bounds, timing quality, calibration state). Do not use envelope
 `confidence` for observations; confidence is reserved for non-observation events.
+Observation quality fields such as `payload.quality.sensor_confidence`,
+`payload.quality.snr_db`, or `payload.quality.quality_score` are permitted when
+they describe measurement quality rather than semantic belief.
 
 #### 4.3.2 RF Observation Features (Minimum)
 
@@ -489,7 +531,7 @@ TrackStatePayload {
 
 ### 4.7 COMMAND_EVENT
 
-Represents discrete mission directives used only for tipping/cueing and waypoint-level autonomy under degraded conditions.
+Represents discrete mission directives used only for tipping/cueing and waypoint-level autonomy, especially when other command links are constrained.
 
 #### 4.7.1 Mission Task Payload (Normative)
 
@@ -529,6 +571,10 @@ SystemPayload {
 ```
 
 Used for diagnostics, AARs, and gating fusion logic.
+No additional `system_type` values are permitted in v1.0. Implementations that
+need operational degradation, merge/split, platform, or sensor-health events
+must use v1.0-supported system types, local/operator logs, or a future schema
+version/profile that explicitly defines those system types.
 
 #### 4.8.2 TASK_ACK (Command Acknowledgement)
 
@@ -703,8 +749,11 @@ Choose one strategy per deployment and document it in the operational runbook.
 Event deduplication uses the immutable `event_id` unless the event type has an
 explicit idempotency key.
 
-**FUSION_EVENT / STATE_EVENT deduplication:**
+**Event ID deduplication:**
 - Use `event_id` as the primary deduplication key.
+- This applies to OBSERVATION_EVENT, INFERENCE_EVENT, FUSION_EVENT, STATE_EVENT,
+  and ordinary SYSTEM_EVENTs unless a more specific idempotency rule below
+  applies.
 - If an identical event with the same `event_id` arrives more than once, consumers SHOULD drop subsequent copies without changing state.
 - Consumers maintaining local state MUST record the `event_id` values already applied.
 
@@ -727,6 +776,10 @@ explicit idempotency key.
 
 Track identity is **provisional and revisable**, but revisability is represented
 with new events and lineage, never by mutating old events or reusing IDs.
+ZMeta v1.0 does not define dedicated machine-readable `MERGE` or `SPLIT`
+system event types. Merge/split relationships are represented through new
+FUSION_EVENTs, lineage, and local AAR/operator logs unless a future schema
+version explicitly defines dedicated lifecycle events.
 
 **Lifecycle states:**
 - **NEW:** A fusion node emits an initial FUSION_EVENT with a new `track_id`.
@@ -739,7 +792,7 @@ with new events and lineage, never by mutating old events or reusing IDs.
 - **SPLIT:** If a single track is determined to be two distinct entities:
   - Emit new FUSION_EVENTs with distinct `track_id` values for each entity.
   - Include `lineage.based_on` references to events from the original track for auditability.
-  - Optionally emit a SYSTEM_EVENT documenting the split if supported by that schema version.
+  - Record the split in local AAR/operator logs, or in a future schema/profile event if that event type is explicitly supported.
   - Downstream consumers can reconstruct the split relationship via lineage.
 - **LOST:** If observations for a track exceed a configurable age threshold:
   - Stop emitting STATE_EVENTs for that `track_id`, or emit only low-confidence updates that truthfully represent stale state.
@@ -806,7 +859,7 @@ modes. Operators MAY override the thresholds and factors in deployment config.
 | **Timing Loss (UNSYNCED)** | Emit TIME_STATUS with `sync_state: UNSYNCED`; reduce STATE_EVENT confidence by factor of 2; gate high-precision fusion | Yes |
 | **Observation Timeout** | Continue STATE_EVENT emission only while `valid_for_ms` truthfully represents stale data; reduce `valid_for_ms` by 50%; reduce confidence by 10% per update cycle | Yes |
 | **Deconfliction Node Offline** | Queue COMMAND_EVENTs locally with TTL; do not execute undeconflicted commands; emit TASK_ACK failure/expiry when applicable | Yes |
-| **Memory/Storage Exhausted** | Drop in order: (1) non-lineage optional fields such as `source_summary`, `heading_deg`, and `speed_mps`; (2) observation references in payload; (3) oldest lineage references while retaining the most recent; (4) only then drop observations. Emit a SYSTEM_EVENT or operator log documenting the memory event. | Yes |
+| **Memory/Storage Exhausted** | Drop in order: (1) non-lineage optional fields such as `source_summary`, `heading_deg`, and `speed_mps`; (2) observation references in payload; (3) oldest lineage references while retaining the most recent; (4) only then drop observations. Record the memory event in operator logs or in a future schema/profile event if that event type is explicitly supported. | Yes |
 | **Link Degradation** | Emit LINK_STATUS; thin optional payload fields per profile rules; may reduce STATE_EVENT emission rate | Yes |
 | **Fusion Instability** | If `stability < 0.3`, hold STATE_EVENT emission until stability improves or TTL expires unless operator policy requires degraded-state emission | Yes |
 

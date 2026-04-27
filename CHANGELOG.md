@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 
+## [1.0.5] - 2026-04-26
+- Clarified immutable source-authored events versus profile/export projections.
+- Clarified UUIDv7 timestamp bits as identity-generation time, not event time.
+- Added TIME_STATUS freshness guidance and stale timing behavior.
+- Clarified authoritative envelope lineage versus payload-local provenance.
+- Tightened authority-boundary, observation-quality, deduplication, system-event extensibility, confidence-degradation, and merge/split lifecycle wording.
+
 ## [1.0.4] - 2026-04-26
 - Added UUIDv7 event identity requirements and aligned schema validation.
 - Made timing quality metadata mandatory across all profiles.
