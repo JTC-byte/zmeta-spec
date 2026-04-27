@@ -25,6 +25,11 @@ try:
 except ImportError:  # pragma: no cover - optional dependency
     zmeta_compact = None
 
+try:
+    import zmeta_proto
+except ImportError:  # pragma: no cover - optional dependency
+    zmeta_proto = None
+
 TIMING_QUALITY = {
     "time_source": "GPS_PPS",
     "sync_state": "LOCKED",
@@ -40,9 +45,9 @@ def build_args():
     parser.add_argument("--forward-port", type=int, default=5576)
     parser.add_argument("--cot-port", type=int, default=6970)
     parser.add_argument("--timeout", type=float, default=3.0)
-    parser.add_argument("--encoding", choices=["json", "cbor", "compact"], default="json")
+    parser.add_argument("--encoding", choices=["json", "cbor", "compact", "proto"], default="json")
     parser.add_argument(
-        "--input-encoding", choices=["json", "cbor", "compact", "auto"], default="json"
+        "--input-encoding", choices=["json", "cbor", "compact", "proto", "auto"], default="json"
     )
     parser.add_argument("--no-cot", action="store_true", help="Skip CoT emission test")
     return parser.parse_args()
@@ -147,11 +152,16 @@ def main():
             if cbor2 is None and zmeta_cbor is None:
                 raise SystemExit("CBOR support requires cbor2 or zmeta_cbor.")
             if cbor2 is not None:
-                payload_cmd = cbor2.dumps(cmd_event)
-                payload_state = cbor2.dumps(state_event)
+                payload_cmd = cbor2.dumps(cmd_event, canonical=True)
+                payload_state = cbor2.dumps(state_event, canonical=True)
             else:
                 payload_cmd = zmeta_cbor.dumps(cmd_event)
                 payload_state = zmeta_cbor.dumps(state_event)
+        elif args.encoding == "proto":
+            if zmeta_proto is None:
+                raise SystemExit("Protobuf encoding requires zmeta_proto.")
+            payload_cmd = zmeta_proto.dumps(cmd_event)
+            payload_state = zmeta_proto.dumps(state_event)
 
         send.sendto(payload_cmd, ("127.0.0.1", args.listen_port))
         print("forwarded-1", recv_or_fail(recv, args.timeout, "first command"))

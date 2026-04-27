@@ -94,6 +94,17 @@ python tools/test_workflow_end_to_end.py --profile L
 python tools/test_workflow_end_to_end.py --profile M --expect COMMAND_EVENT,SYSTEM_EVENT
 ```
 
+## Try binary encodings
+
+CBOR and protobuf preserve the same decoded ZMeta event. Compact is the Profile L
+integer-key CBOR mapping.
+
+```
+python tools/measure_packet_size.py --file examples/encoding-roundtrip.jsonl --encodings json,cbor,compact,proto
+python tools/test_gateway_live.py --profile H --encoding proto --input-encoding proto --no-cot
+python tools/test_gateway_live.py --profile L --encoding compact --input-encoding compact
+```
+
 Docker:
 
 ```
@@ -102,7 +113,7 @@ docker compose run --rm gateway python /app/gateway/src/gateway.py --profile M
 docker compose run --rm gateway python /app/gateway/src/gateway.py --profile H
 ```
 
-## MVP Docker deploy (edge + gateway)
+## Docker deploy (edge + gateway)
 
 ```
 docker compose -f deploy/edge/docker-compose.yml up

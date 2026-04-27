@@ -24,6 +24,11 @@ try:
 except ImportError:  # pragma: no cover - optional dependency
     zmeta_compact = None
 
+try:
+    import zmeta_proto
+except ImportError:  # pragma: no cover - optional dependency
+    zmeta_proto = None
+
 def parse_args():
     parser = argparse.ArgumentParser(description="Replay ZMeta JSONL over UDP")
     parser.add_argument("--file", default="examples/zmeta-examples-1.0.jsonl")
@@ -32,7 +37,7 @@ def parse_args():
     parser.add_argument("--delay-ms", type=int, default=200)
     parser.add_argument("--loop", action="store_true")
     parser.add_argument("--count", type=int)
-    parser.add_argument("--encoding", choices=["json", "cbor", "compact"], default="json")
+    parser.add_argument("--encoding", choices=["json", "cbor", "compact", "proto"], default="json")
     return parser.parse_args()
 
 
@@ -68,11 +73,15 @@ def main():
                 if zmeta_compact is None:
                     raise SystemExit("Compact encoding requires zmeta_compact.")
                 sock.sendto(zmeta_compact.dumps(msg), (args.host, args.port))
+            elif args.encoding == "proto":
+                if zmeta_proto is None:
+                    raise SystemExit("Protobuf encoding requires zmeta_proto.")
+                sock.sendto(zmeta_proto.dumps(msg), (args.host, args.port))
             else:
                 if cbor2 is None and zmeta_cbor is None:
                     raise SystemExit("CBOR support requires cbor2 or zmeta_cbor.")
                 if cbor2 is not None:
-                    sock.sendto(cbor2.dumps(msg), (args.host, args.port))
+                    sock.sendto(cbor2.dumps(msg, canonical=True), (args.host, args.port))
                 else:
                     sock.sendto(zmeta_cbor.dumps(msg), (args.host, args.port))
             print(f"{event_type} {event_subtype} {event_id}")

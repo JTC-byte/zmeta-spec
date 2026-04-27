@@ -82,6 +82,7 @@ def main() -> None:
         "zmeta_uuid.py",
         "zmeta_cbor.py",
         "zmeta_compact.py",
+        "zmeta_proto.py",
         "deploy/README.md",
     ]
 

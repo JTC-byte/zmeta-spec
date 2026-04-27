@@ -32,9 +32,10 @@ Notes:
   - `stamp_contract_hash` adds schema, policy, semantic-contract, and combined contract hashes to gateway-generated system events.
   - `require_schema_hash`, `require_policy_hash`, `require_contract_hash` gate startup on expected hashes.
 - Encoding controls:
-  - `input_encoding`: `json`, `cbor`, `compact`, or `auto`.
-  - `output_encoding`: `json`, `cbor`, or `compact`.
+  - `input_encoding`: `json`, `cbor`, `compact`, `proto`, or `auto`.
+  - `output_encoding`: `json`, `cbor`, `compact`, or `proto`.
   - `compact` is a CBOR-based integer-key mapping for Profile L links.
+  - `proto` is an experimental protobuf envelope projection for service links.
   - CBOR requires `cbor2` or the built-in `zmeta_cbor` fallback.
 
 Contract hash utility:

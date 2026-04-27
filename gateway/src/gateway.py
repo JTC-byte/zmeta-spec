@@ -29,6 +29,11 @@ try:
 except ImportError:  # pragma: no cover - optional dependency
     zmeta_compact = None
 
+try:
+    import zmeta_proto
+except ImportError:  # pragma: no cover - optional dependency
+    zmeta_proto = None
+
 from validators import (
     ValidationState,
     load_policy,
@@ -45,8 +50,8 @@ from adapters.egress.cot.zmeta_to_cot import zmeta_to_cot
 from zmeta_uuid import uuid7
 
 PROFILE_CHOICES = {"L", "M", "H"}
-INPUT_ENCODING_CHOICES = {"json", "cbor", "compact", "auto"}
-OUTPUT_ENCODING_CHOICES = {"json", "cbor", "compact"}
+INPUT_ENCODING_CHOICES = {"json", "cbor", "compact", "proto", "auto"}
+OUTPUT_ENCODING_CHOICES = {"json", "cbor", "compact", "proto"}
 DEFAULT_STAMP_PROFILE_PROFILES = ["L", "M", "H"]
 DEFAULT_STAMP_TIMING_PROFILES = ["L", "M", "H"]
 DEFAULT_STRIP_OPTIONAL_FIELDS = [
@@ -493,6 +498,12 @@ def run_self_test(root: Path, settings: dict):
             expanded = zmeta_compact.loads(compact)
             if expanded != event:
                 raise SystemExit("self-test failed: compact round-trip mismatch")
+            if zmeta_proto is None:
+                raise SystemExit("self-test failed: protobuf support missing")
+            proto = zmeta_proto.dumps(event)
+            proto_expanded = zmeta_proto.loads(proto)
+            if proto_expanded != event:
+                raise SystemExit("self-test failed: protobuf round-trip mismatch")
 
     print("self-test: ok")
 
@@ -539,6 +550,11 @@ def _require_compact():
         raise SystemExit("Compact encoding requires zmeta_compact.")
 
 
+def _require_proto():
+    if zmeta_proto is None:
+        raise SystemExit("Protobuf encoding requires zmeta_proto.")
+
+
 def _cbor_self_test():
     _require_cbor()
     sample = {
@@ -551,13 +567,15 @@ def _cbor_self_test():
         "g": None,
     }
     if cbor2 is not None:
-        encoded = cbor2.dumps(sample)
+        encoded = cbor2.dumps(sample, canonical=True)
         decoded = cbor2.loads(encoded)
     else:
         encoded = zmeta_cbor.dumps(sample)
         decoded = zmeta_cbor.loads(encoded)
     if decoded != sample:
         raise SystemExit("CBOR self-test failed: round-trip mismatch")
+    if _encode_cbor({"b": 1, "a": 2}) != _encode_cbor({"a": 2, "b": 1}):
+        raise SystemExit("CBOR self-test failed: non-deterministic map encoding")
 
 
 def _decode_cbor(message):
@@ -570,8 +588,12 @@ def _decode_cbor(message):
 def _encode_cbor(obj):
     _require_cbor()
     if cbor2 is not None:
-        return cbor2.dumps(obj)
+        return cbor2.dumps(obj, canonical=True)
     return zmeta_cbor.dumps(obj)
+
+
+def _looks_like_event(obj):
+    return isinstance(obj, dict) and {"event", "source", "payload"}.issubset(obj)
 
 
 def _decode_message(message, input_encoding):
@@ -584,6 +606,9 @@ def _decode_message(message, input_encoding):
         _require_compact()
         compact_obj = _decode_cbor(message)
         return zmeta_compact.decode_event(compact_obj)
+    if input_encoding == "proto":
+        _require_proto()
+        return zmeta_proto.loads(message)
     if input_encoding == "auto":
         prefix = message.lstrip()[:1]
         if prefix in (b"{", b"["):
@@ -594,15 +619,23 @@ def _decode_message(message, input_encoding):
                 decoded = _decode_cbor(message)
                 if zmeta_compact is not None and zmeta_compact.is_compact(decoded):
                     return zmeta_compact.decode_event(decoded)
-                return decoded
+                if _looks_like_event(decoded):
+                    return decoded
         try:
             decoded = _decode_cbor(message)
             if zmeta_compact is not None and zmeta_compact.is_compact(decoded):
                 return zmeta_compact.decode_event(decoded)
-            return decoded
+            if _looks_like_event(decoded):
+                return decoded
         except Exception:
-            text = message.decode("utf-8")
-            return json.loads(text)
+            pass
+        if zmeta_proto is not None:
+            try:
+                return zmeta_proto.loads(message)
+            except Exception:
+                pass
+        text = message.decode("utf-8")
+        return json.loads(text)
     raise ValueError(f"unsupported input encoding: {input_encoding}")
 
 
@@ -615,6 +648,9 @@ def _encode_message(event, output_encoding):
         _require_compact()
         compact_obj = zmeta_compact.encode_event(event)
         return _encode_cbor(compact_obj)
+    if output_encoding == "proto":
+        _require_proto()
+        return zmeta_proto.dumps(event)
     raise ValueError(f"unsupported output encoding: {output_encoding}")
 
 
@@ -869,9 +905,9 @@ def build_settings(root, args, config):
     if settings["profile"] not in PROFILE_CHOICES:
         raise ValueError("profile is required and must be one of L, M, H")
     if settings["input_encoding"] not in INPUT_ENCODING_CHOICES:
-        raise ValueError("input_encoding must be one of json, cbor, compact, auto")
+        raise ValueError("input_encoding must be one of json, cbor, compact, proto, auto")
     if settings["output_encoding"] not in OUTPUT_ENCODING_CHOICES:
-        raise ValueError("output_encoding must be one of json, cbor, compact")
+        raise ValueError("output_encoding must be one of json, cbor, compact, proto")
 
     if settings["input_encoding"] in {"cbor", "compact"} or settings["output_encoding"] in {
         "cbor",
@@ -880,6 +916,8 @@ def build_settings(root, args, config):
         _cbor_self_test()
     if settings["input_encoding"] == "compact" or settings["output_encoding"] == "compact":
         _require_compact()
+    if settings["input_encoding"] == "proto" or settings["output_encoding"] == "proto":
+        _require_proto()
     settings["listen_port"] = _validate_port(settings["listen_port"], "listen_port")
     settings["forward_port"] = _validate_port(settings["forward_port"], "forward_port")
     settings["cot_port"] = _validate_port(settings["cot_port"], "cot_port")
@@ -1328,10 +1366,10 @@ def main():
         f"{listen_addr[0]}:{listen_addr[1]} (profile {settings['profile']}, "
         f"in={settings['input_encoding']} out={settings['output_encoding']})"
     )
-    if settings["output_encoding"] == "cbor" and not settings["emit_cot"]:
+    if settings["output_encoding"] in {"cbor", "proto"} and not settings["emit_cot"]:
         print(
-            "WARNING: output_encoding=cbor; TAK expects CoT XML. "
-            "Enable emit_cot or ensure downstream decodes CBOR."
+            f"WARNING: output_encoding={settings['output_encoding']}; TAK expects CoT XML. "
+            "Enable emit_cot or ensure downstream decodes this binary encoding."
         )
     print(f"forwarding to {forward_addr[0]}:{forward_addr[1]}")
     print(f"schema_hash={contract_hashes['schema_hash']}")

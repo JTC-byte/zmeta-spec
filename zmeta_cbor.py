@@ -1,7 +1,9 @@
 """
-Minimal CBOR encoder/decoder for ZMeta payloads.
+Minimal deterministic CBOR encoder/decoder for ZMeta payloads.
+
 Supports: dict, list/tuple, str, bytes/bytearray, int, float, bool, None.
-This is a fallback when cbor2 is unavailable.
+This is a fallback when cbor2 is unavailable. Maps are encoded using canonical
+CBOR key ordering so equivalent objects produce stable bytes.
 """
 
 from __future__ import annotations
@@ -47,9 +49,15 @@ def _encode(obj: Any) -> bytes:
     if isinstance(obj, dict):
         items = []
         for key, value in obj.items():
-            items.append(_encode(key))
-            items.append(_encode(value))
-        payload = b"".join(items)
+            encoded_key = _encode(key)
+            encoded_value = _encode(value)
+            items.append((encoded_key, encoded_value))
+        items.sort(key=lambda item: (len(item[0]), item[0]))
+        payload_parts = []
+        for encoded_key, encoded_value in items:
+            payload_parts.append(encoded_key)
+            payload_parts.append(encoded_value)
+        payload = b"".join(payload_parts)
         return _encode_uint(5, len(obj)) + payload
     raise TypeError(f"unsupported type for CBOR encoding: {type(obj).__name__}")
 

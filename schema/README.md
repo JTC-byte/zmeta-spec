@@ -4,9 +4,13 @@ JSON Schema definitions for ZMeta.
 
 - `zmeta-event-1.0.schema.json` - ZMeta v1.0 (Draft 2020-12)
 - `zmeta-event-1.1.0.schema.json` - experimental ZMeta v1.1.0 extension (Draft 2020-12)
+- `proto/zmeta_event_v1.proto` - experimental protobuf transport projection
 
 The locked normative contract is v1.0. v1.1.0 is kept as a proposed compatibility
 extension and must still preserve the v1.0 semantic boundaries.
+
+The protobuf schema is an encoding projection only. Decoded protobuf events must
+still validate against the JSON Schema and policy pack.
 
 ## v1.1.0 Changes (relative to v1.0)
 

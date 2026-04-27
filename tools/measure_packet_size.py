@@ -1,5 +1,5 @@
 """
-Measure packet sizes for ZMeta JSONL across JSON, CBOR, and compact encodings.
+Measure packet sizes for ZMeta JSONL across JSON, CBOR, compact, and protobuf encodings.
 """
 
 from __future__ import annotations
@@ -17,6 +17,7 @@ if str(ROOT) not in sys.path:
 
 import zmeta_cbor
 import zmeta_compact
+import zmeta_proto
 
 
 def _iter_events(path: Path) -> Iterable[Dict[str, Any]]:
@@ -66,6 +67,10 @@ def _size_compact(event: Dict[str, Any]) -> int:
     return len(zmeta_compact.dumps(event))
 
 
+def _size_proto(event: Dict[str, Any]) -> int:
+    return len(zmeta_proto.dumps(event))
+
+
 def _summary(values: List[int]) -> str:
     if not values:
         return "min=0 avg=0 max=0"
@@ -78,8 +83,8 @@ def main() -> None:
     parser.add_argument("--file", required=True, help="Path to JSONL file.")
     parser.add_argument(
         "--encodings",
-        default="json,cbor,compact",
-        help="Comma-separated list: json,cbor,compact",
+        default="json,cbor,compact,proto",
+        help="Comma-separated list: json,cbor,compact,proto",
     )
     parser.add_argument("--event-type", help="Filter by event_type.")
     parser.add_argument("--event-subtype", help="Filter by event_subtype.")
@@ -96,7 +101,7 @@ def main() -> None:
     )
     parser.add_argument(
         "--max-bytes-encoding",
-        choices=["json", "cbor", "compact"],
+        choices=["json", "cbor", "compact", "proto"],
         help="Encoding to enforce max-bytes for. Required if multiple encodings are selected.",
     )
     parser.add_argument("--summary-only", action="store_true", help="Only print summary.")
@@ -107,7 +112,7 @@ def main() -> None:
         raise SystemExit(f"File not found: {path}")
 
     encodings = [item.strip().lower() for item in args.encodings.split(",") if item.strip()]
-    valid = {"json", "cbor", "compact"}
+    valid = {"json", "cbor", "compact", "proto"}
     for encoding in encodings:
         if encoding not in valid:
             raise SystemExit(f"Unsupported encoding: {encoding}")
@@ -139,6 +144,8 @@ def main() -> None:
             sizes["cbor"] = _size_cbor(trimmed)
         if "compact" in encodings:
             sizes["compact"] = _size_compact(trimmed)
+        if "proto" in encodings:
+            sizes["proto"] = _size_proto(trimmed)
         rows.append((label, sizes))
         if budget_encoding:
             size_value = sizes.get(budget_encoding)

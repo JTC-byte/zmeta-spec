@@ -53,7 +53,7 @@ The config file keys are:
 - `listen` host/port
 - `forward` host/port
 - `emit_cot` and `cot` host/port
-- `input_encoding` (`json`, `cbor`, `compact`, `auto`) and `output_encoding` (`json`, `cbor`, `compact`)
+- `input_encoding` (`json`, `cbor`, `compact`, `proto`, `auto`) and `output_encoding` (`json`, `cbor`, `compact`, `proto`)
 - `stamp_profile` and `stamp_profile_profiles` (profile field stamping)
 - `stamp_timing` and `stamp_timing_profiles` (t_receive/t_publish stamping; default L/M/H)
 - `strip_optional_fields` and `strip_optional_fields_profiles` (bandwidth compaction)
@@ -74,10 +74,13 @@ and `--self-test`.
 
 ### Encoding
 
-The gateway accepts `input_encoding` of `json`, `cbor`, `compact`, or `auto`, and emits `output_encoding`
-of `json`, `cbor`, or `compact`. CBOR requires `cbor2` or the built-in `zmeta_cbor` fallback. A common pattern is compact
-encoding on Profile L edge links (edge `output_encoding=compact`) and JSON on gateway egress.
-Use `compact` for the Profile L compact mapping (see `spec/compact-binary-mapping.md`).
+The gateway accepts `input_encoding` of `json`, `cbor`, `compact`, `proto`, or
+`auto`, and emits `output_encoding` of `json`, `cbor`, `compact`, or `proto`.
+CBOR requires `cbor2` or the built-in `zmeta_cbor` fallback. A common pattern is
+compact encoding on Profile L edge links (edge `output_encoding=compact`) and
+JSON on gateway egress. Use `compact` for the Profile L compact mapping (see
+`spec/compact-binary-mapping.md`). Use `proto` for the experimental protobuf
+projection described in `spec/protobuf-encoding.md`.
 
 ### COMMAND_EVENT dedupe
 
@@ -89,7 +92,7 @@ and metrics including `task_id`, `original_event_id`, and `reason_code=TASK_DUPL
 ### Timing stamps
 
 For AAR/latency analysis, the gateway stamps `event.t_receive` on forwarded events
-when it is missing (default for profiles H/M). If `event.t_publish` is missing, it is
+when it is missing (default for profiles L/M/H). If `event.t_publish` is missing, it is
 set to the same value as `t_receive`. Use `stamp_timing`/`stamp_timing_profiles` to
 change this behavior.
 

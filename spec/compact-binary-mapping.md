@@ -14,6 +14,18 @@ Profile L links are bandwidth-constrained. The compact mapping reduces overhead 
 
 The gateway expands compact packets back into standard ZMeta JSON for enforcement and CoT emission.
 
+## CBOR Determinism
+
+ZMeta CBOR encoders SHOULD emit deterministic CBOR:
+- Definite-length strings, byte strings, arrays, and maps only.
+- No indefinite-length containers.
+- Map keys sorted by canonical CBOR ordering.
+- No semantic dependence on JSON object ordering or CBOR map ordering.
+
+The reference fallback encoder (`zmeta_cbor.py`) uses deterministic map ordering.
+When `cbor2` is available, the reference tools and gateway use canonical mode
+for CBOR output.
+
 ## Encoding Rules (Compact v1)
 
 Top-level map keys:

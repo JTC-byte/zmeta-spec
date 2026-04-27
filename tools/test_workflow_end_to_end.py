@@ -26,6 +26,11 @@ try:
 except ImportError:  # pragma: no cover - optional dependency
     zmeta_compact = None
 
+try:
+    import zmeta_proto
+except ImportError:  # pragma: no cover - optional dependency
+    zmeta_proto = None
+
 from zmeta_uuid import uuid7
 
 TIMING_QUALITY = {
@@ -46,9 +51,9 @@ def build_args():
     parser.add_argument("--cot-port", type=int, default=6980)
     parser.add_argument("--timeout", type=float, default=3.0)
     parser.add_argument("--no-cot", action="store_true", help="Skip CoT output check")
-    parser.add_argument("--encoding", choices=["json", "cbor", "compact"], default="json")
+    parser.add_argument("--encoding", choices=["json", "cbor", "compact", "proto"], default="json")
     parser.add_argument(
-        "--input-encoding", choices=["json", "cbor", "compact", "auto"], default="json"
+        "--input-encoding", choices=["json", "cbor", "compact", "proto", "auto"], default="json"
     )
     parser.add_argument(
         "--expect",
@@ -65,11 +70,15 @@ def _send(sock, host, port, obj, encoding):
         if zmeta_compact is None:
             raise SystemExit("Compact encoding requires zmeta_compact.")
         payload = zmeta_compact.dumps(obj)
+    elif encoding == "proto":
+        if zmeta_proto is None:
+            raise SystemExit("Protobuf encoding requires zmeta_proto.")
+        payload = zmeta_proto.dumps(obj)
     else:
         if cbor2 is None and zmeta_cbor is None:
             raise SystemExit("CBOR support requires cbor2 or zmeta_cbor.")
         if cbor2 is not None:
-            payload = cbor2.dumps(obj)
+            payload = cbor2.dumps(obj, canonical=True)
         else:
             payload = zmeta_cbor.dumps(obj)
     sock.sendto(payload, (host, port))

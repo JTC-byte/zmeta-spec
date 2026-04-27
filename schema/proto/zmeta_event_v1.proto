@@ -1,0 +1,42 @@
+syntax = "proto3";
+
+package zmeta.v1;
+
+// Experimental protobuf transport projection for ZMeta v1 events.
+//
+// This schema is not the semantic authority. A decoded ZMetaEvent MUST expand
+// to the canonical JSON envelope and pass the ZMeta JSON Schema and policy pack.
+// The flexible payload remains canonical JSON bytes so v1.0 semantics stay
+// governed by the locked schema/policy contract while protobuf provides typed
+// envelope codegen and binary service transport.
+message ZMetaEvent {
+  string zmeta_version = 1;
+  Event event = 2;
+  Source source = 3;
+  bytes payload_json = 4;
+  optional double confidence = 5;
+  Lineage lineage = 6;
+  optional string profile = 7;
+}
+
+message Event {
+  string event_id = 1;
+  string event_type = 2;
+  string event_subtype = 3;
+  string ts = 4;
+  optional string t_publish = 5;
+  optional string t_receive = 6;
+}
+
+message Source {
+  string platform_id = 1;
+  string node_role = 2;
+  string producer = 3;
+  optional string sensor_id = 4;
+  optional string sw_version = 5;
+}
+
+message Lineage {
+  repeated string based_on = 1;
+  optional string transform = 2;
+}

@@ -23,13 +23,18 @@ try:
 except ImportError:  # pragma: no cover - optional dependency
     zmeta_compact = None
 
+try:
+    import zmeta_proto
+except ImportError:  # pragma: no cover - optional dependency
+    zmeta_proto = None
+
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Simple UDP sender")
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=5555)
     parser.add_argument("--file", help="Path to a JSON/JSONL file to send")
-    parser.add_argument("--encoding", choices=["json", "cbor", "compact"], default="json")
+    parser.add_argument("--encoding", choices=["json", "cbor", "compact", "proto"], default="json")
     return parser.parse_args()
 
 
@@ -61,10 +66,15 @@ def encode_payload(raw, encoding):
             raise SystemExit("Compact encoding requires zmeta_compact.")
         return zmeta_compact.dumps(obj)
 
+    if encoding == "proto":
+        if zmeta_proto is None:
+            raise SystemExit("Protobuf encoding requires zmeta_proto.")
+        return zmeta_proto.dumps(obj)
+
     if cbor2 is None and zmeta_cbor is None:
         raise SystemExit("CBOR support requires cbor2 or zmeta_cbor.")
     if cbor2 is not None:
-        return cbor2.dumps(obj)
+        return cbor2.dumps(obj, canonical=True)
     return zmeta_cbor.dumps(obj)
 
 

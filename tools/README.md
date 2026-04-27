@@ -27,7 +27,7 @@ python tools/run_gateway.py --profile H
 python tools/replay.py --file examples/zmeta-command-examples.jsonl --delay-ms 200
 ```
 
-CBOR/compact variants:
+Binary encoding variants:
 
 ```
 python tools/udp_sender.py --file examples/zmeta-command-examples.jsonl --encoding cbor
@@ -38,9 +38,14 @@ python tools/test_gateway_live.py --profile L --encoding compact --input-encodin
 python tools/replay.py --file examples/zmeta-profile-L-examples.jsonl --encoding compact
 python tools/udp_sender.py --file examples/zmeta-profile-L-examples.jsonl --encoding compact
 python tools/udp_receiver.py --encoding compact
+python tools/udp_sender.py --file examples/encoding-roundtrip.jsonl --encoding proto
+python tools/udp_receiver.py --encoding proto
+python tools/replay.py --file examples/encoding-roundtrip.jsonl --encoding proto
+python tools/test_gateway_live.py --profile H --encoding proto --input-encoding proto --no-cot
 ```
 
-CBOR/compact require `cbor2` or the built-in `zmeta_cbor` fallback.
+CBOR/compact require `cbor2` or the built-in `zmeta_cbor` fallback. Protobuf
+uses the experimental pure-Python `zmeta_proto` projection.
 
 ### Validate JSON or JSONL
 

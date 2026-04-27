@@ -1,7 +1,7 @@
 # Profile Compatibility Matrix
 
-This page summarizes **which event types are allowed per profile** and the
-MVP **producer allowlists**. The authoritative rules live in:
+This page summarizes **which event types are allowed per profile**, recommended
+wire encodings, and reference producer allowlists. The authoritative rules live in:
 - `policy/profiles.yaml`
 - `policy/roles.yaml`
 - `policy/routing.yaml`
@@ -18,20 +18,28 @@ MVP **producer allowlists**. The authoritative rules live in:
 
 | Profile | Recommended Encoding | Notes |
 | --- | --- | --- |
-| L | `compact` | Smallest wire format; intended for bandwidth‑constrained links. |
-| M | `cbor` or `json` | CBOR reduces size with modest CPU cost. |
-| H | `json` | Best for debug and interoperability; size is less constrained. |
+| L | `compact` | Smallest wire format; intended for bandwidth-constrained links. |
+| M | `cbor` or `proto` | CBOR reduces size with simple tooling; protobuf is useful for typed gateway/service links. |
+| H | `json`, `cbor`, or `proto` | JSON is best for debug/audit; protobuf is useful for service integration. |
 
-## MVP Producer Allowlists
+## Encoding Compatibility
 
-| Producer | Allowed Event Types | Notes |
+| Encoding | Status | Primary Use |
 | --- | --- | --- |
-| `sensorops` | OBSERVATION, INFERENCE, FUSION, STATE, COMMAND, SYSTEM | Required origin for COMMAND_EVENT. |
-| `torch` | INFERENCE, FUSION, STATE | COMMAND_EVENT forbidden. |
+| `json` / JSONL | Canonical reference | Human-readable interchange, examples, audit, broad tooling. |
+| `cbor` | Reference encoding | Binary event transport where semantic payload shape remains unchanged. |
+| `compact` | Profile L reference encoding | CBOR integer-key mapping for constrained links. |
+| `proto` | Experimental encoding | Typed envelope projection for services, queues, and gRPC-style integration. |
 
-Command routing rules (MVP):
-- `COMMAND_EVENT` must originate from `sensorops`.
-- `COMMAND_EVENT` must pass through `sensorops`.
+All encodings must decode to the same ZMeta JSON event and pass the same schema
+and policy validation. Encoding choice does not change event semantics.
+
+## Reference Producer Allowlists
+
+Reference producer allowlists are maintained in `policy/routing.yaml`. They are
+deployment policy, not a semantic requirement to use the example producer names.
+Command-authorized producers must be explicitly allowlisted and must satisfy the
+command routing and deconfliction rules in the active policy pack.
 
 ## Node Role Constraints (Policy)
 

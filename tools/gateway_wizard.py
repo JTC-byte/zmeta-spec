@@ -118,14 +118,14 @@ def main():
     forward_port = prompt_port("Forward port", DEFAULTS["forward_port"])
     emit_cot = prompt_bool("Emit CoT", DEFAULTS["emit_cot"])
     input_encoding = prompt_text(
-        "Input encoding (json/cbor/compact/auto)",
+        "Input encoding (json/cbor/compact/proto/auto)",
         DEFAULTS["input_encoding"],
-        choices=["json", "cbor", "compact", "auto"],
+        choices=["json", "cbor", "compact", "proto", "auto"],
     )
     output_encoding = prompt_text(
-        "Output encoding (json/cbor/compact)",
+        "Output encoding (json/cbor/compact/proto)",
         DEFAULTS["output_encoding"],
-        choices=["json", "cbor", "compact"],
+        choices=["json", "cbor", "compact", "proto"],
     )
     stamp_profile = prompt_bool("Stamp profile field", DEFAULTS["stamp_profile"])
     stamp_timing = prompt_bool("Stamp timing fields (t_receive/t_publish)", DEFAULTS["stamp_timing"])

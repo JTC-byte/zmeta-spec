@@ -8,7 +8,7 @@ Common files:
 - `zmeta-profile-M-examples.jsonl`
 - `zmeta-profile-H-examples.jsonl`
 - `zmeta-command-examples.jsonl` (COMMAND_EVENT + TASK_ACK lifecycle)
-- `encoding-roundtrip.jsonl` (golden corpus for CBOR/compact round-trip tests)
+- `encoding-roundtrip.jsonl` (golden corpus for CBOR/compact/protobuf round-trip tests)
 
 Notes:
 - Some examples include optional `payload.data_ref` to illustrate lightweight links

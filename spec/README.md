@@ -10,3 +10,4 @@ Key documents:
 - `quickstart.md` runnable reference workflow (if present)
 - `installation-guide.md` packaging and deterministic install guidance
 - `compact-binary-mapping.md` optional compact CBOR mapping for Profile L links
+- `protobuf-encoding.md` experimental protobuf transport projection

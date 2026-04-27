@@ -1,6 +1,10 @@
 # Changelog
 
 ## [Unreleased]
+- Added experimental protobuf transport projection with schema, pure-Python codec,
+  gateway/tool support, docs, and round-trip tests.
+- Hardened CBOR output to use deterministic/canonical map ordering.
+- Updated encoding compatibility guidance for JSON, CBOR, compact CBOR, and protobuf.
 
 ## [1.0.5] - 2026-04-26
 - Clarified immutable source-authored events versus profile/export projections.

@@ -284,7 +284,7 @@ def dumps(event: Dict[str, Any]) -> bytes:
     compact = encode_event(event)
     _require_cbor()
     if cbor2 is not None:
-        return cbor2.dumps(compact)
+        return cbor2.dumps(compact, canonical=True)
     return zmeta_cbor.dumps(compact)
 
 

@@ -1,4 +1,4 @@
-# ZMeta Specification (v1.0 Locked, current release v1.0.4)
+# ZMeta Specification (v1.0 Locked, current release v1.0.5)
 
 ## Overview
 - ZMeta is a transport-agnostic, event-based metadata standard for resilient ISR.
@@ -7,8 +7,8 @@
 
 ## Current Release
 
-- Current release: `v1.0.4`
-- Release notes and assets: <https://github.com/JTC-byte/zmeta-spec/releases/tag/v1.0.4>
+- Current release: `v1.0.5`
+- Release notes and assets: <https://github.com/JTC-byte/zmeta-spec/releases/tag/v1.0.5>
 - Normative contract: v1.0 locked semantic contract, v1.0 JSON schema, and policy pack.
 - Experimental extension: `schema/zmeta-event-1.1.0.schema.json` is provided for proposed
   compatibility testing only; v1.1.0-only fields are not part of the locked v1.0 contract.
@@ -37,6 +37,7 @@
 - Contract and semantics: read `spec/semantics-contract.md`.
 - Profile compatibility matrix: read `spec/profile-compatibility.md`.
 - Field dictionary for UIs: read `spec/field-dictionary.md`.
+- Encoding guidance: read `spec/compact-binary-mapping.md` and `spec/protobuf-encoding.md`.
 
 ## Repository Structure
 - `spec/` Core specification and normative text.
@@ -120,8 +121,8 @@ Deployment helpers:
 - Config templates: `configs/edge-config.json`, `configs/gateway-config.json`
 - Docker Compose: `deploy/edge/docker-compose.yml`, `deploy/gateway/docker-compose.yml`
 - Bundle builders:
-  - `python release/build_mvp_packages.py` produces `zmeta-edge-v1.0.4.zip` and `zmeta-gateway-v1.0.4.zip`
-  - `python release/build_release_bundle.py` produces `zmeta-v1.0.4-dist.zip`
+  - `python release/build_mvp_packages.py` produces `zmeta-edge-v1.0.5.zip` and `zmeta-gateway-v1.0.5.zip`
+  - `python release/build_release_bundle.py` produces `zmeta-v1.0.5-dist.zip`
 
 ## Deployment Checklist (Compact)
 
