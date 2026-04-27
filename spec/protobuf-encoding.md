@@ -90,6 +90,13 @@ Measure size:
 python tools/measure_packet_size.py --file examples/encoding-roundtrip.jsonl --encodings json,cbor,compact,proto
 ```
 
+Convert between encodings:
+
+```bash
+python tools/convert_encoding.py --from json --to proto --input event.json --output event.pb
+python tools/convert_encoding.py --from proto --to json --input event.pb --output event.json
+```
+
 Send and receive UDP:
 
 ```bash

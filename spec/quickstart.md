@@ -101,6 +101,8 @@ integer-key CBOR mapping.
 
 ```
 python tools/measure_packet_size.py --file examples/encoding-roundtrip.jsonl --encodings json,cbor,compact,proto
+python tools/convert_encoding.py --from json --to proto --input examples/encoding-roundtrip.jsonl --output event.pb --allow-jsonl-first
+python tools/convert_encoding.py --from proto --to json --input event.pb --output event.json
 python tools/test_gateway_live.py --profile H --encoding proto --input-encoding proto --no-cot
 python tools/test_gateway_live.py --profile L --encoding compact --input-encoding compact
 ```

@@ -27,6 +27,18 @@ python tools/run_gateway.py --profile H
 python tools/replay.py --file examples/zmeta-command-examples.jsonl --delay-ms 200
 ```
 
+### Convert Encodings
+
+```
+python tools/convert_encoding.py --from json --to proto --input event.json --output event.pb
+python tools/convert_encoding.py --from proto --to json --input event.pb --output event.json
+python tools/convert_encoding.py --from json --to compact --input event.json --output event.zmc
+python tools/convert_encoding.py --from auto --to json --input event.zmc --output event.json
+```
+
+The conversion tool handles one ZMeta event per invocation. For JSONL input, use
+`--allow-jsonl-first` to convert the first non-empty line.
+
 Binary encoding variants:
 
 ```

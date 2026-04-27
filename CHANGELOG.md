@@ -3,6 +3,8 @@
 ## [Unreleased]
 - Added experimental protobuf transport projection with schema, pure-Python codec,
   gateway/tool support, docs, and round-trip tests.
+- Added a single-event encoding conversion CLI for JSON, CBOR, compact CBOR, and
+  protobuf.
 - Hardened CBOR output to use deterministic/canonical map ordering.
 - Updated encoding compatibility guidance for JSON, CBOR, compact CBOR, and protobuf.
 
