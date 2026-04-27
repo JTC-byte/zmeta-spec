@@ -1,6 +1,6 @@
 # ZMeta v1.1.0 Validation Report
 
-Date: 2026-04-27
+Release: v1.1.0
 
 ## Scope
 

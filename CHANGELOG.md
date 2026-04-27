@@ -2,7 +2,7 @@
 
 ## [Unreleased]
 
-## [1.1.0] - 2026-04-27
+## [1.1.0]
 - Added experimental protobuf transport projection with schema, pure-Python codec,
   gateway/tool support, docs, and round-trip tests.
 - Added a single-event encoding conversion CLI for JSON, CBOR, compact CBOR, and
@@ -42,14 +42,14 @@
 - Updated README, adapter guidance, examples, and validation tools to use the
   canonical version-discriminated schema.
 
-## [1.0.5] - 2026-04-26
+## [1.0.5]
 - Clarified immutable source-authored events versus profile/export projections.
 - Clarified UUIDv7 timestamp bits as identity-generation time, not event time.
 - Added TIME_STATUS freshness guidance and stale timing behavior.
 - Clarified authoritative envelope lineage versus payload-local provenance.
 - Tightened authority-boundary, observation-quality, deduplication, system-event extensibility, confidence-degradation, and merge/split lifecycle wording.
 
-## [1.0.4] - 2026-04-26
+## [1.0.4]
 - Added UUIDv7 event identity requirements and aligned schema validation.
 - Made timing quality metadata mandatory across all profiles.
 - Added normative track persistence, deduplication, and edge failure-mode configuration guidance.

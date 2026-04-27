@@ -6,9 +6,9 @@
 
 ## Summary
 
-ZMeta v1.1.0 is a backward-compatible extension of v1.0 driven by findings from
-the Idaho Falls ISR demo (April 7-8, 2026), KrakenSDR bench testing, and
-production Z-ISR fusion implementation experience.
+ZMeta v1.1.0 is a backward-compatible extension of v1.0 driven by adapter
+integration testing, RF sensor bench testing, and production Z-ISR fusion
+implementation experience.
 
 Existing semantically compliant v1.0 events remain valid through the canonical
 version-discriminated schema's v1.0 branch. They do not validate against the
@@ -212,7 +212,7 @@ schema, including the v1.1.0 example corpus.
 
 ## Final Validation
 
-Release validation was run locally on 2026-04-27:
+Release validation results:
 - Gateway tests: 167 passed, 106 subtests passed
 - Adapter tests: 19 passed
 - Schema Draft 2020-12 lint: ok
