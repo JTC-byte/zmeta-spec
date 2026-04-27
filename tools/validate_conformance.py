@@ -49,9 +49,30 @@ def _run_checks(event, profile, policy, validator, strict, state=None):
     )
     checks.extend(validators.validate_profile(event, profile, policy["profiles"], severity_map)[1])
     checks.extend(
-        validators.validate_timing_quality(event, policy["semantics"], state=state, severity_map=severity_map)[1]
+        validators.validate_timing_quality(
+            event,
+            policy["semantics"],
+            state=state,
+            severity_map=severity_map,
+            timing_freshness_policy=policy.get("timing_freshness", {}),
+            profile=profile,
+        )[1]
     )
     checks.extend(validators.validate_semantics(event, policy["semantics"], severity_map)[1])
+    checks.extend(
+        validators.validate_lineage(
+            event,
+            policy.get("lineage", {}),
+            state=state,
+            profile=profile,
+            severity_map=severity_map,
+        )[1]
+    )
+    checks.extend(
+        validators.validate_producer_authority(
+            event, policy.get("producer_authority", {}), severity_map
+        )[1]
+    )
     checks.extend(validators.validate_routing(event, policy["routing"], severity_map)[1])
     checks.extend(validators.validate_deduplication(event, state=state, severity_map=severity_map)[1])
     if strict:
@@ -63,7 +84,7 @@ def _run_checks(event, profile, policy, validator, strict, state=None):
 
 def main():
     args = parse_args()
-    schema_path = ROOT / "schema" / "zmeta-event-1.0.schema.json"
+    schema_path = ROOT / "schema" / "zmeta-event.schema.json"
     policy_dir = ROOT / "policy"
     validator = validators.load_schema(schema_path)
     policy = validators.load_policy(policy_dir)

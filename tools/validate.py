@@ -42,7 +42,7 @@ def event_id_from_instance(instance):
 
 def main():
     args = parse_args()
-    schema_path = ROOT / "schema" / "zmeta-event-1.0.schema.json"
+    schema_path = ROOT / "schema" / "zmeta-event.schema.json"
     policy_dir = ROOT / "policy"
 
     validator = validators.load_schema(schema_path)
@@ -98,8 +98,25 @@ def main():
         checks = [
             validators.validate_role(instance, {"roles": policy["roles"], "deny": policy["deny"]}, severity_map),
             validators.validate_profile(instance, args.profile, policy["profiles"], severity_map),
-            validators.validate_timing_quality(instance, policy["semantics"], state=state, severity_map=severity_map),
+            validators.validate_timing_quality(
+                instance,
+                policy["semantics"],
+                state=state,
+                severity_map=severity_map,
+                timing_freshness_policy=policy.get("timing_freshness", {}),
+                profile=args.profile,
+            ),
             validators.validate_semantics(instance, policy["semantics"], severity_map),
+            validators.validate_lineage(
+                instance,
+                policy.get("lineage", {}),
+                state=state,
+                profile=args.profile,
+                severity_map=severity_map,
+            ),
+            validators.validate_producer_authority(
+                instance, policy.get("producer_authority", {}), severity_map
+            ),
             validators.validate_routing(instance, policy["routing"], severity_map),
             validators.validate_deduplication(instance, state=state, severity_map=severity_map),
         ]

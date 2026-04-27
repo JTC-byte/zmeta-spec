@@ -1,7 +1,8 @@
 ## EO (Computer Vision) Ingress Adapter
 
-Translates CV inference service detections into ZMeta EO `OBSERVATION_EVENT`
-events.
+Translates CV inference service detections into ZMeta `INFERENCE_EVENT`
+classification events. EO/IR detections are semantic claims, not raw
+observations.
 
 ### Input format
 
@@ -18,7 +19,10 @@ are supported:
 
 ### Output
 
-`OBSERVATION_EVENT` with `event_subtype: EO_DETECTION`, `modality: EO`.
+`INFERENCE_EVENT` with `event_subtype: CLASSIFICATION` and
+`payload.inference_type: CLASSIFICATION`. Detection boxes are emitted as
+`payload.claim.bbox`; EO `OBSERVATION_EVENT` uses `features.roi_px` only for
+raw image region/crop metadata.
 
 ### GPS resolution logic
 
@@ -33,18 +37,18 @@ The adapter implements a multi-tier GPS fallback:
 4. **Unavailable**: If no GPS is available from any source, use (0, 0, 0)
    and mark `geo_source: "unavailable"`.
 
-The `features.geo_source` field records which tier was used:
+The `payload.claim.geo_source` field records which tier was used:
 `"detection"`, `"fc_fallback"`, or `"unavailable"`.
 
 ### Key mappings
 
 | CV field | ZMeta field | Notes |
 |----------|-------------|-------|
-| class_name | `features.class_name` | |
-| confidence | `features.confidence` | Subject to `confidence_floor` filter |
-| gps | `payload.geo` | Destructured from [lat, lon] array |
-| bbox | `features.bbox` | Image-coordinate bounding box |
-| track_id | `features.track_id` | Object tracker ID |
+| class_name | `payload.claim.label` | Semantic classification |
+| confidence | top-level `confidence` | Subject to `confidence_floor` filter |
+| gps | `payload.claim.geo` | Destructured from [lat, lon] array |
+| bbox | `payload.claim.bbox` | Detected object box; not an EO observation `roi_px` |
+| track_id | `payload.claim.source_object_id` | Source tracker/object ID, not ZMeta `track_id` |
 | stream_id | `source.sensor_id` | Camera/stream identifier |
 
 ### Usage

@@ -1,6 +1,6 @@
 schema_id: vendor:example_rf:v1
 zmeta_event_type: OBSERVATION_EVENT
-zmeta_event_subtype: RF_OBSERVATION
+zmeta_event_subtype: RF
 
 source:
   platform_id: input.platform_id

@@ -21,7 +21,7 @@ def klv_decoded_to_zmeta_observation(
         "event": {
             "event_id": str(uuid7()),
             "event_type": "OBSERVATION_EVENT",
-            "event_subtype": "KLV_OBSERVATION",
+            "event_subtype": "EO",
             "ts": ts,
         },
         "source": {

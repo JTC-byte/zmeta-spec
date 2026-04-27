@@ -20,7 +20,7 @@ with UAS heading during yaw scans.
 
 ### Output
 
-`OBSERVATION_EVENT` with `event_subtype: LOB`, `modality: RF`.
+`OBSERVATION_EVENT` with `event_subtype: RF`, `modality: RF`.
 
 ### Key behaviors
 

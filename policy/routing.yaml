@@ -1,13 +1,14 @@
 routing:
   producer_enforcement:
     require_allowlist_for_event_types:
-      - INFERENCE_EVENT
-      - FUSION_EVENT
-      - STATE_EVENT
       - COMMAND_EVENT
   command_event:
     required_origin: sensorops
     must_pass_through: sensorops
+    allowed_producers:
+      - sensorops
+      - retasking-engine
+      - comms-deconfliction-*
   producers:
     torch:
       allowed_event_types:
@@ -52,4 +53,12 @@ routing:
         - SYSTEM_EVENT
     zmeta-gateway:
       allowed_event_types:
+        - SYSTEM_EVENT
+    retasking-engine:
+      allowed_event_types:
+        - COMMAND_EVENT
+        - SYSTEM_EVENT
+    comms-deconfliction-*:
+      allowed_event_types:
+        - COMMAND_EVENT
         - SYSTEM_EVENT

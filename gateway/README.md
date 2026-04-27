@@ -159,7 +159,7 @@ msg = {
   "event": {
     "event_id": "019c2b5d-7c82-7388-8c21-50e4f126d7a0",
     "event_type": "COMMAND_EVENT",
-    "event_subtype": "MISSION_TASK",
+    "event_subtype": "GOTO",
     "ts": "2025-01-17T14:32:10Z"
   },
   "source": {

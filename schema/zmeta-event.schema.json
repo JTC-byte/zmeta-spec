@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://praesens.io/schemas/zmeta-event.schema.json",
+  "title": "ZMeta Event Schema",
+  "description": "Canonical version-discriminated ZMeta event schema. zmeta_version selects the allowed semantic vocabulary; aliases must be normalized before validation.",
+  "oneOf": [
+    {
+      "title": "ZMetaEvent_v1_0",
+      "$comment": "Locked v1.0 semantic vocabulary only.",
+      "$ref": "https://praesens.io/schemas/zmeta-event-1.0.schema.json"
+    },
+    {
+      "title": "ZMetaEvent_v1_1_0",
+      "$comment": "v1.0 invariants plus v1.1.0 extension vocabulary.",
+      "$ref": "https://praesens.io/schemas/zmeta-event-1.1.0.schema.json"
+    }
+  ]
+}

@@ -1,12 +1,46 @@
 # Changelog
 
 ## [Unreleased]
+
+## [1.1.0] - 2026-04-27
 - Added experimental protobuf transport projection with schema, pure-Python codec,
   gateway/tool support, docs, and round-trip tests.
 - Added a single-event encoding conversion CLI for JSON, CBOR, compact CBOR, and
   protobuf.
 - Hardened CBOR output to use deterministic/canonical map ordering.
 - Updated encoding compatibility guidance for JSON, CBOR, compact CBOR, and protobuf.
+- Added a canonical version-discriminated JSON schema and tightened v1.1.0
+  validation so v1.1-only vocabulary cannot validate under `zmeta_version: "1.0"`.
+- Added v1.1.0 semantic extension governance, reserved uncontracted observation
+  modalities, and enforced minimum validation for expanded task types.
+- Defined `event_subtype` as a normative semantic discriminator and enforced
+  subtype/payload discriminator consistency across v1.0 and v1.1.0 schemas.
+- Enforced claimed Profile L/M/H export event-type rules in the schemas while
+  keeping `profile` optional.
+- Prohibited inference payloads and claims from carrying track/fusion authority
+  fields (`track_id`, `members`, `estimated_state`).
+- Prohibited STATE_EVENT payloads from carrying raw observation features,
+  measurements, modalities, timestamps, or raw data references.
+- Hardened COMMAND_EVENT payloads against altitude/vertical-control fields and
+  moved arbitrary command metadata behind `payload.extensions`.
+- Added task-specific COMMAND_EVENT validation for GOTO, ORBIT, HOLD,
+  SEARCH_BOX, RETURN_TO_BASE, LAND, LOITER, SCAN_RF, TRACK_TARGET, and
+  CHANGE_SENSOR_MODE.
+- Added strict UTC-Z timestamp validation across envelope, payload, data
+  reference, command, fusion, and timing-status timestamp fields.
+- Enforced paired observation windows and RF window midpoint semantic
+  validation.
+- Tightened geodesy, speed, quality-unit, EO/ACOUSTIC observation, data reference,
+  SENSOR_STATUS, and PLATFORM_STATUS semantics.
+- Added producer-authority, timing-freshness, and lineage policy packs with
+  runtime validators and focused tests.
+- Expanded violation reason codes while keeping TASK_ACK reason codes
+  task-specific.
+- Added conformance fixtures for valid and invalid hardened-schema behavior.
+- Added non-normative compatibility normalizer tooling for opt-in adapter-side
+  migration from selected legacy wire forms.
+- Updated README, adapter guidance, examples, and validation tools to use the
+  canonical version-discriminated schema.
 
 ## [1.0.5] - 2026-04-26
 - Clarified immutable source-authored events versus profile/export projections.

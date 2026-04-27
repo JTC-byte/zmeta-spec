@@ -4,6 +4,9 @@ This page summarizes **which event types are allowed per profile**, recommended
 wire encodings, and reference producer allowlists. The authoritative rules live in:
 - `policy/profiles.yaml`
 - `policy/roles.yaml`
+- `policy/producer-authority.yaml`
+- `policy/lineage.yaml`
+- `policy/timing-freshness.yaml`
 - `policy/routing.yaml`
 
 ## Profile vs Event Types
@@ -36,9 +39,10 @@ and policy validation. Encoding choice does not change event semantics.
 
 ## Reference Producer Allowlists
 
-Reference producer allowlists are maintained in `policy/routing.yaml`. They are
-deployment policy, not a semantic requirement to use the example producer names.
-Command-authorized producers must be explicitly allowlisted and must satisfy the
+Reference producer authority rules are maintained in
+`policy/producer-authority.yaml`. They are deployment policy, not a semantic
+requirement to use the example producer names. Command-authorized producers must
+also be explicitly allowlisted in `policy/routing.yaml` and must satisfy the
 command routing and deconfliction rules in the active policy pack.
 
 ## Node Role Constraints (Policy)

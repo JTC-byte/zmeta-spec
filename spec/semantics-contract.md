@@ -92,6 +92,11 @@ use a non-EDGE role (e.g., GATEWAY) for those producers to preserve authority bo
 If a single software stack performs multiple roles (e.g., analytics + fusion), it MUST respect
 the event-type boundaries above and MAY emit separate producer identities for each role.
 
+Producer authority is enforced by deployment policy, not JSON Schema. The
+reference policy pack uses `policy/producer-authority.yaml` to bind
+`source.producer` patterns to authorized event types while keeping the schema
+portable across deployments.
+
 ### 1.6 Transport Is Non-Semantic
 
 - Transport choice (LTE, IP radio, LoRa) carries **no semantic meaning**.
@@ -128,6 +133,9 @@ Lineage scope:
   provenance fields such as `payload.based_on` MAY be used for claim-specific
   convenience, but when both are present the payload-local references MUST be
   equal to or a subset of envelope lineage.
+- Context-aware lineage validation is deployment policy. The reference policy
+  pack uses `policy/lineage.yaml` to validate local consistency, known parent
+  event types, and unresolved-parent handling when an event store is available.
 
 ### 1.9 Explicit Uncertainty
 
@@ -226,6 +234,10 @@ Best practice is to emit all four fields whenever possible.
 Freshness rules:
 - Producers SHOULD document their `TIME_STATUS` reporting cadence.
 - Deployments SHOULD define `max_timing_status_age_ms` per profile or mission.
+- The reference policy pack defines this runtime policy in
+  `policy/timing-freshness.yaml`.
+- Freshness is evaluated against event time (`event.ts`) so historical replay and
+  AAR validation remain deterministic.
 - Consumers MUST NOT treat a periodic `TIME_STATUS` as valid indefinitely. If no
   current timing status is available, consumers SHOULD treat timing quality as
   unknown/stale and degrade confidence, gate time-correlated fusion, or raise a
@@ -252,6 +264,8 @@ Freshness rules:
   - t_start
   - t_end
 - event.ts must equal the midpoint of the window.
+- Validation tooling MAY allow up to 1 ms tolerance for fractional timestamp
+  serialization or rounding.
 
 This is critical for synthetic aperture DF and multi-sensor RF correlation.
 
@@ -302,6 +316,7 @@ Mean Sea Level (MSL), Above Ground Level (AGL), or terrain-relative heights are 
 ### 3.3 Velocity and Motion
 
 - Linear speed: **meters per second (m/s)**
+- Scalar speed fields such as `speed_mps` are non-negative.
 - Velocity vectors, when present, shall be earth-referenced unless explicitly stated otherwise.
 - Acceleration (if present): **meters per second squared (m/s^2)**
 
@@ -310,6 +325,8 @@ Mean Sea Level (MSL), Above Ground Level (AGL), or terrain-relative heights are 
 - Bearings and headings shall be expressed in **degrees**.
 - Reference: **true north** (not magnetic).
 - Range: 0-360 degrees, increasing clockwise.
+- `360` is valid and equivalent to `0`; adapters MAY normalize `360` to `0`
+  before emission, but consumers MUST treat both as valid.
 
 Pitch, roll, and yaw (if present) shall also be expressed in degrees.
 
@@ -329,6 +346,9 @@ If alternate RF units are used internally (e.g., dBFS), they must be converted b
 ### 3.7 Time Units (Cross-Reference)
 
 - All timestamps are expressed in **UTC**.
+- Wire-format timestamps MUST be RFC 3339 date-time strings serialized with a
+  trailing `Z`. Numeric offsets such as `-05:00` and timezone-less timestamps
+  are not valid ZMeta wire format.
 - Durations and time deltas are expressed in **milliseconds (ms)** unless otherwise specified.
 
 (See Section 2: Time Synchronization Contract.)
@@ -412,6 +432,29 @@ EVENT_TYPE :=
 
 No additional top-level event types are permitted in v1.0.
 
+#### 4.2.1 Event Subtype Namespace (Normative)
+
+`event.event_subtype` is a semantic discriminator, not a descriptive label.
+For v1.0, it MUST come from the namespace assigned to `event.event_type` and
+MUST match the payload discriminator exactly.
+
+| event_type | allowed event_subtype values | required payload match |
+|---|---|---|
+| OBSERVATION_EVENT | `RF`, `EO`, `IR`, `ACOUSTIC`, `NETWORK` | `event_subtype == payload.modality` |
+| INFERENCE_EVENT | `CLASSIFICATION`, `ASSOCIATION`, `ANOMALY`, `BEHAVIOR` | `event_subtype == payload.inference_type` |
+| FUSION_EVENT | `TRACK_FUSION` | fixed subtype |
+| STATE_EVENT | `TRACK_STATE` | fixed subtype |
+| COMMAND_EVENT | `GOTO`, `ORBIT`, `HOLD`, `SEARCH_BOX` | `event_subtype == payload.task_type` |
+| SYSTEM_EVENT | `LINK_STATUS`, `TIME_STATUS`, `SCHEMA_VIOLATION`, `TASK_ACK` | `event_subtype == payload.system_type` |
+
+Rules:
+- Producers MUST NOT use free-form or decorative subtypes.
+- Envelope subtype and payload discriminator disagreement is schema-invalid.
+- More specific adapter/vendor labels belong in payload-scoped provenance or
+  extension fields that cannot reinterpret the event.
+- Future subtype values require a schema version branch and corresponding
+  semantic definition.
+
 ### 4.3 OBSERVATION_EVENT
 
 Represents **raw sensor-derived facts**. No interpretation, classification, or persistence is allowed.
@@ -476,6 +519,9 @@ InferencePayload {
 **Rules:**
 - Must reference upstream observations
 - Must not emit track_id
+- The inference payload and `claim` object MUST NOT contain `track_id`,
+  `members`, or `estimated_state`; those fields belong to FUSION_EVENT or
+  STATE_EVENT authority.
 - Confidence reflects model belief, not truth
 
 ### 4.5 FUSION_EVENT
@@ -520,6 +566,7 @@ TrackStatePayload {
   class?: string
   source_summary?: string[]
   valid_for_ms: number
+  extensions?: OBJECT
 }
 ```
 
@@ -527,7 +574,14 @@ TrackStatePayload {
 - This is the **only** payload translated to operator-facing track projections (e.g., CoT/TAK, JREAP/Link 16 gateways).
 - Sensor-metadata projections (e.g., KLV-style observation exports) remain OBSERVATION-based and are not operator track state.
 - Derived from FusionEvents
-- No raw sensor features allowed
+- No raw sensor features, raw measurements, observation modalities, observation
+  timestamps, or raw artifact references are allowed in STATE_EVENT payloads.
+  This includes `features`, `raw_features`, `modality`, `measurement`,
+  `measurements`, `t_start`, `t_end`, `data_ref`, and `data_refs`.
+- Traceability for STATE_EVENTs is provided through `lineage.based_on`, not raw
+  data pointers embedded in state payloads.
+- `extensions` MAY carry UI or rendering metadata, but it MUST NOT reinterpret
+  state semantics or carry raw sensor measurements.
 
 ### 4.7 COMMAND_EVENT
 
@@ -545,6 +599,7 @@ CommandPayload {
   valid_for_ms: number       // TTL
   priority?: LOW | MED | HIGH
   requires_deconfliction: true
+  extensions?: OBJECT
 }
 ```
 
@@ -554,7 +609,21 @@ CommandPayload {
 - Must route through Comms/Deconfliction Node
 - Executed out-of-band via MAVLink/Swarm API
 - `task_id` MUST be treated as an idempotent key across retransmissions.
-- COMMAND_EVENT SHALL NOT specify altitude. Vertical deconfliction and altitude selection are the responsibility of the autonomy layer.
+- `task_type` selects the minimum required fields and permitted geometry shape.
+- `GOTO` requires `target_geo` and does not permit `geometry`.
+- `ORBIT` requires `target_geo` and orbit geometry (`pattern` and `radius_m`
+  minimum).
+- `HOLD` is TTL-bound and may include `target_geo`; it does not require or
+  permit `geometry`.
+- `SEARCH_BOX` requires 2D search-box geometry and does not require
+  `target_geo`.
+- COMMAND_EVENT SHALL NOT specify altitude. Vertical deconfliction and altitude
+  selection are the responsibility of the autonomy layer.
+- Command payloads, `target_geo`, `geometry`, and command `extensions` MUST NOT
+  contain common altitude fields such as `alt_m`, `altitude_m`, `alt_hae_m`,
+  `alt_msl_m`, `agl_m`, `target_alt_m`, `altitude`, or `target_altitude`.
+- `extensions` MAY carry command-safe vendor metadata, but it MUST NOT imply
+  vertical control, continuous control, or bypass deconfliction.
 
 ### 4.8 SYSTEM_EVENT
 
@@ -693,6 +762,8 @@ Profiles define **transport-driven transmission constraints**, not semantic shor
 
 - Behavior: Semantic layers SHALL NOT be collapsed by default; fusion may occur upstream or downstream.
 - COMMAND_EVENT may be used for cueing and waypoint-level tasking when out-of-band control is unavailable or impractical (still subject to deconfliction).
+- INFERENCE_EVENT is not exported under Profile M unless a future schema/profile
+  explicitly allows selected inference export.
 
 - **Uncertainty:** Maintain explicit confidence and timing quality.
 
@@ -717,7 +788,191 @@ Profiles define **transport-driven transmission constraints**, not semantic shor
 
 **Rationale:** Full fidelity enables best fusion, auditability, and downstream projection.
 
-**Profile Rule (Global):** Profiles may remove fields or reduce rate/precision, but **never reinterpret meaning** or rename fields.
+**Profile Rule (Global):** Profiles may remove fields or reduce rate/precision,
+but **never reinterpret meaning** or rename fields. If `profile` is present in
+an event, schema validation enforces that the claimed export profile permits the
+event type. If `profile` is omitted, profile export restrictions are not applied
+by schema, though a gateway or deployment policy may still enforce its runtime
+profile.
+
+## 4A. ZMeta v1.1.0 Extension Semantics
+
+This section governs the experimental ZMeta v1.1.0 extension vocabulary. ZMeta
+v1.0 remains the locked normative contract; v1.1.0 is valid only as an explicit
+extension branch selected by `zmeta_version: "1.1.0"`.
+
+**Version selection rules:**
+- v1.1.0 preserves all v1.0 invariants.
+- Events using v1.1-only vocabulary MUST declare `zmeta_version: "1.1.0"`.
+- Events using v1.1-only vocabulary MUST NOT claim `zmeta_version: "1.0"`.
+- `zmeta_version: "1.1"` is not a normative alias. Compatibility adapters MAY
+  normalize aliases before schema validation, but normative schemas do not accept
+  aliases.
+- v1.1.0 does not loosen layer separation, authority boundaries, unit
+  explicitness, lineage, append-only immutability, command safety, or profile
+  semantics.
+- v1.1.0 extensions must be optional or version-selected, ignorable by
+  consumers that do not understand them, and unable to reinterpret v1.0 fields.
+
+Event subtype extension rules:
+- v1.1.0 preserves the v1.0 subtype matching rule: envelope subtype MUST match
+  the payload discriminator.
+- OBSERVATION_EVENT may add only modalities with defined feature contracts.
+- COMMAND_EVENT may add only task types with defined task-specific semantics.
+- SYSTEM_EVENT adds `SENSOR_STATUS` and `PLATFORM_STATUS`.
+- INFERENCE_EVENT, FUSION_EVENT, and STATE_EVENT do not gain additional subtypes
+  in v1.1.0.
+
+### 4A.1 Structured Quality Metadata
+
+v1.1.0 formalizes `payload.quality` for observations and other payloads that
+need machine-readable quality metadata.
+
+Defined fields include:
+- `measurement_error`: object containing `value`, explicit `unit`, and `metric`.
+  Consumers MUST NOT infer the error unit from modality.
+  - `value`: non-negative numeric error magnitude.
+  - `unit`: `m`, `deg`, `hz`, `db`, `dbm`, `ms`, or `px`.
+  - `metric`: declared interpretation (`1_SIGMA`, `CEP`, `CE_90`, `CE_95`, or
+    `MAX_BOUND`).
+- `snr_db`: signal-to-noise ratio in decibels.
+- `calibration_state`: `CALIBRATED`, `UNCALIBRATED`, or `DEGRADED`.
+- `geo_status`: `AVAILABLE`, `UNAVAILABLE`, `ESTIMATED`, `STALE`, or
+  `CONFIGURED`.
+
+Quality metadata never creates identity, classification, or track persistence.
+For OBSERVATION_EVENTs, it may describe measurement quality only.
+The v1.1.0 schema rejects the legacy scalar `measurement_error` and sibling
+`error_metric` pattern.
+
+### 4A.2 Error Ellipse
+
+v1.1.0 permits `geo.error_ellipse_m` when an event has a geospatial estimate with
+known uncertainty.
+
+Rules:
+- `semi_major` and `semi_minor` are meters.
+- `orientation_deg` is degrees from true north.
+- `probability` declares the confidence convention (`1_SIGMA`, `CEP`, `CE_90`,
+  or `CE_95`) when known.
+- `error_ellipse_m` is the only v1.1.0 canonical `geo` extension; it does not
+  permit additional datum, CRS, or non-HAE altitude fields inside `geo`.
+- Error ellipses describe uncertainty only; they do not change the underlying
+  WGS84 latitude/longitude or WGS84 ellipsoid altitude conventions.
+
+### 4A.3 Data References
+
+v1.1.0 formalizes `payload.data_ref` and `payload.data_refs` as lightweight
+pointers to retained artifacts.
+
+Rules:
+- `data_ref` is a single pointer; `data_refs` is an array of pointers.
+- v1.1.0 events MUST use exactly one style per Observation payload: either
+  `data_ref` or `data_refs`, not both.
+- Pointers must not contain raw payload data.
+- Pointers must not override event semantics, confidence, lineage, timing, or
+  payload fields.
+- Each pointer requires `ref_id`.
+- If `hash` is provided in v1.1.0, it MUST use `sha256:<64 lowercase or
+  uppercase hex chars>`.
+- Pointer windows use UTC-Z timestamps. `t_start` and `t_end` MUST appear
+  together.
+- Consumers may ignore unresolved data references without changing the meaning
+  of the event.
+
+### 4A.4 Observation Modality Extensions
+
+Observation modalities are valid only when the schema defines a feature contract
+for that modality. A feature contract must define at least the required fields,
+units, and fields that remain prohibited because they would cross semantic
+layers.
+
+v1.1.0 currently defines feature contracts for:
+- `RF`
+- `EO`
+- `IR`
+- `ACOUSTIC`
+- `NETWORK`
+
+EO observation features are raw image metadata only. `roi_px` is a region of
+interest or crop in image pixels, not a detected object bounding box. Detected
+object boxes, semantic labels, detector confidence, and class names belong in
+INFERENCE_EVENT claims.
+
+ACOUSTIC observation features are measured signal facts only. The v1.1.0
+ACOUSTIC feature contract uses `center_freq_hz` and `spl_db` as required fields;
+optional measured fields include `bandwidth_hz`, `duration_ms`,
+`spectral_centroid_hz`, `harmonic_count`, and `signature_hash`. Acoustic
+semantic labels such as source type, engine, rotor, gunshot, or voice are
+INFERENCE_EVENT claims and MUST NOT appear in OBSERVATION_EVENT features.
+
+Additional modality names such as `RADAR`, `LIDAR`, `MAGNETIC`, `SEISMIC`,
+`CYBER`, and `SIGINT` are reserved extension candidates until a future schema
+branch defines their feature contracts. They may be used as descriptive sensor
+capability values in SENSOR_STATUS where allowed by schema, but they MUST NOT be
+used as OBSERVATION_EVENT `payload.modality` values until their observation
+feature contracts are defined. Capability/status labels do not create
+observation vocabulary.
+
+### 4A.5 SENSOR_STATUS
+
+`SENSOR_STATUS` is a SYSTEM_EVENT subtype for sensor health, configuration, and
+capability state.
+
+Rules:
+- It reports sensor state only; it is not an OBSERVATION_EVENT.
+- It must not contain raw measurements, detections, classifications, or track
+  identity.
+- `payload.state` is the single operational state for SENSOR_STATUS.
+- Required metric is `sensor_id`.
+- `metrics.operational_state` is not permitted; it would duplicate
+  `payload.state` and can create contradictory health metadata.
+- Optional capability fields such as `modality`, `mode`, `freq_range_hz`,
+  `fov_deg`, `detection_range_m`, and `bearing_accuracy_deg` describe what the
+  sensor can do, not what it observed.
+
+### 4A.6 PLATFORM_STATUS
+
+`PLATFORM_STATUS` is a SYSTEM_EVENT subtype for platform health and operating
+state.
+
+Rules:
+- It reports platform state only; it is not a STATE_EVENT, TASK_ACK, or
+  LINK_STATUS.
+- It must not be used to imply track position, command acceptance, task
+  execution, or link health.
+- Platform status is not battery-specific. At least one of `battery_pct`,
+  `fuel_remaining_pct`, `endurance_remaining_ms`, or `power_state` is required.
+- `endurance_remaining_ms` is expressed in milliseconds.
+- `endurance_remaining_sec` is not valid in v1.1.0.
+- Optional fields such as `flight_mode`, `platform_type`, `retaskable`, CPU
+  temperature, disk usage, and memory usage describe platform availability and
+  operator context only.
+
+### 4A.7 Expanded Tasking
+
+v1.1.0 may define additional COMMAND_EVENT `task_type` values only where
+task-specific semantics are defined. All expanded tasking remains subject to the
+v1.0 command rules: TTL-bound, idempotent by `task_id`, deconflicted, no
+altitude, and executed out-of-band by the receiving autonomy or sensor layer.
+
+Defined v1.1.0 task types:
+- `RETURN_TO_BASE`: cue the target platform to return to its configured home or
+  recovery point. Optional `target_geo` may identify the intended recovery
+  point, but altitude remains prohibited.
+- `LAND`: cue landing at current position or a provided `target_geo`; landing
+  profile and vertical control remain autonomy-layer responsibilities.
+- `LOITER`: cue holding behavior near a provided `target_geo` or declared
+  loiter geometry.
+- `SCAN_RF`: cue an RF sensor scan. Requires `sensor_id`, `freq_range_hz`, and
+  `dwell_ms`; it is sensor tasking, not platform motion.
+- `TRACK_TARGET`: cue tracking of a known `target_track_id`; it references
+  existing track identity but does not create or redefine it.
+- `CHANGE_SENSOR_MODE`: cue a sensor mode change. Requires `sensor_id` and
+  `sensor_mode`; it must not move the platform.
+
+Future task types MUST NOT be added to schema without a corresponding semantic
+definition and minimum validation contract.
 
 ## 5. Track Persistence and Deduplication (Normative)
 
@@ -942,6 +1197,9 @@ Guidance:
 - Use `payload.data_ref` for a single pointer, or `payload.data_refs` for multiple pointers.
 - References are metadata only; they must not contain raw data or override event semantics.
 - References may point to local storage, gateway caches, or external data stores.
+- In v1.1.0, choose one pointer style per payload (`data_ref` xor `data_refs`).
+- In v1.1.0, `hash` uses `sha256:<64 hex chars>` when provided, and `t_start`
+  / `t_end` must be paired.
 
 Recommended fields (all optional except `ref_id`):
 - ref_id: string (unique within the referenced store)
@@ -962,7 +1220,7 @@ payload: {
     store: "local",
     kind: "RAW",
     format: "iq",
-    hash: "sha256:abc123...",
+    hash: "sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
     size_bytes: 10485760,
     t_start: "2025-01-17T14:29:58Z",
     t_end: "2025-01-17T14:30:02Z"

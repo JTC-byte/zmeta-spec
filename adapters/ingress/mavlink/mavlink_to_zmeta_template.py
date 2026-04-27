@@ -1,7 +1,7 @@
 """MAVLink telemetry to ZMeta event translator.
 
 Translates decoded MAVLink messages into ZMeta events:
-  - GLOBAL_POSITION_INT + GPS_RAW_INT + ATTITUDE -> STATE_EVENT (PLATFORM_POSITION)
+  - GLOBAL_POSITION_INT + GPS_RAW_INT + ATTITUDE -> STATE_EVENT (TRACK_STATE)
   - SYS_STATUS / BATTERY_STATUS -> SYSTEM_EVENT (LINK_STATUS)
   - SYSTEM_TIME / TIMESYNC -> SYSTEM_EVENT (TIME_STATUS)
   - COMMAND_ACK / MISSION_ACK -> SYSTEM_EVENT (TASK_ACK)
@@ -145,7 +145,7 @@ def translate_platform_state(
         "event": {
             "event_id": str(uuid7()),
             "event_type": "STATE_EVENT",
-            "event_subtype": "PLATFORM_POSITION",
+            "event_subtype": "TRACK_STATE",
             "ts": ts or _utc_now(),
         },
         "source": {

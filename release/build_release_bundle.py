@@ -1,7 +1,7 @@
 import shutil
 from pathlib import Path
 
-VERSION = "1.0.5"
+VERSION = "1.1.0"
 
 
 def collect_sources(root):
@@ -23,6 +23,7 @@ def collect_sources(root):
         root / "zmeta_compact.py",
         root / "zmeta_proto.py",
         root / "schema" / "README.md",
+        root / "schema" / "zmeta-event.schema.json",
         root / "schema" / "zmeta-event-1.1.0.schema.json",
         root / "schema" / "proto" / "zmeta_event_v1.proto",
         root / "release" / f"RELEASE_NOTES_v{VERSION}.md",
@@ -36,6 +37,7 @@ def collect_sources(root):
         root / "spec" / "field-dictionary.md",
         root / "spec" / "profile-compatibility.md",
         root / "spec" / "README.md",
+        root / "release" / f"VALIDATION_REPORT_v{VERSION}.md",
     ]
     for path in optional:
         if path.is_file():

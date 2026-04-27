@@ -12,6 +12,6 @@ def test_klv_ingress_observation():
     )
 
     assert event["event"]["event_type"] == "OBSERVATION_EVENT"
-    assert event["event"]["event_subtype"] == "KLV_OBSERVATION"
+    assert event["event"]["event_subtype"] == "EO"
     assert "features" in event["payload"]
     assert "confidence" not in event

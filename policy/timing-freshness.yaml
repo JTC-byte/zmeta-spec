@@ -1,0 +1,23 @@
+timing_freshness:
+  enabled: true
+  mode: reject
+  max_timing_status_age_ms:
+    L: 60000
+    M: 30000
+    H: 10000
+
+  # Source identity uses source.platform_id + source.producer, with
+  # source.sensor_id included when present and fallback to node-level status.
+  source_identity:
+    required_fields:
+      - source.platform_id
+      - source.producer
+    optional_fields:
+      - source.sensor_id
+
+  degrade:
+    confidence_reduction_factor: 2.0
+
+  holdover_est_error_monotonic:
+    enabled: true
+    mode: warn

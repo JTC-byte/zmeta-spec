@@ -3,7 +3,7 @@
   "event": {
     "event_id": "019c2b5c-db1e-7307-877c-f5522ac68036",
     "event_type": "OBSERVATION_EVENT",
-    "event_subtype": "RF_OBSERVATION",
+    "event_subtype": "RF",
     "ts": "2025-01-17T15:20:00Z"
   },
   "source": {

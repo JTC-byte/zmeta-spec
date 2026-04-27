@@ -36,9 +36,12 @@ except ImportError:  # pragma: no cover - optional dependency
 
 from validators import (
     ValidationState,
+    apply_timing_freshness_degradation,
     load_policy,
     load_schema,
+    validate_lineage,
     validate_profile,
+    validate_producer_authority,
     validate_role,
     validate_routing,
     validate_schema,
@@ -689,6 +692,8 @@ def _apply_failure_mode_degradation(event, failure_modes, timing_state):
     if not isinstance(timing_loss, dict) or not timing_loss.get("enabled", False):
         return
     latest = getattr(timing_state, "latest_timing", {}).get(_source_key(event)) if timing_state else None
+    if timing_state and hasattr(timing_state, "get_timing"):
+        _key, latest = timing_state.get_timing(event)
     if not latest or latest.get("sync_state") != "UNSYNCED":
         return
     try:
@@ -713,6 +718,20 @@ def validate_outgoing_event(event, validator, policy, profile):
     )
     checks.extend(validate_profile(event, profile, policy["profiles"], severity_map)[1])
     checks.extend(validate_semantics(event, policy["semantics"], severity_map)[1])
+    checks.extend(
+        validate_lineage(
+            event,
+            policy.get("lineage", {}),
+            state=None,
+            profile=profile,
+            severity_map=severity_map,
+        )[1]
+    )
+    checks.extend(
+        validate_producer_authority(
+            event, policy.get("producer_authority", {}), severity_map
+        )[1]
+    )
     checks.extend(validate_routing(event, policy["routing"], severity_map)[1])
     return [violation for violation in checks if violation.get("severity") != "warn"]
 
@@ -1173,7 +1192,15 @@ def process_message(
 
     if timing_state is not None:
         ok, violations = validate_timing_quality(
-            instance, policy["semantics"], state=timing_state, severity_map=severity_map
+            instance,
+            policy["semantics"],
+            state=timing_state,
+            severity_map=severity_map,
+            timing_freshness_policy=policy.get("timing_freshness", {}),
+            profile=profile,
+        )
+        apply_timing_freshness_degradation(
+            instance, violations, policy.get("timing_freshness", {})
         )
         if violations:
             fails, warns = _split_violations(violations)
@@ -1193,6 +1220,50 @@ def process_message(
             warnings.extend(warns)
 
     ok, violations = validate_semantics(instance, policy["semantics"], severity_map)
+    if violations:
+        fails, warns = _split_violations(violations)
+        if fails:
+            violation = fails[0]
+            if metrics:
+                metrics.record_violation(violation["code"], event_id=event_id, producer=producer)
+            return [
+                build_violation_event(
+                    violation["code"],
+                    original=instance,
+                    details=violation.get("details"),
+                    contract_hashes=contract_hashes,
+                    stamp_contract_hash=stamp_contract_hash,
+                )
+            ]
+        warnings.extend(warns)
+
+    ok, violations = validate_lineage(
+        instance,
+        policy.get("lineage", {}),
+        state=timing_state,
+        profile=profile,
+        severity_map=severity_map,
+    )
+    if violations:
+        fails, warns = _split_violations(violations)
+        if fails:
+            violation = fails[0]
+            if metrics:
+                metrics.record_violation(violation["code"], event_id=event_id, producer=producer)
+            return [
+                build_violation_event(
+                    violation["code"],
+                    original=instance,
+                    details=violation.get("details"),
+                    contract_hashes=contract_hashes,
+                    stamp_contract_hash=stamp_contract_hash,
+                )
+            ]
+        warnings.extend(warns)
+
+    ok, violations = validate_producer_authority(
+        instance, policy.get("producer_authority", {}), severity_map
+    )
     if violations:
         fails, warns = _split_violations(violations)
         if fails:
@@ -1273,7 +1344,7 @@ def process_message(
                 ]
 
     if timing_state is not None:
-        timing_state.record_timing(instance)
+        timing_state.record(instance)
 
     outgoing = [instance]
     for warning in warnings:

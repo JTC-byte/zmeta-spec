@@ -1,0 +1,184 @@
+producer_authority:
+  enabled: true
+  require_match_for_event_types:
+    - OBSERVATION_EVENT
+    - INFERENCE_EVENT
+    - FUSION_EVENT
+    - STATE_EVENT
+    - COMMAND_EVENT
+    - SYSTEM_EVENT
+
+  # Pattern rules are case-insensitive shell-style globs. Default exact names
+  # include reference examples; deployments should narrow these to local IDs.
+  producers:
+    rf-sensor:
+      allowed_event_types:
+        - OBSERVATION_EVENT
+        - SYSTEM_EVENT
+    rf-sensor-*:
+      allowed_event_types:
+        - OBSERVATION_EVENT
+        - SYSTEM_EVENT
+    kraken-sdr:
+      allowed_event_types:
+        - OBSERVATION_EVENT
+        - SYSTEM_EVENT
+    krakensdr-*:
+      allowed_event_types:
+        - OBSERVATION_EVENT
+        - SYSTEM_EVENT
+    krakensdr-adapter:
+      allowed_event_types:
+        - OBSERVATION_EVENT
+        - SYSTEM_EVENT
+    signalhunter-*:
+      allowed_event_types:
+        - OBSERVATION_EVENT
+        - SYSTEM_EVENT
+    signalhunter-adapter:
+      allowed_event_types:
+        - OBSERVATION_EVENT
+        - SYSTEM_EVENT
+    moth-*:
+      allowed_event_types:
+        - OBSERVATION_EVENT
+        - SYSTEM_EVENT
+    moth-adapter:
+      allowed_event_types:
+        - OBSERVATION_EVENT
+        - SYSTEM_EVENT
+    eo-sensor-*:
+      allowed_event_types:
+        - OBSERVATION_EVENT
+        - SYSTEM_EVENT
+    eo-camera:
+      allowed_event_types:
+        - OBSERVATION_EVENT
+        - SYSTEM_EVENT
+    onboard-camera:
+      allowed_event_types:
+        - OBSERVATION_EVENT
+        - SYSTEM_EVENT
+    flir-sensor:
+      allowed_event_types:
+        - OBSERVATION_EVENT
+        - SYSTEM_EVENT
+    acoustic-sensor:
+      allowed_event_types:
+        - OBSERVATION_EVENT
+        - SYSTEM_EVENT
+    acoustic-sensor-*:
+      allowed_event_types:
+        - OBSERVATION_EVENT
+        - SYSTEM_EVENT
+    packet-analyzer:
+      allowed_event_types:
+        - OBSERVATION_EVENT
+        - SYSTEM_EVENT
+    packet-analyzer-*:
+      allowed_event_types:
+        - OBSERVATION_EVENT
+        - SYSTEM_EVENT
+    klv-ingress:
+      allowed_event_types:
+        - OBSERVATION_EVENT
+        - SYSTEM_EVENT
+    klv:*:
+      allowed_event_types:
+        - OBSERVATION_EVENT
+        - SYSTEM_EVENT
+    example-vendor:
+      allowed_event_types:
+        - OBSERVATION_EVENT
+        - SYSTEM_EVENT
+
+    classifier-*:
+      allowed_event_types:
+        - INFERENCE_EVENT
+        - SYSTEM_EVENT
+    detector-*:
+      allowed_event_types:
+        - INFERENCE_EVENT
+        - SYSTEM_EVENT
+    eo-cv-*:
+      allowed_event_types:
+        - INFERENCE_EVENT
+        - SYSTEM_EVENT
+    eo-cv-adapter:
+      allowed_event_types:
+        - INFERENCE_EVENT
+        - SYSTEM_EVENT
+
+    fusion-*:
+      allowed_event_types:
+        - FUSION_EVENT
+        - STATE_EVENT
+        - SYSTEM_EVENT
+    fusion-engine:
+      allowed_event_types:
+        - FUSION_EVENT
+        - STATE_EVENT
+        - SYSTEM_EVENT
+    state-projector-*:
+      allowed_event_types:
+        - STATE_EVENT
+        - SYSTEM_EVENT
+    cot-ingress:
+      allowed_event_types:
+        - STATE_EVENT
+        - SYSTEM_EVENT
+    jreap-ingress:
+      allowed_event_types:
+        - STATE_EVENT
+        - SYSTEM_EVENT
+    mavlink:
+      allowed_event_types:
+        - STATE_EVENT
+        - SYSTEM_EVENT
+    mavlink-adapter:
+      allowed_event_types:
+        - STATE_EVENT
+        - SYSTEM_EVENT
+    mavlink-*:
+      allowed_event_types:
+        - STATE_EVENT
+        - SYSTEM_EVENT
+
+    comms-deconfliction-*:
+      allowed_event_types:
+        - COMMAND_EVENT
+        - SYSTEM_EVENT
+    retasking-engine:
+      allowed_event_types:
+        - COMMAND_EVENT
+        - SYSTEM_EVENT
+    gateway-*:
+      allowed_event_types:
+        - SYSTEM_EVENT
+    zmeta-gateway:
+      allowed_event_types:
+        - SYSTEM_EVENT
+    sensor-mgr:
+      allowed_event_types:
+        - SYSTEM_EVENT
+    autopilot:
+      allowed_event_types:
+        - SYSTEM_EVENT
+    autonomy:
+      allowed_event_types:
+        - SYSTEM_EVENT
+
+    # Legacy/reference multi-role producers retained for current examples.
+    torch:
+      allowed_event_types:
+        - INFERENCE_EVENT
+        - FUSION_EVENT
+        - STATE_EVENT
+      forbidden_event_types:
+        - COMMAND_EVENT
+    sensorops:
+      allowed_event_types:
+        - OBSERVATION_EVENT
+        - STATE_EVENT
+        - COMMAND_EVENT
+        - SYSTEM_EVENT

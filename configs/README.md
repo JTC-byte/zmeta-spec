@@ -15,8 +15,13 @@ Notes:
 - `schema_path` and `policy_dir` are resolved relative to the config file location.
 - Replace `GATEWAY_HOST` in `edge-config.json` with the actual gateway IP/hostname.
 - Default producer IDs in the reference policy include `sensorops` for command/comms
-  examples and `torch` for analytics/fusion examples. Replace or extend the policy
-  allowlists for your deployment.
+  examples and `torch` for analytics/fusion examples. Replace or extend
+  `policy/producer-authority.yaml` for deployment authority and `policy/routing.yaml`
+  for command-path routing.
+- Timing freshness policy lives in `policy/timing-freshness.yaml`; tune profile
+  age limits and stale/missing handling there for deployment needs.
+- Context-aware lineage rules live in `policy/lineage.yaml`; tune unresolved
+  parent and parent-type handling there for local AAR/event-store behavior.
 - Debug/optimization controls:
   - `stamp_profile` and `stamp_profile_profiles` control when `profile` is stamped.
   - `stamp_timing` and `stamp_timing_profiles` control gateway `t_receive`/`t_publish` stamps.

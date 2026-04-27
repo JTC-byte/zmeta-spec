@@ -138,7 +138,7 @@ def translate_serial_line(line, *, platform_id, sensor_geo=None, sensor_id=None,
         "event": {
             "event_id": str(uuid7()),
             "event_type": "OBSERVATION_EVENT",
-            "event_subtype": "LOB",
+            "event_subtype": "RF",
             "ts": ts_iso,
         },
         "source": {
@@ -213,8 +213,11 @@ def translate_tunnel_payload(payload_bytes, *, platform_id, sensor_geo=None,
     }
 
     quality = {
-        "measurement_error": raw["bearing_err_deg"],
-        "error_metric": "1_SIGMA",
+        "measurement_error": {
+            "value": raw["bearing_err_deg"],
+            "unit": "deg",
+            "metric": "1_SIGMA",
+        },
         "calibration_state": "CALIBRATED",
     }
     if raw["snr_db"] != 0:
@@ -226,7 +229,7 @@ def translate_tunnel_payload(payload_bytes, *, platform_id, sensor_geo=None,
         "event": {
             "event_id": str(uuid7()),
             "event_type": "OBSERVATION_EVENT",
-            "event_subtype": "LOB",
+            "event_subtype": "RF",
             "ts": ts_iso,
         },
         "source": {
@@ -300,7 +303,7 @@ def translate_custom_mavlink(frame_bytes, *, platform_id, sensor_geo=None,
         "event": {
             "event_id": str(uuid7()),
             "event_type": "OBSERVATION_EVENT",
-            "event_subtype": "LOB",
+            "event_subtype": "RF",
             "ts": ts_iso,
         },
         "source": {
@@ -383,8 +386,11 @@ def translate_json_replay(raw, *, platform_id, sensor_geo=None, sensor_id=None):
     }
 
     quality = {
-        "measurement_error": raw.get("bearing_error_deg", 10.0),
-        "error_metric": "1_SIGMA",
+        "measurement_error": {
+            "value": raw.get("bearing_error_deg", 10.0),
+            "unit": "deg",
+            "metric": "1_SIGMA",
+        },
         "calibration_state": "CALIBRATED",
     }
     if power_obj.get("snr_db") is not None:
@@ -400,7 +406,7 @@ def translate_json_replay(raw, *, platform_id, sensor_geo=None, sensor_id=None):
         "event": {
             "event_id": str(uuid7()),
             "event_type": "OBSERVATION_EVENT",
-            "event_subtype": "LOB",
+            "event_subtype": "RF",
             "ts": ts_iso,
         },
         "source": {

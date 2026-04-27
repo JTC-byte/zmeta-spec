@@ -1,3 +1,4 @@
 jsonschema
+referencing
 pyyaml
 cbor2

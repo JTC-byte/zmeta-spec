@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 
-from jsonschema import Draft202012Validator
+from jsonschema import Draft202012Validator, FormatChecker
 
 from adapters.ingress.jreap.jreap_track_to_zmeta_template import jreap_track_dict_to_zmeta_track_state
 from zmeta_uuid import uuid7
@@ -10,7 +10,7 @@ from zmeta_uuid import uuid7
 ROOT = Path(__file__).resolve().parents[3]
 SCHEMA_PATH = ROOT / "schema" / "zmeta-event-1.0.schema.json"
 SCHEMA = json.loads(SCHEMA_PATH.read_text(encoding="utf-8"))
-VALIDATOR = Draft202012Validator(SCHEMA)
+VALIDATOR = Draft202012Validator(SCHEMA, format_checker=FormatChecker())
 
 
 def test_jreap_track_to_state_schema_valid():

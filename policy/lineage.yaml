@@ -1,0 +1,30 @@
+lineage:
+  enabled: true
+
+  # Payload-local provenance cannot exceed authoritative envelope lineage.
+  payload_based_on_subset_mode: reject
+
+  # Fusion members are usually observation/inference parents. Keep this as a
+  # warning to allow future track/member-reference patterns when documented.
+  fusion_members_in_lineage_mode: warn
+
+  # Profile L often references parents that were not exported over the link.
+  # M/H warn on unresolved parents when a local event store is available.
+  unresolved_parent_mode:
+    L: ignore
+    M: warn
+    H: warn
+
+  # Known parent type mismatches indicate a semantic lineage error.
+  parent_type_mismatch_mode: reject
+
+  allowed_parent_event_types:
+    INFERENCE_EVENT:
+      - OBSERVATION_EVENT
+    FUSION_EVENT:
+      - OBSERVATION_EVENT
+      - INFERENCE_EVENT
+      - FUSION_EVENT
+    STATE_EVENT:
+      - FUSION_EVENT
+      - STATE_EVENT

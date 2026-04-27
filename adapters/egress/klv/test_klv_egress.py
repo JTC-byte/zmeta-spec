@@ -7,7 +7,7 @@ def test_observation_to_klv_tagdict():
         "event": {
             "event_id": "019c2b5d-0ba0-7536-ad67-ba859248dc5c",
             "event_type": "OBSERVATION_EVENT",
-            "event_subtype": "RF_OBSERVATION",
+            "event_subtype": "RF",
             "ts": "2025-01-17T15:20:00Z",
         },
         "source": {

@@ -147,7 +147,7 @@ PROFILE_MAP = {"L": 1, "M": 2, "H": 3}
 
 EVENT_SUBTYPE_MAP = {
     "TRACK_STATE": 1,
-    "MISSION_TASK": 2,
+    "GOTO": 2,
     "TASK_ACK": 3,
     "LINK_STATUS": 4,
     "TIME_STATUS": 5,
@@ -157,6 +157,14 @@ EVENT_SUBTYPE_MAP = {
     "ASSOCIATION": 9,
     "ANOMALY": 10,
     "BEHAVIOR": 11,
+    "RF": 12,
+    "EO": 13,
+    "IR": 14,
+    "ACOUSTIC": 15,
+    "NETWORK": 16,
+    "ORBIT": 17,
+    "HOLD": 18,
+    "SEARCH_BOX": 19,
 }
 
 SYSTEM_TYPE_MAP = {

@@ -100,7 +100,7 @@ def translate_csv_row(fields, *, platform_id, sensor_geo=None, sensor_id=None):
         "event": {
             "event_id": str(uuid7()),
             "event_type": "OBSERVATION_EVENT",
-            "event_subtype": "LOB",
+            "event_subtype": "RF",
             "ts": ts_iso,
         },
         "source": {
@@ -121,8 +121,11 @@ def translate_csv_row(fields, *, platform_id, sensor_geo=None, sensor_id=None):
                 "sensor_hw": "krakensdr",
             },
             "quality": {
-                "measurement_error": err_deg,
-                "error_metric": "1_SIGMA",
+                "measurement_error": {
+                    "value": err_deg,
+                    "unit": "deg",
+                    "metric": "1_SIGMA",
+                },
                 "snr_db": rssi_db + 100.0,
                 "calibration_state": "CALIBRATED",
                 "geo_status": "AVAILABLE" if geo else "UNAVAILABLE",
@@ -183,8 +186,11 @@ def translate_json(raw, *, platform_id, sensor_geo=None, sensor_id=None):
         features["hardware_model"] = meta["hardware_model"]
 
     quality = {
-        "measurement_error": err,
-        "error_metric": "1_SIGMA",
+        "measurement_error": {
+            "value": err,
+            "unit": "deg",
+            "metric": "1_SIGMA",
+        },
         "calibration_state": "CALIBRATED",
     }
     if snr is not None:
@@ -197,7 +203,7 @@ def translate_json(raw, *, platform_id, sensor_geo=None, sensor_id=None):
         "event": {
             "event_id": str(uuid7()),
             "event_type": "OBSERVATION_EVENT",
-            "event_subtype": "LOB",
+            "event_subtype": "RF",
             "ts": ts_iso,
         },
         "source": {

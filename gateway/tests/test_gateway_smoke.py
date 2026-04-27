@@ -31,7 +31,7 @@ class GatewaySmokeTest(unittest.TestCase):
             "event": {
                 "event_id": str(uuid7()),
                 "event_type": "STATE_EVENT",
-                "event_subtype": "TEST",
+                "event_subtype": "TRACK_STATE",
                 "ts": "2025-01-17T14:32:10Z",
             },
             "source": {
@@ -67,7 +67,7 @@ class GatewaySmokeTest(unittest.TestCase):
             "event": {
                 "event_id": str(uuid7()),
                 "event_type": "OBSERVATION_EVENT",
-                "event_subtype": "TEST",
+                "event_subtype": "RF",
                 "ts": "2025-01-17T14:32:10Z",
             },
             "source": {
@@ -93,7 +93,7 @@ class GatewaySmokeTest(unittest.TestCase):
         self.assertFalse(ok)
         self.assertEqual(violations[0]["code"], "OBSERVATION_HAS_IDENTITY")
 
-    def test_state_with_features_is_rejected(self):
+    def test_state_with_features_is_schema_rejected(self):
         event = {
             "zmeta_version": "1.0",
             "event": {
@@ -118,10 +118,46 @@ class GatewaySmokeTest(unittest.TestCase):
         }
 
         ok, violations = validators.validate_schema(event, self.validator, self.policy["violation_severities"])
+        self.assertFalse(ok)
+        self.assertEqual(violations[0]["code"], "SCHEMA_INVALID")
+
+    def test_rf_window_midpoint_mismatch_is_rejected(self):
+        event = {
+            "zmeta_version": "1.0",
+            "event": {
+                "event_id": str(uuid7()),
+                "event_type": "OBSERVATION_EVENT",
+                "event_subtype": "RF",
+                "ts": "2025-01-17T14:32:11Z",
+            },
+            "source": {
+                "platform_id": "sensor-node-01",
+                "node_role": "EDGE",
+                "producer": "sensorops",
+            },
+            "payload": {
+                "modality": "RF",
+                "features": {
+                    "center_freq_hz": 2450000000,
+                    "bandwidth_hz": 20000000,
+                    "power_dbm": -35.2,
+                },
+                "t_start": "2025-01-17T14:32:09Z",
+                "t_end": "2025-01-17T14:32:11Z",
+                "timing_quality": {
+                    "time_source": "GPS_PPS",
+                    "sync_state": "LOCKED",
+                    "est_error_ms": 1,
+                    "last_sync_ts": "2025-01-17T14:29:59Z",
+                },
+            },
+        }
+
+        ok, violations = validators.validate_schema(event, self.validator, self.policy["violation_severities"])
         self.assertTrue(ok)
         ok, violations = validators.validate_semantics(event, self.policy["semantics"], self.policy["violation_severities"])
         self.assertFalse(ok)
-        self.assertEqual(violations[0]["code"], "STATE_HAS_RAW_FEATURES")
+        self.assertEqual(violations[0]["code"], "RF_WINDOW_MIDPOINT_MISMATCH")
 
     def test_profile_l_rejects_observation_event(self):
         event = {
@@ -129,7 +165,7 @@ class GatewaySmokeTest(unittest.TestCase):
             "event": {
                 "event_id": str(uuid7()),
                 "event_type": "OBSERVATION_EVENT",
-                "event_subtype": "RF_OBSERVATION",
+                "event_subtype": "RF",
                 "ts": "2025-01-17T14:32:10Z",
             },
             "source": {
@@ -194,7 +230,7 @@ class GatewaySmokeTest(unittest.TestCase):
             "event": {
                 "event_id": str(uuid7()),
                 "event_type": "COMMAND_EVENT",
-                "event_subtype": "MISSION_TASK",
+                "event_subtype": "GOTO",
                 "ts": "2025-01-17T14:32:10Z",
             },
             "source": {
@@ -249,7 +285,7 @@ class GatewaySmokeTest(unittest.TestCase):
             "event": {
                 "event_id": str(uuid7()),
                 "event_type": "COMMAND_EVENT",
-                "event_subtype": "MISSION_TASK",
+                "event_subtype": "GOTO",
                 "ts": "2025-01-17T15:05:00Z",
             },
             "source": {

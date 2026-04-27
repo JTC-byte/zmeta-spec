@@ -27,7 +27,7 @@ Binary `.bin` capture files with:
 
 ### Output
 
-`OBSERVATION_EVENT` with `event_subtype: LOB`, `modality: RF`.
+`OBSERVATION_EVENT` with `event_subtype: RF`, `modality: RF`.
 
 ### Key features
 

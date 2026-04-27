@@ -12,14 +12,14 @@ RF `OBSERVATION_EVENT` (LOB) events.
 
 ### Output
 
-`OBSERVATION_EVENT` with `event_subtype: LOB`, `modality: RF`.
+`OBSERVATION_EVENT` with `event_subtype: RF`, `modality: RF`.
 
 ### Key mappings
 
 | Kraken field | ZMeta field | Notes |
 |-------------|-------------|-------|
 | DOA azimuth | `bearing.az_deg` | Compass-style, 0=N |
-| confidence (0-99) | `features.kraken_confidence_0_99` | Also mapped to `quality.measurement_error` via `_confidence_to_error_deg()` |
+| confidence (0-99) | `features.kraken_confidence_0_99` | Also mapped to explicit `quality.measurement_error` (`unit: deg`, `metric: 1_SIGMA`) via `_confidence_to_error_deg()` |
 | RSSI | `features.power_dbm` | |
 | centre frequency | `features.center_freq_hz` | |
 | (derived) | `features.bandwidth_hz` | Set to 0 -- KrakenSDR reports receiver bandwidth, not emitter |

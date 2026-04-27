@@ -19,6 +19,7 @@ EXAMPLE_MAP = [
     ("examples/zmeta-profile-H-examples.jsonl", "H"),
     ("examples/zmeta-command-examples.jsonl", "L"),
     ("examples/encoding-roundtrip.jsonl", "L"),
+    ("examples/zmeta-v1.1-examples.jsonl", "H"),
 ]
 
 
@@ -81,8 +82,25 @@ def validate_file(path: Path, profile: str, validator, policy, severity_map, str
         checks = [
             validators.validate_role(instance, {"roles": policy["roles"], "deny": policy["deny"]}, severity_map),
             validators.validate_profile(instance, profile, policy["profiles"], severity_map),
-            validators.validate_timing_quality(instance, policy["semantics"], state=state, severity_map=severity_map),
+            validators.validate_timing_quality(
+                instance,
+                policy["semantics"],
+                state=state,
+                severity_map=severity_map,
+                timing_freshness_policy=policy.get("timing_freshness", {}),
+                profile=profile,
+            ),
             validators.validate_semantics(instance, policy["semantics"], severity_map),
+            validators.validate_lineage(
+                instance,
+                policy.get("lineage", {}),
+                state=state,
+                profile=profile,
+                severity_map=severity_map,
+            ),
+            validators.validate_producer_authority(
+                instance, policy.get("producer_authority", {}), severity_map
+            ),
             validators.validate_routing(instance, policy["routing"], severity_map),
             validators.validate_deduplication(instance, state=state, severity_map=severity_map),
         ]
@@ -117,7 +135,7 @@ def validate_file(path: Path, profile: str, validator, policy, severity_map, str
 
 def main():
     args = parse_args()
-    schema_path = ROOT / "schema" / "zmeta-event-1.0.schema.json"
+    schema_path = ROOT / "schema" / "zmeta-event.schema.json"
     policy_dir = ROOT / "policy"
 
     validator = validators.load_schema(schema_path)

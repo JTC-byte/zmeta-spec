@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 
-from jsonschema import Draft202012Validator
+from jsonschema import Draft202012Validator, FormatChecker
 
 from adapters.ingress.mavlink.mavlink_to_zmeta_template import mavlink_decoded_to_zmeta_system_events
 
@@ -9,7 +9,7 @@ from adapters.ingress.mavlink.mavlink_to_zmeta_template import mavlink_decoded_t
 ROOT = Path(__file__).resolve().parents[3]
 SCHEMA_PATH = ROOT / "schema" / "zmeta-event-1.0.schema.json"
 SCHEMA = json.loads(SCHEMA_PATH.read_text(encoding="utf-8"))
-VALIDATOR = Draft202012Validator(SCHEMA)
+VALIDATOR = Draft202012Validator(SCHEMA, format_checker=FormatChecker())
 
 
 def test_mavlink_task_ack_schema_valid():

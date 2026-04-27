@@ -1,4 +1,4 @@
-# ZMeta Specification (v1.0 Locked, current release v1.0.5)
+# ZMeta Specification (v1.0 Locked, current release v1.1.0)
 
 ## Overview
 - ZMeta is a transport-agnostic, event-based metadata standard for resilient ISR.
@@ -7,9 +7,10 @@
 
 ## Current Release
 
-- Current release: `v1.0.5`
-- Release notes and assets: <https://github.com/JTC-byte/zmeta-spec/releases/tag/v1.0.5>
-- Normative contract: v1.0 locked semantic contract, v1.0 JSON schema, and policy pack.
+- Current release: `v1.1.0`
+- Release notes and assets: <https://github.com/JTC-byte/zmeta-spec/releases/tag/v1.1.0>
+- Normative contract: v1.0 locked semantic contract, canonical version-discriminated
+  JSON schema, v1.0 JSON schema, and policy pack.
 - Experimental extension: `schema/zmeta-event-1.1.0.schema.json` is provided for proposed
   compatibility testing only; v1.1.0-only fields are not part of the locked v1.0 contract.
 
@@ -53,6 +54,38 @@
 
 Reference adapters show how to translate between ZMeta and external systems.
 See `adapters/README.md` for ingress templates, mapping packs, and egress projections.
+
+Adapter semantic mapping:
+- Native sensor measurements map to `OBSERVATION_EVENT`.
+- Classifier or detector output maps to `INFERENCE_EVENT`.
+- Track association and identity creation map to `FUSION_EVENT`.
+- Operator display projection maps to `STATE_EVENT`.
+- Mission tasking maps to `COMMAND_EVENT` only through deconfliction.
+- Health, timing, link, validation, and task acknowledgement reports map to `SYSTEM_EVENT`.
+
+ZMeta is strict about semantic invariants and flexible through ignorable,
+namespaced, non-semantic extensions. Extensions must not redefine core event
+meaning, authority boundaries, units, lineage, profile behavior, or command
+safety.
+
+## Schemas and Examples
+
+Use `schema/zmeta-event.schema.json` as the canonical validation entry point.
+It dispatches by `zmeta_version` and prevents v1.1.0 vocabulary from validating
+under a v1.0 event. Version-specific wrappers are retained for integrations that
+need a fixed target:
+- `schema/zmeta-event-1.0.schema.json`
+- `schema/zmeta-event-1.1.0.schema.json`
+
+Runnable examples live in `examples/`:
+- `zmeta-examples-1.0.jsonl`: RF observation, inference, fusion, and state projection.
+- `zmeta-profile-L-examples.jsonl`: Profile L state/system/command examples.
+- `zmeta-command-examples.jsonl`: GOTO and TASK_ACK lifecycle.
+- `zmeta-v1.1-examples.jsonl`: SENSOR_STATUS, PLATFORM_STATUS, data_ref/data_refs,
+  error_ellipse_m, and v1.1.0 tasking examples.
+
+Intentionally invalid examples live in `conformance/must-fail.jsonl`; valid
+regression fixtures live in `conformance/must-pass.jsonl`.
 
 ## Tools
 
@@ -121,8 +154,8 @@ Deployment helpers:
 - Config templates: `configs/edge-config.json`, `configs/gateway-config.json`
 - Docker Compose: `deploy/edge/docker-compose.yml`, `deploy/gateway/docker-compose.yml`
 - Bundle builders:
-  - `python release/build_mvp_packages.py` produces `zmeta-edge-v1.0.5.zip` and `zmeta-gateway-v1.0.5.zip`
-  - `python release/build_release_bundle.py` produces `zmeta-v1.0.5-dist.zip`
+  - `python release/build_mvp_packages.py` produces `zmeta-edge-v1.1.0.zip` and `zmeta-gateway-v1.1.0.zip`
+  - `python release/build_release_bundle.py` produces `zmeta-v1.1.0-dist.zip`
 
 ## Deployment Checklist (Compact)
 
@@ -137,7 +170,7 @@ Use this to lock down schema, policy, and semantic-contract drift and verify a c
 
 ## Normative vs Reference
 
-Normative (contract): `spec/semantics-contract.md`, `schema/zmeta-event-1.0.schema.json`, `policy/*.yaml`, `spec/versioning.md`
+Normative (contract): `spec/semantics-contract.md`, `schema/zmeta-event.schema.json`, `schema/zmeta-event-1.0.schema.json`, `policy/*.yaml`, `spec/versioning.md`
 Reference: `gateway/*`, `tools/*`, `adapters/*`, `examples/*`
 
 Normative files define compliance. Reference components exist to accelerate adoption.

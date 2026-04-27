@@ -6,7 +6,7 @@ Translates decoded MAVLink v2 telemetry into ZMeta events.
 
 | MAVLink message | ZMeta event | Function |
 |----------------|-------------|----------|
-| GLOBAL_POSITION_INT + GPS_RAW_INT + ATTITUDE | `STATE_EVENT` / `PLATFORM_POSITION` | `translate_platform_state()` |
+| GLOBAL_POSITION_INT + GPS_RAW_INT + ATTITUDE | `STATE_EVENT` / `TRACK_STATE` | `translate_platform_state()` |
 | SYS_STATUS / BATTERY_STATUS | `SYSTEM_EVENT` / `LINK_STATUS` | `translate_link_status()` |
 | SYSTEM_TIME / TIMESYNC | `SYSTEM_EVENT` / `TIME_STATUS` | `translate_time_status()` |
 | COMMAND_ACK / MISSION_ACK | `SYSTEM_EVENT` / `TASK_ACK` | `mavlink_decoded_to_zmeta_system_events()` |
@@ -14,7 +14,7 @@ Translates decoded MAVLink v2 telemetry into ZMeta events.
 ## Platform state translation
 
 The `translate_platform_state()` function converts accumulated MAVLink telemetry
-into a `STATE_EVENT` with `PLATFORM_POSITION` subtype. It accepts either a dict
+into a `STATE_EVENT` with `TRACK_STATE` subtype. It accepts either a dict
 or an object with the following fields:
 
 | MAVLink source | State field | ZMeta mapping |

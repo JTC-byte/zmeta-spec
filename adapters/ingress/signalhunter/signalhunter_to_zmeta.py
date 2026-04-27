@@ -330,7 +330,7 @@ def translate_bin_file(
                 "event": {
                     "event_id": str(uuid7()),
                     "event_type": "OBSERVATION_EVENT",
-                    "event_subtype": "LOB",
+                    "event_subtype": "RF",
                     "ts": ts_iso,
                 },
                 "source": {
@@ -353,8 +353,11 @@ def translate_bin_file(
                         "power_delta_db": round(peak["power_dbm"] - prev_power, 2),
                     },
                     "quality": {
-                        "measurement_error": bearing_error_deg,
-                        "error_metric": "1_SIGMA",
+                        "measurement_error": {
+                            "value": bearing_error_deg,
+                            "unit": "deg",
+                            "metric": "1_SIGMA",
+                        },
                         "calibration_state": "UNCALIBRATED",
                         "geo_status": "UNAVAILABLE",
                         "sensor_position_2d": {

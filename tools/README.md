@@ -59,11 +59,31 @@ python tools/test_gateway_live.py --profile H --encoding proto --input-encoding 
 CBOR/compact require `cbor2` or the built-in `zmeta_cbor` fallback. Protobuf
 uses the experimental pure-Python `zmeta_proto` projection.
 
+### Compatibility Normalize
+
+```
+python tools/compat_normalize.py --input legacy-event.json --output normalized-event.json --report normalize-report.json --allow-version-alias
+python tools/compat_normalize.py --input legacy-status.json --output normalized-status.json --report normalize-report.json --convert-endurance-seconds
+python tools/compat_normalize.py --input legacy-eo.json --output normalized-eo.json --report normalize-report.json --assume-eo-bbox-roi
+```
+
+The compatibility normalizer is non-normative and opt-in. It runs before schema
+validation for adapter migration workflows, records every change in a sidecar
+report, and leaves strict validation/conformance unchanged. It will not rewrite
+immutable event identity, timestamps, event type/subtype, source, lineage, or
+track identity. Ambiguous EO `bbox` input is rejected unless the caller
+explicitly asserts it is ROI metadata with `--assume-eo-bbox-roi`.
+
 ### Validate JSON or JSONL
 
 ```
 python tools/validate.py --file examples/zmeta-command-examples.jsonl --profile H
 ```
+
+`validate.py`, `validate_examples.py`, and `validate_conformance.py` use the
+canonical version-discriminated schema. Version aliases and legacy fields must
+be normalized before validation with `compat_normalize.py` if compatibility mode
+is intentionally enabled.
 
 ### Validate All Examples
 

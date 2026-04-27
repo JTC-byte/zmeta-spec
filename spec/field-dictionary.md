@@ -6,11 +6,13 @@ validation rules, see the JSON schemas in `schema/` and the semantic contract in
 
 ## Top-Level
 
-- `zmeta_version` (string) - semantic contract/schema version (for example, `1.0` or `1.1.0`).
+- `zmeta_version` (string) - exact semantic contract/schema version (for example,
+  `1.0` or `1.1.0`); aliases such as `1.1` must be normalized before validation.
 - `event` (object) - event envelope metadata.
 - `source` (object) - producer identity.
 - `payload` (object) - event-specific content.
-- `profile` (string, optional) - export profile: `L`, `M`, `H`.
+- `profile` (string, optional) - export profile: `L`, `M`, `H`; when present,
+  schema validation enforces profile/event-type compatibility.
 - `confidence` (number) - required for INFERENCE/FUSION/STATE events; prohibited for OBSERVATION/COMMAND/SYSTEM events.
 - `lineage` (object) - required for INFERENCE/FUSION/STATE events; contains `based_on` UUIDv7 array and optional `transform`.
 
@@ -18,10 +20,11 @@ validation rules, see the JSON schemas in `schema/` and the semantic contract in
 
 - `event_id` (UUIDv7 string) - immutable event id.
 - `event_type` (enum) - see "Enums" below.
-- `event_subtype` (enum/string) - subtype, may be custom where schema allows.
-- `ts` (ISO timestamp) - event capture/observation time.
-- `t_receive` (ISO timestamp, optional) - gateway receipt time (stamped).
-- `t_publish` (ISO timestamp, optional) - gateway publish time (stamped).
+- `event_subtype` (enum) - semantic subtype; must match the payload
+  discriminator for the event type.
+- `ts` (UTC-Z timestamp) - event capture/observation time.
+- `t_receive` (UTC-Z timestamp, optional) - gateway receipt time (stamped).
+- `t_publish` (UTC-Z timestamp, optional) - gateway publish time (stamped).
 
 ## Source Block (`source`)
 
@@ -36,21 +39,24 @@ validation rules, see the JSON schemas in `schema/` and the semantic contract in
 ### STATE_EVENT / TRACK_STATE
 
 - `track_id` (string) - globally unique track identifier assigned by a fusion node; not reused.
-- `geo` (object) - `lat`, `lon`, `alt_m` (numbers).
+- `geo` (object) - `lat`, `lon`, `alt_m` (numbers); experimental v1.1.0 also
+  allows `error_ellipse_m` as the only canonical `geo` extension.
 - `valid_for_ms` (int) - freshness window.
 - `class` (string, optional) - CoT type or platform class.
 - `source_summary` (string array, optional) - short provenance hints.
-- `heading_deg` (number, optional), `speed_mps` (number, optional).
-- `data_ref` / `data_refs` (object/array, optional) - offboard artifact links.
+- `heading_deg` (number, optional, 0-360 inclusive), `speed_mps` (number,
+  optional, non-negative).
+- Raw observation features and artifact links (`data_ref` / `data_refs`) are
+  not allowed on state projections; use lineage for traceability.
 
-### COMMAND_EVENT / MISSION_TASK
+### COMMAND_EVENT / task type
 
 - `task_id` (string) - idempotent command key; dedupe retransmissions by this field.
 - `task_type` (enum).
 - `target_geo` (object, optional) - `lat`, `lon`; altitude is prohibited.
 - `geometry` (object, optional).
 - `valid_for_ms` (int).
-- `valid_from_ts` (ISO timestamp, optional).
+- `valid_from_ts` (UTC-Z timestamp, optional).
 - `priority` (enum, optional).
 - `requires_deconfliction` (bool, required by policy and must be `true`).
 
@@ -89,7 +95,15 @@ Common fields:
 - `SYSTEM_EVENT`
 
 `event_subtype` (common):
-- `TRACK_STATE`, `MISSION_TASK`, `TASK_ACK`, `LINK_STATUS`, `TIME_STATUS`, `SCHEMA_VIOLATION`
+- OBSERVATION_EVENT: `RF`, `EO`, `IR`, `ACOUSTIC`, `NETWORK`
+- INFERENCE_EVENT: `CLASSIFICATION`, `ASSOCIATION`, `ANOMALY`, `BEHAVIOR`
+- FUSION_EVENT: `TRACK_FUSION`
+- STATE_EVENT: `TRACK_STATE`
+- COMMAND_EVENT: `GOTO`, `ORBIT`, `HOLD`, `SEARCH_BOX`
+- SYSTEM_EVENT: `TASK_ACK`, `LINK_STATUS`, `TIME_STATUS`, `SCHEMA_VIOLATION`
+- Experimental v1.1.0 COMMAND_EVENT: `RETURN_TO_BASE`, `LAND`, `LOITER`,
+  `SCAN_RF`, `TRACK_TARGET`, `CHANGE_SENSOR_MODE`
+- Experimental v1.1.0 SYSTEM_EVENT: `SENSOR_STATUS`, `PLATFORM_STATUS`
 
 `node_role`:
 - `EDGE`, `GATEWAY`, `APEX`, `DMZ`, `CLOUD`
@@ -104,6 +118,8 @@ Common fields:
 `task_type`:
 - `GOTO`, `ORBIT`, `HOLD`, `SEARCH_BOX`
 - Experimental v1.1.0: `RETURN_TO_BASE`, `LAND`, `LOITER`, `SCAN_RF`, `TRACK_TARGET`, `CHANGE_SENSOR_MODE`
+- v1.1.0 expanded task types have task-specific required fields in the schema
+  and semantic contract.
 
 `priority`:
 - `LOW`, `MED`, `HIGH`

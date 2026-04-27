@@ -131,6 +131,10 @@ to avoid collisions. Both default to UDP `5555`.
 
 ## Where to look
 
-- Schema: `schema/zmeta-event-1.0.schema.json`
-- Policy: `policy/roles.yaml`, `policy/profiles.yaml`, `policy/semantics.yaml`, `policy/routing.yaml`
+- Schema: `schema/zmeta-event.schema.json` for version-discriminated validation,
+  or `schema/zmeta-event-1.0.schema.json` when pinned to the locked v1.0 contract.
+- Policy: `policy/roles.yaml`, `policy/profiles.yaml`, `policy/semantics.yaml`,
+  `policy/producer-authority.yaml`, `policy/lineage.yaml`,
+  `policy/timing-freshness.yaml`,
+  `policy/routing.yaml`
 - Examples: `examples/`

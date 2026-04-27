@@ -112,7 +112,7 @@ def _build_events(profile, expect):
         "event": {
             "event_id": obs_id,
             "event_type": "OBSERVATION_EVENT",
-            "event_subtype": "RF_OBSERVATION",
+            "event_subtype": "RF",
             "ts": "2025-01-17T14:30:00Z",
         },
         "source": {"platform_id": "sensor-node-01", "node_role": "EDGE", "producer": "rf-sensor"},
@@ -148,6 +148,7 @@ def _build_events(profile, expect):
         "lineage": {"based_on": [obs_id]},
     }
 
+    fusion_lineage = [obs_id, inf_id] if profile == "H" else [obs_id]
     fusion = {
         "zmeta_version": "1.0",
         "event": {
@@ -165,7 +166,7 @@ def _build_events(profile, expect):
             "timing_quality": dict(TIMING_QUALITY),
         },
         "confidence": 0.75,
-        "lineage": {"based_on": [inf_id]},
+        "lineage": {"based_on": fusion_lineage},
     }
 
     state_producer = "sensorops" if profile == "L" else "torch"
@@ -194,7 +195,7 @@ def _build_events(profile, expect):
         "event": {
             "event_id": cmd_id,
             "event_type": "COMMAND_EVENT",
-            "event_subtype": "MISSION_TASK",
+            "event_subtype": "GOTO",
             "ts": "2025-01-17T14:30:06Z",
         },
         "source": {"platform_id": "comms-node-1", "node_role": "GATEWAY", "producer": "sensorops"},

@@ -25,6 +25,9 @@
 ## Component Versioning
 
 - `zmeta_version` tracks **schema + semantics**. Bump when fields or meanings change.
+- Normative schemas require exact `zmeta_version` values. Compatibility aliases
+  such as `1.1` must be normalized by adapters before schema validation, not
+  accepted inside the canonical schema.
 - `policy/` updates can tighten or loosen enforcement without changing the schema.
   Policy changes must be documented in `CHANGELOG.md` and reviewed during release.
 - `compact_version` (in `spec/compact-binary-mapping.md`) tracks the compact CBOR

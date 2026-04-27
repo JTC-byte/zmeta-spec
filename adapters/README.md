@@ -7,6 +7,24 @@ They are intentionally minimal and may be lossy.
 - Mapping packs: `adapters/mapping-packs/`
 - Egress projections: `adapters/egress/` (CoT, MissionIntent, JREAP)
 
+## Semantic Mapping Rules
+
+Adapters must preserve ZMeta layer separation:
+
+| Native output | ZMeta event type | Notes |
+|---|---|---|
+| Raw sensor measurement, packet metadata, RF bearing, EO/IR/ACOUSTIC/NETWORK facts | OBSERVATION_EVENT | Do not add classification, track identity, or fused state. |
+| Classifier, detector, anomaly, behavior, or association output | INFERENCE_EVENT | Include confidence and lineage; do not emit `track_id`. |
+| Track association, track creation, or multi-source fusion | FUSION_EVENT | Fusion nodes assign and preserve `track_id`. |
+| Operator-facing display/state projection | STATE_EVENT | Keep compact; do not include raw sensor features. |
+| Mission cueing or retasking | COMMAND_EVENT | Must pass through deconfliction and must not specify altitude. |
+| Timing, link, health, schema violation, or task acknowledgement | SYSTEM_EVENT | Use the matching `event_subtype` / payload discriminator. |
+
+Native producer quirks belong in adapter-local code, mapping packs, or
+namespaced payload extensions that downstream consumers can ignore. They must
+not alter event meaning, units, lineage, authority boundaries, profile behavior,
+or command safety.
+
 ## Ingress Adapters
 
 | Adapter | Input | ZMeta Output | Status |
@@ -15,7 +33,7 @@ They are intentionally minimal and may be lossy.
 | [KrakenSDR](ingress/kraken/) | KrakenSDR DOA CSV / HTTP / JSON replay | OBSERVATION_EVENT (RF LOB) | Production |
 | [Moth](ingress/moth/) | Moth serial CSV/JSON, MAVLink TUNNEL, custom dialect | OBSERVATION_EVENT (RF LOB) | Production |
 | [SignalHunter](ingress/signalhunter/) | SignalHunter .bin PSD captures | OBSERVATION_EVENT (RF LOB, gradient) | Production |
-| [EO-CV](ingress/eo-cv/) | CV inference service JSON detections | OBSERVATION_EVENT (EO) | Production |
+| [EO-CV](ingress/eo-cv/) | CV inference service JSON detections | INFERENCE_EVENT (CLASSIFICATION) | Production |
 | [CoT](ingress/cot/) | Cursor-on-Target XML | (template) | Template |
 | [KLV](ingress/klv/) | MISB KLV metadata | (template) | Template |
 

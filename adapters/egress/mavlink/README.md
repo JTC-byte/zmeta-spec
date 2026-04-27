@@ -14,7 +14,7 @@ Output: autonomy-agnostic MissionIntent JSON
 Input (ZMeta COMMAND_EVENT):
 
 ```
-{"event":{"event_type":"COMMAND_EVENT","event_subtype":"MISSION_TASK"},"payload":{"task_id":"task-1","task_type":"GOTO","target_geo":{"lat":34.0,"lon":-118.0},"valid_for_ms":600000,"requires_deconfliction":true}}
+{"event":{"event_type":"COMMAND_EVENT","event_subtype":"GOTO"},"payload":{"task_id":"task-1","task_type":"GOTO","target_geo":{"lat":34.0,"lon":-118.0},"valid_for_ms":600000,"requires_deconfliction":true}}
 ```
 
 Output (MissionIntent):

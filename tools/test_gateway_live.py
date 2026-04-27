@@ -89,7 +89,7 @@ def main():
             "event": {
                 "event_id": "019c2b5d-4cd9-770e-b02d-55d63910a2e7",
                 "event_type": "COMMAND_EVENT",
-                "event_subtype": "MISSION_TASK",
+                "event_subtype": "GOTO",
                 "ts": "2025-01-17T14:31:00Z",
             },
             "source": {

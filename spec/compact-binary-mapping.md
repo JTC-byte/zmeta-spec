@@ -111,11 +111,24 @@ Profiles:
 
 Event subtypes (common):
 - `1` TRACK_STATE
-- `2` MISSION_TASK
+- `2` GOTO
 - `3` TASK_ACK
 - `4` LINK_STATUS
 - `5` TIME_STATUS
 - `6` SCHEMA_VIOLATION
+- `7` TRACK_FUSION
+- `8` CLASSIFICATION
+- `9` ASSOCIATION
+- `10` ANOMALY
+- `11` BEHAVIOR
+- `12` RF
+- `13` EO
+- `14` IR
+- `15` ACOUSTIC
+- `16` NETWORK
+- `17` ORBIT
+- `18` HOLD
+- `19` SEARCH_BOX
 
 System types:
 - `1` LINK_STATUS
@@ -205,4 +218,4 @@ Profile L examples. Actual sizes vary with field lengths and optional fields.
 | --- | --- | --- | --- | --- |
 | STATE_EVENT/TRACK_STATE | 558 | 476 | 231 | Tight budgets should drop optional payload fields such as `payload.data_ref`, `source_summary`, `heading_deg`, `speed_mps`, or `class`; keep `confidence` and `lineage`. |
 | SYSTEM_EVENT/TIME_STATUS | 444 | 373 | 101 | Already within tight budgets. |
-| COMMAND_EVENT/MISSION_TASK | 422 | 353 | 115 | Already within tight budgets. |
+| COMMAND_EVENT/GOTO | 422 | 353 | 115 | Already within tight budgets. |

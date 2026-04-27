@@ -13,7 +13,7 @@
   ],
   "properties": {
     "zmeta_version": {
-      "enum": ["1.0", "1.0.2", "1.0.3", "1.1", "1.1.0"]
+      "const": "1.1.0"
     },
     "event": {
       "$ref": "#/$defs/event"
@@ -155,6 +155,12 @@
           "confidence": false
         }
       }
+    },
+    {
+      "$ref": "#/$defs/eventSubtypeConsistency"
+    },
+    {
+      "$ref": "#/$defs/profileExportConsistency"
     }
   ],
   "$defs": {
@@ -162,6 +168,12 @@
       "type": "string",
       "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$",
       "description": "UUIDv7 per RFC 9562"
+    },
+    "utcDateTime": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "Z$",
+      "description": "UTC RFC 3339 timestamp serialized with a trailing Z"
     },
     "event": {
       "type": "object",
@@ -189,21 +201,419 @@
         },
         "event_subtype": {
           "type": "string",
-          "minLength": 1
+          "minLength": 1,
+          "description": "Semantic subtype. Must match the payload discriminator for the event type."
         },
         "ts": {
-          "type": "string",
-          "format": "date-time"
+          "$ref": "#/$defs/utcDateTime"
         },
         "t_publish": {
-          "type": "string",
-          "format": "date-time"
+          "$ref": "#/$defs/utcDateTime"
         },
         "t_receive": {
-          "type": "string",
-          "format": "date-time"
+          "$ref": "#/$defs/utcDateTime"
         }
       }
+    },
+    "eventSubtypeConsistency": {
+      "allOf": [
+        {
+          "if": {
+            "required": ["event"],
+            "properties": {
+              "event": {
+                "required": ["event_type"],
+                "properties": {
+                  "event_type": { "const": "OBSERVATION_EVENT" }
+                }
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "event": {
+                "properties": {
+                  "event_subtype": {
+                    "enum": ["RF", "EO", "IR", "ACOUSTIC", "NETWORK"]
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "required": ["event"],
+            "properties": {
+              "event": {
+                "required": ["event_type"],
+                "properties": {
+                  "event_type": { "const": "INFERENCE_EVENT" }
+                }
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "event": {
+                "properties": {
+                  "event_subtype": {
+                    "enum": ["CLASSIFICATION", "ASSOCIATION", "ANOMALY", "BEHAVIOR"]
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "required": ["event"],
+            "properties": {
+              "event": {
+                "required": ["event_type"],
+                "properties": {
+                  "event_type": { "const": "FUSION_EVENT" }
+                }
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "event": {
+                "properties": {
+                  "event_subtype": { "const": "TRACK_FUSION" }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "required": ["event"],
+            "properties": {
+              "event": {
+                "required": ["event_type"],
+                "properties": {
+                  "event_type": { "const": "STATE_EVENT" }
+                }
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "event": {
+                "properties": {
+                  "event_subtype": { "const": "TRACK_STATE" }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "required": ["event"],
+            "properties": {
+              "event": {
+                "required": ["event_type"],
+                "properties": {
+                  "event_type": { "const": "COMMAND_EVENT" }
+                }
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "event": {
+                "properties": {
+                  "event_subtype": {
+                    "enum": [
+                      "GOTO",
+                      "ORBIT",
+                      "HOLD",
+                      "SEARCH_BOX",
+                      "RETURN_TO_BASE",
+                      "LAND",
+                      "LOITER",
+                      "SCAN_RF",
+                      "TRACK_TARGET",
+                      "CHANGE_SENSOR_MODE"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "required": ["event"],
+            "properties": {
+              "event": {
+                "required": ["event_type"],
+                "properties": {
+                  "event_type": { "const": "SYSTEM_EVENT" }
+                }
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "event": {
+                "properties": {
+                  "event_subtype": {
+                    "enum": [
+                      "LINK_STATUS",
+                      "TIME_STATUS",
+                      "SCHEMA_VIOLATION",
+                      "TASK_ACK",
+                      "SENSOR_STATUS",
+                      "PLATFORM_STATUS"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        { "$ref": "#/$defs/subtypePayloadMatch/observation" },
+        { "$ref": "#/$defs/subtypePayloadMatch/inference" },
+        { "$ref": "#/$defs/subtypePayloadMatch/command" },
+        { "$ref": "#/$defs/subtypePayloadMatch/system" }
+      ]
+    },
+    "subtypePayloadMatch": {
+      "observation": {
+        "allOf": [
+          { "$ref": "#/$defs/subtypePayloadMatch/observationCase/RF" },
+          { "$ref": "#/$defs/subtypePayloadMatch/observationCase/EO" },
+          { "$ref": "#/$defs/subtypePayloadMatch/observationCase/IR" },
+          { "$ref": "#/$defs/subtypePayloadMatch/observationCase/ACOUSTIC" },
+          { "$ref": "#/$defs/subtypePayloadMatch/observationCase/NETWORK" }
+        ]
+      },
+      "observationCase": {
+        "RF": {
+          "if": { "$ref": "#/$defs/subtypePayloadMatch/eventSubtypeCase/OBSERVATION_EVENT/RF" },
+          "then": { "properties": { "payload": { "properties": { "modality": { "const": "RF" } } } } }
+        },
+        "EO": {
+          "if": { "$ref": "#/$defs/subtypePayloadMatch/eventSubtypeCase/OBSERVATION_EVENT/EO" },
+          "then": { "properties": { "payload": { "properties": { "modality": { "const": "EO" } } } } }
+        },
+        "IR": {
+          "if": { "$ref": "#/$defs/subtypePayloadMatch/eventSubtypeCase/OBSERVATION_EVENT/IR" },
+          "then": { "properties": { "payload": { "properties": { "modality": { "const": "IR" } } } } }
+        },
+        "ACOUSTIC": {
+          "if": { "$ref": "#/$defs/subtypePayloadMatch/eventSubtypeCase/OBSERVATION_EVENT/ACOUSTIC" },
+          "then": { "properties": { "payload": { "properties": { "modality": { "const": "ACOUSTIC" } } } } }
+        },
+        "NETWORK": {
+          "if": { "$ref": "#/$defs/subtypePayloadMatch/eventSubtypeCase/OBSERVATION_EVENT/NETWORK" },
+          "then": { "properties": { "payload": { "properties": { "modality": { "const": "NETWORK" } } } } }
+        }
+      },
+      "inference": {
+        "allOf": [
+          { "$ref": "#/$defs/subtypePayloadMatch/inferenceCase/CLASSIFICATION" },
+          { "$ref": "#/$defs/subtypePayloadMatch/inferenceCase/ASSOCIATION" },
+          { "$ref": "#/$defs/subtypePayloadMatch/inferenceCase/ANOMALY" },
+          { "$ref": "#/$defs/subtypePayloadMatch/inferenceCase/BEHAVIOR" }
+        ]
+      },
+      "inferenceCase": {
+        "CLASSIFICATION": {
+          "if": { "$ref": "#/$defs/subtypePayloadMatch/eventSubtypeCase/INFERENCE_EVENT/CLASSIFICATION" },
+          "then": { "properties": { "payload": { "properties": { "inference_type": { "const": "CLASSIFICATION" } } } } }
+        },
+        "ASSOCIATION": {
+          "if": { "$ref": "#/$defs/subtypePayloadMatch/eventSubtypeCase/INFERENCE_EVENT/ASSOCIATION" },
+          "then": { "properties": { "payload": { "properties": { "inference_type": { "const": "ASSOCIATION" } } } } }
+        },
+        "ANOMALY": {
+          "if": { "$ref": "#/$defs/subtypePayloadMatch/eventSubtypeCase/INFERENCE_EVENT/ANOMALY" },
+          "then": { "properties": { "payload": { "properties": { "inference_type": { "const": "ANOMALY" } } } } }
+        },
+        "BEHAVIOR": {
+          "if": { "$ref": "#/$defs/subtypePayloadMatch/eventSubtypeCase/INFERENCE_EVENT/BEHAVIOR" },
+          "then": { "properties": { "payload": { "properties": { "inference_type": { "const": "BEHAVIOR" } } } } }
+        }
+      },
+      "command": {
+        "allOf": [
+          { "$ref": "#/$defs/subtypePayloadMatch/commandCase/GOTO" },
+          { "$ref": "#/$defs/subtypePayloadMatch/commandCase/ORBIT" },
+          { "$ref": "#/$defs/subtypePayloadMatch/commandCase/HOLD" },
+          { "$ref": "#/$defs/subtypePayloadMatch/commandCase/SEARCH_BOX" },
+          { "$ref": "#/$defs/subtypePayloadMatch/commandCase/RETURN_TO_BASE" },
+          { "$ref": "#/$defs/subtypePayloadMatch/commandCase/LAND" },
+          { "$ref": "#/$defs/subtypePayloadMatch/commandCase/LOITER" },
+          { "$ref": "#/$defs/subtypePayloadMatch/commandCase/SCAN_RF" },
+          { "$ref": "#/$defs/subtypePayloadMatch/commandCase/TRACK_TARGET" },
+          { "$ref": "#/$defs/subtypePayloadMatch/commandCase/CHANGE_SENSOR_MODE" }
+        ]
+      },
+      "commandCase": {
+        "GOTO": {
+          "if": { "$ref": "#/$defs/subtypePayloadMatch/eventSubtypeCase/COMMAND_EVENT/GOTO" },
+          "then": { "properties": { "payload": { "properties": { "task_type": { "const": "GOTO" } } } } }
+        },
+        "ORBIT": {
+          "if": { "$ref": "#/$defs/subtypePayloadMatch/eventSubtypeCase/COMMAND_EVENT/ORBIT" },
+          "then": { "properties": { "payload": { "properties": { "task_type": { "const": "ORBIT" } } } } }
+        },
+        "HOLD": {
+          "if": { "$ref": "#/$defs/subtypePayloadMatch/eventSubtypeCase/COMMAND_EVENT/HOLD" },
+          "then": { "properties": { "payload": { "properties": { "task_type": { "const": "HOLD" } } } } }
+        },
+        "SEARCH_BOX": {
+          "if": { "$ref": "#/$defs/subtypePayloadMatch/eventSubtypeCase/COMMAND_EVENT/SEARCH_BOX" },
+          "then": { "properties": { "payload": { "properties": { "task_type": { "const": "SEARCH_BOX" } } } } }
+        },
+        "RETURN_TO_BASE": {
+          "if": { "$ref": "#/$defs/subtypePayloadMatch/eventSubtypeCase/COMMAND_EVENT/RETURN_TO_BASE" },
+          "then": { "properties": { "payload": { "properties": { "task_type": { "const": "RETURN_TO_BASE" } } } } }
+        },
+        "LAND": {
+          "if": { "$ref": "#/$defs/subtypePayloadMatch/eventSubtypeCase/COMMAND_EVENT/LAND" },
+          "then": { "properties": { "payload": { "properties": { "task_type": { "const": "LAND" } } } } }
+        },
+        "LOITER": {
+          "if": { "$ref": "#/$defs/subtypePayloadMatch/eventSubtypeCase/COMMAND_EVENT/LOITER" },
+          "then": { "properties": { "payload": { "properties": { "task_type": { "const": "LOITER" } } } } }
+        },
+        "SCAN_RF": {
+          "if": { "$ref": "#/$defs/subtypePayloadMatch/eventSubtypeCase/COMMAND_EVENT/SCAN_RF" },
+          "then": { "properties": { "payload": { "properties": { "task_type": { "const": "SCAN_RF" } } } } }
+        },
+        "TRACK_TARGET": {
+          "if": { "$ref": "#/$defs/subtypePayloadMatch/eventSubtypeCase/COMMAND_EVENT/TRACK_TARGET" },
+          "then": { "properties": { "payload": { "properties": { "task_type": { "const": "TRACK_TARGET" } } } } }
+        },
+        "CHANGE_SENSOR_MODE": {
+          "if": { "$ref": "#/$defs/subtypePayloadMatch/eventSubtypeCase/COMMAND_EVENT/CHANGE_SENSOR_MODE" },
+          "then": { "properties": { "payload": { "properties": { "task_type": { "const": "CHANGE_SENSOR_MODE" } } } } }
+        }
+      },
+      "system": {
+        "allOf": [
+          { "$ref": "#/$defs/subtypePayloadMatch/systemCase/LINK_STATUS" },
+          { "$ref": "#/$defs/subtypePayloadMatch/systemCase/TIME_STATUS" },
+          { "$ref": "#/$defs/subtypePayloadMatch/systemCase/SCHEMA_VIOLATION" },
+          { "$ref": "#/$defs/subtypePayloadMatch/systemCase/TASK_ACK" },
+          { "$ref": "#/$defs/subtypePayloadMatch/systemCase/SENSOR_STATUS" },
+          { "$ref": "#/$defs/subtypePayloadMatch/systemCase/PLATFORM_STATUS" }
+        ]
+      },
+      "systemCase": {
+        "LINK_STATUS": {
+          "if": { "$ref": "#/$defs/subtypePayloadMatch/eventSubtypeCase/SYSTEM_EVENT/LINK_STATUS" },
+          "then": { "properties": { "payload": { "properties": { "system_type": { "const": "LINK_STATUS" } } } } }
+        },
+        "TIME_STATUS": {
+          "if": { "$ref": "#/$defs/subtypePayloadMatch/eventSubtypeCase/SYSTEM_EVENT/TIME_STATUS" },
+          "then": { "properties": { "payload": { "properties": { "system_type": { "const": "TIME_STATUS" } } } } }
+        },
+        "SCHEMA_VIOLATION": {
+          "if": { "$ref": "#/$defs/subtypePayloadMatch/eventSubtypeCase/SYSTEM_EVENT/SCHEMA_VIOLATION" },
+          "then": { "properties": { "payload": { "properties": { "system_type": { "const": "SCHEMA_VIOLATION" } } } } }
+        },
+        "TASK_ACK": {
+          "if": { "$ref": "#/$defs/subtypePayloadMatch/eventSubtypeCase/SYSTEM_EVENT/TASK_ACK" },
+          "then": { "properties": { "payload": { "properties": { "system_type": { "const": "TASK_ACK" } } } } }
+        },
+        "SENSOR_STATUS": {
+          "if": { "$ref": "#/$defs/subtypePayloadMatch/eventSubtypeCase/SYSTEM_EVENT/SENSOR_STATUS" },
+          "then": { "properties": { "payload": { "properties": { "system_type": { "const": "SENSOR_STATUS" } } } } }
+        },
+        "PLATFORM_STATUS": {
+          "if": { "$ref": "#/$defs/subtypePayloadMatch/eventSubtypeCase/SYSTEM_EVENT/PLATFORM_STATUS" },
+          "then": { "properties": { "payload": { "properties": { "system_type": { "const": "PLATFORM_STATUS" } } } } }
+        }
+      },
+      "eventSubtypeCase": {
+        "OBSERVATION_EVENT": {
+          "RF": { "required": ["event"], "properties": { "event": { "required": ["event_type", "event_subtype"], "properties": { "event_type": { "const": "OBSERVATION_EVENT" }, "event_subtype": { "const": "RF" } } } } },
+          "EO": { "required": ["event"], "properties": { "event": { "required": ["event_type", "event_subtype"], "properties": { "event_type": { "const": "OBSERVATION_EVENT" }, "event_subtype": { "const": "EO" } } } } },
+          "IR": { "required": ["event"], "properties": { "event": { "required": ["event_type", "event_subtype"], "properties": { "event_type": { "const": "OBSERVATION_EVENT" }, "event_subtype": { "const": "IR" } } } } },
+          "ACOUSTIC": { "required": ["event"], "properties": { "event": { "required": ["event_type", "event_subtype"], "properties": { "event_type": { "const": "OBSERVATION_EVENT" }, "event_subtype": { "const": "ACOUSTIC" } } } } },
+          "NETWORK": { "required": ["event"], "properties": { "event": { "required": ["event_type", "event_subtype"], "properties": { "event_type": { "const": "OBSERVATION_EVENT" }, "event_subtype": { "const": "NETWORK" } } } } }
+        },
+        "INFERENCE_EVENT": {
+          "CLASSIFICATION": { "required": ["event"], "properties": { "event": { "required": ["event_type", "event_subtype"], "properties": { "event_type": { "const": "INFERENCE_EVENT" }, "event_subtype": { "const": "CLASSIFICATION" } } } } },
+          "ASSOCIATION": { "required": ["event"], "properties": { "event": { "required": ["event_type", "event_subtype"], "properties": { "event_type": { "const": "INFERENCE_EVENT" }, "event_subtype": { "const": "ASSOCIATION" } } } } },
+          "ANOMALY": { "required": ["event"], "properties": { "event": { "required": ["event_type", "event_subtype"], "properties": { "event_type": { "const": "INFERENCE_EVENT" }, "event_subtype": { "const": "ANOMALY" } } } } },
+          "BEHAVIOR": { "required": ["event"], "properties": { "event": { "required": ["event_type", "event_subtype"], "properties": { "event_type": { "const": "INFERENCE_EVENT" }, "event_subtype": { "const": "BEHAVIOR" } } } } }
+        },
+        "COMMAND_EVENT": {
+          "GOTO": { "required": ["event"], "properties": { "event": { "required": ["event_type", "event_subtype"], "properties": { "event_type": { "const": "COMMAND_EVENT" }, "event_subtype": { "const": "GOTO" } } } } },
+          "ORBIT": { "required": ["event"], "properties": { "event": { "required": ["event_type", "event_subtype"], "properties": { "event_type": { "const": "COMMAND_EVENT" }, "event_subtype": { "const": "ORBIT" } } } } },
+          "HOLD": { "required": ["event"], "properties": { "event": { "required": ["event_type", "event_subtype"], "properties": { "event_type": { "const": "COMMAND_EVENT" }, "event_subtype": { "const": "HOLD" } } } } },
+          "SEARCH_BOX": { "required": ["event"], "properties": { "event": { "required": ["event_type", "event_subtype"], "properties": { "event_type": { "const": "COMMAND_EVENT" }, "event_subtype": { "const": "SEARCH_BOX" } } } } },
+          "RETURN_TO_BASE": { "required": ["event"], "properties": { "event": { "required": ["event_type", "event_subtype"], "properties": { "event_type": { "const": "COMMAND_EVENT" }, "event_subtype": { "const": "RETURN_TO_BASE" } } } } },
+          "LAND": { "required": ["event"], "properties": { "event": { "required": ["event_type", "event_subtype"], "properties": { "event_type": { "const": "COMMAND_EVENT" }, "event_subtype": { "const": "LAND" } } } } },
+          "LOITER": { "required": ["event"], "properties": { "event": { "required": ["event_type", "event_subtype"], "properties": { "event_type": { "const": "COMMAND_EVENT" }, "event_subtype": { "const": "LOITER" } } } } },
+          "SCAN_RF": { "required": ["event"], "properties": { "event": { "required": ["event_type", "event_subtype"], "properties": { "event_type": { "const": "COMMAND_EVENT" }, "event_subtype": { "const": "SCAN_RF" } } } } },
+          "TRACK_TARGET": { "required": ["event"], "properties": { "event": { "required": ["event_type", "event_subtype"], "properties": { "event_type": { "const": "COMMAND_EVENT" }, "event_subtype": { "const": "TRACK_TARGET" } } } } },
+          "CHANGE_SENSOR_MODE": { "required": ["event"], "properties": { "event": { "required": ["event_type", "event_subtype"], "properties": { "event_type": { "const": "COMMAND_EVENT" }, "event_subtype": { "const": "CHANGE_SENSOR_MODE" } } } } }
+        },
+        "SYSTEM_EVENT": {
+          "LINK_STATUS": { "required": ["event"], "properties": { "event": { "required": ["event_type", "event_subtype"], "properties": { "event_type": { "const": "SYSTEM_EVENT" }, "event_subtype": { "const": "LINK_STATUS" } } } } },
+          "TIME_STATUS": { "required": ["event"], "properties": { "event": { "required": ["event_type", "event_subtype"], "properties": { "event_type": { "const": "SYSTEM_EVENT" }, "event_subtype": { "const": "TIME_STATUS" } } } } },
+          "SCHEMA_VIOLATION": { "required": ["event"], "properties": { "event": { "required": ["event_type", "event_subtype"], "properties": { "event_type": { "const": "SYSTEM_EVENT" }, "event_subtype": { "const": "SCHEMA_VIOLATION" } } } } },
+          "TASK_ACK": { "required": ["event"], "properties": { "event": { "required": ["event_type", "event_subtype"], "properties": { "event_type": { "const": "SYSTEM_EVENT" }, "event_subtype": { "const": "TASK_ACK" } } } } },
+          "SENSOR_STATUS": { "required": ["event"], "properties": { "event": { "required": ["event_type", "event_subtype"], "properties": { "event_type": { "const": "SYSTEM_EVENT" }, "event_subtype": { "const": "SENSOR_STATUS" } } } } },
+          "PLATFORM_STATUS": { "required": ["event"], "properties": { "event": { "required": ["event_type", "event_subtype"], "properties": { "event_type": { "const": "SYSTEM_EVENT" }, "event_subtype": { "const": "PLATFORM_STATUS" } } } } }
+        }
+      }
+    },
+    "profileExportConsistency": {
+      "allOf": [
+        {
+          "if": {
+            "required": ["profile"],
+            "properties": {
+              "profile": { "const": "L" }
+            }
+          },
+          "then": {
+            "properties": {
+              "event": {
+                "properties": {
+                  "event_type": {
+                    "enum": ["STATE_EVENT", "SYSTEM_EVENT", "COMMAND_EVENT"]
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "required": ["profile"],
+            "properties": {
+              "profile": { "const": "M" }
+            }
+          },
+          "then": {
+            "properties": {
+              "event": {
+                "properties": {
+                  "event_type": {
+                    "enum": [
+                      "OBSERVATION_EVENT",
+                      "FUSION_EVENT",
+                      "STATE_EVENT",
+                      "SYSTEM_EVENT",
+                      "COMMAND_EVENT"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      ]
     },
     "source": {
       "type": "object",
@@ -242,7 +652,7 @@
     },
     "geo": {
       "type": "object",
-      "additionalProperties": true,
+      "additionalProperties": false,
       "required": ["lat", "lon", "alt_m"],
       "properties": {
         "lat": {
@@ -297,6 +707,23 @@
         }
       }
     },
+    "timing_quality": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["time_source", "sync_state", "est_error_ms", "last_sync_ts"],
+      "properties": {
+        "time_source": {
+          "type": "string",
+          "enum": ["GPS_PPS", "GPS_NMEA", "NTP", "PTP", "MANUAL", "UNKNOWN"]
+        },
+        "sync_state": {
+          "type": "string",
+          "enum": ["LOCKED", "HOLDOVER", "UNSYNCED"]
+        },
+        "est_error_ms": { "type": "number", "minimum": 0 },
+        "last_sync_ts": { "$ref": "#/$defs/utcDateTime" }
+      }
+    },
     "error_ellipse": {
       "type": "object",
       "additionalProperties": false,
@@ -330,15 +757,29 @@
       "additionalProperties": true,
       "properties": {
         "measurement_error": {
-          "type": "number",
-          "minimum": 0,
-          "description": "1-sigma error in the primary measurement unit for this modality"
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["value", "unit", "metric"],
+          "properties": {
+            "value": {
+              "type": "number",
+              "minimum": 0,
+              "description": "Measurement error magnitude"
+            },
+            "unit": {
+              "type": "string",
+              "enum": ["m", "deg", "hz", "db", "dbm", "ms", "px"],
+              "description": "Explicit unit for measurement_error.value"
+            },
+            "metric": {
+              "type": "string",
+              "enum": ["1_SIGMA", "CEP", "CE_90", "CE_95", "MAX_BOUND"],
+              "description": "How measurement_error.value is expressed"
+            }
+          },
+          "description": "Self-describing measurement error with explicit unit and metric"
         },
-        "error_metric": {
-          "type": "string",
-          "enum": ["1_SIGMA", "CEP", "CE_90", "CE_95", "MAX_BOUND"],
-          "description": "How measurement_error is expressed"
-        },
+        "error_metric": false,
         "snr_db": {
           "type": "number",
           "description": "Signal-to-noise ratio in dB"
@@ -357,7 +798,8 @@
     },
     "orbit_geometry": {
       "type": "object",
-      "additionalProperties": true,
+      "additionalProperties": false,
+      "required": ["pattern", "radius_m"],
       "properties": {
         "pattern": {
           "type": "string",
@@ -387,10 +829,67 @@
         }
       }
     },
+    "loiter_geometry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["pattern"],
+      "properties": {
+        "pattern": {
+          "type": "string",
+          "enum": ["circle", "racetrack", "station_keep"]
+        },
+        "radius_m": {
+          "type": "number",
+          "minimum": 0
+        },
+        "direction": {
+          "type": "string",
+          "enum": ["CW", "CCW"]
+        }
+      }
+    },
+    "search_box_geometry": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["bbox"],
+          "properties": {
+            "bbox": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["min_lat", "min_lon", "max_lat", "max_lon"],
+              "properties": {
+                "min_lat": { "type": "number", "minimum": -90, "maximum": 90 },
+                "min_lon": { "type": "number", "minimum": -180, "maximum": 180 },
+                "max_lat": { "type": "number", "minimum": -90, "maximum": 90 },
+                "max_lon": { "type": "number", "minimum": -180, "maximum": 180 }
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["polygon"],
+          "properties": {
+            "polygon": {
+              "type": "array",
+              "minItems": 4,
+              "items": { "$ref": "#/$defs/geo2d" }
+            }
+          }
+        }
+      ]
+    },
     "data_ref": {
       "type": "object",
-      "additionalProperties": true,
+      "additionalProperties": false,
       "required": ["ref_id"],
+      "dependentRequired": {
+        "t_start": ["t_end"],
+        "t_end": ["t_start"]
+      },
       "properties": {
         "ref_id": {
           "type": "string",
@@ -412,19 +911,18 @@
         },
         "hash": {
           "type": "string",
-          "description": "Content hash (e.g. sha256:abc123...)"
+          "pattern": "^sha256:[0-9a-fA-F]{64}$",
+          "description": "Canonical SHA-256 content hash in the form sha256:<64 hex chars>"
         },
         "size_bytes": {
           "type": "integer",
           "minimum": 0
         },
         "t_start": {
-          "type": "string",
-          "format": "date-time"
+          "$ref": "#/$defs/utcDateTime"
         },
         "t_end": {
-          "type": "string",
-          "format": "date-time"
+          "$ref": "#/$defs/utcDateTime"
         }
       }
     },
@@ -432,6 +930,10 @@
       "type": "object",
       "additionalProperties": true,
       "required": ["modality", "features"],
+      "dependentRequired": {
+        "t_start": ["t_end"],
+        "t_end": ["t_start"]
+      },
       "properties": {
         "modality": {
           "type": "string",
@@ -440,13 +942,7 @@
             "EO",
             "IR",
             "ACOUSTIC",
-            "NETWORK",
-            "RADAR",
-            "LIDAR",
-            "MAGNETIC",
-            "SEISMIC",
-            "CYBER",
-            "SIGINT"
+            "NETWORK"
           ]
         },
         "geo": {
@@ -469,16 +965,22 @@
         "quality": {
           "$ref": "#/$defs/quality"
         },
+        "timing_quality": {
+          "$ref": "#/$defs/timing_quality"
+        },
         "t_start": {
-          "type": "string",
-          "format": "date-time"
+          "$ref": "#/$defs/utcDateTime"
         },
         "t_end": {
-          "type": "string",
-          "format": "date-time"
+          "$ref": "#/$defs/utcDateTime"
         },
         "data_ref": {
           "$ref": "#/$defs/data_ref"
+        },
+        "data_refs": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/data_ref" }
         },
         "track_id": false,
         "entity_class": false,
@@ -488,6 +990,11 @@
         "confidence": false
       },
       "allOf": [
+        {
+          "not": {
+            "required": ["data_ref", "data_refs"]
+          }
+        },
         {
           "if": {
             "properties": {
@@ -530,14 +1037,17 @@
                   "confidence": false,
                   "classification": false,
                   "label": false,
-                  "bbox": {
+                  "bbox": false,
+                  "roi_px": {
                     "type": "object",
-                    "description": "Bounding box in image coordinates",
+                    "additionalProperties": false,
+                    "required": ["x", "y", "w", "h"],
+                    "description": "Raw image region of interest or crop in pixels; not a detected object box",
                     "properties": {
-                      "x": { "type": "number" },
-                      "y": { "type": "number" },
-                      "w": { "type": "number" },
-                      "h": { "type": "number" }
+                      "x": { "type": "number", "minimum": 0 },
+                      "y": { "type": "number", "minimum": 0 },
+                      "w": { "type": "number", "exclusiveMinimum": 0 },
+                      "h": { "type": "number", "exclusiveMinimum": 0 }
                     }
                   },
                   "fov_deg": {
@@ -548,6 +1058,8 @@
                   },
                   "resolution_px": {
                     "type": "object",
+                    "additionalProperties": false,
+                    "required": ["width", "height"],
                     "description": "Image resolution in pixels",
                     "properties": {
                       "width": { "type": "integer", "minimum": 1 },
@@ -610,30 +1122,47 @@
                 "additionalProperties": true,
                 "required": [
                   "center_freq_hz",
-                  "power_db"
+                  "spl_db"
                 ],
                 "properties": {
                   "center_freq_hz": {
                     "type": "number",
                     "description": "Dominant frequency in Hz"
                   },
-                  "power_db": {
+                  "spl_db": {
                     "type": "number",
-                    "description": "Sound pressure level in dB"
+                    "description": "Sound pressure level in dB SPL re 20 uPa"
                   },
                   "duration_ms": {
                     "type": "number",
                     "minimum": 0,
                     "description": "Duration of the acoustic event in milliseconds"
                   },
-                  "source_type": {
-                    "type": "string",
-                    "description": "Acoustic source classification (e.g. engine, rotor, gunshot, voice)"
-                  },
                   "bandwidth_hz": {
                     "type": "number",
+                    "minimum": 0,
                     "description": "Bandwidth of the acoustic signal in Hz"
-                  }
+                  },
+                  "spectral_centroid_hz": {
+                    "type": "number",
+                    "minimum": 0,
+                    "description": "Spectral centroid in Hz"
+                  },
+                  "harmonic_count": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "description": "Measured harmonic count"
+                  },
+                  "signature_hash": {
+                    "type": "string",
+                    "description": "Hash of measured acoustic signature or feature vector"
+                  },
+                  "power_db": false,
+                  "source_type": false,
+                  "class_name": false,
+                  "confidence": false,
+                  "classification": false,
+                  "label": false
                 }
               }
             }
@@ -703,8 +1232,16 @@
           ]
         },
         "claim": {
-          "type": "object"
+          "type": "object",
+          "properties": {
+            "track_id": false,
+            "members": false,
+            "estimated_state": false
+          }
         },
+        "track_id": false,
+        "members": false,
+        "estimated_state": false,
         "model": {
           "type": "object",
           "additionalProperties": false,
@@ -718,6 +1255,9 @@
           "type": "array",
           "minItems": 1,
           "items": { "$ref": "#/$defs/uuid" }
+        },
+        "timing_quality": {
+          "$ref": "#/$defs/timing_quality"
         }
       }
     },
@@ -744,11 +1284,12 @@
             "geo": { "$ref": "#/$defs/geo" },
             "bearing": { "$ref": "#/$defs/bearing" },
             "heading_deg": { "type": "number", "minimum": 0, "maximum": 360 },
-            "speed_mps": { "type": "number" }
+            "speed_mps": { "type": "number", "minimum": 0 }
           }
         },
         "stability": { "type": "number", "minimum": 0, "maximum": 1 },
-        "last_seen_ts": { "type": "string", "format": "date-time" }
+        "last_seen_ts": { "$ref": "#/$defs/utcDateTime" },
+        "timing_quality": { "$ref": "#/$defs/timing_quality" }
       }
     },
     "TrackStatePayload": {
@@ -764,13 +1305,38 @@
           "items": { "type": "string" }
         },
         "heading_deg": { "type": "number", "minimum": 0, "maximum": 360 },
-        "speed_mps": { "type": "number" },
-        "valid_for_ms": { "type": "integer", "minimum": 1 }
+        "speed_mps": { "type": "number", "minimum": 0 },
+        "valid_for_ms": { "type": "integer", "minimum": 1 },
+        "timing_quality": { "$ref": "#/$defs/timing_quality" },
+        "extensions": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "features": false,
+            "raw_features": false,
+            "modality": false,
+            "measurement": false,
+            "measurements": false,
+            "t_start": false,
+            "t_end": false,
+            "data_ref": false,
+            "data_refs": false
+          }
+        },
+        "features": false,
+        "raw_features": false,
+        "modality": false,
+        "measurement": false,
+        "measurements": false,
+        "t_start": false,
+        "t_end": false,
+        "data_ref": false,
+        "data_refs": false
       }
     },
     "CommandPayload": {
       "type": "object",
-      "additionalProperties": true,
+      "additionalProperties": false,
       "required": [
         "task_id",
         "task_type",
@@ -795,15 +1361,213 @@
           ]
         },
         "target_geo": { "$ref": "#/$defs/geo2d" },
-        "geometry": { "$ref": "#/$defs/orbit_geometry" },
-        "valid_from_ts": { "type": "string", "format": "date-time" },
+        "geometry": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "alt_m": false,
+            "altitude_m": false,
+            "alt_hae_m": false,
+            "alt_msl_m": false,
+            "agl_m": false,
+            "target_alt_m": false,
+            "altitude": false,
+            "target_altitude": false
+          }
+        },
+        "valid_from_ts": { "$ref": "#/$defs/utcDateTime" },
         "valid_for_ms": { "type": "integer", "minimum": 1 },
         "priority": {
           "type": "string",
           "enum": ["LOW", "MED", "HIGH"]
         },
-        "requires_deconfliction": { "const": true }
-      }
+        "requires_deconfliction": { "const": true },
+        "sensor_id": { "type": "string", "minLength": 1 },
+        "sensor_mode": { "type": "string", "minLength": 1 },
+        "target_track_id": { "type": "string", "minLength": 1 },
+        "freq_range_hz": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["min", "max"],
+          "properties": {
+            "min": { "type": "number", "minimum": 0 },
+            "max": { "type": "number", "minimum": 0 }
+          }
+        },
+        "dwell_ms": { "type": "integer", "minimum": 1 },
+        "step_hz": { "type": "number", "minimum": 0 },
+        "timing_quality": { "$ref": "#/$defs/timing_quality" },
+        "extensions": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "alt_m": false,
+            "altitude_m": false,
+            "alt_hae_m": false,
+            "alt_msl_m": false,
+            "agl_m": false,
+            "target_alt_m": false,
+            "altitude": false,
+            "target_altitude": false
+          }
+        },
+        "alt_m": false,
+        "altitude_m": false,
+        "alt_hae_m": false,
+        "alt_msl_m": false,
+        "agl_m": false,
+        "target_alt_m": false,
+        "altitude": false,
+        "target_altitude": false
+      },
+      "allOf": [
+        {
+          "if": {
+            "required": ["task_type"],
+            "properties": {
+              "task_type": { "const": "GOTO" }
+            }
+          },
+          "then": {
+            "required": ["target_geo"],
+            "properties": {
+              "geometry": false
+            }
+          }
+        },
+        {
+          "if": {
+            "required": ["task_type"],
+            "properties": {
+              "task_type": { "const": "ORBIT" }
+            }
+          },
+          "then": {
+            "required": ["target_geo", "geometry"],
+            "properties": {
+              "geometry": { "$ref": "#/$defs/orbit_geometry" }
+            }
+          }
+        },
+        {
+          "if": {
+            "required": ["task_type"],
+            "properties": {
+              "task_type": { "const": "HOLD" }
+            }
+          },
+          "then": {
+            "properties": {
+              "geometry": false
+            }
+          }
+        },
+        {
+          "if": {
+            "required": ["task_type"],
+            "properties": {
+              "task_type": { "const": "SEARCH_BOX" }
+            }
+          },
+          "then": {
+            "required": ["geometry"],
+            "properties": {
+              "target_geo": false,
+              "geometry": { "$ref": "#/$defs/search_box_geometry" }
+            }
+          }
+        },
+        {
+          "if": {
+            "required": ["task_type"],
+            "properties": {
+              "task_type": { "const": "RETURN_TO_BASE" }
+            }
+          },
+          "then": {
+            "properties": {
+              "geometry": false
+            }
+          }
+        },
+        {
+          "if": {
+            "required": ["task_type"],
+            "properties": {
+              "task_type": { "const": "LAND" }
+            }
+          },
+          "then": {
+            "properties": {
+              "geometry": false
+            }
+          }
+        },
+        {
+          "if": {
+            "required": ["task_type"],
+            "properties": {
+              "task_type": { "const": "LOITER" }
+            }
+          },
+          "then": {
+            "anyOf": [
+              { "required": ["target_geo"] },
+              { "required": ["geometry"] }
+            ],
+            "properties": {
+              "geometry": { "$ref": "#/$defs/loiter_geometry" }
+            }
+          }
+        },
+        {
+          "if": {
+            "required": ["task_type"],
+            "properties": {
+              "task_type": { "const": "SCAN_RF" }
+            }
+          },
+          "then": {
+            "required": ["sensor_id", "freq_range_hz", "dwell_ms"],
+            "properties": {
+              "target_geo": false,
+              "geometry": false,
+              "target_track_id": false
+            }
+          }
+        },
+        {
+          "if": {
+            "required": ["task_type"],
+            "properties": {
+              "task_type": { "const": "TRACK_TARGET" }
+            }
+          },
+          "then": {
+            "required": ["target_track_id"],
+            "properties": {
+              "target_geo": false,
+              "geometry": false
+            }
+          }
+        },
+        {
+          "if": {
+            "required": ["task_type"],
+            "properties": {
+              "task_type": { "const": "CHANGE_SENSOR_MODE" }
+            }
+          },
+          "then": {
+            "required": ["sensor_id", "sensor_mode"],
+            "properties": {
+              "target_geo": false,
+              "geometry": false,
+              "target_track_id": false
+            }
+          }
+        }
+      ]
     },
     "SystemPayload": {
       "type": "object",
@@ -848,7 +1612,7 @@
                     "enum": ["LOCKED", "HOLDOVER", "UNSYNCED"]
                   },
                   "est_error_ms": { "type": "number", "minimum": 0 },
-                  "last_sync_ts": { "type": "string", "format": "date-time" }
+                  "last_sync_ts": { "$ref": "#/$defs/utcDateTime" }
                 }
               }
             }
@@ -929,13 +1693,29 @@
                     "minLength": 1,
                     "enum": [
                       "SCHEMA_INVALID",
+                      "VERSION_SEMANTICS_MISMATCH",
+                      "EVENT_SUBTYPE_MISMATCH",
                       "EVENT_TYPE_NOT_ALLOWED_FOR_ROLE",
                       "EVENT_TYPE_NOT_ALLOWED_FOR_PROFILE",
                       "COMMAND_NOT_DECONFLICTED",
                       "COMMAND_HAS_ALTITUDE",
+                      "INVALID_COMMAND_GEOMETRY",
+                      "COMMAND_TASK_TYPE_INVALID",
                       "OBSERVATION_HAS_IDENTITY",
+                      "OBSERVATION_HAS_CLASSIFICATION",
                       "INFERENCE_HAS_TRACK_ID",
                       "STATE_HAS_RAW_FEATURES",
+                      "INVALID_QUALITY_UNITS",
+                      "INVALID_MODALITY_FEATURES",
+                      "INVALID_GEO_FIELD",
+                      "INVALID_TIME_FORMAT",
+                      "RF_WINDOW_PAIRING_INVALID",
+                      "RF_WINDOW_MIDPOINT_INVALID",
+                      "LINEAGE_MISMATCH",
+                      "LINEAGE_PAYLOAD_BASED_ON_NOT_SUBSET",
+                      "LINEAGE_FUSION_MEMBERS_NOT_IN_BASED_ON",
+                      "LINEAGE_PARENT_UNRESOLVED",
+                      "LINEAGE_PARENT_TYPE_INVALID",
                       "SCHEMA_VIOLATION_MISSING_REASON_CODE",
                       "SCHEMA_VIOLATION_MISSING_ORIGINAL_EVENT_ID",
                       "SCHEMA_VIOLATION_INVALID_REASON_CODE",
@@ -949,7 +1729,17 @@
                       "LINK_STATUS_INVALID_STATE",
                       "LINK_STATUS_MISSING_REASON_CODE",
                       "LINK_STATUS_INVALID_REASON_CODE",
-                      "PRODUCER_NOT_ALLOWED"
+                      "SENSOR_STATUS_STATE_MISMATCH",
+                      "PLATFORM_STATUS_POWER_MISSING",
+                      "PRODUCER_NOT_ALLOWED",
+                      "PROFILE_MISMATCH",
+                      "TIMING_STATUS_MISSING",
+                      "TIMING_STATUS_STALE",
+                      "TIMING_STATUS_HOLDOVER_NON_MONOTONIC",
+                      "RF_WINDOW_MIDPOINT_MISMATCH",
+                      "EVENT_DUPLICATE",
+                      "TASK_DUPLICATE",
+                      "TASK_ACK_DUPLICATE"
                     ]
                   },
                   "original_event_id": { "type": "string", "minLength": 1 },
@@ -1041,18 +1831,14 @@
               "metrics": {
                 "type": "object",
                 "additionalProperties": true,
-                "required": ["sensor_id", "operational_state"],
+                "required": ["sensor_id"],
                 "properties": {
                   "sensor_id": {
                     "type": "string",
                     "minLength": 1,
                     "description": "Identifier of the sensor being reported"
                   },
-                  "operational_state": {
-                    "type": "string",
-                    "enum": ["ACTIVE", "DEGRADED", "OFFLINE", "CALIBRATING"],
-                    "description": "Current operational state of the sensor"
-                  },
+                  "operational_state": false,
                   "sensor_type": {
                     "type": "string",
                     "description": "Sensor type or model identifier"
@@ -1111,7 +1897,12 @@
               "metrics": {
                 "type": "object",
                 "additionalProperties": true,
-                "required": ["battery_pct"],
+                "anyOf": [
+                  { "required": ["battery_pct"] },
+                  { "required": ["fuel_remaining_pct"] },
+                  { "required": ["endurance_remaining_ms"] },
+                  { "required": ["power_state"] }
+                ],
                 "properties": {
                   "battery_pct": {
                     "type": "number",
@@ -1124,10 +1915,16 @@
                     "minimum": 0,
                     "description": "Battery voltage in volts"
                   },
-                  "endurance_remaining_sec": {
+                  "endurance_remaining_sec": false,
+                  "endurance_remaining_ms": {
                     "type": "number",
                     "minimum": 0,
-                    "description": "Estimated remaining flight/operation time in seconds"
+                    "description": "Estimated remaining flight/operation time in milliseconds"
+                  },
+                  "power_state": {
+                    "type": "string",
+                    "enum": ["NOMINAL", "LOW_POWER", "EXTERNAL_POWER", "BATTERY", "FUEL", "UNKNOWN"],
+                    "description": "Current platform power source or power condition"
                   },
                   "flight_mode": {
                     "type": "string",
