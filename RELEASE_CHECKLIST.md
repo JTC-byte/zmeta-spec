@@ -14,7 +14,7 @@
 - [x] Release notes updated for v1.0.5
 - [x] Changelog updated for 1.0.5
 - [x] SHA256SUMS generated for v1.0.5 assets
-- [ ] GitHub CI passes for the v1.0.5 release commit
+- [x] GitHub CI passes for the v1.0.5 release commit
 - [ ] Gateway Docker build + run verified
-- [ ] Tag v1.0.5 created
-- [ ] GitHub Release created with artifacts links
+- [x] Tag v1.0.5 created
+- [x] GitHub Release created with artifacts links
