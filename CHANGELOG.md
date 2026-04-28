@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [1.1.4]
+- Fixed edge/gateway release bundles so downloaded packages include
+  `conformance/` and `release/sign_release_artifacts.py`, allowing bundle-local
+  gateway self-tests and release-signing tests to run.
+- Added regression coverage for release bundle self-test dependencies.
+
 ## [1.1.3]
 - Fixed GitHub Actions gateway self-test failure by preferring the built-in
   deterministic CBOR encoder/decoder when available, keeping `cbor2` as a

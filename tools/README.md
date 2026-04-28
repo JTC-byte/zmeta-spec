@@ -88,7 +88,7 @@ is intentionally enabled.
 ### Check Migration Compatibility
 
 ```
-python tools/check_compat.py legacy-events.jsonl --target v1.1.3
+python tools/check_compat.py legacy-events.jsonl --target v1.1.4
 python tools/check_compat.py legacy-events.jsonl --profile L --policy-dir policy
 python tools/check_compat.py legacy-events.jsonl --json
 ```

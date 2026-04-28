@@ -2,7 +2,7 @@ import argparse
 import shutil
 from pathlib import Path
 
-VERSION_TAG = "v1.1.3"
+VERSION_TAG = "v1.1.4"
 IGNORE_NAMES = (
     "__pycache__",
     ".pytest_cache",
@@ -72,8 +72,34 @@ def make_zip(root: Path, bundle_dir: Path, archive_name: str) -> Path:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Build edge and gateway ZMeta release packages.")
-    parser.add_argument("--version", default=VERSION_TAG, help="Release tag, e.g. v1.1.3.")
+    parser.add_argument("--version", default=VERSION_TAG, help="Release tag, e.g. v1.1.4.")
     return parser.parse_args()
+
+
+COMMON_PATHS = [
+    "schema",
+    "policy",
+    "spec",
+    "adapters",
+    "tools",
+    "gateway",
+    "examples",
+    "conformance",
+    "configs",
+    "README.md",
+    "LICENSE",
+    "requirements.txt",
+    "requirements-dev.txt",
+    "zmeta_uuid.py",
+    "zmeta_cbor.py",
+    "zmeta_compact.py",
+    "zmeta_proto.py",
+    "deploy/README.md",
+    "release/README.md",
+    "release/build_mvp_packages.py",
+    "release/build_release_bundle.py",
+    "release/sign_release_artifacts.py",
+]
 
 
 def main() -> None:
@@ -83,38 +109,18 @@ def main() -> None:
     bundle_root = root / "release" / "bundles"
     bundle_root.mkdir(parents=True, exist_ok=True)
 
-    common = [
-        "schema",
-        "policy",
-        "spec",
-        "adapters",
-        "tools",
-        "gateway",
-        "examples",
-        "configs",
-        "README.md",
-        "LICENSE",
-        "requirements.txt",
-        "requirements-dev.txt",
-        "zmeta_uuid.py",
-        "zmeta_cbor.py",
-        "zmeta_compact.py",
-        "zmeta_proto.py",
-        "deploy/README.md",
-    ]
-
     edge_bundle = build_bundle(
         root,
         bundle_root,
         "zmeta-edge",
-        common + ["deploy/edge"],
+        COMMON_PATHS + ["deploy/edge"],
         version_tag,
     )
     gateway_bundle = build_bundle(
         root,
         bundle_root,
         "zmeta-gateway",
-        common + ["deploy/gateway"],
+        COMMON_PATHS + ["deploy/gateway"],
         version_tag,
     )
 

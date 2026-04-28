@@ -1,4 +1,4 @@
-# ZMeta Specification (v1.0 Locked, current release v1.1.3)
+# ZMeta Specification (v1.0 Locked, current release v1.1.4)
 
 ## Overview
 - ZMeta is a transport-agnostic, event-based metadata standard for resilient ISR.
@@ -7,8 +7,8 @@
 
 ## Current Release
 
-- Current release: `v1.1.3`
-- Release notes and assets: <https://github.com/JTC-byte/zmeta-spec/releases/tag/v1.1.3>
+- Current release: `v1.1.4`
+- Release notes and assets: <https://github.com/JTC-byte/zmeta-spec/releases/tag/v1.1.4>
 - Normative contract: v1.0 locked semantic contract, canonical version-discriminated
   JSON schema, v1.0 JSON schema, and policy pack.
 - Experimental extension: `schema/zmeta-event-1.1.0.schema.json` is provided for proposed
@@ -96,7 +96,7 @@ python tools/run_gateway.py --profile H
 python tools/udp_receiver.py
 python tools/udp_sender.py --file examples/zmeta-command-examples.jsonl
 python tools/replay.py --file examples/zmeta-command-examples.jsonl --delay-ms 200
-python tools/check_compat.py legacy-events.jsonl --target v1.1.3
+python tools/check_compat.py legacy-events.jsonl --target v1.1.4
 python tools/validate.py --file examples/zmeta-command-examples.jsonl --profile H
 python tools/validate_conformance.py --strict
 python tools/compute_contract_hash.py
@@ -158,9 +158,9 @@ Deployment helpers:
 - Config templates: `configs/edge-config.json`, `configs/gateway-config.json`
 - Docker Compose: `deploy/edge/docker-compose.yml`, `deploy/gateway/docker-compose.yml`
 - Bundle builders:
-    - `python release/build_mvp_packages.py` produces `zmeta-edge-v1.1.3.zip` and `zmeta-gateway-v1.1.3.zip`
-    - `python release/build_release_bundle.py` produces `zmeta-v1.1.3-dist.zip`
-    - `python release/sign_release_artifacts.py --version v1.1.3 --write-checksums --sign --target all` signs release assets with detached PGP signatures.
+    - `python release/build_mvp_packages.py` produces `zmeta-edge-v1.1.4.zip` and `zmeta-gateway-v1.1.4.zip`
+    - `python release/build_release_bundle.py` produces `zmeta-v1.1.4-dist.zip`
+    - `python release/sign_release_artifacts.py --version v1.1.4 --write-checksums --sign --target all` signs release assets with detached PGP signatures.
 
 ## Deployment Checklist (Compact)
 
