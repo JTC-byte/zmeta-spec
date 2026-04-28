@@ -2,6 +2,15 @@
 
 ## [Unreleased]
 
+## [1.1.3]
+- Fixed GitHub Actions gateway self-test failure by preferring the built-in
+  deterministic CBOR encoder/decoder when available, keeping `cbor2` as a
+  fallback.
+- Added regression coverage for gateway and compact CBOR behavior when `cbor2`
+  is present.
+- Opted CI into Node.js 24 JavaScript actions to address the hosted runner
+  Node.js 20 deprecation warning.
+
 ## [1.1.2]
 - Added `tools/check_compat.py` for migration-oriented JSON/JSONL diagnostics.
 - Added malformed protobuf decoder regression tests for varints, length fields,

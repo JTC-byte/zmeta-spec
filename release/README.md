@@ -5,26 +5,26 @@ Build release artifacts from the repo root:
 ```powershell
 python release/build_mvp_packages.py
 python release/build_release_bundle.py
-python release/sign_release_artifacts.py --version v1.1.2 --write-checksums --verify-checksums
+python release/sign_release_artifacts.py --version v1.1.3 --write-checksums --verify-checksums
 ```
 
 Create detached PGP signatures for the checksum manifest and every release
 asset:
 
 ```powershell
-python release/sign_release_artifacts.py --version v1.1.2 --sign --target all --gpg-key-id <fingerprint>
+python release/sign_release_artifacts.py --version v1.1.3 --sign --target all --gpg-key-id <fingerprint>
 ```
 
 Verify before upload:
 
 ```powershell
-python release/sign_release_artifacts.py --version v1.1.2 --verify-checksums --verify-signatures --target all
+python release/sign_release_artifacts.py --version v1.1.3 --verify-checksums --verify-signatures --target all
 ```
 
 Dry-run the signing commands when GPG is not available on the current machine:
 
 ```powershell
-python release/sign_release_artifacts.py --version v1.1.2 --sign --target all --dry-run
+python release/sign_release_artifacts.py --version v1.1.3 --sign --target all --dry-run
 ```
 
 Upload the release zips, `SHA256SUMS_<version>.txt`, and all `.asc` detached

@@ -12,7 +12,7 @@ spec = importlib.util.spec_from_file_location("zmeta_validators", VALIDATORS_PAT
 validators = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(validators)
 
-TARGETS = ("v1.1.1", "v1.1.2")
+TARGETS = ("v1.1.1", "v1.1.2", "v1.1.3")
 
 TIMESTAMP_KEYS = {
     "ts",
@@ -76,7 +76,7 @@ def parse_args():
     parser.add_argument("file", help="ZMeta JSON or JSONL file to check.")
     parser.add_argument(
         "--target",
-        default="v1.1.2",
+        default="v1.1.3",
         choices=TARGETS,
         help="Release target to check against. v1.1.x keeps zmeta_version 1.0 and 1.1.0.",
     )

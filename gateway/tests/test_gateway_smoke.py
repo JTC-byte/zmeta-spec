@@ -376,6 +376,28 @@ class GatewaySmokeTest(unittest.TestCase):
         self.assertEqual(1, metrics.window["timing_quality_modes"]["GPS_PPS/LOCKED"])
         self.assertEqual(1, metrics.window["timing_quality_modes"]["UNKNOWN/UNSYNCED"])
 
+    def test_gateway_cbor_prefers_builtin_when_cbor2_is_present(self):
+        class ExplodingCbor2:
+            @staticmethod
+            def dumps(*_args, **_kwargs):
+                raise AssertionError("gateway should prefer zmeta_cbor for deterministic CBOR")
+
+            @staticmethod
+            def loads(*_args, **_kwargs):
+                raise AssertionError("gateway should prefer zmeta_cbor for deterministic CBOR")
+
+        original_cbor2 = gateway.cbor2
+        try:
+            gateway.cbor2 = ExplodingCbor2
+            sample = {"b": 1, "a": 2.0, "nested": {"z": True, "y": None}}
+
+            encoded = gateway._encode_cbor(sample)
+            decoded = gateway._decode_cbor(encoded)
+
+            self.assertEqual(sample, decoded)
+        finally:
+            gateway.cbor2 = original_cbor2
+
 
 if __name__ == "__main__":
     unittest.main()

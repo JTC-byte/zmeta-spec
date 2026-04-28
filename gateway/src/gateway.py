@@ -614,12 +614,8 @@ def _cbor_self_test():
         "f": True,
         "g": None,
     }
-    if cbor2 is not None:
-        encoded = cbor2.dumps(sample, canonical=True)
-        decoded = cbor2.loads(encoded)
-    else:
-        encoded = zmeta_cbor.dumps(sample)
-        decoded = zmeta_cbor.loads(encoded)
+    encoded = _encode_cbor(sample)
+    decoded = _decode_cbor(encoded)
     if decoded != sample:
         raise SystemExit("CBOR self-test failed: round-trip mismatch")
     if _encode_cbor({"b": 1, "a": 2}) != _encode_cbor({"a": 2, "b": 1}):
@@ -628,16 +624,16 @@ def _cbor_self_test():
 
 def _decode_cbor(message):
     _require_cbor()
-    if cbor2 is not None:
-        return cbor2.loads(message)
-    return zmeta_cbor.loads(message)
+    if zmeta_cbor is not None:
+        return zmeta_cbor.loads(message)
+    return cbor2.loads(message)
 
 
 def _encode_cbor(obj):
     _require_cbor()
-    if cbor2 is not None:
-        return cbor2.dumps(obj, canonical=True)
-    return zmeta_cbor.dumps(obj)
+    if zmeta_cbor is not None:
+        return zmeta_cbor.dumps(obj)
+    return cbor2.dumps(obj, canonical=True)
 
 
 def _looks_like_event(obj):

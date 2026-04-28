@@ -291,9 +291,9 @@ def _require_cbor():
 def dumps(event: Dict[str, Any]) -> bytes:
     compact = encode_event(event)
     _require_cbor()
-    if cbor2 is not None:
-        return cbor2.dumps(compact, canonical=True)
-    return zmeta_cbor.dumps(compact)
+    if zmeta_cbor is not None:
+        return zmeta_cbor.dumps(compact)
+    return cbor2.dumps(compact, canonical=True)
 
 
 def loads(data: bytes) -> Dict[str, Any]:
@@ -367,9 +367,9 @@ def decode_event(compact: Dict[int, Any]) -> Dict[str, Any]:
 
 def _decode_cbor(data: bytes) -> Any:
     _require_cbor()
-    if cbor2 is not None:
-        return cbor2.loads(data)
-    return zmeta_cbor.loads(data)
+    if zmeta_cbor is not None:
+        return zmeta_cbor.loads(data)
+    return cbor2.loads(data)
 
 
 def _encode_event_block(block: Dict[str, Any]) -> Dict[int, Any]:

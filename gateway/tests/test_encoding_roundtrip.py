@@ -46,6 +46,27 @@ def test_compact_roundtrip():
         assert decoded == event
 
 
+def test_compact_prefers_builtin_cbor_when_cbor2_is_present():
+    class ExplodingCbor2:
+        @staticmethod
+        def dumps(*_args, **_kwargs):
+            raise AssertionError("compact encoding should prefer zmeta_cbor")
+
+        @staticmethod
+        def loads(*_args, **_kwargs):
+            raise AssertionError("compact decoding should prefer zmeta_cbor")
+
+    original_cbor2 = zmeta_compact.cbor2
+    try:
+        zmeta_compact.cbor2 = ExplodingCbor2
+        for event in _load_events():
+            encoded = zmeta_compact.dumps(event)
+            decoded = zmeta_compact.loads(encoded)
+            assert decoded == event
+    finally:
+        zmeta_compact.cbor2 = original_cbor2
+
+
 def test_proto_roundtrip():
     for event in _load_events():
         encoded = zmeta_proto.dumps(event)
