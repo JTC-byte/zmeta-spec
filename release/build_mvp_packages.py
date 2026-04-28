@@ -1,7 +1,8 @@
+import argparse
 import shutil
 from pathlib import Path
 
-VERSION_TAG = "v1.1.1"
+VERSION_TAG = "v1.1.2"
 IGNORE_NAMES = (
     "__pycache__",
     ".pytest_cache",
@@ -41,7 +42,13 @@ def copy_item(src: Path, dest_root: Path, root: Path) -> None:
         shutil.copy2(src, dest)
 
 
-def build_bundle(root: Path, bundle_root: Path, name: str, include_paths: list[str]) -> Path:
+def build_bundle(
+    root: Path,
+    bundle_root: Path,
+    name: str,
+    include_paths: list[str],
+    version_tag: str,
+) -> Path:
     dest = bundle_root / name
     if dest.exists():
         shutil.rmtree(dest)
@@ -50,7 +57,7 @@ def build_bundle(root: Path, bundle_root: Path, name: str, include_paths: list[s
     for rel in include_paths:
         copy_item(root / rel, dest, root)
 
-    (dest / "VERSION.txt").write_text(f"{VERSION_TAG}\n", encoding="utf-8")
+    (dest / "VERSION.txt").write_text(f"{version_tag}\n", encoding="utf-8")
     return dest
 
 
@@ -63,7 +70,15 @@ def make_zip(root: Path, bundle_dir: Path, archive_name: str) -> Path:
     return archive_path
 
 
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Build edge and gateway ZMeta release packages.")
+    parser.add_argument("--version", default=VERSION_TAG, help="Release tag, e.g. v1.1.2.")
+    return parser.parse_args()
+
+
 def main() -> None:
+    args = parse_args()
+    version_tag = args.version if args.version.startswith("v") else f"v{args.version}"
     root = Path(__file__).resolve().parents[1]
     bundle_root = root / "release" / "bundles"
     bundle_root.mkdir(parents=True, exist_ok=True)
@@ -93,16 +108,18 @@ def main() -> None:
         bundle_root,
         "zmeta-edge",
         common + ["deploy/edge"],
+        version_tag,
     )
     gateway_bundle = build_bundle(
         root,
         bundle_root,
         "zmeta-gateway",
         common + ["deploy/gateway"],
+        version_tag,
     )
 
-    make_zip(root, edge_bundle, f"zmeta-edge-{VERSION_TAG}")
-    make_zip(root, gateway_bundle, f"zmeta-gateway-{VERSION_TAG}")
+    make_zip(root, edge_bundle, f"zmeta-edge-{version_tag}")
+    make_zip(root, gateway_bundle, f"zmeta-gateway-{version_tag}")
 
 
 if __name__ == "__main__":

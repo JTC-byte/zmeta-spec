@@ -45,3 +45,14 @@ format before emission. Operational events also carry explicit fallback
 `payload.timing_quality` when the source stream does not provide a better timing
 authority; deployments with GPS/NTP/PTP timing should supply those stronger
 values or emit `TIME_STATUS` from the same source tuple.
+
+Fallback timing is intentionally degraded timing. `time_source: UNKNOWN` and
+`sync_state: UNSYNCED` prove that timing quality was exposed, but operators and
+fusion consumers should treat it as a bridge until source-provided GPS/NTP/PTP
+timing or periodic `TIME_STATUS` is available.
+
+Adapter modules use package-style imports from the repository root, including
+`from adapters.ingress.time_utils import ...`. Run tests and integration scripts
+from the repo root, or install/add the repo root on `PYTHONPATH`, so shared
+adapter helpers resolve consistently. Direct execution from an adapter
+subdirectory is not the supported invocation style.

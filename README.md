@@ -1,4 +1,4 @@
-# ZMeta Specification (v1.0 Locked, current release v1.1.1)
+# ZMeta Specification (v1.0 Locked, current release v1.1.2)
 
 ## Overview
 - ZMeta is a transport-agnostic, event-based metadata standard for resilient ISR.
@@ -7,8 +7,8 @@
 
 ## Current Release
 
-- Current release: `v1.1.1`
-- Release notes and assets: <https://github.com/JTC-byte/zmeta-spec/releases/tag/v1.1.1>
+- Current release: `v1.1.2`
+- Release notes and assets: <https://github.com/JTC-byte/zmeta-spec/releases/tag/v1.1.2>
 - Normative contract: v1.0 locked semantic contract, canonical version-discriminated
   JSON schema, v1.0 JSON schema, and policy pack.
 - Experimental extension: `schema/zmeta-event-1.1.0.schema.json` is provided for proposed
@@ -96,6 +96,7 @@ python tools/run_gateway.py --profile H
 python tools/udp_receiver.py
 python tools/udp_sender.py --file examples/zmeta-command-examples.jsonl
 python tools/replay.py --file examples/zmeta-command-examples.jsonl --delay-ms 200
+python tools/check_compat.py legacy-events.jsonl --target v1.1.2
 python tools/validate.py --file examples/zmeta-command-examples.jsonl --profile H
 python tools/validate_conformance.py --strict
 python tools/compute_contract_hash.py
@@ -149,14 +150,17 @@ Timing quality metadata (`time_source`, `sync_state`, `est_error_ms`,
 `last_sync_ts`) is required by the semantic contract for operational events.
 Gateway `event.t_receive` / `event.t_publish` stamps are separate latency and
 AAR fields added by the reference gateway when configured.
+Adapter fallback timing (`UNKNOWN` / `UNSYNCED`) is intentionally degraded and
+should be replaced by source-provided GPS/NTP/PTP timing or periodic
+`TIME_STATUS` as soon as a deployment can expose it.
 
 Deployment helpers:
 - Config templates: `configs/edge-config.json`, `configs/gateway-config.json`
 - Docker Compose: `deploy/edge/docker-compose.yml`, `deploy/gateway/docker-compose.yml`
 - Bundle builders:
-    - `python release/build_mvp_packages.py` produces `zmeta-edge-v1.1.1.zip` and `zmeta-gateway-v1.1.1.zip`
-    - `python release/build_release_bundle.py` produces `zmeta-v1.1.1-dist.zip`
-    - `python release/sign_release_artifacts.py --version v1.1.1 --write-checksums --sign --target all` signs release assets with detached PGP signatures.
+    - `python release/build_mvp_packages.py` produces `zmeta-edge-v1.1.2.zip` and `zmeta-gateway-v1.1.2.zip`
+    - `python release/build_release_bundle.py` produces `zmeta-v1.1.2-dist.zip`
+    - `python release/sign_release_artifacts.py --version v1.1.2 --write-checksums --sign --target all` signs release assets with detached PGP signatures.
 
 ## Deployment Checklist (Compact)
 
@@ -164,6 +168,7 @@ Use this to lock down schema, policy, and semantic-contract drift and verify a c
 
 1. Compute schema, policy, semantic-contract, and combined contract hashes: `python tools/compute_contract_hash.py`
 1. Set `require_contract_hash` (and optionally `require_schema_hash`/`require_policy_hash`) in config.
+1. If adopting a policy variant into the active `policy/` directory, recompute and update the deployment hash gates.
 1. Run self-test: `python tools/run_gateway.py --profile H --self-test`
 1. Run conformance: `python tools/validate_conformance.py --strict`
 1. Start gateway with strict mode (optional): `python tools/run_gateway.py --config configs/gateway-config.json --strict-validation`

@@ -66,6 +66,7 @@ def test_gpg_dry_run_prints_sign_commands(release_tmp_dir, capsys):
     signing.sign_with_gpg([path], key_id="ABC123", dry_run=True)
 
     out = capsys.readouterr().out
-    assert "gpg --armor --detach-sign" in out
+    assert "gpg" in out.lower()
+    assert "--yes --armor --detach-sign" in out
     assert "--local-user ABC123" in out
     assert "artifact.zip.asc" in out

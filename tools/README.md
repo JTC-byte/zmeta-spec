@@ -85,6 +85,20 @@ canonical version-discriminated schema. Version aliases and legacy fields must
 be normalized before validation with `compat_normalize.py` if compatibility mode
 is intentionally enabled.
 
+### Check Migration Compatibility
+
+```
+python tools/check_compat.py legacy-events.jsonl --target v1.1.2
+python tools/check_compat.py legacy-events.jsonl --profile L --policy-dir policy
+python tools/check_compat.py legacy-events.jsonl --json
+```
+
+`check_compat.py` is migration-oriented. It reports timestamp format issues,
+subtype vocabulary mismatches, v1.1-only vocabulary used without
+`zmeta_version: "1.1.0"`, missing or degraded timing quality, producer-authority
+misses, profile violations, and CoT projection blockers as separate categories.
+Use it before strict validation when integrating older producers.
+
 ### Validate All Examples
 
 ```

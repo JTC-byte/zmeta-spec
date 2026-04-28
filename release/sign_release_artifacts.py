@@ -11,7 +11,7 @@ import subprocess
 from pathlib import Path
 
 
-VERSION = "v1.1.1"
+VERSION = "v1.1.2"
 
 
 def _release_dir() -> Path:
@@ -100,9 +100,33 @@ def _signature_targets(release_dir: Path, version: str, target: str) -> list[Pat
     return targets
 
 
+def _gpg_executable() -> str | None:
+    configured = os.environ.get("GPG_EXE")
+    if configured:
+        path = Path(configured)
+        if path.is_file():
+            return str(path)
+    found = shutil.which("gpg")
+    if found:
+        return found
+    if os.name == "nt":
+        for candidate in (
+            Path(os.environ.get("ProgramFiles", r"C:\Program Files")) / "GnuPG" / "bin" / "gpg.exe",
+            Path(os.environ.get("ProgramFiles(x86)", r"C:\Program Files (x86)"))
+            / "GnuPG"
+            / "bin"
+            / "gpg.exe",
+        ):
+            if candidate.is_file():
+                return str(candidate)
+    return None
+
+
 def _gpg_sign_command(path: Path, key_id: str | None = None) -> list[str]:
+    gpg = _gpg_executable() or "gpg"
     command = [
-        "gpg",
+        gpg,
+        "--yes",
         "--armor",
         "--detach-sign",
         "--output",
@@ -115,7 +139,7 @@ def _gpg_sign_command(path: Path, key_id: str | None = None) -> list[str]:
 
 
 def _gpg_verify_command(path: Path) -> list[str]:
-    return ["gpg", "--verify", str(path.with_name(path.name + ".asc")), str(path)]
+    return [_gpg_executable() or "gpg", "--verify", str(path.with_name(path.name + ".asc")), str(path)]
 
 
 def _format_command(command: list[str]) -> str:
@@ -132,13 +156,13 @@ def _run_commands(commands: list[list[str]], dry_run: bool) -> None:
 
 
 def sign_with_gpg(targets: list[Path], key_id: str | None, dry_run: bool) -> None:
-    if not dry_run and shutil.which("gpg") is None:
+    if not dry_run and _gpg_executable() is None:
         raise SystemExit("gpg not found; install GnuPG or rerun with --dry-run")
     _run_commands([_gpg_sign_command(path, key_id) for path in targets], dry_run)
 
 
 def verify_gpg(targets: list[Path], dry_run: bool) -> None:
-    if not dry_run and shutil.which("gpg") is None:
+    if not dry_run and _gpg_executable() is None:
         raise SystemExit("gpg not found; install GnuPG or rerun with --dry-run")
     _run_commands([_gpg_verify_command(path) for path in targets], dry_run)
 
@@ -147,7 +171,7 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Generate SHA256SUMS and detached PGP signatures for release artifacts."
     )
-    parser.add_argument("--version", default=VERSION, help="Release version tag, e.g. v1.1.1.")
+    parser.add_argument("--version", default=VERSION, help="Release version tag, e.g. v1.1.2.")
     parser.add_argument("--release-dir", default=str(_release_dir()), help="Directory containing artifacts.")
     parser.add_argument("--write-checksums", action="store_true", help="Rewrite SHA256SUMS_<version>.txt.")
     parser.add_argument("--verify-checksums", action="store_true", help="Verify SHA256SUMS_<version>.txt.")

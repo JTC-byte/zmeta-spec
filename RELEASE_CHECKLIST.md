@@ -20,6 +20,7 @@ Use this as the template for each release.
 - [ ] Detached signatures generated for SHA256SUMS and release assets
 - [ ] Detached signatures verified
 - [ ] Signing key fingerprint or Sigstore identity documented in release notes
+- [ ] GitHub Release body includes checksum/signature verification instructions
 - [ ] GitHub CI passes for the release commit
 - [ ] Gateway Docker build + run verified
 - [ ] Tag created

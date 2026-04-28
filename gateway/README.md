@@ -104,6 +104,10 @@ packets above a configured receive rate. `rate_limit_producer_per_sec` applies p
 When CoT emission is enabled, metrics include `cot_skipped` and
 `cot_skip_reasons` for STATE_EVENTs that cannot be projected to CoT, such as
 missing `payload.track_id` or missing `payload.geo`.
+Timing visibility metrics include `timing_quality_source`,
+`timing_quality_fallback`, and `timing_quality_modes`. `UNKNOWN/UNSYNCED`
+per-event timing increments the fallback counter so operators can distinguish
+adapter fallback timing from stronger source-provided GPS/NTP/PTP timing.
 
 If `metrics_log_path` is set, the gateway writes JSONL metrics/violation/drop records
 and rotates logs based on `metrics_log_max_bytes` and `metrics_log_backups`.

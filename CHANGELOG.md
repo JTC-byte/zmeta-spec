@@ -2,6 +2,17 @@
 
 ## [Unreleased]
 
+## [1.1.2]
+- Added `tools/check_compat.py` for migration-oriented JSON/JSONL diagnostics.
+- Added malformed protobuf decoder regression tests for varints, length fields,
+  truncated fixed fields, invalid UTF-8, and random byte samples.
+- Added gateway timing-quality metrics that distinguish source-provided timing
+  from degraded `UNKNOWN`/`UNSYNCED` fallback timing.
+- Clarified deployment policy variant hash behavior, adapter invocation style,
+  degraded fallback timing interpretation, and release verification instructions.
+- Hardened release signing helper GPG discovery for Gpg4win installs and
+  signature refreshes.
+
 ## [1.1.1]
 - Normalized ingress adapter timestamps to the strict UTC trailing-Z schema form.
 - Added explicit fallback timing quality to ingress adapter operational events.

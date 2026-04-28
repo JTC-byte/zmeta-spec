@@ -24,6 +24,11 @@ Notes:
   age limits and stale/missing handling there for deployment needs. For constrained
   Profile L links, `configs/policy-variants/timing-freshness-profile-L-degrade.yaml`
   keeps M/H fail-closed while degrading stale or missing Profile L timing.
+- Policy variants are outside the reference `policy/` directory until adopted.
+  If you copy one into the active deployment `policy/` directory, recompute the
+  deployment `policy_hash` and `contract_hash` and update any
+  `require_policy_hash` or `require_contract_hash` gate. External variants do
+  not change the published reference hash.
 - Context-aware lineage rules live in `policy/lineage.yaml`; tune unresolved
   parent and parent-type handling there for local AAR/event-store behavior.
 - Debug/optimization controls:
@@ -38,6 +43,9 @@ Notes:
   - `rate_limit_per_sec` drops packets above the configured receive rate.
   - `rate_limit_producer_per_sec` drops packets per producer above the configured rate.
   - `metrics_log_path`, `metrics_log_max_bytes`, `metrics_log_backups` enable JSONL metrics logs.
+  - Timing metrics distinguish source-provided timing from degraded fallback
+    timing with `timing_quality_source`, `timing_quality_fallback`, and
+    `timing_quality_modes`.
   - `stamp_contract_hash` adds schema, policy, semantic-contract, and combined contract hashes to gateway-generated system events.
   - `require_schema_hash`, `require_policy_hash`, `require_contract_hash` gate startup on expected hashes.
 - Encoding controls:

@@ -353,6 +353,29 @@ class GatewaySmokeTest(unittest.TestCase):
         self.assertEqual(1, metrics.total["cot_skipped"])
         self.assertEqual(1, metrics.window["cot_skip_reasons"]["MISSING_TRACK_ID"])
 
+    def test_timing_quality_metrics_distinguish_source_and_fallback(self):
+        metrics = gateway.GatewayMetrics(interval_sec=30, emit=False)
+
+        metrics.record_timing_quality(
+            "GPS_PPS",
+            "LOCKED",
+            event_id="019c2b5c-c051-70e1-b6aa-34bf14c8a998",
+            producer="torch",
+        )
+        metrics.record_timing_quality(
+            "UNKNOWN",
+            "UNSYNCED",
+            event_id="019c2b5c-c051-70e1-b6aa-34bf14c8a999",
+            producer="torch",
+        )
+
+        self.assertEqual(1, metrics.window["timing_quality_source"])
+        self.assertEqual(1, metrics.total["timing_quality_source"])
+        self.assertEqual(1, metrics.window["timing_quality_fallback"])
+        self.assertEqual(1, metrics.total["timing_quality_fallback"])
+        self.assertEqual(1, metrics.window["timing_quality_modes"]["GPS_PPS/LOCKED"])
+        self.assertEqual(1, metrics.window["timing_quality_modes"]["UNKNOWN/UNSYNCED"])
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -215,12 +215,15 @@ class GatewayMetrics:
             "forwarded": 0,
             "cot": 0,
             "cot_skipped": 0,
+            "timing_quality_source": 0,
+            "timing_quality_fallback": 0,
             "drops": 0,
             "duplicates": 0,
             "violations": 0,
             "warnings": 0,
             "drop_reasons": {},
             "cot_skip_reasons": {},
+            "timing_quality_modes": {},
             "violation_codes": {},
             "warning_codes": {},
         }
@@ -254,6 +257,18 @@ class GatewayMetrics:
         if producer:
             payload["producer"] = producer
         self._log_event("cot_skipped", payload)
+
+    def record_timing_quality(self, time_source, sync_state, event_id=None, producer=None):
+        mode = f"{time_source or 'UNKNOWN'}/{sync_state or 'UNKNOWN'}"
+        fallback = time_source == "UNKNOWN" and sync_state == "UNSYNCED"
+        self._bump("timing_quality_fallback" if fallback else "timing_quality_source", 1)
+        self._bump_map("timing_quality_modes", mode)
+        payload = {"time_source": time_source, "sync_state": sync_state, "fallback": fallback}
+        if event_id:
+            payload["event_id"] = event_id
+        if producer:
+            payload["producer"] = producer
+        self._log_event("timing_quality", payload)
 
     def _log_event(self, kind, payload):
         if not self.logger:
@@ -310,6 +325,8 @@ class GatewayMetrics:
             f"interval={self.interval_sec}s recv={window['received']} "
             f"bytes={window['bytes']} fwd={window['forwarded']} cot={window['cot']} "
             f"cot_skipped={window['cot_skipped']} "
+            f"timing_source={window['timing_quality_source']} "
+            f"timing_fallback={window['timing_quality_fallback']} "
             f"drops={window['drops']} violations={window['violations']} "
             f"warnings={window['warnings']} duplicates={window['duplicates']}"
         )
@@ -321,6 +338,11 @@ class GatewayMetrics:
                 f"{key}:{value}" for key, value in sorted(window["cot_skip_reasons"].items())
             )
             print(f"metrics cot_skip_reasons={reasons}")
+        if window["timing_quality_modes"]:
+            reasons = ", ".join(
+                f"{key}:{value}" for key, value in sorted(window["timing_quality_modes"].items())
+            )
+            print(f"metrics timing_quality_modes={reasons}")
         if window["violation_codes"]:
             reasons = ", ".join(
                 f"{key}:{value}" for key, value in sorted(window["violation_codes"].items())
@@ -340,12 +362,15 @@ class GatewayMetrics:
                 "forwarded": window["forwarded"],
                 "cot": window["cot"],
                 "cot_skipped": window["cot_skipped"],
+                "timing_quality_source": window["timing_quality_source"],
+                "timing_quality_fallback": window["timing_quality_fallback"],
                 "drops": window["drops"],
                 "violations": window["violations"],
                 "warnings": window["warnings"],
                 "duplicates": window["duplicates"],
                 "drop_reasons": window["drop_reasons"],
                 "cot_skip_reasons": window["cot_skip_reasons"],
+                "timing_quality_modes": window["timing_quality_modes"],
                 "violation_codes": window["violation_codes"],
                 "warning_codes": window["warning_codes"],
             },
@@ -701,6 +726,27 @@ def _source_key(event):
         str(source.get("producer") or "UNKNOWN"),
         str(source.get("node_role") or "UNKNOWN"),
     )
+
+
+def _event_timing_quality(event):
+    if not isinstance(event, dict):
+        return None
+    payload = event.get("payload", {})
+    if not isinstance(payload, dict):
+        return None
+    candidates = [
+        payload.get("timing_quality"),
+        payload.get("quality", {}).get("timing_quality")
+        if isinstance(payload.get("quality"), dict)
+        else None,
+        payload.get("quality"),
+    ]
+    for timing in candidates:
+        if not isinstance(timing, dict):
+            continue
+        if {"time_source", "sync_state", "est_error_ms", "last_sync_ts"}.issubset(timing):
+            return timing
+    return None
 
 
 def _apply_failure_mode_degradation(event, failure_modes, timing_state):
@@ -1255,6 +1301,16 @@ def process_message(
                     )
                 ]
             warnings.extend(warns)
+
+    if metrics:
+        timing_quality = _event_timing_quality(instance)
+        if timing_quality:
+            metrics.record_timing_quality(
+                timing_quality.get("time_source"),
+                timing_quality.get("sync_state"),
+                event_id=event_id,
+                producer=producer,
+            )
 
     ok, violations = validate_semantics(instance, policy["semantics"], severity_map)
     if violations:

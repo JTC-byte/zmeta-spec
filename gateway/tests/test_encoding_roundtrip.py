@@ -1,5 +1,6 @@
 import json
 import pytest
+import random
 import sys
 from pathlib import Path
 
@@ -82,3 +83,63 @@ def test_proto_rejects_invalid_field_number():
 def test_proto_rejects_unknown_wire_type():
     with pytest.raises(ValueError, match="unsupported protobuf wire type"):
         zmeta_proto.loads(b"\x0b")
+
+
+def test_proto_rejects_malformed_varint():
+    with pytest.raises(ValueError, match="varint is too long"):
+        zmeta_proto.loads(b"\x80\x80\x80\x80\x80\x80\x80\x80\x80\x80")
+
+
+def test_proto_rejects_truncated_length_delimited_field():
+    with pytest.raises(ValueError, match="unexpected end of protobuf length-delimited field"):
+        zmeta_proto.loads(b"\x0a\x05abc")
+
+
+def test_proto_rejects_huge_declared_field_length_before_allocation():
+    with pytest.raises(ValueError, match="max_field_bytes"):
+        zmeta_proto.loads(b"\x0a\xff\xff\xff\xff\x0f", max_field_bytes=8)
+
+
+def test_proto_rejects_invalid_utf8_string_field():
+    with pytest.raises(UnicodeDecodeError):
+        zmeta_proto.loads(b"\x0a\x01\xff")
+
+
+def test_proto_rejects_truncated_fixed_fields():
+    with pytest.raises(ValueError, match="fixed64"):
+        zmeta_proto.loads(b"\x29\x00\x00")
+
+    with pytest.raises(ValueError, match="fixed32"):
+        zmeta_proto.loads(b"\x0d\x00")
+
+
+def test_proto_random_bytes_do_not_raise_unexpected_exceptions():
+    samples = [
+        b"",
+        b"\xff",
+        b"\x12\x03\x08\x96\x01",
+        b"\x22\x02{}",
+        b"\x22\x07{\"a\":1}",
+        bytes(range(32)),
+        b"\x12\xff\x01" + (b"\x08\x01" * 64),
+    ]
+
+    for sample in samples:
+        try:
+            decoded = zmeta_proto.loads(sample, max_field_bytes=64, max_payload_bytes=64)
+        except (ValueError, UnicodeDecodeError):
+            continue
+        assert isinstance(decoded, dict)
+
+
+def test_proto_seeded_random_fuzz_rejects_or_decodes_dict():
+    rng = random.Random(0x5A4D455441)
+
+    for _ in range(250):
+        size = rng.randrange(0, 160)
+        sample = bytes(rng.randrange(0, 256) for _ in range(size))
+        try:
+            decoded = zmeta_proto.loads(sample, max_field_bytes=64, max_payload_bytes=64)
+        except (ValueError, UnicodeDecodeError):
+            continue
+        assert isinstance(decoded, dict)

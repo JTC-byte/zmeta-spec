@@ -1,10 +1,11 @@
+import argparse
 import shutil
 from pathlib import Path
 
-VERSION = "1.1.1"
+VERSION = "1.1.2"
 
 
-def collect_sources(root):
+def collect_sources(root, version):
     sources = []
 
     required = [
@@ -28,7 +29,7 @@ def collect_sources(root):
         root / "schema" / "proto" / "zmeta_event_v1.proto",
         root / "release" / "README.md",
         root / "release" / "sign_release_artifacts.py",
-        root / "release" / f"RELEASE_NOTES_v{VERSION}.md",
+        root / "release" / f"RELEASE_NOTES_v{version}.md",
         root / "spec" / "quickstart.md",
         root / "spec" / "versioning.md",
         root / "spec" / "installation-guide.md",
@@ -39,7 +40,7 @@ def collect_sources(root):
         root / "spec" / "field-dictionary.md",
         root / "spec" / "profile-compatibility.md",
         root / "spec" / "README.md",
-        root / "release" / f"VALIDATION_REPORT_v{VERSION}.md",
+        root / "release" / f"VALIDATION_REPORT_v{version}.md",
     ]
     for path in optional:
         if path.is_file():
@@ -60,7 +61,15 @@ def copy_tree(src, dest):
     shutil.copytree(src, dest, dirs_exist_ok=True)
 
 
+def parse_args():
+    parser = argparse.ArgumentParser(description="Build the full ZMeta release bundle.")
+    parser.add_argument("--version", default=VERSION, help="Release version without leading v.")
+    return parser.parse_args()
+
+
 def main():
+    args = parse_args()
+    version = args.version.lstrip("v")
     root = Path(__file__).resolve().parents[1]
     dist = root / "release" / "dist"
 
@@ -68,7 +77,7 @@ def main():
         shutil.rmtree(dist)
     dist.mkdir(parents=True, exist_ok=True)
 
-    sources = collect_sources(root)
+    sources = collect_sources(root, version)
 
     for src in sources:
         rel = src.relative_to(root)
@@ -80,7 +89,7 @@ def main():
     copy_tree(root / "configs", dist / "configs")
     copy_tree(root / "examples", dist / "examples")
 
-    (dist / "VERSION.txt").write_text(f"{VERSION}\n", encoding="utf-8")
+    (dist / "VERSION.txt").write_text(f"{version}\n", encoding="utf-8")
 
     rel_paths = []
     for path in sorted(dist.rglob("*")):
@@ -89,7 +98,7 @@ def main():
 
     write_manifest(dist, rel_paths)
 
-    archive_base = root / "release" / f"zmeta-v{VERSION}-dist"
+    archive_base = root / "release" / f"zmeta-v{version}-dist"
     archive_path = archive_base.with_suffix(".zip")
     if archive_path.exists():
         archive_path.unlink()
