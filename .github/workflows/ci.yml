@@ -48,6 +48,12 @@ jobs:
         run: |
           python tools/validate_examples.py --strict --require-all
 
+      - name: Check migration compatibility
+        run: |
+          for file in examples/*.jsonl; do
+            python tools/check_compat.py --target v1.1.4 --strict "$file"
+          done
+
       - name: Validate v1.1 examples
         run: |
           python - <<'PY'
@@ -80,7 +86,20 @@ jobs:
 
       - name: Packet size summary
         run: |
-          python tools/measure_packet_size.py --file examples/zmeta-profile-L-examples.jsonl --encodings compact --max-bytes 240 --summary-only
+          python tools/measure_packet_size.py --file examples/zmeta-profile-L-examples.jsonl --encodings compact,proto --max-bytes 240 --max-bytes-encoding compact --summary-only
+
+      - name: Release package smoke
+        run: |
+          python release/build_mvp_packages.py --version vci
+          for bundle in zmeta-edge zmeta-gateway; do
+            rm -rf "release/smoke-${bundle}"
+            mkdir -p "release/smoke-${bundle}"
+            unzip -q "release/${bundle}-vci.zip" -d "release/smoke-${bundle}"
+            test -f "release/smoke-${bundle}/conformance/must-pass.jsonl"
+            test -f "release/smoke-${bundle}/release/sign_release_artifacts.py"
+            test -f "release/smoke-${bundle}/release/build_mvp_packages.py"
+            (cd "release/smoke-${bundle}" && python gateway/src/gateway.py --profile H --self-test)
+          done
 
       - name: Gateway self-test
         run: |
