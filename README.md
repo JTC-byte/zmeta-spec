@@ -1,4 +1,4 @@
-# ZMeta Specification (v1.0 Locked, current release v1.1.0)
+# ZMeta Specification (v1.0 Locked, current release v1.1.1)
 
 ## Overview
 - ZMeta is a transport-agnostic, event-based metadata standard for resilient ISR.
@@ -7,8 +7,8 @@
 
 ## Current Release
 
-- Current release: `v1.1.0`
-- Release notes and assets: <https://github.com/JTC-byte/zmeta-spec/releases/tag/v1.1.0>
+- Current release: `v1.1.1`
+- Release notes and assets: <https://github.com/JTC-byte/zmeta-spec/releases/tag/v1.1.1>
 - Normative contract: v1.0 locked semantic contract, canonical version-discriminated
   JSON schema, v1.0 JSON schema, and policy pack.
 - Experimental extension: `schema/zmeta-event-1.1.0.schema.json` is provided for proposed
@@ -154,8 +154,9 @@ Deployment helpers:
 - Config templates: `configs/edge-config.json`, `configs/gateway-config.json`
 - Docker Compose: `deploy/edge/docker-compose.yml`, `deploy/gateway/docker-compose.yml`
 - Bundle builders:
-  - `python release/build_mvp_packages.py` produces `zmeta-edge-v1.1.0.zip` and `zmeta-gateway-v1.1.0.zip`
-  - `python release/build_release_bundle.py` produces `zmeta-v1.1.0-dist.zip`
+    - `python release/build_mvp_packages.py` produces `zmeta-edge-v1.1.1.zip` and `zmeta-gateway-v1.1.1.zip`
+    - `python release/build_release_bundle.py` produces `zmeta-v1.1.1-dist.zip`
+    - `python release/sign_release_artifacts.py --version v1.1.1 --write-checksums --sign --target all` signs release assets with detached PGP signatures.
 
 ## Deployment Checklist (Compact)
 

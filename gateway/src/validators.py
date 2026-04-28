@@ -251,10 +251,18 @@ def _timing_freshness_enabled(policy):
     return isinstance(policy, dict) and policy.get("enabled", True) is not False
 
 
-def _timing_mode(policy, reason):
+def _timing_mode(policy, reason, profile=None):
     if not isinstance(policy, dict):
         return "reject"
-    mode = policy.get(f"{reason}_mode", policy.get("mode", "reject"))
+    mode = None
+    if profile:
+        for key in (f"{reason}_mode_by_profile", "mode_by_profile"):
+            configured = policy.get(key)
+            if isinstance(configured, dict) and profile in configured:
+                mode = configured.get(profile)
+                break
+    if mode is None:
+        mode = policy.get(f"{reason}_mode", policy.get("mode", "reject"))
     mode = str(mode or "reject").strip().lower()
     if mode not in {"warn", "degrade", "reject"}:
         return "reject"
@@ -583,7 +591,7 @@ def validate_timing_quality(
         if age_ms <= max_age_ms:
             return True, []
 
-        mode = _timing_mode(timing_freshness_policy, "stale")
+        mode = _timing_mode(timing_freshness_policy, "stale", event_profile)
         violation = _timing_policy_violation(
             "TIMING_STATUS_STALE",
             "latest TIME_STATUS is older than policy maximum age",
@@ -601,7 +609,12 @@ def validate_timing_quality(
         )
         return violation["severity"] != "fail", [violation]
 
-    mode = _timing_mode(timing_freshness_policy, "missing") if freshness_enabled else "reject"
+    event_profile = _profile_for_event(event, profile)
+    mode = (
+        _timing_mode(timing_freshness_policy, "missing", event_profile)
+        if freshness_enabled
+        else "reject"
+    )
     violation = _timing_policy_violation(
         "TIMING_STATUS_MISSING",
         "node has not exposed timing quality for this event",
@@ -609,7 +622,7 @@ def validate_timing_quality(
         {
             "source": "/".join(_source_key(event)),
             "event_type": event_type,
-            "profile": _profile_for_event(event, profile),
+            "profile": event_profile,
         },
         severity_map=severity_map,
     )

@@ -1,7 +1,7 @@
 import shutil
 from pathlib import Path
 
-VERSION = "1.1.0"
+VERSION = "1.1.1"
 
 
 def collect_sources(root):
@@ -26,6 +26,8 @@ def collect_sources(root):
         root / "schema" / "zmeta-event.schema.json",
         root / "schema" / "zmeta-event-1.1.0.schema.json",
         root / "schema" / "proto" / "zmeta_event_v1.proto",
+        root / "release" / "README.md",
+        root / "release" / "sign_release_artifacts.py",
         root / "release" / f"RELEASE_NOTES_v{VERSION}.md",
         root / "spec" / "quickstart.md",
         root / "spec" / "versioning.md",
@@ -75,6 +77,7 @@ def main():
         shutil.copy2(src, dest)
 
     copy_tree(root / "policy", dist / "policy")
+    copy_tree(root / "configs", dist / "configs")
     copy_tree(root / "examples", dist / "examples")
 
     (dist / "VERSION.txt").write_text(f"{VERSION}\n", encoding="utf-8")

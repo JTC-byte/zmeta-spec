@@ -1,20 +1,26 @@
 # Release Checklist
 
-- [x] Semantic contract finalized for v1.0.5
-- [x] Contract hash recomputed
-- [x] Schema validates against examples
-- [x] Policy pack validation run locally
-- [x] Examples and conformance corpus validate locally
-- [x] Gateway self-test passes locally
-- [x] Adapter and gateway pytest suite passes locally
-- [x] Profile L packet-size check passes locally
-- [x] Reference distribution bundle built
-- [x] Edge deployment bundle built
-- [x] Gateway deployment bundle built
-- [x] Release notes updated for v1.0.5
-- [x] Changelog updated for 1.0.5
-- [x] SHA256SUMS generated for v1.0.5 assets
-- [x] GitHub CI passes for the v1.0.5 release commit
+Use this as the template for each release.
+
+- [ ] Semantic contract finalized for target version
+- [ ] Contract hash recomputed
+- [ ] Schema validates against examples
+- [ ] Policy pack validation run locally
+- [ ] Examples and conformance corpus validate locally
+- [ ] Gateway self-test passes locally
+- [ ] Adapter and gateway pytest suite passes locally
+- [ ] Profile L packet-size check passes locally
+- [ ] Reference distribution bundle built
+- [ ] Edge deployment bundle built
+- [ ] Gateway deployment bundle built
+- [ ] Release notes updated
+- [ ] Changelog updated
+- [ ] SHA256SUMS generated for release assets
+- [ ] SHA256SUMS verified
+- [ ] Detached signatures generated for SHA256SUMS and release assets
+- [ ] Detached signatures verified
+- [ ] Signing key fingerprint or Sigstore identity documented in release notes
+- [ ] GitHub CI passes for the release commit
 - [ ] Gateway Docker build + run verified
-- [x] Tag v1.0.5 created
-- [x] GitHub Release created with artifacts links
+- [ ] Tag created
+- [ ] GitHub Release created with zips, SHA256SUMS, and signatures

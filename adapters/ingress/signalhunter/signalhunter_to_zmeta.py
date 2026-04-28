@@ -18,9 +18,9 @@ Source: Z-ISR edge/edge/sensors/signalhunter_rf.py
 
 import math
 import struct
-from datetime import datetime, timezone
 from typing import Dict, List, Optional, Tuple
 
+from adapters.ingress.time_utils import coerce_timing_quality, epoch_ms_to_utc_z, utc_now_z
 from zmeta_uuid import uuid7
 
 ADAPTER_VERSION = "1.0.0"
@@ -33,7 +33,7 @@ FRAME_SIZE_BYTES = BINS_PER_FRAME * 4  # float32
 
 
 def _utc_now():
-    return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+    return utc_now_z()
 
 
 # ---------------------------------------------------------------------------
@@ -321,9 +321,7 @@ def translate_bin_file(
                 continue
 
             ts_ms = int(time.time() * 1000)
-            ts_iso = datetime.fromtimestamp(
-                ts_ms / 1000.0, tz=timezone.utc
-            ).isoformat(timespec="milliseconds")
+            ts_iso = epoch_ms_to_utc_z(ts_ms)
 
             events.append({
                 "zmeta_version": "1.0",
@@ -365,6 +363,7 @@ def translate_bin_file(
                             "lon": current_lon,
                         },
                     },
+                    "timing_quality": coerce_timing_quality(event_ts=ts_iso),
                 },
                 "lineage": {
                     "based_on": [str(uuid7())],

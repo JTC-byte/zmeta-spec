@@ -1,6 +1,7 @@
 import json
-from datetime import datetime, timezone
 from pathlib import Path
+
+from adapters.ingress.time_utils import utc_now_z
 from zmeta_uuid import uuid7
 
 import yaml
@@ -92,4 +93,4 @@ def _load_schema_validator():
 
 
 def _utc_now():
-    return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+    return utc_now_z()

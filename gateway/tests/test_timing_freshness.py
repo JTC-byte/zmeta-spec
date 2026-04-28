@@ -163,6 +163,51 @@ class TimingFreshnessTest(unittest.TestCase):
         self.assertEqual("warn", violations[0]["severity"])
         self.assertAlmostEqual(0.4, event["confidence"])
 
+    def test_profile_specific_degrade_mode_applies_to_profile_l(self):
+        policy = copy.deepcopy(self.freshness)
+        policy["mode_by_profile"] = {"L": "degrade", "M": "reject", "H": "reject"}
+        event = state_event("2025-01-17T14:31:30Z", confidence=0.8)
+        event["profile"] = "L"
+        state = validators.ValidationState()
+        state.record_timing(time_status("2025-01-17T14:30:00Z"))
+
+        ok, violations = validators.validate_timing_quality(
+            event,
+            self.semantics,
+            state=state,
+            severity_map=self.severity_map,
+            timing_freshness_policy=policy,
+            profile="L",
+        )
+        changed = validators.apply_timing_freshness_degradation(event, violations, policy)
+
+        self.assertTrue(ok)
+        self.assertTrue(changed)
+        self.assertEqual("TIMING_STATUS_STALE", violations[0]["code"])
+        self.assertEqual("warn", violations[0]["severity"])
+        self.assertEqual("degrade", violations[0]["details"]["policy_mode"])
+        self.assertAlmostEqual(0.4, event["confidence"])
+
+    def test_profile_specific_degrade_does_not_apply_to_profile_h(self):
+        policy = copy.deepcopy(self.freshness)
+        policy["mode_by_profile"] = {"L": "degrade", "M": "reject", "H": "reject"}
+        event = state_event("2025-01-17T14:30:11Z", confidence=0.8)
+        state = validators.ValidationState()
+        state.record_timing(time_status("2025-01-17T14:30:00Z"))
+
+        ok, violations = validators.validate_timing_quality(
+            event,
+            self.semantics,
+            state=state,
+            severity_map=self.severity_map,
+            timing_freshness_policy=policy,
+            profile="H",
+        )
+
+        self.assertFalse(ok)
+        self.assertEqual("TIMING_STATUS_STALE", violations[0]["code"])
+        self.assertEqual("fail", violations[0]["severity"])
+
     def test_sensor_id_event_can_use_node_level_time_status(self):
         state = validators.ValidationState()
         state.record_timing(time_status("2025-01-17T14:30:00Z"))

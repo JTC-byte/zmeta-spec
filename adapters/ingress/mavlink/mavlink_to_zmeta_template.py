@@ -13,8 +13,8 @@ Source: Z-ISR edge/edge/mavlink/bridge.py and edge/edge/zmeta_builder.py
 """
 
 import math
-from datetime import datetime, timezone
 
+from adapters.ingress.time_utils import coerce_timing_quality, normalize_utc_z, utc_now_z
 from zmeta_uuid import uuid7
 
 ADAPTER_VERSION = "1.0.0"
@@ -22,7 +22,7 @@ SCHEMA_ID = "mavlink-telemetry"
 
 
 def _utc_now():
-    return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+    return utc_now_z()
 
 
 def _gps_fix_confidence(gps_fix_type):
@@ -44,7 +44,7 @@ def _make_event(system_type, state, *, platform_id, producer, ts, metrics=None):
             "event_id": str(uuid7()),
             "event_type": "SYSTEM_EVENT",
             "event_subtype": system_type,
-            "ts": ts,
+            "ts": normalize_utc_z(ts) or _utc_now(),
         },
         "source": {
             "platform_id": platform_id,
@@ -140,13 +140,14 @@ def translate_platform_state(
     if custom_mode is not None:
         quality["custom_mode"] = custom_mode
 
+    event_ts = normalize_utc_z(ts) or _utc_now()
     event = {
         "zmeta_version": "1.0",
         "event": {
             "event_id": str(uuid7()),
             "event_type": "STATE_EVENT",
             "event_subtype": "TRACK_STATE",
-            "ts": ts or _utc_now(),
+            "ts": event_ts,
         },
         "source": {
             "platform_id": platform_id,
@@ -160,6 +161,7 @@ def translate_platform_state(
             "heading_deg": heading_deg,
             "speed_mps": speed_mps,
             "quality": quality,
+            "timing_quality": coerce_timing_quality(_get("timing_quality"), event_ts=event_ts),
         },
         "confidence": confidence,
         "lineage": {
@@ -273,7 +275,7 @@ def mavlink_decoded_to_zmeta_system_events(
         metrics["time_source"] = msg.get("time_source") or "UNKNOWN"
         metrics["sync_state"] = msg.get("sync_state") or "UNSYNCED"
         metrics["est_error_ms"] = msg.get("est_error_ms")
-        metrics["last_sync_ts"] = msg.get("last_sync_ts")
+        metrics["last_sync_ts"] = normalize_utc_z(msg.get("last_sync_ts"))
         if metrics["est_error_ms"] is None or metrics["last_sync_ts"] is None:
             raise ValueError("TIME_STATUS requires est_error_ms and last_sync_ts")
         if "time_usec" in msg:
@@ -320,7 +322,7 @@ def translate_link_status(
             "event_id": str(uuid7()),
             "event_type": "SYSTEM_EVENT",
             "event_subtype": "LINK_STATUS",
-            "ts": ts or _utc_now(),
+            "ts": normalize_utc_z(ts) or _utc_now(),
         },
         "source": {
             "platform_id": platform_id,
@@ -359,8 +361,9 @@ def translate_time_status(
     ts=None,
 ):
     """Build a TIME_STATUS SYSTEM_EVENT from MAVLink SYSTEM_TIME data."""
-    event_ts = ts or _utc_now()
+    event_ts = normalize_utc_z(ts) or _utc_now()
     normalized_sync_state = "LOCKED" if sync_state == "SYNCED" else sync_state
+    normalized_last_sync_ts = normalize_utc_z(last_sync_ts) or event_ts
     return {
         "zmeta_version": "1.0",
         "event": {
@@ -381,7 +384,7 @@ def translate_time_status(
                 "time_source": time_source,
                 "sync_state": normalized_sync_state,
                 "est_error_ms": est_error_ms,
-                "last_sync_ts": last_sync_ts or event_ts,
+                "last_sync_ts": normalized_last_sync_ts,
             },
         },
         "lineage": {

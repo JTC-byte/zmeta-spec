@@ -214,11 +214,13 @@ class GatewayMetrics:
             "bytes": 0,
             "forwarded": 0,
             "cot": 0,
+            "cot_skipped": 0,
             "drops": 0,
             "duplicates": 0,
             "violations": 0,
             "warnings": 0,
             "drop_reasons": {},
+            "cot_skip_reasons": {},
             "violation_codes": {},
             "warning_codes": {},
         }
@@ -242,6 +244,16 @@ class GatewayMetrics:
 
     def record_cot(self, count=1):
         self._bump("cot", count)
+
+    def record_cot_skipped(self, reason, event_id=None, producer=None):
+        self._bump("cot_skipped", 1)
+        self._bump_map("cot_skip_reasons", reason)
+        payload = {"reason": reason}
+        if event_id:
+            payload["event_id"] = event_id
+        if producer:
+            payload["producer"] = producer
+        self._log_event("cot_skipped", payload)
 
     def _log_event(self, kind, payload):
         if not self.logger:
@@ -297,12 +309,18 @@ class GatewayMetrics:
             "metrics "
             f"interval={self.interval_sec}s recv={window['received']} "
             f"bytes={window['bytes']} fwd={window['forwarded']} cot={window['cot']} "
+            f"cot_skipped={window['cot_skipped']} "
             f"drops={window['drops']} violations={window['violations']} "
             f"warnings={window['warnings']} duplicates={window['duplicates']}"
         )
         if window["drop_reasons"]:
             reasons = ", ".join(f"{key}:{value}" for key, value in sorted(window["drop_reasons"].items()))
             print(f"metrics drop_reasons={reasons}")
+        if window["cot_skip_reasons"]:
+            reasons = ", ".join(
+                f"{key}:{value}" for key, value in sorted(window["cot_skip_reasons"].items())
+            )
+            print(f"metrics cot_skip_reasons={reasons}")
         if window["violation_codes"]:
             reasons = ", ".join(
                 f"{key}:{value}" for key, value in sorted(window["violation_codes"].items())
@@ -321,11 +339,13 @@ class GatewayMetrics:
                 "bytes": window["bytes"],
                 "forwarded": window["forwarded"],
                 "cot": window["cot"],
+                "cot_skipped": window["cot_skipped"],
                 "drops": window["drops"],
                 "violations": window["violations"],
                 "warnings": window["warnings"],
                 "duplicates": window["duplicates"],
                 "drop_reasons": window["drop_reasons"],
+                "cot_skip_reasons": window["cot_skip_reasons"],
                 "violation_codes": window["violation_codes"],
                 "warning_codes": window["warning_codes"],
             },
@@ -705,6 +725,23 @@ def _apply_failure_mode_degradation(event, failure_modes, timing_state):
     confidence = event.get("confidence")
     if isinstance(confidence, (int, float)):
         event["confidence"] = max(0.0, min(1.0, confidence / factor))
+
+
+def _cot_skip_reason(event):
+    if not isinstance(event, dict):
+        return None
+    event_block = event.get("event", {})
+    if not isinstance(event_block, dict) or event_block.get("event_type") != "STATE_EVENT":
+        return None
+    payload = event.get("payload", {})
+    if not isinstance(payload, dict):
+        return "PAYLOAD_INVALID"
+    if not payload.get("track_id"):
+        return "MISSING_TRACK_ID"
+    geo = payload.get("geo")
+    if not isinstance(geo, dict) or geo.get("lat") is None or geo.get("lon") is None:
+        return "MISSING_GEO"
+    return "UNCONVERTIBLE"
 
 
 def validate_outgoing_event(event, validator, policy, profile):
@@ -1576,6 +1613,16 @@ def main():
                     sock_out.sendto(cot_xml.encode("utf-8"), cot_addr)
                     if metrics:
                         metrics.record_cot()
+                elif metrics:
+                    reason = _cot_skip_reason(outgoing)
+                    if reason:
+                        event_block = outgoing.get("event", {}) if isinstance(outgoing, dict) else {}
+                        source = outgoing.get("source", {}) if isinstance(outgoing, dict) else {}
+                        metrics.record_cot_skipped(
+                            reason,
+                            event_id=event_block.get("event_id"),
+                            producer=source.get("producer") if isinstance(source, dict) else None,
+                        )
         if metrics:
             metrics.maybe_log()
 

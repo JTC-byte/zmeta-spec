@@ -23,11 +23,34 @@ def test_mavlink_task_ack_schema_valid():
         msg,
         platform_id="uav-1",
         producer="mavlink",
-        ts="2025-01-17T15:20:00Z",
+        ts="2025-01-17T15:20:00+00:00",
     )
 
     assert len(events) == 1
     event = events[0]
     assert event["event"]["event_type"] == "SYSTEM_EVENT"
+    assert event["event"]["ts"] == "2025-01-17T15:20:00Z"
     assert event["payload"]["system_type"] == "TASK_ACK"
+    VALIDATOR.validate(event)
+
+
+def test_mavlink_time_status_normalizes_last_sync_ts():
+    msg = {
+        "msg_type": "SYSTEM_TIME",
+        "state": "UP",
+        "time_source": "GPS_PPS",
+        "sync_state": "LOCKED",
+        "est_error_ms": 1,
+        "last_sync_ts": "2025-01-17T15:19:59+00:00",
+    }
+    events = mavlink_decoded_to_zmeta_system_events(
+        msg,
+        platform_id="uav-1",
+        producer="mavlink",
+        ts="2025-01-17T15:20:00+00:00",
+    )
+
+    event = events[0]
+    assert event["event"]["ts"] == "2025-01-17T15:20:00Z"
+    assert event["payload"]["metrics"]["last_sync_ts"] == "2025-01-17T15:19:59Z"
     VALIDATOR.validate(event)

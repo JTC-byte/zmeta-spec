@@ -17,9 +17,13 @@ Notes:
 - Default producer IDs in the reference policy include `sensorops` for command/comms
   examples and `torch` for analytics/fusion examples. Replace or extend
   `policy/producer-authority.yaml` for deployment authority and `policy/routing.yaml`
-  for command-path routing.
+  for command-path routing. For deployments with authenticated producer identities,
+  start from `configs/policy-variants/producer-authority.strict.yaml` and rename
+  the exact IDs.
 - Timing freshness policy lives in `policy/timing-freshness.yaml`; tune profile
-  age limits and stale/missing handling there for deployment needs.
+  age limits and stale/missing handling there for deployment needs. For constrained
+  Profile L links, `configs/policy-variants/timing-freshness-profile-L-degrade.yaml`
+  keeps M/H fail-closed while degrading stale or missing Profile L timing.
 - Context-aware lineage rules live in `policy/lineage.yaml`; tune unresolved
   parent and parent-type handling there for local AAR/event-store behavior.
 - Debug/optimization controls:

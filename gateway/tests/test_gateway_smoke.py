@@ -319,6 +319,40 @@ class GatewaySmokeTest(unittest.TestCase):
         self.assertEqual(second[0]["payload"]["metrics"]["task_id"], event["payload"]["task_id"])
         self.assertEqual(second[0]["payload"]["metrics"]["original_event_id"], event["event"]["event_id"])
 
+    def test_cot_skip_reason_reports_missing_track_id(self):
+        event = {
+            "event": {
+                "event_id": str(uuid7()),
+                "event_type": "STATE_EVENT",
+                "event_subtype": "TRACK_STATE",
+                "ts": "2025-01-17T15:05:00Z",
+            },
+            "source": {
+                "platform_id": "fusion-node-01",
+                "node_role": "GATEWAY",
+                "producer": "torch",
+            },
+            "payload": {
+                "geo": {"lat": 34.0, "lon": -118.0, "alt_m": 100.0},
+                "valid_for_ms": 1000,
+            },
+        }
+
+        self.assertEqual("MISSING_TRACK_ID", gateway._cot_skip_reason(event))
+
+    def test_cot_skip_metric_records_reason(self):
+        metrics = gateway.GatewayMetrics(interval_sec=30, emit=False)
+
+        metrics.record_cot_skipped(
+            "MISSING_TRACK_ID",
+            event_id="019c2b5c-c051-70e1-b6aa-34bf14c8a999",
+            producer="torch",
+        )
+
+        self.assertEqual(1, metrics.window["cot_skipped"])
+        self.assertEqual(1, metrics.total["cot_skipped"])
+        self.assertEqual(1, metrics.window["cot_skip_reasons"]["MISSING_TRACK_ID"])
+
 
 if __name__ == "__main__":
     unittest.main()

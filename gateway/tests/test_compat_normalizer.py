@@ -12,6 +12,7 @@ from zmeta_uuid import uuid7
 
 
 ROOT = Path(__file__).resolve().parents[2]
+TMP_ROOT = ROOT / "pytest-work"
 
 NORMALIZER_PATH = ROOT / "tools" / "compat_normalizer.py"
 spec = importlib.util.spec_from_file_location("zmeta_compat_normalizer", NORMALIZER_PATH)
@@ -176,7 +177,7 @@ class CompatibilityNormalizerTest(unittest.TestCase):
             self.assertEqual(_get_path(original, path), _get_path(normalized, path))
 
     def test_cli_writes_normalized_event_and_sidecar_report(self):
-        tmp_path = ROOT / ".pytest_tmp" / f"compat-{uuid.uuid4().hex}"
+        tmp_path = TMP_ROOT / f"compat-{uuid.uuid4().hex}"
         tmp_path.mkdir(parents=True, exist_ok=False)
         try:
             input_path = tmp_path / "event.json"
@@ -207,6 +208,10 @@ class CompatibilityNormalizerTest(unittest.TestCase):
             self.assertEqual("$.zmeta_version", report["changes"][0]["path"])
         finally:
             shutil.rmtree(tmp_path, ignore_errors=True)
+            try:
+                TMP_ROOT.rmdir()
+            except OSError:
+                pass
 
 
 def _get_path(data, path):

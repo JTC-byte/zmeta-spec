@@ -1,4 +1,5 @@
 import json
+import pytest
 import sys
 from pathlib import Path
 
@@ -49,3 +50,35 @@ def test_proto_roundtrip():
         encoded = zmeta_proto.dumps(event)
         decoded = zmeta_proto.loads(encoded)
         assert decoded == event
+
+
+def test_proto_rejects_oversized_message():
+    with pytest.raises(ValueError, match="max_bytes"):
+        zmeta_proto.loads(b"\x08\x00", max_bytes=1)
+
+
+def test_proto_rejects_oversized_payload():
+    event = _load_events()[0]
+    encoded = zmeta_proto.dumps(event)
+
+    with pytest.raises(ValueError, match="max_payload_bytes"):
+        zmeta_proto.loads(encoded, max_payload_bytes=8)
+
+
+def test_proto_rejects_deep_payload_json():
+    event = _load_events()[0]
+    event = {**event, "payload": {"a": {"b": {"c": {"d": 1}}}}}
+    encoded = zmeta_proto.dumps(event)
+
+    with pytest.raises(ValueError, match="max_json_depth"):
+        zmeta_proto.loads(encoded, max_json_depth=3)
+
+
+def test_proto_rejects_invalid_field_number():
+    with pytest.raises(ValueError, match="field numbers"):
+        zmeta_proto.loads(b"\x00\x00")
+
+
+def test_proto_rejects_unknown_wire_type():
+    with pytest.raises(ValueError, match="unsupported protobuf wire type"):
+        zmeta_proto.loads(b"\x0b")

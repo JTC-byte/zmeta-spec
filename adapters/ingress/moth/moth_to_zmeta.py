@@ -20,8 +20,8 @@ Source: Z-ISR edge/edge/sensors/moth_rf.py and edge/edge/zmeta_builder.py
 """
 
 import struct
-from datetime import datetime, timezone
 
+from adapters.ingress.time_utils import coerce_timing_quality, epoch_ms_to_utc_z, utc_now_z
 from zmeta_uuid import uuid7
 
 ADAPTER_VERSION = "1.0.0"
@@ -44,7 +44,7 @@ _MOTH_CUSTOM_STRUCT = struct.Struct("<fh")
 
 
 def _utc_now():
-    return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+    return utc_now_z()
 
 
 def detect(input_bytes):
@@ -126,9 +126,7 @@ def translate_serial_line(line, *, platform_id, sensor_geo=None, sensor_id=None,
         return None
 
     ts_ms = timestamp_ms or int(time.time() * 1000)
-    ts_iso = datetime.fromtimestamp(
-        ts_ms / 1000.0, tz=timezone.utc
-    ).isoformat(timespec="milliseconds")
+    ts_iso = epoch_ms_to_utc_z(ts_ms)
 
     geo = dict(sensor_geo) if sensor_geo else None
     sid = sensor_id or DEFAULT_SENSOR_ID
@@ -162,6 +160,7 @@ def translate_serial_line(line, *, platform_id, sensor_geo=None, sensor_id=None,
             "quality": {
                 "geo_status": "AVAILABLE" if geo else "UNAVAILABLE",
             },
+            "timing_quality": coerce_timing_quality(event_ts=ts_iso),
         },
         "lineage": {
             "based_on": [str(uuid7())],
@@ -192,9 +191,7 @@ def translate_tunnel_payload(payload_bytes, *, platform_id, sensor_geo=None,
     raw = dict(zip(_TUNNEL_FIELDS, values))
 
     ts_ms = timestamp_ms or int(time.time() * 1000)
-    ts_iso = datetime.fromtimestamp(
-        ts_ms / 1000.0, tz=timezone.utc
-    ).isoformat(timespec="milliseconds")
+    ts_iso = epoch_ms_to_utc_z(ts_ms)
 
     geo = dict(sensor_geo) if sensor_geo else None
     sid = sensor_id or DEFAULT_SENSOR_ID
@@ -243,6 +240,7 @@ def translate_tunnel_payload(payload_bytes, *, platform_id, sensor_geo=None,
             "bearing": bearing,
             "features": features,
             "quality": quality,
+            "timing_quality": coerce_timing_quality(event_ts=ts_iso),
         },
         "lineage": {
             "based_on": [str(uuid7())],
@@ -291,9 +289,7 @@ def translate_custom_mavlink(frame_bytes, *, platform_id, sensor_geo=None,
         return None
 
     ts_ms = timestamp_ms or int(time.time() * 1000)
-    ts_iso = datetime.fromtimestamp(
-        ts_ms / 1000.0, tz=timezone.utc
-    ).isoformat(timespec="milliseconds")
+    ts_iso = epoch_ms_to_utc_z(ts_ms)
 
     geo = dict(sensor_geo) if sensor_geo else None
     sid = sensor_id or DEFAULT_SENSOR_ID
@@ -327,6 +323,7 @@ def translate_custom_mavlink(frame_bytes, *, platform_id, sensor_geo=None,
             "quality": {
                 "geo_status": "AVAILABLE" if geo else "UNAVAILABLE",
             },
+            "timing_quality": coerce_timing_quality(event_ts=ts_iso),
         },
         "lineage": {
             "based_on": [str(uuid7())],
@@ -359,9 +356,7 @@ def translate_json_replay(raw, *, platform_id, sensor_geo=None, sensor_id=None):
     sensor_pos = raw.get("sensor_position", {})
     ts_ms = raw.get("timestamp_ms", int(time.time() * 1000))
 
-    ts_iso = datetime.fromtimestamp(
-        ts_ms / 1000.0, tz=timezone.utc
-    ).isoformat(timespec="milliseconds")
+    ts_iso = epoch_ms_to_utc_z(ts_ms)
 
     geo = sensor_geo or (
         {"lat": sensor_pos["lat"], "lon": sensor_pos["lon"],
@@ -420,6 +415,7 @@ def translate_json_replay(raw, *, platform_id, sensor_geo=None, sensor_id=None):
             "bearing": bearing,
             "features": features,
             "quality": quality,
+            "timing_quality": coerce_timing_quality(raw.get("timing_quality"), event_ts=ts_iso),
         },
         "lineage": {
             "based_on": [str(uuid7())],

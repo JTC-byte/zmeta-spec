@@ -1,12 +1,14 @@
 import shutil
 from pathlib import Path
 
-VERSION_TAG = "v1.1.0"
+VERSION_TAG = "v1.1.1"
 IGNORE_NAMES = (
     "__pycache__",
     ".pytest_cache",
     ".pytest_cache_custom",
     ".pytest_tmp",
+    ".pytest_work",
+    "pytest-work",
 )
 IGNORE_PATTERNS = ("*.pyc", "*.pyo", "pytest-cache-files-*")
 

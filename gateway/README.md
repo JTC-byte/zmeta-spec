@@ -101,6 +101,9 @@ change this behavior.
 The gateway logs periodic metrics (received, forwarded, drops, violations, warnings) at
 `metrics_interval_sec` when `emit_metrics` is true. Use `rate_limit_per_sec` to drop
 packets above a configured receive rate. `rate_limit_producer_per_sec` applies per producer.
+When CoT emission is enabled, metrics include `cot_skipped` and
+`cot_skip_reasons` for STATE_EVENTs that cannot be projected to CoT, such as
+missing `payload.track_id` or missing `payload.geo`.
 
 If `metrics_log_path` is set, the gateway writes JSONL metrics/violation/drop records
 and rotates logs based on `metrics_log_max_bytes` and `metrics_log_backups`.

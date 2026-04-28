@@ -1,0 +1,48 @@
+# Strict deployment example.
+#
+# Copy this file to policy/producer-authority.yaml in a deployment policy
+# directory and replace the example producer IDs with local authenticated
+# producer identities. Unlike the reference policy, this example avoids broad
+# globs such as mavlink-*, gateway-*, and fusion-*.
+producer_authority:
+  enabled: true
+  require_match_for_event_types:
+    - OBSERVATION_EVENT
+    - INFERENCE_EVENT
+    - FUSION_EVENT
+    - STATE_EVENT
+    - COMMAND_EVENT
+    - SYSTEM_EVENT
+
+  producers:
+    rf-sensor-01:
+      allowed_event_types:
+        - OBSERVATION_EVENT
+        - SYSTEM_EVENT
+    eo-camera-01:
+      allowed_event_types:
+        - OBSERVATION_EVENT
+        - SYSTEM_EVENT
+    classifier-alpha:
+      allowed_event_types:
+        - INFERENCE_EVENT
+        - SYSTEM_EVENT
+    fusion-engine-01:
+      allowed_event_types:
+        - FUSION_EVENT
+        - STATE_EVENT
+        - SYSTEM_EVENT
+    state-projector-01:
+      allowed_event_types:
+        - STATE_EVENT
+        - SYSTEM_EVENT
+    comms-deconfliction-01:
+      allowed_event_types:
+        - COMMAND_EVENT
+        - SYSTEM_EVENT
+    zmeta-gateway-01:
+      allowed_event_types:
+        - SYSTEM_EVENT
+    autopilot-01:
+      allowed_event_types:
+        - SYSTEM_EVENT

@@ -1,12 +1,14 @@
+from datetime import datetime
+
+from adapters.ingress.time_utils import coerce_timing_quality, normalize_utc_z, utc_now_z
 from zmeta_uuid import uuid7
-from datetime import datetime, timezone
 
 
 DEFAULT_VALID_FOR_MS = 5000
 
 
 def _iso_now():
-    return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+    return utc_now_z()
 
 
 def _parse_ts(value):
@@ -49,7 +51,8 @@ def jreap_track_dict_to_zmeta_track_state(track: dict) -> dict:
     if lat is None or lon is None or hae_m is None:
         raise ValueError("track must include lat/lon/hae_m")
 
-    ts = track.get("timestamp") or track.get("time") or track.get("ts") or _iso_now()
+    base_ts = track.get("timestamp") or track.get("time") or track.get("ts")
+    ts = normalize_utc_z(base_ts) or _iso_now()
     valid_for_ms = _compute_valid_for_ms(ts, track.get("stale_time") or track.get("stale"))
 
     confidence = track.get("confidence")
@@ -64,6 +67,7 @@ def jreap_track_dict_to_zmeta_track_state(track: dict) -> dict:
         "track_id": str(track_id),
         "geo": {"lat": lat, "lon": lon, "alt_m": hae_m},
         "valid_for_ms": valid_for_ms,
+        "timing_quality": coerce_timing_quality(track.get("timing_quality"), event_ts=ts),
     }
     track_type = track.get("track_type")
     if track_type:

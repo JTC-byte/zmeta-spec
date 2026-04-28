@@ -7,6 +7,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[2]
+TMP_ROOT = ROOT / "pytest-work"
 
 
 def _sample_event():
@@ -15,9 +16,17 @@ def _sample_event():
 
 
 def _workdir():
-    path = ROOT / ".pytest_tmp" / f"convert-{uuid.uuid4().hex}"
+    path = TMP_ROOT / f"convert-{uuid.uuid4().hex}"
     path.mkdir(parents=True, exist_ok=False)
     return path
+
+
+def _cleanup_workdir(path):
+    shutil.rmtree(path, ignore_errors=True)
+    try:
+        TMP_ROOT.rmdir()
+    except OSError:
+        pass
 
 
 def test_convert_json_proto_json():
@@ -25,7 +34,7 @@ def test_convert_json_proto_json():
     try:
         _run_convert_json_proto_json(tmp_path)
     finally:
-        shutil.rmtree(tmp_path, ignore_errors=True)
+        _cleanup_workdir(tmp_path)
 
 
 def _run_convert_json_proto_json(tmp_path):
@@ -77,7 +86,7 @@ def test_convert_json_compact_auto_json():
     try:
         _run_convert_json_compact_auto_json(tmp_path)
     finally:
-        shutil.rmtree(tmp_path, ignore_errors=True)
+        _cleanup_workdir(tmp_path)
 
 
 def _run_convert_json_compact_auto_json(tmp_path):

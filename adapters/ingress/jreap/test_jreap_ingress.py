@@ -30,3 +30,24 @@ def test_jreap_track_to_state_schema_valid():
     assert event["event"]["event_type"] == "STATE_EVENT"
     assert event["event"]["event_subtype"] == "TRACK_STATE"
     VALIDATOR.validate(event)
+
+
+def test_jreap_ingress_normalizes_utc_offset_timestamp():
+    track = {
+        "track_id": "track-1",
+        "lat": 34.0,
+        "lon": -118.0,
+        "hae_m": 120.0,
+        "timestamp": "2025-01-17T15:20:00+00:00",
+        "stale_time": "2025-01-17T15:20:05+00:00",
+        "track_type": "UNKNOWN",
+        "confidence": 0.6,
+        "based_on": [str(uuid7())],
+    }
+
+    event = jreap_track_dict_to_zmeta_track_state(track)
+
+    assert event["event"]["ts"] == "2025-01-17T15:20:00Z"
+    assert event["payload"]["valid_for_ms"] == 5000
+    assert event["payload"]["timing_quality"]["last_sync_ts"] == "2025-01-17T15:20:00Z"
+    VALIDATOR.validate(event)

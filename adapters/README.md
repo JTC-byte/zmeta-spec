@@ -39,3 +39,9 @@ or command safety.
 
 Each adapter implements the standard `detect()` / `translate()` / `validate()`
 pattern described in `ingress/template/README.md`.
+
+Ingress adapters normalize timestamp inputs to the schema-required UTC `Z`
+format before emission. Operational events also carry explicit fallback
+`payload.timing_quality` when the source stream does not provide a better timing
+authority; deployments with GPS/NTP/PTP timing should supply those stronger
+values or emit `TIME_STATUS` from the same source tuple.

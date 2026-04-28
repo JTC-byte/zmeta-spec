@@ -11,7 +11,7 @@ Input formats:
 Source: Z-ISR edge/edge/sensors/kraken_rf.py
 """
 
-from datetime import datetime, timezone
+from adapters.ingress.time_utils import coerce_timing_quality, epoch_ms_to_utc_z, utc_now_z
 from zmeta_uuid import uuid7
 
 ADAPTER_VERSION = "1.0.0"
@@ -20,7 +20,7 @@ DEFAULT_SENSOR_ID = "krakensdr_rf"
 
 
 def _utc_now():
-    return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+    return utc_now_z()
 
 
 def _confidence_to_error_deg(conf_0_99):
@@ -88,9 +88,7 @@ def translate_csv_row(fields, *, platform_id, sensor_geo=None, sensor_id=None):
         return None
 
     err_deg = _confidence_to_error_deg(conf)
-    ts_iso = datetime.fromtimestamp(
-        ts_ms / 1000.0, tz=timezone.utc
-    ).isoformat(timespec="milliseconds")
+    ts_iso = epoch_ms_to_utc_z(ts_ms)
 
     geo = dict(sensor_geo) if sensor_geo else None
     sid = sensor_id or DEFAULT_SENSOR_ID
@@ -130,6 +128,7 @@ def translate_csv_row(fields, *, platform_id, sensor_geo=None, sensor_id=None):
                 "calibration_state": "CALIBRATED",
                 "geo_status": "AVAILABLE" if geo else "UNAVAILABLE",
             },
+            "timing_quality": coerce_timing_quality(event_ts=ts_iso),
         },
         "lineage": {
             "based_on": [str(uuid7())],
@@ -166,9 +165,7 @@ def translate_json(raw, *, platform_id, sensor_geo=None, sensor_id=None):
     conf = raw.get("bearing_confidence")
     meta = raw.get("metadata", {})
 
-    ts_iso = datetime.fromtimestamp(
-        ts_ms / 1000.0, tz=timezone.utc
-    ).isoformat(timespec="milliseconds")
+    ts_iso = epoch_ms_to_utc_z(ts_ms)
 
     geo = dict(sensor_geo) if sensor_geo else None
     sid = sensor_id or meta.get("zmeta_sensor_id", DEFAULT_SENSOR_ID)
@@ -217,6 +214,7 @@ def translate_json(raw, *, platform_id, sensor_geo=None, sensor_id=None):
             "bearing": {"az_deg": bearing},
             "features": features,
             "quality": quality,
+            "timing_quality": coerce_timing_quality(raw.get("timing_quality"), event_ts=ts_iso),
         },
         "lineage": {
             "based_on": [str(uuid7())],

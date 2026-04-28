@@ -82,6 +82,20 @@ python gateway/src/gateway.py --input-encoding json --output-encoding proto
 cases, but protobuf does not include a wire-level magic prefix. Prefer explicit
 `--input-encoding proto` for production protobuf links.
 
+## Decoder Bounds
+
+The reference `zmeta_proto.loads` decoder enforces default bounds before schema
+validation:
+- message size: 1 MiB
+- length-delimited field size: 512 KiB
+- payload JSON size: 512 KiB
+- payload JSON nesting depth: 64
+- decoded protobuf message nesting depth: 8
+
+Unsupported wire types and invalid field number 0 are rejected. Deployments with
+stricter link budgets should pass lower `loads(..., max_*)` values at trust
+boundaries.
+
 ## Tooling
 
 Measure size:

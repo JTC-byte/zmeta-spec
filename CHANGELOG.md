@@ -2,6 +2,15 @@
 
 ## [Unreleased]
 
+## [1.1.1]
+- Normalized ingress adapter timestamps to the strict UTC trailing-Z schema form.
+- Added explicit fallback timing quality to ingress adapter operational events.
+- Hardened protobuf decoding with message, field, payload, JSON-depth, and nested-message bounds.
+- Added optional strict producer-authority and Profile L timing-degrade policy variants.
+- Added CoT skip metrics so unpublishable state events are visible at the gateway boundary.
+- Added release checksum/signature helper tooling and refreshed release checklist guidance.
+- Tightened pytest collection to ignore generated release/cache directories.
+
 ## [1.1.0]
 - Added experimental protobuf transport projection with schema, pure-Python codec,
   gateway/tool support, docs, and round-trip tests.

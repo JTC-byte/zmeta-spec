@@ -223,3 +223,5 @@ release/smoke-*/
 pytest-cache-files-*
 .pytest_cache_custom/
 .pytest_tmp/
+.pytest_work/
+pytest-work/

@@ -25,9 +25,9 @@ Source: Z-ISR edge/edge/sensors/eo_consumer.py and edge/edge/zmeta_builder.py
 """
 
 import math
-from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
+from adapters.ingress.time_utils import coerce_timing_quality, normalize_utc_z, utc_now_z
 from zmeta_uuid import uuid7
 
 ADAPTER_VERSION = "1.0.0"
@@ -38,7 +38,7 @@ _GEO_MAX_SENSOR_DELTA_M = 10000.0
 
 
 def _utc_now():
-    return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+    return utc_now_z()
 
 
 def _geo_distance_m(geo_a: Dict[str, float], geo_b: Dict[str, float]) -> float:
@@ -174,7 +174,7 @@ def translate(
 
     stream_id = payload.get("stream_id")
 
-    ts = payload.get("timestamp", _utc_now())
+    ts = normalize_utc_z(payload.get("timestamp")) or _utc_now()
     sid = stream_id or DEFAULT_SENSOR_ID
     parent_event_id = str(uuid7())
     if payload.get("source_event_id"):
@@ -202,6 +202,10 @@ def translate(
                 "version": str(payload.get("model_version") or ADAPTER_VERSION),
             },
             "based_on": [parent_event_id],
+            "timing_quality": coerce_timing_quality(
+                payload.get("timing_quality"),
+                event_ts=ts,
+            ),
         },
         "confidence": confidence,
         "lineage": {

@@ -1,0 +1,31 @@
+# Optional field deployment variant.
+#
+# Copy this file to policy/timing-freshness.yaml in a deployment policy directory
+# when Profile L links should continue forwarding stale/missing timing as
+# degraded output instead of dropping all operational traffic. M/H remain
+# fail-closed.
+timing_freshness:
+  enabled: true
+  mode: reject
+  mode_by_profile:
+    L: degrade
+    M: reject
+    H: reject
+  max_timing_status_age_ms:
+    L: 60000
+    M: 30000
+    H: 10000
+
+  source_identity:
+    required_fields:
+      - source.platform_id
+      - source.producer
+    optional_fields:
+      - source.sensor_id
+
+  degrade:
+    confidence_reduction_factor: 2.0
+
+  holdover_est_error_monotonic:
+    enabled: true
+    mode: warn

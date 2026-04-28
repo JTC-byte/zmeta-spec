@@ -1,3 +1,4 @@
+from adapters.ingress.time_utils import coerce_timing_quality, normalize_utc_z, utc_now_z
 from zmeta_uuid import uuid7
 
 
@@ -16,13 +17,14 @@ def klv_decoded_to_zmeta_observation(
     lon = decoded_klv.get("lon")
     alt_m = decoded_klv.get("alt_m")
 
+    event_ts = normalize_utc_z(ts) or utc_now_z()
     event = {
         "zmeta_version": "1.0",
         "event": {
             "event_id": str(uuid7()),
             "event_type": "OBSERVATION_EVENT",
             "event_subtype": "EO",
-            "ts": ts,
+            "ts": event_ts,
         },
         "source": {
             "platform_id": platform_id,
@@ -34,6 +36,10 @@ def klv_decoded_to_zmeta_observation(
             "features": {
                 "klv": decoded_klv
             },
+            "timing_quality": coerce_timing_quality(
+                decoded_klv.get("timing_quality"),
+                event_ts=event_ts,
+            ),
         },
     }
 

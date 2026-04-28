@@ -1,12 +1,14 @@
+from datetime import datetime
+
+from adapters.ingress.time_utils import coerce_timing_quality, normalize_utc_z, utc_now_z
 from zmeta_uuid import uuid7
-from datetime import datetime, timezone
 
 
 DEFAULT_VALID_FOR_MS = 5000
 
 
 def _iso_now():
-    return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+    return utc_now_z()
 
 
 def _parse_ts(value):
@@ -55,7 +57,7 @@ def cot_dict_to_zmeta_track_state(cot: dict) -> dict:
         raise ValueError("cot point must include lat/lon/hae")
 
     base_ts = cot.get("time") or cot.get("start")
-    ts = base_ts or _iso_now()
+    ts = normalize_utc_z(base_ts) or _iso_now()
     valid_for_ms = _compute_valid_for_ms(base_ts, cot.get("stale"))
 
     confidence = _extract_confidence(cot)
@@ -73,6 +75,7 @@ def cot_dict_to_zmeta_track_state(cot: dict) -> dict:
         "track_id": str(uid),
         "geo": {"lat": lat, "lon": lon, "alt_m": hae},
         "valid_for_ms": valid_for_ms,
+        "timing_quality": coerce_timing_quality(cot.get("timing_quality"), event_ts=ts),
     }
     cot_type = cot.get("type")
     if cot_type:
