@@ -28,7 +28,9 @@ Notes:
   If you copy one into the active deployment `policy/` directory, recompute the
   deployment `policy_hash` and `contract_hash` and update any
   `require_policy_hash` or `require_contract_hash` gate. External variants do
-  not change the published reference hash.
+  not change the published reference hash. The current hash utility covers the
+  whole active policy directory, so keep deployment-local notes and overlays
+  outside `policy/` unless changing the deployment hash is intentional.
 - Context-aware lineage rules live in `policy/lineage.yaml`; tune unresolved
   parent and parent-type handling there for local AAR/event-store behavior.
 - Debug/optimization controls:

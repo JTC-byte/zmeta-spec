@@ -131,4 +131,6 @@ The reported policy hash covers the active `policy/` directory. Policy examples
 under `configs/policy-variants/` are deployment overlays until copied into the
 active policy directory. After adopting a variant, recompute hashes and update
 any `require_policy_hash` or `require_contract_hash` gate in the deployment
-config.
+config. Because the current utility hashes the whole active policy directory,
+keep deployment-local notes and draft overlays outside `policy/` unless changing
+the deployment hash is intentional.

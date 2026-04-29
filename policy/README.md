@@ -15,20 +15,6 @@ Files:
 Normative compliance is defined by the semantic contract and schema; this policy pack
 drives reference enforcement behavior.
 
-## Hash Scope
-
-`tools/compute_contract_hash.py` hashes the active schema, semantic contract,
-and active policy directory. For the reference release, the active policy
-directory is `policy/`; optional examples under `configs/policy-variants/` are
-not part of the published reference policy hash while they remain outside
-`policy/`.
-
-When a deployment adopts a variant, copy it into the deployment's active
-`policy/` directory using the filename the gateway expects, recompute the
-policy and contract hashes, and update any configured `require_policy_hash` or
-`require_contract_hash` startup gates. That creates a deployment-local contract
-hash and does not change the published release hash.
-
 Notes:
 - `producer-authority.yaml` uses case-insensitive shell-style producer patterns
   (for example, `rf-sensor-*`) to enforce semantic authority boundaries without
