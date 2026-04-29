@@ -42,4 +42,7 @@ What it does:
 
 - Edge and gateway both default to UDP `5555`. If you run them on the same host,
   change one port mapping in the compose file or config to avoid collisions.
+- Compose runs the gateway with unbuffered Python (`python -u`) so startup lines
+  such as `gateway listening on ...`, hash values, and metrics configuration are
+  visible immediately in `docker compose logs -f`.
 - Stop services with `docker compose down`.

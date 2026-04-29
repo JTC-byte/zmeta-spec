@@ -4,7 +4,7 @@ services:
     working_dir: /app
     command: >
       sh -c "pip install --no-cache-dir -r /app/gateway/requirements.txt
-      && python /app/gateway/src/gateway.py --config /app/configs/edge-config.json"
+      && python -u /app/gateway/src/gateway.py --config /app/configs/edge-config.json"
     volumes:
       - ../..:/app:ro
     ports:

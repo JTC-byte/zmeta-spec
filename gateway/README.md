@@ -108,6 +108,9 @@ Timing visibility metrics include `timing_quality_source`,
 `timing_quality_fallback`, and `timing_quality_modes`. `UNKNOWN/UNSYNCED`
 per-event timing increments the fallback counter so operators can distinguish
 adapter fallback timing from stronger source-provided GPS/NTP/PTP timing.
+`timing_quality_fallback` is a degraded-mode signal, not evidence of a healthy
+time source; deployments should drive that count down by providing real timing
+metadata per event or periodic `SYSTEM_EVENT` / `TIME_STATUS` updates.
 
 If `metrics_log_path` is set, the gateway writes JSONL metrics/violation/drop records
 and rotates logs based on `metrics_log_max_bytes` and `metrics_log_backups`.
@@ -141,6 +144,9 @@ From `gateway/`:
 ```
 docker compose up
 ```
+
+The Compose command runs the gateway with unbuffered Python so startup lines and
+periodic metrics are visible immediately in `docker compose logs -f`.
 
 ### Example (send + receive)
 

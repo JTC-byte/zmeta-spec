@@ -56,3 +56,15 @@ Adapter modules use package-style imports from the repository root, including
 from the repo root, or install/add the repo root on `PYTHONPATH`, so shared
 adapter helpers resolve consistently. Direct execution from an adapter
 subdirectory is not the supported invocation style.
+
+Supported invocation patterns:
+
+```
+python -m pytest adapters
+python tools/check_compat.py examples/zmeta-v1.1-examples.jsonl --target v1.1.4
+PYTHONPATH=. python adapters/ingress/<adapter>/<script>.py
+```
+
+Avoid `cd adapters/ingress/<adapter>` followed by direct script execution unless
+the script explicitly adjusts imports; that bypasses the repository root package
+context used by shared helpers.

@@ -126,3 +126,9 @@ python tools/measure_packet_size.py --file examples/zmeta-profile-L-examples.jso
 ```
 python tools/compute_contract_hash.py
 ```
+
+The reported policy hash covers the active `policy/` directory. Policy examples
+under `configs/policy-variants/` are deployment overlays until copied into the
+active policy directory. After adopting a variant, recompute hashes and update
+any `require_policy_hash` or `require_contract_hash` gate in the deployment
+config.
