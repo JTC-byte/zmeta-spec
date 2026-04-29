@@ -296,8 +296,8 @@ def dumps(event: Dict[str, Any]) -> bytes:
     return cbor2.dumps(compact, canonical=True)
 
 
-def loads(data: bytes) -> Dict[str, Any]:
-    compact = _decode_cbor(data)
+def loads(data: bytes, **decode_limits) -> Dict[str, Any]:
+    compact = _decode_cbor(data, **decode_limits)
     return decode_event(compact)
 
 
@@ -365,10 +365,12 @@ def decode_event(compact: Dict[int, Any]) -> Dict[str, Any]:
     return event
 
 
-def _decode_cbor(data: bytes) -> Any:
+def _decode_cbor(data: bytes, **decode_limits) -> Any:
     _require_cbor()
     if zmeta_cbor is not None:
-        return zmeta_cbor.loads(data)
+        return zmeta_cbor.loads(data, **decode_limits)
+    if decode_limits:
+        raise ValueError("compact decode limits require zmeta_cbor")
     return cbor2.loads(data)
 
 

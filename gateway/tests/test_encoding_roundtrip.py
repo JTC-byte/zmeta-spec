@@ -39,11 +39,111 @@ def test_cbor_map_order_is_deterministic():
     assert zmeta_cbor.dumps(left) == zmeta_cbor.dumps(right)
 
 
+def test_cbor_rejects_oversized_message():
+    with pytest.raises(ValueError, match="max_bytes"):
+        zmeta_cbor.loads(b"\xf6", max_bytes=0)
+
+
+def test_cbor_rejects_oversized_byte_and_text_items():
+    with pytest.raises(ValueError, match="max_item_bytes"):
+        zmeta_cbor.loads(b"\x44abcd", max_item_bytes=3)
+
+    with pytest.raises(ValueError, match="max_item_bytes"):
+        zmeta_cbor.loads(b"\x7a\x00\x00\x00\x10", max_item_bytes=8)
+
+
+def test_cbor_rejects_oversized_containers():
+    with pytest.raises(ValueError, match="max_container_items"):
+        zmeta_cbor.loads(b"\x82\xf6\xf6", max_container_items=1)
+
+    with pytest.raises(ValueError, match="max_container_items"):
+        zmeta_cbor.loads(b"\xba\x00\x00\x00\x10", max_container_items=8)
+
+
+def test_cbor_rejects_deep_nesting():
+    value = 0
+    for _ in range(8):
+        value = [value]
+    encoded = zmeta_cbor.dumps(value)
+
+    with pytest.raises(ValueError, match="max_depth"):
+        zmeta_cbor.loads(encoded, max_depth=3)
+
+
+def test_cbor_rejects_deep_tag_nesting():
+    with pytest.raises(ValueError, match="max_depth"):
+        zmeta_cbor.loads(b"\xc0\xc0\xc0\xc0\xf6", max_depth=3)
+
+
+def test_cbor_rejects_indefinite_lengths_and_truncated_payloads():
+    with pytest.raises(ValueError, match="indefinite lengths"):
+        zmeta_cbor.loads(b"\x9f\xff")
+
+    with pytest.raises(ValueError, match="unexpected end of data"):
+        zmeta_cbor.loads(b"\x45abc")
+
+
+def test_cbor_rejects_unhashable_map_keys():
+    with pytest.raises(ValueError, match="not hashable"):
+        zmeta_cbor.loads(b"\xa1\x81\x01\x02")
+
+
+def test_cbor_random_bytes_do_not_raise_unexpected_exceptions():
+    samples = [
+        b"",
+        b"\xff",
+        b"\x9f\xff",
+        b"\xbf\xff",
+        b"\xc0" * 80 + b"\xf6",
+        bytes(range(32)),
+        b"\x5a\xff\xff\xff\xff",
+        b"\x9a\x00\x00\x00\x40" + (b"\xf6" * 8),
+    ]
+
+    for sample in samples:
+        try:
+            zmeta_cbor.loads(
+                sample,
+                max_bytes=256,
+                max_item_bytes=64,
+                max_container_items=16,
+                max_depth=8,
+            )
+        except (ValueError, UnicodeDecodeError):
+            continue
+
+
+def test_cbor_seeded_random_fuzz_rejects_or_decodes_supported_values():
+    rng = random.Random(0x43424F52)
+
+    for _ in range(250):
+        size = rng.randrange(0, 160)
+        sample = bytes(rng.randrange(0, 256) for _ in range(size))
+        try:
+            zmeta_cbor.loads(
+                sample,
+                max_bytes=256,
+                max_item_bytes=64,
+                max_container_items=16,
+                max_depth=8,
+            )
+        except (ValueError, UnicodeDecodeError):
+            continue
+
+
 def test_compact_roundtrip():
     for event in _load_events():
         encoded = zmeta_compact.dumps(event)
         decoded = zmeta_compact.loads(encoded)
         assert decoded == event
+
+
+def test_compact_decode_accepts_cbor_limits():
+    event = _load_events()[0]
+    encoded = zmeta_compact.dumps(event)
+
+    with pytest.raises(ValueError, match="max_depth"):
+        zmeta_compact.loads(encoded, max_depth=1)
 
 
 def test_compact_prefers_builtin_cbor_when_cbor2_is_present():

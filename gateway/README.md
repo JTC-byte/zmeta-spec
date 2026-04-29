@@ -76,11 +76,13 @@ and `--self-test`.
 
 The gateway accepts `input_encoding` of `json`, `cbor`, `compact`, `proto`, or
 `auto`, and emits `output_encoding` of `json`, `cbor`, `compact`, or `proto`.
-CBOR requires `cbor2` or the built-in `zmeta_cbor` fallback. A common pattern is
-compact encoding on Profile L edge links (edge `output_encoding=compact`) and
-JSON on gateway egress. Use `compact` for the Profile L compact mapping (see
-`spec/compact-binary-mapping.md`). Use `proto` for the experimental protobuf
-projection described in `spec/protobuf-encoding.md`.
+CBOR/compact use the built-in deterministic `zmeta_cbor` decoder when
+available, with default message, item, container, and nesting limits for
+untrusted input. A common pattern is compact encoding on Profile L edge links
+(edge `output_encoding=compact`) and JSON on gateway egress. Use `compact` for
+the Profile L compact mapping (see `spec/compact-binary-mapping.md`). Use
+`proto` for the experimental protobuf projection described in
+`spec/protobuf-encoding.md`.
 
 ### COMMAND_EVENT dedupe
 

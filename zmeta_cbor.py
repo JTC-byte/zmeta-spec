@@ -3,7 +3,8 @@ Minimal deterministic CBOR encoder/decoder for ZMeta payloads.
 
 Supports: dict, list/tuple, str, bytes/bytearray, int, float, bool, None.
 This is a fallback when cbor2 is unavailable. Maps are encoded using canonical
-CBOR key ordering so equivalent objects produce stable bytes.
+CBOR key ordering so equivalent objects produce stable bytes. Decoding enforces
+default message, item, container, and nesting limits for untrusted network input.
 """
 
 from __future__ import annotations
@@ -13,12 +14,40 @@ import struct
 from typing import Any, Tuple
 
 
+DEFAULT_MAX_MESSAGE_BYTES = 1_048_576
+DEFAULT_MAX_ITEM_BYTES = 524_288
+DEFAULT_MAX_CONTAINER_ITEMS = 65_536
+DEFAULT_MAX_DEPTH = 64
+
+
 def dumps(obj: Any) -> bytes:
     return _encode(obj)
 
 
-def loads(data: bytes) -> Any:
-    value, index = _decode(data, 0)
+def loads(
+    data: bytes,
+    *,
+    max_bytes: int | None = DEFAULT_MAX_MESSAGE_BYTES,
+    max_item_bytes: int | None = DEFAULT_MAX_ITEM_BYTES,
+    max_container_items: int | None = DEFAULT_MAX_CONTAINER_ITEMS,
+    max_depth: int | None = DEFAULT_MAX_DEPTH,
+) -> Any:
+    data = _coerce_bytes(data)
+    _validate_limit(max_bytes, "max_bytes")
+    _validate_limit(max_item_bytes, "max_item_bytes")
+    _validate_limit(max_container_items, "max_container_items")
+    _validate_limit(max_depth, "max_depth")
+    if max_bytes is not None and len(data) > max_bytes:
+        raise ValueError("CBOR message exceeds max_bytes")
+
+    value, index = _decode(
+        data,
+        0,
+        depth=0,
+        max_item_bytes=max_item_bytes,
+        max_container_items=max_container_items,
+        max_depth=max_depth,
+    )
     if index != len(data):
         raise ValueError("extra bytes after top-level CBOR item")
     return value
@@ -78,7 +107,16 @@ def _encode_uint(major: int, value: int) -> bytes:
     raise OverflowError("integer too large for CBOR")
 
 
-def _decode(data: bytes, index: int) -> Tuple[Any, int]:
+def _decode(
+    data: bytes,
+    index: int,
+    *,
+    depth: int,
+    max_item_bytes: int | None,
+    max_container_items: int | None,
+    max_depth: int | None,
+) -> Tuple[Any, int]:
+    _check_depth(depth, max_depth)
     if index >= len(data):
         raise ValueError("unexpected end of data")
     initial = data[index]
@@ -94,31 +132,66 @@ def _decode(data: bytes, index: int) -> Tuple[Any, int]:
         return -1 - value, index
     if major == 2:
         length, index = _read_uint(data, index, addl)
+        _check_item_length(length, max_item_bytes)
         payload = _read_bytes(data, index, length)
         return payload, index + length
     if major == 3:
         length, index = _read_uint(data, index, addl)
+        _check_item_length(length, max_item_bytes)
         payload = _read_bytes(data, index, length)
         return payload.decode("utf-8"), index + length
     if major == 4:
         length, index = _read_uint(data, index, addl)
+        _check_container_length(length, max_container_items)
         items = []
         for _ in range(length):
-            item, index = _decode(data, index)
+            item, index = _decode(
+                data,
+                index,
+                depth=depth + 1,
+                max_item_bytes=max_item_bytes,
+                max_container_items=max_container_items,
+                max_depth=max_depth,
+            )
             items.append(item)
         return items, index
     if major == 5:
         length, index = _read_uint(data, index, addl)
+        _check_container_length(length, max_container_items)
         mapping = {}
         for _ in range(length):
-            key, index = _decode(data, index)
-            value, index = _decode(data, index)
-            mapping[key] = value
+            key, index = _decode(
+                data,
+                index,
+                depth=depth + 1,
+                max_item_bytes=max_item_bytes,
+                max_container_items=max_container_items,
+                max_depth=max_depth,
+            )
+            value, index = _decode(
+                data,
+                index,
+                depth=depth + 1,
+                max_item_bytes=max_item_bytes,
+                max_container_items=max_container_items,
+                max_depth=max_depth,
+            )
+            try:
+                mapping[key] = value
+            except TypeError as exc:
+                raise ValueError("CBOR map key is not hashable") from exc
         return mapping, index
     if major == 6:
         # tag; ignore and decode tagged item
         _tag, index = _read_uint(data, index, addl)
-        return _decode(data, index)
+        return _decode(
+            data,
+            index,
+            depth=depth + 1,
+            max_item_bytes=max_item_bytes,
+            max_container_items=max_container_items,
+            max_depth=max_depth,
+        )
     if major == 7:
         return _decode_simple(data, index, addl)
 
@@ -152,6 +225,34 @@ def _read_bytes(data: bytes, index: int, length: int) -> bytes:
     if end > len(data):
         raise ValueError("unexpected end of data")
     return data[index:end]
+
+
+def _check_item_length(length: int, max_item_bytes: int | None) -> None:
+    if max_item_bytes is not None and length > max_item_bytes:
+        raise ValueError("CBOR byte/text item exceeds max_item_bytes")
+
+
+def _check_container_length(length: int, max_container_items: int | None) -> None:
+    if max_container_items is not None and length > max_container_items:
+        raise ValueError("CBOR array/map exceeds max_container_items")
+
+
+def _check_depth(depth: int, max_depth: int | None) -> None:
+    if max_depth is not None and depth > max_depth:
+        raise ValueError("CBOR nesting exceeds max_depth")
+
+
+def _coerce_bytes(data: bytes) -> bytes:
+    if isinstance(data, bytes):
+        return data
+    if isinstance(data, (bytearray, memoryview)):
+        return bytes(data)
+    raise TypeError("CBOR input must be bytes-like")
+
+
+def _validate_limit(value: int | None, name: str) -> None:
+    if value is not None and value < 0:
+        raise ValueError(f"{name} must be non-negative or None")
 
 
 def _decode_simple(data: bytes, index: int, addl: int) -> Tuple[Any, int]:

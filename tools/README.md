@@ -56,8 +56,10 @@ python tools/replay.py --file examples/encoding-roundtrip.jsonl --encoding proto
 python tools/test_gateway_live.py --profile H --encoding proto --input-encoding proto --no-cot
 ```
 
-CBOR/compact require `cbor2` or the built-in `zmeta_cbor` fallback. Protobuf
-uses the experimental pure-Python `zmeta_proto` projection.
+CBOR/compact use the built-in deterministic `zmeta_cbor` decoder when
+available, with default message, item, container, and nesting limits for
+untrusted input. Protobuf uses the experimental pure-Python `zmeta_proto`
+projection.
 
 ### Compatibility Normalize
 
