@@ -4,13 +4,12 @@
 
 - Last updated: 2026-05-07
 - Quick handoff: `docs/zmeta_refinement_handoff.md`
-- Current next work item: S1-05C - Encoding Negative Validation Post-Implementation Audit.
-- Current decision: S1-05B implemented compact/protobuf encoding-negative
-  invalid-after-decode fixtures, a standalone validator, opt-in conformance
-  integration, focused tests, and conformance-class evidence updates. No
-  schemas, semantic contract text, extension registry artifacts, gateway runtime
+- Current next work item: S1-06A - Profile Precision / Quantization Policy Floors Plan Only.
+- Current decision: S1-05C verified S1-05B. Compact/protobuf encoding-negative
+  invalid-after-decode coverage is implemented and audited. No schemas,
+  semantic contract text, extension registry artifacts, gateway runtime
   behavior, codecs, adapters, release hashes, or event vocabulary were changed.
-  D-007 remains open as implemented pending S1-05C audit.
+  D-007 is closed. D-010, D-011, and D-002 remain open.
 
 ## S0-01 - Semantic Contract Lockdown Audit
 
@@ -393,7 +392,7 @@
 
 ## S1-05B - Encoding Negative Validation Implementation
 
-- Status: IMPLEMENTED - PENDING S1-05C AUDIT
+- Status: COMPLETE
 - Date completed: 2026-05-07
 - Output:
   - `conformance/encoding-negative/README.md`
@@ -425,16 +424,55 @@
   - Optional `tools/validate_conformance.py --encoding-negative` integration.
   - `ZMETA-COMPACT-CBOR` and `ZMETA-PROTOBUF-PROJECTION` evidence now references
     the encoding-negative validator command; no new conformance class was added.
-- Decision: D-007 is implemented pending S1-05C audit. Do not close D-007 until
-  audit verifies fixture breadth, validator behavior, gateway/CLI parity, and
-  absence of schema/contract/registry drift.
+- Audit: S1-05C verified fixture breadth, validator behavior, gateway/CLI
+  parity, conformance-class evidence, and absence of schema/contract/registry
+  drift. D-007 is closed.
 
 ## S1-05C - Encoding Negative Validation Post-Implementation Audit
 
-- Status: FUTURE / PENDING
-- Scope: Audit S1-05B for decoded validation authority, gateway/CLI parity,
-  fixture quality, conformance integration, and absence of schema/contract/code
-  drift.
+- Status: COMPLETE
+- Date completed: 2026-05-07
+- Output: `docs/s1_05c_encoding_negative_validation_audit.md`
+- Scope: Audited S1-05B for decoded validation authority, gateway/CLI parity,
+  fixture quality, conformance integration, conformance-class evidence, and
+  absence of schema/contract/registry drift.
+- Coverage verified:
+  - 49 encoding-negative fixtures: 20 compact, 21 protobuf, and 8 gateway/CLI.
+  - Decode-level compact/protobuf rejection.
+  - Decoded schema-invalid compact/protobuf rejection.
+  - Stable decoded policy-invalid rejection for producer authority, command
+    origin, and lineage parent type mismatch.
+  - Decoded projection-invalid compact/protobuf pairs routed through the
+    projection validator after canonical decode.
+  - Explicit compact/proto gateway rejection, conversion/validation rejection,
+    and stable auto-detection rejection.
+  - Optional `tools/validate_conformance.py --encoding-negative` integration.
+- Verification:
+  - `python tools\validate_encoding_negative.py --compact conformance\encoding-negative\compact-must-fail.jsonl --protobuf conformance\encoding-negative\protobuf-must-fail.jsonl --gateway conformance\encoding-negative\gateway-must-fail.jsonl` ->
+    `encoding negative ok total=49`
+  - `python tools\validate_conformance.py --strict` -> `conformance ok`
+  - `python tools\validate_conformance.py --strict --profile-projection` ->
+    `projection conformance ok total=33`, `conformance ok`
+  - `python tools\validate_conformance.py --strict --profile-projection --extension-registry` ->
+    `projection conformance ok total=33`, `extension registry ok entries=63`,
+    `conformance ok`
+  - `python tools\validate_conformance.py --strict --profile-projection --extension-registry --conformance-classes` ->
+    `projection conformance ok total=33`, `extension registry ok entries=63`,
+    `conformance classes ok classes=30 claims=2`, `conformance ok`
+  - `python tools\validate_conformance.py --strict --profile-projection --extension-registry --conformance-classes --encoding-negative` ->
+    `projection conformance ok total=33`, `extension registry ok entries=63`,
+    `conformance classes ok classes=30 claims=2`,
+    `encoding negative ok total=49`, `conformance ok`
+  - `python tools\validate_conformance_classes.py --manifest conformance\conformance_classes.yaml` ->
+    `conformance classes ok classes=30 claims=0`
+  - `python tools\validate_conformance_classes.py --manifest conformance\conformance_classes.yaml --claims conformance\claims\example-reference-gateway.yaml conformance\claims\example-core-producer.yaml` ->
+    `conformance classes ok classes=30 claims=2`
+  - `python -m pytest -q gateway\tests\test_encoding_negative_validation.py gateway\tests\test_compact_negative_decode.py gateway\tests\test_protobuf_negative_decode.py` ->
+    `22 passed`
+  - `python -m pytest` -> `295 passed`
+  - `git diff --check` -> passed with CRLF conversion warnings only.
+- Decision: S1-05B is verified. D-007 is closed. D-010, D-011, and D-002 remain
+  open.
 
 ## S1-06A - Profile Precision / Quantization Policy Floors Plan Only
 
@@ -533,7 +571,7 @@
 
 ### D-007 - Encoding Negative Validation Gap
 
-- Status: OPEN - IMPLEMENTED PENDING S1-05C AUDIT
+- Status: CLOSED
 - Discovered during: S0-03
 - Issue: Compact and protobuf roundtrip coverage exists, and the gateway
   decodes binary encodings before validation, but there are not explicit
@@ -553,7 +591,10 @@
   standalone validator CLI, opt-in conformance runner integration, focused
   compact/protobuf/gateway tests, and class evidence updates for compact CBOR
   and protobuf projection.
-- Remaining follow-up: Run S1-05C audit before closing D-007.
+- S1-05C audit: Verified fixture breadth, stable failure codes, validator
+  behavior, gateway/CLI parity, opt-in conformance integration,
+  conformance-class evidence, and absence of schema/contract/registry drift.
+  D-007 is closed.
 
 ### D-008 - Conformance Class Manifest Missing
 
