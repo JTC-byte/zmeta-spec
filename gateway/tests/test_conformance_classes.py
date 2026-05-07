@@ -152,6 +152,41 @@ def test_synthetic_claim_missing_dependency_fails():
         path.unlink(missing_ok=True)
 
 
+def test_synthetic_partial_class_claimed_as_full_fails():
+    claim = load_yaml(REFERENCE_CLAIM_PATH)
+    claim["classes_claimed"].append("ZMETA-COT-PROJECTION")
+    command = "python -m pytest -q adapters/egress/cot adapters/ingress/cot"
+    claim["class_claims"].append(
+        {
+            "class_id": "ZMETA-COT-PROJECTION",
+            "claim_status": "claimed",
+            "commands": [command],
+            "result_summary": "synthetic overclaim",
+            "limitations": [],
+            "exceptions": [],
+        }
+    )
+    claim["test_commands_run"].append(command)
+    claim["test_results"].append({"command": command, "status": "passed", "summary": "synthetic"})
+    path = write_yaml("conformance_claim_partial_full", claim)
+    try:
+        issues = validate_conformance_classes.validate_claim(path, load_yaml(MANIFEST_PATH))
+        assert any(issue["code"] == "CONFORMANCE_PARTIAL_CLASS_CLAIMED_FULL" for issue in issues)
+    finally:
+        path.unlink(missing_ok=True)
+
+
+def test_synthetic_failed_test_result_fails_claim():
+    claim = load_yaml(CORE_PRODUCER_CLAIM_PATH)
+    claim["test_results"][0]["status"] = "failed"
+    path = write_yaml("conformance_claim_failed_result", claim)
+    try:
+        issues = validate_conformance_classes.validate_claim(path, load_yaml(MANIFEST_PATH))
+        assert any(issue["code"] == "CONFORMANCE_CLAIM_RESULT_FAILED" for issue in issues)
+    finally:
+        path.unlink(missing_ok=True)
+
+
 def test_synthetic_duplicate_class_id_manifest_fails():
     data = load_yaml(MANIFEST_PATH)
     data["class_records"].append(copy.deepcopy(data["class_records"][0]))
@@ -159,6 +194,18 @@ def test_synthetic_duplicate_class_id_manifest_fails():
     try:
         issues = validate_conformance_classes.validate_manifest(path)
         assert any(issue["code"] == "CONFORMANCE_DUPLICATE_CLASS_ID" for issue in issues)
+    finally:
+        path.unlink(missing_ok=True)
+
+
+def test_synthetic_dependency_cycle_manifest_fails():
+    data = load_yaml(MANIFEST_PATH)
+    records = {record["class_id"]: record for record in data["class_records"]}
+    records["ZMETA-CORE"]["dependencies"] = ["ZMETA-V1-0-SCHEMA"]
+    path = write_yaml("conformance_manifest_cycle", data)
+    try:
+        issues = validate_conformance_classes.validate_manifest(path)
+        assert any(issue["code"] == "CONFORMANCE_DEPENDENCY_CYCLE" for issue in issues)
     finally:
         path.unlink(missing_ok=True)
 
@@ -183,3 +230,23 @@ def test_synthetic_implemented_class_without_test_evidence_fails():
         assert any(issue["code"] == "CONFORMANCE_TEST_COMMAND_MISSING" for issue in issues)
     finally:
         path.unlink(missing_ok=True)
+
+
+def test_conformance_runner_flag_exits_success():
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(ROOT / "tools" / "validate_conformance.py"),
+            "--strict",
+            "--profile-projection",
+            "--extension-registry",
+            "--conformance-classes",
+        ],
+        cwd=ROOT,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    assert result.returncode == 0
+    assert "conformance classes ok" in result.stdout
+    assert "conformance ok" in result.stdout
