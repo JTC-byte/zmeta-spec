@@ -11,6 +11,7 @@ version-discriminated schema plus policy pack:
   thinning preserves event meaning.
 - `conformance_classes.yaml`: machine-readable conformance class manifest.
 - `claims/`: example implementation claim files for the class manifest.
+- `encoding-negative/`: compact/protobuf invalid-after-decode fixture suites.
 - `../spec/extension-registry.yaml`: spec-owned machine-readable extension
   registry consumed by optional registry validation.
 
@@ -56,3 +57,15 @@ Class records and claim files do not make future vocabulary valid. They state
 which existing semantic, schema, policy, adapter, gateway, encoding, and
 conformance surfaces an implementation satisfies. Future, reserved, and planned
 classes are not claimable by current implementation claim files.
+
+Encoding-negative validation is opt-in:
+
+```
+python tools/validate_encoding_negative.py --compact conformance/encoding-negative/compact-must-fail.jsonl --protobuf conformance/encoding-negative/protobuf-must-fail.jsonl --gateway conformance/encoding-negative/gateway-must-fail.jsonl
+python tools/validate_conformance.py --strict --profile-projection --extension-registry --conformance-classes --encoding-negative
+```
+
+Compact CBOR and protobuf remain encoding projections only. The negative suite
+decodes wire inputs to canonical JSON and then proves invalid decoded events fail
+schema, policy, projection, gateway/CLI, or conversion-plus-validation checks.
+It does not change schemas and does not make new vocabulary valid.

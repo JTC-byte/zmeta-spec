@@ -104,14 +104,18 @@ class_claims:
     exceptions: []
   - class_id: ZMETA-COMPACT-CBOR
     claim_status: claimed
-    commands: ["python -m pytest -q gateway/tests/test_encoding_roundtrip.py gateway/tests/test_profile_projection_encoding.py"]
-    result_summary: compact CBOR roundtrip and projection-decoded tests passed
+    commands:
+      - python -m pytest -q gateway/tests/test_encoding_roundtrip.py gateway/tests/test_profile_projection_encoding.py
+      - python tools/validate_encoding_negative.py --compact conformance/encoding-negative/compact-must-fail.jsonl --protobuf conformance/encoding-negative/protobuf-must-fail.jsonl --gateway conformance/encoding-negative/gateway-must-fail.jsonl
+    result_summary: compact CBOR roundtrip, projection-decoded, and encoding-negative tests passed
     limitations: []
     exceptions: []
   - class_id: ZMETA-PROTOBUF-PROJECTION
     claim_status: claimed
-    commands: ["python -m pytest -q gateway/tests/test_encoding_roundtrip.py gateway/tests/test_profile_projection_encoding.py"]
-    result_summary: protobuf roundtrip and projection-decoded tests passed
+    commands:
+      - python -m pytest -q gateway/tests/test_encoding_roundtrip.py gateway/tests/test_profile_projection_encoding.py
+      - python tools/validate_encoding_negative.py --compact conformance/encoding-negative/compact-must-fail.jsonl --protobuf conformance/encoding-negative/protobuf-must-fail.jsonl --gateway conformance/encoding-negative/gateway-must-fail.jsonl
+    result_summary: protobuf roundtrip, projection-decoded, and encoding-negative tests passed
     limitations: ["Protobuf remains an experimental transport projection."]
     exceptions: []
   - class_id: ZMETA-GATEWAY-REFERENCE
@@ -132,6 +136,7 @@ test_commands_run:
   - python tools/validate_extension_registry.py --registry spec/extension-registry.yaml
   - python -m pytest -q gateway/tests/test_extension_registry.py
   - python -m pytest -q gateway/tests/test_encoding_roundtrip.py gateway/tests/test_profile_projection_encoding.py
+  - python tools/validate_encoding_negative.py --compact conformance/encoding-negative/compact-must-fail.jsonl --protobuf conformance/encoding-negative/protobuf-must-fail.jsonl --gateway conformance/encoding-negative/gateway-must-fail.jsonl
   - python -m pytest -q gateway/tests/test_gateway_smoke.py gateway/tests/test_timing_freshness.py gateway/tests/test_producer_authority.py gateway/tests/test_lineage_semantics.py
 test_results:
   - command: python tools/validate_conformance.py --strict
@@ -167,6 +172,9 @@ test_results:
   - command: python -m pytest -q gateway/tests/test_encoding_roundtrip.py gateway/tests/test_profile_projection_encoding.py
     status: passed
     summary: encoding focused tests passed
+  - command: python tools/validate_encoding_negative.py --compact conformance/encoding-negative/compact-must-fail.jsonl --protobuf conformance/encoding-negative/protobuf-must-fail.jsonl --gateway conformance/encoding-negative/gateway-must-fail.jsonl
+    status: passed
+    summary: encoding negative validation passed
   - command: python -m pytest -q gateway/tests/test_gateway_smoke.py gateway/tests/test_timing_freshness.py gateway/tests/test_producer_authority.py gateway/tests/test_lineage_semantics.py
     status: passed
     summary: gateway focused tests passed

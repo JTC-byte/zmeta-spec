@@ -30,6 +30,11 @@ def parse_args():
         help="Also validate the conformance class manifest and example claims.",
     )
     parser.add_argument(
+        "--encoding-negative",
+        action="store_true",
+        help="Also run compact/protobuf invalid-after-decode fixtures.",
+    )
+    parser.add_argument(
         "--pass-file",
         default=str(ROOT / "conformance" / "must-pass.jsonl"),
         help="Path to must-pass JSONL",
@@ -192,6 +197,23 @@ def main():
                 str(ROOT / "conformance" / "claims" / "example-core-producer.yaml"),
             ],
             extension_registry_path=ROOT / "spec" / "extension-registry.yaml",
+        )
+        if result:
+            raise SystemExit(result)
+
+    if args.encoding_negative:
+        encoding_negative_path = ROOT / "tools" / "validate_encoding_negative.py"
+        encoding_negative_spec = importlib.util.spec_from_file_location(
+            "zmeta_validate_encoding_negative", encoding_negative_path
+        )
+        encoding_negative = importlib.util.module_from_spec(encoding_negative_spec)
+        encoding_negative_spec.loader.exec_module(encoding_negative)
+        result = encoding_negative.run(
+            compact_path=ROOT / "conformance" / "encoding-negative" / "compact-must-fail.jsonl",
+            protobuf_path=ROOT / "conformance" / "encoding-negative" / "protobuf-must-fail.jsonl",
+            gateway_path=ROOT / "conformance" / "encoding-negative" / "gateway-must-fail.jsonl",
+            context_path=ROOT / "conformance" / "encoding-negative" / "context.jsonl",
+            quiet=True,
         )
         if result:
             raise SystemExit(result)

@@ -66,6 +66,11 @@ protobuf and then validate the decoded JSON against schema, policy, and
 source/projected projection rules. Protobuf remains an encoding projection; the
 decoded JSON event is the validation authority.
 
+Encoding-negative fixtures in `conformance/encoding-negative/` exercise
+malformed protobuf wire data and schema-, policy-, projection-, gateway-, and
+CLI-invalid decoded JSON. These tests prove protobuf cannot bypass canonical
+validation.
+
 Transport metadata outside the event, such as UDP source address or queue topic,
 is not part of semantic equivalence.
 

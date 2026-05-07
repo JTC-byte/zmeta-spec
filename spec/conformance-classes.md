@@ -124,9 +124,9 @@ Examples:
 - `ZMETA-PROJECTION-PRESERVATION` depends on the three profile classes and the
   projection fixture suite.
 - `ZMETA-COMPACT-CBOR` depends on Profile L and decoded canonical JSON
-  validation.
+  validation, including encoding-negative invalid-after-decode fixtures.
 - `ZMETA-PROTOBUF-PROJECTION` depends on core semantics and decoded canonical
-  JSON validation.
+  JSON validation, including encoding-negative invalid-after-decode fixtures.
 - `ZMETA-EXTENSION-REGISTRY` depends on the registry artifacts, validator, and
   schema leakage tests.
 

@@ -190,6 +190,10 @@ Reason codes:
   events through compact CBOR and compare the decoded JSON against the
   source/projected conformance fixture. Compact CBOR remains an encoding
   projection, not semantic authority.
+- Encoding-negative fixtures in `conformance/encoding-negative/` exercise
+  malformed compact input and schema-, policy-, projection-, gateway-, and
+  CLI-invalid decoded JSON. These tests prove compact CBOR cannot bypass
+  canonical validation.
 
 ## Size Optimization Tips (Profile L)
 

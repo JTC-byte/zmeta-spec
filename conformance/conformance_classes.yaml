@@ -284,12 +284,12 @@ class_records:
     version_scope: ["1.0"]
     description: Compact Profile L wire projection that decodes to canonical JSON before schema, policy, and projection validation.
     required_encoding_surfaces: ["zmeta_compact.py", "zmeta_cbor.py", "spec/compact-binary-mapping.md"]
-    required_conformance_fixtures: ["examples/encoding-roundtrip.jsonl", "conformance/profile-projection/must-pass.jsonl", "conformance/profile-projection/must-fail.jsonl"]
-    required_test_commands: ["python -m pytest -q gateway/tests/test_encoding_roundtrip.py gateway/tests/test_profile_projection_encoding.py"]
+    required_conformance_fixtures: ["examples/encoding-roundtrip.jsonl", "conformance/profile-projection/must-pass.jsonl", "conformance/profile-projection/must-fail.jsonl", "conformance/encoding-negative/compact-must-fail.jsonl", "conformance/encoding-negative/gateway-must-fail.jsonl"]
+    required_test_commands: ["python -m pytest -q gateway/tests/test_encoding_roundtrip.py gateway/tests/test_profile_projection_encoding.py", "python tools/validate_encoding_negative.py --compact conformance/encoding-negative/compact-must-fail.jsonl --protobuf conformance/encoding-negative/protobuf-must-fail.jsonl --gateway conformance/encoding-negative/gateway-must-fail.jsonl"]
     dependencies: ["ZMETA-PROFILE-L", "ZMETA-PROJECTION-PRESERVATION"]
     allowed_claimants: ["encoding", "gateway", "reference_stack"]
     current_repo_support: implemented
-    references: ["spec/compact-binary-mapping.md", "gateway/tests/test_encoding_roundtrip.py"]
+    references: ["spec/compact-binary-mapping.md", "conformance/encoding-negative/README.md", "gateway/tests/test_encoding_roundtrip.py"]
 
   - <<: *class_defaults
     class_id: ZMETA-PROTOBUF-PROJECTION
@@ -298,12 +298,12 @@ class_records:
     version_scope: ["1.0"]
     description: Experimental protobuf wire projection that decodes to canonical JSON before semantic validation.
     required_encoding_surfaces: ["zmeta_proto.py", "schema/proto/zmeta_event_v1.proto", "spec/protobuf-encoding.md"]
-    required_conformance_fixtures: ["examples/encoding-roundtrip.jsonl", "conformance/profile-projection/must-pass.jsonl", "conformance/profile-projection/must-fail.jsonl"]
-    required_test_commands: ["python -m pytest -q gateway/tests/test_encoding_roundtrip.py gateway/tests/test_profile_projection_encoding.py"]
+    required_conformance_fixtures: ["examples/encoding-roundtrip.jsonl", "conformance/profile-projection/must-pass.jsonl", "conformance/profile-projection/must-fail.jsonl", "conformance/encoding-negative/protobuf-must-fail.jsonl", "conformance/encoding-negative/gateway-must-fail.jsonl"]
+    required_test_commands: ["python -m pytest -q gateway/tests/test_encoding_roundtrip.py gateway/tests/test_profile_projection_encoding.py", "python tools/validate_encoding_negative.py --compact conformance/encoding-negative/compact-must-fail.jsonl --protobuf conformance/encoding-negative/protobuf-must-fail.jsonl --gateway conformance/encoding-negative/gateway-must-fail.jsonl"]
     dependencies: ["ZMETA-CORE", "ZMETA-PROJECTION-PRESERVATION"]
     allowed_claimants: ["encoding", "gateway", "reference_stack"]
     current_repo_support: implemented
-    references: ["spec/protobuf-encoding.md", "gateway/tests/test_encoding_roundtrip.py"]
+    references: ["spec/protobuf-encoding.md", "conformance/encoding-negative/README.md", "gateway/tests/test_encoding_roundtrip.py"]
 
   - <<: *class_defaults
     class_id: ZMETA-GATEWAY-REFERENCE
