@@ -6,13 +6,15 @@ This note is the quick resume point for the current ZMeta refinement effort. The
 
 ## Current Position
 
-The semantic contract has been audited, rewritten, and crosswalked against the current implementation stack. The locked v1.0 baseline was verified, and no S1-01B targeted schema implementation task is currently needed.
+The semantic contract has been audited, rewritten, and crosswalked against the current implementation stack. The locked v1.0 baseline was verified, and no S1-01B targeted schema implementation task is currently needed. Profile projection preservation has now been implemented as sidecar conformance tooling without changing v1.0 schema or event vocabulary.
 
 The next active implementation item is:
 
-**S1-02B - Profile Projection Preservation Field Catalog and Conformance Suite Implementation**
+**S1-02C - Post-Implementation Audit and Cleanup**
 
-Start from `docs/s1_02_profile_projection_preservation_plan.md`.
+Then proceed to:
+
+**S1-03A - Extension Registry Plan Only**
 
 ## Key Docs
 
@@ -23,6 +25,9 @@ Start from `docs/s1_02_profile_projection_preservation_plan.md`.
 | `docs/zmeta_contract_to_stack_crosswalk.md` | S0-03 contract-to-implementation crosswalk and prioritized implementation backlog. |
 | `docs/s1_01_v1_baseline_verification_plan.md` | S1-01A v1.0 baseline verification. Confirms current v1.0 schema/policy coverage and states S1-01B is not needed. |
 | `docs/s1_02_profile_projection_preservation_plan.md` | S1-02A plan for profile projection invariants, field catalog, fixture format, positive/negative conformance cases, and S1-02B file-by-file implementation. |
+| `spec/profile-projection-field-catalog.md` | Human-readable guide to the profile projection field catalog and fixture semantics. |
+| `conformance/profile_projection_field_catalog.yaml` | Machine-readable projection field catalog. |
+| `conformance/profile-projection/` | Source/projected projection fixture suite. |
 | `docs/zmeta_refinement_worklog.md` | Running worklog, completed work items, pending work items, and deferred issue register. |
 
 ## Completed Recently
@@ -34,6 +39,7 @@ Start from `docs/s1_02_profile_projection_preservation_plan.md`.
 | S0-03 Contract-to-Stack Crosswalk | COMPLETE | `docs/zmeta_contract_to_stack_crosswalk.md` |
 | S1-01A v1.0 Baseline Verification | COMPLETE | `docs/s1_01_v1_baseline_verification_plan.md` |
 | S1-02A Profile Projection Preservation Plan | COMPLETE | `docs/s1_02_profile_projection_preservation_plan.md` |
+| S1-02B Profile Projection Preservation Implementation | COMPLETE | `conformance/profile_projection_field_catalog.yaml`, `tools/validate_projection.py`, `conformance/profile-projection/` |
 
 ## Current Decisions
 
@@ -41,27 +47,27 @@ Start from `docs/s1_02_profile_projection_preservation_plan.md`.
 - v1.0 remains locked.
 - Do not add v1.1.0 or future concepts to v1.0.
 - S1-01A found no schema-enforceable v1.0 gap requiring S1-01B.
-- Profile projection preservation is the current P0 implementation gap.
-- Profile preservation should be proven with a sidecar field catalog and source/projected conformance pairs, not by adding projection metadata to v1.0 events.
+- Profile projection preservation is now covered by a sidecar field catalog and source/projected conformance pairs.
 - Compact Profile L and protobuf remain encoding projections; both must decode to canonical JSON before schema, policy, and projection checks.
+- Existing strict conformance remains stable by default. Projection checks are explicit via `tools/validate_projection.py` or `tools/validate_conformance.py --strict --profile-projection`.
 
 ## Next Work Queue
 
-1. **S1-02B - Profile Projection Preservation Field Catalog and Conformance Suite Implementation**
-   - Add `conformance/profile_projection_field_catalog.yaml`.
-   - Add source/projected fixture format under `conformance/profile-projection/`.
-   - Add `tools/validate_projection.py` or equivalent projection conformance runner.
-   - Add positive and negative projection fixtures.
-   - Add gateway/tool tests for event ID, source, track ID, lineage, confidence, TTL, precision, units, and prohibited rewrites.
-   - Add compact/protobuf decoded-equivalence tests.
+1. **S1-02C - Post-Implementation Audit and Cleanup**
+   - Review S1-02B fixture breadth and field catalog clarity.
+   - Audit projection validator edge cases.
+   - Decide whether any projection edge cases should become deferred issues.
 
-2. **Deferred issue cleanup after S1-02B**
+2. **S1-03A - Extension Registry Plan Only**
+   - Plan durable extension registry artifact, ownership, collision rules, and adoption requirements.
+
+3. **Deferred issue cleanup**
    - D-006 Extension Registry Artifact Missing.
-   - D-007 Encoding Negative Validation Gap.
+   - D-007 Encoding Negative Validation Gap remains partially covered, not closed.
    - D-008 Conformance Class Manifest Missing.
    - D-009 v1.0/v1.1 Observation Extension Boundary Needs Explicit Tests.
 
-3. **Later versioned semantic branches**
+4. **Later versioned semantic branches**
    - Markings/releasability.
    - Integrity, signing, anti-replay, mesh trust, and quarantine.
    - MODEL_STATUS / assurance and drift monitoring.
@@ -80,12 +86,13 @@ Start from `docs/s1_02_profile_projection_preservation_plan.md`.
 
 ## Verification State
 
-Most recent validation run during S1-01A:
+Most recent validation after S1-02B:
 
 ```powershell
 python tools\validate_conformance.py --strict
+python tools\validate_conformance.py --strict --profile-projection
+python tools\validate_projection.py --catalog conformance\profile_projection_field_catalog.yaml --must-pass conformance\profile-projection\must-pass.jsonl --must-fail conformance\profile-projection\must-fail.jsonl --quiet
+python -m pytest
 ```
 
-Result: `conformance ok`.
-
-S1-02A was documentation-only. No implementation tests were run for S1-02A.
+Result: all passed. Full pytest result: `241 passed`.

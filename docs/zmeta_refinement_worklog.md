@@ -4,12 +4,12 @@
 
 - Last updated: 2026-05-07
 - Quick handoff: `docs/zmeta_refinement_handoff.md`
-- Current next work item: S1-02B - Profile Projection Preservation Field
-  Catalog and Conformance Suite Implementation.
-- Start from: `docs/s1_02_profile_projection_preservation_plan.md`
-- Current decision: S1-01B is not opened because S1-01A found no targeted
-  v1.0 schema implementation gap. Proceed to S1-02B unless a later prompt
-  changes priority.
+- Current next work item: S1-02C - Post-Implementation Audit and Cleanup.
+- Next planning item after S1-02C: S1-03A - Extension Registry Plan Only.
+- Current decision: S1-02B implemented profile projection preservation as a
+  sidecar catalog, source/projected fixtures, standalone validator, opt-in
+  conformance runner integration, and regression tests. v1.0 schema and the
+  semantic contract remain unchanged.
 
 ## S0-01 - Semantic Contract Lockdown Audit
 
@@ -67,15 +67,14 @@
 
 ## S1-02 - Profile Projection Preservation Field Catalog and Conformance Suite
 
-- Status: PENDING IMPLEMENTATION
+- Status: COMPLETE
 - Scope: Define H/M/L projection field catalog and conformance fixtures proving
   projection preservation: same event identity where required, no confidence or
   TTL increase, no precision increase, no unit changes, allowed optional field
   omissions only, source-authored fields not rewritten, lineage preserved or
   unresolved according to profile policy, and Profile L compact expansion
   equivalence.
-- Notes: S1-02A planning is complete. S1-02B is the next recommended
-  implementation work item.
+- Notes: S1-02A planning and S1-02B implementation are complete.
 
 ## S1-02A - Profile Projection Preservation Field Catalog and Conformance Plan
 
@@ -96,11 +95,49 @@
 
 ## S1-02B - Profile Projection Preservation Field Catalog and Conformance Suite Implementation
 
-- Status: PENDING IMPLEMENTATION
+- Status: COMPLETE
+- Date completed: 2026-05-07
 - Scope: Add the projection field catalog, source/projected conformance fixture
   format, projection validator, positive and negative projection fixtures,
   gateway/tool tests, and compact/protobuf decoded-equivalence tests.
-- Notes: Start from `docs/s1_02_profile_projection_preservation_plan.md`.
+- Outputs:
+  - `conformance/profile_projection_field_catalog.yaml`
+  - `spec/profile-projection-field-catalog.md`
+  - `conformance/profile-projection/README.md`
+  - `conformance/profile-projection/must-pass.jsonl`
+  - `conformance/profile-projection/must-fail.jsonl`
+  - `conformance/profile-projection/context.jsonl`
+  - `tools/validate_projection.py`
+  - `gateway/tests/test_profile_projection_preservation.py`
+  - `gateway/tests/test_profile_projection_encoding.py`
+- Integration: `tools/validate_conformance.py --profile-projection` runs the
+  projection suite explicitly without changing default strict conformance
+  behavior.
+- Verification:
+  - `python tools\validate_conformance.py --strict` -> `conformance ok`
+  - `python tools\validate_conformance.py --strict --profile-projection` ->
+    `projection conformance ok total=33`, `conformance ok`
+  - `python tools\validate_projection.py --catalog conformance\profile_projection_field_catalog.yaml --must-pass conformance\profile-projection\must-pass.jsonl --must-fail conformance\profile-projection\must-fail.jsonl --quiet` ->
+    `projection conformance ok total=33`
+  - `python -m pytest` -> `241 passed`
+- Notes: v1.0 schema, v1.0 vocabulary, and semantic contract text were not
+  changed.
+
+## S1-02C - Post-Implementation Audit and Cleanup
+
+- Status: PENDING
+- Scope: Audit the S1-02B implementation for fixture breadth, field catalog
+  clarity, projection validator edge cases, optional omission coverage, and
+  documentation consistency before moving into broader backlog cleanup.
+- Notes: Use this pass to decide whether any newly observed projection edge
+  cases should become deferred issues or immediate cleanup.
+
+## S1-03A - Extension Registry Plan Only
+
+- Status: PENDING
+- Scope: Plan a durable extension registry artifact with status, ownership,
+  collision rules, reserved-name governance, and adoption requirements.
+- Notes: Planning only. Do not make future extension names valid in v1.0.
 
 ## Deferred Issue Register
 
@@ -155,7 +192,7 @@
 
 ### D-005 - Profile Projection Preservation Coverage Gap
 
-- Status: OPEN
+- Status: CLOSED
 - Discovered during: S0-03
 - Issue: The stack enforces profile event-type legality and supports optional
   field stripping, compact Profile L encoding, and timing-based confidence
@@ -164,8 +201,10 @@
   and semantic meaning across thinning.
 - Impact: Profile L/M/H exporters could accidentally pass schema validation
   while still reinterpreting or over-trusting thinned state.
-- Proposed follow-up: Add projection preservation fixtures and a field catalog
-  before broader gateway/profile hardening.
+- Resolution: S1-02B added a sidecar field catalog, source/projected projection
+  fixtures, standalone validator CLI, compact/protobuf decoded-equivalence
+  fixture coverage, opt-in conformance runner integration, and regression tests.
+- Follow-up: S1-02C should audit fixture breadth and field catalog clarity.
 
 ### D-006 - Extension Registry Artifact Missing
 
@@ -182,15 +221,19 @@
 
 ### D-007 - Encoding Negative Validation Gap
 
-- Status: OPEN
+- Status: OPEN - PARTIALLY COVERED BY S1-02B
 - Discovered during: S0-03
 - Issue: Compact and protobuf roundtrip coverage exists, and the gateway
   decodes binary encodings before validation, but there are not explicit
   invalid-after-decode fixtures for compact and protobuf inputs.
 - Impact: The "encoding is not semantic authority" rule is harder to regression
   test across future encoding changes.
-- Proposed follow-up: Add gateway/CLI negative tests that encode invalid events,
-  decode them, and prove schema/policy validation rejects them.
+- S1-02B coverage: Added compact/protobuf projection fixtures where decoded JSON
+  is schema-valid but projection-invalid, proving encoding does not override
+  projection semantics.
+- Remaining follow-up: Add broader gateway/CLI negative tests that encode
+  schema-invalid or policy-invalid events, decode them, and prove schema/policy
+  validation rejects them outside the projection-pair fixture path.
 
 ### D-008 - Conformance Class Manifest Missing
 

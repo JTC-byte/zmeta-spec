@@ -37,6 +37,42 @@ wire encodings, and reference producer allowlists. The authoritative rules live 
 All encodings must decode to the same ZMeta JSON event and pass the same schema
 and policy validation. Encoding choice does not change event semantics.
 
+## Projection Preservation
+
+Profile H/M/L thinning is checked as a conformance layer in addition to
+single-event schema and policy validation. A lower-profile event that claims to
+be a same-event projection must preserve event identity, event time, source
+identity, semantic layer, track identity, lineage, units, timing semantics,
+confidence monotonicity, TTL monotonicity, and cataloged optional omission
+rules.
+
+The machine-readable field catalog is:
+
+```text
+conformance/profile_projection_field_catalog.yaml
+```
+
+The source/projected fixture suite is:
+
+```text
+conformance/profile-projection/
+```
+
+Run it directly:
+
+```bash
+python tools/validate_projection.py --catalog conformance/profile_projection_field_catalog.yaml --must-pass conformance/profile-projection/must-pass.jsonl --must-fail conformance/profile-projection/must-fail.jsonl
+```
+
+Or include it explicitly with conformance validation:
+
+```bash
+python tools/validate_conformance.py --strict --profile-projection
+```
+
+This does not change the v1.0 schema and does not add projection metadata to
+v1.0 events. Future projection metadata remains a versioned candidate.
+
 ## Reference Producer Allowlists
 
 Reference producer authority rules are maintained in

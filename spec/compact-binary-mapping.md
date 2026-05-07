@@ -186,6 +186,10 @@ Reason codes:
 - The compact mapping is **wire-level only**.
 - Gateways must expand compact packets into the canonical JSON schema before validation.
 - Semantics are unchanged; only field names and primitive representations are compacted.
+- Profile projection preservation tests round-trip selected Profile L projected
+  events through compact CBOR and compare the decoded JSON against the
+  source/projected conformance fixture. Compact CBOR remains an encoding
+  projection, not semantic authority.
 
 ## Size Optimization Tips (Profile L)
 

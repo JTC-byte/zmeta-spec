@@ -15,6 +15,11 @@ def parse_args():
     parser = argparse.ArgumentParser(description="Validate conformance pack.")
     parser.add_argument("--strict", action="store_true", help="Treat warnings as failures.")
     parser.add_argument(
+        "--profile-projection",
+        action="store_true",
+        help="Also run profile projection preservation fixtures.",
+    )
+    parser.add_argument(
         "--pass-file",
         default=str(ROOT / "conformance" / "must-pass.jsonl"),
         help="Path to must-pass JSONL",
@@ -131,6 +136,22 @@ def main():
 
     if failures:
         raise SystemExit(1)
+
+    if args.profile_projection:
+        projection_path = ROOT / "tools" / "validate_projection.py"
+        projection_spec = importlib.util.spec_from_file_location(
+            "zmeta_validate_projection", projection_path
+        )
+        projection = importlib.util.module_from_spec(projection_spec)
+        projection_spec.loader.exec_module(projection)
+        result = projection.run_suite(
+            catalog_path=ROOT / "conformance" / "profile_projection_field_catalog.yaml",
+            must_pass_path=ROOT / "conformance" / "profile-projection" / "must-pass.jsonl",
+            must_fail_path=ROOT / "conformance" / "profile-projection" / "must-fail.jsonl",
+            quiet=True,
+        )
+        if result:
+            raise SystemExit(result)
 
     print("conformance ok")
 

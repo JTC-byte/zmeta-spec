@@ -1,0 +1,521 @@
+catalog_version: 1
+zmeta_versions:
+  - "1.0"
+description: >
+  Profile projection preservation field catalog for v1.0 source/projected
+  conformance pairs. The catalog classifies how fields may behave during
+  Profile H/M/L thinning. It is not a JSON Schema extension and does not add
+  event vocabulary.
+
+statuses:
+  - required_always
+  - required_by_event_type
+  - required_by_profile
+  - optional_removable
+  - precision_reducible
+  - confidence_reducible
+  - ttl_reducible
+  - prohibited_in_profile_l
+  - prohibited_in_state
+  - never_mutable
+  - contextual
+
+comparison_modes:
+  - equality
+  - subset
+  - non_increase
+  - precision_non_increase
+  - optional_omission
+  - prohibited
+  - contextual
+
+rules:
+  - path: zmeta_version
+    event_types: ["*"]
+    profiles: ["L", "M", "H"]
+    status: [required_always, never_mutable]
+    comparison: equality
+    notes: Preserve exactly for same-version projection fixtures.
+
+  - path: event.event_id
+    event_types: ["*"]
+    profiles: ["L", "M", "H"]
+    status: [required_always, never_mutable]
+    comparison: equality
+    notes: Same-event profile export projections preserve event identity.
+
+  - path: event.event_type
+    event_types: ["*"]
+    profiles: ["L", "M", "H"]
+    status: [required_always, never_mutable]
+    comparison: equality
+    notes: Projection cannot collapse or reinterpret semantic layers.
+
+  - path: event.event_subtype
+    event_types: ["*"]
+    profiles: ["L", "M", "H"]
+    status: [required_always, never_mutable]
+    comparison: equality
+    notes: Subtype remains the same unless a new semantic event is authored.
+
+  - path: event.ts
+    event_types: ["*"]
+    profiles: ["L", "M", "H"]
+    status: [required_always, never_mutable]
+    comparison: equality
+    notes: Event time is source-authored and must not be replaced by export time.
+
+  - path: event.t_receive
+    event_types: ["*"]
+    profiles: ["L", "M", "H"]
+    status: [contextual]
+    comparison: contextual
+    notes: Gateway export metadata may be added but must not replace event.ts.
+
+  - path: event.t_publish
+    event_types: ["*"]
+    profiles: ["L", "M", "H"]
+    status: [contextual]
+    comparison: contextual
+    notes: Gateway export metadata may be added but must not replace event.ts.
+
+  - path: source.platform_id
+    event_types: ["*"]
+    profiles: ["L", "M", "H"]
+    status: [required_always, never_mutable]
+    comparison: equality
+    notes: Source identity is source-authored and must not be rewritten.
+
+  - path: source.node_role
+    event_types: ["*"]
+    profiles: ["L", "M", "H"]
+    status: [required_always, never_mutable]
+    comparison: equality
+    notes: Node role is source-authored and must not be rewritten.
+
+  - path: source.producer
+    event_types: ["*"]
+    profiles: ["L", "M", "H"]
+    status: [required_always, never_mutable]
+    comparison: equality
+    notes: Producer identity is source-authored and must not be rewritten.
+
+  - path: source.sensor_id
+    event_types: ["*"]
+    profiles: ["L", "M", "H"]
+    status: [optional_removable]
+    comparison: optional_omission
+    notes: May be omitted for lower-profile export; must not be rewritten.
+
+  - path: source.sw_version
+    event_types: ["*"]
+    profiles: ["L", "M", "H"]
+    status: [optional_removable]
+    comparison: optional_omission
+    notes: May be omitted for lower-profile export; must not be rewritten.
+
+  - path: profile
+    event_types: ["*"]
+    profiles: ["L", "M", "H"]
+    status: [required_by_profile]
+    comparison: contextual
+    notes: Projected profile must match the fixture target profile when present.
+
+  - path: confidence
+    event_types: ["INFERENCE_EVENT", "FUSION_EVENT", "STATE_EVENT"]
+    profiles: ["L", "M", "H"]
+    status: [required_by_event_type, confidence_reducible]
+    comparison: non_increase
+    notes: Profile projection may preserve or lower confidence, never increase it.
+
+  - path: confidence
+    event_types: ["OBSERVATION_EVENT", "COMMAND_EVENT", "SYSTEM_EVENT"]
+    profiles: ["L", "M", "H"]
+    status: [prohibited_in_state]
+    comparison: prohibited
+    notes: These event types do not carry top-level confidence in v1.0.
+
+  - path: lineage.based_on
+    event_types: ["INFERENCE_EVENT", "FUSION_EVENT", "STATE_EVENT"]
+    profiles: ["L", "M", "H"]
+    status: [required_by_event_type, never_mutable]
+    comparison: equality
+    notes: Parent references remain intact even when parent events are not exported.
+
+  - path: lineage.transform
+    event_types: ["INFERENCE_EVENT", "FUSION_EVENT", "STATE_EVENT"]
+    profiles: ["L", "M", "H"]
+    status: [contextual]
+    comparison: equality
+    notes: Preserve transform audit metadata when present.
+
+  - path: payload.timing_quality
+    event_types: ["STATE_EVENT", "COMMAND_EVENT"]
+    profiles: ["L", "M", "H"]
+    status: [contextual]
+    comparison: contextual
+    notes: Preserve per-event timing quality or provide valid TIME_STATUS context.
+
+  - path: payload.quality.timing_quality
+    event_types: ["STATE_EVENT", "COMMAND_EVENT"]
+    profiles: ["L", "M", "H"]
+    status: [contextual]
+    comparison: contextual
+    notes: Alternate per-event timing quality path used by current policy.
+
+  - path: payload.modality
+    event_types: ["OBSERVATION_EVENT"]
+    profiles: ["M", "H"]
+    status: [required_by_event_type, never_mutable]
+    comparison: equality
+    notes: Observation modality must remain consistent with event_subtype.
+
+  - path: payload.features
+    event_types: ["OBSERVATION_EVENT"]
+    profiles: ["M", "H"]
+    status: [required_by_event_type]
+    comparison: equality
+    notes: Preserve observation features for legal observation projections.
+
+  - path: payload.features
+    event_types: ["STATE_EVENT"]
+    profiles: ["L", "M", "H"]
+    status: [prohibited_in_state]
+    comparison: prohibited
+    notes: Raw observation features must not be inserted into STATE_EVENT.
+
+  - path: payload.features.center_freq_hz
+    event_types: ["OBSERVATION_EVENT"]
+    profiles: ["M", "H"]
+    status: [required_by_event_type, precision_reducible]
+    comparison: precision_non_increase
+    notes: RF frequency unit is hertz and must not be renamed or rescaled.
+
+  - path: payload.features.bandwidth_hz
+    event_types: ["OBSERVATION_EVENT"]
+    profiles: ["M", "H"]
+    status: [required_by_event_type, precision_reducible]
+    comparison: precision_non_increase
+    notes: RF bandwidth unit is hertz and must not be renamed or rescaled.
+
+  - path: payload.features.power_dbm
+    event_types: ["OBSERVATION_EVENT"]
+    profiles: ["M", "H"]
+    status: [required_by_event_type, precision_reducible]
+    comparison: precision_non_increase
+    notes: RF power unit is dBm and must not be renamed or rescaled.
+
+  - path: payload.features.signature_hash
+    event_types: ["OBSERVATION_EVENT"]
+    profiles: ["M", "H"]
+    status: [optional_removable]
+    comparison: optional_omission
+    notes: Optional signature metadata may be omitted but not rewritten.
+
+  - path: payload.geo.*
+    event_types: ["OBSERVATION_EVENT", "STATE_EVENT"]
+    profiles: ["L", "M", "H"]
+    status: [precision_reducible]
+    comparison: precision_non_increase
+    notes: Coordinate meaning and units are preserved; precision may be reduced.
+
+  - path: payload.estimated_state.geo.*
+    event_types: ["FUSION_EVENT"]
+    profiles: ["M", "H"]
+    status: [precision_reducible]
+    comparison: precision_non_increase
+    notes: Nested fusion coordinates preserve coordinate meaning and units.
+
+  - path: payload.bearing.*
+    event_types: ["OBSERVATION_EVENT", "FUSION_EVENT"]
+    profiles: ["M", "H"]
+    status: [precision_reducible]
+    comparison: precision_non_increase
+    notes: Bearing degrees and reference semantics are preserved.
+
+  - path: payload.quality
+    event_types: ["OBSERVATION_EVENT"]
+    profiles: ["M", "H"]
+    status: [optional_removable, precision_reducible]
+    comparison: optional_omission
+    notes: Optional quality details may be removed when not misleading.
+
+  - path: payload.data_ref
+    event_types: ["OBSERVATION_EVENT"]
+    profiles: ["L", "M", "H"]
+    status: [optional_removable]
+    comparison: optional_omission
+    notes: Data references may be omitted in lower-profile exports.
+
+  - path: payload.data_refs
+    event_types: ["OBSERVATION_EVENT"]
+    profiles: ["L", "M", "H"]
+    status: [optional_removable]
+    comparison: optional_omission
+    notes: Data references may be omitted in lower-profile exports.
+
+  - path: payload.t_start
+    event_types: ["OBSERVATION_EVENT"]
+    profiles: ["M", "H"]
+    status: [optional_removable]
+    comparison: optional_omission
+    notes: RF window times may be omitted as a pair.
+
+  - path: payload.t_end
+    event_types: ["OBSERVATION_EVENT"]
+    profiles: ["M", "H"]
+    status: [optional_removable]
+    comparison: optional_omission
+    notes: RF window times may be omitted as a pair.
+
+  - path: payload.inference_type
+    event_types: ["INFERENCE_EVENT"]
+    profiles: ["H"]
+    status: [required_by_event_type, never_mutable]
+    comparison: equality
+    notes: Inference discriminator must be preserved.
+
+  - path: payload.claim
+    event_types: ["INFERENCE_EVENT"]
+    profiles: ["H"]
+    status: [required_by_event_type]
+    comparison: equality
+    notes: Claim content is semantic and is preserved for legal H projections.
+
+  - path: payload.model.name
+    event_types: ["INFERENCE_EVENT"]
+    profiles: ["H"]
+    status: [required_by_event_type, never_mutable]
+    comparison: equality
+    notes: Model name must be preserved for legal inference projections.
+
+  - path: payload.model.version
+    event_types: ["INFERENCE_EVENT"]
+    profiles: ["H"]
+    status: [required_by_event_type, never_mutable]
+    comparison: equality
+    notes: Model version must be preserved for legal inference projections.
+
+  - path: payload.based_on
+    event_types: ["INFERENCE_EVENT"]
+    profiles: ["H"]
+    status: [required_by_event_type, never_mutable]
+    comparison: subset
+    notes: Payload provenance must remain represented in lineage.based_on.
+
+  - path: payload.track_id
+    event_types: ["FUSION_EVENT", "STATE_EVENT"]
+    profiles: ["L", "M", "H"]
+    status: [required_by_event_type, never_mutable]
+    comparison: equality
+    notes: Track identity must not be rewritten during projection.
+
+  - path: payload.members
+    event_types: ["FUSION_EVENT"]
+    profiles: ["M", "H"]
+    status: [required_by_event_type, never_mutable]
+    comparison: equality
+    notes: Same-event fusion projection preserves member IDs.
+
+  - path: payload.estimated_state
+    event_types: ["FUSION_EVENT"]
+    profiles: ["M", "H"]
+    status: [optional_removable, precision_reducible]
+    comparison: optional_omission
+    notes: Optional nested estimated state may be omitted or coarsened.
+
+  - path: payload.stability
+    event_types: ["FUSION_EVENT"]
+    profiles: ["M", "H"]
+    status: [required_by_event_type]
+    comparison: equality
+    notes: Default v1.0 rule preserves stability exactly.
+
+  - path: payload.last_seen_ts
+    event_types: ["FUSION_EVENT"]
+    profiles: ["M", "H"]
+    status: [required_by_event_type, never_mutable]
+    comparison: equality
+    notes: Last-seen event time is preserved.
+
+  - path: payload.geo
+    event_types: ["STATE_EVENT"]
+    profiles: ["L", "M", "H"]
+    status: [required_by_event_type, required_by_profile]
+    comparison: precision_non_increase
+    notes: STATE_EVENT track position is required and coordinate semantics persist.
+
+  - path: payload.class
+    event_types: ["STATE_EVENT"]
+    profiles: ["L", "M", "H"]
+    status: [optional_removable]
+    comparison: optional_omission
+    notes: State class may be omitted but must not be changed to another class.
+
+  - path: payload.source_summary
+    event_types: ["STATE_EVENT"]
+    profiles: ["L", "M", "H"]
+    status: [optional_removable]
+    comparison: optional_omission
+    notes: Operator evidence summary may be omitted; lineage must remain.
+
+  - path: payload.heading_deg
+    event_types: ["STATE_EVENT"]
+    profiles: ["L", "M", "H"]
+    status: [optional_removable, precision_reducible]
+    comparison: precision_non_increase
+    notes: Heading unit is degrees and may be omitted or coarsened.
+
+  - path: payload.speed_mps
+    event_types: ["STATE_EVENT"]
+    profiles: ["L", "M", "H"]
+    status: [optional_removable, precision_reducible]
+    comparison: precision_non_increase
+    notes: Speed unit is meters per second and may be omitted or coarsened.
+
+  - path: payload.valid_for_ms
+    event_types: ["STATE_EVENT", "COMMAND_EVENT"]
+    profiles: ["L", "M", "H"]
+    status: [required_by_event_type, ttl_reducible]
+    comparison: non_increase
+    notes: TTL may be preserved or shortened, never increased.
+
+  - path: payload.raw_features
+    event_types: ["STATE_EVENT"]
+    profiles: ["L", "M", "H"]
+    status: [prohibited_in_state]
+    comparison: prohibited
+    notes: Raw fields must not appear in STATE_EVENT.
+
+  - path: payload.t_start
+    event_types: ["STATE_EVENT"]
+    profiles: ["L", "M", "H"]
+    status: [prohibited_in_state]
+    comparison: prohibited
+    notes: Observation window fields must not appear in STATE_EVENT.
+
+  - path: payload.t_end
+    event_types: ["STATE_EVENT"]
+    profiles: ["L", "M", "H"]
+    status: [prohibited_in_state]
+    comparison: prohibited
+    notes: Observation window fields must not appear in STATE_EVENT.
+
+  - path: payload.data_ref
+    event_types: ["STATE_EVENT"]
+    profiles: ["L", "M", "H"]
+    status: [prohibited_in_state]
+    comparison: prohibited
+    notes: Raw data references must not be inserted into STATE_EVENT.
+
+  - path: payload.data_refs
+    event_types: ["STATE_EVENT"]
+    profiles: ["L", "M", "H"]
+    status: [prohibited_in_state]
+    comparison: prohibited
+    notes: Raw data references must not be inserted into STATE_EVENT.
+
+  - path: payload.modality
+    event_types: ["STATE_EVENT"]
+    profiles: ["L", "M", "H"]
+    status: [prohibited_in_state]
+    comparison: prohibited
+    notes: Observation discriminators must not be inserted into STATE_EVENT.
+
+  - path: payload.measurement
+    event_types: ["STATE_EVENT"]
+    profiles: ["L", "M", "H"]
+    status: [prohibited_in_state]
+    comparison: prohibited
+    notes: Raw measurements must not appear in STATE_EVENT.
+
+  - path: payload.measurements
+    event_types: ["STATE_EVENT"]
+    profiles: ["L", "M", "H"]
+    status: [prohibited_in_state]
+    comparison: prohibited
+    notes: Raw measurements must not appear in STATE_EVENT.
+
+  - path: payload.task_id
+    event_types: ["COMMAND_EVENT"]
+    profiles: ["L", "M", "H"]
+    status: [required_by_event_type, never_mutable]
+    comparison: equality
+    notes: Command task identity is preserved.
+
+  - path: payload.task_type
+    event_types: ["COMMAND_EVENT"]
+    profiles: ["L", "M", "H"]
+    status: [required_by_event_type, never_mutable]
+    comparison: equality
+    notes: Command task type is preserved.
+
+  - path: payload.target_geo
+    event_types: ["COMMAND_EVENT"]
+    profiles: ["L", "M", "H"]
+    status: [required_by_event_type, precision_reducible]
+    comparison: precision_non_increase
+    notes: Command target geometry remains two-dimensional in v1.0.
+
+  - path: payload.target_geo.*
+    event_types: ["COMMAND_EVENT"]
+    profiles: ["L", "M", "H"]
+    status: [precision_reducible]
+    comparison: precision_non_increase
+    notes: Command target coordinates may be coarsened but not given altitude.
+
+  - path: payload.geometry
+    event_types: ["COMMAND_EVENT"]
+    profiles: ["L", "M", "H"]
+    status: [required_by_event_type, precision_reducible]
+    comparison: precision_non_increase
+    notes: Required for task types whose schema requires geometry.
+
+  - path: payload.valid_from_ts
+    event_types: ["COMMAND_EVENT"]
+    profiles: ["L", "M", "H"]
+    status: [optional_removable]
+    comparison: optional_omission
+    notes: Optional command start time may be omitted.
+
+  - path: payload.priority
+    event_types: ["COMMAND_EVENT"]
+    profiles: ["L", "M", "H"]
+    status: [optional_removable]
+    comparison: optional_omission
+    notes: Priority may be omitted but must not be raised.
+
+  - path: payload.requires_deconfliction
+    event_types: ["COMMAND_EVENT"]
+    profiles: ["L", "M", "H"]
+    status: [required_by_event_type, never_mutable]
+    comparison: equality
+    notes: v1.0 commands require explicit deconfliction.
+
+  - path: payload.*alt*
+    event_types: ["COMMAND_EVENT"]
+    profiles: ["L", "M", "H"]
+    status: [prohibited_in_state]
+    comparison: prohibited
+    notes: Altitude-like command fields are prohibited in v1.0 command payloads.
+
+  - path: payload.system_type
+    event_types: ["SYSTEM_EVENT"]
+    profiles: ["L", "M", "H"]
+    status: [required_by_event_type, never_mutable]
+    comparison: equality
+    notes: System type must match event_subtype.
+
+  - path: payload.state
+    event_types: ["SYSTEM_EVENT"]
+    profiles: ["L", "M", "H"]
+    status: [required_by_event_type]
+    comparison: equality
+    notes: System state is preserved unless a new system event is authored.
+
+  - path: payload.metrics
+    event_types: ["SYSTEM_EVENT"]
+    profiles: ["L", "M", "H"]
+    status: [required_by_event_type]
+    comparison: equality
+    notes: Required metrics are preserved; optional metrics may be omitted only when cataloged.

@@ -61,6 +61,11 @@ An event is semantically equivalent across JSON, CBOR, compact CBOR, and protobu
 when decoding yields the same ZMeta JSON object for all contract-relevant fields.
 Map ordering and protobuf field ordering are not semantic.
 
+Profile projection preservation tests may round-trip projected events through
+protobuf and then validate the decoded JSON against schema, policy, and
+source/projected projection rules. Protobuf remains an encoding projection; the
+decoded JSON event is the validation authority.
+
 Transport metadata outside the event, such as UDP source address or queue topic,
 is not part of semantic equivalence.
 
