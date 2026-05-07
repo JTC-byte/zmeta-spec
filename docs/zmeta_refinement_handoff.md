@@ -6,11 +6,11 @@ This note is the quick resume point for the current ZMeta refinement effort. The
 
 ## Current Position
 
-The semantic contract has been audited, rewritten, and crosswalked against the current implementation stack. The locked v1.0 baseline was verified, and no S1-01B targeted schema implementation task is currently needed. Profile projection preservation has now been implemented and audited as sidecar conformance tooling without changing v1.0 schema or event vocabulary.
+The semantic contract has been audited, rewritten, and crosswalked against the current implementation stack. The locked v1.0 baseline was verified, and no S1-01B targeted schema implementation task is currently needed. Profile projection preservation has been implemented and audited as sidecar conformance tooling without changing v1.0 schema or event vocabulary. S1-03A has now planned the extension registry without implementing new vocabulary.
 
 The next active implementation item is:
 
-**S1-03A - Extension Registry Plan Only**
+**S1-03B - Extension Registry Implementation**
 
 ## Key Docs
 
@@ -24,6 +24,7 @@ The next active implementation item is:
 | `spec/profile-projection-field-catalog.md` | Human-readable guide to the profile projection field catalog and fixture semantics. |
 | `conformance/profile_projection_field_catalog.yaml` | Machine-readable projection field catalog. |
 | `conformance/profile-projection/` | Source/projected projection fixture suite. |
+| `docs/s1_03_extension_registry_plan.md` | S1-03A plan for extension registry artifacts, statuses, categories, collision rules, adoption requirements, and validation. |
 | `docs/zmeta_refinement_worklog.md` | Running worklog, completed work items, pending work items, and deferred issue register. |
 
 ## Completed Recently
@@ -37,6 +38,7 @@ The next active implementation item is:
 | S1-02A Profile Projection Preservation Plan | COMPLETE | `docs/s1_02_profile_projection_preservation_plan.md` |
 | S1-02B Profile Projection Preservation Implementation | COMPLETE | `conformance/profile_projection_field_catalog.yaml`, `tools/validate_projection.py`, `conformance/profile-projection/` |
 | S1-02C Profile Projection Preservation Audit | COMPLETE | `docs/s1_02c_projection_preservation_audit.md` |
+| S1-03A Extension Registry Plan Only | COMPLETE | `docs/s1_03_extension_registry_plan.md` |
 
 ## Current Decisions
 
@@ -47,23 +49,42 @@ The next active implementation item is:
 - Profile projection preservation is now covered by a sidecar field catalog and source/projected conformance pairs.
 - Compact Profile L and protobuf remain encoding projections; both must decode to canonical JSON before schema, policy, and projection checks.
 - Existing strict conformance remains stable by default. Projection checks are explicit via `tools/validate_projection.py` or `tools/validate_conformance.py --strict --profile-projection`.
+- The extension registry should be implemented as spec-owned artifacts:
+  `spec/extension-registry.md` and `spec/extension-registry.yaml`.
+- Existing v1.1.0 extension concepts should remain `experimental` by default
+  until a version/release decision promotes them.
+- Reserved/proposed concepts are not valid event vocabulary.
+- D-006 remains open until S1-03B creates registry artifacts and validation.
 
 ## Next Work Queue
 
-1. **S1-02C - Post-Implementation Audit and Cleanup**
-   - Complete. See `docs/s1_02c_projection_preservation_audit.md`.
+1. **S1-03B - Extension Registry Implementation**
+   - Implement `spec/extension-registry.md`, `spec/extension-registry.yaml`,
+     registry validation tooling, tests, and documentation references.
+   - Do not make reserved/proposed future concepts valid without an approved
+     version branch and matching schema, policy, adapter/gateway, encoding, and
+     conformance work.
 
-2. **S1-03A - Extension Registry Plan Only**
-   - Plan durable extension registry artifact, ownership, collision rules, and adoption requirements.
-   - Do not implement registry vocabulary in v1.0.
+2. **Human decisions before S1-03B**
+   - Whether v1.1.0 concepts remain `experimental` or any should be promoted.
+   - Whether registry validation should remain opt-in or become part of strict
+     conformance after the format stabilizes.
+   - How to represent vendor/private namespaces and classified/restricted names.
+   - Whether companion artifacts stay as a registry category or split into a
+     separate manifest later.
 
-3. **Deferred issue cleanup**
+3. **S1-04A - Conformance Class Manifest Plan Only**
+   - Plan machine-readable conformance class claims and test selectors after
+     extension registry implementation is in place.
+
+4. **Deferred issue cleanup**
    - D-006 Extension Registry Artifact Missing.
    - D-007 Encoding Negative Validation Gap remains partially covered, not closed.
    - D-008 Conformance Class Manifest Missing.
    - D-009 v1.0/v1.1 Observation Extension Boundary Needs Explicit Tests.
+   - D-010 Profile Precision / Quantization Policy Floors.
 
-4. **Later versioned semantic branches**
+5. **Later versioned semantic branches**
    - Markings/releasability.
    - Integrity, signing, anti-replay, mesh trust, and quarantine.
    - MODEL_STATUS / assurance and drift monitoring.
@@ -78,17 +99,20 @@ The next active implementation item is:
 - Do not recompute release/contract hashes until the stack-hardening branch is intentionally ready.
 - Do not make v1.1.0 or future concepts valid under `zmeta_version: "1.0"`.
 - Keep profile projection checks pairwise and external to v1.0 event payloads.
+- Keep registry work plan-first and branch-scoped. A registry entry alone does
+  not make vocabulary valid.
 - Document any newly discovered issues in the deferred issue register in `docs/zmeta_refinement_worklog.md`.
 
 ## Verification State
 
-Most recent validation after S1-02B:
+Most recent validation after S1-03A:
 
 ```powershell
 python tools\validate_conformance.py --strict
 python tools\validate_conformance.py --strict --profile-projection
-python tools\validate_projection.py --catalog conformance\profile_projection_field_catalog.yaml --must-pass conformance\profile-projection\must-pass.jsonl --must-fail conformance\profile-projection\must-fail.jsonl --quiet
 python -m pytest
+git diff --check
 ```
 
-Result: all passed. Full pytest result: `241 passed`.
+Result: all passed. Full pytest result: `242 passed`. `git diff --check`
+reported only Git CRLF conversion warnings for updated docs.

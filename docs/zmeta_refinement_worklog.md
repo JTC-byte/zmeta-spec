@@ -4,12 +4,11 @@
 
 - Last updated: 2026-05-07
 - Quick handoff: `docs/zmeta_refinement_handoff.md`
-- Current next work item: S1-03A - Extension Registry Plan Only.
-- Current decision: S1-02B implemented profile projection preservation as a
-  sidecar catalog, source/projected fixtures, standalone validator, opt-in
-  conformance runner integration, and regression tests. S1-02C audited the
-  implementation and found no v1.0 schema drift, no semantic contract drift, and
-  no future vocabulary additions.
+- Current next work item: S1-03B - Extension Registry Implementation.
+- Current decision: S1-03A planned the extension registry as a spec-owned human
+  and machine-readable artifact with status, ownership, collision rules,
+  adoption requirements, and validation. S1-03A made no schema, validator,
+  adapter, encoding, semantic contract, example, fixture, or vocabulary changes.
 
 ## S0-01 - Semantic Contract Lockdown Audit
 
@@ -153,10 +152,46 @@
 
 ## S1-03A - Extension Registry Plan Only
 
-- Status: NEXT
-- Scope: Plan a durable extension registry artifact with status, ownership,
-  collision rules, reserved-name governance, and adoption requirements.
-- Notes: Planning only. Do not make future extension names valid in v1.0.
+- Status: COMPLETE
+- Date completed: 2026-05-07
+- Output: `docs/s1_03_extension_registry_plan.md`
+- Scope: Planned a durable extension registry artifact with status, ownership,
+  collision rules, reserved-name governance, adoption requirements, initial
+  population groups, and machine-readable validation expectations.
+- Recommended artifact paths:
+  - `spec/extension-registry.md`
+  - `spec/extension-registry.yaml`
+  - `tools/validate_extension_registry.py`
+  - `gateway/tests/test_extension_registry.py`
+- Decision: Existing v1.1.0 concepts should be treated as `experimental` by
+  default until a version/release decision promotes them. Future trust, signing,
+  release, replay, PNT, UAS identity, data nutrition, projection metadata,
+  emergency/L0, and track lifecycle concepts remain reserved/proposed and are
+  not valid current event vocabulary.
+- Notes: Planning only. No schemas, validators, adapters, encodings, policy
+  packs, examples, fixtures, semantic contract text, release hashes, or event
+  vocabulary were changed.
+
+## S1-03B - Extension Registry Implementation
+
+- Status: PENDING IMPLEMENTATION
+- Scope: Implement the human-readable and machine-readable extension registry,
+  registry validation CLI, tests, and documentation integration using the
+  S1-03A plan.
+- Constraints: Keep D-006 open until registry artifacts and validation exist.
+  Do not make reserved/proposed future concepts valid without an approved
+  version branch and matching schema, policy, adapter/gateway, encoding, and
+  conformance work.
+
+## S1-04A - Conformance Class Manifest Plan Only
+
+- Status: FUTURE / PENDING
+- Scope: Plan a machine-readable conformance class manifest and claim/test
+  matrix for ZMETA-CORE, ZMETA-PROFILE-L/M/H, ZMETA-ADAPTER, ZMETA-GATEWAY,
+  ZMETA-COT-PROJECTION, ZMETA-AI-PROVENANCE, ZMETA-COALITION-EXPORT,
+  ZMETA-MESH-TRUST, and ZMETA-REPLAY.
+- Notes: Plan only. Do not implement conformance class artifacts until S1-03B is
+  complete or maintainers explicitly reprioritize the work.
 
 ## Deferred Issue Register
 
@@ -236,8 +271,12 @@
   requirements.
 - Impact: Future prompts could add extension vocabulary inconsistently or make
   reserved names appear valid before a version branch is approved.
-- Proposed follow-up: Create a registry document or machine-readable registry
-  before implementing future schema branches.
+- S1-03A coverage: Planned `spec/extension-registry.md`,
+  `spec/extension-registry.yaml`, validation tooling, initial entries, status
+  model, category model, collision rules, and adoption requirements.
+- Proposed follow-up: Implement the registry and validator in S1-03B before
+  implementing future schema branches. Keep D-006 open until implementation
+  exists.
 
 ### D-007 - Encoding Negative Validation Gap
 
