@@ -1,5 +1,6 @@
 import copy
 import importlib.util
+import json
 import subprocess
 import sys
 from pathlib import Path
@@ -23,6 +24,12 @@ def load_registry():
 def write_registry(name, data):
     path = ROOT / "gateway" / "tests" / f"_{name}.yaml"
     path.write_text(yaml.safe_dump(data, sort_keys=False), encoding="utf-8")
+    return path
+
+
+def write_json(name, data):
+    path = ROOT / "gateway" / "tests" / f"_{name}.json"
+    path.write_text(json.dumps(data), encoding="utf-8")
     return path
 
 
@@ -157,3 +164,34 @@ def test_v1_1_system_status_types_do_not_validate_under_v1_0():
         assert not validate_extension_registry._schema_valid(
             validate_extension_registry.system_event(system_type, "1.0"), schema_v1
         )
+
+
+def test_takeoff_crosswalk_stray_is_not_current_vocabulary():
+    assert "TAKEOFF" in validate_extension_registry.UNREGISTERED_RESERVED_SCHEMA_VALUES
+
+    schema_v1 = validate_extension_registry._schema_validator(
+        ROOT / "schema" / "zmeta-event-1.0.schema.json"
+    )
+    schema_v1_1 = validate_extension_registry._schema_validator(
+        ROOT / "schema" / "zmeta-event-1.1.0.schema.json"
+    )
+    assert not validate_extension_registry._schema_valid(
+        validate_extension_registry.command_event("TAKEOFF", "1.0"), schema_v1
+    )
+    assert not validate_extension_registry._schema_valid(
+        validate_extension_registry.command_event("TAKEOFF", "1.1.0"), schema_v1_1
+    )
+
+    with (ROOT / "schema" / "zmeta-event-1.0.schema.json").open("r", encoding="utf-8") as handle:
+        bad_schema = json.load(handle)
+    bad_schema["x-audit-regression"] = {"enum": ["TAKEOFF"]}
+    path = write_json("extension_registry_takeoff_schema", bad_schema)
+    try:
+        issues = validate_extension_registry.validate_registry(
+            REGISTRY_PATH,
+            schema_v1_path=path,
+            schema_v1_1_path=ROOT / "schema" / "zmeta-event-1.1.0.schema.json",
+        )
+        assert any(issue["code"] == "REGISTRY_UNREGISTERED_SCHEMA_LEAK" for issue in issues)
+    finally:
+        path.unlink(missing_ok=True)

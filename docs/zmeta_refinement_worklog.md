@@ -4,14 +4,12 @@
 
 - Last updated: 2026-05-07
 - Quick handoff: `docs/zmeta_refinement_handoff.md`
-- Current next work item: S1-03C - Extension Registry Post-Implementation
-  Audit.
-- Current decision: S1-03B implemented the extension registry as spec-owned
-  human and machine-readable artifacts with standalone validation, tests, and
-  optional conformance runner integration. v1.1.0 concepts remain
-  experimental, future concepts remain reserved/proposed, and no schemas,
-  semantic contract text, examples, fixtures, adapters, encodings, or event
-  vocabulary were changed.
+- Current next work item: S1-04A - Conformance Class Manifest Plan Only.
+- Current decision: S1-03C audited the extension registry implementation and
+  confirmed it protects version boundaries without changing schemas, semantic
+  contract text, examples, fixtures, adapters, encodings, or event vocabulary.
+  v1.1.0 concepts remain experimental, future concepts remain reserved/proposed,
+  D-006 is closed, and registry validation remains opt-in.
 
 ## S0-01 - Semantic Contract Lockdown Audit
 
@@ -177,7 +175,7 @@
 
 ## S1-03B - Extension Registry Implementation
 
-- Status: IMPLEMENTED - PENDING S1-03C AUDIT
+- Status: COMPLETE
 - Date completed: 2026-05-07
 - Scope: Implemented the human-readable and machine-readable extension
   registry, registry validation CLI, tests, and optional conformance runner
@@ -213,16 +211,37 @@
 
 ## S1-03C - Extension Registry Post-Implementation Audit
 
-- Status: PENDING
+- Status: COMPLETE
+- Date completed: 2026-05-07
+- Output: `docs/s1_03c_extension_registry_audit.md`
 - Scope: Audit the S1-03B implementation for registry correctness, validation
   coverage, docs alignment, schema/contract non-drift, and reserved/proposed
   vocabulary isolation.
-- Notes: Audit only. Do not promote experimental entries or make reserved future
-  concepts valid.
+- Cleanup:
+  - `tools/validate_extension_registry.py` now checks unregistered reserved
+    schema values, currently `TAKEOFF`, so the crosswalk stray mention cannot
+    become current schema vocabulary unnoticed.
+  - `gateway/tests/test_extension_registry.py` covers `TAKEOFF` invalidity under
+    v1.0/v1.1.0 and the new schema leakage failure.
+- Verification:
+  - `python tools\validate_extension_registry.py --registry spec\extension-registry.yaml` ->
+    `extension registry ok entries=63`
+  - `python tools\validate_conformance.py --strict` -> `conformance ok`
+  - `python tools\validate_conformance.py --strict --profile-projection` ->
+    `projection conformance ok total=33`, `conformance ok`
+  - `python tools\validate_conformance.py --strict --profile-projection --extension-registry` ->
+    `projection conformance ok total=33`, `extension registry ok entries=63`,
+    `conformance ok`
+  - `python -m pytest -q gateway\tests\test_extension_registry.py` ->
+    `12 passed`
+  - `python -m pytest` -> `254 passed`
+  - `git diff --check` -> passed with CRLF conversion warnings only.
+- Decision: S1-03B is verified. D-006 is closed. D-007 remains partially
+  covered, not closed. D-010 and D-011 remain open.
 
 ## S1-04A - Conformance Class Manifest Plan Only
 
-- Status: FUTURE / PENDING
+- Status: NEXT / PENDING
 - Scope: Plan a machine-readable conformance class manifest and claim/test
   matrix for ZMETA-CORE, ZMETA-PROFILE-L/M/H, ZMETA-ADAPTER, ZMETA-GATEWAY,
   ZMETA-COT-PROJECTION, ZMETA-AI-PROVENANCE, ZMETA-COALITION-EXPORT,
@@ -300,7 +319,7 @@
 
 ### D-006 - Extension Registry Artifact Missing
 
-- Status: OPEN - IMPLEMENTED PENDING S1-03C AUDIT
+- Status: CLOSED
 - Discovered during: S0-03
 - Issue: The contract and schema README reserve future subtype and modality
   names by prose, but the repository does not yet contain a durable extension
@@ -315,7 +334,9 @@
   registry, validator CLI, optional conformance flag, tests, and docs
   integration. Existing v1.1.0 entries are experimental; future entries are
   reserved/proposed.
-- Proposed follow-up: Run S1-03C audit before fully closing D-006.
+- S1-03C audit: Confirmed registry shape, status/category semantics, version
+  boundary checks, reserved/proposed invalidity, tests, documentation, and
+  optional conformance integration. D-006 is closed.
 
 ### D-007 - Encoding Negative Validation Gap
 
@@ -391,3 +412,7 @@
   during S1-03C audit if maintainers want audit cleanup to include confirmed
   typo fixes. Do not add `TAKEOFF` to current schemas or registry unless a
   future versioned task explicitly proposes it.
+- S1-03C audit: Added validator and test coverage proving `TAKEOFF` remains
+  invalid under v1.0/v1.1.0 and fails registry validation if it appears in a
+  current schema enum/const. The crosswalk typo itself remains open for a narrow
+  docs cleanup task.

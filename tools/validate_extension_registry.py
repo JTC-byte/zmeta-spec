@@ -83,6 +83,9 @@ CORE_ENVELOPE_NAMES = {
 IMPLEMENTED = {"implemented"}
 SUFFICIENT = {"implemented", "not_applicable"}
 VENDOR_NAME_RE = re.compile(r"^vendor\.[a-z0-9][a-z0-9_-]*(?:\.[A-Za-z0-9][A-Za-z0-9_.-]*)+$")
+UNREGISTERED_RESERVED_SCHEMA_VALUES = {
+    "TAKEOFF": "D-011 tracks this as a stray crosswalk mention; it is not current registry or event vocabulary.",
+}
 
 
 def parse_args() -> argparse.Namespace:
@@ -125,6 +128,19 @@ def _load_json(path: Path) -> dict[str, Any]:
 
 def _schema_validator(path: Path):
     return validators.load_schema(path)
+
+
+def _schema_contains_reserved_value(node: Any, value: str) -> bool:
+    if isinstance(node, dict):
+        enum_values = node.get("enum")
+        if isinstance(enum_values, list) and value in enum_values:
+            return True
+        if node.get("const") == value:
+            return True
+        return any(_schema_contains_reserved_value(child, value) for child in node.values())
+    if isinstance(node, list):
+        return any(_schema_contains_reserved_value(child, value) for child in node)
+    return False
 
 
 def _schema_valid(event: dict[str, Any], schema_validator) -> bool:
@@ -573,6 +589,19 @@ def validate_registry(
     schema_v1_path = schema_v1_path or ROOT / "schema" / "zmeta-event-1.0.schema.json"
     schema_v1_1_path = schema_v1_1_path or ROOT / "schema" / "zmeta-event-1.1.0.schema.json"
     if schema_v1_path.exists() and schema_v1_1_path.exists():
+        schema_v1_doc = _load_json(schema_v1_path)
+        schema_v1_1_doc = _load_json(schema_v1_1_path)
+        for name, reason in sorted(UNREGISTERED_RESERVED_SCHEMA_VALUES.items()):
+            if _schema_contains_reserved_value(schema_v1_doc, name) or _schema_contains_reserved_value(
+                schema_v1_1_doc, name
+            ):
+                issues.append(
+                    _issue(
+                        "REGISTRY_UNREGISTERED_SCHEMA_LEAK",
+                        f"unregistered reserved value appears in a current schema: {reason}",
+                        entry=name,
+                    )
+                )
         schema_v1 = _schema_validator(schema_v1_path)
         schema_v1_1 = _schema_validator(schema_v1_1_path)
         for entry in entries:

@@ -6,11 +6,11 @@ This note is the quick resume point for the current ZMeta refinement effort. The
 
 ## Current Position
 
-The semantic contract has been audited, rewritten, and crosswalked against the current implementation stack. The locked v1.0 baseline was verified, and no S1-01B targeted schema implementation task is currently needed. Profile projection preservation has been implemented and audited as sidecar conformance tooling without changing v1.0 schema or event vocabulary. S1-03B has now implemented the extension registry without changing schemas or making new vocabulary valid.
+The semantic contract has been audited, rewritten, and crosswalked against the current implementation stack. The locked v1.0 baseline was verified, and no S1-01B targeted schema implementation task is currently needed. Profile projection preservation has been implemented and audited as sidecar conformance tooling without changing v1.0 schema or event vocabulary. S1-03B implemented the extension registry, and S1-03C audited it without changing schemas or making new vocabulary valid.
 
 The next active implementation item is:
 
-**S1-03C - Extension Registry Post-Implementation Audit**
+**S1-04A - Conformance Class Manifest Plan Only**
 
 ## Key Docs
 
@@ -27,6 +27,7 @@ The next active implementation item is:
 | `docs/s1_03_extension_registry_plan.md` | S1-03A plan for extension registry artifacts, statuses, categories, collision rules, adoption requirements, and validation. |
 | `spec/extension-registry.md` | Human-readable extension registry governance, status definitions, collision rules, and adoption requirements. |
 | `spec/extension-registry.yaml` | Machine-readable extension registry. Existing v1.1.0 entries are experimental; future entries are reserved/proposed. |
+| `docs/s1_03c_extension_registry_audit.md` | S1-03C audit confirming extension registry implementation, validation behavior, and version-boundary protection. |
 | `docs/zmeta_refinement_worklog.md` | Running worklog, completed work items, pending work items, and deferred issue register. |
 
 ## Completed Recently
@@ -41,7 +42,8 @@ The next active implementation item is:
 | S1-02B Profile Projection Preservation Implementation | COMPLETE | `conformance/profile_projection_field_catalog.yaml`, `tools/validate_projection.py`, `conformance/profile-projection/` |
 | S1-02C Profile Projection Preservation Audit | COMPLETE | `docs/s1_02c_projection_preservation_audit.md` |
 | S1-03A Extension Registry Plan Only | COMPLETE | `docs/s1_03_extension_registry_plan.md` |
-| S1-03B Extension Registry Implementation | IMPLEMENTED - PENDING AUDIT | `spec/extension-registry.md`, `spec/extension-registry.yaml`, `tools/validate_extension_registry.py` |
+| S1-03B Extension Registry Implementation | COMPLETE | `spec/extension-registry.md`, `spec/extension-registry.yaml`, `tools/validate_extension_registry.py` |
+| S1-03C Extension Registry Audit | COMPLETE | `docs/s1_03c_extension_registry_audit.md` |
 
 ## Current Decisions
 
@@ -60,38 +62,35 @@ The next active implementation item is:
 - Registry validation is standalone and opt-in through
   `tools/validate_extension_registry.py` or
   `tools/validate_conformance.py --strict --extension-registry`.
-- D-006 is implemented pending S1-03C audit, not closed.
+- D-006 is closed after S1-03C verified the registry implementation.
+- D-011 remains open. S1-03C added a validator/test guard so `TAKEOFF` cannot
+  appear in current schema vocabulary unnoticed, but the crosswalk typo still
+  needs a narrow docs cleanup.
 
 ## Next Work Queue
 
-1. **S1-03C - Extension Registry Post-Implementation Audit**
-   - Audit registry entry correctness, validator behavior, docs alignment,
-     schema/contract non-drift, and reserved/proposed vocabulary isolation.
-   - Do not promote experimental entries or make future concepts valid.
+1. **S1-04A - Conformance Class Manifest Plan Only**
+   - Plan machine-readable conformance class claims and test selectors.
+   - Do not implement conformance class artifacts yet.
 
-2. **Human decisions before S1-03C / later registry promotion**
+2. **Human decisions before later registry promotion**
    - Whether v1.1.0 concepts remain `experimental` or any should be promoted.
    - Whether registry validation should remain opt-in or become part of strict
      conformance after the format stabilizes.
    - How to represent vendor/private namespaces and classified/restricted names.
    - Whether companion artifacts stay as a registry category or split into a
      separate manifest later.
-   - Whether to clean the crosswalk `TAKEOFF` typo during S1-03C or a separate
-     narrow docs task.
+   - Whether to clean the crosswalk `TAKEOFF` typo in the next narrow docs
+     cleanup task or leave it deferred.
 
-3. **S1-04A - Conformance Class Manifest Plan Only**
-   - Plan machine-readable conformance class claims and test selectors after
-     extension registry implementation is in place.
-
-4. **Deferred issue cleanup**
-- D-006 Extension Registry Artifact Missing.
+3. **Deferred issue cleanup**
    - D-007 Encoding Negative Validation Gap remains partially covered, not closed.
    - D-008 Conformance Class Manifest Missing.
    - D-009 v1.0/v1.1 Observation Extension Boundary Needs Explicit Tests.
-- D-010 Profile Precision / Quantization Policy Floors.
+   - D-010 Profile Precision / Quantization Policy Floors.
    - D-011 Crosswalk TAKEOFF Mention Cleanup.
 
-5. **Later versioned semantic branches**
+4. **Later versioned semantic branches**
    - Markings/releasability.
    - Integrity, signing, anti-replay, mesh trust, and quarantine.
    - MODEL_STATUS / assurance and drift monitoring.
@@ -112,7 +111,7 @@ The next active implementation item is:
 
 ## Verification State
 
-Most recent validation after S1-03B:
+Most recent validation after S1-03C:
 
 ```powershell
 python tools\validate_extension_registry.py --registry spec\extension-registry.yaml
@@ -124,5 +123,6 @@ python -m pytest
 git diff --check
 ```
 
-Result: validation passed through full pytest. Full pytest result: `253 passed`.
+Result: validation passed through full pytest.
+Focused extension registry tests: `12 passed`. Full pytest result: `254 passed`.
 `git diff --check` passed with CRLF conversion warnings only.
