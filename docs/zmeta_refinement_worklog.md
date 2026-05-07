@@ -4,12 +4,14 @@
 
 - Last updated: 2026-05-07
 - Quick handoff: `docs/zmeta_refinement_handoff.md`
-- Current next work item: S1-06A - Profile Precision / Quantization Policy Floors Plan Only.
-- Current decision: S1-05C verified S1-05B. Compact/protobuf encoding-negative
-  invalid-after-decode coverage is implemented and audited. No schemas,
-  semantic contract text, extension registry artifacts, gateway runtime
-  behavior, codecs, adapters, release hashes, or event vocabulary were changed.
-  D-007 is closed. D-010, D-011, and D-002 remain open.
+- Current next work item: S1-06B - Profile Precision / Quantization Policy Floors Implementation.
+- Current decision: S1-06A planned profile-specific precision ceilings,
+  utility floors, quantization steps, conservative rounding, packet-budget
+  interaction, and validator/fixture strategy. No schemas, policy YAML files,
+  validators, gateway runtime behavior, codecs, adapters, extension registry
+  artifacts, conformance class manifests, release hashes, semantic contract
+  text, or event vocabulary were changed. D-010 remains open until
+  implementation and audit.
 
 ## S0-01 - Semantic Contract Lockdown Audit
 
@@ -476,9 +478,80 @@
 
 ## S1-06A - Profile Precision / Quantization Policy Floors Plan Only
 
+- Status: COMPLETE
+- Date completed: 2026-05-07
+- Output: `docs/s1_06_profile_precision_quantization_policy_plan.md`
+- Scope: Planned mission/profile-specific precision ceilings, utility floors,
+  quantization steps, conservative rounding directions, packet-budget
+  interaction, projection-validator interaction, gateway/exporter behavior,
+  fixtures, standalone validator, and optional conformance integration for
+  Profile L/M/H exports.
+- Plan summary:
+  - Precision policy remains profile/export policy, not a schema change.
+  - Candidate artifacts: `spec/profile-precision-policy.md`,
+    `policy/profile-precision.yaml`, `conformance/profile-precision/`,
+    `tools/validate_precision_policy.py`, and
+    `gateway/tests/test_profile_precision_policy.py`.
+  - Candidate policy covers immutable identity/source/lineage fields,
+    optional metadata, geospatial values, motion/direction, time/TTL, RF
+    features, confidence/quality, and display/string fields.
+  - Conservative rounding recommendations: confidence down, TTL down, error
+    bounds and timing uncertainty up, units preserved, and coordinate
+    quantization deterministic.
+  - S1-06B should prefer a standalone precision-policy validator with optional
+    `tools/validate_conformance.py --precision-policy`; default strict remains
+    unchanged.
+  - Numeric values in the plan are candidate defaults requiring human review,
+    not final operational policy.
+- Verification:
+  - `python tools\validate_conformance.py --strict` -> `conformance ok`
+  - `python tools\validate_conformance.py --strict --profile-projection` ->
+    `projection conformance ok total=33`, `conformance ok`
+  - `python tools\validate_conformance.py --strict --profile-projection --extension-registry` ->
+    `projection conformance ok total=33`, `extension registry ok entries=63`,
+    `conformance ok`
+  - `python tools\validate_conformance.py --strict --profile-projection --extension-registry --conformance-classes` ->
+    `projection conformance ok total=33`, `extension registry ok entries=63`,
+    `conformance classes ok classes=30 claims=2`, `conformance ok`
+  - `python tools\validate_conformance.py --strict --profile-projection --extension-registry --conformance-classes --encoding-negative` ->
+    `projection conformance ok total=33`, `extension registry ok entries=63`,
+    `conformance classes ok classes=30 claims=2`,
+    `encoding negative ok total=49`, `conformance ok`
+  - `python tools\validate_projection.py --catalog conformance\profile_projection_field_catalog.yaml --must-pass conformance\profile-projection\must-pass.jsonl --must-fail conformance\profile-projection\must-fail.jsonl --quiet` ->
+    `projection conformance ok total=33`
+  - `python tools\validate_extension_registry.py --registry spec\extension-registry.yaml` ->
+    `extension registry ok entries=63`
+  - `python tools\validate_conformance_classes.py --manifest conformance\conformance_classes.yaml --claims conformance\claims\example-reference-gateway.yaml conformance\claims\example-core-producer.yaml` ->
+    `conformance classes ok classes=30 claims=2`
+  - `python tools\validate_encoding_negative.py --compact conformance\encoding-negative\compact-must-fail.jsonl --protobuf conformance\encoding-negative\protobuf-must-fail.jsonl --gateway conformance\encoding-negative\gateway-must-fail.jsonl --quiet` ->
+    `encoding negative ok total=49`
+  - `python -m pytest` -> `295 passed`
+  - `git diff --check` -> passed with CRLF conversion warnings only.
+- Decision: Plan only. D-010 remains open until S1-06B implements precision
+  policy and S1-06C audits it.
+
+## S1-06B - Profile Precision / Quantization Policy Floors Implementation
+
+- Status: FUTURE / PENDING IMPLEMENTATION
+- Scope: Implement the profile precision policy artifacts, source/projected
+  fixtures, standalone precision validator, focused tests, optional conformance
+  runner integration, and docs using the S1-06A plan. D-010 remains open until
+  implementation is audited.
+
+## S1-06C - Profile Precision / Quantization Policy Floors Post-Implementation Audit
+
 - Status: FUTURE / PENDING
-- Scope: Plan mission/profile-specific quantization floors and packet-budget
-  policy for Profile M/L after encoding-negative implementation and audit.
+- Scope: Audit S1-06B for conservative rounding, utility-floor behavior,
+  packet-budget interaction, projection preservation compatibility, and absence
+  of schema/contract/vocabulary drift before closing D-010.
+
+## S1-07A - Crosswalk TAKEOFF Mention Cleanup
+
+- Status: FUTURE / PENDING
+- Scope: Resolve D-011 with a narrow documentation cleanup or cleanup plan for
+  the stray `TAKEOFF` mention in `docs/zmeta_contract_to_stack_crosswalk.md`.
+  Do not add `TAKEOFF` to schemas, registry entries, examples, or tests as
+  current vocabulary.
 
 ## Deferred Issue Register
 
@@ -649,6 +722,11 @@
 - Proposed follow-up: Define mission/profile-specific quantization floors and
   packet-budget policy after representative Profile L/M traffic and operational
   requirements are available.
+- S1-06A coverage: Planned precision ceilings, utility floors, quantization
+  steps, conservative rounding directions, packet-budget interaction, policy
+  artifacts, fixtures, validator behavior, gateway/exporter approach, optional
+  conformance integration, and S1-06B/S1-06C path. D-010 remains open until
+  implementation and audit.
 
 ### D-011 - Crosswalk TAKEOFF Mention Cleanup
 

@@ -6,11 +6,11 @@ This note is the quick resume point for the current ZMeta refinement effort. The
 
 ## Current Position
 
-The semantic contract has been audited, rewritten, and crosswalked against the current implementation stack. The locked v1.0 baseline was verified, and no S1-01B targeted schema implementation task is currently needed. Profile projection preservation has been implemented and audited as sidecar conformance tooling without changing v1.0 schema or event vocabulary. The extension registry has been implemented and audited. The conformance class manifest and claim model have been implemented and audited without changing schemas or making new vocabulary valid. Encoding-negative validation has been implemented and audited for compact CBOR and protobuf invalid-after-decode paths.
+The semantic contract has been audited, rewritten, and crosswalked against the current implementation stack. The locked v1.0 baseline was verified, and no S1-01B targeted schema implementation task is currently needed. Profile projection preservation has been implemented and audited as sidecar conformance tooling without changing v1.0 schema or event vocabulary. The extension registry has been implemented and audited. The conformance class manifest and claim model have been implemented and audited without changing schemas or making new vocabulary valid. Encoding-negative validation has been implemented and audited for compact CBOR and protobuf invalid-after-decode paths. Profile precision and quantization policy has been planned and is ready for implementation.
 
 The next active implementation item is:
 
-**S1-06A - Profile Precision / Quantization Policy Floors Plan Only**
+**S1-06B - Profile Precision / Quantization Policy Floors Implementation**
 
 ## Key Docs
 
@@ -36,6 +36,7 @@ The next active implementation item is:
 | `docs/s1_05_encoding_negative_validation_plan.md` | S1-05A plan for compact/protobuf invalid-after-decode fixtures, validator tooling, gateway/CLI negative coverage, and D-007 closure path. |
 | `conformance/encoding-negative/` | S1-05B compact/protobuf/gateway invalid-after-decode fixture suites. |
 | `docs/s1_05c_encoding_negative_validation_audit.md` | S1-05C audit confirming encoding-negative validation coverage and closing D-007. |
+| `docs/s1_06_profile_precision_quantization_policy_plan.md` | S1-06A plan for profile precision ceilings, utility floors, conservative rounding, packet-budget interaction, and S1-06B implementation. |
 | `docs/zmeta_refinement_worklog.md` | Running worklog, completed work items, pending work items, and deferred issue register. |
 
 ## Completed Recently
@@ -58,6 +59,7 @@ The next active implementation item is:
 | S1-05A Encoding Negative Validation Plan Only | COMPLETE | `docs/s1_05_encoding_negative_validation_plan.md` |
 | S1-05B Encoding Negative Validation Implementation | COMPLETE | `conformance/encoding-negative/`, `tools/validate_encoding_negative.py`, focused encoding-negative tests |
 | S1-05C Encoding Negative Validation Audit | COMPLETE | `docs/s1_05c_encoding_negative_validation_audit.md` |
+| S1-06A Profile Precision / Quantization Policy Floors Plan Only | COMPLETE | `docs/s1_06_profile_precision_quantization_policy_plan.md` |
 
 ## Current Decisions
 
@@ -99,14 +101,42 @@ The next active implementation item is:
 - S1-05C verified encoding-negative validation. D-007 is closed. Remaining
   policy-specific examples from S1-05A are optional future breadth, not an
   encoding-layer bypass gap.
+- S1-06A planned precision ceilings, utility floors, quantization steps,
+  conservative rounding, packet-budget interaction, projection validator
+  interaction, and gateway/exporter behavior. D-010 remains open until
+  implementation and audit.
 
 ## Next Work Queue
 
-1. **S1-06A - Profile Precision / Quantization Policy Floors Plan Only**
-   - Plan mission/profile-specific precision floors and packet-budget policy for
-     Profile M/L.
+1. **S1-06B - Profile Precision / Quantization Policy Floors Implementation**
+   - Implement `spec/profile-precision-policy.md`,
+     `policy/profile-precision.yaml`, `conformance/profile-precision/`,
+     `tools/validate_precision_policy.py`, focused tests, and optional
+     `tools/validate_conformance.py --precision-policy` if the plan is accepted.
+   - Keep default strict conformance unchanged.
+   - Mark D-010 implemented pending S1-06C audit, not closed.
 
-2. **Human decisions before class activation / later claim hardening**
+2. **S1-06C - Profile Precision / Quantization Policy Floors Audit**
+   - Audit S1-06B before closing D-010.
+
+3. **S1-07A - Crosswalk TAKEOFF Mention Cleanup**
+   - Narrow documentation cleanup or cleanup plan for the D-011 crosswalk typo.
+
+4. **Human decisions before precision policy implementation and later claim hardening**
+   - Exact candidate precision defaults by profile and field family.
+   - Whether precision values are global defaults or mission/profile
+     configurable.
+   - Whether Profile L has one universal precision policy or multiple mission
+     policies.
+   - Whether coordinate quantization is decimal-place-based, grid-based, or
+     uncertainty/CEP-based.
+   - Whether confidence rounding floors to fixed decimals or configured buckets.
+   - Whether command geometry precision policy is stricter than STATE_EVENT
+     display policy.
+   - Whether RF quantization varies by modality, sensor resolution, band, or
+     mission.
+   - Whether precision policy is enforced in gateway exports, conformance only,
+     or both.
    - Whether current class statuses should be `implemented` or `active`.
    - Whether claim files should require captured test output artifacts or only
      command/result summaries.
@@ -130,14 +160,14 @@ The next active implementation item is:
    - Whether `--encoding-negative` should remain opt-in indefinitely or later
      join strict release conformance.
 
-3. **Deferred issue cleanup**
+5. **Deferred issue cleanup**
    - D-007 Encoding Negative Validation Gap is closed.
    - D-008 Conformance Class Manifest Missing is closed.
    - D-009 v1.0/v1.1 Observation Extension Boundary Needs Explicit Tests.
-   - D-010 Profile Precision / Quantization Policy Floors.
+   - D-010 Profile Precision / Quantization Policy Floors remains open.
    - D-011 Crosswalk TAKEOFF Mention Cleanup.
 
-4. **Later versioned semantic branches**
+6. **Later versioned semantic branches**
    - Markings/releasability.
    - Integrity, signing, anti-replay, mesh trust, and quarantine.
    - MODEL_STATUS / assurance and drift monitoring.
@@ -160,24 +190,27 @@ The next active implementation item is:
 
 ## Verification State
 
-Most recent validation after S1-05C:
+Most recent validation after S1-06A:
 
 ```powershell
-python tools\validate_encoding_negative.py --compact conformance\encoding-negative\compact-must-fail.jsonl --protobuf conformance\encoding-negative\protobuf-must-fail.jsonl --gateway conformance\encoding-negative\gateway-must-fail.jsonl
 python tools\validate_conformance.py --strict
 python tools\validate_conformance.py --strict --profile-projection
 python tools\validate_conformance.py --strict --profile-projection --extension-registry
 python tools\validate_conformance.py --strict --profile-projection --extension-registry --conformance-classes
 python tools\validate_conformance.py --strict --profile-projection --extension-registry --conformance-classes --encoding-negative
+python tools\validate_projection.py --catalog conformance\profile_projection_field_catalog.yaml --must-pass conformance\profile-projection\must-pass.jsonl --must-fail conformance\profile-projection\must-fail.jsonl --quiet
+python tools\validate_extension_registry.py --registry spec\extension-registry.yaml
 python tools\validate_conformance_classes.py --manifest conformance\conformance_classes.yaml
 python tools\validate_conformance_classes.py --manifest conformance\conformance_classes.yaml --claims conformance\claims\example-reference-gateway.yaml conformance\claims\example-core-producer.yaml
-python -m pytest -q gateway\tests\test_encoding_negative_validation.py gateway\tests\test_compact_negative_decode.py gateway\tests\test_protobuf_negative_decode.py
+python tools\validate_encoding_negative.py --compact conformance\encoding-negative\compact-must-fail.jsonl --protobuf conformance\encoding-negative\protobuf-must-fail.jsonl --gateway conformance\encoding-negative\gateway-must-fail.jsonl --quiet
 python -m pytest
 git diff --check
 ```
 
 Result: validation passed through full pytest.
+Projection validator result: `projection conformance ok total=33`.
+Extension registry result: `extension registry ok entries=63`.
+Conformance classes result: `conformance classes ok classes=30 claims=2`.
 Encoding-negative validator result: `encoding negative ok total=49`.
-Focused encoding-negative tests passed: `22 passed`.
 Full pytest result: `295 passed`.
 `git diff --check` passed with CRLF conversion warnings only.
