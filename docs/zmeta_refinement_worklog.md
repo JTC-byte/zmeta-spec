@@ -4,15 +4,13 @@
 
 - Last updated: 2026-05-07
 - Quick handoff: `docs/zmeta_refinement_handoff.md`
-- Current next work item: S1-06C - Profile Precision / Quantization Policy
-  Floors Post-Implementation Audit.
-- Current decision: S1-06B implemented a reference conformance default profile
+- Current next work item: S1-07A - Crosswalk TAKEOFF Mention Cleanup.
+- Current decision: S1-06C audited the reference conformance default profile
   precision policy, source/projected precision fixture suite, standalone
-  validator, focused tests, optional conformance runner integration, and
+  validator, focused tests, optional conformance runner integration, docs, and
   profile/projection class evidence updates. No schemas, semantic contract
   text, extension registry artifacts, gateway runtime behavior, codecs,
-  adapters, release hashes, or event vocabulary were changed. D-010 remains
-  open until S1-06C audits the implementation.
+  adapters, release hashes, or event vocabulary were changed. D-010 is closed.
 
 ## S0-01 - Semantic Contract Lockdown Audit
 
@@ -533,7 +531,7 @@
 
 ## S1-06B - Profile Precision / Quantization Policy Floors Implementation
 
-- Status: COMPLETE / IMPLEMENTED PENDING S1-06C AUDIT
+- Status: COMPLETE
 - Date completed: 2026-05-07
 - Scope: Implemented the profile precision policy artifacts, source/projected
   fixtures, standalone precision validator, focused tests, optional conformance
@@ -601,14 +599,33 @@
 
 ## S1-06C - Profile Precision / Quantization Policy Floors Post-Implementation Audit
 
-- Status: PENDING / NEXT
-- Scope: Audit S1-06B for conservative rounding, utility-floor behavior,
-  packet-budget interaction, projection preservation compatibility, and absence
-  of schema/contract/vocabulary drift before closing D-010.
+- Status: COMPLETE
+- Date completed: 2026-05-07
+- Output: `docs/s1_06c_profile_precision_quantization_policy_audit.md`
+- Scope: Audited S1-06B for conservative rounding, utility-floor behavior,
+  packet-budget interaction, projection preservation compatibility, validator
+  behavior, conformance-class impact, documentation alignment, and absence of
+  schema/contract/registry/vocabulary drift.
+- Findings:
+  - Precision policy is correctly treated as profile/export policy, not schema.
+  - Reference defaults remain `reference_conformance_default` and require
+    mission review.
+  - Immutable identity/source/lineage/discriminator paths, units, confidence,
+    TTL, timing/error bounds, utility floors, command target floors, hidden
+    defaults, and packet-budget required-field stripping are covered by
+    validator logic and fixtures.
+  - The validator reuses projection preservation; precision policy does not
+    replace same-event projection invariants.
+  - No schemas, semantic contract text, extension registry artifacts, gateway
+    runtime behavior, codecs, adapters, release hashes, or event vocabulary were
+    changed.
+  - Conformance class manifest and example claims remain valid.
+- Decision: S1-06B is verified. D-010 is closed. D-011, D-002, D-001, D-003,
+  and D-004 remain open.
 
 ## S1-07A - Crosswalk TAKEOFF Mention Cleanup
 
-- Status: FUTURE / PENDING
+- Status: PENDING / NEXT
 - Scope: Resolve D-011 with a narrow documentation cleanup or cleanup plan for
   the stray `TAKEOFF` mention in `docs/zmeta_contract_to_stack_crosswalk.md`.
   Do not add `TAKEOFF` to schemas, registry entries, examples, or tests as
@@ -771,7 +788,7 @@
 
 ### D-010 - Profile Precision / Quantization Policy Floors
 
-- Status: OPEN - IMPLEMENTED PENDING S1-06C AUDIT
+- Status: CLOSED
 - Discovered during: S1-02C
 - Issue: S1-02B enforces precision non-increase for profile projection, but it
   does not define operational precision floors or quantization requirements for
@@ -792,6 +809,11 @@
   source/projected fixture suite, standalone validator, focused tests, optional
   `--precision-policy` conformance runner flag, and class/claim evidence
   updates. D-010 remains open as `OPEN - IMPLEMENTED PENDING S1-06C AUDIT`.
+- S1-06C audit: Verified policy quality, field-family coverage, Profile H/M/L
+  behavior, conservative rounding, fixture coverage, validator behavior,
+  packet-budget guardrails, projection interaction, optional conformance
+  integration, conformance-class evidence, and absence of schema/contract/
+  registry/vocabulary drift. D-010 is closed.
 
 ### D-011 - Crosswalk TAKEOFF Mention Cleanup
 
