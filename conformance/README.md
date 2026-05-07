@@ -12,8 +12,12 @@ version-discriminated schema plus policy pack:
 - `conformance_classes.yaml`: machine-readable conformance class manifest.
 - `claims/`: example implementation claim files for the class manifest.
 - `encoding-negative/`: compact/protobuf invalid-after-decode fixture suites.
+- `profile-precision/`: source/projected fixtures for Profile L/M/H precision
+  ceilings, utility floors, and conservative quantization.
 - `../spec/extension-registry.yaml`: spec-owned machine-readable extension
   registry consumed by optional registry validation.
+- `../policy/profile-precision.yaml`: reference conformance default precision
+  policy for profile/export validation.
 
 Use:
 
@@ -69,3 +73,16 @@ Compact CBOR and protobuf remain encoding projections only. The negative suite
 decodes wire inputs to canonical JSON and then proves invalid decoded events fail
 schema, policy, projection, gateway/CLI, or conversion-plus-validation checks.
 It does not change schemas and does not make new vocabulary valid.
+
+Profile precision policy validation is opt-in:
+
+```
+python tools/validate_precision_policy.py --policy policy/profile-precision.yaml --must-pass conformance/profile-precision/must-pass.jsonl --must-fail conformance/profile-precision/must-fail.jsonl
+python tools/validate_conformance.py --strict --profile-projection --extension-registry --conformance-classes --encoding-negative --precision-policy
+```
+
+Precision policy is profile/export policy, not JSON Schema, release policy,
+trust policy, emergency mode, UI policy, or transport semantics. The reference
+defaults in `policy/profile-precision.yaml` are `reference_conformance_default`
+values with `requires_mission_review: true`. They prove conservative
+quantization behavior without making new event vocabulary valid.

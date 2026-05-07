@@ -79,6 +79,32 @@ Each catalog rule contains:
 The catalog is a conformance aid. It does not replace JSON Schema and does not
 add v1.0 event fields.
 
+## Precision Policy Boundary
+
+The projection catalog defines whether a field may be preserved, omitted,
+lowered, shortened, or reduced in precision. It does not define profile-specific
+precision ceilings, utility floors, quantization steps, or conservative rounding
+directions.
+
+Those rules live in the profile precision policy layer:
+
+```text
+spec/profile-precision-policy.md
+policy/profile-precision.yaml
+conformance/profile-precision/
+```
+
+Run the precision policy validator with:
+
+```bash
+python tools/validate_precision_policy.py --policy policy/profile-precision.yaml --must-pass conformance/profile-precision/must-pass.jsonl --must-fail conformance/profile-precision/must-fail.jsonl
+```
+
+Precision policy validation still depends on projection preservation: a
+projection that violates identity, source, lineage, units, semantic layer,
+confidence monotonicity, or TTL monotonicity cannot become valid merely because
+its numeric rounding matches the policy.
+
 ## Fixture Pairs
 
 Projection fixtures are wrappers, not ZMeta events. A fixture contains a source

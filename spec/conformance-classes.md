@@ -122,7 +122,8 @@ Examples:
 - `ZMETA-POLICY-BASELINE` depends on `ZMETA-CORE` and
   `ZMETA-V1-0-SCHEMA`.
 - `ZMETA-PROJECTION-PRESERVATION` depends on the three profile classes and the
-  projection fixture suite.
+  projection fixture suite, now with profile precision policy evidence for
+  conservative export behavior.
 - `ZMETA-COMPACT-CBOR` depends on Profile L and decoded canonical JSON
   validation, including encoding-negative invalid-after-decode fixtures.
 - `ZMETA-PROTOBUF-PROJECTION` depends on core semantics and decoded canonical
@@ -160,6 +161,12 @@ Each class record identifies:
 
 The required commands in the manifest are the evidence contract for a class. A
 claim file must record those commands as passed for every claimed class.
+
+Profile L/M/H and projection preservation claims include the profile precision
+policy validator where relevant. That evidence proves conservative rounding,
+utility-floor, immutable-field, and packet-budget guardrails for same-event
+profile exports. The policy values are reference conformance defaults that
+require mission review; they do not change schemas or create event vocabulary.
 
 ## Initial Class Families
 

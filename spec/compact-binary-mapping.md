@@ -211,6 +211,15 @@ Do not strip required STATE_EVENT fields such as `confidence` or `lineage`.
 Profile L may reference non-exported lineage parents, but the lineage field
 itself remains required for STATE_EVENT.
 
+Profile L precision reduction is governed by `spec/profile-precision-policy.md`
+and the reference policy in `policy/profile-precision.yaml`, not by the compact
+wire mapping. Packet-budget pressure may motivate policy-compliant
+quantization, but it cannot authorize required semantic fields, source identity,
+track identity, lineage, discriminator fields, confidence, or timing semantics
+to be stripped. Compact packets must still expand to canonical JSON and pass
+schema, policy, projection, encoding-negative, and precision-policy checks when
+those conformance layers are invoked.
+
 ## Versioning
 
 - `compact_version` (top-level key `1`) enables forward compatibility.

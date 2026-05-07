@@ -73,6 +73,40 @@ python tools/validate_conformance.py --strict --profile-projection
 This does not change the v1.0 schema and does not add projection metadata to
 v1.0 events. Future projection metadata remains a versioned candidate.
 
+## Profile Precision Policy
+
+Profile L/M/H precision and quantization behavior is checked as a separate
+profile/export policy layer. The human-readable policy is:
+
+```text
+spec/profile-precision-policy.md
+```
+
+The reference conformance default policy is:
+
+```text
+policy/profile-precision.yaml
+```
+
+Run it directly:
+
+```bash
+python tools/validate_precision_policy.py --policy policy/profile-precision.yaml --must-pass conformance/profile-precision/must-pass.jsonl --must-fail conformance/profile-precision/must-fail.jsonl
+```
+
+Or include it explicitly with conformance validation:
+
+```bash
+python tools/validate_conformance.py --strict --profile-projection --extension-registry --conformance-classes --encoding-negative --precision-policy
+```
+
+Precision policy does not create semantics and does not change profile/event
+legality. It constrains how already-valid events may be conservatively exported
+with lower fidelity. The reference defaults require mission review; deployments
+may later override them through reviewed policy. Source event identity,
+event time, source identity, track identity, lineage, discriminator fields, and
+units remain immutable.
+
 ## Reference Producer Allowlists
 
 Reference producer authority rules are maintained in

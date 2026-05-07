@@ -35,6 +35,11 @@ def parse_args():
         help="Also run compact/protobuf invalid-after-decode fixtures.",
     )
     parser.add_argument(
+        "--precision-policy",
+        action="store_true",
+        help="Also run profile precision/quantization policy fixtures.",
+    )
+    parser.add_argument(
         "--pass-file",
         default=str(ROOT / "conformance" / "must-pass.jsonl"),
         help="Path to must-pass JSONL",
@@ -213,6 +218,22 @@ def main():
             protobuf_path=ROOT / "conformance" / "encoding-negative" / "protobuf-must-fail.jsonl",
             gateway_path=ROOT / "conformance" / "encoding-negative" / "gateway-must-fail.jsonl",
             context_path=ROOT / "conformance" / "encoding-negative" / "context.jsonl",
+            quiet=True,
+        )
+        if result:
+            raise SystemExit(result)
+
+    if args.precision_policy:
+        precision_policy_path = ROOT / "tools" / "validate_precision_policy.py"
+        precision_policy_spec = importlib.util.spec_from_file_location(
+            "zmeta_validate_precision_policy", precision_policy_path
+        )
+        precision_policy = importlib.util.module_from_spec(precision_policy_spec)
+        precision_policy_spec.loader.exec_module(precision_policy)
+        result = precision_policy.run_suite(
+            policy_path=ROOT / "policy" / "profile-precision.yaml",
+            must_pass_path=ROOT / "conformance" / "profile-precision" / "must-pass.jsonl",
+            must_fail_path=ROOT / "conformance" / "profile-precision" / "must-fail.jsonl",
             quiet=True,
         )
         if result:

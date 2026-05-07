@@ -10,6 +10,7 @@ Key documents:
 - `conformance-classes.md` human-readable conformance class and claim model
 - `profile-compatibility.md` profile compatibility matrix and producer allowlists
 - `profile-projection-field-catalog.md` profile projection preservation catalog guide
+- `profile-precision-policy.md` profile precision and quantization policy guide
 - `field-dictionary.md` UI-focused field dictionary
 - `quickstart.md` runnable reference workflow (if present)
 - `installation-guide.md` packaging and deterministic install guidance
@@ -37,3 +38,15 @@ Conformance classes do not create semantics or make future vocabulary valid.
 They organize claims about already-defined semantic, schema, policy, adapter,
 gateway, encoding, and conformance surfaces. v1.1.0 remains experimental unless
 a later release decision promotes it.
+
+Validate the reference profile precision policy explicitly:
+
+```bash
+python tools/validate_precision_policy.py --policy policy/profile-precision.yaml --must-pass conformance/profile-precision/must-pass.jsonl --must-fail conformance/profile-precision/must-fail.jsonl
+```
+
+Profile precision policy constrains conservative Profile L/M/H export
+projection. It is not a schema change, release policy, trust policy, emergency
+mode, UI policy, or transport semantic. The reference defaults require mission
+review, and compact/protobuf encodings remain wire projections that must decode
+to canonical JSON before validation.

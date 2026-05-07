@@ -1,0 +1,274 @@
+policy_version: 1
+policy_name: ZMeta Profile Precision Reference Conformance Policy
+policy_status: reference_conformance_default
+requires_mission_review: true
+zmeta_versions:
+  - "1.0"
+
+profiles:
+  H:
+    default_behavior: preserve_source_precision
+    description: Full-fidelity profile. No forced quantization unless a mission-reviewed override applies.
+  M:
+    default_behavior: moderate_conservative_quantization
+    description: Moderate export ceiling for constrained IP workflows.
+  L:
+    default_behavior: coarse_conservative_quantization
+    description: Low-bandwidth profile that prioritizes required state, system, command, lineage, timing, confidence, and packet budget.
+
+field_families:
+  immutable_identity:
+    paths:
+      - zmeta_version
+      - event.event_id
+      - event.event_type
+      - event.event_subtype
+      - event.ts
+      - source.platform_id
+      - source.node_role
+      - source.producer
+      - lineage.based_on
+      - lineage.transform
+      - payload.track_id
+      - payload.modality
+      - payload.inference_type
+      - payload.task_type
+      - payload.system_type
+    behavior: preserve_exactly
+  geospatial:
+    paths:
+      - payload.geo.lat
+      - payload.geo.lon
+      - payload.geo.alt_m
+      - payload.target_geo.lat
+      - payload.target_geo.lon
+    behavior: deterministic_conservative_quantization
+  motion_direction:
+    paths:
+      - payload.heading_deg
+      - payload.speed_mps
+      - payload.bearing.az_deg
+      - payload.bearing.el_deg
+    behavior: deterministic_conservative_quantization
+  time_ttl:
+    paths:
+      - payload.valid_for_ms
+      - payload.timing_quality.est_error_ms
+      - payload.quality.timing_quality.est_error_ms
+      - payload.metrics.est_error_ms
+    behavior: ttl_down_error_up
+  rf_measurement:
+    paths:
+      - payload.features.center_freq_hz
+      - payload.features.bandwidth_hz
+      - payload.features.power_dbm
+    behavior: preserve_units_quantize_with_tolerance
+  confidence_quality:
+    paths:
+      - confidence
+    behavior: preserve_or_round_down
+  display_strings:
+    paths:
+      - payload.class
+      - payload.source_summary
+    behavior: preserve_or_cataloged_omission
+
+immutable_paths:
+  - zmeta_version
+  - event.event_id
+  - event.event_type
+  - event.event_subtype
+  - event.ts
+  - source.platform_id
+  - source.node_role
+  - source.producer
+  - lineage.based_on
+  - lineage.transform
+  - payload.track_id
+  - payload.modality
+  - payload.inference_type
+  - payload.task_type
+  - payload.system_type
+
+unit_locked_paths:
+  - payload.geo.alt_m
+  - payload.target_geo.alt_m
+  - payload.heading_deg
+  - payload.speed_mps
+  - payload.bearing.az_deg
+  - payload.bearing.el_deg
+  - payload.valid_for_ms
+  - payload.timing_quality.est_error_ms
+  - payload.quality.timing_quality.est_error_ms
+  - payload.metrics.est_error_ms
+  - payload.features.center_freq_hz
+  - payload.features.bandwidth_hz
+  - payload.features.power_dbm
+
+rounding_modes:
+  preserve:
+    description: Preserve source value exactly.
+  floor:
+    description: Round toward lower numeric value; used for confidence and TTL.
+  ceil:
+    description: Round toward higher numeric value; used for uncertainty/error bounds.
+  nearest_grid:
+    description: Project to a deterministic grid with bounded deviation.
+  truncate_decimals:
+    description: Remove decimal detail without increasing precision.
+  reject_if_below_utility_floor:
+    description: Reject same-event projection when the projected value is too coarse to remain useful.
+
+precision_ceilings:
+  H:
+    default: preserve
+  M:
+    payload.geo.lat:
+      max_decimal_places: 5
+      utility_floor_decimal_places: 4
+      rounding_mode: truncate_decimals
+    payload.geo.lon:
+      max_decimal_places: 5
+      utility_floor_decimal_places: 4
+      rounding_mode: truncate_decimals
+    payload.geo.alt_m:
+      quantization_step: 1
+      rounding_mode: nearest_grid
+    payload.heading_deg:
+      quantization_step: 1
+      rounding_mode: nearest_grid
+    payload.bearing.az_deg:
+      quantization_step: 1
+      rounding_mode: nearest_grid
+    payload.bearing.el_deg:
+      quantization_step: 1
+      rounding_mode: nearest_grid
+    payload.speed_mps:
+      quantization_step: 0.1
+      rounding_mode: nearest_grid
+    confidence:
+      max_decimal_places: 2
+      rounding_mode: floor
+    payload.valid_for_ms:
+      quantization_step: 100
+      rounding_mode: floor
+    payload.timing_quality.est_error_ms:
+      quantization_step: 10
+      rounding_mode: ceil
+    payload.quality.timing_quality.est_error_ms:
+      quantization_step: 10
+      rounding_mode: ceil
+    payload.metrics.est_error_ms:
+      quantization_step: 10
+      rounding_mode: ceil
+    payload.features.center_freq_hz:
+      quantization_step: 100
+      rounding_mode: nearest_grid
+      max_delta: 50
+    payload.features.bandwidth_hz:
+      quantization_step: 100
+      rounding_mode: nearest_grid
+      max_delta: 50
+    payload.features.power_dbm:
+      quantization_step: 0.1
+      rounding_mode: nearest_grid
+      max_delta: 0.05
+  L:
+    payload.geo.lat:
+      max_decimal_places: 4
+      utility_floor_decimal_places: 3
+      rounding_mode: truncate_decimals
+    payload.geo.lon:
+      max_decimal_places: 4
+      utility_floor_decimal_places: 3
+      rounding_mode: truncate_decimals
+    payload.geo.alt_m:
+      quantization_step: 5
+      rounding_mode: nearest_grid
+    payload.heading_deg:
+      quantization_step: 5
+      rounding_mode: nearest_grid
+    payload.bearing.az_deg:
+      quantization_step: 5
+      rounding_mode: nearest_grid
+    payload.bearing.el_deg:
+      quantization_step: 5
+      rounding_mode: nearest_grid
+    payload.speed_mps:
+      quantization_step: 1
+      rounding_mode: nearest_grid
+    confidence:
+      max_decimal_places: 1
+      rounding_mode: floor
+    payload.valid_for_ms:
+      quantization_step: 1000
+      rounding_mode: floor
+    payload.timing_quality.est_error_ms:
+      quantization_step: 100
+      rounding_mode: ceil
+    payload.quality.timing_quality.est_error_ms:
+      quantization_step: 100
+      rounding_mode: ceil
+    payload.metrics.est_error_ms:
+      quantization_step: 100
+      rounding_mode: ceil
+    payload.target_geo.lat:
+      max_decimal_places: 5
+      utility_floor_decimal_places: 5
+      rounding_mode: truncate_decimals
+      command_geometry: true
+    payload.target_geo.lon:
+      max_decimal_places: 5
+      utility_floor_decimal_places: 5
+      rounding_mode: truncate_decimals
+      command_geometry: true
+
+utility_floors:
+  source_limited_precision_requires_fixture_ack: true
+  L:
+    state_geo_decimal_places: 3
+    command_target_geo_decimal_places: 5
+    confidence_required: true
+    valid_for_ms_required: true
+    lineage_required: true
+    timing_quality_or_time_status_required: true
+  M:
+    state_geo_decimal_places: 4
+    observation_rf_features_required_when_observation_exported: true
+  H:
+    preserve_source_precision_by_default: true
+
+packet_budget_guidance:
+  status: reference_guidance
+  required_paths_must_not_be_stripped:
+    - zmeta_version
+    - event.event_id
+    - event.event_type
+    - event.event_subtype
+    - event.ts
+    - source.platform_id
+    - source.node_role
+    - source.producer
+    - payload.track_id
+    - payload.valid_for_ms
+    - confidence
+    - lineage.based_on
+    - payload.timing_quality
+    - payload.task_id
+    - payload.task_type
+    - payload.requires_deconfliction
+    - payload.system_type
+  optimization_order:
+    - validate_source
+    - select_profile
+    - omit_cataloged_optional_fields
+    - apply_conservative_quantization
+    - validate_projection_and_precision_policy
+    - measure_packet_size
+    - reject_or_omit_if_budget_still_fails
+
+notes:
+  - Reference defaults require mission review before operational use.
+  - Precision policy is profile/export policy and does not change JSON Schema.
+  - Compact CBOR and protobuf remain encoding projections only.
+  - Source-limited precision must be declared in fixtures or mission policy; the validator must not invent precision.

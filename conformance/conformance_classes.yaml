@@ -211,13 +211,13 @@ class_records:
     version_scope: ["1.0"]
     description: Profile L event-type legality, timing exposure, lineage tolerance, and state/system/command export constraints.
     required_schema_surfaces: ["schema/zmeta-event-1.0.schema.json"]
-    required_policy_surfaces: ["policy/profiles.yaml"]
-    required_conformance_fixtures: ["examples/zmeta-profile-L-examples.jsonl", "conformance/must-pass.jsonl", "conformance/must-fail.jsonl"]
-    required_test_commands: ["python tools/validate_conformance.py --strict"]
+    required_policy_surfaces: ["policy/profiles.yaml", "policy/profile-precision.yaml"]
+    required_conformance_fixtures: ["examples/zmeta-profile-L-examples.jsonl", "conformance/must-pass.jsonl", "conformance/must-fail.jsonl", "conformance/profile-precision/must-pass.jsonl", "conformance/profile-precision/must-fail.jsonl"]
+    required_test_commands: ["python tools/validate_conformance.py --strict", "python tools/validate_precision_policy.py --policy policy/profile-precision.yaml --must-pass conformance/profile-precision/must-pass.jsonl --must-fail conformance/profile-precision/must-fail.jsonl"]
     dependencies: ["ZMETA-CORE", "ZMETA-V1-0-SCHEMA", "ZMETA-POLICY-BASELINE"]
     allowed_claimants: ["producer", "gateway", "reference_stack"]
     current_repo_support: implemented
-    references: ["spec/profile-compatibility.md", "policy/profiles.yaml"]
+    references: ["spec/profile-compatibility.md", "spec/profile-precision-policy.md", "policy/profiles.yaml", "policy/profile-precision.yaml"]
 
   - <<: *class_defaults
     class_id: ZMETA-PROFILE-M
@@ -226,13 +226,13 @@ class_records:
     version_scope: ["1.0"]
     description: Profile M event-type legality and selected observation/fusion/state/system/command support.
     required_schema_surfaces: ["schema/zmeta-event-1.0.schema.json"]
-    required_policy_surfaces: ["policy/profiles.yaml"]
-    required_conformance_fixtures: ["examples/zmeta-profile-M-examples.jsonl", "conformance/must-pass.jsonl", "conformance/must-fail.jsonl"]
-    required_test_commands: ["python tools/validate_conformance.py --strict"]
+    required_policy_surfaces: ["policy/profiles.yaml", "policy/profile-precision.yaml"]
+    required_conformance_fixtures: ["examples/zmeta-profile-M-examples.jsonl", "conformance/must-pass.jsonl", "conformance/must-fail.jsonl", "conformance/profile-precision/must-pass.jsonl", "conformance/profile-precision/must-fail.jsonl"]
+    required_test_commands: ["python tools/validate_conformance.py --strict", "python tools/validate_precision_policy.py --policy policy/profile-precision.yaml --must-pass conformance/profile-precision/must-pass.jsonl --must-fail conformance/profile-precision/must-fail.jsonl"]
     dependencies: ["ZMETA-CORE", "ZMETA-V1-0-SCHEMA", "ZMETA-POLICY-BASELINE"]
     allowed_claimants: ["producer", "gateway", "reference_stack"]
     current_repo_support: implemented
-    references: ["spec/profile-compatibility.md", "policy/profiles.yaml"]
+    references: ["spec/profile-compatibility.md", "spec/profile-precision-policy.md", "policy/profiles.yaml", "policy/profile-precision.yaml"]
 
   - <<: *class_defaults
     class_id: ZMETA-PROFILE-H
@@ -241,27 +241,28 @@ class_records:
     version_scope: ["1.0"]
     description: Full-fidelity profile allowing all valid event families and payload detail permitted by the schema and policy pack.
     required_schema_surfaces: ["schema/zmeta-event-1.0.schema.json"]
-    required_policy_surfaces: ["policy/profiles.yaml"]
-    required_conformance_fixtures: ["examples/zmeta-profile-H-examples.jsonl", "conformance/must-pass.jsonl", "conformance/must-fail.jsonl"]
-    required_test_commands: ["python tools/validate_conformance.py --strict"]
+    required_policy_surfaces: ["policy/profiles.yaml", "policy/profile-precision.yaml"]
+    required_conformance_fixtures: ["examples/zmeta-profile-H-examples.jsonl", "conformance/must-pass.jsonl", "conformance/must-fail.jsonl", "conformance/profile-precision/must-pass.jsonl", "conformance/profile-precision/must-fail.jsonl"]
+    required_test_commands: ["python tools/validate_conformance.py --strict", "python tools/validate_precision_policy.py --policy policy/profile-precision.yaml --must-pass conformance/profile-precision/must-pass.jsonl --must-fail conformance/profile-precision/must-fail.jsonl"]
     dependencies: ["ZMETA-CORE", "ZMETA-V1-0-SCHEMA", "ZMETA-POLICY-BASELINE"]
     allowed_claimants: ["producer", "gateway", "reference_stack"]
     current_repo_support: implemented
-    references: ["spec/profile-compatibility.md", "policy/profiles.yaml"]
+    references: ["spec/profile-compatibility.md", "spec/profile-precision-policy.md", "policy/profiles.yaml", "policy/profile-precision.yaml"]
 
   - <<: *class_defaults
     class_id: ZMETA-PROJECTION-PRESERVATION
     display_name: Profile Projection Preservation
     status: implemented
     version_scope: ["1.0"]
-    description: Pairwise H/M/L projection preservation for identity, source, lineage, units, semantic layer, confidence, TTL, precision, and allowed omissions.
+    description: Pairwise H/M/L projection preservation for identity, source, lineage, units, semantic layer, confidence, TTL, precision, utility floors, conservative rounding, and allowed omissions.
     required_gateway_surfaces: ["tools/validate_projection.py"]
-    required_conformance_fixtures: ["conformance/profile_projection_field_catalog.yaml", "conformance/profile-projection/must-pass.jsonl", "conformance/profile-projection/must-fail.jsonl"]
-    required_test_commands: ["python tools/validate_projection.py --catalog conformance/profile_projection_field_catalog.yaml --must-pass conformance/profile-projection/must-pass.jsonl --must-fail conformance/profile-projection/must-fail.jsonl --quiet", "python -m pytest -q gateway/tests/test_profile_projection_preservation.py gateway/tests/test_profile_projection_encoding.py"]
+    required_policy_surfaces: ["policy/profile-precision.yaml"]
+    required_conformance_fixtures: ["conformance/profile_projection_field_catalog.yaml", "conformance/profile-projection/must-pass.jsonl", "conformance/profile-projection/must-fail.jsonl", "conformance/profile-precision/must-pass.jsonl", "conformance/profile-precision/must-fail.jsonl"]
+    required_test_commands: ["python tools/validate_projection.py --catalog conformance/profile_projection_field_catalog.yaml --must-pass conformance/profile-projection/must-pass.jsonl --must-fail conformance/profile-projection/must-fail.jsonl --quiet", "python tools/validate_precision_policy.py --policy policy/profile-precision.yaml --must-pass conformance/profile-precision/must-pass.jsonl --must-fail conformance/profile-precision/must-fail.jsonl", "python -m pytest -q gateway/tests/test_profile_projection_preservation.py gateway/tests/test_profile_projection_encoding.py"]
     dependencies: ["ZMETA-PROFILE-L", "ZMETA-PROFILE-M", "ZMETA-PROFILE-H"]
     allowed_claimants: ["gateway", "reference_stack", "tooling"]
     current_repo_support: implemented
-    references: ["spec/profile-projection-field-catalog.md", "docs/s1_02c_projection_preservation_audit.md"]
+    references: ["spec/profile-projection-field-catalog.md", "spec/profile-precision-policy.md", "docs/s1_02c_projection_preservation_audit.md"]
 
   - <<: *class_defaults
     class_id: ZMETA-EXTENSION-REGISTRY

@@ -72,28 +72,29 @@ class_claims:
     exceptions: []
   - class_id: ZMETA-PROFILE-L
     claim_status: claimed
-    commands: ["python tools/validate_conformance.py --strict"]
-    result_summary: Profile L fixtures passed
+    commands: ["python tools/validate_conformance.py --strict", "python tools/validate_precision_policy.py --policy policy/profile-precision.yaml --must-pass conformance/profile-precision/must-pass.jsonl --must-fail conformance/profile-precision/must-fail.jsonl"]
+    result_summary: Profile L fixtures and reference precision-policy checks passed
     limitations: []
     exceptions: []
   - class_id: ZMETA-PROFILE-M
     claim_status: claimed
-    commands: ["python tools/validate_conformance.py --strict"]
-    result_summary: Profile M fixtures passed
+    commands: ["python tools/validate_conformance.py --strict", "python tools/validate_precision_policy.py --policy policy/profile-precision.yaml --must-pass conformance/profile-precision/must-pass.jsonl --must-fail conformance/profile-precision/must-fail.jsonl"]
+    result_summary: Profile M fixtures and reference precision-policy checks passed
     limitations: []
     exceptions: []
   - class_id: ZMETA-PROFILE-H
     claim_status: claimed
-    commands: ["python tools/validate_conformance.py --strict"]
-    result_summary: Profile H fixtures passed
+    commands: ["python tools/validate_conformance.py --strict", "python tools/validate_precision_policy.py --policy policy/profile-precision.yaml --must-pass conformance/profile-precision/must-pass.jsonl --must-fail conformance/profile-precision/must-fail.jsonl"]
+    result_summary: Profile H fixtures and reference precision-policy checks passed
     limitations: []
     exceptions: []
   - class_id: ZMETA-PROJECTION-PRESERVATION
     claim_status: claimed
     commands:
       - python tools/validate_projection.py --catalog conformance/profile_projection_field_catalog.yaml --must-pass conformance/profile-projection/must-pass.jsonl --must-fail conformance/profile-projection/must-fail.jsonl --quiet
+      - python tools/validate_precision_policy.py --policy policy/profile-precision.yaml --must-pass conformance/profile-precision/must-pass.jsonl --must-fail conformance/profile-precision/must-fail.jsonl
       - python -m pytest -q gateway/tests/test_profile_projection_preservation.py gateway/tests/test_profile_projection_encoding.py
-    result_summary: projection preservation CLI and focused tests passed
+    result_summary: projection preservation, precision policy, and focused tests passed
     limitations: []
     exceptions: []
   - class_id: ZMETA-EXTENSION-REGISTRY
@@ -132,6 +133,7 @@ test_commands_run:
   - python -m pytest -q gateway/tests/test_timing_freshness.py adapters/ingress/test_timestamp_normalization.py
   - python -m pytest -q gateway/tests/test_lineage_semantics.py
   - python tools/validate_projection.py --catalog conformance/profile_projection_field_catalog.yaml --must-pass conformance/profile-projection/must-pass.jsonl --must-fail conformance/profile-projection/must-fail.jsonl --quiet
+  - python tools/validate_precision_policy.py --policy policy/profile-precision.yaml --must-pass conformance/profile-precision/must-pass.jsonl --must-fail conformance/profile-precision/must-fail.jsonl
   - python -m pytest -q gateway/tests/test_profile_projection_preservation.py gateway/tests/test_profile_projection_encoding.py
   - python tools/validate_extension_registry.py --registry spec/extension-registry.yaml
   - python -m pytest -q gateway/tests/test_extension_registry.py
@@ -160,6 +162,9 @@ test_results:
   - command: python tools/validate_projection.py --catalog conformance/profile_projection_field_catalog.yaml --must-pass conformance/profile-projection/must-pass.jsonl --must-fail conformance/profile-projection/must-fail.jsonl --quiet
     status: passed
     summary: projection conformance ok
+  - command: python tools/validate_precision_policy.py --policy policy/profile-precision.yaml --must-pass conformance/profile-precision/must-pass.jsonl --must-fail conformance/profile-precision/must-fail.jsonl
+    status: passed
+    summary: profile precision policy ok
   - command: python -m pytest -q gateway/tests/test_profile_projection_preservation.py gateway/tests/test_profile_projection_encoding.py
     status: passed
     summary: projection focused tests passed
