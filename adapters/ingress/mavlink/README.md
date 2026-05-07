@@ -17,20 +17,50 @@ The `translate_platform_state()` function converts accumulated MAVLink telemetry
 into a `STATE_EVENT` with `TRACK_STATE` subtype. It accepts either a dict
 or an object with the following fields:
 
-| MAVLink source | State field | ZMeta mapping |
-|---------------|-------------|---------------|
-| GLOBAL_POSITION_INT.lat/lon | lat, lon | `payload.geo.lat`, `payload.geo.lon` |
-| GLOBAL_POSITION_INT.alt | alt_m | `payload.geo.alt_m` |
-| GLOBAL_POSITION_INT.hdg | heading_deg | `payload.heading_deg` |
-| GLOBAL_POSITION_INT.vx/vy | speed_mps | `payload.speed_mps` (computed) |
-| GPS_RAW_INT.fix_type | gps_fix_type | `payload.features.gps_fix_type`, `confidence` |
-| GPS_RAW_INT.satellites_visible | satellites_visible | `payload.features.satellites_visible` |
-| ATTITUDE.roll/pitch/yaw | roll_deg, pitch_deg, yaw_deg | `payload.features.*` |
-| SYS_STATUS.voltage_battery | battery_voltage | `payload.features.battery_voltage` |
+MAVLink platform telemetry can contribute to a ZMeta `STATE_EVENT` only after it
+is projected into state-safe fields. `STATE_EVENT` payloads must not contain
+`payload.features.*`, raw telemetry measurements, observation modality fields,
+observation time windows, or raw data references. Traceability belongs in
+`lineage.based_on` and `lineage.transform`.
+
+State-safe fields used by this adapter include:
+
+- `payload.track_id`
+- `payload.geo`
+- `payload.heading_deg`
+- `payload.speed_mps`
+- `payload.valid_for_ms`
+- `payload.timing_quality`
+- `payload.quality` for state quality/status metadata such as GPS fix quality
+- top-level `confidence`
+- `lineage`
+
+`payload.extensions` must not be used as a loophole for raw measurements. It is
+reserved for safe UI/rendering hints that do not reinterpret state.
+
+| MAVLink input concept | Incorrect mapping to avoid | Correct ZMeta treatment | Notes |
+|---|---|---|---|
+| Global position / GPS fix | `payload.features.position` or raw GPS fields | `STATE_EVENT` `payload.geo` after state projection; GPS quality goes to `payload.quality` or status metadata | Do not expose native GPS packet fields as state features. |
+| Heading | `payload.features.heading` | `STATE_EVENT` `payload.heading_deg` | Derived from `GLOBAL_POSITION_INT.hdg` when available. |
+| Ground speed | `payload.features.speed` | `STATE_EVENT` `payload.speed_mps` | Computed from velocity components as state, not raw telemetry. |
+| GPS fix type / satellite count | `payload.features.gps_fix_type`, `payload.features.satellites_visible` | `payload.quality.gps_fix_type`, `payload.quality.satellites_visible`, and conservative top-level `confidence` | Quality metadata describes state reliability; it is not an observation feature block. |
+| Attitude roll/pitch/yaw | `payload.features.*` | `payload.quality.roll_deg`, `payload.quality.pitch_deg`, `payload.quality.yaw_deg` when retained | These are platform-state quality/context fields, not raw observation features. |
+| Battery / power state | `STATE_EVENT` `payload.features.battery` | `SYSTEM_EVENT` `LINK_STATUS` in v1.0, or `PLATFORM_STATUS` when using the v1.1.0 branch | Power and platform health are system/status concepts. |
+| GPS quality / HDOP / fix status | Raw `STATE_EVENT` feature | `payload.quality`, `payload.timing_quality`, `SYSTEM_EVENT` status, or a future PNT integrity branch | Do not create informal PNT fields in state. |
+| Raw sensor measurements | `STATE_EVENT` raw feature, `payload.modality`, `payload.measurement`, `payload.data_ref` | `OBSERVATION_EVENT` only when it is a true supported observation modality; otherwise omit or use a future versioned extension | Do not collapse observation telemetry into state. |
+| Native MAVLink message ID | Reuse as `event.event_id` | Keep ZMeta `event.event_id` as UUIDv7; preserve native IDs only as allowed payload-scoped provenance or test metadata | Native IDs must not replace ZMeta event identity. |
 
 Helper functions `decode_global_position_int()`, `decode_attitude()`,
 `decode_gps_raw_int()`, and `decode_sys_status()` parse raw MAVLink message
 dicts (int-encoded) into the float-valued state dict expected by the translator.
+
+If a native MAVLink field cannot be represented without violating `STATE_EVENT`
+semantics, omit it, map it to allowed quality/status metadata, or emit a
+separate appropriate ZMeta event with lineage. Raw sensor-style telemetry should
+be modeled as `OBSERVATION_EVENT` only when it is truly a sensor observation and
+the modality contract applies. Platform health/status telemetry should be
+modeled as `SYSTEM_EVENT` where appropriate, especially `PLATFORM_STATUS` when
+the v1.1.0 branch is selected.
 
 ## Usage
 
@@ -54,7 +84,7 @@ event = translate_platform_state(state, platform_id="uav-01")
 - Input is a decoded MAVLink message dict (no MAVLink parsing library required).
 - Ingress is telemetry/status only; do not emit `COMMAND_EVENT` from MAVLink.
 - GPS fix type maps to confidence: 3D+ = 0.8, 2D = 0.5, lower = 0.2.
-- When `gps_fix_type < 3`, the feature `geo_stale: true` is set.
+- When `gps_fix_type < 3`, `payload.quality.geo_status` is set to `STALE`.
 
 ## Source
 

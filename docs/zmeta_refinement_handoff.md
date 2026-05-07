@@ -6,11 +6,11 @@ This note is the quick resume point for the current ZMeta refinement effort. The
 
 ## Current Position
 
-The semantic contract has been audited, rewritten, and crosswalked against the current implementation stack. The locked v1.0 baseline was verified, and no S1-01B targeted schema implementation task is currently needed. Profile projection preservation has been implemented and audited as sidecar conformance tooling without changing v1.0 schema or event vocabulary. The extension registry has been implemented and audited. The conformance class manifest and claim model have been implemented and audited without changing schemas or making new vocabulary valid. Encoding-negative validation has been implemented and audited for compact CBOR and protobuf invalid-after-decode paths. Profile precision and quantization policy has been implemented and audited as a reference conformance default. The D-011 `TAKEOFF` crosswalk cleanup is complete; `TAKEOFF` remains invalid current vocabulary and the leakage guard remains in place.
+The semantic contract has been audited, rewritten, and crosswalked against the current implementation stack. The locked v1.0 baseline was verified, and no S1-01B targeted schema implementation task is currently needed. Profile projection preservation has been implemented and audited as sidecar conformance tooling without changing v1.0 schema or event vocabulary. The extension registry has been implemented and audited. The conformance class manifest and claim model have been implemented and audited without changing schemas or making new vocabulary valid. Encoding-negative validation has been implemented and audited for compact CBOR and protobuf invalid-after-decode paths. Profile precision and quantization policy has been implemented and audited as a reference conformance default. The D-011 `TAKEOFF` crosswalk cleanup is complete. The D-001 MAVLink ingress README state payload drift cleanup is complete; MAVLink platform telemetry is documented as state-safe projection, quality/status metadata, lineage, or separate appropriate ZMeta events, not STATE_EVENT raw features.
 
 The next active implementation item is:
 
-**S1-08A - MAVLink Adapter README State Payload Drift Cleanup**
+**S1-09A - Contract Hash / Release Hash Follow-Up Plan Only**
 
 ## Key Docs
 
@@ -42,6 +42,7 @@ The next active implementation item is:
 | `conformance/profile-precision/` | Source/projected precision policy fixture suite. |
 | `docs/s1_06c_profile_precision_quantization_policy_audit.md` | S1-06C audit confirming profile precision policy implementation and closing D-010. |
 | `docs/s1_07a_takeoff_crosswalk_cleanup.md` | S1-07A cleanup note confirming the crosswalk typo was removed and `TAKEOFF` remains invalid current vocabulary. |
+| `docs/s1_08a_mavlink_state_payload_drift_cleanup.md` | S1-08A cleanup note confirming MAVLink STATE_EVENT documentation no longer maps raw telemetry into `payload.features.*`. |
 | `docs/zmeta_refinement_worklog.md` | Running worklog, completed work items, pending work items, and deferred issue register. |
 
 ## Completed Recently
@@ -68,6 +69,7 @@ The next active implementation item is:
 | S1-06B Profile Precision / Quantization Policy Floors Implementation | COMPLETE | `spec/profile-precision-policy.md`, `policy/profile-precision.yaml`, `conformance/profile-precision/`, `tools/validate_precision_policy.py` |
 | S1-06C Profile Precision / Quantization Policy Floors Audit | COMPLETE | `docs/s1_06c_profile_precision_quantization_policy_audit.md` |
 | S1-07A Crosswalk TAKEOFF Mention Cleanup | COMPLETE | `docs/s1_07a_takeoff_crosswalk_cleanup.md` |
+| S1-08A MAVLink Adapter README State Payload Drift Cleanup | COMPLETE | `docs/s1_08a_mavlink_state_payload_drift_cleanup.md` |
 
 ## Current Decisions
 
@@ -119,13 +121,18 @@ The next active implementation item is:
 - Precision policy is profile/export policy, not schema, release policy, trust
   policy, emergency mode, UI policy, or transport semantics. Reference defaults
   require mission review.
+- D-001 is closed. MAVLink ingress README guidance now prohibits STATE_EVENT
+  raw `payload.features.*` and points telemetry into state-safe fields,
+  `payload.quality`, SYSTEM_EVENT status, OBSERVATION_EVENT where appropriate,
+  and lineage. Implementation inspection found no MAVLink STATE_EVENT
+  raw-feature emission, so no D-012 follow-up was added.
 
 ## Next Work Queue
 
-1. **S1-08A - MAVLink Adapter README State Payload Drift Cleanup**
-   - Narrow documentation cleanup for D-001, where the MAVLink adapter README
-     describes state telemetry as raw `payload.features.*` despite STATE_EVENT
-     semantics using quality-style metadata.
+1. **S1-09A - Contract Hash / Release Hash Follow-Up Plan Only**
+   - Plan D-002 contract hash and release hash follow-up. Do not recompute
+     hashes or update release artifacts until a later implementation prompt
+     explicitly opens that scope.
 
 2. **Human decisions for later precision policy and claim hardening**
    - Exact candidate precision defaults by profile and field family.
@@ -166,6 +173,7 @@ The next active implementation item is:
      join strict release conformance.
 
 3. **Deferred issue cleanup**
+   - D-001 MAVLink Adapter README State Payload Drift is closed.
    - D-007 Encoding Negative Validation Gap is closed.
    - D-008 Conformance Class Manifest Missing is closed.
    - D-009 v1.0/v1.1 Observation Extension Boundary Needs Explicit Tests.
@@ -195,9 +203,12 @@ The next active implementation item is:
 
 ## Verification State
 
-Most recent validation after S1-07A:
+Most recent validation after S1-08A:
 
 ```powershell
+git grep -n "payload.features" adapters/ingress/mavlink adapters README.md spec schema policy gateway tools conformance
+git grep -n -i "mavlink" adapters/ingress/mavlink adapters README.md docs spec conformance gateway/tests
+git grep -n "raw_features\|measurement\|measurements\|modality\|data_ref\|data_refs" adapters/ingress/mavlink adapters README.md docs spec conformance gateway/tests
 python tools\validate_conformance.py --strict
 python tools\validate_conformance.py --strict --profile-projection
 python tools\validate_conformance.py --strict --profile-projection --extension-registry
@@ -210,7 +221,6 @@ python tools\validate_conformance_classes.py --manifest conformance\conformance_
 python tools\validate_conformance_classes.py --manifest conformance\conformance_classes.yaml --claims conformance\claims\example-reference-gateway.yaml conformance\claims\example-core-producer.yaml
 python tools\validate_encoding_negative.py --compact conformance\encoding-negative\compact-must-fail.jsonl --protobuf conformance\encoding-negative\protobuf-must-fail.jsonl --gateway conformance\encoding-negative\gateway-must-fail.jsonl --quiet
 python tools\validate_precision_policy.py --policy policy\profile-precision.yaml --must-pass conformance\profile-precision\must-pass.jsonl --must-fail conformance\profile-precision\must-fail.jsonl
-git grep -n -i "takeoff"
 python -m pytest
 git diff --check
 ```

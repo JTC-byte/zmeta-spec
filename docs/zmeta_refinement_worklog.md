@@ -4,14 +4,15 @@
 
 - Last updated: 2026-05-07
 - Quick handoff: `docs/zmeta_refinement_handoff.md`
-- Current next work item: S1-08A - MAVLink Adapter README State Payload Drift
-  Cleanup.
-- Current decision: S1-07A cleaned the stray `TAKEOFF` current-vocabulary
-  reference in the crosswalk. `TAKEOFF` remains invalid current vocabulary, and
-  the validator/test leakage guard remains in place. No schemas, semantic
-  contract text, extension registry artifacts, gateway runtime behavior,
-  codecs, adapters, release hashes, conformance classes, or event vocabulary
-  were changed. D-011 is closed.
+- Current next work item: S1-09A - Contract Hash / Release Hash Follow-Up Plan
+  Only.
+- Current decision: S1-08A corrected the MAVLink ingress README state payload
+  mapping drift. MAVLink platform telemetry is now documented as contributing
+  only to state-safe fields, quality/status metadata, lineage, or separate
+  appropriate ZMeta events. No implementation drift was found, no code changes
+  were required, and no schemas, semantic contract text, extension registry
+  artifacts, conformance classes, gateway runtime behavior, codecs, adapters,
+  release hashes, or event vocabulary were changed. D-001 is closed.
 
 ## S0-01 - Semantic Contract Lockdown Audit
 
@@ -676,17 +677,84 @@
 
 ## S1-08A - MAVLink Adapter README State Payload Drift Cleanup
 
-- Status: PENDING / NEXT
+- Status: COMPLETE
+- Date completed: 2026-05-07
+- Output: `docs/s1_08a_mavlink_state_payload_drift_cleanup.md`
 - Scope: Resolve D-001 with a narrow documentation cleanup for MAVLink adapter
   README state payload drift. Do not change schemas, gateway runtime behavior,
   validators, codecs, adapters, or event vocabulary unless a later prompt
   explicitly opens implementation scope.
+- Cleanup:
+  - Replaced the stale `payload.features.*` MAVLink STATE_EVENT mapping table
+    with guidance that distinguishes state-safe fields, `payload.quality`,
+    SYSTEM_EVENT status, OBSERVATION_EVENT observation modality contracts, and
+    lineage.
+  - Clarified that `payload.extensions` is not a loophole for raw telemetry or
+    measurements.
+  - Corrected the low-GPS-fix note to reference `payload.quality.geo_status`
+    instead of a raw feature.
+- Code behavior: `translate_platform_state()` already emits state-safe fields
+  and `payload.quality`; it does not emit raw `payload.features.*` in
+  STATE_EVENT. No code changes were required, and D-012 was not added.
+- Notes: No schemas, semantic contract text, extension registry artifacts,
+  validators, gateway runtime behavior, codecs, adapters, conformance class
+  definitions, examples, fixtures, release hashes, or event vocabulary were
+  changed.
+- Verification:
+  - `git grep -n "payload.features" adapters/ingress/mavlink adapters README.md spec schema policy gateway tools conformance` ->
+    MAVLink README references are now prohibition or "incorrect mapping to
+    avoid" examples; other hits are observation, extension, projection, or
+    precision policy surfaces.
+  - `git grep -n -i "mavlink" adapters/ingress/mavlink adapters README.md docs spec conformance gateway/tests` ->
+    MAVLink references are adapter docs/tests, egress command projection, or S1
+    governance notes.
+  - `git grep -n "raw_features\|measurement\|measurements\|modality\|data_ref\|data_refs" adapters/ingress/mavlink adapters README.md docs spec conformance gateway/tests` ->
+    MAVLink README references are raw-field prohibitions; schema/conformance/test
+    references preserve existing observation and state raw-field boundaries.
+  - `python tools\validate_conformance.py --strict` -> `conformance ok`
+  - `python tools\validate_conformance.py --strict --profile-projection` ->
+    `projection conformance ok total=33`, `conformance ok`
+  - `python tools\validate_conformance.py --strict --profile-projection --extension-registry` ->
+    `projection conformance ok total=33`, `extension registry ok entries=63`,
+    `conformance ok`
+  - `python tools\validate_conformance.py --strict --profile-projection --extension-registry --conformance-classes` ->
+    `projection conformance ok total=33`, `extension registry ok entries=63`,
+    `conformance classes ok classes=30 claims=2`, `conformance ok`
+  - `python tools\validate_conformance.py --strict --profile-projection --extension-registry --conformance-classes --encoding-negative` ->
+    `projection conformance ok total=33`, `extension registry ok entries=63`,
+    `conformance classes ok classes=30 claims=2`, `encoding negative ok total=49`,
+    `conformance ok`
+  - `python tools\validate_conformance.py --strict --profile-projection --extension-registry --conformance-classes --encoding-negative --precision-policy` ->
+    `projection conformance ok total=33`, `extension registry ok entries=63`,
+    `conformance classes ok classes=30 claims=2`, `encoding negative ok total=49`,
+    `profile precision policy ok total=32`, `conformance ok`
+  - `python tools\validate_projection.py --catalog conformance\profile_projection_field_catalog.yaml --must-pass conformance\profile-projection\must-pass.jsonl --must-fail conformance\profile-projection\must-fail.jsonl --quiet` ->
+    `projection conformance ok total=33`
+  - `python tools\validate_extension_registry.py --registry spec\extension-registry.yaml` ->
+    `extension registry ok entries=63`
+  - `python tools\validate_conformance_classes.py --manifest conformance\conformance_classes.yaml --claims conformance\claims\example-reference-gateway.yaml conformance\claims\example-core-producer.yaml` ->
+    `conformance classes ok classes=30 claims=2`
+  - `python tools\validate_encoding_negative.py --compact conformance\encoding-negative\compact-must-fail.jsonl --protobuf conformance\encoding-negative\protobuf-must-fail.jsonl --gateway conformance\encoding-negative\gateway-must-fail.jsonl --quiet` ->
+    `encoding negative ok total=49`
+  - `python tools\validate_precision_policy.py --policy policy\profile-precision.yaml --must-pass conformance\profile-precision\must-pass.jsonl --must-fail conformance\profile-precision\must-fail.jsonl --quiet` ->
+    `profile precision policy ok total=32`
+  - `python -m pytest` -> `306 passed`
+  - `git diff --check` -> passed with CRLF conversion warnings only.
+- Decision: S1-08A is complete. D-001 is closed. D-002, D-003, and D-004
+  remain open.
+
+## S1-09A - Contract Hash / Release Hash Follow-Up Plan Only
+
+- Status: PENDING / NEXT
+- Scope: Plan D-002 contract hash and release hash follow-up. Do not recompute
+  hashes or update release artifacts until a later implementation prompt
+  explicitly opens that scope.
 
 ## Deferred Issue Register
 
 ### D-001 - MAVLink Adapter README State Payload Drift
 
-- Status: OPEN
+- Status: CLOSED
 - Discovered during: S0-01 / S0-02 review
 - Issue: `adapters/ingress/mavlink/README.md` describes several platform-state
   telemetry values as mapping to `payload.features.*`, while STATE_EVENT
@@ -696,6 +764,14 @@
   telemetry features in STATE_EVENT payloads.
 - Proposed follow-up: Docs/adapter cleanup task. Do not change during S0-02
   because this work item is semantic-contract-only.
+- S1-08A cleanup: Corrected the MAVLink ingress README to prohibit raw
+  `payload.features.*`, raw measurements, observation modality fields,
+  observation time windows, and raw data references in STATE_EVENT payloads.
+  The README now maps MAVLink state inputs to state-safe fields,
+  `payload.quality`, SYSTEM_EVENT status, OBSERVATION_EVENT where a true
+  supported modality applies, and lineage. Implementation inspection found no
+  STATE_EVENT raw-feature emission, so no D-012 follow-up was needed. D-001 is
+  closed.
 
 ### D-002 - Contract Hash / Release Hash Follow-Up
 
