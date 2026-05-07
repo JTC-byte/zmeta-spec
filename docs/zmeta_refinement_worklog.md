@@ -4,12 +4,11 @@
 
 - Last updated: 2026-05-07
 - Quick handoff: `docs/zmeta_refinement_handoff.md`
-- Current next work item: S1-04A - Conformance Class Manifest Plan Only.
-- Current decision: S1-03C audited the extension registry implementation and
-  confirmed it protects version boundaries without changing schemas, semantic
-  contract text, examples, fixtures, adapters, encodings, or event vocabulary.
-  v1.1.0 concepts remain experimental, future concepts remain reserved/proposed,
-  D-006 is closed, and registry validation remains opt-in.
+- Current next work item: S1-04B - Conformance Class Manifest Implementation.
+- Current decision: S1-04A planned the conformance class manifest and claim
+  model. No schemas, validators, adapters, encodings, tests, policy files,
+  examples, extension registry entries, semantic contract text, release hashes,
+  or event vocabulary were changed. D-008 remains open until implementation.
 
 ## S0-01 - Semantic Contract Lockdown Audit
 
@@ -241,13 +240,64 @@
 
 ## S1-04A - Conformance Class Manifest Plan Only
 
-- Status: NEXT / PENDING
+- Status: COMPLETE
+- Date completed: 2026-05-07
+- Output: `docs/s1_04_conformance_class_manifest_plan.md`
 - Scope: Plan a machine-readable conformance class manifest and claim/test
   matrix for ZMETA-CORE, ZMETA-PROFILE-L/M/H, ZMETA-ADAPTER, ZMETA-GATEWAY,
   ZMETA-COT-PROJECTION, ZMETA-AI-PROVENANCE, ZMETA-COALITION-EXPORT,
   ZMETA-MESH-TRUST, and ZMETA-REPLAY.
-- Notes: Plan only. Do not implement conformance class artifacts until S1-03B is
-  complete or maintainers explicitly reprioritize the work.
+- Recommended artifact paths:
+  - `spec/conformance-classes.md`
+  - `conformance/conformance_classes.yaml`
+  - `conformance/claims/example-reference-gateway.yaml`
+  - `conformance/claims/example-core-producer.yaml`
+  - `tools/validate_conformance_classes.py`
+  - `gateway/tests/test_conformance_classes.py`
+- Decisions:
+  - Conformance classes organize implementation claims and evidence; they do not
+    create semantics.
+  - Current classes should default to `implemented` in S1-04B unless maintainers
+    explicitly promote them to externally claimable `active`.
+  - Future/reserved classes cannot be claimed by current implementations.
+  - Claims must record test commands, results, supported ZMeta versions,
+    registry/catalog versions, commit hash, and limitations.
+- Notes: Planning only. No manifest, claim examples, validators, tests, schemas,
+  adapters, encodings, policy files, examples, semantic contract text, extension
+  registry entries, release hashes, or event vocabulary were changed.
+- Verification:
+  - `python tools\validate_conformance.py --strict` -> `conformance ok`
+  - `python tools\validate_conformance.py --strict --profile-projection` ->
+    `projection conformance ok total=33`, `conformance ok`
+  - `python tools\validate_conformance.py --strict --profile-projection --extension-registry` ->
+    `projection conformance ok total=33`, `extension registry ok entries=63`,
+    `conformance ok`
+  - `python -m pytest` -> `254 passed`
+  - `git diff --check` -> passed with CRLF conversion warnings only.
+
+## S1-04B - Conformance Class Manifest Implementation
+
+- Status: PENDING IMPLEMENTATION
+- Scope: Implement `spec/conformance-classes.md`,
+  `conformance/conformance_classes.yaml`, example claim files, standalone class
+  validator, focused tests, optional conformance runner integration, and docs.
+- Notes: Keep default `tools/validate_conformance.py --strict` behavior stable.
+  Do not close D-008 until implementation exists and passes.
+
+## S1-04C - Conformance Class Manifest Post-Implementation Audit
+
+- Status: FUTURE / PENDING
+- Scope: Audit S1-04B for class record correctness, claim validation behavior,
+  docs alignment, schema/contract non-drift, and future/reserved class
+  non-claimability.
+
+## S1-05A - Encoding Negative Validation Plan Only
+
+- Status: FUTURE / PENDING
+- Scope: Plan broader compact/protobuf gateway and CLI invalid-after-decode
+  negative tests for D-007.
+- Notes: Plan only. Do not modify encoding implementations or fixtures until the
+  implementation task is approved.
 
 ## Deferred Issue Register
 
@@ -367,8 +417,13 @@
   class claim/test matrix.
 - Impact: Implementations can run tests, but they cannot yet make precise,
   repeatable conformance claims by class.
-- Proposed follow-up: Add a conformance class manifest and map each class to
-  required schema, policy, adapter, encoding, and test suites.
+- S1-04A coverage: Planned `spec/conformance-classes.md`,
+  `conformance/conformance_classes.yaml`, example claim files, standalone
+  validation tooling, focused tests, optional conformance runner integration,
+  class status model, claim model, dependencies, required test mappings, and
+  S1-04B implementation path.
+- Proposed follow-up: Implement the conformance class manifest and validator in
+  S1-04B. Keep D-008 open until implementation exists and passes.
 
 ### D-009 - v1.0/v1.1 Observation Extension Boundary Needs Explicit Tests
 

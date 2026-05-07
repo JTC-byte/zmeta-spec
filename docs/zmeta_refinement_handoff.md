@@ -6,11 +6,11 @@ This note is the quick resume point for the current ZMeta refinement effort. The
 
 ## Current Position
 
-The semantic contract has been audited, rewritten, and crosswalked against the current implementation stack. The locked v1.0 baseline was verified, and no S1-01B targeted schema implementation task is currently needed. Profile projection preservation has been implemented and audited as sidecar conformance tooling without changing v1.0 schema or event vocabulary. S1-03B implemented the extension registry, and S1-03C audited it without changing schemas or making new vocabulary valid.
+The semantic contract has been audited, rewritten, and crosswalked against the current implementation stack. The locked v1.0 baseline was verified, and no S1-01B targeted schema implementation task is currently needed. Profile projection preservation has been implemented and audited as sidecar conformance tooling without changing v1.0 schema or event vocabulary. The extension registry has been implemented and audited. S1-04A planned the conformance class manifest and claim model without changing schemas or making new vocabulary valid.
 
 The next active implementation item is:
 
-**S1-04A - Conformance Class Manifest Plan Only**
+**S1-04B - Conformance Class Manifest Implementation**
 
 ## Key Docs
 
@@ -28,6 +28,7 @@ The next active implementation item is:
 | `spec/extension-registry.md` | Human-readable extension registry governance, status definitions, collision rules, and adoption requirements. |
 | `spec/extension-registry.yaml` | Machine-readable extension registry. Existing v1.1.0 entries are experimental; future entries are reserved/proposed. |
 | `docs/s1_03c_extension_registry_audit.md` | S1-03C audit confirming extension registry implementation, validation behavior, and version-boundary protection. |
+| `docs/s1_04_conformance_class_manifest_plan.md` | S1-04A plan for conformance class artifacts, claim model, dependencies, validation, and implementation path. |
 | `docs/zmeta_refinement_worklog.md` | Running worklog, completed work items, pending work items, and deferred issue register. |
 
 ## Completed Recently
@@ -44,6 +45,7 @@ The next active implementation item is:
 | S1-03A Extension Registry Plan Only | COMPLETE | `docs/s1_03_extension_registry_plan.md` |
 | S1-03B Extension Registry Implementation | COMPLETE | `spec/extension-registry.md`, `spec/extension-registry.yaml`, `tools/validate_extension_registry.py` |
 | S1-03C Extension Registry Audit | COMPLETE | `docs/s1_03c_extension_registry_audit.md` |
+| S1-04A Conformance Class Manifest Plan Only | COMPLETE | `docs/s1_04_conformance_class_manifest_plan.md` |
 
 ## Current Decisions
 
@@ -66,14 +68,29 @@ The next active implementation item is:
 - D-011 remains open. S1-03C added a validator/test guard so `TAKEOFF` cannot
   appear in current schema vocabulary unnoticed, but the crosswalk typo still
   needs a narrow docs cleanup.
+- Conformance classes should organize implementation claims and required
+  evidence. They do not create semantics or make future classes claimable.
+- D-008 remains open until the conformance class manifest and validator are
+  implemented.
 
 ## Next Work Queue
 
-1. **S1-04A - Conformance Class Manifest Plan Only**
-   - Plan machine-readable conformance class claims and test selectors.
-   - Do not implement conformance class artifacts yet.
+1. **S1-04B - Conformance Class Manifest Implementation**
+   - Implement `spec/conformance-classes.md`,
+     `conformance/conformance_classes.yaml`, example claim files, standalone
+     validator, focused tests, and optional conformance runner integration.
+   - Keep default strict conformance stable. Do not close D-008 until
+     implementation exists and passes.
 
-2. **Human decisions before later registry promotion**
+2. **Human decisions before S1-04B / class activation**
+   - Whether current class statuses should be `implemented` or `active`.
+   - Whether v1.1.0 experimental support should be claimable as an experimental
+     class.
+   - Whether claim files should require captured test output artifacts or only
+     command/result summaries.
+   - Whether claim files should require contract hash immediately or allow a
+     nullable field until D-002 is resolved.
+   - Whether generic adapter classes should wait for a shared adapter harness.
    - Whether v1.1.0 concepts remain `experimental` or any should be promoted.
    - Whether registry validation should remain opt-in or become part of strict
      conformance after the format stabilizes.
@@ -90,7 +107,11 @@ The next active implementation item is:
    - D-010 Profile Precision / Quantization Policy Floors.
    - D-011 Crosswalk TAKEOFF Mention Cleanup.
 
-4. **Later versioned semantic branches**
+4. **S1-04C / S1-05A**
+   - S1-04C: audit the conformance class manifest implementation.
+   - S1-05A: plan broader compact/protobuf invalid-after-decode tests for D-007.
+
+5. **Later versioned semantic branches**
    - Markings/releasability.
    - Integrity, signing, anti-replay, mesh trust, and quarantine.
    - MODEL_STATUS / assurance and drift monitoring.
@@ -107,22 +128,22 @@ The next active implementation item is:
 - Keep profile projection checks pairwise and external to v1.0 event payloads.
 - Keep registry work plan-first and branch-scoped. A registry entry alone does
   not make vocabulary valid.
+- Keep conformance class work evidence-driven. A class record alone does not
+  prove an implementation claim.
 - Document any newly discovered issues in the deferred issue register in `docs/zmeta_refinement_worklog.md`.
 
 ## Verification State
 
-Most recent validation after S1-03C:
+Most recent validation after S1-04A:
 
 ```powershell
-python tools\validate_extension_registry.py --registry spec\extension-registry.yaml
 python tools\validate_conformance.py --strict
 python tools\validate_conformance.py --strict --profile-projection
 python tools\validate_conformance.py --strict --profile-projection --extension-registry
-python -m pytest -q gateway\tests\test_extension_registry.py
 python -m pytest
 git diff --check
 ```
 
 Result: validation passed through full pytest.
-Focused extension registry tests: `12 passed`. Full pytest result: `254 passed`.
+Full pytest result: `254 passed`.
 `git diff --check` passed with CRLF conversion warnings only.
