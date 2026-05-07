@@ -4,15 +4,17 @@
 
 - Last updated: 2026-05-07
 - Quick handoff: `docs/zmeta_refinement_handoff.md`
-- Current next work item: S1-09A - Contract Hash / Release Hash Follow-Up Plan
-  Only.
-- Current decision: S1-08A corrected the MAVLink ingress README state payload
-  mapping drift. MAVLink platform telemetry is now documented as contributing
-  only to state-safe fields, quality/status metadata, lineage, or separate
-  appropriate ZMeta events. No implementation drift was found, no code changes
-  were required, and no schemas, semantic contract text, extension registry
-  artifacts, conformance classes, gateway runtime behavior, codecs, adapters,
-  release hashes, or event vocabulary were changed. D-001 is closed.
+- Current next work item: S1-09B - Contract Hash / Release Hash Implementation.
+- Current decision: S1-09A planned the D-002 contract hash and release hash
+  follow-up without recomputing hashes or implementing release tooling. The
+  plan separates narrow semantic, schema, policy, registry, conformance,
+  projection, encoding, precision, release-manifest, and release-bundle hashes;
+  recommends `release/zmeta-release-manifest.yaml`; and keeps
+  `tools/compute_contract_hash.py` focused on the gateway-compatible
+  schema/policy/semantic contract hash. No schemas, semantic contract text,
+  extension registry artifacts, conformance classes, policy files, validators,
+  gateway runtime behavior, codecs, adapters, release hashes, manifests, or
+  event vocabulary were changed. D-002 remains open pending implementation.
 
 ## S0-01 - Semantic Contract Lockdown Audit
 
@@ -745,10 +747,89 @@
 
 ## S1-09A - Contract Hash / Release Hash Follow-Up Plan Only
 
-- Status: PENDING / NEXT
-- Scope: Plan D-002 contract hash and release hash follow-up. Do not recompute
-  hashes or update release artifacts until a later implementation prompt
-  explicitly opens that scope.
+- Status: COMPLETE
+- Date completed: 2026-05-07
+- Output: `docs/s1_09_contract_release_hash_plan.md`
+- Scope: Planned D-002 contract hash and release hash follow-up. No hashes were
+  recomputed, and no release manifest or release tooling was implemented.
+- Plan summary:
+  - Defines separate hash categories for semantic contract, schema bundle,
+    policy bundle, extension registry, conformance class manifest, profile
+    projection catalog, encoding-negative suite, profile precision policy,
+    encoding projection specs, release manifest, and release bundle.
+  - Classifies normative semantic, schema, policy, governance, conformance,
+    encoding projection, and advisory documentation artifacts.
+  - Recommends `release/zmeta-release-manifest.yaml` as the machine-readable
+    release manifest path because the repo already uses `release/` for release
+    notes, validation reports, bundle builders, checksums, signatures, and
+    release assets.
+  - Recommends keeping `tools/compute_contract_hash.py` narrow for current
+    gateway-compatible schema/policy/semantic contract gates while adding
+    separate release-manifest build and validation tooling in S1-09B.
+  - Plans deployment gate behavior that can keep existing
+    `require_schema_hash`, `require_policy_hash`, and `require_contract_hash`
+    while allowing future release-manifest validation to verify broader
+    registry, conformance, projection, encoding, and precision baselines.
+  - Plans conformance claim integration so `pending_D-002` can be replaced only
+    after actual release hashes exist and validate.
+- Notes: Plan-only task. No schemas, semantic contract text, policy files,
+  extension registry artifacts, conformance class manifests, validators,
+  gateway runtime behavior, codecs, adapters, release hashes, release manifests,
+  conformance fixtures, or event vocabulary were changed.
+- Verification:
+  - `python tools\validate_conformance.py --strict` -> `conformance ok`
+  - `python tools\validate_conformance.py --strict --profile-projection` ->
+    `projection conformance ok total=33`, `conformance ok`
+  - `python tools\validate_conformance.py --strict --profile-projection --extension-registry` ->
+    `projection conformance ok total=33`, `extension registry ok entries=63`,
+    `conformance ok`
+  - `python tools\validate_conformance.py --strict --profile-projection --extension-registry --conformance-classes` ->
+    `projection conformance ok total=33`, `extension registry ok entries=63`,
+    `conformance classes ok classes=30 claims=2`, `conformance ok`
+  - `python tools\validate_conformance.py --strict --profile-projection --extension-registry --conformance-classes --encoding-negative` ->
+    `projection conformance ok total=33`, `extension registry ok entries=63`,
+    `conformance classes ok classes=30 claims=2`, `encoding negative ok total=49`,
+    `conformance ok`
+  - `python tools\validate_conformance.py --strict --profile-projection --extension-registry --conformance-classes --encoding-negative --precision-policy` ->
+    `projection conformance ok total=33`, `extension registry ok entries=63`,
+    `conformance classes ok classes=30 claims=2`, `encoding negative ok total=49`,
+    `profile precision policy ok total=32`, `conformance ok`
+  - `python tools\validate_projection.py --catalog conformance\profile_projection_field_catalog.yaml --must-pass conformance\profile-projection\must-pass.jsonl --must-fail conformance\profile-projection\must-fail.jsonl --quiet` ->
+    `projection conformance ok total=33`
+  - `python tools\validate_extension_registry.py --registry spec\extension-registry.yaml` ->
+    `extension registry ok entries=63`
+  - `python tools\validate_conformance_classes.py --manifest conformance\conformance_classes.yaml --claims conformance\claims\example-reference-gateway.yaml conformance\claims\example-core-producer.yaml` ->
+    `conformance classes ok classes=30 claims=2`
+  - `python tools\validate_encoding_negative.py --compact conformance\encoding-negative\compact-must-fail.jsonl --protobuf conformance\encoding-negative\protobuf-must-fail.jsonl --gateway conformance\encoding-negative\gateway-must-fail.jsonl --quiet` ->
+    `encoding negative ok total=49`
+  - `python tools\validate_precision_policy.py --policy policy\profile-precision.yaml --must-pass conformance\profile-precision\must-pass.jsonl --must-fail conformance\profile-precision\must-fail.jsonl --quiet` ->
+    `profile precision policy ok total=32`
+  - `python -m pytest` -> `306 passed`
+  - `git diff --check` -> passed.
+- Decision: S1-09A is complete. D-002 remains open pending S1-09B
+  implementation. D-003 and D-004 remain open.
+
+## S1-09B - Contract Hash / Release Hash Implementation
+
+- Status: PENDING IMPLEMENTATION
+- Scope: Implement the release hash policy, release manifest, deterministic
+  manifest build/validation tooling, focused tests, documentation, and claim
+  hash updates as defined by S1-09A. D-002 should remain implemented pending
+  S1-09C audit after implementation.
+
+## S1-09C - Contract Hash / Release Hash Post-Implementation Audit
+
+- Status: FUTURE / PENDING
+- Scope: Audit S1-09B release hash implementation for deterministic hashing,
+  manifest correctness, deployment gate alignment, conformance claim
+  integration, documentation, and absence of semantic/schema/registry drift.
+
+## S1-10A - Companion Artifact Roadmap Plan Only
+
+- Status: FUTURE / PENDING
+- Scope: Plan D-004 companion artifact roadmap for adapter manifests, replay
+  bundles, vendor scorecards, data-rights profiles, DevSecOps evidence,
+  lessons-learned graphs, and TTP/training packages.
 
 ## Deferred Issue Register
 
@@ -783,6 +864,13 @@
   will need an intentional hash update in a later release task.
 - Proposed follow-up: Recompute contract hashes and update release/checklist
   artifacts only when the stack-hardening branch is ready.
+- S1-09A coverage: Planned a release-hash strategy that keeps the narrow
+  semantic contract hash separate from schema, policy, registry, conformance,
+  projection, encoding, precision, release-manifest, and release-bundle hashes.
+  The plan recommends `release/zmeta-release-manifest.yaml`, deterministic
+  build/validation tooling, deployment gate behavior, and conformance claim hash
+  integration. No hashes were recomputed and D-002 remains open pending
+  implementation.
 
 ### D-003 - Future Semantics Require Versioned Implementation Branches
 

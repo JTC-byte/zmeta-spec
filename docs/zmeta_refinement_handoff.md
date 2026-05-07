@@ -6,11 +6,11 @@ This note is the quick resume point for the current ZMeta refinement effort. The
 
 ## Current Position
 
-The semantic contract has been audited, rewritten, and crosswalked against the current implementation stack. The locked v1.0 baseline was verified, and no S1-01B targeted schema implementation task is currently needed. Profile projection preservation has been implemented and audited as sidecar conformance tooling without changing v1.0 schema or event vocabulary. The extension registry has been implemented and audited. The conformance class manifest and claim model have been implemented and audited without changing schemas or making new vocabulary valid. Encoding-negative validation has been implemented and audited for compact CBOR and protobuf invalid-after-decode paths. Profile precision and quantization policy has been implemented and audited as a reference conformance default. The D-011 `TAKEOFF` crosswalk cleanup is complete. The D-001 MAVLink ingress README state payload drift cleanup is complete; MAVLink platform telemetry is documented as state-safe projection, quality/status metadata, lineage, or separate appropriate ZMeta events, not STATE_EVENT raw features.
+The semantic contract has been audited, rewritten, and crosswalked against the current implementation stack. The locked v1.0 baseline was verified, and no S1-01B targeted schema implementation task is currently needed. Profile projection preservation has been implemented and audited as sidecar conformance tooling without changing v1.0 schema or event vocabulary. The extension registry has been implemented and audited. The conformance class manifest and claim model have been implemented and audited without changing schemas or making new vocabulary valid. Encoding-negative validation has been implemented and audited for compact CBOR and protobuf invalid-after-decode paths. Profile precision and quantization policy has been implemented and audited as a reference conformance default. The D-011 `TAKEOFF` crosswalk cleanup is complete. The D-001 MAVLink ingress README state payload drift cleanup is complete. S1-09A planned the contract hash and release hash follow-up for D-002 without recomputing hashes or creating a release manifest.
 
 The next active implementation item is:
 
-**S1-09A - Contract Hash / Release Hash Follow-Up Plan Only**
+**S1-09B - Contract Hash / Release Hash Implementation**
 
 ## Key Docs
 
@@ -43,6 +43,7 @@ The next active implementation item is:
 | `docs/s1_06c_profile_precision_quantization_policy_audit.md` | S1-06C audit confirming profile precision policy implementation and closing D-010. |
 | `docs/s1_07a_takeoff_crosswalk_cleanup.md` | S1-07A cleanup note confirming the crosswalk typo was removed and `TAKEOFF` remains invalid current vocabulary. |
 | `docs/s1_08a_mavlink_state_payload_drift_cleanup.md` | S1-08A cleanup note confirming MAVLink STATE_EVENT documentation no longer maps raw telemetry into `payload.features.*`. |
+| `docs/s1_09_contract_release_hash_plan.md` | S1-09A plan for contract hash taxonomy, release manifest structure, deployment gates, claim integration, and S1-09B implementation. |
 | `docs/zmeta_refinement_worklog.md` | Running worklog, completed work items, pending work items, and deferred issue register. |
 
 ## Completed Recently
@@ -70,6 +71,7 @@ The next active implementation item is:
 | S1-06C Profile Precision / Quantization Policy Floors Audit | COMPLETE | `docs/s1_06c_profile_precision_quantization_policy_audit.md` |
 | S1-07A Crosswalk TAKEOFF Mention Cleanup | COMPLETE | `docs/s1_07a_takeoff_crosswalk_cleanup.md` |
 | S1-08A MAVLink Adapter README State Payload Drift Cleanup | COMPLETE | `docs/s1_08a_mavlink_state_payload_drift_cleanup.md` |
+| S1-09A Contract Hash / Release Hash Follow-Up Plan Only | COMPLETE | `docs/s1_09_contract_release_hash_plan.md` |
 
 ## Current Decisions
 
@@ -126,15 +128,22 @@ The next active implementation item is:
   `payload.quality`, SYSTEM_EVENT status, OBSERVATION_EVENT where appropriate,
   and lineage. Implementation inspection found no MAVLink STATE_EVENT
   raw-feature emission, so no D-012 follow-up was added.
+- S1-09A is complete. D-002 remains open because no hashes were recomputed and
+  no release manifest was implemented. The plan separates narrow semantic,
+  schema, policy, registry, conformance, projection, encoding, precision,
+  release-manifest, and release-bundle hashes and recommends
+  `release/zmeta-release-manifest.yaml` for S1-09B.
 
 ## Next Work Queue
 
-1. **S1-09A - Contract Hash / Release Hash Follow-Up Plan Only**
-   - Plan D-002 contract hash and release hash follow-up. Do not recompute
-     hashes or update release artifacts until a later implementation prompt
-     explicitly opens that scope.
+1. **S1-09B - Contract Hash / Release Hash Implementation**
+   - Implement `spec/release-hash-policy.md`,
+     `release/zmeta-release-manifest.yaml`, deterministic manifest build and
+     validation tooling, focused tests, docs, and claim hash updates as scoped
+     by S1-09A. D-002 should remain implemented pending S1-09C audit after
+     implementation.
 
-2. **Human decisions for later precision policy and claim hardening**
+2. **Human decisions for release, precision, and claim hardening**
    - Exact candidate precision defaults by profile and field family.
    - Whether precision values are global defaults or mission/profile
      configurable.
@@ -152,8 +161,17 @@ The next active implementation item is:
    - Whether current class statuses should be `implemented` or `active`.
    - Whether claim files should require captured test output artifacts or only
      command/result summaries.
-   - Whether claim files should require contract hash immediately or allow a
-     nullable field until D-002 is resolved.
+   - Whether claim files should record the existing gateway combined
+     `contract_hash`, the narrow `semantic_contract_hash`, or both.
+   - Whether D-002 can close with a reference release manifest or only after a
+     tagged release publishes the manifest, checksums, signatures, and
+     validation report.
+   - Whether release hashes should use raw checkout bytes or normalized LF text
+     for cross-platform reproducibility.
+   - Whether protobuf experimental artifacts belong in a core release hash, an
+     optional encoding hash, or both.
+   - Whether validator/tool source files should be hashed in the release bundle
+     or covered only by release zip checksums.
    - Whether generic adapter classes should wait for a shared adapter harness.
    - Whether `ZMETA-COT-PROJECTION` should remain partial until that harness
      exists.
@@ -174,6 +192,7 @@ The next active implementation item is:
 
 3. **Deferred issue cleanup**
    - D-001 MAVLink Adapter README State Payload Drift is closed.
+   - D-002 Contract Hash / Release Hash Follow-Up is open.
    - D-007 Encoding Negative Validation Gap is closed.
    - D-008 Conformance Class Manifest Missing is closed.
    - D-009 v1.0/v1.1 Observation Extension Boundary Needs Explicit Tests.
@@ -203,12 +222,9 @@ The next active implementation item is:
 
 ## Verification State
 
-Most recent validation after S1-08A:
+Most recent validation after S1-09A:
 
 ```powershell
-git grep -n "payload.features" adapters/ingress/mavlink adapters README.md spec schema policy gateway tools conformance
-git grep -n -i "mavlink" adapters/ingress/mavlink adapters README.md docs spec conformance gateway/tests
-git grep -n "raw_features\|measurement\|measurements\|modality\|data_ref\|data_refs" adapters/ingress/mavlink adapters README.md docs spec conformance gateway/tests
 python tools\validate_conformance.py --strict
 python tools\validate_conformance.py --strict --profile-projection
 python tools\validate_conformance.py --strict --profile-projection --extension-registry
@@ -217,10 +233,9 @@ python tools\validate_conformance.py --strict --profile-projection --extension-r
 python tools\validate_conformance.py --strict --profile-projection --extension-registry --conformance-classes --encoding-negative --precision-policy
 python tools\validate_projection.py --catalog conformance\profile_projection_field_catalog.yaml --must-pass conformance\profile-projection\must-pass.jsonl --must-fail conformance\profile-projection\must-fail.jsonl --quiet
 python tools\validate_extension_registry.py --registry spec\extension-registry.yaml
-python tools\validate_conformance_classes.py --manifest conformance\conformance_classes.yaml
 python tools\validate_conformance_classes.py --manifest conformance\conformance_classes.yaml --claims conformance\claims\example-reference-gateway.yaml conformance\claims\example-core-producer.yaml
 python tools\validate_encoding_negative.py --compact conformance\encoding-negative\compact-must-fail.jsonl --protobuf conformance\encoding-negative\protobuf-must-fail.jsonl --gateway conformance\encoding-negative\gateway-must-fail.jsonl --quiet
-python tools\validate_precision_policy.py --policy policy\profile-precision.yaml --must-pass conformance\profile-precision\must-pass.jsonl --must-fail conformance\profile-precision\must-fail.jsonl
+python tools\validate_precision_policy.py --policy policy\profile-precision.yaml --must-pass conformance\profile-precision\must-pass.jsonl --must-fail conformance\profile-precision\must-fail.jsonl --quiet
 python -m pytest
 git diff --check
 ```
