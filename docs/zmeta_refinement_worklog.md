@@ -4,11 +4,12 @@
 
 - Last updated: 2026-05-07
 - Quick handoff: `docs/zmeta_refinement_handoff.md`
-- Current next work item: S1-05A - Encoding Negative Validation Plan Only.
-- Current decision: S1-04C audited the conformance class manifest
-  implementation and closed D-008. No schemas, adapters, encodings, policy
-  files, semantic contract text, extension registry entries, release hashes, or
-  event vocabulary were changed. D-007 remains open / partially covered.
+- Current next work item: S1-05B - Encoding Negative Validation Implementation.
+- Current decision: S1-05A planned broader compact/protobuf gateway and CLI
+  invalid-after-decode coverage for D-007. No schemas, validators, codecs,
+  gateway runtime, adapters, extension registry artifacts, conformance class
+  manifests, semantic contract text, release hashes, or event vocabulary were
+  changed. D-007 remains open / partially covered pending implementation.
 
 ## S0-01 - Semantic Contract Lockdown Audit
 
@@ -358,11 +359,59 @@
 
 ## S1-05A - Encoding Negative Validation Plan Only
 
-- Status: FUTURE / PENDING
+- Status: COMPLETE
+- Date completed: 2026-05-07
+- Output: `docs/s1_05_encoding_negative_validation_plan.md`
 - Scope: Plan broader compact/protobuf gateway and CLI invalid-after-decode
   negative tests for D-007.
-- Notes: Plan only. Do not modify encoding implementations or fixtures until the
-  implementation task is approved.
+- Plan summary:
+  - Separates decode-level, decoded schema-invalid, decoded policy-invalid,
+    decoded projection-invalid, and gateway/CLI path rejection categories.
+  - Recommends `conformance/encoding-negative/` JSONL fixtures with short
+    malformed bytes as hex/base64 and generated-at-test-time encoded events for
+    semantic failures.
+  - Recommends standalone `tools/validate_encoding_negative.py`, optional
+    `tools/validate_conformance.py --encoding-negative`, and focused
+    compact/protobuf/gateway pytest coverage.
+  - Preserves compact/protobuf as encoding projections only; decoded canonical
+    JSON remains authoritative.
+- Verification:
+  - `python tools\validate_conformance.py --strict` -> `conformance ok`
+  - `python tools\validate_conformance.py --strict --profile-projection`
+    -> `projection conformance ok total=33`, `conformance ok`
+  - `python tools\validate_conformance.py --strict --profile-projection --extension-registry`
+    -> `projection conformance ok total=33`, `extension registry ok entries=63`,
+    `conformance ok`
+  - `python tools\validate_conformance.py --strict --profile-projection --extension-registry --conformance-classes`
+    -> `projection conformance ok total=33`, `extension registry ok entries=63`,
+    `conformance classes ok classes=30 claims=2`, `conformance ok`
+  - `python -m pytest` -> `273 passed`
+  - `git diff --check` -> passed with CRLF conversion warnings only.
+- Decision: Plan only. D-007 remains open until S1-05B implements the
+  encoding-negative suite and S1-05C audits it.
+
+## S1-05B - Encoding Negative Validation Implementation
+
+- Status: PENDING IMPLEMENTATION
+- Scope: Implement compact/protobuf invalid-after-decode fixture suites,
+  standalone validator CLI, optional conformance runner flag, and focused
+  gateway/CLI/codec negative tests.
+- Notes: Do not change schemas, semantic contract text, extension registry
+  entries, conformance class manifest records, or event vocabulary except for
+  explicitly approved documentation references.
+
+## S1-05C - Encoding Negative Validation Post-Implementation Audit
+
+- Status: FUTURE / PENDING
+- Scope: Audit S1-05B for decoded validation authority, gateway/CLI parity,
+  fixture quality, conformance integration, and absence of schema/contract/code
+  drift.
+
+## S1-06A - Profile Precision / Quantization Policy Floors Plan Only
+
+- Status: FUTURE / PENDING
+- Scope: Plan mission/profile-specific quantization floors and packet-budget
+  policy for Profile M/L after encoding-negative implementation and audit.
 
 ## Deferred Issue Register
 
@@ -455,7 +504,7 @@
 
 ### D-007 - Encoding Negative Validation Gap
 
-- Status: OPEN - PARTIALLY COVERED BY S1-02B/S1-02C
+- Status: OPEN - PARTIALLY COVERED BY S1-02B/S1-02C/S1-05A
 - Discovered during: S0-03
 - Issue: Compact and protobuf roundtrip coverage exists, and the gateway
   decodes binary encodings before validation, but there are not explicit
@@ -467,9 +516,14 @@
   projection semantics.
 - S1-02C audit: Confirmed compact/protobuf remain encoding projections only and
   decoded JSON is the validation authority.
+- S1-05A coverage: Planned a dedicated encoding-negative fixture strategy,
+  validator/tooling approach, compact/protobuf negative categories,
+  gateway/CLI path coverage, policy/context model, and conformance-class impact
+  recommendations.
 - Remaining follow-up: Add broader gateway/CLI negative tests that encode
   schema-invalid or policy-invalid events, decode them, and prove schema/policy
-  validation rejects them outside the projection-pair fixture path.
+  validation rejects them outside the projection-pair fixture path. Implement
+  through S1-05B and audit through S1-05C before closing D-007.
 
 ### D-008 - Conformance Class Manifest Missing
 

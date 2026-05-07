@@ -10,7 +10,7 @@ The semantic contract has been audited, rewritten, and crosswalked against the c
 
 The next active implementation item is:
 
-**S1-05A - Encoding Negative Validation Plan Only**
+**S1-05B - Encoding Negative Validation Implementation**
 
 ## Key Docs
 
@@ -33,6 +33,7 @@ The next active implementation item is:
 | `conformance/conformance_classes.yaml` | Machine-readable conformance class manifest. |
 | `conformance/claims/` | Example implementation claim files for reference gateway and core producer. |
 | `docs/s1_04c_conformance_class_manifest_audit.md` | S1-04C audit confirming conformance class implementation, claim validation, and no schema/contract/registry drift. |
+| `docs/s1_05_encoding_negative_validation_plan.md` | S1-05A plan for compact/protobuf invalid-after-decode fixtures, validator tooling, gateway/CLI negative coverage, and D-007 closure path. |
 | `docs/zmeta_refinement_worklog.md` | Running worklog, completed work items, pending work items, and deferred issue register. |
 
 ## Completed Recently
@@ -52,6 +53,7 @@ The next active implementation item is:
 | S1-04A Conformance Class Manifest Plan Only | COMPLETE | `docs/s1_04_conformance_class_manifest_plan.md` |
 | S1-04B Conformance Class Manifest Implementation | COMPLETE | `spec/conformance-classes.md`, `conformance/conformance_classes.yaml`, `tools/validate_conformance_classes.py` |
 | S1-04C Conformance Class Manifest Audit | COMPLETE | `docs/s1_04c_conformance_class_manifest_audit.md` |
+| S1-05A Encoding Negative Validation Plan Only | COMPLETE | `docs/s1_05_encoding_negative_validation_plan.md` |
 
 ## Current Decisions
 
@@ -83,16 +85,29 @@ The next active implementation item is:
   shared adapter conformance harness.
 - Example claim files use `contract_hash: pending_D-002`; D-002 remains open.
 - S1-04C verified the conformance class implementation. D-008 is closed.
+- S1-05A planned encoding-negative validation only. Compact/protobuf remain
+  wire projections, and S1-05B should prove invalid decoded compact/protobuf
+  events cannot bypass schema, policy, projection, gateway, CLI, registry, or
+  conformance expectations.
 
 ## Next Work Queue
 
-1. **S1-05A - Encoding Negative Validation Plan Only**
-   - Plan broader compact/protobuf gateway and CLI invalid-after-decode tests
-     for D-007.
-   - Keep this plan-only unless the next prompt explicitly approves
-     implementation.
+1. **S1-05B - Encoding Negative Validation Implementation**
+   - Implement `conformance/encoding-negative/` fixtures,
+     `tools/validate_encoding_negative.py`, optional
+     `tools/validate_conformance.py --encoding-negative`, and focused
+     compact/protobuf/gateway/CLI negative tests.
+   - Keep D-007 open until S1-05B is implemented and S1-05C audits the result.
 
-2. **Human decisions before class activation / later claim hardening**
+2. **S1-05C - Encoding Negative Validation Audit**
+   - Audit decoded validation authority, fixture quality, gateway/CLI parity,
+     optional conformance integration, and absence of schema/contract/code drift.
+
+3. **S1-06A - Profile Precision / Quantization Policy Floors Plan Only**
+   - Plan mission/profile-specific precision floors and packet-budget policy for
+     Profile M/L.
+
+4. **Human decisions before class activation / later claim hardening**
    - Whether current class statuses should be `implemented` or `active`.
    - Whether claim files should require captured test output artifacts or only
      command/result summaries.
@@ -109,8 +124,14 @@ The next active implementation item is:
      separate manifest later.
    - Whether to clean the crosswalk `TAKEOFF` typo in the next narrow docs
      cleanup task or leave it deferred.
+   - Whether encoding-negative fixtures should store malformed bytes as hex,
+     base64, or generated-at-test-time inputs.
+   - Whether to add a future `ZMETA-ENCODING-NEGATIVE-VALIDATION` class or fold
+     the suite into existing compact/protobuf classes.
+   - Whether `--encoding-negative` should remain opt-in indefinitely or later
+     join strict release conformance.
 
-3. **Deferred issue cleanup**
+5. **Deferred issue cleanup**
    - D-007 Encoding Negative Validation Gap remains partially covered, not closed.
    - D-008 Conformance Class Manifest Missing is closed.
    - D-009 v1.0/v1.1 Observation Extension Boundary Needs Explicit Tests.
@@ -155,5 +176,20 @@ git diff --check
 
 Result: validation passed through full pytest.
 Focused conformance class tests passed: `19 passed`.
+Full pytest result: `273 passed`.
+`git diff --check` passed with CRLF conversion warnings only.
+
+Most recent S1-05A plan-only validation:
+
+```powershell
+python tools\validate_conformance.py --strict
+python tools\validate_conformance.py --strict --profile-projection
+python tools\validate_conformance.py --strict --profile-projection --extension-registry
+python tools\validate_conformance.py --strict --profile-projection --extension-registry --conformance-classes
+python -m pytest
+git diff --check
+```
+
+Result: validation passed. S1-05A changed docs/worklog/handoff only.
 Full pytest result: `273 passed`.
 `git diff --check` passed with CRLF conversion warnings only.
