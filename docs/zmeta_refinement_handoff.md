@@ -6,11 +6,11 @@ This note is the quick resume point for the current ZMeta refinement effort. The
 
 ## Current Position
 
-The semantic contract has been audited, rewritten, and crosswalked against the current implementation stack. The locked v1.0 baseline was verified, and no S1-01B targeted schema implementation task is currently needed. Profile projection preservation has been implemented and audited as sidecar conformance tooling without changing v1.0 schema or event vocabulary. The extension registry has been implemented and audited. The conformance class manifest and claim model have been implemented and audited without changing schemas or making new vocabulary valid. Encoding-negative validation has been implemented and audited for compact CBOR and protobuf invalid-after-decode paths. Profile precision and quantization policy has been implemented and audited as a reference conformance default.
+The semantic contract has been audited, rewritten, and crosswalked against the current implementation stack. The locked v1.0 baseline was verified, and no S1-01B targeted schema implementation task is currently needed. Profile projection preservation has been implemented and audited as sidecar conformance tooling without changing v1.0 schema or event vocabulary. The extension registry has been implemented and audited. The conformance class manifest and claim model have been implemented and audited without changing schemas or making new vocabulary valid. Encoding-negative validation has been implemented and audited for compact CBOR and protobuf invalid-after-decode paths. Profile precision and quantization policy has been implemented and audited as a reference conformance default. The D-011 `TAKEOFF` crosswalk cleanup is complete; `TAKEOFF` remains invalid current vocabulary and the leakage guard remains in place.
 
 The next active implementation item is:
 
-**S1-07A - Crosswalk TAKEOFF Mention Cleanup**
+**S1-08A - MAVLink Adapter README State Payload Drift Cleanup**
 
 ## Key Docs
 
@@ -41,6 +41,7 @@ The next active implementation item is:
 | `policy/profile-precision.yaml` | Reference conformance default precision policy; requires mission review. |
 | `conformance/profile-precision/` | Source/projected precision policy fixture suite. |
 | `docs/s1_06c_profile_precision_quantization_policy_audit.md` | S1-06C audit confirming profile precision policy implementation and closing D-010. |
+| `docs/s1_07a_takeoff_crosswalk_cleanup.md` | S1-07A cleanup note confirming the crosswalk typo was removed and `TAKEOFF` remains invalid current vocabulary. |
 | `docs/zmeta_refinement_worklog.md` | Running worklog, completed work items, pending work items, and deferred issue register. |
 
 ## Completed Recently
@@ -66,6 +67,7 @@ The next active implementation item is:
 | S1-06A Profile Precision / Quantization Policy Floors Plan Only | COMPLETE | `docs/s1_06_profile_precision_quantization_policy_plan.md` |
 | S1-06B Profile Precision / Quantization Policy Floors Implementation | COMPLETE | `spec/profile-precision-policy.md`, `policy/profile-precision.yaml`, `conformance/profile-precision/`, `tools/validate_precision_policy.py` |
 | S1-06C Profile Precision / Quantization Policy Floors Audit | COMPLETE | `docs/s1_06c_profile_precision_quantization_policy_audit.md` |
+| S1-07A Crosswalk TAKEOFF Mention Cleanup | COMPLETE | `docs/s1_07a_takeoff_crosswalk_cleanup.md` |
 
 ## Current Decisions
 
@@ -85,9 +87,9 @@ The next active implementation item is:
   `tools/validate_extension_registry.py` or
   `tools/validate_conformance.py --strict --extension-registry`.
 - D-006 is closed after S1-03C verified the registry implementation.
-- D-011 remains open. S1-03C added a validator/test guard so `TAKEOFF` cannot
-  appear in current schema vocabulary unnoticed, but the crosswalk typo still
-  needs a narrow docs cleanup.
+- D-011 is closed. S1-07A removed the erroneous crosswalk `TAKEOFF`
+  current-vocabulary reference while preserving the validator/test guard proving
+  `TAKEOFF` remains invalid.
 - Conformance classes organize implementation claims and required evidence.
   They do not create semantics or make future classes claimable.
 - Conformance class validation is standalone and opt-in through
@@ -120,8 +122,10 @@ The next active implementation item is:
 
 ## Next Work Queue
 
-1. **S1-07A - Crosswalk TAKEOFF Mention Cleanup**
-   - Narrow documentation cleanup or cleanup plan for the D-011 crosswalk typo.
+1. **S1-08A - MAVLink Adapter README State Payload Drift Cleanup**
+   - Narrow documentation cleanup for D-001, where the MAVLink adapter README
+     describes state telemetry as raw `payload.features.*` despite STATE_EVENT
+     semantics using quality-style metadata.
 
 2. **Human decisions for later precision policy and claim hardening**
    - Exact candidate precision defaults by profile and field family.
@@ -152,8 +156,6 @@ The next active implementation item is:
    - How to represent vendor/private namespaces and classified/restricted names.
    - Whether companion artifacts stay as a registry category or split into a
      separate manifest later.
-   - Whether to clean the crosswalk `TAKEOFF` typo in the next narrow docs
-     cleanup task or leave it deferred.
    - Whether encoding-negative fixtures should store malformed bytes as hex,
      base64, or generated-at-test-time inputs.
    - Whether to add a future `ZMETA-ENCODING-NEGATIVE-VALIDATION` class or fold
@@ -168,7 +170,7 @@ The next active implementation item is:
    - D-008 Conformance Class Manifest Missing is closed.
    - D-009 v1.0/v1.1 Observation Extension Boundary Needs Explicit Tests.
    - D-010 Profile Precision / Quantization Policy Floors is closed.
-   - D-011 Crosswalk TAKEOFF Mention Cleanup.
+   - D-011 Crosswalk TAKEOFF Mention Cleanup is closed.
 
 4. **Later versioned semantic branches**
    - Markings/releasability.
@@ -193,7 +195,7 @@ The next active implementation item is:
 
 ## Verification State
 
-Most recent validation after S1-06C:
+Most recent validation after S1-07A:
 
 ```powershell
 python tools\validate_conformance.py --strict
@@ -208,6 +210,7 @@ python tools\validate_conformance_classes.py --manifest conformance\conformance_
 python tools\validate_conformance_classes.py --manifest conformance\conformance_classes.yaml --claims conformance\claims\example-reference-gateway.yaml conformance\claims\example-core-producer.yaml
 python tools\validate_encoding_negative.py --compact conformance\encoding-negative\compact-must-fail.jsonl --protobuf conformance\encoding-negative\protobuf-must-fail.jsonl --gateway conformance\encoding-negative\gateway-must-fail.jsonl --quiet
 python tools\validate_precision_policy.py --policy policy\profile-precision.yaml --must-pass conformance\profile-precision\must-pass.jsonl --must-fail conformance\profile-precision\must-fail.jsonl
+git grep -n -i "takeoff"
 python -m pytest
 git diff --check
 ```
@@ -218,6 +221,5 @@ Extension registry result: `extension registry ok entries=63`.
 Conformance classes result: `conformance classes ok classes=30 claims=2`.
 Encoding-negative validator result: `encoding negative ok total=49`.
 Precision policy validator result: `profile precision policy ok total=32`.
-Focused precision pytest result: `11 passed`.
 Full pytest result: `306 passed`.
 `git diff --check` result: passed with CRLF conversion warnings only.

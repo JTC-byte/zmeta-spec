@@ -4,13 +4,14 @@
 
 - Last updated: 2026-05-07
 - Quick handoff: `docs/zmeta_refinement_handoff.md`
-- Current next work item: S1-07A - Crosswalk TAKEOFF Mention Cleanup.
-- Current decision: S1-06C audited the reference conformance default profile
-  precision policy, source/projected precision fixture suite, standalone
-  validator, focused tests, optional conformance runner integration, docs, and
-  profile/projection class evidence updates. No schemas, semantic contract
-  text, extension registry artifacts, gateway runtime behavior, codecs,
-  adapters, release hashes, or event vocabulary were changed. D-010 is closed.
+- Current next work item: S1-08A - MAVLink Adapter README State Payload Drift
+  Cleanup.
+- Current decision: S1-07A cleaned the stray `TAKEOFF` current-vocabulary
+  reference in the crosswalk. `TAKEOFF` remains invalid current vocabulary, and
+  the validator/test leakage guard remains in place. No schemas, semantic
+  contract text, extension registry artifacts, gateway runtime behavior,
+  codecs, adapters, release hashes, conformance classes, or event vocabulary
+  were changed. D-011 is closed.
 
 ## S0-01 - Semantic Contract Lockdown Audit
 
@@ -625,11 +626,61 @@
 
 ## S1-07A - Crosswalk TAKEOFF Mention Cleanup
 
+- Status: COMPLETE
+- Date completed: 2026-05-07
+- Output: `docs/s1_07a_takeoff_crosswalk_cleanup.md`
+- Scope: Resolved D-011 with a narrow documentation cleanup for the stray
+  `TAKEOFF` mention in `docs/zmeta_contract_to_stack_crosswalk.md`.
+- Cleanup:
+  - Corrected the v1.1.0 expanded-tasking crosswalk row to list the actual
+    supported task values: `RETURN_TO_BASE`, `LAND`, `LOITER`, `SCAN_RF`,
+    `TRACK_TARGET`, and `CHANGE_SENSOR_MODE`.
+  - Kept existing invalidity and leakage-guard references proving `TAKEOFF`
+    remains invalid current vocabulary.
+- Notes: No schemas, semantic contract text, extension registry artifacts,
+  validators, gateway runtime behavior, codecs, adapters, conformance class
+  definitions, examples, fixtures, release hashes, or event vocabulary were
+  changed.
+- Verification:
+  - `git grep -n -i "takeoff"` -> remaining references are invalidity guards,
+    historical planning/audit notes, or S1-07A closure notes.
+  - `python tools\validate_extension_registry.py --registry spec\extension-registry.yaml` ->
+    `extension registry ok entries=63`
+  - `python tools\validate_conformance.py --strict` -> `conformance ok`
+  - `python tools\validate_conformance.py --strict --profile-projection` ->
+    `projection conformance ok total=33`, `conformance ok`
+  - `python tools\validate_conformance.py --strict --profile-projection --extension-registry` ->
+    `projection conformance ok total=33`, `extension registry ok entries=63`,
+    `conformance ok`
+  - `python tools\validate_conformance.py --strict --profile-projection --extension-registry --conformance-classes` ->
+    `projection conformance ok total=33`, `extension registry ok entries=63`,
+    `conformance classes ok classes=30 claims=2`, `conformance ok`
+  - `python tools\validate_conformance.py --strict --profile-projection --extension-registry --conformance-classes --encoding-negative` ->
+    `projection conformance ok total=33`, `extension registry ok entries=63`,
+    `conformance classes ok classes=30 claims=2`, `encoding negative ok total=49`,
+    `conformance ok`
+  - `python tools\validate_conformance.py --strict --profile-projection --extension-registry --conformance-classes --encoding-negative --precision-policy` ->
+    `projection conformance ok total=33`, `extension registry ok entries=63`,
+    `conformance classes ok classes=30 claims=2`, `encoding negative ok total=49`,
+    `profile precision policy ok total=32`, `conformance ok`
+  - `python tools\validate_conformance_classes.py --manifest conformance\conformance_classes.yaml --claims conformance\claims\example-reference-gateway.yaml conformance\claims\example-core-producer.yaml` ->
+    `conformance classes ok classes=30 claims=2`
+  - `python tools\validate_encoding_negative.py --compact conformance\encoding-negative\compact-must-fail.jsonl --protobuf conformance\encoding-negative\protobuf-must-fail.jsonl --gateway conformance\encoding-negative\gateway-must-fail.jsonl --quiet` ->
+    `encoding negative ok total=49`
+  - `python tools\validate_precision_policy.py --policy policy\profile-precision.yaml --must-pass conformance\profile-precision\must-pass.jsonl --must-fail conformance\profile-precision\must-fail.jsonl --quiet` ->
+    `profile precision policy ok total=32`
+  - `python -m pytest` -> `306 passed`
+  - `git diff --check` -> passed with CRLF conversion warnings only.
+- Decision: S1-07A is complete. D-011 is closed. D-001, D-002, D-003, and
+  D-004 remain open.
+
+## S1-08A - MAVLink Adapter README State Payload Drift Cleanup
+
 - Status: PENDING / NEXT
-- Scope: Resolve D-011 with a narrow documentation cleanup or cleanup plan for
-  the stray `TAKEOFF` mention in `docs/zmeta_contract_to_stack_crosswalk.md`.
-  Do not add `TAKEOFF` to schemas, registry entries, examples, or tests as
-  current vocabulary.
+- Scope: Resolve D-001 with a narrow documentation cleanup for MAVLink adapter
+  README state payload drift. Do not change schemas, gateway runtime behavior,
+  validators, codecs, adapters, or event vocabulary unless a later prompt
+  explicitly opens implementation scope.
 
 ## Deferred Issue Register
 
@@ -817,7 +868,7 @@
 
 ### D-011 - Crosswalk TAKEOFF Mention Cleanup
 
-- Status: OPEN
+- Status: CLOSED
 - Discovered during: S1-03A / S1-03B registry planning and implementation
 - Issue: `docs/zmeta_contract_to_stack_crosswalk.md` mentions `TAKEOFF` in one
   v1.1.0 expanded-tasking row, but the v1.1.0 schema, schema README, examples,
@@ -832,3 +883,8 @@
   invalid under v1.0/v1.1.0 and fails registry validation if it appears in a
   current schema enum/const. The crosswalk typo itself remains open for a narrow
   docs cleanup task.
+- S1-07A cleanup: Corrected the crosswalk row to remove `TAKEOFF` and list only
+  the actual supported v1.1.0 expanded task values. The remaining `TAKEOFF`
+  references are invalidity guards or historical cleanup notes. `TAKEOFF`
+  remains invalid current vocabulary, and no schema or extension registry
+  artifacts were changed. D-011 is closed.
