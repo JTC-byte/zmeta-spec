@@ -1,0 +1,43 @@
+implementation_name: ZMeta Example Core Producer
+implementation_type: producer
+implementation_version: example-S1-04B
+zmeta_versions_supported:
+  - "1.0"
+classes_claimed:
+  - ZMETA-CORE
+  - ZMETA-V1-0-SCHEMA
+class_claims:
+  - class_id: ZMETA-CORE
+    claim_status: claimed
+    commands: ["python tools/validate_conformance.py --strict"]
+    result_summary: emitted events are expected to pass core conformance fixtures
+    limitations:
+      - Example producer claim; not a gateway, adapter, projection, extension registry, compact, or protobuf claim.
+    exceptions: []
+  - class_id: ZMETA-V1-0-SCHEMA
+    claim_status: claimed
+    commands: ["python tools/validate_conformance.py --strict"]
+    result_summary: emitted events are expected to validate against locked v1.0 schema
+    limitations:
+      - Example producer claim only.
+    exceptions: []
+test_commands_run:
+  - python tools/validate_conformance.py --strict
+test_results:
+  - command: python tools/validate_conformance.py --strict
+    status: passed
+    summary: conformance ok
+schema_versions:
+  - "1.0"
+policy_pack_versions:
+  - baseline-local-policy-pack
+extension_registry_version: 1
+projection_catalog_version: 1
+contract_hash: pending_D-002
+commit_hash: example_pending_checkpoint_commit
+date: "2026-05-07"
+claim_owner: ZMeta Maintainers
+limitations:
+  - Example producer claim only; it does not claim profiles, projection preservation, adapters, gateway behavior, or encoding support.
+  - Release-grade claims must record actual commit and release hashes.
+exceptions: []

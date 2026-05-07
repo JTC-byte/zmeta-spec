@@ -4,11 +4,12 @@
 
 - Last updated: 2026-05-07
 - Quick handoff: `docs/zmeta_refinement_handoff.md`
-- Current next work item: S1-04B - Conformance Class Manifest Implementation.
-- Current decision: S1-04A planned the conformance class manifest and claim
-  model. No schemas, validators, adapters, encodings, tests, policy files,
-  examples, extension registry entries, semantic contract text, release hashes,
-  or event vocabulary were changed. D-008 remains open until implementation.
+- Current next work item: S1-04C - Conformance Class Manifest Post-Implementation Audit.
+- Current decision: S1-04B implemented the conformance class manifest, example
+  claims, validator, focused tests, and optional conformance runner integration.
+  No schemas, adapters, encodings, policy files, semantic contract text,
+  extension registry entries, release hashes, or event vocabulary were changed.
+  D-008 remains open pending S1-04C audit.
 
 ## S0-01 - Semantic Contract Lockdown Audit
 
@@ -277,16 +278,55 @@
 
 ## S1-04B - Conformance Class Manifest Implementation
 
-- Status: PENDING IMPLEMENTATION
-- Scope: Implement `spec/conformance-classes.md`,
-  `conformance/conformance_classes.yaml`, example claim files, standalone class
+- Status: COMPLETE - IMPLEMENTED PENDING S1-04C AUDIT
+- Date completed: 2026-05-07
+- Scope: Implemented the human-readable conformance class specification,
+  machine-readable class manifest, example claim files, standalone class
   validator, focused tests, optional conformance runner integration, and docs.
-- Notes: Keep default `tools/validate_conformance.py --strict` behavior stable.
-  Do not close D-008 until implementation exists and passes.
+- Outputs:
+  - `spec/conformance-classes.md`
+  - `conformance/conformance_classes.yaml`
+  - `conformance/claims/example-reference-gateway.yaml`
+  - `conformance/claims/example-core-producer.yaml`
+  - `tools/validate_conformance_classes.py`
+  - `gateway/tests/test_conformance_classes.py`
+- Integration: `tools/validate_conformance.py --conformance-classes` validates
+  the class manifest and example claims explicitly without changing default
+  strict conformance behavior.
+- Decisions:
+  - Class records organize implementation claims and evidence; they do not
+    create semantics or make future vocabulary valid.
+  - Current implemented classes use `implemented`; `ZMETA-COT-PROJECTION` is
+    `partially_implemented` pending a shared adapter conformance harness.
+  - Future, reserved, and planned classes are not claimable by current example
+    claim files.
+  - D-002 remains open; example claim files record `contract_hash:
+    pending_D-002`.
+  - No schema, semantic contract, adapter, encoding, policy, extension registry,
+    example event vocabulary, release hash, or event-vocabulary changes were
+    made.
+- Verification:
+  - `python tools\validate_conformance_classes.py --manifest conformance\conformance_classes.yaml` ->
+    `conformance classes ok classes=30 claims=0`
+  - `python tools\validate_conformance_classes.py --manifest conformance\conformance_classes.yaml --claims conformance\claims\example-reference-gateway.yaml conformance\claims\example-core-producer.yaml` ->
+    `conformance classes ok classes=30 claims=2`
+  - `python -m pytest -q gateway\tests\test_conformance_classes.py` ->
+    `15 passed`
+  - `python tools\validate_conformance.py --strict` -> `conformance ok`
+  - `python tools\validate_conformance.py --strict --profile-projection` ->
+    `projection conformance ok total=33`, `conformance ok`
+  - `python tools\validate_conformance.py --strict --profile-projection --extension-registry` ->
+    `projection conformance ok total=33`, `extension registry ok entries=63`,
+    `conformance ok`
+  - `python tools\validate_conformance.py --strict --profile-projection --extension-registry --conformance-classes` ->
+    `projection conformance ok total=33`, `extension registry ok entries=63`,
+    `conformance classes ok classes=30 claims=2`, `conformance ok`
+  - `python -m pytest` -> `269 passed`
+  - `git diff --check` -> passed with CRLF conversion warnings only.
 
 ## S1-04C - Conformance Class Manifest Post-Implementation Audit
 
-- Status: FUTURE / PENDING
+- Status: PENDING
 - Scope: Audit S1-04B for class record correctness, claim validation behavior,
   docs alignment, schema/contract non-drift, and future/reserved class
   non-claimability.
@@ -408,7 +448,7 @@
 
 ### D-008 - Conformance Class Manifest Missing
 
-- Status: OPEN
+- Status: OPEN - IMPLEMENTED PENDING S1-04C AUDIT
 - Discovered during: S0-03
 - Issue: The semantic contract defines ZMETA-CORE, ZMETA-PROFILE-L/M/H,
   ZMETA-ADAPTER, ZMETA-GATEWAY, ZMETA-COT-PROJECTION,
@@ -422,8 +462,12 @@
   validation tooling, focused tests, optional conformance runner integration,
   class status model, claim model, dependencies, required test mappings, and
   S1-04B implementation path.
-- Proposed follow-up: Implement the conformance class manifest and validator in
-  S1-04B. Keep D-008 open until implementation exists and passes.
+- S1-04B coverage: Implemented `spec/conformance-classes.md`,
+  `conformance/conformance_classes.yaml`, example claim files, standalone
+  validation tooling, focused tests, optional conformance runner integration,
+  class status model, claim model, dependencies, and required test mappings.
+- Proposed follow-up: Audit the conformance class manifest and validator in
+  S1-04C. Keep D-008 open until the audit verifies implementation quality.
 
 ### D-009 - v1.0/v1.1 Observation Extension Boundary Needs Explicit Tests
 

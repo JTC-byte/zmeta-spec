@@ -1,0 +1,187 @@
+implementation_name: ZMeta Reference Gateway
+implementation_type: reference_stack
+implementation_version: example-S1-04B
+zmeta_versions_supported:
+  - "1.0"
+  - "1.1.0-experimental"
+classes_claimed:
+  - ZMETA-CORE
+  - ZMETA-VERSION-DISPATCH
+  - ZMETA-V1-0-SCHEMA
+  - ZMETA-V1-1-EXPERIMENTAL
+  - ZMETA-POLICY-BASELINE
+  - ZMETA-COMMAND-GOVERNANCE
+  - ZMETA-TIMING-QUALITY
+  - ZMETA-LINEAGE-POLICY
+  - ZMETA-PROFILE-L
+  - ZMETA-PROFILE-M
+  - ZMETA-PROFILE-H
+  - ZMETA-PROJECTION-PRESERVATION
+  - ZMETA-EXTENSION-REGISTRY
+  - ZMETA-COMPACT-CBOR
+  - ZMETA-PROTOBUF-PROJECTION
+  - ZMETA-GATEWAY-REFERENCE
+class_claims:
+  - class_id: ZMETA-CORE
+    claim_status: claimed
+    commands: ["python tools/validate_conformance.py --strict"]
+    result_summary: conformance ok
+    limitations: []
+    exceptions: []
+  - class_id: ZMETA-VERSION-DISPATCH
+    claim_status: claimed
+    commands: ["python -m pytest -q gateway/tests/test_schema_version_discrimination.py gateway/tests/test_compat_normalizer.py gateway/tests/test_check_compat_cli.py"]
+    result_summary: version-dispatch focused tests passed
+    limitations: []
+    exceptions: []
+  - class_id: ZMETA-V1-0-SCHEMA
+    claim_status: claimed
+    commands: ["python tools/validate_conformance.py --strict"]
+    result_summary: locked v1.0 conformance passed
+    limitations: []
+    exceptions: []
+  - class_id: ZMETA-V1-1-EXPERIMENTAL
+    claim_status: claimed
+    commands: ["python -m pytest -q gateway/tests/test_schema_version_discrimination.py"]
+    result_summary: v1.1.0 experimental branch discrimination passed
+    limitations: ["Experimental support only; does not promote v1.1.0 vocabulary to adopted status."]
+    exceptions: []
+  - class_id: ZMETA-POLICY-BASELINE
+    claim_status: claimed
+    commands: ["python tools/validate_conformance.py --strict"]
+    result_summary: baseline policy conformance passed
+    limitations: []
+    exceptions: []
+  - class_id: ZMETA-COMMAND-GOVERNANCE
+    claim_status: claimed
+    commands: ["python tools/validate_conformance.py --strict", "python -m pytest -q adapters/egress/mavlink gateway/tests/test_gateway_smoke.py"]
+    result_summary: command fixtures and MAVLink intent tests passed
+    limitations: []
+    exceptions: []
+  - class_id: ZMETA-TIMING-QUALITY
+    claim_status: claimed
+    commands: ["python -m pytest -q gateway/tests/test_timing_freshness.py adapters/ingress/test_timestamp_normalization.py"]
+    result_summary: timing freshness and normalization tests passed
+    limitations: []
+    exceptions: []
+  - class_id: ZMETA-LINEAGE-POLICY
+    claim_status: claimed
+    commands: ["python -m pytest -q gateway/tests/test_lineage_semantics.py"]
+    result_summary: lineage semantics tests passed
+    limitations: []
+    exceptions: []
+  - class_id: ZMETA-PROFILE-L
+    claim_status: claimed
+    commands: ["python tools/validate_conformance.py --strict"]
+    result_summary: Profile L fixtures passed
+    limitations: []
+    exceptions: []
+  - class_id: ZMETA-PROFILE-M
+    claim_status: claimed
+    commands: ["python tools/validate_conformance.py --strict"]
+    result_summary: Profile M fixtures passed
+    limitations: []
+    exceptions: []
+  - class_id: ZMETA-PROFILE-H
+    claim_status: claimed
+    commands: ["python tools/validate_conformance.py --strict"]
+    result_summary: Profile H fixtures passed
+    limitations: []
+    exceptions: []
+  - class_id: ZMETA-PROJECTION-PRESERVATION
+    claim_status: claimed
+    commands:
+      - python tools/validate_projection.py --catalog conformance/profile_projection_field_catalog.yaml --must-pass conformance/profile-projection/must-pass.jsonl --must-fail conformance/profile-projection/must-fail.jsonl --quiet
+      - python -m pytest -q gateway/tests/test_profile_projection_preservation.py gateway/tests/test_profile_projection_encoding.py
+    result_summary: projection preservation CLI and focused tests passed
+    limitations: []
+    exceptions: []
+  - class_id: ZMETA-EXTENSION-REGISTRY
+    claim_status: claimed
+    commands: ["python tools/validate_extension_registry.py --registry spec/extension-registry.yaml", "python -m pytest -q gateway/tests/test_extension_registry.py"]
+    result_summary: extension registry validator and focused tests passed
+    limitations: []
+    exceptions: []
+  - class_id: ZMETA-COMPACT-CBOR
+    claim_status: claimed
+    commands: ["python -m pytest -q gateway/tests/test_encoding_roundtrip.py gateway/tests/test_profile_projection_encoding.py"]
+    result_summary: compact CBOR roundtrip and projection-decoded tests passed
+    limitations: []
+    exceptions: []
+  - class_id: ZMETA-PROTOBUF-PROJECTION
+    claim_status: claimed
+    commands: ["python -m pytest -q gateway/tests/test_encoding_roundtrip.py gateway/tests/test_profile_projection_encoding.py"]
+    result_summary: protobuf roundtrip and projection-decoded tests passed
+    limitations: ["Protobuf remains an experimental transport projection."]
+    exceptions: []
+  - class_id: ZMETA-GATEWAY-REFERENCE
+    claim_status: claimed
+    commands: ["python -m pytest -q gateway/tests/test_gateway_smoke.py gateway/tests/test_timing_freshness.py gateway/tests/test_producer_authority.py gateway/tests/test_lineage_semantics.py"]
+    result_summary: focused reference gateway tests passed
+    limitations: []
+    exceptions: []
+test_commands_run:
+  - python tools/validate_conformance.py --strict
+  - python -m pytest -q gateway/tests/test_schema_version_discrimination.py gateway/tests/test_compat_normalizer.py gateway/tests/test_check_compat_cli.py
+  - python -m pytest -q gateway/tests/test_schema_version_discrimination.py
+  - python -m pytest -q adapters/egress/mavlink gateway/tests/test_gateway_smoke.py
+  - python -m pytest -q gateway/tests/test_timing_freshness.py adapters/ingress/test_timestamp_normalization.py
+  - python -m pytest -q gateway/tests/test_lineage_semantics.py
+  - python tools/validate_projection.py --catalog conformance/profile_projection_field_catalog.yaml --must-pass conformance/profile-projection/must-pass.jsonl --must-fail conformance/profile-projection/must-fail.jsonl --quiet
+  - python -m pytest -q gateway/tests/test_profile_projection_preservation.py gateway/tests/test_profile_projection_encoding.py
+  - python tools/validate_extension_registry.py --registry spec/extension-registry.yaml
+  - python -m pytest -q gateway/tests/test_extension_registry.py
+  - python -m pytest -q gateway/tests/test_encoding_roundtrip.py gateway/tests/test_profile_projection_encoding.py
+  - python -m pytest -q gateway/tests/test_gateway_smoke.py gateway/tests/test_timing_freshness.py gateway/tests/test_producer_authority.py gateway/tests/test_lineage_semantics.py
+test_results:
+  - command: python tools/validate_conformance.py --strict
+    status: passed
+    summary: conformance ok
+  - command: python -m pytest -q gateway/tests/test_schema_version_discrimination.py gateway/tests/test_compat_normalizer.py gateway/tests/test_check_compat_cli.py
+    status: passed
+    summary: version-dispatch focused tests passed
+  - command: python -m pytest -q gateway/tests/test_schema_version_discrimination.py
+    status: passed
+    summary: v1.1.0 schema discrimination passed
+  - command: python -m pytest -q adapters/egress/mavlink gateway/tests/test_gateway_smoke.py
+    status: passed
+    summary: command governance focused tests passed
+  - command: python -m pytest -q gateway/tests/test_timing_freshness.py adapters/ingress/test_timestamp_normalization.py
+    status: passed
+    summary: timing quality focused tests passed
+  - command: python -m pytest -q gateway/tests/test_lineage_semantics.py
+    status: passed
+    summary: lineage focused tests passed
+  - command: python tools/validate_projection.py --catalog conformance/profile_projection_field_catalog.yaml --must-pass conformance/profile-projection/must-pass.jsonl --must-fail conformance/profile-projection/must-fail.jsonl --quiet
+    status: passed
+    summary: projection conformance ok
+  - command: python -m pytest -q gateway/tests/test_profile_projection_preservation.py gateway/tests/test_profile_projection_encoding.py
+    status: passed
+    summary: projection focused tests passed
+  - command: python tools/validate_extension_registry.py --registry spec/extension-registry.yaml
+    status: passed
+    summary: extension registry ok
+  - command: python -m pytest -q gateway/tests/test_extension_registry.py
+    status: passed
+    summary: extension registry focused tests passed
+  - command: python -m pytest -q gateway/tests/test_encoding_roundtrip.py gateway/tests/test_profile_projection_encoding.py
+    status: passed
+    summary: encoding focused tests passed
+  - command: python -m pytest -q gateway/tests/test_gateway_smoke.py gateway/tests/test_timing_freshness.py gateway/tests/test_producer_authority.py gateway/tests/test_lineage_semantics.py
+    status: passed
+    summary: gateway focused tests passed
+schema_versions:
+  - "1.0"
+  - "1.1.0-experimental"
+policy_pack_versions:
+  - baseline-local-policy-pack
+extension_registry_version: 1
+projection_catalog_version: 1
+contract_hash: pending_D-002
+commit_hash: example_pending_checkpoint_commit
+date: "2026-05-07"
+claim_owner: ZMeta Maintainers
+limitations:
+  - Example claim only; release-grade claims must record actual commit and release hashes.
+  - CoT projection is not claimed because the class is partially implemented pending a shared adapter harness.
+exceptions: []
