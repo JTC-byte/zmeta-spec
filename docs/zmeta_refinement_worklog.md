@@ -4,12 +4,12 @@
 
 - Last updated: 2026-05-07
 - Quick handoff: `docs/zmeta_refinement_handoff.md`
-- Current next work item: S1-02C - Post-Implementation Audit and Cleanup.
-- Next planning item after S1-02C: S1-03A - Extension Registry Plan Only.
+- Current next work item: S1-03A - Extension Registry Plan Only.
 - Current decision: S1-02B implemented profile projection preservation as a
   sidecar catalog, source/projected fixtures, standalone validator, opt-in
-  conformance runner integration, and regression tests. v1.0 schema and the
-  semantic contract remain unchanged.
+  conformance runner integration, and regression tests. S1-02C audited the
+  implementation and found no v1.0 schema drift, no semantic contract drift, and
+  no future vocabulary additions.
 
 ## S0-01 - Semantic Contract Lockdown Audit
 
@@ -74,7 +74,7 @@
   omissions only, source-authored fields not rewritten, lineage preserved or
   unresolved according to profile policy, and Profile L compact expansion
   equivalence.
-- Notes: S1-02A planning and S1-02B implementation are complete.
+- Notes: S1-02A planning, S1-02B implementation, and S1-02C audit are complete.
 
 ## S1-02A - Profile Projection Preservation Field Catalog and Conformance Plan
 
@@ -125,16 +125,35 @@
 
 ## S1-02C - Post-Implementation Audit and Cleanup
 
-- Status: PENDING
+- Status: COMPLETE
+- Date completed: 2026-05-07
+- Output: `docs/s1_02c_projection_preservation_audit.md`
 - Scope: Audit the S1-02B implementation for fixture breadth, field catalog
   clarity, projection validator edge cases, optional omission coverage, and
   documentation consistency before moving into broader backlog cleanup.
-- Notes: Use this pass to decide whether any newly observed projection edge
-  cases should become deferred issues or immediate cleanup.
+- Cleanup:
+  - `tools/validate_projection.py` now fails explicitly when a fixture file is
+    missing instead of silently skipping it.
+  - `gateway/tests/test_profile_projection_preservation.py` covers the missing
+    fixture failure path.
+  - `conformance/profile-projection/README.md` documents stable projection
+    failure codes and clarifies `PROJECTION_FIELD_CHANGED` as a fallback.
+- Verification:
+  - `python tools\validate_conformance.py --strict` -> `conformance ok`
+  - `python tools\validate_conformance.py --strict --profile-projection` ->
+    `projection conformance ok total=33`, `conformance ok`
+  - `python tools\validate_projection.py --catalog conformance\profile_projection_field_catalog.yaml --must-pass conformance\profile-projection\must-pass.jsonl --must-fail conformance\profile-projection\must-fail.jsonl --quiet` ->
+    `projection conformance ok total=33`
+  - `python -m pytest -q gateway\tests\test_profile_projection_preservation.py gateway\tests\test_profile_projection_encoding.py` ->
+    `11 passed`
+  - `python -m pytest` -> `242 passed`
+  - `git diff --check` -> passed with CRLF conversion warnings only.
+- Decision: S1-02B is verified. D-005 remains closed. D-007 remains partially
+  covered, not closed. D-010 added for Profile M/L precision floors.
 
 ## S1-03A - Extension Registry Plan Only
 
-- Status: PENDING
+- Status: NEXT
 - Scope: Plan a durable extension registry artifact with status, ownership,
   collision rules, reserved-name governance, and adoption requirements.
 - Notes: Planning only. Do not make future extension names valid in v1.0.
@@ -204,7 +223,8 @@
 - Resolution: S1-02B added a sidecar field catalog, source/projected projection
   fixtures, standalone validator CLI, compact/protobuf decoded-equivalence
   fixture coverage, opt-in conformance runner integration, and regression tests.
-- Follow-up: S1-02C should audit fixture breadth and field catalog clarity.
+- Audit: S1-02C verified fixture breadth, validator behavior, failure code
+  stability, docs alignment, and absence of schema/contract drift.
 
 ### D-006 - Extension Registry Artifact Missing
 
@@ -221,7 +241,7 @@
 
 ### D-007 - Encoding Negative Validation Gap
 
-- Status: OPEN - PARTIALLY COVERED BY S1-02B
+- Status: OPEN - PARTIALLY COVERED BY S1-02B/S1-02C
 - Discovered during: S0-03
 - Issue: Compact and protobuf roundtrip coverage exists, and the gateway
   decodes binary encodings before validation, but there are not explicit
@@ -231,6 +251,8 @@
 - S1-02B coverage: Added compact/protobuf projection fixtures where decoded JSON
   is schema-valid but projection-invalid, proving encoding does not override
   projection semantics.
+- S1-02C audit: Confirmed compact/protobuf remain encoding projections only and
+  decoded JSON is the validation authority.
 - Remaining follow-up: Add broader gateway/CLI negative tests that encode
   schema-invalid or policy-invalid events, decode them, and prove schema/policy
   validation rejects them outside the projection-pair fixture path.
@@ -262,3 +284,18 @@
   boundary explicit.
 - Proposed follow-up: Add boundary documentation/tests during extension registry
   or conformance-class work. Do not treat this as a v1.0 schema defect.
+
+### D-010 - Profile Precision / Quantization Policy Floors
+
+- Status: OPEN
+- Discovered during: S1-02C
+- Issue: S1-02B enforces precision non-increase for profile projection, but it
+  does not define operational precision floors or quantization requirements for
+  Profile M/L by field, mission, or packet budget.
+- Impact: Projection conformance prevents invented precision, but exporters do
+  not yet have a normative target for how coarse Profile M/L latitude,
+  longitude, altitude, heading, speed, bearing, RF metrics, or timing values
+  should become under specific operational budgets.
+- Proposed follow-up: Define mission/profile-specific quantization floors and
+  packet-budget policy after representative Profile L/M traffic and operational
+  requirements are available.

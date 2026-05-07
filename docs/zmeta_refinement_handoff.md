@@ -6,13 +6,9 @@ This note is the quick resume point for the current ZMeta refinement effort. The
 
 ## Current Position
 
-The semantic contract has been audited, rewritten, and crosswalked against the current implementation stack. The locked v1.0 baseline was verified, and no S1-01B targeted schema implementation task is currently needed. Profile projection preservation has now been implemented as sidecar conformance tooling without changing v1.0 schema or event vocabulary.
+The semantic contract has been audited, rewritten, and crosswalked against the current implementation stack. The locked v1.0 baseline was verified, and no S1-01B targeted schema implementation task is currently needed. Profile projection preservation has now been implemented and audited as sidecar conformance tooling without changing v1.0 schema or event vocabulary.
 
 The next active implementation item is:
-
-**S1-02C - Post-Implementation Audit and Cleanup**
-
-Then proceed to:
 
 **S1-03A - Extension Registry Plan Only**
 
@@ -40,6 +36,7 @@ Then proceed to:
 | S1-01A v1.0 Baseline Verification | COMPLETE | `docs/s1_01_v1_baseline_verification_plan.md` |
 | S1-02A Profile Projection Preservation Plan | COMPLETE | `docs/s1_02_profile_projection_preservation_plan.md` |
 | S1-02B Profile Projection Preservation Implementation | COMPLETE | `conformance/profile_projection_field_catalog.yaml`, `tools/validate_projection.py`, `conformance/profile-projection/` |
+| S1-02C Profile Projection Preservation Audit | COMPLETE | `docs/s1_02c_projection_preservation_audit.md` |
 
 ## Current Decisions
 
@@ -54,12 +51,11 @@ Then proceed to:
 ## Next Work Queue
 
 1. **S1-02C - Post-Implementation Audit and Cleanup**
-   - Review S1-02B fixture breadth and field catalog clarity.
-   - Audit projection validator edge cases.
-   - Decide whether any projection edge cases should become deferred issues.
+   - Complete. See `docs/s1_02c_projection_preservation_audit.md`.
 
 2. **S1-03A - Extension Registry Plan Only**
    - Plan durable extension registry artifact, ownership, collision rules, and adoption requirements.
+   - Do not implement registry vocabulary in v1.0.
 
 3. **Deferred issue cleanup**
    - D-006 Extension Registry Artifact Missing.

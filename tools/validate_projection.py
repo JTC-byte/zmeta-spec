@@ -209,7 +209,7 @@ def load_catalog(path: str | Path) -> dict[str, Any]:
 def iter_jsonl(path: str | Path):
     path = Path(path)
     if not path.exists():
-        return
+        raise FileNotFoundError(f"projection fixture file not found: {path}")
     for line_no, line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
         line = line.strip()
         if not line:

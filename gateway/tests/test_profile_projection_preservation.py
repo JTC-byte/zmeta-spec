@@ -63,6 +63,29 @@ def test_projection_cli_succeeds_on_default_fixture_suite():
     assert "projection conformance ok" in result.stdout
 
 
+def test_projection_cli_fails_for_missing_fixture_file():
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(VALIDATE_PROJECTION_PATH),
+            "--catalog",
+            str(CATALOG_PATH),
+            "--must-pass",
+            str(ROOT / "conformance" / "profile-projection" / "does-not-exist.jsonl"),
+            "--must-fail",
+            str(FAIL_PATH),
+            "--quiet",
+        ],
+        cwd=str(ROOT),
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+
+    assert result.returncode != 0
+    assert "projection fixture file not found" in result.stderr
+
+
 def test_projection_failure_codes_include_required_contract_set():
     required = {
         "PROJECTION_EVENT_ID_CHANGED",
