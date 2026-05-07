@@ -1,0 +1,771 @@
+registry_version: 1
+generated_for_zmeta_versions:
+  - "1.0"
+  - "1.1.0"
+authority: spec/semantics-contract.md
+last_updated: "2026-05-07"
+status_values:
+  - reserved
+  - proposed
+  - experimental
+  - adopted
+  - deprecated
+  - rejected
+  - superseded
+category_values:
+  - observation_modality
+  - observation_feature_contract
+  - inference_type
+  - fusion_extension
+  - state_extension
+  - command_task_type
+  - system_status_type
+  - profile_export_control
+  - trust_integrity
+  - coalition_release
+  - ai_model_provenance
+  - pnt_integrity
+  - replay_test
+  - adapter_vendor_namespace
+  - companion_artifact
+  - encoding_projection
+  - conformance_class
+  - track_lifecycle
+  - data_evidence
+  - operator_display
+
+defaults:
+  entry: &entry_defaults
+    version_branch: null
+    introduced_in: null
+    owner: ZMeta Maintainers
+    allowed_event_types: []
+    allowed_event_subtypes: []
+    payload_scope: []
+    profile_scope: []
+    schema_status: none
+    policy_status: none
+    adapter_gateway_status: none
+    encoding_status: none
+    conformance_status: none
+    ignorable_by_default: true
+    collision_rules:
+      - no_v1_0_collision
+      - no_layer_collapse
+      - no_core_redefinition
+    security_release_notes: []
+    migration_notes: []
+    references:
+      - docs/s1_03_extension_registry_plan.md
+    date_added: "2026-05-07"
+    review_state: draft
+    supersedes: []
+    superseded_by: null
+    notes: []
+
+entries:
+  - <<: *entry_defaults
+    name: STRUCTURED_QUALITY_BLOCK
+    display_name: Structured quality block
+    category: observation_feature_contract
+    status: experimental
+    version_branch: "1.1.0"
+    introduced_in: "1.1.0"
+    semantic_definition: v1.1.0 structured payload quality metadata including measurement error, calibration state, geo status, and signal quality fields.
+    rationale: Formalizes quality metadata without replacing top-level confidence.
+    allowed_event_types: ["OBSERVATION_EVENT"]
+    payload_scope: ["payload.quality"]
+    schema_status: implemented
+    policy_status: not_applicable
+    conformance_status: implemented
+    references:
+      - schema/zmeta-event-1.1.0.schema.json
+      - schema/README.md
+      - gateway/tests/test_schema_version_discrimination.py
+    review_state: approved
+    notes:
+      - Experimental v1.1.0 only; v1.0 generic quality objects do not adopt this formal contract.
+
+  - <<: *entry_defaults
+    name: ERROR_ELLIPSE_M
+    display_name: Error ellipse meters
+    category: state_extension
+    status: experimental
+    version_branch: "1.1.0"
+    introduced_in: "1.1.0"
+    semantic_definition: v1.1.0 geospatial uncertainty block under canonical geo objects using meter units and true-north orientation.
+    rationale: Represents position uncertainty without changing WGS-84 latitude/longitude or HAE altitude semantics.
+    allowed_event_types: ["OBSERVATION_EVENT", "FUSION_EVENT", "STATE_EVENT"]
+    payload_scope: ["payload.geo.error_ellipse_m", "payload.estimated_state.geo.error_ellipse_m"]
+    schema_status: implemented
+    policy_status: not_applicable
+    conformance_status: implemented
+    references:
+      - schema/zmeta-event-1.1.0.schema.json
+      - schema/README.md
+      - gateway/tests/test_schema_version_discrimination.py
+    review_state: approved
+
+  - <<: *entry_defaults
+    name: DATA_REF_FORMAL_BEHAVIOR
+    display_name: Formal data_ref/data_refs behavior
+    category: data_evidence
+    status: experimental
+    version_branch: "1.1.0"
+    introduced_in: "1.1.0"
+    semantic_definition: v1.1.0 formal pointer behavior for payload.data_ref and payload.data_refs, including xor pointer style, ref_id requirement, hash syntax, and paired time windows.
+    rationale: Links lightweight events to retained artifacts without embedding raw data or replacing lineage.
+    allowed_event_types: ["OBSERVATION_EVENT"]
+    payload_scope: ["payload.data_ref", "payload.data_refs"]
+    schema_status: implemented
+    policy_status: not_applicable
+    conformance_status: implemented
+    references:
+      - schema/zmeta-event-1.1.0.schema.json
+      - schema/README.md
+      - gateway/tests/test_schema_version_discrimination.py
+    review_state: approved
+    notes:
+      - v1.0 permits lightweight pointers, but does not adopt the v1.1.0 formal behavior unless zmeta_version is 1.1.0.
+
+  - <<: *entry_defaults
+    name: EO_FEATURE_CONTRACT
+    display_name: EO feature contract
+    category: observation_feature_contract
+    status: experimental
+    version_branch: "1.1.0"
+    introduced_in: "1.1.0"
+    semantic_definition: v1.1.0 feature contract for EO observation metadata such as image region, field of view, and resolution.
+    rationale: Constrains EO raw image metadata while keeping detections and labels in INFERENCE_EVENT.
+    allowed_event_types: ["OBSERVATION_EVENT"]
+    allowed_event_subtypes: ["EO"]
+    payload_scope: ["payload.features"]
+    schema_status: implemented
+    policy_status: not_applicable
+    conformance_status: implemented
+    references: ["schema/zmeta-event-1.1.0.schema.json", "schema/README.md"]
+    review_state: approved
+
+  - <<: *entry_defaults
+    name: IR_FEATURE_CONTRACT
+    display_name: IR feature contract
+    category: observation_feature_contract
+    status: experimental
+    version_branch: "1.1.0"
+    introduced_in: "1.1.0"
+    semantic_definition: v1.1.0 feature contract for IR observation metadata including spectral band and optional temperature/emissivity measurements.
+    rationale: Keeps IR raw measurement facts separate from inference labels and confidence.
+    allowed_event_types: ["OBSERVATION_EVENT"]
+    allowed_event_subtypes: ["IR"]
+    payload_scope: ["payload.features"]
+    schema_status: implemented
+    policy_status: not_applicable
+    conformance_status: implemented
+    references: ["schema/zmeta-event-1.1.0.schema.json", "schema/README.md"]
+    review_state: approved
+
+  - <<: *entry_defaults
+    name: ACOUSTIC_FEATURE_CONTRACT
+    display_name: Acoustic feature contract
+    category: observation_feature_contract
+    status: experimental
+    version_branch: "1.1.0"
+    introduced_in: "1.1.0"
+    semantic_definition: v1.1.0 feature contract for acoustic observation measurements such as center frequency and sound pressure level.
+    rationale: Defines acoustic measured facts without creating track identity or inference labels.
+    allowed_event_types: ["OBSERVATION_EVENT"]
+    allowed_event_subtypes: ["ACOUSTIC"]
+    payload_scope: ["payload.features"]
+    schema_status: implemented
+    policy_status: not_applicable
+    conformance_status: implemented
+    references: ["schema/zmeta-event-1.1.0.schema.json", "schema/README.md"]
+    review_state: approved
+
+  - <<: *entry_defaults
+    name: NETWORK_FEATURE_CONTRACT
+    display_name: Network feature contract
+    category: observation_feature_contract
+    status: experimental
+    version_branch: "1.1.0"
+    introduced_in: "1.1.0"
+    semantic_definition: v1.1.0 feature contract for network observations including protocol and optional address/port metadata.
+    rationale: Defines packet/network metadata as observation facts, not cyber inference claims.
+    allowed_event_types: ["OBSERVATION_EVENT"]
+    allowed_event_subtypes: ["NETWORK"]
+    payload_scope: ["payload.features"]
+    schema_status: implemented
+    policy_status: not_applicable
+    conformance_status: implemented
+    references: ["schema/zmeta-event-1.1.0.schema.json", "schema/README.md"]
+    review_state: approved
+
+  - <<: *entry_defaults
+    name: SENSOR_STATUS
+    display_name: Sensor status
+    category: system_status_type
+    status: experimental
+    version_branch: "1.1.0"
+    introduced_in: "1.1.0"
+    semantic_definition: v1.1.0 SYSTEM_EVENT subtype for sensor health, configuration, and capability state.
+    rationale: Reports sensor status without embedding raw observation facts or operator track state.
+    allowed_event_types: ["SYSTEM_EVENT"]
+    allowed_event_subtypes: ["SENSOR_STATUS"]
+    payload_scope: ["payload.system_type", "payload.state", "payload.metrics"]
+    schema_status: implemented
+    policy_status: implemented
+    conformance_status: implemented
+    references: ["schema/zmeta-event-1.1.0.schema.json", "gateway/tests/test_reason_codes.py"]
+    review_state: approved
+
+  - <<: *entry_defaults
+    name: PLATFORM_STATUS
+    display_name: Platform status
+    category: system_status_type
+    status: experimental
+    version_branch: "1.1.0"
+    introduced_in: "1.1.0"
+    semantic_definition: v1.1.0 SYSTEM_EVENT subtype for platform health and operating state.
+    rationale: Reports platform availability without implying track position, command authority, or observation evidence.
+    allowed_event_types: ["SYSTEM_EVENT"]
+    allowed_event_subtypes: ["PLATFORM_STATUS"]
+    payload_scope: ["payload.system_type", "payload.state", "payload.metrics"]
+    schema_status: implemented
+    policy_status: implemented
+    conformance_status: implemented
+    references: ["schema/zmeta-event-1.1.0.schema.json", "gateway/tests/test_reason_codes.py"]
+    review_state: approved
+
+  - <<: *entry_defaults
+    name: RETURN_TO_BASE
+    display_name: Return to base command
+    category: command_task_type
+    status: experimental
+    version_branch: "1.1.0"
+    introduced_in: "1.1.0"
+    semantic_definition: v1.1.0 bounded command task directing an out-of-band return-to-base behavior.
+    rationale: Adds a common retasking directive while preserving command TTL, task identity, and deconfliction.
+    allowed_event_types: ["COMMAND_EVENT"]
+    allowed_event_subtypes: ["RETURN_TO_BASE"]
+    payload_scope: ["payload.task_type"]
+    schema_status: implemented
+    policy_status: implemented
+    conformance_status: implemented
+    references: ["schema/zmeta-event-1.1.0.schema.json"]
+    review_state: approved
+
+  - <<: *entry_defaults
+    name: LAND
+    display_name: Land command
+    category: command_task_type
+    status: experimental
+    version_branch: "1.1.0"
+    introduced_in: "1.1.0"
+    semantic_definition: v1.1.0 bounded command task directing an out-of-band landing behavior.
+    rationale: Adds constrained landing tasking without vertical-control payload semantics in ZMeta.
+    allowed_event_types: ["COMMAND_EVENT"]
+    allowed_event_subtypes: ["LAND"]
+    payload_scope: ["payload.task_type"]
+    schema_status: implemented
+    policy_status: implemented
+    conformance_status: implemented
+    references: ["schema/zmeta-event-1.1.0.schema.json"]
+    review_state: approved
+
+  - <<: *entry_defaults
+    name: LOITER
+    display_name: Loiter command
+    category: command_task_type
+    status: experimental
+    version_branch: "1.1.0"
+    introduced_in: "1.1.0"
+    semantic_definition: v1.1.0 bounded command task for loiter behavior using task-specific geometry.
+    rationale: Adds bounded loiter tasking while preserving deconfliction and no-altitude command constraints.
+    allowed_event_types: ["COMMAND_EVENT"]
+    allowed_event_subtypes: ["LOITER"]
+    payload_scope: ["payload.task_type", "payload.geometry"]
+    schema_status: implemented
+    policy_status: implemented
+    conformance_status: implemented
+    references: ["schema/zmeta-event-1.1.0.schema.json"]
+    review_state: approved
+
+  - <<: *entry_defaults
+    name: SCAN_RF
+    display_name: Scan RF command
+    category: command_task_type
+    status: experimental
+    version_branch: "1.1.0"
+    introduced_in: "1.1.0"
+    semantic_definition: v1.1.0 bounded command task requesting RF scan behavior with sensor, frequency range, and dwell constraints.
+    rationale: Adds RF cueing without turning ZMeta command events into continuous control.
+    allowed_event_types: ["COMMAND_EVENT"]
+    allowed_event_subtypes: ["SCAN_RF"]
+    payload_scope: ["payload.task_type", "payload.sensor_id", "payload.freq_range_hz", "payload.dwell_ms"]
+    schema_status: implemented
+    policy_status: implemented
+    conformance_status: implemented
+    references: ["schema/zmeta-event-1.1.0.schema.json", "gateway/tests/test_schema_version_discrimination.py"]
+    review_state: approved
+
+  - <<: *entry_defaults
+    name: TRACK_TARGET
+    display_name: Track target command
+    category: command_task_type
+    status: experimental
+    version_branch: "1.1.0"
+    introduced_in: "1.1.0"
+    semantic_definition: v1.1.0 bounded command task requesting target tracking for a referenced track.
+    rationale: Adds track-target cueing while keeping track identity source in ZMeta fusion/state.
+    allowed_event_types: ["COMMAND_EVENT"]
+    allowed_event_subtypes: ["TRACK_TARGET"]
+    payload_scope: ["payload.task_type", "payload.target_track_id"]
+    schema_status: implemented
+    policy_status: implemented
+    conformance_status: implemented
+    references: ["schema/zmeta-event-1.1.0.schema.json"]
+    review_state: approved
+
+  - <<: *entry_defaults
+    name: CHANGE_SENSOR_MODE
+    display_name: Change sensor mode command
+    category: command_task_type
+    status: experimental
+    version_branch: "1.1.0"
+    introduced_in: "1.1.0"
+    semantic_definition: v1.1.0 bounded command task requesting a sensor mode change.
+    rationale: Adds sensor-mode cueing without bypassing command authority or deconfliction.
+    allowed_event_types: ["COMMAND_EVENT"]
+    allowed_event_subtypes: ["CHANGE_SENSOR_MODE"]
+    payload_scope: ["payload.task_type", "payload.sensor_id", "payload.sensor_mode"]
+    schema_status: implemented
+    policy_status: implemented
+    conformance_status: implemented
+    references: ["schema/zmeta-event-1.1.0.schema.json", "gateway/tests/test_schema_version_discrimination.py"]
+    review_state: approved
+
+  - <<: *entry_defaults
+    name: RADAR
+    display_name: Radar observation modality
+    category: observation_modality
+    status: reserved
+    semantic_definition: Reserved observation modality candidate for radar-derived measured facts.
+    rationale: Protects the modality name until a feature contract and version branch exist.
+    allowed_event_types: ["OBSERVATION_EVENT"]
+    notes: ["Not valid v1.0 or v1.1.0 OBSERVATION_EVENT modality vocabulary."]
+
+  - <<: *entry_defaults
+    name: LIDAR
+    display_name: Lidar observation modality
+    category: observation_modality
+    status: reserved
+    semantic_definition: Reserved observation modality candidate for lidar-derived measured facts.
+    rationale: Protects the modality name until a feature contract and version branch exist.
+    allowed_event_types: ["OBSERVATION_EVENT"]
+    notes: ["Not valid v1.0 or v1.1.0 OBSERVATION_EVENT modality vocabulary."]
+
+  - <<: *entry_defaults
+    name: MAGNETIC
+    display_name: Magnetic observation modality
+    category: observation_modality
+    status: reserved
+    semantic_definition: Reserved observation modality candidate for magnetic-sensor measured facts.
+    rationale: Protects the modality name until a feature contract and version branch exist.
+    allowed_event_types: ["OBSERVATION_EVENT"]
+    notes: ["Not valid v1.0 or v1.1.0 OBSERVATION_EVENT modality vocabulary."]
+
+  - <<: *entry_defaults
+    name: SEISMIC
+    display_name: Seismic observation modality
+    category: observation_modality
+    status: reserved
+    semantic_definition: Reserved observation modality candidate for seismic measured facts.
+    rationale: Protects the modality name until a feature contract and version branch exist.
+    allowed_event_types: ["OBSERVATION_EVENT"]
+    notes: ["Not valid v1.0 or v1.1.0 OBSERVATION_EVENT modality vocabulary."]
+
+  - <<: *entry_defaults
+    name: CYBER
+    display_name: Cyber observation modality
+    category: observation_modality
+    status: reserved
+    semantic_definition: Reserved observation modality candidate for cyber-domain measured facts.
+    rationale: Protects the modality name until a feature contract and version branch exist.
+    allowed_event_types: ["OBSERVATION_EVENT"]
+    notes: ["Not valid v1.0 or v1.1.0 OBSERVATION_EVENT modality vocabulary."]
+
+  - <<: *entry_defaults
+    name: SIGINT
+    display_name: SIGINT observation modality
+    category: observation_modality
+    status: reserved
+    semantic_definition: Reserved observation modality candidate for SIGINT measured facts.
+    rationale: Protects the modality name until a feature contract and version branch exist.
+    allowed_event_types: ["OBSERVATION_EVENT"]
+    notes: ["Not valid v1.0 or v1.1.0 OBSERVATION_EVENT modality vocabulary."]
+
+  - <<: *entry_defaults
+    name: ENVIRONMENTAL
+    display_name: Environmental observation modality
+    category: observation_modality
+    status: reserved
+    semantic_definition: Reserved observation modality candidate for environmental measured facts.
+    rationale: Protects the modality name until a feature contract and version branch exist.
+    allowed_event_types: ["OBSERVATION_EVENT"]
+    notes: ["Not valid v1.0 or v1.1.0 OBSERVATION_EVENT modality vocabulary."]
+
+  - <<: *entry_defaults
+    name: MARITIME
+    display_name: Maritime observation modality
+    category: observation_modality
+    status: reserved
+    semantic_definition: Reserved observation modality candidate for maritime-domain measured facts.
+    rationale: Protects the observation modality name until a feature contract and version branch exist.
+    allowed_event_types: ["OBSERVATION_EVENT"]
+    notes:
+      - MARITIME is currently a v1.1.0 platform_type metric value, not a valid observation modality.
+
+  - <<: *entry_defaults
+    name: PNT_STATUS
+    display_name: PNT status
+    category: pnt_integrity
+    status: proposed
+    semantic_definition: Candidate governed status for navigation and timing integrity beyond v1.0 timing quality.
+    rationale: PNT integrity needs separate semantics for jam/spoof suspicion and navigation source reliability.
+    allowed_event_types: ["SYSTEM_EVENT"]
+    schema_status: planned
+    policy_status: planned
+    conformance_status: planned
+
+  - <<: *entry_defaults
+    name: MODEL_STATUS
+    display_name: Model status
+    category: ai_model_provenance
+    status: proposed
+    semantic_definition: Candidate model runtime, drift, and health status vocabulary.
+    rationale: AI runtime assurance needs model status separate from inference confidence.
+    allowed_event_types: ["SYSTEM_EVENT"]
+    schema_status: planned
+    policy_status: planned
+    conformance_status: planned
+
+  - <<: *entry_defaults
+    name: ASSURANCE_EVENT
+    display_name: Assurance event
+    category: ai_model_provenance
+    status: reserved
+    semantic_definition: Reserved candidate for AI assurance or validation outputs.
+    rationale: Prevents premature introduction of a new event-family-looking name.
+
+  - <<: *entry_defaults
+    name: TRUST_STATUS
+    display_name: Trust status
+    category: trust_integrity
+    status: proposed
+    semantic_definition: Candidate status vocabulary for producer, key, route, or mesh trust state.
+    rationale: Trust must remain separate from confidence and schema validity.
+    allowed_event_types: ["SYSTEM_EVENT"]
+    schema_status: planned
+    policy_status: planned
+    conformance_status: planned
+
+  - <<: *entry_defaults
+    name: QUARANTINE_STATUS
+    display_name: Quarantine status
+    category: trust_integrity
+    status: reserved
+    semantic_definition: Reserved status candidate for quarantine or release-from-quarantine handling.
+    rationale: Quarantine cannot be represented as ordinary schema validity or confidence.
+
+  - <<: *entry_defaults
+    name: RELEASE_STATUS
+    display_name: Release status
+    category: coalition_release
+    status: reserved
+    semantic_definition: Reserved status candidate for coalition release or cross-domain export state.
+    rationale: Release semantics must stay separate from bandwidth profile.
+
+  - <<: *entry_defaults
+    name: EXPORT_AUDIT
+    display_name: Export audit
+    category: coalition_release
+    status: reserved
+    semantic_definition: Reserved candidate for recording export or guard decisions.
+    rationale: Export audit requires versioned release policy and conformance.
+
+  - <<: *entry_defaults
+    name: REPLAY_STATUS
+    display_name: Replay status
+    category: replay_test
+    status: reserved
+    semantic_definition: Reserved status candidate for replay execution state.
+    rationale: Replay state must not be confused with live event validity.
+
+  - <<: *entry_defaults
+    name: EVENT_SIGNATURE
+    display_name: Event signature
+    category: trust_integrity
+    status: proposed
+    semantic_definition: Candidate signature metadata for event authenticity and integrity.
+    rationale: Signing requires canonicalization, key identity, policy, and replay handling.
+    schema_status: planned
+    policy_status: planned
+    encoding_status: planned
+    conformance_status: planned
+
+  - <<: *entry_defaults
+    name: KEY_IDENTITY
+    display_name: Key identity
+    category: trust_integrity
+    status: proposed
+    semantic_definition: Candidate key identity or trust-anchor vocabulary.
+    rationale: Producer strings are not cryptographic identity.
+    schema_status: planned
+    policy_status: planned
+    conformance_status: planned
+
+  - <<: *entry_defaults
+    name: ANTI_REPLAY_NONCE
+    display_name: Anti-replay nonce
+    category: trust_integrity
+    status: reserved
+    semantic_definition: Reserved candidate for replay-window or nonce semantics.
+    rationale: Anti-replay behavior requires policy and canonical signing design.
+
+  - <<: *entry_defaults
+    name: TRUST_SCORE
+    display_name: Trust score
+    category: trust_integrity
+    status: reserved
+    semantic_definition: Reserved candidate for trust scoring separate from confidence.
+    rationale: Trust score must not replace confidence or schema validity.
+
+  - <<: *entry_defaults
+    name: MESH_ROUTE_TRUST
+    display_name: Mesh route trust
+    category: trust_integrity
+    status: reserved
+    semantic_definition: Reserved candidate for route or mesh-path integrity metadata.
+    rationale: Mesh trust requires route, key, and policy design.
+
+  - <<: *entry_defaults
+    name: SUSPECT_EVENT
+    display_name: Suspect event label
+    category: trust_integrity
+    status: reserved
+    semantic_definition: Reserved candidate for suspect-event labeling.
+    rationale: Suspicion must not be encoded as confidence alone.
+
+  - <<: *entry_defaults
+    name: QUARANTINED_EVENT
+    display_name: Quarantined event label
+    category: trust_integrity
+    status: reserved
+    semantic_definition: Reserved candidate for quarantined-event labeling.
+    rationale: Quarantine is a policy state, not deletion or schema invalidity.
+
+  - <<: *entry_defaults
+    name: UAS_IDENTITY
+    display_name: UAS identity
+    category: trust_integrity
+    status: reserved
+    semantic_definition: Reserved candidate for declared, cooperative, or signed UAS identity semantics.
+    rationale: UAS identity must be evidence-backed and separate from entity class.
+
+  - <<: *entry_defaults
+    name: BEHAVIORAL_IDENTITY
+    display_name: Behavioral identity
+    category: trust_integrity
+    status: reserved
+    semantic_definition: Reserved candidate for behavior-derived identity or fingerprint semantics.
+    rationale: Behavioral identity is an inference/trust concept, not an observation fact by itself.
+
+  - <<: *entry_defaults
+    name: RELEASE_LABEL
+    display_name: Release label
+    category: coalition_release
+    status: reserved
+    semantic_definition: Reserved candidate for coalition or releaseability labels.
+    rationale: Release profile is separate from bandwidth profile.
+
+  - <<: *entry_defaults
+    name: REDACTION_PROFILE
+    display_name: Redaction profile
+    category: coalition_release
+    status: reserved
+    semantic_definition: Reserved candidate for redaction policy or projection metadata.
+    rationale: Redaction must be explicit and lineage-preserved before adoption.
+
+  - <<: *entry_defaults
+    name: DATA_NUTRITION_LABEL
+    display_name: Data nutrition label
+    category: operator_display
+    status: reserved
+    semantic_definition: Reserved candidate for operator-facing evidence summary labels.
+    rationale: Nutrition labels are summaries and must not replace confidence, lineage, or trust.
+
+  - <<: *entry_defaults
+    name: RAW_DATA_ABSENT_STATUS
+    display_name: Raw data absent status
+    category: data_evidence
+    status: proposed
+    semantic_definition: Candidate evidence availability status for absent, withheld, redacted, local-only, or not-retained raw data.
+    rationale: Raw data absence should be explicit without invalidating otherwise valid events.
+    schema_status: planned
+    policy_status: planned
+    conformance_status: planned
+
+  - <<: *entry_defaults
+    name: PROJECTION_METADATA
+    display_name: Projection metadata
+    category: profile_export_control
+    status: proposed
+    semantic_definition: Candidate metadata for profile thinning, redaction, projection reason codes, and omission/precision details.
+    rationale: Projection metadata should make thinning explicit without changing v1.0 events.
+    schema_status: planned
+    policy_status: planned
+    conformance_status: planned
+
+  - <<: *entry_defaults
+    name: EMERGENCY_L0_PROFILE
+    display_name: Emergency L0 profile
+    category: profile_export_control
+    status: reserved
+    semantic_definition: Reserved candidate for an emergency profile below Profile L.
+    rationale: Emergency behavior must not silently drop required v1.0 semantics.
+
+  - <<: *entry_defaults
+    name: REPLAY_LABEL
+    display_name: Replay label
+    category: replay_test
+    status: reserved
+    semantic_definition: Reserved candidate for marking replayed or exercise data.
+    rationale: Replay context must not be confused with live operational truth.
+
+  - <<: *entry_defaults
+    name: SYNTHETIC_EVENT
+    display_name: Synthetic event label
+    category: replay_test
+    status: reserved
+    semantic_definition: Reserved candidate for synthetic data labels.
+    rationale: Synthetic labels require policy and export handling before adoption.
+
+  - <<: *entry_defaults
+    name: RED_TEAM_INJECTION
+    display_name: Red-team injection label
+    category: replay_test
+    status: reserved
+    semantic_definition: Reserved candidate for adversarial or red-team injected data labels.
+    rationale: Test/adversarial labels must not be confused with live event semantics.
+
+  - <<: *entry_defaults
+    name: TRACK_NEW
+    display_name: Track new lifecycle state
+    category: track_lifecycle
+    status: reserved
+    semantic_definition: Reserved track lifecycle candidate for newly created tracks.
+    rationale: Lifecycle names require a versioned fusion/state lifecycle contract.
+
+  - <<: *entry_defaults
+    name: TRACK_ACTIVE
+    display_name: Track active lifecycle state
+    category: track_lifecycle
+    status: reserved
+    semantic_definition: Reserved track lifecycle candidate for active tracks.
+    rationale: Lifecycle names require a versioned fusion/state lifecycle contract.
+
+  - <<: *entry_defaults
+    name: TRACK_STALE
+    display_name: Track stale lifecycle state
+    category: track_lifecycle
+    status: reserved
+    semantic_definition: Reserved track lifecycle candidate for stale tracks.
+    rationale: Lifecycle names require a versioned fusion/state lifecycle contract.
+
+  - <<: *entry_defaults
+    name: TRACK_LOST
+    display_name: Track lost lifecycle state
+    category: track_lifecycle
+    status: reserved
+    semantic_definition: Reserved track lifecycle candidate for lost tracks.
+    rationale: Lifecycle names require a versioned fusion/state lifecycle contract.
+
+  - <<: *entry_defaults
+    name: TRACK_MERGED
+    display_name: Track merged lifecycle state
+    category: track_lifecycle
+    status: reserved
+    semantic_definition: Reserved track lifecycle candidate for merged tracks.
+    rationale: Lifecycle names require a versioned fusion/state lifecycle contract.
+
+  - <<: *entry_defaults
+    name: TRACK_SPLIT
+    display_name: Track split lifecycle state
+    category: track_lifecycle
+    status: reserved
+    semantic_definition: Reserved track lifecycle candidate for split tracks.
+    rationale: Lifecycle names require a versioned fusion/state lifecycle contract.
+
+  - <<: *entry_defaults
+    name: TRACK_RETIRED
+    display_name: Track retired lifecycle state
+    category: track_lifecycle
+    status: reserved
+    semantic_definition: Reserved track lifecycle candidate for retired tracks.
+    rationale: Lifecycle names require a versioned fusion/state lifecycle contract.
+
+  - <<: *entry_defaults
+    name: ADAPTER_MANIFEST
+    display_name: Adapter manifest
+    category: companion_artifact
+    status: reserved
+    semantic_definition: Reserved companion artifact for adapter capabilities, mappings, and validation reports.
+    rationale: Adapter manifests should remain companion artifacts unless a future event reference is needed.
+
+  - <<: *entry_defaults
+    name: REPLAY_BUNDLE_MANIFEST
+    display_name: Replay bundle manifest
+    category: companion_artifact
+    status: reserved
+    semantic_definition: Reserved companion artifact for replay bundle identity and scenario metadata.
+    rationale: Replay scenario catalogs should not bloat core events.
+
+  - <<: *entry_defaults
+    name: VENDOR_SCORECARD
+    display_name: Vendor scorecard
+    category: companion_artifact
+    status: reserved
+    semantic_definition: Reserved companion artifact for vendor-neutral capability or conformance scorecards.
+    rationale: Scorecards belong outside core event payloads.
+
+  - <<: *entry_defaults
+    name: DATA_RIGHTS_PROFILE
+    display_name: Data rights profile
+    category: companion_artifact
+    status: reserved
+    semantic_definition: Reserved companion artifact for data-rights and IP governance.
+    rationale: Rights profiles are governance artifacts unless a future release branch adds event references.
+
+  - <<: *entry_defaults
+    name: DEVSECOPS_EVIDENCE_BUNDLE
+    display_name: DevSecOps evidence bundle
+    category: companion_artifact
+    status: reserved
+    semantic_definition: Reserved companion artifact for supply-chain and process evidence.
+    rationale: Process evidence should not be embedded in core ZMeta events.
+
+  - <<: *entry_defaults
+    name: LESSONS_LEARNED_GRAPH
+    display_name: Lessons learned graph
+    category: companion_artifact
+    status: reserved
+    semantic_definition: Reserved companion artifact for lessons-learned or after-action knowledge graphs.
+    rationale: Knowledge graphs should remain companion artifacts unless referenced by future event vocabulary.
+
+  - <<: *entry_defaults
+    name: TTP_TRAINING_PACKAGE
+    display_name: TTP training package
+    category: companion_artifact
+    status: reserved
+    semantic_definition: Reserved companion artifact for operator TTP and training material.
+    rationale: Training packages should not become core event payloads.

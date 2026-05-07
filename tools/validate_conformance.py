@@ -20,6 +20,11 @@ def parse_args():
         help="Also run profile projection preservation fixtures.",
     )
     parser.add_argument(
+        "--extension-registry",
+        action="store_true",
+        help="Also validate the extension registry.",
+    )
+    parser.add_argument(
         "--pass-file",
         default=str(ROOT / "conformance" / "must-pass.jsonl"),
         help="Path to must-pass JSONL",
@@ -149,6 +154,21 @@ def main():
             must_pass_path=ROOT / "conformance" / "profile-projection" / "must-pass.jsonl",
             must_fail_path=ROOT / "conformance" / "profile-projection" / "must-fail.jsonl",
             quiet=True,
+        )
+        if result:
+            raise SystemExit(result)
+
+    if args.extension_registry:
+        registry_path = ROOT / "tools" / "validate_extension_registry.py"
+        registry_spec = importlib.util.spec_from_file_location(
+            "zmeta_validate_extension_registry", registry_path
+        )
+        registry_validator = importlib.util.module_from_spec(registry_spec)
+        registry_spec.loader.exec_module(registry_validator)
+        result = registry_validator.run(
+            ROOT / "spec" / "extension-registry.yaml",
+            schema_v1_path=ROOT / "schema" / "zmeta-event-1.0.schema.json",
+            schema_v1_1_path=ROOT / "schema" / "zmeta-event-1.1.0.schema.json",
         )
         if result:
             raise SystemExit(result)

@@ -4,11 +4,14 @@
 
 - Last updated: 2026-05-07
 - Quick handoff: `docs/zmeta_refinement_handoff.md`
-- Current next work item: S1-03B - Extension Registry Implementation.
-- Current decision: S1-03A planned the extension registry as a spec-owned human
-  and machine-readable artifact with status, ownership, collision rules,
-  adoption requirements, and validation. S1-03A made no schema, validator,
-  adapter, encoding, semantic contract, example, fixture, or vocabulary changes.
+- Current next work item: S1-03C - Extension Registry Post-Implementation
+  Audit.
+- Current decision: S1-03B implemented the extension registry as spec-owned
+  human and machine-readable artifacts with standalone validation, tests, and
+  optional conformance runner integration. v1.1.0 concepts remain
+  experimental, future concepts remain reserved/proposed, and no schemas,
+  semantic contract text, examples, fixtures, adapters, encodings, or event
+  vocabulary were changed.
 
 ## S0-01 - Semantic Contract Lockdown Audit
 
@@ -174,14 +177,48 @@
 
 ## S1-03B - Extension Registry Implementation
 
-- Status: PENDING IMPLEMENTATION
-- Scope: Implement the human-readable and machine-readable extension registry,
-  registry validation CLI, tests, and documentation integration using the
-  S1-03A plan.
-- Constraints: Keep D-006 open until registry artifacts and validation exist.
-  Do not make reserved/proposed future concepts valid without an approved
-  version branch and matching schema, policy, adapter/gateway, encoding, and
-  conformance work.
+- Status: IMPLEMENTED - PENDING S1-03C AUDIT
+- Date completed: 2026-05-07
+- Scope: Implemented the human-readable and machine-readable extension
+  registry, registry validation CLI, tests, and optional conformance runner
+  integration using the S1-03A plan.
+- Outputs:
+  - `spec/extension-registry.md`
+  - `spec/extension-registry.yaml`
+  - `tools/validate_extension_registry.py`
+  - `gateway/tests/test_extension_registry.py`
+- Integration: `tools/validate_conformance.py --extension-registry` runs the
+  extension registry validator explicitly without changing default strict
+  conformance behavior.
+- Decisions:
+  - Existing v1.1.0 concepts are recorded as `experimental`, not `adopted`.
+  - Future concepts are recorded as `reserved` or `proposed` and remain invalid
+    current event vocabulary.
+  - Registry validation is opt-in for conformance.
+  - No schema, semantic contract, adapter, encoding, example, fixture, policy,
+    or event-vocabulary changes were made.
+- Verification:
+  - `python tools\validate_extension_registry.py --registry spec\extension-registry.yaml` ->
+    `extension registry ok entries=63`
+  - `python tools\validate_conformance.py --strict` -> `conformance ok`
+  - `python tools\validate_conformance.py --strict --profile-projection` ->
+    `projection conformance ok total=33`, `conformance ok`
+  - `python tools\validate_conformance.py --strict --profile-projection --extension-registry` ->
+    `projection conformance ok total=33`, `extension registry ok entries=63`,
+    `conformance ok`
+  - `python -m pytest -q gateway\tests\test_extension_registry.py` ->
+    `11 passed`
+  - `python -m pytest` -> `253 passed`
+  - `git diff --check` -> passed with CRLF conversion warnings only.
+
+## S1-03C - Extension Registry Post-Implementation Audit
+
+- Status: PENDING
+- Scope: Audit the S1-03B implementation for registry correctness, validation
+  coverage, docs alignment, schema/contract non-drift, and reserved/proposed
+  vocabulary isolation.
+- Notes: Audit only. Do not promote experimental entries or make reserved future
+  concepts valid.
 
 ## S1-04A - Conformance Class Manifest Plan Only
 
@@ -263,7 +300,7 @@
 
 ### D-006 - Extension Registry Artifact Missing
 
-- Status: OPEN
+- Status: OPEN - IMPLEMENTED PENDING S1-03C AUDIT
 - Discovered during: S0-03
 - Issue: The contract and schema README reserve future subtype and modality
   names by prose, but the repository does not yet contain a durable extension
@@ -274,9 +311,11 @@
 - S1-03A coverage: Planned `spec/extension-registry.md`,
   `spec/extension-registry.yaml`, validation tooling, initial entries, status
   model, category model, collision rules, and adoption requirements.
-- Proposed follow-up: Implement the registry and validator in S1-03B before
-  implementing future schema branches. Keep D-006 open until implementation
-  exists.
+- S1-03B coverage: Implemented the human-readable registry, machine-readable
+  registry, validator CLI, optional conformance flag, tests, and docs
+  integration. Existing v1.1.0 entries are experimental; future entries are
+  reserved/proposed.
+- Proposed follow-up: Run S1-03C audit before fully closing D-006.
 
 ### D-007 - Encoding Negative Validation Gap
 
@@ -338,3 +377,17 @@
 - Proposed follow-up: Define mission/profile-specific quantization floors and
   packet-budget policy after representative Profile L/M traffic and operational
   requirements are available.
+
+### D-011 - Crosswalk TAKEOFF Mention Cleanup
+
+- Status: OPEN
+- Discovered during: S1-03A / S1-03B registry planning and implementation
+- Issue: `docs/zmeta_contract_to_stack_crosswalk.md` mentions `TAKEOFF` in one
+  v1.1.0 expanded-tasking row, but the v1.1.0 schema, schema README, examples,
+  tests, and extension registry do not define `TAKEOFF`.
+- Impact: The typo could confuse future tasking-extension prompts into treating
+  `TAKEOFF` as existing or planned vocabulary.
+- Proposed follow-up: Clean up the crosswalk row in a narrow docs task or
+  during S1-03C audit if maintainers want audit cleanup to include confirmed
+  typo fixes. Do not add `TAKEOFF` to current schemas or registry unless a
+  future versioned task explicitly proposes it.

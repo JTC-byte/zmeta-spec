@@ -5,6 +5,8 @@ Normative specification and supporting guidance.
 Key documents:
 - `semantics-contract.md` canonical semantic contract (normative)
 - `versioning.md` versioning and compatibility policy
+- `extension-registry.md` human-readable extension registry governance
+- `extension-registry.yaml` machine-readable extension registry
 - `profile-compatibility.md` profile compatibility matrix and producer allowlists
 - `profile-projection-field-catalog.md` profile projection preservation catalog guide
 - `field-dictionary.md` UI-focused field dictionary
@@ -12,3 +14,13 @@ Key documents:
 - `installation-guide.md` packaging and deterministic install guidance
 - `compact-binary-mapping.md` optional compact CBOR mapping for Profile L links
 - `protobuf-encoding.md` experimental protobuf transport projection
+
+Validate the extension registry explicitly:
+
+```bash
+python tools/validate_extension_registry.py --registry spec/extension-registry.yaml
+```
+
+The registry does not make reserved or proposed concepts valid event
+vocabulary. Future concepts require versioned adoption with schema, policy,
+adapter/gateway, encoding, documentation, and conformance coverage.
