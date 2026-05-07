@@ -109,9 +109,13 @@ Claims must include dependency closure directly. For example, a claim for
 `ZMETA-PROJECTION-PRESERVATION` must also claim `ZMETA-PROFILE-L`,
 `ZMETA-PROFILE-M`, and `ZMETA-PROFILE-H`, plus their dependencies.
 
-Because D-002 remains open, claim files may record `contract_hash:
-pending_D-002`. Release-grade claims should replace that placeholder with the
-approved contract/release hash set.
+S1-09B claim files record `contract_hash` as the narrow
+`semantic_contract_hash` from `release/zmeta-release-manifest.yaml`. Broader
+release evidence belongs in category hashes and the release manifest, not in an
+overloaded contract hash. Example claims do not require `release_manifest_hash`
+because the claim files are themselves included in the reference manifest and a
+formal tagged release may handle that circularity through post-release
+attestations.
 
 ## Dependency Model
 
@@ -186,8 +190,7 @@ vendor extensions. Those classes are not claimable today.
 
 ## Future Work
 
-S1-04C should audit the manifest, validator, claim examples, documentation, and
-test coverage. Later work can decide whether implemented classes should be
-promoted to externally active certification classes, whether claims need
-captured test-output artifacts, and how release hashes from D-002 should be
-recorded.
+Later work can decide whether implemented classes should be promoted to
+externally active certification classes, whether claims need captured
+test-output artifacts, and whether formal tagged releases should publish
+post-release claim attestations that include `release_manifest_hash`.

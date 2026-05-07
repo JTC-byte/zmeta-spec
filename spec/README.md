@@ -8,6 +8,7 @@ Key documents:
 - `extension-registry.md` human-readable extension registry governance
 - `extension-registry.yaml` machine-readable extension registry
 - `conformance-classes.md` human-readable conformance class and claim model
+- `release-hash-policy.md` contract/release hash taxonomy and manifest policy
 - `profile-compatibility.md` profile compatibility matrix and producer allowlists
 - `profile-projection-field-catalog.md` profile projection preservation catalog guide
 - `profile-precision-policy.md` profile precision and quantization policy guide
@@ -50,3 +51,17 @@ projection. It is not a schema change, release policy, trust policy, emergency
 mode, UI policy, or transport semantic. The reference defaults require mission
 review, and compact/protobuf encodings remain wire projections that must decode
 to canonical JSON before validation.
+
+Build and validate the reference release manifest explicitly:
+
+```bash
+python tools/build_release_manifest.py --output release/zmeta-release-manifest.yaml
+python tools/validate_release_manifest.py --manifest release/zmeta-release-manifest.yaml
+python tools/validate_conformance.py --strict --release-manifest
+```
+
+`contract_hash` remains narrow in the release claim model: it identifies the
+semantic contract baseline. The release manifest records broader schema,
+policy, registry, conformance, projection, encoding-negative, precision-policy,
+encoding projection, tool, and claim hashes without making those implementation
+surfaces semantic authority.

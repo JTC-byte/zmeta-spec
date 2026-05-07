@@ -18,6 +18,8 @@ version-discriminated schema plus policy pack:
   registry consumed by optional registry validation.
 - `../policy/profile-precision.yaml`: reference conformance default precision
   policy for profile/export validation.
+- `../release/zmeta-release-manifest.yaml`: reference hardening-baseline release
+  manifest for governed artifact hashes.
 
 Use:
 
@@ -86,3 +88,17 @@ trust policy, emergency mode, UI policy, or transport semantics. The reference
 defaults in `policy/profile-precision.yaml` are `reference_conformance_default`
 values with `requires_mission_review: true`. They prove conservative
 quantization behavior without making new event vocabulary valid.
+
+Release manifest validation is opt-in:
+
+```
+python tools/build_release_manifest.py --output release/zmeta-release-manifest.yaml
+python tools/validate_release_manifest.py --manifest release/zmeta-release-manifest.yaml
+python tools/validate_conformance.py --strict --profile-projection --extension-registry --conformance-classes --encoding-negative --precision-policy --release-manifest
+```
+
+Example claims use `contract_hash` for the narrow semantic contract hash and
+record broader release category hashes under `release_hashes`. They omit
+`release_manifest_hash` in S1-09B because the reference manifest includes the
+claim files; a formal tagged release may publish post-release attestations if it
+needs claim-level manifest hashes.

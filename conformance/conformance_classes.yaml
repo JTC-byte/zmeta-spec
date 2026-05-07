@@ -41,12 +41,13 @@ claim_model:
     - limitations
     - exceptions
   dependency_policy: claims_must_include_dependency_closure
-  hash_policy: contract_hash may be pending_D-002 until D-002 is resolved
+  hash_policy: contract_hash records the narrow semantic_contract_hash from the release manifest; release_manifest_hash is not required in example claims to avoid circularity
   result_policy: required commands for each claimed class must be recorded as passed
 notes:
   - Conformance classes do not create semantics or make future vocabulary valid.
   - v1.1.0 support remains experimental until a separate release decision promotes it.
   - Example claims are reproducible examples, not release certificates.
+  - Release hashes are governance evidence. They do not alter class status, schema validity, or current vocabulary.
 
 defaults:
   class: &class_defaults

@@ -1,0 +1,358 @@
+manifest_version: 1
+release_id: zmeta-reference-hardening-baseline-2026-05-07
+release_name: ZMeta Reference Hardening Baseline
+release_status: reference_hardening_baseline
+release_date: '2026-05-07'
+zmeta_versions:
+  normative:
+  - '1.0'
+  experimental:
+  - 1.1.0-experimental
+hash_algorithm: SHA-256
+hash_canonicalization:
+  text_files: UTF-8 bytes after CRLF/CR to LF normalization
+  binary_files: raw bytes
+  file_hashes: sha256 over canonicalized file bytes
+  group_hashes: sha256 over sorted 'relative/path\nsha256:<file_hash>\n' entries
+  release_bundle_hash: sha256 over sorted 'group_name\nsha256:<group_hash>\n' entries; release manifest file excluded
+  release_manifest_hash: sha256 over canonical YAML manifest content with release_manifest_hash set to null
+semantic_contract_hash: sha256:21d8ea7efab7acfb2da92e6f4d82580790def93c5d5171ce2a48d1db9fc78aff
+schema_bundle_hash: sha256:0403e5de390bfa29ea5c15c15363c1cacdd4a8e3ee1e244a056ea3de08d19bf9
+policy_bundle_hash: sha256:12f60656b42866ab12de5b6806b3265bdb28df05da32198293ed9b3d0d3f4e11
+extension_registry_hash: sha256:7e46bb60c83dc88669ae6d55190ab60442eb5f3079cbc1f174401eb8e499e563
+conformance_class_manifest_hash: sha256:b18e2c54afba70f24cfdaf60de06df6440fa598bc316a391fccf92d644a21eb7
+profile_projection_catalog_hash: sha256:88c84258dce567be5f87935b0fda87e939ced8b22a0d0281eec2b611e0316c96
+encoding_negative_suite_hash: sha256:efb1203fd7aa4f4065b094bd4e40f95594fa7f59761698cdfc2cdea1aa199ec8
+profile_precision_policy_hash: sha256:a2f51cf5f0779c43ae4118b941524fb14783181c739e693befd146f8c44a1139
+encoding_projection_specs_hash: sha256:df81a1157548d9e57c7e13a4dd3f2693bfa4575be91f4818fc54ab8fedf9b76a
+release_bundle_hash: sha256:795b3befc8a17069f1f562941325158fb3ca571bb1ecc43449247ba971584ba7
+release_manifest_hash: sha256:9120d89b6c1e31a514047176c0d469abeb8647057de95e47bd065a6df3ab3818
+artifact_hashes:
+- path: configs/policy-variants/producer-authority.strict.yaml
+  group: policy_bundle
+  hash: sha256:4f9ab94813f97ff30b38bec62f4cfddddbb180b66ff82906a7e4573fdc5c628b
+  canonicalization: text_lf
+- path: configs/policy-variants/timing-freshness-profile-L-degrade.yaml
+  group: policy_bundle
+  hash: sha256:aaa30e5607a22d006c243403fafbd6b55f6ee8cb9ce0c2aa063ad8af30b64780
+  canonicalization: text_lf
+- path: conformance/claims/example-core-producer.yaml
+  group: claims
+  hash: sha256:64d3d9053dab1cfdf5bbf5ec22466516f0e08ef1016aed952cc98ca31a5252cc
+  canonicalization: text_lf
+- path: conformance/claims/example-reference-gateway.yaml
+  group: claims
+  hash: sha256:2d263a157ff08b02926384b402a7ca945dd60e392d294b19cd1f4845b63d41c6
+  canonicalization: text_lf
+- path: conformance/conformance_classes.yaml
+  group: conformance_classes
+  hash: sha256:0d64d47ba5af80efd2aff05fdba0ae8365d07109b1cf5788d5c4ea6a4caddd9b
+  canonicalization: text_lf
+- path: conformance/encoding-negative/compact-must-fail.jsonl
+  group: encoding_negative
+  hash: sha256:4096f34ffecbad9acacfa18ef04ed1e811c6680af95af651babd0be18568b15b
+  canonicalization: text_lf
+- path: conformance/encoding-negative/context.jsonl
+  group: encoding_negative
+  hash: sha256:a08ef68da7067be0e6ccf37e8f4ae349e42156678805aaf7de913cc4fa36e6d3
+  canonicalization: text_lf
+- path: conformance/encoding-negative/gateway-must-fail.jsonl
+  group: encoding_negative
+  hash: sha256:dc9800d7ed7399e89733adf12aea442128fde330dcfab4e9f21889364d02d061
+  canonicalization: text_lf
+- path: conformance/encoding-negative/protobuf-must-fail.jsonl
+  group: encoding_negative
+  hash: sha256:c36f7e710158d31fd17162fc020afc0c015c1f9df68d3706adf78ea9030516fc
+  canonicalization: text_lf
+- path: conformance/must-fail.jsonl
+  group: core_conformance
+  hash: sha256:e35ff9ca6a015774369939641c0174bf5725e113721d926ba2f4f49d38d73161
+  canonicalization: text_lf
+- path: conformance/must-pass.jsonl
+  group: core_conformance
+  hash: sha256:e2e1690cc40846ca49699eb07ccbf3ed1b60d10f47cb212a8d751116700513e6
+  canonicalization: text_lf
+- path: conformance/profile-precision/context.jsonl
+  group: profile_precision
+  hash: sha256:e6c7489abaffe2416e1f75c74cb7f8cf6a078911a0100200dc45098f4721433f
+  canonicalization: text_lf
+- path: conformance/profile-precision/must-fail.jsonl
+  group: profile_precision
+  hash: sha256:89f6707fcc6b343e654bde3bd2787240d481596a651870e69c6ce9248782ef6c
+  canonicalization: text_lf
+- path: conformance/profile-precision/must-pass.jsonl
+  group: profile_precision
+  hash: sha256:3ea6445f78b3e8cf2daccc75935a16ba22857cbbee3463b2dff8aec458db07f1
+  canonicalization: text_lf
+- path: conformance/profile-projection/context.jsonl
+  group: profile_projection
+  hash: sha256:75d2e7cf21faa3f0b04db5bc3199a905b1d162b6136ee0054de918cbecd955da
+  canonicalization: text_lf
+- path: conformance/profile-projection/must-fail.jsonl
+  group: profile_projection
+  hash: sha256:e7afd239ccd3a3a358806ad3ccb7eb69d4a719b15bfc5291e9bc5cdbdf5360c5
+  canonicalization: text_lf
+- path: conformance/profile-projection/must-pass.jsonl
+  group: profile_projection
+  hash: sha256:54a456d1315c88c25620c8a8e00b1b88f10f5aa279692841dcaf0a0c0fb2e653
+  canonicalization: text_lf
+- path: conformance/profile_projection_field_catalog.yaml
+  group: profile_projection
+  hash: sha256:363468f45bc6b1e31fb32e916273138fac368949605077251b0bf81c35096301
+  canonicalization: text_lf
+- path: policy/lineage.yaml
+  group: policy_bundle
+  hash: sha256:5ec7e56d3d0061cbbec0a588c1eb4d8adb27439e6d20d11b1babdf9bcf9a155b
+  canonicalization: text_lf
+- path: policy/producer-authority.yaml
+  group: policy_bundle
+  hash: sha256:c4d413e7e171297f59877dc847b0fdd3a774fe7e1a1ad10217f2d78d48a72a5e
+  canonicalization: text_lf
+- path: policy/profile-precision.yaml
+  group: policy_bundle
+  hash: sha256:e5c5544e9489ad27219a52de3bb4cab5ae71f3a216d2ce5af78c17b655b1d5cb
+  canonicalization: text_lf
+- path: policy/profile-precision.yaml
+  group: profile_precision
+  hash: sha256:e5c5544e9489ad27219a52de3bb4cab5ae71f3a216d2ce5af78c17b655b1d5cb
+  canonicalization: text_lf
+- path: policy/profiles.yaml
+  group: policy_bundle
+  hash: sha256:e45555013347b80157437aba35493c9430ac758690026d81aca889301ce4bfab
+  canonicalization: text_lf
+- path: policy/roles.yaml
+  group: policy_bundle
+  hash: sha256:7e274c3fac81ae2f8bac96bb3f0260a1ce034919e69359b54c270c8a8492af2b
+  canonicalization: text_lf
+- path: policy/routing.yaml
+  group: policy_bundle
+  hash: sha256:60c21b6c5114c9de58e94a019221bdda1719720a456ff0c321fb441df13d1e8b
+  canonicalization: text_lf
+- path: policy/semantics.yaml
+  group: policy_bundle
+  hash: sha256:5dceb23156014a2630a29a43ea9d8759e6ef6ae6cb0b9b9dbc554fdc017731ca
+  canonicalization: text_lf
+- path: policy/timing-freshness.yaml
+  group: policy_bundle
+  hash: sha256:60aeeec3c216c14aa3940073c2afb6438700058f64f19ba9a8c4486ef0fc164a
+  canonicalization: text_lf
+- path: policy/violation-codes.yaml
+  group: policy_bundle
+  hash: sha256:adabd7a7619293c798d7c624b1f769f0eb3eed58fb2adfe6dda70a80880318ed
+  canonicalization: text_lf
+- path: schema/proto/zmeta_event_v1.proto
+  group: encoding_projection_specs
+  hash: sha256:abc128fa2dc0058624bc654b422e8b0c7a045aac83e6a71d644a8ccca6672d82
+  canonicalization: text_lf
+- path: schema/zmeta-event-1.0.schema.json
+  group: schema_bundle
+  hash: sha256:06ae18ed330c505ccb3cf5c83624893dc6bc137c0c0130f664f6cfd37cda8d64
+  canonicalization: text_lf
+- path: schema/zmeta-event-1.1.0.schema.json
+  group: schema_bundle
+  hash: sha256:33a00537a9dddf0c7c61a2674d51afabdfe5c8e802ade351e56491a6094c1c08
+  canonicalization: text_lf
+- path: schema/zmeta-event.schema.json
+  group: schema_bundle
+  hash: sha256:bbaaa2c4c3b639e25dfb58971e5904ac17e9ddfe69cac0b48eda18c27691f793
+  canonicalization: text_lf
+- path: spec/compact-binary-mapping.md
+  group: encoding_projection_specs
+  hash: sha256:5d15491f53003f4a9d54f7b5715e8f56357f51663a12dbf6f97f9a1b7a6b2da3
+  canonicalization: text_lf
+- path: spec/extension-registry.yaml
+  group: extension_registry
+  hash: sha256:1c3b5aa6489cfd34fd053658b324ae77c188b3af58c01e66a2d3163c67f0842b
+  canonicalization: text_lf
+- path: spec/protobuf-encoding.md
+  group: encoding_projection_specs
+  hash: sha256:9e31d7e20847f0d6278ef91c6c598effafcce9a33d382da33cd36b64e4fa4de1
+  canonicalization: text_lf
+- path: spec/release-hash-policy.md
+  group: release_policy
+  hash: sha256:a71b2294e396331105a4f2af36328a1e7a5da7c765f9c221a30a81b81edfbdc8
+  canonicalization: text_lf
+- path: spec/semantics-contract.md
+  group: semantic_contract
+  hash: sha256:f65b294e492bce1325787c9d4c455fd05621a81d80c12610eefebc3854caf198
+  canonicalization: text_lf
+- path: tools/build_release_manifest.py
+  group: release_tools
+  hash: sha256:5e8d1c9c9bdd3b425d29f6f1f3f8c320204dee32afbee60a97f8e24e12bad59d
+  canonicalization: text_lf
+- path: tools/compute_contract_hash.py
+  group: release_tools
+  hash: sha256:813cbfa4a98027a1eac0954fc2eb9d42eb43fb4580da56d2ff0363e45ee8f5de
+  canonicalization: text_lf
+- path: tools/validate_conformance.py
+  group: conformance_tools
+  hash: sha256:9bbc668290b2b0769b0b3138061fd7e1d4eebb182ea045c26f26d2439cc2f5a6
+  canonicalization: text_lf
+- path: tools/validate_conformance_classes.py
+  group: conformance_tools
+  hash: sha256:47b033ea52f3ad9e4b3686559c151afc035005e68240b55d50c541b3f72d0e76
+  canonicalization: text_lf
+- path: tools/validate_encoding_negative.py
+  group: conformance_tools
+  hash: sha256:c0e210e59b44f26e88ccddb38f8e3b645bd96b7c8122e7c943cba1cf0a296b56
+  canonicalization: text_lf
+- path: tools/validate_extension_registry.py
+  group: conformance_tools
+  hash: sha256:b92969eda78e6a6a2e6a7eb68a94075febce0310e3b98a78acf7b3012e3c2e7c
+  canonicalization: text_lf
+- path: tools/validate_precision_policy.py
+  group: conformance_tools
+  hash: sha256:cc0fe1f8727386bd414ab21e798ac1de21aa208a5b75f3c93c23377bf694118d
+  canonicalization: text_lf
+- path: tools/validate_projection.py
+  group: conformance_tools
+  hash: sha256:8797f5dcf2231c156d3a2e925196287e5e924286e8410a2ffb8ad7e379a9e07d
+  canonicalization: text_lf
+- path: tools/validate_release_manifest.py
+  group: release_tools
+  hash: sha256:2f703efe82c7aca648b11276d65170c0980bfe8a8bc5f4c9096ba3b874a733f2
+  canonicalization: text_lf
+- path: zmeta_cbor.py
+  group: encoding_projection_specs
+  hash: sha256:6b4451919310001cd2b6e050f1a3833de74558e6d3974d0e1c7ea9842d6cf0be
+  canonicalization: text_lf
+- path: zmeta_compact.py
+  group: encoding_projection_specs
+  hash: sha256:32a289b9af1229044b5b765e7dde58a31d0b1c3b9ee0f5675805fb978d0eabb0
+  canonicalization: text_lf
+- path: zmeta_proto.py
+  group: encoding_projection_specs
+  hash: sha256:88925ea7eebf8863d02ab58541c4d770e690e980c94cf3c17c824b72af0edb74
+  canonicalization: text_lf
+artifact_groups:
+  semantic_contract:
+    description: Narrow normative semantic baseline.
+    paths:
+    - spec/semantics-contract.md
+    hash: sha256:21d8ea7efab7acfb2da92e6f4d82580790def93c5d5171ce2a48d1db9fc78aff
+  schema_bundle:
+    description: Canonical dispatcher plus locked v1.0 and experimental v1.1.0 schemas.
+    paths:
+    - schema/zmeta-event-1.0.schema.json
+    - schema/zmeta-event-1.1.0.schema.json
+    - schema/zmeta-event.schema.json
+    hash: sha256:0403e5de390bfa29ea5c15c15363c1cacdd4a8e3ee1e244a056ea3de08d19bf9
+  policy_bundle:
+    description: Release-included policy YAML and policy variant baselines.
+    paths:
+    - configs/policy-variants/producer-authority.strict.yaml
+    - configs/policy-variants/timing-freshness-profile-L-degrade.yaml
+    - policy/lineage.yaml
+    - policy/producer-authority.yaml
+    - policy/profile-precision.yaml
+    - policy/profiles.yaml
+    - policy/roles.yaml
+    - policy/routing.yaml
+    - policy/semantics.yaml
+    - policy/timing-freshness.yaml
+    - policy/violation-codes.yaml
+    hash: sha256:12f60656b42866ab12de5b6806b3265bdb28df05da32198293ed9b3d0d3f4e11
+  extension_registry:
+    description: Machine-readable extension and reserved-vocabulary registry.
+    paths:
+    - spec/extension-registry.yaml
+    hash: sha256:7e46bb60c83dc88669ae6d55190ab60442eb5f3079cbc1f174401eb8e499e563
+  conformance_classes:
+    description: Machine-readable conformance class manifest.
+    paths:
+    - conformance/conformance_classes.yaml
+    hash: sha256:b18e2c54afba70f24cfdaf60de06df6440fa598bc316a391fccf92d644a21eb7
+  core_conformance:
+    description: Core schema and policy conformance must-pass/must-fail fixtures.
+    paths:
+    - conformance/must-fail.jsonl
+    - conformance/must-pass.jsonl
+    hash: sha256:6fd96a9ae22f72e30fbcc568e3ff8d47b5fc95ac87381b7a5c1b16c3989fb553
+  profile_projection:
+    description: Profile projection field catalog and source/projected fixtures.
+    paths:
+    - conformance/profile-projection/context.jsonl
+    - conformance/profile-projection/must-fail.jsonl
+    - conformance/profile-projection/must-pass.jsonl
+    - conformance/profile_projection_field_catalog.yaml
+    hash: sha256:88c84258dce567be5f87935b0fda87e939ced8b22a0d0281eec2b611e0316c96
+  encoding_negative:
+    description: Compact/protobuf/gateway invalid-after-decode fixture suite.
+    paths:
+    - conformance/encoding-negative/compact-must-fail.jsonl
+    - conformance/encoding-negative/context.jsonl
+    - conformance/encoding-negative/gateway-must-fail.jsonl
+    - conformance/encoding-negative/protobuf-must-fail.jsonl
+    hash: sha256:efb1203fd7aa4f4065b094bd4e40f95594fa7f59761698cdfc2cdea1aa199ec8
+  profile_precision:
+    description: Reference profile precision policy and source/projected fixtures.
+    paths:
+    - conformance/profile-precision/context.jsonl
+    - conformance/profile-precision/must-fail.jsonl
+    - conformance/profile-precision/must-pass.jsonl
+    - policy/profile-precision.yaml
+    hash: sha256:a2f51cf5f0779c43ae4118b941524fb14783181c739e693befd146f8c44a1139
+  encoding_projection_specs:
+    description: Compact CBOR and protobuf projection specifications and codec evidence.
+    paths:
+    - schema/proto/zmeta_event_v1.proto
+    - spec/compact-binary-mapping.md
+    - spec/protobuf-encoding.md
+    - zmeta_cbor.py
+    - zmeta_compact.py
+    - zmeta_proto.py
+    hash: sha256:df81a1157548d9e57c7e13a4dd3f2693bfa4575be91f4818fc54ab8fedf9b76a
+  claims:
+    description: Example implementation claim files for release-baseline references.
+    paths:
+    - conformance/claims/example-core-producer.yaml
+    - conformance/claims/example-reference-gateway.yaml
+    hash: sha256:8703f29194ba844854145910d3b1af0d76eae3cbd786ec003ba145e2156184ba
+  release_policy:
+    description: Human-readable release hash taxonomy and canonicalization policy.
+    paths:
+    - spec/release-hash-policy.md
+    hash: sha256:95ffe625868160ada2501b94a3fdc96bc6eb69bc1184d95894bac3893fbb03c1
+  release_tools:
+    description: Release hash build and validation tooling.
+    paths:
+    - tools/build_release_manifest.py
+    - tools/compute_contract_hash.py
+    - tools/validate_release_manifest.py
+    hash: sha256:74edfb689d9422a8db203aeb2cc093a32e525ce5dcb5425320c8ede11dacf26a
+  conformance_tools:
+    description: Conformance validators included in the reference baseline.
+    paths:
+    - tools/validate_conformance.py
+    - tools/validate_conformance_classes.py
+    - tools/validate_encoding_negative.py
+    - tools/validate_extension_registry.py
+    - tools/validate_precision_policy.py
+    - tools/validate_projection.py
+    hash: sha256:699aaa0eb783a1dc5d1d4b3113f2e392c9eea216c90ff99181f95556f025da7e
+tool_versions:
+  python: 3.14.0
+  builder: tools/build_release_manifest.py
+  validator: tools/validate_release_manifest.py
+git_commit: 831bfeb05c790a85280cf873425b5632d1e598f8
+branch: main
+generated_by: tools/build_release_manifest.py
+notes:
+- Reference hardening-baseline manifest, not a formal tagged release.
+- The semantic contract hash is narrow and does not include implementation artifacts.
+- Protobuf is classified as an experimental encoding projection, not v1.0 semantic authority.
+- Release manifest validation is opt-in and does not change default strict conformance.
+known_open_issues:
+- D-002 OPEN - IMPLEMENTED PENDING S1-09C AUDIT
+- D-003 OPEN - Future Semantics Require Versioned Implementation Branches
+- D-004 OPEN - Companion Artifact Set Needed
+experimental_surfaces:
+- schema/zmeta-event-1.1.0.schema.json
+- schema/proto/zmeta_event_v1.proto
+- spec/protobuf-encoding.md
+- zmeta_proto.py
+future_surfaces_not_valid:
+- reserved and proposed extension registry entries
+- future conformance classes with planned/reserved/future status
+- D-003 version-branch candidates
+- D-004 companion artifact concepts

@@ -4,17 +4,16 @@
 
 - Last updated: 2026-05-07
 - Quick handoff: `docs/zmeta_refinement_handoff.md`
-- Current next work item: S1-09B - Contract Hash / Release Hash Implementation.
-- Current decision: S1-09A planned the D-002 contract hash and release hash
-  follow-up without recomputing hashes or implementing release tooling. The
-  plan separates narrow semantic, schema, policy, registry, conformance,
-  projection, encoding, precision, release-manifest, and release-bundle hashes;
-  recommends `release/zmeta-release-manifest.yaml`; and keeps
-  `tools/compute_contract_hash.py` focused on the gateway-compatible
-  schema/policy/semantic contract hash. No schemas, semantic contract text,
-  extension registry artifacts, conformance classes, policy files, validators,
-  gateway runtime behavior, codecs, adapters, release hashes, manifests, or
-  event vocabulary were changed. D-002 remains open pending implementation.
+- Current next work item: S1-09C - Contract Hash / Release Hash
+  Post-Implementation Audit.
+- Current decision: S1-09B implemented the D-002 release hash system as a
+  reference hardening baseline. `contract_hash` remains narrow in release
+  claims and maps to the semantic contract hash. The broader governed baseline
+  is captured in `release/zmeta-release-manifest.yaml` with category hashes for
+  schemas, policy, extension registry, conformance classes, core/profile
+  conformance, encoding-negative fixtures, profile precision policy, encoding
+  projection specs, tools, claims, and release policy. D-002 remains open as
+  implemented pending S1-09C audit.
 
 ## S0-01 - Semantic Contract Lockdown Audit
 
@@ -811,11 +810,50 @@
 
 ## S1-09B - Contract Hash / Release Hash Implementation
 
-- Status: PENDING IMPLEMENTATION
-- Scope: Implement the release hash policy, release manifest, deterministic
-  manifest build/validation tooling, focused tests, documentation, and claim
-  hash updates as defined by S1-09A. D-002 should remain implemented pending
-  S1-09C audit after implementation.
+- Status: IMPLEMENTED PENDING AUDIT
+- Date completed: 2026-05-07
+- Scope: Implemented the release hash policy, reference release manifest,
+  deterministic manifest build and validation tooling, focused tests, optional
+  conformance runner integration, documentation, and claim hash updates as
+  defined by S1-09A.
+- Outputs:
+  - `spec/release-hash-policy.md`
+  - `release/zmeta-release-manifest.yaml`
+  - `tools/build_release_manifest.py`
+  - `tools/validate_release_manifest.py`
+  - `gateway/tests/test_release_manifest.py`
+- Integration: `tools/validate_conformance.py --release-manifest` validates the
+  structured release manifest explicitly without changing default strict
+  conformance behavior.
+- Decisions:
+  - `contract_hash` in example claims now records the narrow
+    `semantic_contract_hash`, not the whole stack.
+  - The release manifest records broader category hashes and excludes the
+    manifest file itself from `release_bundle_hash`.
+  - Protobuf remains an experimental encoding projection, not v1.0 semantic
+    authority.
+  - `tools/compute_contract_hash.py` remains the existing gateway-compatible
+    schema/policy/semantic hash helper and was not overloaded.
+  - No schema, semantic contract, extension registry, event vocabulary, codec,
+    adapter, or gateway runtime behavior changed.
+- Verification:
+  - `python tools\build_release_manifest.py --output release\zmeta-release-manifest.yaml` -> wrote reference manifest
+  - `python tools\validate_release_manifest.py --manifest release\zmeta-release-manifest.yaml` -> `release manifest ok groups=14 artifacts=49`
+  - `python tools\compute_contract_hash.py` -> gateway-compatible schema, policy, semantics, and combined contract hashes printed successfully
+  - `python tools\validate_conformance.py --strict` -> `conformance ok`
+  - `python tools\validate_conformance.py --strict --profile-projection` -> `projection conformance ok total=33`, `conformance ok`
+  - `python tools\validate_conformance.py --strict --profile-projection --extension-registry` -> `projection conformance ok total=33`, `extension registry ok entries=63`, `conformance ok`
+  - `python tools\validate_conformance.py --strict --profile-projection --extension-registry --conformance-classes` -> `projection conformance ok total=33`, `extension registry ok entries=63`, `conformance classes ok classes=30 claims=2`, `conformance ok`
+  - `python tools\validate_conformance.py --strict --profile-projection --extension-registry --conformance-classes --encoding-negative` -> `encoding negative ok total=49`, `conformance ok`
+  - `python tools\validate_conformance.py --strict --profile-projection --extension-registry --conformance-classes --encoding-negative --precision-policy` -> `profile precision policy ok total=32`, `conformance ok`
+  - `python tools\validate_conformance.py --strict --profile-projection --extension-registry --conformance-classes --encoding-negative --precision-policy --release-manifest` -> `conformance ok`
+  - `python tools\validate_projection.py --catalog conformance\profile_projection_field_catalog.yaml --must-pass conformance\profile-projection\must-pass.jsonl --must-fail conformance\profile-projection\must-fail.jsonl --quiet` -> `projection conformance ok total=33`
+  - `python tools\validate_extension_registry.py --registry spec\extension-registry.yaml` -> `extension registry ok entries=63`
+  - `python tools\validate_conformance_classes.py --manifest conformance\conformance_classes.yaml --claims conformance\claims\example-reference-gateway.yaml conformance\claims\example-core-producer.yaml` -> `conformance classes ok classes=30 claims=2`
+  - `python tools\validate_encoding_negative.py --compact conformance\encoding-negative\compact-must-fail.jsonl --protobuf conformance\encoding-negative\protobuf-must-fail.jsonl --gateway conformance\encoding-negative\gateway-must-fail.jsonl --quiet` -> `encoding negative ok total=49`
+  - `python tools\validate_precision_policy.py --policy policy\profile-precision.yaml --must-pass conformance\profile-precision\must-pass.jsonl --must-fail conformance\profile-precision\must-fail.jsonl --quiet` -> `profile precision policy ok total=32`
+  - `python -m pytest -q gateway\tests\test_release_manifest.py` -> `15 passed`
+  - `python -m pytest` -> `321 passed`
 
 ## S1-09C - Contract Hash / Release Hash Post-Implementation Audit
 
@@ -856,7 +894,7 @@
 
 ### D-002 - Contract Hash / Release Hash Follow-Up
 
-- Status: OPEN
+- Status: OPEN - IMPLEMENTED PENDING S1-09C AUDIT
 - Discovered during: S0-02
 - Issue: Rewriting `spec/semantics-contract.md` changes the normative contract
   hash used by gateway/deployment hash gates.
@@ -871,6 +909,10 @@
   build/validation tooling, deployment gate behavior, and conformance claim hash
   integration. No hashes were recomputed and D-002 remains open pending
   implementation.
+- S1-09B coverage: Implemented `spec/release-hash-policy.md`,
+  `release/zmeta-release-manifest.yaml`, deterministic build and validation
+  tooling, focused tests, optional `--release-manifest` conformance integration,
+  and claim hash updates. D-002 remains open pending S1-09C audit.
 
 ### D-003 - Future Semantics Require Versioned Implementation Branches
 

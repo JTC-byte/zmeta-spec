@@ -40,6 +40,11 @@ def parse_args():
         help="Also run profile precision/quantization policy fixtures.",
     )
     parser.add_argument(
+        "--release-manifest",
+        action="store_true",
+        help="Also validate the structured release manifest.",
+    )
+    parser.add_argument(
         "--pass-file",
         default=str(ROOT / "conformance" / "must-pass.jsonl"),
         help="Path to must-pass JSONL",
@@ -234,6 +239,20 @@ def main():
             policy_path=ROOT / "policy" / "profile-precision.yaml",
             must_pass_path=ROOT / "conformance" / "profile-precision" / "must-pass.jsonl",
             must_fail_path=ROOT / "conformance" / "profile-precision" / "must-fail.jsonl",
+            quiet=True,
+        )
+        if result:
+            raise SystemExit(result)
+
+    if args.release_manifest:
+        release_manifest_path = ROOT / "tools" / "validate_release_manifest.py"
+        release_manifest_spec = importlib.util.spec_from_file_location(
+            "zmeta_validate_release_manifest", release_manifest_path
+        )
+        release_manifest = importlib.util.module_from_spec(release_manifest_spec)
+        release_manifest_spec.loader.exec_module(release_manifest)
+        result = release_manifest.run(
+            ROOT / "release" / "zmeta-release-manifest.yaml",
             quiet=True,
         )
         if result:
