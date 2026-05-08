@@ -4,10 +4,11 @@
 
 - Last updated: 2026-05-07
 - Quick handoff: `docs/zmeta_refinement_handoff.md`
-- Current next work item: S1-11A - Future Versioned Semantic Branch Roadmap
-  Plan Only.
-- Current decision: S1-10P purged FORGE-derived organizational artifact scope
-  from the ZMeta baseline. D-004 is closed as removed from ZMeta scope.
+- Current next work item: S1-11B - Future Branch Roadmap Machine-Readable
+  Artifact, or S1-12A if release packaging is prioritized first.
+- Current decision: S1-11A planned the D-003 future versioned semantic branch
+  roadmap. D-003 remains `OPEN - ROADMAP PLANNED`. D-004 remains closed as
+  removed from ZMeta scope.
 
 ## S0-01 - Semantic Contract Lockdown Audit
 
@@ -933,11 +934,38 @@
 
 ## S1-11A - Future Versioned Semantic Branch Roadmap Plan Only
 
-- Status: FUTURE / PENDING
+- Status: COMPLETE
+- Date completed: 2026-05-07
+- Output: `docs/s1_11_future_versioned_semantic_branch_roadmap_plan.md`
 - Scope: Plan D-003 versioned implementation branches for future semantic
   concepts, including markings, integrity, anti-replay, trust, AI assurance,
   PNT integrity, UAS identity, coalition export, data nutrition, emergency/L0,
   and related conformance surfaces.
+- Summary:
+  - Classified current v1.0 vocabulary, v1.1.0 experimental vocabulary,
+    reserved/proposed future vocabulary, and out-of-scope concepts.
+  - Defined branch lifecycle statuses and adoption gates.
+  - Inventoried PNT integrity, signing/key identity/anti-replay, mesh trust,
+    UAS identity, AI model assurance, raw-data-absent evidence status,
+    coalition export, projection metadata, track lifecycle, future modalities,
+    semantic quality summaries, compute degradation, and emergency/L0.
+  - Recommended sequencing and dependency order without approving or
+    implementing any branch.
+- Notes: Documentation-only task. No schemas, semantic contract text,
+  extension registry, conformance class manifest, validators, gateway runtime,
+  adapters, codecs, policies, release manifest, or event vocabulary were
+  changed.
+- Decision: D-003 remains `OPEN - ROADMAP PLANNED`. D-004 remains closed as
+  removed from ZMeta scope. D-012 remains open.
+
+## S1-11B - Future Branch Roadmap Machine-Readable Artifact
+
+- Status: PENDING IMPLEMENTATION
+- Scope: If maintainers approve, create a machine-readable future branch
+  roadmap artifact that records candidate branch status, dependencies, required
+  implementation surfaces, and rejection/defer decisions. It must not modify
+  schemas, the extension registry, conformance classes, or event vocabulary, and
+  it must not make any future candidate valid.
 
 ## S1-12A - Formal Release Tag / Signature / Attestation Plan Only
 
@@ -998,7 +1026,7 @@
 
 ### D-003 - Future Semantics Require Versioned Implementation Branches
 
-- Status: OPEN
+- Status: OPEN - ROADMAP PLANNED
 - Discovered during: S0-02
 - Issue: The rewritten contract defines future candidates for markings,
   integrity, anti-replay, trust, MODEL_STATUS/ASSURANCE_EVENT, PNT integrity,
@@ -1008,6 +1036,11 @@
 - Proposed follow-up: Create dedicated versioned prompts for schema, policy,
   adapter/gateway, encoding, examples, and conformance implementation after
   approval of each extension branch.
+- S1-11A coverage: Planned the future versioned semantic branch roadmap,
+  candidate inventory, sequencing, dependency map, extension-registry
+  interaction, conformance-class interaction, release/hash impact, and standard
+  Sx-A/Sx-B/Sx-C implementation pattern. No branch was implemented and no
+  future vocabulary became valid.
 
 ### D-004 - Out-of-Scope Artifact Set
 

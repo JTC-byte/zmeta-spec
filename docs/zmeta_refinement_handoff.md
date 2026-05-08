@@ -6,11 +6,11 @@ This note is the quick resume point for the current ZMeta refinement effort. The
 
 ## Current Position
 
-The semantic contract has been audited, rewritten, and crosswalked against the current implementation stack. The locked v1.0 baseline was verified, and no S1-01B targeted schema implementation task is currently needed. Profile projection preservation has been implemented and audited as sidecar conformance tooling without changing v1.0 schema or event vocabulary. The extension registry has been implemented and audited. The conformance class manifest and claim model have been implemented and audited without changing schemas or making new vocabulary valid. Encoding-negative validation has been implemented and audited for compact CBOR and protobuf invalid-after-decode paths. Profile precision and quantization policy has been implemented and audited as a reference conformance default. The D-011 `TAKEOFF` crosswalk cleanup is complete. The D-001 MAVLink ingress README state payload drift cleanup is complete. S1-09A planned the contract hash and release hash follow-up for D-002, S1-09B implemented the reference release hash policy, manifest, builder, validator, claim hash updates, and optional conformance integration, and S1-09C audited that implementation and closed D-002. S1-10P removed FORGE-derived organizational artifact scope from the ZMeta baseline. S1-10B was stopped before commit, no stopped implementation files remain, and D-004 is closed as removed from ZMeta scope.
+The semantic contract has been audited, rewritten, and crosswalked against the current implementation stack. The locked v1.0 baseline was verified, and no S1-01B targeted schema implementation task is currently needed. Profile projection preservation has been implemented and audited as sidecar conformance tooling without changing v1.0 schema or event vocabulary. The extension registry has been implemented and audited. The conformance class manifest and claim model have been implemented and audited without changing schemas or making new vocabulary valid. Encoding-negative validation has been implemented and audited for compact CBOR and protobuf invalid-after-decode paths. Profile precision and quantization policy has been implemented and audited as a reference conformance default. The D-011 `TAKEOFF` crosswalk cleanup is complete. The D-001 MAVLink ingress README state payload drift cleanup is complete. S1-09A planned the contract hash and release hash follow-up for D-002, S1-09B implemented the reference release hash policy, manifest, builder, validator, claim hash updates, and optional conformance integration, and S1-09C audited that implementation and closed D-002. S1-10P removed FORGE-derived organizational artifact scope from the ZMeta baseline. S1-10B was stopped before commit, no stopped implementation files remain, and D-004 is closed as removed from ZMeta scope. S1-11A planned the D-003 future versioned semantic branch roadmap and left D-003 open as roadmap-planned.
 
 The next active planning item is:
 
-**S1-11A - Future Versioned Semantic Branch Roadmap Plan Only**
+**S1-11B - Future Branch Roadmap Machine-Readable Artifact**, or **S1-12A - Formal Release Tag / Signature / Attestation Plan Only** if release packaging is prioritized first.
 
 ## Key Docs
 
@@ -48,6 +48,7 @@ The next active planning item is:
 | `release/zmeta-release-manifest.yaml` | Reference hardening-baseline manifest with governed artifact hashes. |
 | `docs/s1_09c_contract_release_hash_audit.md` | S1-09C audit confirming release hash reproducibility, claim integration, and D-002 closure. |
 | `docs/s1_10p_forge_scope_purge.md` | S1-10P cleanup note removing out-of-scope organizational artifact scope from the ZMeta baseline. |
+| `docs/s1_11_future_versioned_semantic_branch_roadmap_plan.md` | S1-11A roadmap for future versioned semantic branches under D-003. |
 | `docs/zmeta_refinement_worklog.md` | Running worklog, completed work items, pending work items, and deferred issue register. |
 
 ## Completed Recently
@@ -80,6 +81,7 @@ The next active planning item is:
 | S1-09C Contract Hash / Release Hash Audit | COMPLETE | `docs/s1_09c_contract_release_hash_audit.md` |
 | S1-10A Out-of-Scope Artifact Roadmap Plan Only | SUPERSEDED / CANCELLED | deleted during S1-10P |
 | S1-10P Purge FORGE-Derived Scope Contamination | COMPLETE | `docs/s1_10p_forge_scope_purge.md` |
+| S1-11A Future Versioned Semantic Branch Roadmap Plan Only | COMPLETE | `docs/s1_11_future_versioned_semantic_branch_roadmap_plan.md` |
 
 ## Current Decisions
 
@@ -150,13 +152,16 @@ The next active planning item is:
   baseline. ZMeta remains focused on event semantics, profiles, adapters,
   encodings, validation, conformance, and release baselines.
 - D-004 is closed as `CLOSED - REMOVED FROM ZMETA SCOPE`.
+- S1-11A established a plan-only roadmap for future versioned semantic
+  branches. D-003 remains `OPEN - ROADMAP PLANNED`; no future branch was
+  implemented or approved.
 
 ## Next Work Queue
 
-1. **S1-11A - Future Versioned Semantic Branch Roadmap Plan Only**
-   - Plan D-003 versioned implementation branches for future semantic concepts
-     without changing the current v1.0 baseline or promoting v1.1.0/future
-     vocabulary.
+1. **S1-11B - Future Branch Roadmap Machine-Readable Artifact**
+   - Optional implementation follow-up to encode the S1-11A roadmap in a
+     machine-readable planning artifact without changing schemas, the extension
+     registry, conformance classes, or event vocabulary.
 
 2. **Human decisions for release, precision, and claim hardening**
    - Exact candidate precision defaults by profile and field family.
@@ -199,10 +204,14 @@ The next active planning item is:
      join strict release conformance.
    - Whether `--precision-policy` should remain opt-in indefinitely or later
      join strict release conformance.
+   - Whether to implement S1-11B or keep the future-branch roadmap as
+     documentation only.
 
 3. **Deferred issue cleanup**
    - D-001 MAVLink Adapter README State Payload Drift is closed.
    - D-002 Contract Hash / Release Hash Follow-Up is closed.
+   - D-003 Future Semantics Require Versioned Implementation Branches is
+     `OPEN - ROADMAP PLANNED`.
    - D-007 Encoding Negative Validation Gap is closed.
    - D-008 Conformance Class Manifest Missing is closed.
    - D-004 is closed as removed from ZMeta scope by S1-10P.
@@ -234,7 +243,7 @@ The next active planning item is:
 
 ## Verification State
 
-Most recent validation after S1-10P:
+Most recent validation after S1-11A:
 
 ```powershell
 python tools\validate_release_manifest.py --manifest release\zmeta-release-manifest.yaml
