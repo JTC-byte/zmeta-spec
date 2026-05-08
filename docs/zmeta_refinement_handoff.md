@@ -6,11 +6,11 @@ This note is the quick resume point for the current ZMeta refinement effort. The
 
 ## Current Position
 
-The semantic contract has been audited, rewritten, and crosswalked against the current implementation stack. The locked v1.0 baseline was verified, and no S1-01B targeted schema implementation task is currently needed. Profile projection preservation has been implemented and audited as sidecar conformance tooling without changing v1.0 schema or event vocabulary. The extension registry has been implemented and audited. The conformance class manifest and claim model have been implemented and audited without changing schemas or making new vocabulary valid. Encoding-negative validation has been implemented and audited for compact CBOR and protobuf invalid-after-decode paths. Profile precision and quantization policy has been implemented and audited as a reference conformance default. The D-011 `TAKEOFF` crosswalk cleanup is complete. The D-001 MAVLink ingress README state payload drift cleanup is complete. S1-09A planned the contract hash and release hash follow-up for D-002, and S1-09B implemented the reference release hash policy, manifest, builder, validator, claim hash updates, and optional conformance integration.
+The semantic contract has been audited, rewritten, and crosswalked against the current implementation stack. The locked v1.0 baseline was verified, and no S1-01B targeted schema implementation task is currently needed. Profile projection preservation has been implemented and audited as sidecar conformance tooling without changing v1.0 schema or event vocabulary. The extension registry has been implemented and audited. The conformance class manifest and claim model have been implemented and audited without changing schemas or making new vocabulary valid. Encoding-negative validation has been implemented and audited for compact CBOR and protobuf invalid-after-decode paths. Profile precision and quantization policy has been implemented and audited as a reference conformance default. The D-011 `TAKEOFF` crosswalk cleanup is complete. The D-001 MAVLink ingress README state payload drift cleanup is complete. S1-09A planned the contract hash and release hash follow-up for D-002, S1-09B implemented the reference release hash policy, manifest, builder, validator, claim hash updates, and optional conformance integration, and S1-09C audited that implementation and closed D-002.
 
 The next active implementation item is:
 
-**S1-09C - Contract Hash / Release Hash Post-Implementation Audit**
+**S1-10A - Companion Artifact Roadmap Plan Only**
 
 ## Key Docs
 
@@ -46,6 +46,7 @@ The next active implementation item is:
 | `docs/s1_09_contract_release_hash_plan.md` | S1-09A plan for contract hash taxonomy, release manifest structure, deployment gates, claim integration, and S1-09B implementation. |
 | `spec/release-hash-policy.md` | S1-09B release hash policy for narrow semantic contract hashes, broader release manifests, canonicalization, and deployment/claim guidance. |
 | `release/zmeta-release-manifest.yaml` | Reference hardening-baseline manifest with governed artifact hashes. |
+| `docs/s1_09c_contract_release_hash_audit.md` | S1-09C audit confirming release hash reproducibility, claim integration, and D-002 closure. |
 | `docs/zmeta_refinement_worklog.md` | Running worklog, completed work items, pending work items, and deferred issue register. |
 
 ## Completed Recently
@@ -74,7 +75,8 @@ The next active implementation item is:
 | S1-07A Crosswalk TAKEOFF Mention Cleanup | COMPLETE | `docs/s1_07a_takeoff_crosswalk_cleanup.md` |
 | S1-08A MAVLink Adapter README State Payload Drift Cleanup | COMPLETE | `docs/s1_08a_mavlink_state_payload_drift_cleanup.md` |
 | S1-09A Contract Hash / Release Hash Follow-Up Plan Only | COMPLETE | `docs/s1_09_contract_release_hash_plan.md` |
-| S1-09B Contract Hash / Release Hash Implementation | IMPLEMENTED PENDING AUDIT | `spec/release-hash-policy.md`, `release/zmeta-release-manifest.yaml`, `tools/build_release_manifest.py`, `tools/validate_release_manifest.py` |
+| S1-09B Contract Hash / Release Hash Implementation | COMPLETE | `spec/release-hash-policy.md`, `release/zmeta-release-manifest.yaml`, `tools/build_release_manifest.py`, `tools/validate_release_manifest.py` |
+| S1-09C Contract Hash / Release Hash Audit | COMPLETE | `docs/s1_09c_contract_release_hash_audit.md` |
 
 ## Current Decisions
 
@@ -134,20 +136,20 @@ The next active implementation item is:
   `payload.quality`, SYSTEM_EVENT status, OBSERVATION_EVENT where appropriate,
   and lineage. Implementation inspection found no MAVLink STATE_EVENT
   raw-feature emission, so no D-012 follow-up was added.
-- S1-09B implemented the reference release hash system. It keeps
+- S1-09C verified the reference release hash system and closed D-002. It keeps
   `tools/compute_contract_hash.py` focused on the existing gateway-compatible
   schema/policy/semantic hash workflow, while `release/zmeta-release-manifest.yaml`
-  records broader governed baseline hashes. D-002 remains open as implemented
-  pending S1-09C audit.
+  records broader governed baseline hashes. Committed reference manifests use
+  stable placeholder git metadata by default; formal release generation must
+  pass explicit metadata. Formal tagged-release signatures and post-release
+  attestations are tracked separately as D-012.
 
 ## Next Work Queue
 
-1. **S1-09C - Contract Hash / Release Hash Post-Implementation Audit**
-   - Audit `spec/release-hash-policy.md`,
-     `release/zmeta-release-manifest.yaml`, manifest build and validation
-     tooling, focused tests, claim hash updates, documentation, opt-in
-     conformance integration, and absence of schema/contract/registry/vocabulary
-     drift. Close D-002 only if the implementation is fully verified.
+1. **S1-10A - Companion Artifact Roadmap Plan Only**
+   - Plan D-004 companion artifact roadmap for adapter manifests, replay
+     bundles, vendor scorecards, data-rights profiles, DevSecOps evidence,
+     lessons-learned graphs, and TTP/training packages.
 
 2. **Human decisions for release, precision, and claim hardening**
    - Exact candidate precision defaults by profile and field family.
@@ -167,11 +169,8 @@ The next active implementation item is:
    - Whether current class statuses should be `implemented` or `active`.
    - Whether claim files should require captured test output artifacts or only
      command/result summaries.
-   - Whether claim files should record the existing gateway combined
-     `contract_hash`, the narrow `semantic_contract_hash`, or both.
-   - Whether D-002 can close with a reference release manifest or only after a
-     tagged release publishes the manifest, checksums, signatures, and
-     validation report.
+   - Whether formal tagged releases should publish post-release claim
+     attestations that include release_manifest_hash.
    - Whether release hashes should use raw checkout bytes or normalized LF text
      for cross-platform reproducibility.
    - Whether protobuf experimental artifacts belong in a core release hash, an
@@ -198,12 +197,13 @@ The next active implementation item is:
 
 3. **Deferred issue cleanup**
    - D-001 MAVLink Adapter README State Payload Drift is closed.
-   - D-002 Contract Hash / Release Hash Follow-Up is open.
+   - D-002 Contract Hash / Release Hash Follow-Up is closed.
    - D-007 Encoding Negative Validation Gap is closed.
    - D-008 Conformance Class Manifest Missing is closed.
    - D-009 v1.0/v1.1 Observation Extension Boundary Needs Explicit Tests.
    - D-010 Profile Precision / Quantization Policy Floors is closed.
-   - D-011 Crosswalk TAKEOFF Mention Cleanup is closed.
+  - D-011 Crosswalk TAKEOFF Mention Cleanup is closed.
+   - D-012 Formal Release Tag, Signature, and Attestation Packaging is open.
 
 4. **Later versioned semantic branches**
    - Markings/releasability.
@@ -217,7 +217,7 @@ The next active implementation item is:
 ## Guardrails for Next Prompt
 
 - Do not change schemas unless the prompt explicitly moves into a schema implementation item.
-- Do not recompute release/contract hashes until the stack-hardening branch is intentionally ready.
+- Do not recompute formal release/tag hashes until a release packaging task explicitly asks for it.
 - Do not make v1.1.0 or future concepts valid under `zmeta_version: "1.0"`.
 - Keep profile projection checks pairwise and external to v1.0 event payloads.
 - Keep registry work plan-first and branch-scoped. A registry entry alone does
@@ -228,7 +228,7 @@ The next active implementation item is:
 
 ## Verification State
 
-Most recent validation after S1-09B:
+Most recent validation after S1-09C:
 
 ```powershell
 python tools\build_release_manifest.py --output release\zmeta-release-manifest.yaml
@@ -259,5 +259,5 @@ Extension registry result: `extension registry ok entries=63`.
 Conformance classes result: `conformance classes ok classes=30 claims=2`.
 Encoding-negative validator result: `encoding negative ok total=49`.
 Precision policy validator result: `profile precision policy ok total=32`.
-Focused release-manifest tests: `15 passed`.
-Full pytest result: `321 passed`.
+Focused release-manifest tests: `16 passed`.
+Full pytest result: `322 passed`.

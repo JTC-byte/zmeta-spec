@@ -79,6 +79,13 @@ def test_builder_produces_deterministic_manifest():
     assert first["release_manifest_hash"] == second["release_manifest_hash"]
 
 
+def test_builder_uses_stable_reference_metadata_by_default():
+    manifest = builder.build_manifest_data()
+
+    assert manifest["git_commit"] == builder.DEFAULT_RELEASE_METADATA
+    assert manifest["branch"] == builder.DEFAULT_RELEASE_METADATA
+
+
 def test_validator_passes_current_manifest():
     assert validator.validate_manifest(MANIFEST_PATH) == []
 

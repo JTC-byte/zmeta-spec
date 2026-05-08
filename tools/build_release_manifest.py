@@ -4,7 +4,6 @@ import argparse
 import copy
 import hashlib
 import platform
-import subprocess
 import sys
 from pathlib import Path
 from typing import Any
@@ -18,6 +17,7 @@ DEFAULT_RELEASE_DATE = "2026-05-07"
 DEFAULT_RELEASE_ID = "zmeta-reference-hardening-baseline-2026-05-07"
 DEFAULT_RELEASE_NAME = "ZMeta Reference Hardening Baseline"
 DEFAULT_RELEASE_STATUS = "reference_hardening_baseline"
+DEFAULT_RELEASE_METADATA = "explicit_release_input_required"
 
 HASH_PREFIX = "sha256:"
 TEXT_SUFFIXES = {
@@ -232,29 +232,14 @@ def artifact_groups(root: Path = ROOT, *, include_tool_source: bool = True) -> d
     return groups
 
 
-def _git_value(args: list[str], root: Path = ROOT) -> str:
-    try:
-        result = subprocess.run(
-            ["git", *args],
-            cwd=root,
-            check=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.DEVNULL,
-            text=True,
-        )
-    except Exception:
-        return "unknown"
-    return result.stdout.strip() or "unknown"
-
-
 def build_manifest_data(
     *,
     release_id: str = DEFAULT_RELEASE_ID,
     release_name: str = DEFAULT_RELEASE_NAME,
     release_status: str = DEFAULT_RELEASE_STATUS,
     release_date: str = DEFAULT_RELEASE_DATE,
-    git_commit: str | None = None,
-    branch: str | None = None,
+    git_commit: str | None = DEFAULT_RELEASE_METADATA,
+    branch: str | None = DEFAULT_RELEASE_METADATA,
     generated_by: str = "tools/build_release_manifest.py",
     include_tool_source: bool = True,
     root: Path = ROOT,
@@ -321,19 +306,20 @@ def build_manifest_data(
             "builder": "tools/build_release_manifest.py",
             "validator": "tools/validate_release_manifest.py",
         },
-        "git_commit": git_commit or _git_value(["rev-parse", "HEAD"], root),
-        "branch": branch or _git_value(["branch", "--show-current"], root),
+        "git_commit": git_commit or DEFAULT_RELEASE_METADATA,
+        "branch": branch or DEFAULT_RELEASE_METADATA,
         "generated_by": generated_by,
         "notes": [
             "Reference hardening-baseline manifest, not a formal tagged release.",
+            "git_commit and branch use stable placeholders by default; formal release generation must pass explicit metadata.",
             "The semantic contract hash is narrow and does not include implementation artifacts.",
             "Protobuf is classified as an experimental encoding projection, not v1.0 semantic authority.",
             "Release manifest validation is opt-in and does not change default strict conformance.",
         ],
         "known_open_issues": [
-            "D-002 OPEN - IMPLEMENTED PENDING S1-09C AUDIT",
             "D-003 OPEN - Future Semantics Require Versioned Implementation Branches",
             "D-004 OPEN - Companion Artifact Set Needed",
+            "D-012 OPEN - Formal Release Tag, Signature, and Attestation Packaging",
         ],
         "experimental_surfaces": [
             "schema/zmeta-event-1.1.0.schema.json",
@@ -405,8 +391,16 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--release-name", default=DEFAULT_RELEASE_NAME)
     parser.add_argument("--release-status", default=DEFAULT_RELEASE_STATUS)
     parser.add_argument("--release-date", default=DEFAULT_RELEASE_DATE)
-    parser.add_argument("--git-commit", default=None)
-    parser.add_argument("--branch", default=None)
+    parser.add_argument(
+        "--git-commit",
+        default=DEFAULT_RELEASE_METADATA,
+        help="Explicit release git commit. Default is a stable placeholder for committed reference manifests.",
+    )
+    parser.add_argument(
+        "--branch",
+        default=DEFAULT_RELEASE_METADATA,
+        help="Explicit release branch. Default is a stable placeholder for committed reference manifests.",
+    )
     parser.add_argument("--generated-by", default="tools/build_release_manifest.py")
     parser.add_argument("--include-tool-source", action="store_true", default=True)
     parser.add_argument("--no-include-tool-source", dest="include_tool_source", action="store_false")

@@ -157,10 +157,13 @@ python tools/validate_release_manifest.py --manifest release/zmeta-release-manif
 ```
 
 The builder writes a reference hardening-baseline manifest, not a formal tagged
-release. It uses fixed release metadata by default and records the current git
-commit and branch as metadata. The manifest validator recomputes every file
-hash, group hash, `release_bundle_hash`, and `release_manifest_hash`, and fails
-on missing artifacts or mismatches.
+release. It uses fixed release metadata by default, including stable
+`git_commit` and `branch` placeholders, so rebuilding the committed reference
+manifest after a checkpoint commit does not change the manifest only because
+the repo head moved. Formal release generation must pass explicit
+`--git-commit`, `--branch`, `--release-id`, and related metadata. The manifest
+validator recomputes every file hash, group hash, `release_bundle_hash`, and
+`release_manifest_hash`, and fails on missing artifacts or mismatches.
 
 ## Deployment And Gateway Gate Guidance
 
@@ -211,4 +214,5 @@ The release hash system does not:
 - replace asset-level checksums or signatures.
 
 Release asset checksums and signatures remain separate publisher and artifact
-integrity controls.
+integrity controls. D-012 tracks formal tagged-release signature and
+attestation packaging outside the S1-09 reference hardening-baseline manifest.

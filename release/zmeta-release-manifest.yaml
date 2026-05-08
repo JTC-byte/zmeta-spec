@@ -25,8 +25,8 @@ profile_projection_catalog_hash: sha256:88c84258dce567be5f87935b0fda87e939ced8b2
 encoding_negative_suite_hash: sha256:efb1203fd7aa4f4065b094bd4e40f95594fa7f59761698cdfc2cdea1aa199ec8
 profile_precision_policy_hash: sha256:a2f51cf5f0779c43ae4118b941524fb14783181c739e693befd146f8c44a1139
 encoding_projection_specs_hash: sha256:df81a1157548d9e57c7e13a4dd3f2693bfa4575be91f4818fc54ab8fedf9b76a
-release_bundle_hash: sha256:795b3befc8a17069f1f562941325158fb3ca571bb1ecc43449247ba971584ba7
-release_manifest_hash: sha256:9120d89b6c1e31a514047176c0d469abeb8647057de95e47bd065a6df3ab3818
+release_bundle_hash: sha256:c2578f6d8f5c57b1aab838867cfac23257d46ce098d1e5a52d98d223a9261f18
+release_manifest_hash: sha256:8478ee83d90c98c933657612d0942e81d4b52d4bf05668c56b7205d59c4afeca
 artifact_hashes:
 - path: configs/policy-variants/producer-authority.strict.yaml
   group: policy_bundle
@@ -170,7 +170,7 @@ artifact_hashes:
   canonicalization: text_lf
 - path: spec/release-hash-policy.md
   group: release_policy
-  hash: sha256:a71b2294e396331105a4f2af36328a1e7a5da7c765f9c221a30a81b81edfbdc8
+  hash: sha256:61ec87b5d0f3a280ff8b6bdef5f08efb182e03d3386f20803727d633b1da3c22
   canonicalization: text_lf
 - path: spec/semantics-contract.md
   group: semantic_contract
@@ -178,7 +178,7 @@ artifact_hashes:
   canonicalization: text_lf
 - path: tools/build_release_manifest.py
   group: release_tools
-  hash: sha256:5e8d1c9c9bdd3b425d29f6f1f3f8c320204dee32afbee60a97f8e24e12bad59d
+  hash: sha256:0b29fe97b89eeaa91b7dfc9af8211cc4ad65c172324a44dc4a0f82e736228336
   canonicalization: text_lf
 - path: tools/compute_contract_hash.py
   group: release_tools
@@ -312,14 +312,14 @@ artifact_groups:
     description: Human-readable release hash taxonomy and canonicalization policy.
     paths:
     - spec/release-hash-policy.md
-    hash: sha256:95ffe625868160ada2501b94a3fdc96bc6eb69bc1184d95894bac3893fbb03c1
+    hash: sha256:a558142100125227637301515ee71bbf9b7a16c08004a63418692a7b4860ecc1
   release_tools:
     description: Release hash build and validation tooling.
     paths:
     - tools/build_release_manifest.py
     - tools/compute_contract_hash.py
     - tools/validate_release_manifest.py
-    hash: sha256:74edfb689d9422a8db203aeb2cc093a32e525ce5dcb5425320c8ede11dacf26a
+    hash: sha256:27771bde6dafba2134a22e355d412b1f455870070d11e8eecc4c2eab8a60aeb2
   conformance_tools:
     description: Conformance validators included in the reference baseline.
     paths:
@@ -334,18 +334,19 @@ tool_versions:
   python: 3.14.0
   builder: tools/build_release_manifest.py
   validator: tools/validate_release_manifest.py
-git_commit: 831bfeb05c790a85280cf873425b5632d1e598f8
-branch: main
+git_commit: explicit_release_input_required
+branch: explicit_release_input_required
 generated_by: tools/build_release_manifest.py
 notes:
 - Reference hardening-baseline manifest, not a formal tagged release.
+- git_commit and branch use stable placeholders by default; formal release generation must pass explicit metadata.
 - The semantic contract hash is narrow and does not include implementation artifacts.
 - Protobuf is classified as an experimental encoding projection, not v1.0 semantic authority.
 - Release manifest validation is opt-in and does not change default strict conformance.
 known_open_issues:
-- D-002 OPEN - IMPLEMENTED PENDING S1-09C AUDIT
 - D-003 OPEN - Future Semantics Require Versioned Implementation Branches
 - D-004 OPEN - Companion Artifact Set Needed
+- D-012 OPEN - Formal Release Tag, Signature, and Attestation Packaging
 experimental_surfaces:
 - schema/zmeta-event-1.1.0.schema.json
 - schema/proto/zmeta_event_v1.proto

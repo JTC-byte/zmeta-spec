@@ -4,16 +4,13 @@
 
 - Last updated: 2026-05-07
 - Quick handoff: `docs/zmeta_refinement_handoff.md`
-- Current next work item: S1-09C - Contract Hash / Release Hash
-  Post-Implementation Audit.
-- Current decision: S1-09B implemented the D-002 release hash system as a
-  reference hardening baseline. `contract_hash` remains narrow in release
-  claims and maps to the semantic contract hash. The broader governed baseline
-  is captured in `release/zmeta-release-manifest.yaml` with category hashes for
-  schemas, policy, extension registry, conformance classes, core/profile
-  conformance, encoding-negative fixtures, profile precision policy, encoding
-  projection specs, tools, claims, and release policy. D-002 remains open as
-  implemented pending S1-09C audit.
+- Current next work item: S1-10A - Companion Artifact Roadmap Plan Only.
+- Current decision: S1-09C audited and closed D-002. The reference hardening
+  baseline now has a reproducible `release/zmeta-release-manifest.yaml`,
+  deterministic build/validation tooling, claim hash integration, and opt-in
+  `--release-manifest` conformance validation. `contract_hash` remains narrow in
+  release claims and maps to the semantic contract hash. Formal tagged-release
+  signatures and post-release attestations are split out as D-012.
 
 ## S0-01 - Semantic Contract Lockdown Audit
 
@@ -810,7 +807,7 @@
 
 ## S1-09B - Contract Hash / Release Hash Implementation
 
-- Status: IMPLEMENTED PENDING AUDIT
+- Status: COMPLETE
 - Date completed: 2026-05-07
 - Scope: Implemented the release hash policy, reference release manifest,
   deterministic manifest build and validation tooling, focused tests, optional
@@ -857,14 +854,47 @@
 
 ## S1-09C - Contract Hash / Release Hash Post-Implementation Audit
 
-- Status: FUTURE / PENDING
-- Scope: Audit S1-09B release hash implementation for deterministic hashing,
+- Status: COMPLETE
+- Date completed: 2026-05-07
+- Output: `docs/s1_09c_contract_release_hash_audit.md`
+- Scope: Audited S1-09B release hash implementation for deterministic hashing,
   manifest correctness, deployment gate alignment, conformance claim
   integration, documentation, and absence of semantic/schema/registry drift.
+- Cleanup:
+  - `tools/build_release_manifest.py` now uses stable placeholder `git_commit`
+    and `branch` metadata by default, so committed reference manifests do not
+    change only because the repo head moved after a checkpoint commit.
+  - Formal release generation can still pass explicit metadata with
+    `--git-commit` and `--branch`.
+  - `release/zmeta-release-manifest.yaml` was rebuilt with stable metadata and
+    no D-002 open-issue entry.
+  - D-012 was added for formal release tag, signature, and attestation
+    packaging.
+- Verification:
+  - `python tools\build_release_manifest.py --output release\zmeta-release-manifest.yaml` -> wrote reference manifest
+  - `python tools\validate_release_manifest.py --manifest release\zmeta-release-manifest.yaml` -> `release manifest ok groups=14 artifacts=49`
+  - Manifest rebuild idempotence check -> unchanged file hash after immediate rebuild
+  - `python tools\compute_contract_hash.py` -> gateway-compatible schema, policy, semantics, and combined contract hashes printed successfully
+  - `python tools\validate_conformance.py --strict` -> `conformance ok`
+  - `python tools\validate_conformance.py --strict --profile-projection` -> `projection conformance ok total=33`, `conformance ok`
+  - `python tools\validate_conformance.py --strict --profile-projection --extension-registry` -> `projection conformance ok total=33`, `extension registry ok entries=63`, `conformance ok`
+  - `python tools\validate_conformance.py --strict --profile-projection --extension-registry --conformance-classes` -> `projection conformance ok total=33`, `extension registry ok entries=63`, `conformance classes ok classes=30 claims=2`, `conformance ok`
+  - `python tools\validate_conformance.py --strict --profile-projection --extension-registry --conformance-classes --encoding-negative` -> `encoding negative ok total=49`, `conformance ok`
+  - `python tools\validate_conformance.py --strict --profile-projection --extension-registry --conformance-classes --encoding-negative --precision-policy` -> `profile precision policy ok total=32`, `conformance ok`
+  - `python tools\validate_conformance.py --strict --profile-projection --extension-registry --conformance-classes --encoding-negative --precision-policy --release-manifest` -> `conformance ok`
+  - `python tools\validate_projection.py --catalog conformance\profile_projection_field_catalog.yaml --must-pass conformance\profile-projection\must-pass.jsonl --must-fail conformance\profile-projection\must-fail.jsonl --quiet` -> `projection conformance ok total=33`
+  - `python tools\validate_extension_registry.py --registry spec\extension-registry.yaml` -> `extension registry ok entries=63`
+  - `python tools\validate_conformance_classes.py --manifest conformance\conformance_classes.yaml --claims conformance\claims\example-reference-gateway.yaml conformance\claims\example-core-producer.yaml` -> `conformance classes ok classes=30 claims=2`
+  - `python tools\validate_encoding_negative.py --compact conformance\encoding-negative\compact-must-fail.jsonl --protobuf conformance\encoding-negative\protobuf-must-fail.jsonl --gateway conformance\encoding-negative\gateway-must-fail.jsonl --quiet` -> `encoding negative ok total=49`
+  - `python tools\validate_precision_policy.py --policy policy\profile-precision.yaml --must-pass conformance\profile-precision\must-pass.jsonl --must-fail conformance\profile-precision\must-fail.jsonl --quiet` -> `profile precision policy ok total=32`
+  - `python -m pytest -q gateway\tests\test_release_manifest.py` -> `16 passed`
+  - `python -m pytest` -> `322 passed`
+- Decision: S1-09B is verified. D-002 is closed. D-003, D-004, and D-012 remain
+  open.
 
 ## S1-10A - Companion Artifact Roadmap Plan Only
 
-- Status: FUTURE / PENDING
+- Status: NEXT
 - Scope: Plan D-004 companion artifact roadmap for adapter manifests, replay
   bundles, vendor scorecards, data-rights profiles, DevSecOps evidence,
   lessons-learned graphs, and TTP/training packages.
@@ -894,7 +924,7 @@
 
 ### D-002 - Contract Hash / Release Hash Follow-Up
 
-- Status: OPEN - IMPLEMENTED PENDING S1-09C AUDIT
+- Status: CLOSED
 - Discovered during: S0-02
 - Issue: Rewriting `spec/semantics-contract.md` changes the normative contract
   hash used by gateway/deployment hash gates.
@@ -912,7 +942,13 @@
 - S1-09B coverage: Implemented `spec/release-hash-policy.md`,
   `release/zmeta-release-manifest.yaml`, deterministic build and validation
   tooling, focused tests, optional `--release-manifest` conformance integration,
-  and claim hash updates. D-002 remains open pending S1-09C audit.
+  and claim hash updates. D-002 remained open pending S1-09C audit.
+- S1-09C audit: Verified the release hash policy, manifest structure, artifact
+  groups, canonicalization, builder/validator behavior, claim integration,
+  gateway-compatible hash behavior, optional conformance integration, and tests.
+  Fixed post-checkpoint manifest reproducibility by replacing default current
+  git metadata with stable placeholders for committed reference manifests.
+  D-002 is closed.
 
 ### D-003 - Future Semantics Require Versioned Implementation Branches
 
@@ -1094,3 +1130,18 @@
   references are invalidity guards or historical cleanup notes. `TAKEOFF`
   remains invalid current vocabulary, and no schema or extension registry
   artifacts were changed. D-011 is closed.
+
+### D-012 - Formal Release Tag, Signature, and Attestation Packaging
+
+- Status: OPEN
+- Discovered during: S1-09C
+- Issue: The S1-09B/S1-09C reference hardening-baseline manifest is
+  reproducible and sufficient to close D-002, but it is not a formal tagged
+  release package with signed artifacts, post-release claim attestations, and
+  final release commit metadata.
+- Impact: Deployments can validate the governed reference baseline now, but a
+  public or operational release may still need a tagged release, release notes,
+  validation report, checksums, signatures, and post-release claim attestations.
+- Proposed follow-up: Plan and implement formal release tag, signature, and
+  attestation packaging when the hardened stack is ready for a published
+  release. Do not reopen D-002 for this packaging work.
