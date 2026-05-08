@@ -1,4 +1,4 @@
-# ZMeta Specification (v1.0 Locked, current release v1.1.4)
+# ZMeta Specification (v1.0 Locked, current release v1.1.5)
 
 ## Overview
 - ZMeta is a transport-agnostic, event-based metadata standard for resilient ISR.
@@ -7,8 +7,10 @@
 
 ## Current Release
 
-- Current release: `v1.1.4`
-- Release notes and assets: <https://github.com/JTC-byte/zmeta-spec/releases/tag/v1.1.4>
+- Current release: `v1.1.5`
+- Release notes and assets: <https://github.com/JTC-byte/zmeta-spec/releases/tag/v1.1.5>
+- Release focus: hardened semantic baseline, release/hash governance, conformance expansion,
+  formal release package tooling, and strict preservation of version-dispatched validation.
 - Normative contract: v1.0 locked semantic contract, canonical version-discriminated
   JSON schema, v1.0 JSON schema, and policy pack.
 - Experimental extension: `schema/zmeta-event-1.1.0.schema.json` is provided for proposed
@@ -96,9 +98,11 @@ python tools/run_gateway.py --profile H
 python tools/udp_receiver.py
 python tools/udp_sender.py --file examples/zmeta-command-examples.jsonl
 python tools/replay.py --file examples/zmeta-command-examples.jsonl --delay-ms 200
-python tools/check_compat.py legacy-events.jsonl --target v1.1.4
+python tools/check_compat.py legacy-events.jsonl --target v1.1.5
 python tools/validate.py --file examples/zmeta-command-examples.jsonl --profile H
 python tools/validate_conformance.py --strict
+python tools/validate_release_manifest.py --manifest release/zmeta-release-manifest.yaml
+python tools/validate_release_package.py --manifest release/zmeta-release-manifest.yaml --templates-only
 python tools/compute_contract_hash.py
 python tools/test_gateway_live.py
 python tools/test_workflow_end_to_end.py
@@ -158,9 +162,10 @@ Deployment helpers:
 - Config templates: `configs/edge-config.json`, `configs/gateway-config.json`
 - Docker Compose: `deploy/edge/docker-compose.yml`, `deploy/gateway/docker-compose.yml`
 - Bundle builders:
-    - `python release/build_mvp_packages.py` produces `zmeta-edge-v1.1.4.zip` and `zmeta-gateway-v1.1.4.zip`
-    - `python release/build_release_bundle.py` produces `zmeta-v1.1.4-dist.zip`
-    - `python release/sign_release_artifacts.py --version v1.1.4 --write-checksums --sign --target all` signs release assets with detached PGP signatures.
+    - `python release/build_mvp_packages.py --version v1.1.5` produces `zmeta-edge-v1.1.5.zip` and `zmeta-gateway-v1.1.5.zip`
+    - `python release/build_release_bundle.py --version 1.1.5` produces `zmeta-v1.1.5-dist.zip`
+    - `python tools/build_release_package.py --manifest release/zmeta-release-manifest.yaml --output-dir release/package-v1.1.5 --release-id zmeta-v1.1.5 --release-state formal_release --no-signatures` builds formal package metadata without creating signatures.
+    - `python release/sign_release_artifacts.py --version v1.1.5 --write-checksums --sign --target all` signs release assets with detached PGP signatures when an approved signing key is available.
 
 ## Deployment Checklist (Compact)
 
@@ -169,8 +174,10 @@ Use this to lock down schema, policy, and semantic-contract drift and verify a c
 1. Compute schema, policy, semantic-contract, and combined contract hashes: `python tools/compute_contract_hash.py`
 1. Set `require_contract_hash` (and optionally `require_schema_hash`/`require_policy_hash`) in config.
 1. If adopting a policy variant into the active `policy/` directory, recompute and update the deployment hash gates.
+1. Validate the governed release baseline: `python tools/validate_release_manifest.py --manifest release/zmeta-release-manifest.yaml`
+1. Validate formal release package templates or generated package output before distribution.
 1. Run self-test: `python tools/run_gateway.py --profile H --self-test`
-1. Run conformance: `python tools/validate_conformance.py --strict`
+1. Run conformance: `python tools/validate_conformance.py --strict --profile-projection --extension-registry --conformance-classes --encoding-negative --precision-policy --release-manifest --release-package`
 1. Start gateway with strict mode (optional): `python tools/run_gateway.py --config configs/gateway-config.json --strict-validation`
 1. Verify metrics and drops in logs (enable `metrics_log_path` if needed).
 

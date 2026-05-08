@@ -2,6 +2,26 @@
 
 ## [Unreleased]
 
+## [1.1.5] - 2026-05-07
+- Hardened the ZMeta semantic-governance baseline through S0/S1 audits covering
+  contract lockdown, contract-to-stack alignment, release hashing, and formal
+  release packaging.
+- Added structured release manifest hashing with category hashes, release bundle
+  hash, release manifest hash, builder, validator, tests, and conformance
+  integration.
+- Added formal release package documentation, templates, package builder,
+  package validator, no-secret checks, release-package tests, and optional
+  conformance integration.
+- Added or audited profile projection preservation, extension registry
+  validation, conformance class manifests and claims, encoding-negative
+  validation, and profile precision policy validation.
+- Preserved strict `zmeta_version` dispatch and v1.0/v1.1.0 vocabulary
+  isolation; no new event vocabulary became valid.
+- Removed out-of-scope organizational artifact language from active ZMeta scope;
+  D-004 is closed as removed from the ZMeta baseline.
+- Added the D-003 future versioned semantic branch roadmap while keeping future
+  concepts invalid until adopted through versioned implementation and audit.
+
 ## [1.1.4]
 - Fixed edge/gateway release bundles so downloaded packages include
   `conformance/` and `release/sign_release_artifacts.py`, allowing bundle-local

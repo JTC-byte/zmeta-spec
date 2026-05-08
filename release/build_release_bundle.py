@@ -2,7 +2,7 @@ import argparse
 import shutil
 from pathlib import Path
 
-VERSION = "1.1.4"
+VERSION = "1.1.5"
 
 
 def collect_sources(root, version):
@@ -28,6 +28,10 @@ def collect_sources(root, version):
         root / "schema" / "zmeta-event-1.1.0.schema.json",
         root / "schema" / "proto" / "zmeta_event_v1.proto",
         root / "release" / "README.md",
+        root / "release" / "zmeta-release-manifest.yaml",
+        root / "release" / "RELEASE_PACKAGE_README.md",
+        root / "release" / "RELEASE_NOTES_TEMPLATE.md",
+        root / "release" / "ATTESTATION_TEMPLATE.yaml",
         root / "release" / "sign_release_artifacts.py",
         root / "release" / f"RELEASE_NOTES_v{version}.md",
         root / "spec" / "quickstart.md",
@@ -39,7 +43,15 @@ def collect_sources(root, version):
         root / "spec" / "protobuf-encoding.md",
         root / "spec" / "field-dictionary.md",
         root / "spec" / "profile-compatibility.md",
+        root / "spec" / "release-hash-policy.md",
+        root / "spec" / "release-signing-attestation.md",
         root / "spec" / "README.md",
+        root / "tools" / "build_release_manifest.py",
+        root / "tools" / "validate_release_manifest.py",
+        root / "tools" / "build_release_package.py",
+        root / "tools" / "validate_release_package.py",
+        root / "tools" / "compute_contract_hash.py",
+        root / "tools" / "validate_conformance.py",
         root / "release" / f"VALIDATION_REPORT_v{version}.md",
     ]
     for path in optional:

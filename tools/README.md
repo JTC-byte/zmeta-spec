@@ -90,7 +90,7 @@ is intentionally enabled.
 ### Check Migration Compatibility
 
 ```
-python tools/check_compat.py legacy-events.jsonl --target v1.1.4
+python tools/check_compat.py legacy-events.jsonl --target v1.1.5
 python tools/check_compat.py legacy-events.jsonl --profile L --policy-dir policy
 python tools/check_compat.py legacy-events.jsonl --json
 ```
@@ -112,7 +112,11 @@ python tools/validate_examples.py --strict
 
 ```
 python tools/validate_conformance.py --strict
+python tools/validate_conformance.py --strict --profile-projection --extension-registry --conformance-classes --encoding-negative --precision-policy --release-manifest --release-package
 ```
+
+The optional flags validate governed support surfaces without changing default
+strict validation. Use the full command above before publishing a release.
 
 ### Measure packet sizes
 
@@ -136,3 +140,16 @@ any `require_policy_hash` or `require_contract_hash` gate in the deployment
 config. Because the current utility hashes the whole active policy directory,
 keep deployment-local notes and draft overlays outside `policy/` unless changing
 the deployment hash is intentional.
+
+### Release Manifest And Package
+
+```
+python tools/build_release_manifest.py --output release/zmeta-release-manifest.yaml
+python tools/validate_release_manifest.py --manifest release/zmeta-release-manifest.yaml
+python tools/build_release_package.py --manifest release/zmeta-release-manifest.yaml --output-dir release/package-v1.1.5 --release-id zmeta-v1.1.5 --release-state formal_release --no-signatures
+python tools/validate_release_package.py --manifest release/zmeta-release-manifest.yaml --package-dir release/package-v1.1.5
+python tools/validate_release_package.py --manifest release/zmeta-release-manifest.yaml --templates-only
+```
+
+Release package tooling is no-signature by default. It does not create git
+tags, call signing tools, or store keys/secrets in the repository.
