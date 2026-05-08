@@ -30,7 +30,6 @@ signature_artifacts:
   checksums: explicit_release_input_required
 known_open_issues:
   - D-003 OPEN - Future Semantics Require Versioned Implementation Branches
-  - D-012 OPEN - FORMAL RELEASE TAG / SIGNATURE / ATTESTATION PACKAGING
 limitations:
   - Template only; no real release signature or signer identity is included.
 notes:

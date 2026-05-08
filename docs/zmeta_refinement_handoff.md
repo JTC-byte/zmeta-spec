@@ -6,11 +6,11 @@ This note is the quick resume point for the current ZMeta refinement effort. The
 
 ## Current Position
 
-The semantic contract has been audited, rewritten, and crosswalked against the current implementation stack. The locked v1.0 baseline was verified, and no S1-01B targeted schema implementation task is currently needed. Profile projection preservation has been implemented and audited as sidecar conformance tooling without changing v1.0 schema or event vocabulary. The extension registry has been implemented and audited. The conformance class manifest and claim model have been implemented and audited without changing schemas or making new vocabulary valid. Encoding-negative validation has been implemented and audited for compact CBOR and protobuf invalid-after-decode paths. Profile precision and quantization policy has been implemented and audited as a reference conformance default. The D-011 `TAKEOFF` crosswalk cleanup is complete. The D-001 MAVLink ingress README state payload drift cleanup is complete. S1-09A planned the contract hash and release hash follow-up for D-002, S1-09B implemented the reference release hash policy, manifest, builder, validator, claim hash updates, and optional conformance integration, and S1-09C audited that implementation and closed D-002. S1-10P removed FORGE-derived organizational artifact scope from the ZMeta baseline. S1-10B was stopped before commit, no stopped implementation files remain, and D-004 is closed as removed from ZMeta scope. S1-11A planned the D-003 future versioned semantic branch roadmap and left D-003 open as roadmap-planned. S1-12A planned formal release tag, signature, checksum, and attestation packaging for D-012. S1-12B implemented the release packaging framework, templates, no-signature builder, validator, no-secret checks, optional conformance flag, and release manifest group without creating real tags, signatures, keys, secrets, schemas, semantics, validators, runtime changes, or vocabulary.
+The semantic contract has been audited, rewritten, and crosswalked against the current implementation stack. The locked v1.0 baseline was verified, and no S1-01B targeted schema implementation task is currently needed. Profile projection preservation has been implemented and audited as sidecar conformance tooling without changing v1.0 schema or event vocabulary. The extension registry has been implemented and audited. The conformance class manifest and claim model have been implemented and audited without changing schemas or making new vocabulary valid. Encoding-negative validation has been implemented and audited for compact CBOR and protobuf invalid-after-decode paths. Profile precision and quantization policy has been implemented and audited as a reference conformance default. The D-011 `TAKEOFF` crosswalk cleanup is complete. The D-001 MAVLink ingress README state payload drift cleanup is complete. S1-09A planned the contract hash and release hash follow-up for D-002, S1-09B implemented the reference release hash policy, manifest, builder, validator, claim hash updates, and optional conformance integration, and S1-09C audited that implementation and closed D-002. S1-10P removed FORGE-derived organizational artifact scope from the ZMeta baseline. S1-10B was stopped before commit, no stopped implementation files remain, and D-004 is closed as removed from ZMeta scope. S1-11A planned the D-003 future versioned semantic branch roadmap and left D-003 open as roadmap-planned. S1-12A planned formal release tag, signature, checksum, and attestation packaging for D-012, S1-12B implemented the release packaging framework without creating real tags/signatures/keys/secrets or semantic drift, and S1-12C audited it and closed D-012.
 
 The next active planning item is:
 
-**S1-12C - Formal Release Tag / Signature / Attestation Packaging Post-Implementation Audit**, or **S1-11B - Future Branch Roadmap Machine-Readable Artifact** if roadmap serialization is prioritized first.
+**S1-11B - Future Branch Roadmap Machine-Readable Artifact**, if roadmap serialization is desired. Otherwise the ZMeta baseline hardening and release-prep workstream can pause.
 
 ## Key Docs
 
@@ -50,6 +50,7 @@ The next active planning item is:
 | `docs/s1_10p_forge_scope_purge.md` | S1-10P cleanup note removing out-of-scope organizational artifact scope from the ZMeta baseline. |
 | `docs/s1_11_future_versioned_semantic_branch_roadmap_plan.md` | S1-11A roadmap for future versioned semantic branches under D-003. |
 | `docs/s1_12_formal_release_tag_signature_attestation_plan.md` | S1-12A plan for formal release tag, checksum, signature, attestation, and verification packaging under D-012. |
+| `docs/s1_12c_formal_release_packaging_audit.md` | S1-12C audit closing D-012 after verifying release packaging support. |
 | `spec/release-signing-attestation.md` | S1-12B release signing, attestation, no-secret, and verification framework. |
 | `release/RELEASE_PACKAGE_README.md` | S1-12B release package template guidance. |
 | `docs/zmeta_refinement_worklog.md` | Running worklog, completed work items, pending work items, and deferred issue register. |
@@ -86,7 +87,8 @@ The next active planning item is:
 | S1-10P Purge FORGE-Derived Scope Contamination | COMPLETE | `docs/s1_10p_forge_scope_purge.md` |
 | S1-11A Future Versioned Semantic Branch Roadmap Plan Only | COMPLETE | `docs/s1_11_future_versioned_semantic_branch_roadmap_plan.md` |
 | S1-12A Formal Release Tag / Signature / Attestation Plan Only | COMPLETE | `docs/s1_12_formal_release_tag_signature_attestation_plan.md` |
-| S1-12B Formal Release Tag / Signature / Attestation Packaging Implementation | COMPLETE - IMPLEMENTED PENDING AUDIT | `spec/release-signing-attestation.md`, `tools/build_release_package.py`, `tools/validate_release_package.py` |
+| S1-12B Formal Release Tag / Signature / Attestation Packaging Implementation | COMPLETE | `spec/release-signing-attestation.md`, `tools/build_release_package.py`, `tools/validate_release_package.py` |
+| S1-12C Formal Release Tag / Signature / Attestation Packaging Audit | COMPLETE | `docs/s1_12c_formal_release_packaging_audit.md` |
 
 ## Current Decisions
 
@@ -162,28 +164,25 @@ The next active planning item is:
   implemented or approved.
 - S1-12A established a plan-only path for formal release tags, checksums,
   detached signatures, release attestations, key-handling guardrails, and
-  consumer verification. D-012 remains open pending implementation and audit.
-  No tags, signatures, keys, schemas, release manifests, validators, runtime
-  code, or vocabulary were changed.
+  consumer verification. It made no tags, signatures, keys, schemas, release
+  manifests, validators, runtime code, or vocabulary changes.
 - S1-12B implemented the release package framework. The builder supports
   dry-run/no-signature mode and explicit package writes; the validator supports
   template-only and package-output validation, checksum checks, attestation hash
-  checks, and no-secret checks. D-012 remains
-  `OPEN - IMPLEMENTED PENDING S1-12C AUDIT`.
+  checks, and no-secret checks.
+- S1-12C audited the release package framework, verified template/package
+  validation, no-secret behavior, release manifest integration, optional
+  conformance integration, and absence of real tags/signatures/keys/secrets or
+  semantic drift. D-012 is closed.
 
 ## Next Work Queue
 
-1. **S1-12C - Formal Release Tag / Signature / Attestation Packaging Post-Implementation Audit**
-   - Audit release package docs, templates, builder, validator, no-secret
-     behavior, optional conformance flag, release manifest integration, tests,
-     and absence of real tags/signatures/keys/secrets or semantic drift.
-
-2. **S1-11B - Future Branch Roadmap Machine-Readable Artifact**
+1. **S1-11B - Future Branch Roadmap Machine-Readable Artifact**
    - Optional implementation follow-up to encode the S1-11A roadmap in a
-     machine-readable planning artifact without changing schemas, the extension
-     registry, conformance classes, or event vocabulary.
+   machine-readable planning artifact without changing schemas, the extension
+   registry, conformance classes, or event vocabulary.
 
-3. **Human decisions for release, precision, and claim hardening**
+2. **Human decisions for release, precision, and claim hardening**
    - Exact candidate precision defaults by profile and field family.
    - Whether precision values are global defaults or mission/profile
      configurable.
@@ -227,7 +226,7 @@ The next active planning item is:
    - Whether to implement S1-11B or keep the future-branch roadmap as
      documentation only.
 
-4. **Deferred issue cleanup**
+3. **Deferred issue cleanup**
    - D-001 MAVLink Adapter README State Payload Drift is closed.
    - D-002 Contract Hash / Release Hash Follow-Up is closed.
    - D-003 Future Semantics Require Versioned Implementation Branches is
@@ -237,11 +236,11 @@ The next active planning item is:
    - D-004 is closed as removed from ZMeta scope by S1-10P.
    - D-009 v1.0/v1.1 Observation Extension Boundary Needs Explicit Tests.
    - D-010 Profile Precision / Quantization Policy Floors is closed.
-  - D-011 Crosswalk TAKEOFF Mention Cleanup is closed.
+   - D-011 Crosswalk TAKEOFF Mention Cleanup is closed.
    - D-012 Formal Release Tag, Signature, and Attestation Packaging is
-     `OPEN - IMPLEMENTED PENDING S1-12C AUDIT`.
+     closed.
 
-5. **Later versioned semantic branches**
+4. **Later versioned semantic branches**
    - Markings/releasability.
    - Integrity, signing, anti-replay, mesh trust, and quarantine.
    - MODEL_STATUS / assurance and drift monitoring.
@@ -264,12 +263,14 @@ The next active planning item is:
 
 ## Verification State
 
-Most recent validation after S1-12B:
+Most recent validation after S1-12C:
 
 ```powershell
 python tools\validate_release_manifest.py --manifest release\zmeta-release-manifest.yaml
 python tools\build_release_package.py --manifest release\zmeta-release-manifest.yaml --output-dir release\package --dry-run --no-signatures
 python tools\validate_release_package.py --manifest release\zmeta-release-manifest.yaml --templates-only
+python tools\build_release_package.py --manifest release\zmeta-release-manifest.yaml --output-dir .tmp\release-package-audit --no-signatures --allow-dirty
+python tools\validate_release_package.py --manifest release\zmeta-release-manifest.yaml --package-dir .tmp\release-package-audit
 python tools\validate_conformance.py --strict
 python tools\validate_conformance.py --strict --profile-projection
 python tools\validate_conformance.py --strict --profile-projection --extension-registry
@@ -290,6 +291,7 @@ git diff --check
 
 Release manifest result: `release manifest ok groups=15 artifacts=55`.
 Release package template result: `release package ok mode=templates`.
+Temporary release package output result: `release package ok mode=package`.
 Projection validator result: `projection conformance ok total=33`.
 Extension registry result: `extension registry ok entries=56`.
 Conformance classes result: `conformance classes ok classes=30 claims=2`.

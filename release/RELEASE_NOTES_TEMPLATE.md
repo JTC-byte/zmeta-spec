@@ -37,7 +37,6 @@ List the exact validation and test commands run for the release.
 
 - D-003 remains roadmap-planned until future semantic branches are tracked
   separately or closed by maintainers.
-- D-012 remains open until formal release packaging is audited.
 
 ## Notes
 

@@ -210,8 +210,6 @@ def _validate_attestation(path: Path, manifest: dict[str, Any]) -> list[dict[str
     known = "\n".join(str(item) for item in data.get("known_open_issues", []))
     if "D-003" not in known:
         issues.append(_issue("RELEASE_PACKAGE_ATTESTATION_OPEN_ISSUE_MISSING", "known_open_issues must include D-003"))
-    if "D-012" not in known:
-        issues.append(_issue("RELEASE_PACKAGE_ATTESTATION_OPEN_ISSUE_MISSING", "known_open_issues must include D-012"))
     return issues
 
 

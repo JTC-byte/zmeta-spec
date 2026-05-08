@@ -129,7 +129,6 @@ def build_attestation(
                 "known_open_issues",
                 [
                     "D-003 OPEN - Future Semantics Require Versioned Implementation Branches",
-                    "D-012 OPEN - FORMAL RELEASE TAG / SIGNATURE / ATTESTATION PACKAGING",
                 ],
             ),
         }

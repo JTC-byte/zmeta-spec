@@ -4,13 +4,12 @@
 
 - Last updated: 2026-05-07
 - Quick handoff: `docs/zmeta_refinement_handoff.md`
-- Current next work item: S1-12C - Formal Release Tag / Signature /
-  Attestation Packaging Post-Implementation Audit, or S1-11B if future-branch
-  roadmap serialization is prioritized first.
-- Current decision: S1-12B implemented the D-012 formal release packaging
-  framework. D-012 remains `OPEN - IMPLEMENTED PENDING S1-12C AUDIT`. D-003
-  remains `OPEN - ROADMAP PLANNED`. D-004 remains closed as removed from ZMeta
-  scope.
+- Current next work item: S1-11B - Future Branch Roadmap Machine-Readable
+  Artifact, if maintainers want to serialize the roadmap. Otherwise the ZMeta
+  baseline hardening and release-prep workstream can pause.
+- Current decision: S1-12C audited the D-012 formal release packaging
+  framework and closed D-012. D-003 remains `OPEN - ROADMAP PLANNED`. D-004
+  remains closed as removed from ZMeta scope.
 
 ## S0-01 - Semantic Contract Lockdown Audit
 
@@ -995,7 +994,7 @@
 
 ## S1-12B - Formal Release Tag / Signature / Attestation Packaging Implementation
 
-- Status: COMPLETE - IMPLEMENTED PENDING S1-12C AUDIT
+- Status: COMPLETE
 - Date completed: 2026-05-07
 - Outputs:
   - `spec/release-signing-attestation.md`
@@ -1025,17 +1024,37 @@
   secret, generated package output, schema change, semantic contract change,
   extension registry change, conformance class status change, gateway runtime
   change, adapter change, codec change, or event vocabulary change was made.
-- Decision: D-012 remains `OPEN - IMPLEMENTED PENDING S1-12C AUDIT`. D-003
+- Decision: S1-12C later audited this implementation and closed D-012. D-003
   remains `OPEN - ROADMAP PLANNED`. D-004 remains closed as removed from ZMeta
   scope.
 
 ## S1-12C - Formal Release Tag / Signature / Attestation Post-Implementation Audit
 
-- Status: PENDING
+- Status: COMPLETE
+- Date completed: 2026-05-07
+- Output: `docs/s1_12c_formal_release_packaging_audit.md`
 - Scope: Audit S1-12B for clean-checkout reproducibility, checksum integrity,
   signature verification behavior, attestation correctness, no-secret handling,
   release manifest compatibility, docs alignment, and absence of semantic or
   vocabulary drift.
+- Summary:
+  - Verified S1-12B touched only expected release packaging files.
+  - Verified release package spec, templates, no-signature builder, validator,
+    no-secret checks, optional conformance flag, release manifest integration,
+    and focused tests.
+  - Built and validated a temporary package output, then removed it before
+    commit.
+  - Classified existing `.asc`, checksum, release note, validation report, and
+    release zip files as pre-existing release assets; S1-12C did not modify or
+    regenerate them.
+  - Removed D-012 from generated package open-issue defaults after audit
+    closure; D-003 remains the only known open issue in the reference manifest.
+- Notes: No real release tag, signature, key, certificate, credential, token,
+  secret, schema change, semantic contract change, extension registry change,
+  conformance class status change, gateway runtime change, adapter change,
+  codec change, or event vocabulary change was made.
+- Decision: D-012 is closed. D-003 remains `OPEN - ROADMAP PLANNED`. D-004
+  remains closed as removed from ZMeta scope.
 
 ## Deferred Issue Register
 
@@ -1275,7 +1294,7 @@
 
 ### D-012 - Formal Release Tag, Signature, and Attestation Packaging
 
-- Status: OPEN - IMPLEMENTED PENDING S1-12C AUDIT
+- Status: CLOSED
 - Discovered during: S1-09C
 - Issue: The S1-09B/S1-09C reference hardening-baseline manifest is
   reproducible and sufficient to close D-002, but it is not a formal tagged
@@ -1300,3 +1319,7 @@
   keys, secrets, schemas, semantic contract text, extension registry entries,
   conformance class status, gateway runtime behavior, adapters, codecs, or
   event vocabulary were changed.
+- S1-12C audit: Verified release packaging behavior, template safety,
+  no-secret checks, generated package validation, optional conformance
+  integration, release manifest validity, and absence of semantic/vocabulary
+  drift. Removed D-012 from open-issue defaults after closure. D-012 is closed.

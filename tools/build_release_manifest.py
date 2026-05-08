@@ -329,7 +329,6 @@ def build_manifest_data(
         ],
         "known_open_issues": [
             "D-003 OPEN - Future Semantics Require Versioned Implementation Branches",
-            "D-012 OPEN - IMPLEMENTED PENDING S1-12C AUDIT",
         ],
         "experimental_surfaces": [
             "schema/zmeta-event-1.1.0.schema.json",
