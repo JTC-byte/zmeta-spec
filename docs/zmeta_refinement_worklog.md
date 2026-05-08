@@ -2,14 +2,17 @@
 
 ## Current Resume Note
 
-- Last updated: 2026-05-07
+- Last updated: 2026-05-08 UTC / 2026-05-07 local
 - Quick handoff: `docs/zmeta_refinement_handoff.md`
 - Current next work item: S1-11B - Future Branch Roadmap Machine-Readable
   Artifact, if maintainers want to serialize the roadmap. Otherwise the ZMeta
   baseline hardening and release-prep workstream can pause.
-- Current decision: S1-12C audited the D-012 formal release packaging
-  framework and closed D-012. D-003 remains `OPEN - ROADMAP PLANNED`. D-004
-  remains closed as removed from ZMeta scope.
+- Current decision: ZMeta v1.1.5 was published at
+  `https://github.com/JTC-byte/zmeta-spec/releases/tag/v1.1.5` from tag
+  `v1.1.5` on commit `d4d406b43a705ca5b7a314e1d5388c3ca39c750a`. S1-12C
+  audited the D-012 formal release packaging framework and closed D-012.
+  D-003 remains `OPEN - ROADMAP PLANNED`. D-004 remains closed as removed
+  from ZMeta scope.
 
 ## S0-01 - Semantic Contract Lockdown Audit
 
@@ -1056,6 +1059,62 @@
 - Decision: D-012 is closed. D-003 remains `OPEN - ROADMAP PLANNED`. D-004
   remains closed as removed from ZMeta scope.
 
+## R1-01 - v1.1.5 Release Publication
+
+- Status: COMPLETE
+- Date completed: 2026-05-08 UTC / 2026-05-07 local
+- Release URL: `https://github.com/JTC-byte/zmeta-spec/releases/tag/v1.1.5`
+- Tag: `v1.1.5`
+- Tagged commit: `d4d406b43a705ca5b7a314e1d5388c3ca39c750a`
+- Scope: Updated the local README surface and release notes, pushed the
+  hardened baseline to `origin/main`, created the annotated `v1.1.5` tag, and
+  published the GitHub release with release assets.
+- README/docs update:
+  - Audited every repo README and removed stale `v1.1.4` release references
+    from active README guidance.
+  - Updated `README.md`, `release/README.md`, `tools/README.md`,
+    `adapters/README.md`, `RELEASE_CHECKLIST.md`, and release helper defaults
+    for `v1.1.5`.
+  - Added `release/RELEASE_NOTES_v1.1.5.md` and
+    `release/VALIDATION_REPORT_v1.1.5.md`.
+- Published assets:
+  - `zmeta-v1.1.5-dist.zip`
+  - `zmeta-edge-v1.1.5.zip`
+  - `zmeta-gateway-v1.1.5.zip`
+  - `zmeta-release-package-v1.1.5.zip`
+  - `zmeta-release-manifest.yaml`
+  - `RELEASE_NOTES_v1.1.5.md`
+  - `VALIDATION_REPORT_v1.1.5.md`
+  - `SHA256SUMS_v1.1.5.txt`
+- Verification:
+  - `python tools\validate_release_manifest.py --manifest release\zmeta-release-manifest.yaml`
+    -> `release manifest ok groups=15 artifacts=55`
+  - `python tools\validate_release_package.py --manifest release\zmeta-release-manifest.yaml --templates-only`
+    -> `release package ok mode=templates`
+  - `python tools\validate_release_package.py --manifest release\zmeta-release-manifest.yaml --package-dir release\package-v1.1.5`
+    -> `release package ok mode=package` before zipping package output
+  - `python release\sign_release_artifacts.py --version v1.1.5 --verify-checksums`
+    -> `checksums ok: SHA256SUMS_v1.1.5.txt`
+  - `python tools\compute_contract_hash.py` -> schema, policy, semantics, and
+    combined contract hashes printed successfully
+  - `python tools\validate_conformance.py --strict` -> `conformance ok`
+  - `python tools\validate_conformance.py --strict --profile-projection --extension-registry --conformance-classes --encoding-negative --precision-policy --release-manifest --release-package`
+    -> projection, registry, conformance classes, encoding-negative,
+    precision-policy, release-manifest, release-package, and conformance checks
+    passed
+  - `python -m pytest -q gateway\tests\test_release_package.py` -> `11 passed`
+  - `python -m pytest` -> `333 passed`
+  - `git diff --check` -> passed
+- Signature status: GPG is installed, but no usable local secret signing key was
+  available. No `.asc` signatures, private keys, tokens, credentials,
+  certificates, or signing secrets were created or committed. The release body
+  documents that v1.1.5 is verified through SHA-256 checksums, the structured
+  release manifest, and the release package checksum file.
+- Decision: The ZMeta baseline hardening and release-prep workstream is
+  complete for v1.1.5. Remaining active work is D-003 future versioned semantic
+  branch governance. Optional future release operations may add detached
+  signatures only through an approved external signing-key process.
+
 ## Deferred Issue Register
 
 ### D-001 - MAVLink Adapter README State Payload Drift
@@ -1323,3 +1382,10 @@
   no-secret checks, generated package validation, optional conformance
   integration, release manifest validity, and absence of semantic/vocabulary
   drift. Removed D-012 from open-issue defaults after closure. D-012 is closed.
+- R1-01 publication: Published `v1.1.5` from commit
+  `d4d406b43a705ca5b7a314e1d5388c3ca39c750a` with release notes, validation
+  report, release manifest, release package zip, edge/gateway/source bundles,
+  and checksum manifest. No detached signatures were attached because no
+  approved local signing key was available. D-012 remains closed because the
+  packaging framework is implemented and audited; future detached signatures are
+  a release-authority operation, not a reopened baseline-hardening issue.

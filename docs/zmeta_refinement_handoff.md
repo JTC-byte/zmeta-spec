@@ -1,16 +1,26 @@
 # ZMeta Refinement Handoff Notes
 
-Status date: 2026-05-07
+Status date: 2026-05-08 UTC / 2026-05-07 local
 
 This note is the quick resume point for the current ZMeta refinement effort. The full task history and deferred issue register are in `docs/zmeta_refinement_worklog.md`.
 
 ## Current Position
 
-The semantic contract has been audited, rewritten, and crosswalked against the current implementation stack. The locked v1.0 baseline was verified, and no S1-01B targeted schema implementation task is currently needed. Profile projection preservation has been implemented and audited as sidecar conformance tooling without changing v1.0 schema or event vocabulary. The extension registry has been implemented and audited. The conformance class manifest and claim model have been implemented and audited without changing schemas or making new vocabulary valid. Encoding-negative validation has been implemented and audited for compact CBOR and protobuf invalid-after-decode paths. Profile precision and quantization policy has been implemented and audited as a reference conformance default. The D-011 `TAKEOFF` crosswalk cleanup is complete. The D-001 MAVLink ingress README state payload drift cleanup is complete. S1-09A planned the contract hash and release hash follow-up for D-002, S1-09B implemented the reference release hash policy, manifest, builder, validator, claim hash updates, and optional conformance integration, and S1-09C audited that implementation and closed D-002. S1-10P removed FORGE-derived organizational artifact scope from the ZMeta baseline. S1-10B was stopped before commit, no stopped implementation files remain, and D-004 is closed as removed from ZMeta scope. S1-11A planned the D-003 future versioned semantic branch roadmap and left D-003 open as roadmap-planned. S1-12A planned formal release tag, signature, checksum, and attestation packaging for D-012, S1-12B implemented the release packaging framework without creating real tags/signatures/keys/secrets or semantic drift, and S1-12C audited it and closed D-012.
+The semantic contract has been audited, rewritten, and crosswalked against the current implementation stack. The locked v1.0 baseline was verified, and no S1-01B targeted schema implementation task is currently needed. Profile projection preservation has been implemented and audited as sidecar conformance tooling without changing v1.0 schema or event vocabulary. The extension registry has been implemented and audited. The conformance class manifest and claim model have been implemented and audited without changing schemas or making new vocabulary valid. Encoding-negative validation has been implemented and audited for compact CBOR and protobuf invalid-after-decode paths. Profile precision and quantization policy has been implemented and audited as a reference conformance default. The D-011 `TAKEOFF` crosswalk cleanup is complete. The D-001 MAVLink ingress README state payload drift cleanup is complete. S1-09A planned the contract hash and release hash follow-up for D-002, S1-09B implemented the reference release hash policy, manifest, builder, validator, claim hash updates, and optional conformance integration, and S1-09C audited that implementation and closed D-002. S1-10P removed FORGE-derived organizational artifact scope from the ZMeta baseline. S1-10B was stopped before commit, no stopped implementation files remain, and D-004 is closed as removed from ZMeta scope. S1-11A planned the D-003 future versioned semantic branch roadmap and left D-003 open as roadmap-planned. S1-12A planned formal release tag, signature, checksum, and attestation packaging for D-012, S1-12B implemented the release packaging framework without creating real tags/signatures/keys/secrets or semantic drift, and S1-12C audited it and closed D-012. R1-01 published `v1.1.5` from commit `d4d406b43a705ca5b7a314e1d5388c3ca39c750a` with release notes, validation report, release manifest, release package zip, edge/gateway/source bundles, and checksum manifest.
 
 The next active planning item is:
 
 **S1-11B - Future Branch Roadmap Machine-Readable Artifact**, if roadmap serialization is desired. Otherwise the ZMeta baseline hardening and release-prep workstream can pause.
+
+Current public release:
+
+- Release URL: <https://github.com/JTC-byte/zmeta-spec/releases/tag/v1.1.5>
+- Tag: `v1.1.5`
+- Tagged commit: `d4d406b43a705ca5b7a314e1d5388c3ca39c750a`
+- Signature status: no detached `.asc` signatures were attached for `v1.1.5`
+  because no approved local release signing key was available. Use
+  `SHA256SUMS_v1.1.5.txt`, the structured release manifest, and the release
+  package checksum file for integrity verification.
 
 ## Key Docs
 
@@ -53,6 +63,9 @@ The next active planning item is:
 | `docs/s1_12c_formal_release_packaging_audit.md` | S1-12C audit closing D-012 after verifying release packaging support. |
 | `spec/release-signing-attestation.md` | S1-12B release signing, attestation, no-secret, and verification framework. |
 | `release/RELEASE_PACKAGE_README.md` | S1-12B release package template guidance. |
+| `release/RELEASE_NOTES_v1.1.5.md` | Published v1.1.5 release notes. |
+| `release/VALIDATION_REPORT_v1.1.5.md` | Published v1.1.5 validation report. |
+| `release/SHA256SUMS_v1.1.5.txt` | Published v1.1.5 checksum manifest for standard release assets. |
 | `docs/zmeta_refinement_worklog.md` | Running worklog, completed work items, pending work items, and deferred issue register. |
 
 ## Completed Recently
@@ -89,6 +102,7 @@ The next active planning item is:
 | S1-12A Formal Release Tag / Signature / Attestation Plan Only | COMPLETE | `docs/s1_12_formal_release_tag_signature_attestation_plan.md` |
 | S1-12B Formal Release Tag / Signature / Attestation Packaging Implementation | COMPLETE | `spec/release-signing-attestation.md`, `tools/build_release_package.py`, `tools/validate_release_package.py` |
 | S1-12C Formal Release Tag / Signature / Attestation Packaging Audit | COMPLETE | `docs/s1_12c_formal_release_packaging_audit.md` |
+| R1-01 v1.1.5 Release Publication | COMPLETE | <https://github.com/JTC-byte/zmeta-spec/releases/tag/v1.1.5> |
 
 ## Current Decisions
 
@@ -174,6 +188,11 @@ The next active planning item is:
   validation, no-secret behavior, release manifest integration, optional
   conformance integration, and absence of real tags/signatures/keys/secrets or
   semantic drift. D-012 is closed.
+- R1-01 published the validated `v1.1.5` GitHub release and pushed `main` and
+  the annotated `v1.1.5` tag. The release includes source, edge, gateway, release
+  package, release manifest, release notes, validation report, and checksum
+  assets. No `.asc` signatures were attached because no approved local signing
+  key was available.
 
 ## Next Work Queue
 
@@ -182,7 +201,7 @@ The next active planning item is:
    machine-readable planning artifact without changing schemas, the extension
    registry, conformance classes, or event vocabulary.
 
-2. **Human decisions for release, precision, and claim hardening**
+2. **Human decisions for future hardening**
    - Exact candidate precision defaults by profile and field family.
    - Whether precision values are global defaults or mission/profile
      configurable.
@@ -200,14 +219,10 @@ The next active planning item is:
    - Whether current class statuses should be `implemented` or `active`.
    - Whether claim files should require captured test output artifacts or only
      command/result summaries.
-   - Whether formal tagged releases should publish post-release claim
+   - Whether future formal releases should publish detached signatures after an
+     approved release signing key/process exists.
+   - Whether future formal tagged releases should publish post-release claim
      attestations that include release_manifest_hash.
-   - Whether release hashes should use raw checkout bytes or normalized LF text
-     for cross-platform reproducibility.
-   - Whether protobuf experimental artifacts belong in a core release hash, an
-     optional encoding hash, or both.
-   - Whether validator/tool source files should be hashed in the release bundle
-     or covered only by release zip checksums.
    - Whether generic adapter classes should wait for a shared adapter harness.
    - Whether `ZMETA-COT-PROJECTION` should remain partial until that harness
      exists.
@@ -263,14 +278,13 @@ The next active planning item is:
 
 ## Verification State
 
-Most recent validation after S1-12C:
+Most recent validation before the `v1.1.5` release publication:
 
 ```powershell
 python tools\validate_release_manifest.py --manifest release\zmeta-release-manifest.yaml
 python tools\build_release_package.py --manifest release\zmeta-release-manifest.yaml --output-dir release\package --dry-run --no-signatures
 python tools\validate_release_package.py --manifest release\zmeta-release-manifest.yaml --templates-only
-python tools\build_release_package.py --manifest release\zmeta-release-manifest.yaml --output-dir .tmp\release-package-audit --no-signatures --allow-dirty
-python tools\validate_release_package.py --manifest release\zmeta-release-manifest.yaml --package-dir .tmp\release-package-audit
+python tools\validate_release_package.py --manifest release\zmeta-release-manifest.yaml --package-dir release\package-v1.1.5
 python tools\validate_conformance.py --strict
 python tools\validate_conformance.py --strict --profile-projection
 python tools\validate_conformance.py --strict --profile-projection --extension-registry
@@ -286,6 +300,7 @@ python tools\validate_encoding_negative.py --compact conformance\encoding-negati
 python tools\validate_precision_policy.py --policy policy\profile-precision.yaml --must-pass conformance\profile-precision\must-pass.jsonl --must-fail conformance\profile-precision\must-fail.jsonl --quiet
 python -m pytest -q gateway\tests\test_release_package.py
 python -m pytest
+python release\sign_release_artifacts.py --version v1.1.5 --verify-checksums
 git diff --check
 ```
 
@@ -299,3 +314,4 @@ Encoding-negative validator result: `encoding negative ok total=49`.
 Precision policy validator result: `profile precision policy ok total=32`.
 Focused release package pytest result: `11 passed`.
 Full pytest result: `333 passed`.
+Checksum verification result: `checksums ok: SHA256SUMS_v1.1.5.txt`.
