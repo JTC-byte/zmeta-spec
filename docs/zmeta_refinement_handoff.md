@@ -6,11 +6,11 @@ This note is the quick resume point for the current ZMeta refinement effort. The
 
 ## Current Position
 
-The semantic contract has been audited, rewritten, and crosswalked against the current implementation stack. The locked v1.0 baseline was verified, and no S1-01B targeted schema implementation task is currently needed. Profile projection preservation has been implemented and audited as sidecar conformance tooling without changing v1.0 schema or event vocabulary. The extension registry has been implemented and audited. The conformance class manifest and claim model have been implemented and audited without changing schemas or making new vocabulary valid. Encoding-negative validation has been implemented and audited for compact CBOR and protobuf invalid-after-decode paths. Profile precision and quantization policy has been implemented and audited as a reference conformance default. The D-011 `TAKEOFF` crosswalk cleanup is complete. The D-001 MAVLink ingress README state payload drift cleanup is complete. S1-09A planned the contract hash and release hash follow-up for D-002, S1-09B implemented the reference release hash policy, manifest, builder, validator, claim hash updates, and optional conformance integration, and S1-09C audited that implementation and closed D-002.
+The semantic contract has been audited, rewritten, and crosswalked against the current implementation stack. The locked v1.0 baseline was verified, and no S1-01B targeted schema implementation task is currently needed. Profile projection preservation has been implemented and audited as sidecar conformance tooling without changing v1.0 schema or event vocabulary. The extension registry has been implemented and audited. The conformance class manifest and claim model have been implemented and audited without changing schemas or making new vocabulary valid. Encoding-negative validation has been implemented and audited for compact CBOR and protobuf invalid-after-decode paths. Profile precision and quantization policy has been implemented and audited as a reference conformance default. The D-011 `TAKEOFF` crosswalk cleanup is complete. The D-001 MAVLink ingress README state payload drift cleanup is complete. S1-09A planned the contract hash and release hash follow-up for D-002, S1-09B implemented the reference release hash policy, manifest, builder, validator, claim hash updates, and optional conformance integration, and S1-09C audited that implementation and closed D-002. S1-10A planned the D-004 companion artifact roadmap for non-event adoption, certification, replay, DevSecOps, data-rights, training, lessons-learned, and transition artifacts.
 
 The next active implementation item is:
 
-**S1-10A - Companion Artifact Roadmap Plan Only**
+**S1-10B - Companion Artifact Roadmap Implementation**
 
 ## Key Docs
 
@@ -47,6 +47,7 @@ The next active implementation item is:
 | `spec/release-hash-policy.md` | S1-09B release hash policy for narrow semantic contract hashes, broader release manifests, canonicalization, and deployment/claim guidance. |
 | `release/zmeta-release-manifest.yaml` | Reference hardening-baseline manifest with governed artifact hashes. |
 | `docs/s1_09c_contract_release_hash_audit.md` | S1-09C audit confirming release hash reproducibility, claim integration, and D-002 closure. |
+| `docs/s1_10_companion_artifact_roadmap_plan.md` | S1-10A plan for companion artifact taxonomy, common record model, paths, validator strategy, examples, and S1-10B implementation. |
 | `docs/zmeta_refinement_worklog.md` | Running worklog, completed work items, pending work items, and deferred issue register. |
 
 ## Completed Recently
@@ -77,6 +78,7 @@ The next active implementation item is:
 | S1-09A Contract Hash / Release Hash Follow-Up Plan Only | COMPLETE | `docs/s1_09_contract_release_hash_plan.md` |
 | S1-09B Contract Hash / Release Hash Implementation | COMPLETE | `spec/release-hash-policy.md`, `release/zmeta-release-manifest.yaml`, `tools/build_release_manifest.py`, `tools/validate_release_manifest.py` |
 | S1-09C Contract Hash / Release Hash Audit | COMPLETE | `docs/s1_09c_contract_release_hash_audit.md` |
+| S1-10A Companion Artifact Roadmap Plan Only | COMPLETE | `docs/s1_10_companion_artifact_roadmap_plan.md` |
 
 ## Current Decisions
 
@@ -143,13 +145,21 @@ The next active implementation item is:
   stable placeholder git metadata by default; formal release generation must
   pass explicit metadata. Formal tagged-release signatures and post-release
   attestations are tracked separately as D-012.
+- S1-10A planned the companion artifact roadmap for D-004. Companion artifacts
+  remain outside the event envelope and do not create event semantics or make
+  future vocabulary valid. Planned families include adapter manifests, replay
+  bundle manifests, test evidence bundles, vendor scorecards, data-rights
+  profiles, DevSecOps evidence bundles, model/AI assurance cards, TTP/training
+  packages, lessons-learned graphs, transition package manifests, deployment
+  policy profiles, and release attestation references.
 
 ## Next Work Queue
 
-1. **S1-10A - Companion Artifact Roadmap Plan Only**
-   - Plan D-004 companion artifact roadmap for adapter manifests, replay
-     bundles, vendor scorecards, data-rights profiles, DevSecOps evidence,
-     lessons-learned graphs, and TTP/training packages.
+1. **S1-10B - Companion Artifact Roadmap Implementation**
+   - Implement `spec/companion-artifacts.md`,
+     `companion-artifacts/companion_artifact_types.yaml`, a minimal example
+     artifact set, `tools/validate_companion_artifacts.py`, focused tests, and
+     optional `tools/validate_conformance.py --companion-artifacts`.
 
 2. **Human decisions for release, precision, and claim hardening**
    - Exact candidate precision defaults by profile and field family.
@@ -171,6 +181,16 @@ The next active implementation item is:
      command/result summaries.
    - Whether formal tagged releases should publish post-release claim
      attestations that include release_manifest_hash.
+   - Whether companion artifact IDs should be UUIDs, URNs, or repo-scoped IDs.
+   - Whether companion artifacts should join a future release manifest or use a
+     separate capability package manifest.
+   - Whether classified/restricted companion artifacts require private
+     manifests.
+   - Whether data-rights profiles require legal review before `validated` or
+     `transition_ready` status.
+   - Whether DevSecOps evidence should require an external SBOM standard.
+   - Whether S1-10B should add `ZMETA-COMPANION-ARTIFACTS` or keep companion
+     validation as optional adoption evidence.
    - Whether release hashes should use raw checkout bytes or normalized LF text
      for cross-platform reproducibility.
    - Whether protobuf experimental artifacts belong in a core release hash, an
@@ -200,6 +220,8 @@ The next active implementation item is:
    - D-002 Contract Hash / Release Hash Follow-Up is closed.
    - D-007 Encoding Negative Validation Gap is closed.
    - D-008 Conformance Class Manifest Missing is closed.
+   - D-004 Companion Artifact Set Needed remains open pending S1-10B
+     implementation and S1-10C audit.
    - D-009 v1.0/v1.1 Observation Extension Boundary Needs Explicit Tests.
    - D-010 Profile Precision / Quantization Policy Floors is closed.
   - D-011 Crosswalk TAKEOFF Mention Cleanup is closed.
@@ -228,12 +250,10 @@ The next active implementation item is:
 
 ## Verification State
 
-Most recent validation after S1-09C:
+Most recent validation after S1-10A:
 
 ```powershell
-python tools\build_release_manifest.py --output release\zmeta-release-manifest.yaml
 python tools\validate_release_manifest.py --manifest release\zmeta-release-manifest.yaml
-python tools\compute_contract_hash.py
 python tools\validate_conformance.py --strict
 python tools\validate_conformance.py --strict --profile-projection
 python tools\validate_conformance.py --strict --profile-projection --extension-registry
@@ -246,18 +266,14 @@ python tools\validate_extension_registry.py --registry spec\extension-registry.y
 python tools\validate_conformance_classes.py --manifest conformance\conformance_classes.yaml --claims conformance\claims\example-reference-gateway.yaml conformance\claims\example-core-producer.yaml
 python tools\validate_encoding_negative.py --compact conformance\encoding-negative\compact-must-fail.jsonl --protobuf conformance\encoding-negative\protobuf-must-fail.jsonl --gateway conformance\encoding-negative\gateway-must-fail.jsonl --quiet
 python tools\validate_precision_policy.py --policy policy\profile-precision.yaml --must-pass conformance\profile-precision\must-pass.jsonl --must-fail conformance\profile-precision\must-fail.jsonl --quiet
-python -m pytest -q gateway\tests\test_release_manifest.py
 python -m pytest
 git diff --check
 ```
 
 Release manifest result: `release manifest ok groups=14 artifacts=49`.
-Gateway-compatible hash helper printed schema, policy, semantics, and combined
-contract hashes successfully.
 Projection validator result: `projection conformance ok total=33`.
 Extension registry result: `extension registry ok entries=63`.
 Conformance classes result: `conformance classes ok classes=30 claims=2`.
 Encoding-negative validator result: `encoding negative ok total=49`.
 Precision policy validator result: `profile precision policy ok total=32`.
-Focused release-manifest tests: `16 passed`.
 Full pytest result: `322 passed`.
