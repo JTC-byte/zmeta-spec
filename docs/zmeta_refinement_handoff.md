@@ -234,7 +234,7 @@ The next active planning item is:
 
 ## Verification State
 
-Most recent validation after S1-10A:
+Most recent validation after S1-10P:
 
 ```powershell
 python tools\validate_release_manifest.py --manifest release\zmeta-release-manifest.yaml
@@ -256,7 +256,7 @@ git diff --check
 
 Release manifest result: `release manifest ok groups=14 artifacts=49`.
 Projection validator result: `projection conformance ok total=33`.
-Extension registry result: `extension registry ok entries=63`.
+Extension registry result: `extension registry ok entries=56`.
 Conformance classes result: `conformance classes ok classes=30 claims=2`.
 Encoding-negative validator result: `encoding negative ok total=49`.
 Precision policy validator result: `profile precision policy ok total=32`.

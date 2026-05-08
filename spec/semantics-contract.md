@@ -1396,20 +1396,16 @@ labels or local policy until a version branch adopts explicit fields.
 
 The following are v1.1+ or v1.2+ candidates:
 - Model family.
-- Model artifact hash.
-- Model card reference and hash.
-- Runtime environment identifier.
-- Container image digest or package hash.
+- Stable model identifier or model version digest.
+- Runtime class or inference service identifier where it affects output
+  interpretation.
 - Calibration profile.
-- Training/evaluation caveat references.
 - Model drift status.
 - Runtime monitoring status.
 - Degraded input flags.
 - Confidence decomposition.
-- Software supply chain provenance.
 - MODEL_STATUS, ASSURANCE_EVENT, or another governed status mechanism for
-  drift, OOD, calibration, TEVV posture, runtime health, and assurance
-  references.
+  drift, OOD, calibration, runtime health, and assurance state.
 
 These fields MUST NOT be treated as valid v1.0 requirements unless a future
 version branch adopts them.
@@ -1940,7 +1936,7 @@ or profile, and encoding/projection mappings used.
 | Track lifecycle machine events | Future | Future | Future | Future | Future | Current v1.0 guidance |
 | CoT/TAK projection boundary | No | Optional | Required | No | Required for projection class | No |
 | AI model name/version | Required for inference | Optional | Required | Preserves | Required | No |
-| Model card/hash/runtime provenance | Future | Future | Future | Future | Future | Current guidance only |
+| Model/runtime provenance | Future | Future | Future | Future | Future | Current guidance only |
 | Mesh signing/quarantine | Future | Future | Future | Future | Future | Current guidance only |
 | Coalition release/redaction | Future | Future | Future | Future | Future | Current guidance only |
 | Projection/thinning metadata | Future | Future | Future | Future | Future | Current guidance only |
@@ -2020,7 +2016,7 @@ branch, schema, policy, and conformance tests are approved:
 - Projection/thinning metadata fields.
 - Data nutrition labels.
 - Confidence decomposition fields.
-- Full model card/hash/runtime provenance fields.
+- Full model/runtime provenance fields.
 - MODEL_STATUS, ASSURANCE_EVENT, PNT_STATUS, or equivalent governed status
   subtypes.
 - Replay/red-team/synthetic labels.
