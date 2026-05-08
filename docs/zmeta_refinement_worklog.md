@@ -4,11 +4,12 @@
 
 - Last updated: 2026-05-07
 - Quick handoff: `docs/zmeta_refinement_handoff.md`
-- Current next work item: S1-11B - Future Branch Roadmap Machine-Readable
-  Artifact, or S1-12A if release packaging is prioritized first.
-- Current decision: S1-11A planned the D-003 future versioned semantic branch
-  roadmap. D-003 remains `OPEN - ROADMAP PLANNED`. D-004 remains closed as
-  removed from ZMeta scope.
+- Current next work item: S1-12B - Formal Release Tag / Signature /
+  Attestation Packaging Implementation, or S1-11B if future-branch roadmap
+  serialization is prioritized first.
+- Current decision: S1-12A planned the D-012 formal release packaging path.
+  D-012 remains open pending implementation. D-003 remains
+  `OPEN - ROADMAP PLANNED`. D-004 remains closed as removed from ZMeta scope.
 
 ## S0-01 - Semantic Contract Lockdown Audit
 
@@ -969,9 +970,44 @@
 
 ## S1-12A - Formal Release Tag / Signature / Attestation Plan Only
 
-- Status: FUTURE / PENDING
+- Status: COMPLETE
+- Date completed: 2026-05-07
+- Output: `docs/s1_12_formal_release_tag_signature_attestation_plan.md`
 - Scope: Plan D-012 formal release tag, signature, checksum, validation report,
-  and post-release attestation packaging without reopening D-002.
+  and post-release attestation packaging without reopening D-002 or changing
+  semantics.
+- Summary:
+  - Defined release artifact, release state, tagging, signing, attestation,
+    key-handling, formal release workflow, verification workflow, tooling, and
+    test strategy.
+  - Connected the S1-09 release manifest and category hashes to existing
+    release asset checksum/signature tooling without making release signing a
+    semantic gate.
+  - Confirmed signatures and attestations are release governance artifacts only.
+- Notes: Documentation-only task. No schemas, semantic contract text,
+  extension registry, conformance class manifest, validators, gateway runtime,
+  adapters, codecs, policies, release manifest, signatures, keys, tags, or
+  event vocabulary were changed.
+- Decision: D-012 remains open pending S1-12B implementation and S1-12C audit.
+  D-003 remains `OPEN - ROADMAP PLANNED`. D-004 remains closed as removed from
+  ZMeta scope.
+
+## S1-12B - Formal Release Tag / Signature / Attestation Packaging Implementation
+
+- Status: PENDING IMPLEMENTATION
+- Scope: If maintainers approve, implement the release package specification,
+  templates, builder/validator tooling, no-secret tests, and docs needed to
+  package, checksum, sign, attest, and verify a formal ZMeta release. Do not
+  create real release tags or signatures unless an explicit release task
+  supplies release metadata and signing authority.
+
+## S1-12C - Formal Release Tag / Signature / Attestation Post-Implementation Audit
+
+- Status: FUTURE / PENDING
+- Scope: Audit S1-12B for clean-checkout reproducibility, checksum integrity,
+  signature verification behavior, attestation correctness, no-secret handling,
+  release manifest compatibility, docs alignment, and absence of semantic or
+  vocabulary drift.
 
 ## Deferred Issue Register
 
@@ -1223,3 +1259,9 @@
 - Proposed follow-up: Plan and implement formal release tag, signature, and
   attestation packaging when the hardened stack is ready for a published
   release. Do not reopen D-002 for this packaging work.
+- S1-12A coverage: Planned the formal release artifact model, release state
+  model, tag naming, signing strategy, attestation/provenance contents, key and
+  secret handling rules, formal workflow, consumer verification workflow,
+  S1-12B tooling path, S1-12B test strategy, and S1-12C closure strategy. No
+  signatures, keys, tags, schemas, release manifests, validators, runtime code,
+  or vocabulary were changed.
