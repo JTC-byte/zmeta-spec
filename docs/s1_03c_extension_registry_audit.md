@@ -132,7 +132,6 @@ Categories used by current entries are valid:
 - `ai_model_provenance`
 - `coalition_release`
 - `command_task_type`
-- `companion_artifact`
 - `data_evidence`
 - `observation_feature_contract`
 - `observation_modality`
@@ -172,7 +171,7 @@ The registry includes the planned v1.1.0 experimental entries:
 
 It also includes the planned future observation modalities, system/status and
 assurance candidates, trust/identity/release/replay concepts, track lifecycle
-concepts, and companion artifact candidates as reserved or proposed entries.
+concepts, and other version-scoped candidates as reserved or proposed entries.
 
 `MARITIME` remains a reserved observation modality candidate while current
 v1.1.0 schema only uses similar broader labels in system/status metric contexts.
@@ -262,8 +261,6 @@ default strict behavior.
 - Whether registry validation should stay opt-in or eventually become part of
   default strict conformance after the format stabilizes.
 - Final vendor/private namespace and classified/restricted-name policy.
-- Whether companion artifacts should remain registry entries or split into a
-  separate manifest.
 
 ## Recommended Next Work Item
 

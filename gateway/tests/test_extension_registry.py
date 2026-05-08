@@ -37,7 +37,7 @@ def test_registry_yaml_loads():
     data = load_registry()
     assert data["registry_version"] == 1
     assert isinstance(data["entries"], list)
-    assert len(data["entries"]) >= 60
+    assert len(data["entries"]) >= 56
 
 
 def test_required_fields_exist():

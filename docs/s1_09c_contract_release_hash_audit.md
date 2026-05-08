@@ -81,9 +81,7 @@ made.
 - LF-normalized text hashing and raw binary hashing are the canonicalization
   rules;
 - advisory plans and audits are excluded unless a future release explicitly
-  lists them;
-- D-004 companion artifacts should use a later companion manifest or explicit
-  future release group.
+  lists them.
 
 S1-09C added clarification that formal tagged-release signatures and
 attestations are tracked separately as D-012.
@@ -279,4 +277,4 @@ not a blocker for the reference release hash baseline.
 
 ## Recommended Next Work Item
 
-S1-10A - Companion Artifact Roadmap Plan Only.
+S1-10P later removed the broad D-004 scope from the ZMeta baseline.

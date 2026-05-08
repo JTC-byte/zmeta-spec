@@ -200,8 +200,6 @@ Initial category set:
 - `replay_test`: replay, synthetic, red-team, exercise, or test labels.
 - `adapter_vendor_namespace`: vendor/private namespace definitions and allowed
   payload locations.
-- `companion_artifact`: manifests, scorecards, replay bundles, adapter manifests,
-  or artifacts referenced by events without becoming event payload bloat.
 - `encoding_projection`: compact/protobuf/CBOR mapping extensions and wire
   compatibility concepts.
 - `conformance_class`: named conformance claims and required test surfaces.
@@ -374,7 +372,7 @@ Not valid current vocabulary:
 
 The registry should keep these from becoming ad hoc state or fusion labels.
 Future adoption must define whether lifecycle is represented as fusion/state
-payload extension, system status, companion track manifest, or a new versioned
+payload extension, system status, or a new versioned
 subtype contract.
 
 ## J. Machine-Readable Registry Validation Plan
@@ -495,9 +493,6 @@ Human review decisions before S1-03B:
 - How should classified or restricted extension names be handled? Recommended
   default: allow opaque namespaced placeholders that reserve collisions without
   revealing sensitive definitions.
-- Should companion artifacts be a registry category or a separate manifest?
-  Recommended default: start with `companion_artifact` category, then split to a
-  dedicated manifest if records become too artifact-specific.
 - Should `ENVIRONMENTAL` and `MARITIME` be reserved as observation modality
   names immediately? Recommended default: yes, as reserved candidates, while
   noting that `MARITIME` already appears as a platform type metric value.

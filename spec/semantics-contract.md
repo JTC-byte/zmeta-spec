@@ -58,8 +58,6 @@ ZMeta is not:
 - A continuous-control or safety-critical actuator command protocol.
 - An IFF authority.
 - A vendor COP data model.
-- A substitute for acquisition, data-rights, DevSecOps, TTP, or lessons-learned
-  governance artifacts.
 
 The semantic pipeline is:
 
@@ -1802,22 +1800,6 @@ Before extension adoption, define:
 No extension becomes normative because an adapter emits it or a schema happens
 to allow extra properties.
 
-### 20.5 Companion Artifacts, Not Core Event Bloat
-
-The following are important to the ZMeta ecosystem but SHOULD remain companion
-artifacts unless a specific event-level reference is needed:
-- Vendor-neutral evaluation harnesses and scorecards.
-- Adapter onboarding manifests and dry-run reports.
-- Replay bundle manifests and scenario catalogs.
-- Government data-rights and IP strategy.
-- DevSecOps process evidence.
-- Lessons-learned knowledge graphs.
-- Operator TTPs and training material.
-- Large model cards, SBOMs, and package attestations.
-
-ZMeta events may reference these artifacts by ID or URI in a future governed
-field, but the artifacts themselves should not be embedded in core events.
-
 ## 21. v1.1.0 Extension Semantics
 
 This section governs experimental v1.1.0 extension vocabulary. It is valid only
@@ -2000,7 +1982,6 @@ or profile, and encoding/projection mappings used.
 - Projection and thinning metadata future guidance.
 - Data nutrition label future concept.
 - Extension registry and namespace governance.
-- Companion artifact boundary to avoid core event bloat.
 - Conformance class definitions.
 - Implementation mapping matrix.
 

@@ -87,8 +87,8 @@ Without class claims:
 : The class name is held for future governance and is not claimable.
 
 `future`
-: The class depends on future vocabulary, a future version branch, or companion
-  artifacts and is not claimable by current implementations.
+: The class depends on future vocabulary or a future version branch and is not
+  claimable by current implementations.
 
 `deprecated`
 : The class was previously claimable but is discouraged or superseded.

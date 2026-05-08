@@ -6,11 +6,11 @@ This note is the quick resume point for the current ZMeta refinement effort. The
 
 ## Current Position
 
-The semantic contract has been audited, rewritten, and crosswalked against the current implementation stack. The locked v1.0 baseline was verified, and no S1-01B targeted schema implementation task is currently needed. Profile projection preservation has been implemented and audited as sidecar conformance tooling without changing v1.0 schema or event vocabulary. The extension registry has been implemented and audited. The conformance class manifest and claim model have been implemented and audited without changing schemas or making new vocabulary valid. Encoding-negative validation has been implemented and audited for compact CBOR and protobuf invalid-after-decode paths. Profile precision and quantization policy has been implemented and audited as a reference conformance default. The D-011 `TAKEOFF` crosswalk cleanup is complete. The D-001 MAVLink ingress README state payload drift cleanup is complete. S1-09A planned the contract hash and release hash follow-up for D-002, S1-09B implemented the reference release hash policy, manifest, builder, validator, claim hash updates, and optional conformance integration, and S1-09C audited that implementation and closed D-002. S1-10A planned the D-004 companion artifact roadmap for non-event adoption, certification, replay, DevSecOps, data-rights, training, lessons-learned, and transition artifacts.
+The semantic contract has been audited, rewritten, and crosswalked against the current implementation stack. The locked v1.0 baseline was verified, and no S1-01B targeted schema implementation task is currently needed. Profile projection preservation has been implemented and audited as sidecar conformance tooling without changing v1.0 schema or event vocabulary. The extension registry has been implemented and audited. The conformance class manifest and claim model have been implemented and audited without changing schemas or making new vocabulary valid. Encoding-negative validation has been implemented and audited for compact CBOR and protobuf invalid-after-decode paths. Profile precision and quantization policy has been implemented and audited as a reference conformance default. The D-011 `TAKEOFF` crosswalk cleanup is complete. The D-001 MAVLink ingress README state payload drift cleanup is complete. S1-09A planned the contract hash and release hash follow-up for D-002, S1-09B implemented the reference release hash policy, manifest, builder, validator, claim hash updates, and optional conformance integration, and S1-09C audited that implementation and closed D-002. S1-10P removed FORGE-derived organizational artifact scope from the ZMeta baseline. S1-10B was stopped before commit, no stopped implementation files remain, and D-004 is closed as removed from ZMeta scope.
 
-The next active implementation item is:
+The next active planning item is:
 
-**S1-10B - Companion Artifact Roadmap Implementation**
+**S1-11A - Future Versioned Semantic Branch Roadmap Plan Only**
 
 ## Key Docs
 
@@ -47,7 +47,7 @@ The next active implementation item is:
 | `spec/release-hash-policy.md` | S1-09B release hash policy for narrow semantic contract hashes, broader release manifests, canonicalization, and deployment/claim guidance. |
 | `release/zmeta-release-manifest.yaml` | Reference hardening-baseline manifest with governed artifact hashes. |
 | `docs/s1_09c_contract_release_hash_audit.md` | S1-09C audit confirming release hash reproducibility, claim integration, and D-002 closure. |
-| `docs/s1_10_companion_artifact_roadmap_plan.md` | S1-10A plan for companion artifact taxonomy, common record model, paths, validator strategy, examples, and S1-10B implementation. |
+| `docs/s1_10p_forge_scope_purge.md` | S1-10P cleanup note removing out-of-scope organizational artifact scope from the ZMeta baseline. |
 | `docs/zmeta_refinement_worklog.md` | Running worklog, completed work items, pending work items, and deferred issue register. |
 
 ## Completed Recently
@@ -78,7 +78,8 @@ The next active implementation item is:
 | S1-09A Contract Hash / Release Hash Follow-Up Plan Only | COMPLETE | `docs/s1_09_contract_release_hash_plan.md` |
 | S1-09B Contract Hash / Release Hash Implementation | COMPLETE | `spec/release-hash-policy.md`, `release/zmeta-release-manifest.yaml`, `tools/build_release_manifest.py`, `tools/validate_release_manifest.py` |
 | S1-09C Contract Hash / Release Hash Audit | COMPLETE | `docs/s1_09c_contract_release_hash_audit.md` |
-| S1-10A Companion Artifact Roadmap Plan Only | COMPLETE | `docs/s1_10_companion_artifact_roadmap_plan.md` |
+| S1-10A Out-of-Scope Artifact Roadmap Plan Only | SUPERSEDED / CANCELLED | deleted during S1-10P |
+| S1-10P Purge FORGE-Derived Scope Contamination | COMPLETE | `docs/s1_10p_forge_scope_purge.md` |
 
 ## Current Decisions
 
@@ -145,21 +146,17 @@ The next active implementation item is:
   stable placeholder git metadata by default; formal release generation must
   pass explicit metadata. Formal tagged-release signatures and post-release
   attestations are tracked separately as D-012.
-- S1-10A planned the companion artifact roadmap for D-004. Companion artifacts
-  remain outside the event envelope and do not create event semantics or make
-  future vocabulary valid. Planned families include adapter manifests, replay
-  bundle manifests, test evidence bundles, vendor scorecards, data-rights
-  profiles, DevSecOps evidence bundles, model/AI assurance cards, TTP/training
-  packages, lessons-learned graphs, transition package manifests, deployment
-  policy profiles, and release attestation references.
+- S1-10P removed out-of-scope organizational artifact content from the ZMeta
+  baseline. ZMeta remains focused on event semantics, profiles, adapters,
+  encodings, validation, conformance, and release baselines.
+- D-004 is closed as `CLOSED - REMOVED FROM ZMETA SCOPE`.
 
 ## Next Work Queue
 
-1. **S1-10B - Companion Artifact Roadmap Implementation**
-   - Implement `spec/companion-artifacts.md`,
-     `companion-artifacts/companion_artifact_types.yaml`, a minimal example
-     artifact set, `tools/validate_companion_artifacts.py`, focused tests, and
-     optional `tools/validate_conformance.py --companion-artifacts`.
+1. **S1-11A - Future Versioned Semantic Branch Roadmap Plan Only**
+   - Plan D-003 versioned implementation branches for future semantic concepts
+     without changing the current v1.0 baseline or promoting v1.1.0/future
+     vocabulary.
 
 2. **Human decisions for release, precision, and claim hardening**
    - Exact candidate precision defaults by profile and field family.
@@ -181,16 +178,6 @@ The next active implementation item is:
      command/result summaries.
    - Whether formal tagged releases should publish post-release claim
      attestations that include release_manifest_hash.
-   - Whether companion artifact IDs should be UUIDs, URNs, or repo-scoped IDs.
-   - Whether companion artifacts should join a future release manifest or use a
-     separate capability package manifest.
-   - Whether classified/restricted companion artifacts require private
-     manifests.
-   - Whether data-rights profiles require legal review before `validated` or
-     `transition_ready` status.
-   - Whether DevSecOps evidence should require an external SBOM standard.
-   - Whether S1-10B should add `ZMETA-COMPANION-ARTIFACTS` or keep companion
-     validation as optional adoption evidence.
    - Whether release hashes should use raw checkout bytes or normalized LF text
      for cross-platform reproducibility.
    - Whether protobuf experimental artifacts belong in a core release hash, an
@@ -204,8 +191,6 @@ The next active implementation item is:
    - Whether registry validation should remain opt-in or become part of strict
      conformance after the format stabilizes.
    - How to represent vendor/private namespaces and classified/restricted names.
-   - Whether companion artifacts stay as a registry category or split into a
-     separate manifest later.
    - Whether encoding-negative fixtures should store malformed bytes as hex,
      base64, or generated-at-test-time inputs.
    - Whether to add a future `ZMETA-ENCODING-NEGATIVE-VALIDATION` class or fold
@@ -220,8 +205,7 @@ The next active implementation item is:
    - D-002 Contract Hash / Release Hash Follow-Up is closed.
    - D-007 Encoding Negative Validation Gap is closed.
    - D-008 Conformance Class Manifest Missing is closed.
-   - D-004 Companion Artifact Set Needed remains open pending S1-10B
-     implementation and S1-10C audit.
+   - D-004 is closed as removed from ZMeta scope by S1-10P.
    - D-009 v1.0/v1.1 Observation Extension Boundary Needs Explicit Tests.
    - D-010 Profile Precision / Quantization Policy Floors is closed.
   - D-011 Crosswalk TAKEOFF Mention Cleanup is closed.

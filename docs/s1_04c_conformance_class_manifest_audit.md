@@ -262,7 +262,7 @@ The following classes are non-claimable:
 
 They do not add schema vocabulary, do not make extension registry entries
 valid, and require future versioned branches, registry transitions, or
-companion artifacts before claimability.
+explicit implementation evidence before claimability.
 
 ## Dependency Review
 

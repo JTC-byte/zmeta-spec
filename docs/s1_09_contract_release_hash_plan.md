@@ -118,8 +118,6 @@ Clarifications:
 - Protobuf remains experimental projection support. Its schema and codec should
   be included under an encoding projection hash, not treated as v1.0 semantic
   authority.
-- Future companion artifacts under D-004 should get a companion manifest later
-  rather than bloating core event hashes.
 
 ## D. Normative vs Supporting Artifact Classification
 
@@ -465,8 +463,6 @@ S1-09B should be accepted only if:
   both? Recommendation: both.
 - How should classified or local policy variants be represented without
   changing the public reference `policy_bundle_hash`?
-- How should future D-004 companion artifacts get stable IDs and manifest
-  hashes?
 - Can D-002 close with a reference release manifest, or only after a tagged
   release publishes the manifest, checksums, signatures, and validation report?
 - Should deployment wrappers eventually enforce `release_manifest_hash`, or

@@ -4,12 +4,10 @@
 
 - Last updated: 2026-05-07
 - Quick handoff: `docs/zmeta_refinement_handoff.md`
-- Current next work item: S1-10B - Companion Artifact Roadmap Implementation.
-- Current decision: S1-10A planned the D-004 companion artifact roadmap. The
-  plan keeps adapter manifests, replay bundles, scorecards, data-rights
-  profiles, DevSecOps evidence, model cards, TTP/training packages, lessons
-  learned, and transition packages outside the ZMeta event envelope. Companion
-  artifacts do not create event semantics or make future vocabulary valid.
+- Current next work item: S1-11A - Future Versioned Semantic Branch Roadmap
+  Plan Only.
+- Current decision: S1-10P purged FORGE-derived organizational artifact scope
+  from the ZMeta baseline. D-004 is closed as removed from ZMeta scope.
 
 ## S0-01 - Semantic Contract Lockdown Audit
 
@@ -891,70 +889,47 @@
 - Decision: S1-09B is verified. D-002 is closed. D-003, D-004, and D-012 remain
   open.
 
-## S1-10A - Companion Artifact Roadmap Plan Only
+## S1-10A - Out-of-Scope Artifact Roadmap Plan Only
+
+- Status: SUPERSEDED / CANCELLED BY S1-10P
+- Date completed: 2026-05-07
+- Output: deleted during S1-10P
+- Scope correction: User review determined that the broad plan was outside
+  ZMeta's semantic-standard scope. The plan file was removed during S1-10P.
+
+## S1-10P - Purge FORGE-Derived Scope Contamination from ZMeta
 
 - Status: COMPLETE
 - Date completed: 2026-05-07
-- Output: `docs/s1_10_companion_artifact_roadmap_plan.md`
-- Scope: Planned the D-004 companion artifact roadmap for non-event artifacts
-  that support adoption, validation, transition, certification, replay,
-  data-rights governance, DevSecOps evidence, training, and lessons learned
-  without bloating core ZMeta events.
-- Plan summary:
-  - Defines companion artifact principles: artifacts are outside the event
-    envelope, do not create semantics, do not make future vocabulary valid, and
-    should be versioned, hashable, auditable, and safe for event consumers to
-    ignore.
-  - Defines required artifact families: adapter manifests, replay bundle
-    manifests, test evidence bundles, vendor scorecards, data-rights profiles,
-    DevSecOps evidence bundles, model/AI assurance cards, TTP/training
-    packages, lessons-learned graphs, transition package manifests, deployment
-    policy profiles, and release attestation references.
-  - Recommends `spec/companion-artifacts.md`,
-    `companion-artifacts/companion_artifact_types.yaml`,
-    `companion-artifacts/*/` example directories,
-    `tools/validate_companion_artifacts.py`, and
-    `gateway/tests/test_companion_artifacts.py` for S1-10B.
-  - Recommends no new conformance class during S1-10A and defers any
-    `ZMETA-COMPANION-ARTIFACTS` class decision until implementation proves the
-    validator and examples.
-- Notes: Planning only. No schemas, validators, gateway runtime behavior,
-  codecs, adapters, policy files, conformance class manifests, extension
-  registry files, release manifests, hashes, semantic contract text, or event
+- Output: `docs/s1_10p_forge_scope_purge.md`
+- Scope: Removed FORGE-derived organizational artifact scope from the semantic
+  contract, extension registry, release metadata, worklog, handoff, and related
+  governance docs.
+- Summary:
+  - S1-10B was stopped before commit, and no stopped S1-10B files remain.
+  - ZMeta remains focused on semantic interoperability, bandwidth-aware
+    profiles, lineage, adapters, encodings, validation, conformance, release
+    manifests, and implementation discipline.
+  - The contaminated semantic-contract boundary section was removed.
+  - The extension registry now contains only ZMeta vocabulary/governance
+    concepts.
+  - Release metadata was rebuilt after hash updates.
+- Notes: No schemas, gateway runtime behavior, adapters, codecs, or event
   vocabulary were changed.
-- Verification:
-  - `python tools\validate_release_manifest.py --manifest release\zmeta-release-manifest.yaml` -> `release manifest ok groups=14 artifacts=49`
-  - `python tools\validate_conformance.py --strict` -> `conformance ok`
-  - `python tools\validate_conformance.py --strict --profile-projection` -> `projection conformance ok total=33`, `conformance ok`
-  - `python tools\validate_conformance.py --strict --profile-projection --extension-registry` -> `projection conformance ok total=33`, `extension registry ok entries=63`, `conformance ok`
-  - `python tools\validate_conformance.py --strict --profile-projection --extension-registry --conformance-classes` -> `projection conformance ok total=33`, `extension registry ok entries=63`, `conformance classes ok classes=30 claims=2`, `conformance ok`
-  - `python tools\validate_conformance.py --strict --profile-projection --extension-registry --conformance-classes --encoding-negative` -> `encoding negative ok total=49`, `conformance ok`
-  - `python tools\validate_conformance.py --strict --profile-projection --extension-registry --conformance-classes --encoding-negative --precision-policy` -> `profile precision policy ok total=32`, `conformance ok`
-  - `python tools\validate_conformance.py --strict --profile-projection --extension-registry --conformance-classes --encoding-negative --precision-policy --release-manifest` -> `conformance ok`
-  - `python tools\validate_projection.py --catalog conformance\profile_projection_field_catalog.yaml --must-pass conformance\profile-projection\must-pass.jsonl --must-fail conformance\profile-projection\must-fail.jsonl --quiet` -> `projection conformance ok total=33`
-  - `python tools\validate_extension_registry.py --registry spec\extension-registry.yaml` -> `extension registry ok entries=63`
-  - `python tools\validate_conformance_classes.py --manifest conformance\conformance_classes.yaml --claims conformance\claims\example-reference-gateway.yaml conformance\claims\example-core-producer.yaml` -> `conformance classes ok classes=30 claims=2`
-  - `python tools\validate_encoding_negative.py --compact conformance\encoding-negative\compact-must-fail.jsonl --protobuf conformance\encoding-negative\protobuf-must-fail.jsonl --gateway conformance\encoding-negative\gateway-must-fail.jsonl --quiet` -> `encoding negative ok total=49`
-  - `python tools\validate_precision_policy.py --policy policy\profile-precision.yaml --must-pass conformance\profile-precision\must-pass.jsonl --must-fail conformance\profile-precision\must-fail.jsonl --quiet` -> `profile precision policy ok total=32`
-  - `python -m pytest` -> `322 passed`
-- Decision: S1-10A is complete. D-004 remains open pending S1-10B
-  implementation. D-003 and D-012 remain open.
+- Decision: D-004 is closed as `CLOSED - REMOVED FROM ZMETA SCOPE`. D-003 and
+  D-012 remain open.
 
-## S1-10B - Companion Artifact Roadmap Implementation
+## S1-10B - Stopped Out-of-Scope Artifact Implementation
 
-- Status: PENDING IMPLEMENTATION
-- Scope: Implement the companion artifact specification, artifact type
-  registry, minimal example artifact set, validator CLI, focused tests,
-  optional conformance runner integration, and docs without changing event
-  schemas or making companion concepts valid event vocabulary.
+- Status: CANCELLED / STOPPED BEFORE COMMIT
+- Scope correction: The stopped S1-10B prompt attempted to implement artifacts
+  outside the ZMeta baseline. No checkpoint commit was created. The uncommitted
+  files were rolled back before S1-10P edits began.
 
-## S1-10C - Companion Artifact Roadmap Post-Implementation Audit
+## S1-10C - Cancelled Out-of-Scope Artifact Audit
 
-- Status: PENDING
-- Scope: Audit S1-10B for artifact taxonomy quality, validator behavior,
-  example coverage, release-manifest relationship, extension-registry
-  boundary, conformance-class impact, documentation alignment, and no schema or
-  vocabulary drift.
+- Status: NOT OPENED / CANCELLED BY S1-10P
+- Scope correction: No S1-10B implementation remains to audit.
 
 ## S1-11A - Future Versioned Semantic Branch Roadmap Plan Only
 
@@ -1034,23 +1009,16 @@
   adapter/gateway, encoding, examples, and conformance implementation after
   approval of each extension branch.
 
-### D-004 - Companion Artifact Set Needed
+### D-004 - Out-of-Scope Artifact Set
 
-- Status: OPEN
+- Status: CLOSED - REMOVED FROM ZMETA SCOPE
 - Discovered during: S0-02 research review alignment
-- Issue: Vendor-neutral scorecards, replay bundle manifests, adapter manifests,
-  data-rights/IP governance, DevSecOps evidence, lessons-learned graphs, and
-  TTP/training materials are important but should not bloat core ZMeta events.
-- Impact: Without companion artifacts, ZMeta may be semantically strong but
-  operationally harder to certify and migrate.
-- Proposed follow-up: Define a companion artifact roadmap and decide which
-  artifacts need stable IDs referenced by future ZMeta events.
-- S1-10A coverage: Planned the companion artifact roadmap and recommended
-  `spec/companion-artifacts.md`, a machine-readable artifact type registry,
-  example artifact directories, `tools/validate_companion_artifacts.py`, and
-  focused tests. The plan keeps companion artifacts outside the event envelope
-  and makes clear that they do not create semantics or make future vocabulary
-  valid. D-004 remains open pending S1-10B implementation.
+- Issue: D-004 was determined to be outside the ZMeta semantic standard.
+- Impact: Keeping this issue active would risk pulling organizational artifact
+  scope into a semantic data standard.
+- Resolution: S1-10P removed D-004 from active ZMeta scope. ZMeta will remain
+  focused on event semantics, profiles, adapters, encodings, validation,
+  conformance, and release baselines.
 
 ### D-005 - Profile Projection Preservation Coverage Gap
 

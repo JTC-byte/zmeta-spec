@@ -318,7 +318,6 @@ def build_manifest_data(
         ],
         "known_open_issues": [
             "D-003 OPEN - Future Semantics Require Versioned Implementation Branches",
-            "D-004 OPEN - Companion Artifact Set Needed",
             "D-012 OPEN - Formal Release Tag, Signature, and Attestation Packaging",
         ],
         "experimental_surfaces": [
@@ -331,7 +330,6 @@ def build_manifest_data(
             "reserved and proposed extension registry entries",
             "future conformance classes with planned/reserved/future status",
             "D-003 version-branch candidates",
-            "D-004 companion artifact concepts",
         ],
     }
     manifest["release_manifest_hash"] = release_manifest_hash(manifest)

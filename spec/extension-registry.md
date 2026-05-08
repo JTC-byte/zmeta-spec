@@ -113,7 +113,6 @@ The current category set is:
 - `pnt_integrity`
 - `replay_test`
 - `adapter_vendor_namespace`
-- `companion_artifact`
 - `encoding_projection`
 - `conformance_class`
 - `track_lifecycle`

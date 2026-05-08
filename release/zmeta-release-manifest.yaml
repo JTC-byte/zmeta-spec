@@ -16,17 +16,17 @@ hash_canonicalization:
   group_hashes: sha256 over sorted 'relative/path\nsha256:<file_hash>\n' entries
   release_bundle_hash: sha256 over sorted 'group_name\nsha256:<group_hash>\n' entries; release manifest file excluded
   release_manifest_hash: sha256 over canonical YAML manifest content with release_manifest_hash set to null
-semantic_contract_hash: sha256:21d8ea7efab7acfb2da92e6f4d82580790def93c5d5171ce2a48d1db9fc78aff
+semantic_contract_hash: sha256:d521d781ade6d490d708b2b19b0d59a8dac3424fffec1871a7d831dadd48788a
 schema_bundle_hash: sha256:0403e5de390bfa29ea5c15c15363c1cacdd4a8e3ee1e244a056ea3de08d19bf9
 policy_bundle_hash: sha256:12f60656b42866ab12de5b6806b3265bdb28df05da32198293ed9b3d0d3f4e11
-extension_registry_hash: sha256:7e46bb60c83dc88669ae6d55190ab60442eb5f3079cbc1f174401eb8e499e563
+extension_registry_hash: sha256:068c93bacbe6fd6826cf61db699c288606f817301ebd9f26e321bc6c675f543e
 conformance_class_manifest_hash: sha256:b18e2c54afba70f24cfdaf60de06df6440fa598bc316a391fccf92d644a21eb7
 profile_projection_catalog_hash: sha256:88c84258dce567be5f87935b0fda87e939ced8b22a0d0281eec2b611e0316c96
 encoding_negative_suite_hash: sha256:efb1203fd7aa4f4065b094bd4e40f95594fa7f59761698cdfc2cdea1aa199ec8
 profile_precision_policy_hash: sha256:a2f51cf5f0779c43ae4118b941524fb14783181c739e693befd146f8c44a1139
 encoding_projection_specs_hash: sha256:df81a1157548d9e57c7e13a4dd3f2693bfa4575be91f4818fc54ab8fedf9b76a
-release_bundle_hash: sha256:c2578f6d8f5c57b1aab838867cfac23257d46ce098d1e5a52d98d223a9261f18
-release_manifest_hash: sha256:8478ee83d90c98c933657612d0942e81d4b52d4bf05668c56b7205d59c4afeca
+release_bundle_hash: sha256:e463f41a5421a0e5b6e8c771ca4c3a19de0c066a478a3dc299b6600872f320cb
+release_manifest_hash: sha256:e3d4914699b51f9a573ade333c138f96e60785a2434afcec85c51b18765d9283
 artifact_hashes:
 - path: configs/policy-variants/producer-authority.strict.yaml
   group: policy_bundle
@@ -38,11 +38,11 @@ artifact_hashes:
   canonicalization: text_lf
 - path: conformance/claims/example-core-producer.yaml
   group: claims
-  hash: sha256:64d3d9053dab1cfdf5bbf5ec22466516f0e08ef1016aed952cc98ca31a5252cc
+  hash: sha256:a63787df7be4c4cfa19f78f517249bd98001065ac9bc332f6595f281bc590520
   canonicalization: text_lf
 - path: conformance/claims/example-reference-gateway.yaml
   group: claims
-  hash: sha256:2d263a157ff08b02926384b402a7ca945dd60e392d294b19cd1f4845b63d41c6
+  hash: sha256:c032b7da2e9f22b285a74fc9aac8ee0648f0d16e83c13aeba1f6e1d472186db4
   canonicalization: text_lf
 - path: conformance/conformance_classes.yaml
   group: conformance_classes
@@ -162,7 +162,7 @@ artifact_hashes:
   canonicalization: text_lf
 - path: spec/extension-registry.yaml
   group: extension_registry
-  hash: sha256:1c3b5aa6489cfd34fd053658b324ae77c188b3af58c01e66a2d3163c67f0842b
+  hash: sha256:7da8072b6c96123119157428295f8706b6cfbdd488398ce28512cd5393bb20dd
   canonicalization: text_lf
 - path: spec/protobuf-encoding.md
   group: encoding_projection_specs
@@ -170,15 +170,15 @@ artifact_hashes:
   canonicalization: text_lf
 - path: spec/release-hash-policy.md
   group: release_policy
-  hash: sha256:61ec87b5d0f3a280ff8b6bdef5f08efb182e03d3386f20803727d633b1da3c22
+  hash: sha256:99fab15642b50c1b2aaef72df795f7719d439e0f6a54146ea744aee81906b925
   canonicalization: text_lf
 - path: spec/semantics-contract.md
   group: semantic_contract
-  hash: sha256:f65b294e492bce1325787c9d4c455fd05621a81d80c12610eefebc3854caf198
+  hash: sha256:9632890ddec60adaf4c43c7c6353de74a881ba1dde38466a908e0718ce7b3626
   canonicalization: text_lf
 - path: tools/build_release_manifest.py
   group: release_tools
-  hash: sha256:0b29fe97b89eeaa91b7dfc9af8211cc4ad65c172324a44dc4a0f82e736228336
+  hash: sha256:01b9681893c93b8e8587f9958f0de6dfcb6d095d52b52e38650e4f11338788c7
   canonicalization: text_lf
 - path: tools/compute_contract_hash.py
   group: release_tools
@@ -229,7 +229,7 @@ artifact_groups:
     description: Narrow normative semantic baseline.
     paths:
     - spec/semantics-contract.md
-    hash: sha256:21d8ea7efab7acfb2da92e6f4d82580790def93c5d5171ce2a48d1db9fc78aff
+    hash: sha256:d521d781ade6d490d708b2b19b0d59a8dac3424fffec1871a7d831dadd48788a
   schema_bundle:
     description: Canonical dispatcher plus locked v1.0 and experimental v1.1.0 schemas.
     paths:
@@ -256,7 +256,7 @@ artifact_groups:
     description: Machine-readable extension and reserved-vocabulary registry.
     paths:
     - spec/extension-registry.yaml
-    hash: sha256:7e46bb60c83dc88669ae6d55190ab60442eb5f3079cbc1f174401eb8e499e563
+    hash: sha256:068c93bacbe6fd6826cf61db699c288606f817301ebd9f26e321bc6c675f543e
   conformance_classes:
     description: Machine-readable conformance class manifest.
     paths:
@@ -307,19 +307,19 @@ artifact_groups:
     paths:
     - conformance/claims/example-core-producer.yaml
     - conformance/claims/example-reference-gateway.yaml
-    hash: sha256:8703f29194ba844854145910d3b1af0d76eae3cbd786ec003ba145e2156184ba
+    hash: sha256:589abb01d1690d1512a948c77b45c0820418737105d65827828c993e0d1798f9
   release_policy:
     description: Human-readable release hash taxonomy and canonicalization policy.
     paths:
     - spec/release-hash-policy.md
-    hash: sha256:a558142100125227637301515ee71bbf9b7a16c08004a63418692a7b4860ecc1
+    hash: sha256:4de90ad8b8da5022c21b8a6be791dd5097f1f690645737e524cf8a601398a329
   release_tools:
     description: Release hash build and validation tooling.
     paths:
     - tools/build_release_manifest.py
     - tools/compute_contract_hash.py
     - tools/validate_release_manifest.py
-    hash: sha256:27771bde6dafba2134a22e355d412b1f455870070d11e8eecc4c2eab8a60aeb2
+    hash: sha256:5cd8776c4706ab2513157d2dfddf337e04554d96d6fb4dedb646f6af1b3841a9
   conformance_tools:
     description: Conformance validators included in the reference baseline.
     paths:
@@ -345,7 +345,6 @@ notes:
 - Release manifest validation is opt-in and does not change default strict conformance.
 known_open_issues:
 - D-003 OPEN - Future Semantics Require Versioned Implementation Branches
-- D-004 OPEN - Companion Artifact Set Needed
 - D-012 OPEN - Formal Release Tag, Signature, and Attestation Packaging
 experimental_surfaces:
 - schema/zmeta-event-1.1.0.schema.json
@@ -356,4 +355,3 @@ future_surfaces_not_valid:
 - reserved and proposed extension registry entries
 - future conformance classes with planned/reserved/future status
 - D-003 version-branch candidates
-- D-004 companion artifact concepts

@@ -101,9 +101,10 @@ reports, local caches, release zip assets, signatures, and checksums are not
 included in the reference release bundle hash unless a future release explicitly
 lists them as release artifacts.
 
-Future companion artifacts under D-004 should use a companion manifest or an
-explicit future release-manifest group. They should not be silently folded into
-the semantic contract hash.
+S1-10P removed the broad D-004 scope from the ZMeta baseline. Non-standard
+organizational artifacts belong outside the ZMeta release baseline. Any future
+technical support manifest for ZMeta must be introduced through a new scoped
+issue and must not be silently folded into the semantic contract hash.
 
 ## Canonicalization Rules
 
