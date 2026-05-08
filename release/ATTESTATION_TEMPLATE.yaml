@@ -1,0 +1,38 @@
+attestation_version: 1
+release_id: explicit_release_input_required
+release_state: explicit_release_input_required
+git_commit: explicit_release_input_required
+git_tag: explicit_release_input_required
+branch: explicit_release_input_required
+release_manifest_hash: explicit_release_input_required
+release_bundle_hash: explicit_release_input_required
+semantic_contract_hash: explicit_release_input_required
+schema_bundle_hash: explicit_release_input_required
+policy_bundle_hash: explicit_release_input_required
+extension_registry_hash: explicit_release_input_required
+conformance_class_manifest_hash: explicit_release_input_required
+profile_projection_catalog_hash: explicit_release_input_required
+encoding_negative_suite_hash: explicit_release_input_required
+profile_precision_policy_hash: explicit_release_input_required
+encoding_projection_specs_hash: explicit_release_input_required
+commands_run:
+  - explicit_release_input_required
+test_summary:
+  status: explicit_release_input_required
+  details: explicit_release_input_required
+build_environment:
+  os: explicit_release_input_required
+  python: explicit_release_input_required
+  builder: tools/build_release_package.py
+signer_identity_placeholder: explicit_release_input_required
+signature_artifacts:
+  release_manifest: explicit_release_input_required
+  checksums: explicit_release_input_required
+known_open_issues:
+  - D-003 OPEN - Future Semantics Require Versioned Implementation Branches
+  - D-012 OPEN - FORMAL RELEASE TAG / SIGNATURE / ATTESTATION PACKAGING
+limitations:
+  - Template only; no real release signature or signer identity is included.
+notes:
+  - Release signatures and attestations do not create ZMeta semantics and do not make future vocabulary valid.
+  - No private keys, credentials, tokens, certificates, or signing secrets are stored in this repository.

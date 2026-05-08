@@ -63,6 +63,7 @@ REQUIRED_GROUPS = {
     "conformance_tools",
     "claims",
     "release_policy",
+    "release_packaging",
 }
 
 

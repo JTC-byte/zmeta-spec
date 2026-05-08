@@ -9,6 +9,8 @@ Key documents:
 - `extension-registry.yaml` machine-readable extension registry
 - `conformance-classes.md` human-readable conformance class and claim model
 - `release-hash-policy.md` contract/release hash taxonomy and manifest policy
+- `release-signing-attestation.md` formal release package, signing, attestation,
+  and no-secret guidance
 - `profile-compatibility.md` profile compatibility matrix and producer allowlists
 - `profile-projection-field-catalog.md` profile projection preservation catalog guide
 - `profile-precision-policy.md` profile precision and quantization policy guide
@@ -65,3 +67,15 @@ semantic contract baseline. The release manifest records broader schema,
 policy, registry, conformance, projection, encoding-negative, precision-policy,
 encoding projection, tool, and claim hashes without making those implementation
 surfaces semantic authority.
+
+Validate formal release package templates explicitly:
+
+```bash
+python tools/build_release_package.py --manifest release/zmeta-release-manifest.yaml --output-dir release/package --dry-run --no-signatures
+python tools/validate_release_package.py --manifest release/zmeta-release-manifest.yaml --templates-only
+python tools/validate_conformance.py --strict --release-package
+```
+
+Release package validation is opt-in and uses no-signature/template validation
+by default. It does not create git tags, call signing tools, generate
+signatures, store keys, change schemas, or make new vocabulary valid.

@@ -95,11 +95,13 @@ artifacts into these groups:
 - `conformance_tools`: conformance validator tools.
 - `claims`: example reference gateway and core producer claims.
 - `release_policy`: this human-readable release hash policy.
+- `release_packaging`: formal release signing/attestation policy, package
+  templates, and release package build/validation tooling.
 
 Advisory audit documents, handoff notes, historical release notes, generated
-reports, local caches, release zip assets, signatures, and checksums are not
-included in the reference release bundle hash unless a future release explicitly
-lists them as release artifacts.
+reports, local caches, generated package outputs, release zip assets,
+signatures, and checksums are not included in the reference release bundle hash
+unless a future release explicitly lists them as release artifacts.
 
 S1-10P removed the broad D-004 scope from the ZMeta baseline. Non-standard
 organizational artifacts belong outside the ZMeta release baseline. Any future
@@ -216,4 +218,6 @@ The release hash system does not:
 
 Release asset checksums and signatures remain separate publisher and artifact
 integrity controls. D-012 tracks formal tagged-release signature and
-attestation packaging outside the S1-09 reference hardening-baseline manifest.
+attestation packaging. S1-12B adds release package templates and package
+validation tooling to the governed baseline, but it does not add real tags,
+signatures, keys, credentials, or generated package outputs.

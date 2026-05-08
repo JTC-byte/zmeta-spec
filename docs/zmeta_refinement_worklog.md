@@ -4,12 +4,13 @@
 
 - Last updated: 2026-05-07
 - Quick handoff: `docs/zmeta_refinement_handoff.md`
-- Current next work item: S1-12B - Formal Release Tag / Signature /
-  Attestation Packaging Implementation, or S1-11B if future-branch roadmap
-  serialization is prioritized first.
-- Current decision: S1-12A planned the D-012 formal release packaging path.
-  D-012 remains open pending implementation. D-003 remains
-  `OPEN - ROADMAP PLANNED`. D-004 remains closed as removed from ZMeta scope.
+- Current next work item: S1-12C - Formal Release Tag / Signature /
+  Attestation Packaging Post-Implementation Audit, or S1-11B if future-branch
+  roadmap serialization is prioritized first.
+- Current decision: S1-12B implemented the D-012 formal release packaging
+  framework. D-012 remains `OPEN - IMPLEMENTED PENDING S1-12C AUDIT`. D-003
+  remains `OPEN - ROADMAP PLANNED`. D-004 remains closed as removed from ZMeta
+  scope.
 
 ## S0-01 - Semantic Contract Lockdown Audit
 
@@ -994,16 +995,43 @@
 
 ## S1-12B - Formal Release Tag / Signature / Attestation Packaging Implementation
 
-- Status: PENDING IMPLEMENTATION
-- Scope: If maintainers approve, implement the release package specification,
-  templates, builder/validator tooling, no-secret tests, and docs needed to
-  package, checksum, sign, attest, and verify a formal ZMeta release. Do not
-  create real release tags or signatures unless an explicit release task
-  supplies release metadata and signing authority.
+- Status: COMPLETE - IMPLEMENTED PENDING S1-12C AUDIT
+- Date completed: 2026-05-07
+- Outputs:
+  - `spec/release-signing-attestation.md`
+  - `release/RELEASE_NOTES_TEMPLATE.md`
+  - `release/ATTESTATION_TEMPLATE.yaml`
+  - `release/RELEASE_PACKAGE_README.md`
+  - `tools/build_release_package.py`
+  - `tools/validate_release_package.py`
+  - `gateway/tests/test_release_package.py`
+- Scope: Implemented release package specification, templates,
+  no-signature/dry-run package builder, release package validator, no-secret
+  scanning, focused tests, release manifest grouping, and optional
+  `--release-package` conformance integration.
+- Summary:
+  - Added package-level release notes and attestation templates with explicit
+    placeholders only.
+  - Added a no-signature builder that validates the release manifest, supports
+    dry-run output, and writes deterministic package metadata, attestation,
+    release notes, and checksums only when explicitly run without `--dry-run`.
+  - Added a validator that validates templates or package output, checks
+    package metadata, attestation hashes, checksums, missing artifacts, D-003
+    and D-012 open-issue references, and obvious secret/key material.
+  - Added optional conformance integration through
+    `tools/validate_conformance.py --release-package`.
+  - Added `release_packaging` to the governed release manifest artifact groups.
+- Notes: No real release tag, signature, key, certificate, credential, token,
+  secret, generated package output, schema change, semantic contract change,
+  extension registry change, conformance class status change, gateway runtime
+  change, adapter change, codec change, or event vocabulary change was made.
+- Decision: D-012 remains `OPEN - IMPLEMENTED PENDING S1-12C AUDIT`. D-003
+  remains `OPEN - ROADMAP PLANNED`. D-004 remains closed as removed from ZMeta
+  scope.
 
 ## S1-12C - Formal Release Tag / Signature / Attestation Post-Implementation Audit
 
-- Status: FUTURE / PENDING
+- Status: PENDING
 - Scope: Audit S1-12B for clean-checkout reproducibility, checksum integrity,
   signature verification behavior, attestation correctness, no-secret handling,
   release manifest compatibility, docs alignment, and absence of semantic or
@@ -1247,7 +1275,7 @@
 
 ### D-012 - Formal Release Tag, Signature, and Attestation Packaging
 
-- Status: OPEN
+- Status: OPEN - IMPLEMENTED PENDING S1-12C AUDIT
 - Discovered during: S1-09C
 - Issue: The S1-09B/S1-09C reference hardening-baseline manifest is
   reproducible and sufficient to close D-002, but it is not a formal tagged
@@ -1265,3 +1293,10 @@
   S1-12B tooling path, S1-12B test strategy, and S1-12C closure strategy. No
   signatures, keys, tags, schemas, release manifests, validators, runtime code,
   or vocabulary were changed.
+- S1-12B coverage: Implemented the release signing/attestation specification,
+  release package templates, no-signature package builder, package validator,
+  no-secret scanner, optional conformance flag, focused tests, docs updates,
+  and release manifest `release_packaging` group. No real tags, signatures,
+  keys, secrets, schemas, semantic contract text, extension registry entries,
+  conformance class status, gateway runtime behavior, adapters, codecs, or
+  event vocabulary were changed.

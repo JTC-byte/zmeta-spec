@@ -45,6 +45,11 @@ def parse_args():
         help="Also validate the structured release manifest.",
     )
     parser.add_argument(
+        "--release-package",
+        action="store_true",
+        help="Also validate formal release package templates.",
+    )
+    parser.add_argument(
         "--pass-file",
         default=str(ROOT / "conformance" / "must-pass.jsonl"),
         help="Path to must-pass JSONL",
@@ -253,6 +258,21 @@ def main():
         release_manifest_spec.loader.exec_module(release_manifest)
         result = release_manifest.run(
             ROOT / "release" / "zmeta-release-manifest.yaml",
+            quiet=True,
+        )
+        if result:
+            raise SystemExit(result)
+
+    if args.release_package:
+        release_package_path = ROOT / "tools" / "validate_release_package.py"
+        release_package_spec = importlib.util.spec_from_file_location(
+            "zmeta_validate_release_package", release_package_path
+        )
+        release_package = importlib.util.module_from_spec(release_package_spec)
+        release_package_spec.loader.exec_module(release_package)
+        result = release_package.run(
+            ROOT / "release" / "zmeta-release-manifest.yaml",
+            templates_only=True,
             quiet=True,
         )
         if result:

@@ -20,6 +20,9 @@ version-discriminated schema plus policy pack:
   policy for profile/export validation.
 - `../release/zmeta-release-manifest.yaml`: reference hardening-baseline release
   manifest for governed artifact hashes.
+- `../release/RELEASE_NOTES_TEMPLATE.md`,
+  `../release/ATTESTATION_TEMPLATE.yaml`, and
+  `../release/RELEASE_PACKAGE_README.md`: formal release package templates.
 
 Use:
 
@@ -102,3 +105,14 @@ record broader release category hashes under `release_hashes`. They omit
 `release_manifest_hash` in S1-09B because the reference manifest includes the
 claim files; a formal tagged release may publish post-release attestations if it
 needs claim-level manifest hashes.
+
+Release package validation is opt-in and template-only by default:
+
+```
+python tools/build_release_package.py --manifest release/zmeta-release-manifest.yaml --output-dir release/package --dry-run --no-signatures
+python tools/validate_release_package.py --manifest release/zmeta-release-manifest.yaml --templates-only
+python tools/validate_conformance.py --strict --profile-projection --extension-registry --conformance-classes --encoding-negative --precision-policy --release-manifest --release-package
+```
+
+The release package framework does not create tags, generate signatures, store
+keys or secrets, change validation behavior, or make future vocabulary valid.

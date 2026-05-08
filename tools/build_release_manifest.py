@@ -206,6 +206,17 @@ def artifact_groups(root: Path = ROOT, *, include_tool_source: bool = True) -> d
             "description": "Human-readable release hash taxonomy and canonicalization policy.",
             "paths": ["spec/release-hash-policy.md"],
         },
+        "release_packaging": {
+            "description": "Formal release signing, attestation, package template, and package validation support.",
+            "paths": [
+                "spec/release-signing-attestation.md",
+                "release/RELEASE_NOTES_TEMPLATE.md",
+                "release/ATTESTATION_TEMPLATE.yaml",
+                "release/RELEASE_PACKAGE_README.md",
+                "tools/build_release_package.py",
+                "tools/validate_release_package.py",
+            ],
+        },
     }
 
     if include_tool_source:
@@ -318,7 +329,7 @@ def build_manifest_data(
         ],
         "known_open_issues": [
             "D-003 OPEN - Future Semantics Require Versioned Implementation Branches",
-            "D-012 OPEN - Formal Release Tag, Signature, and Attestation Packaging",
+            "D-012 OPEN - IMPLEMENTED PENDING S1-12C AUDIT",
         ],
         "experimental_surfaces": [
             "schema/zmeta-event-1.1.0.schema.json",
