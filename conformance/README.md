@@ -28,6 +28,13 @@ version-discriminated schema plus policy pack:
   `../release/ATTESTATION_TEMPLATE.yaml`, and
   `../release/RELEASE_PACKAGE_README.md`: formal release package templates.
 
+The conformance pack protects the ZMeta kernel; it is not an exhaustive mission
+ontology or a promise that every sensor, platform, adapter variant, policy, or
+edge case has been certified. Mission-specific behavior belongs in policy
+packs, deployment configuration, adapters, profiles, extension branches,
+operator views, or mission plugins unless it exposes a concrete semantic
+ambiguity, implementation failure, or safety/audit gap.
+
 Use:
 
 ```
@@ -84,7 +91,8 @@ python tools/validate_conformance.py --strict --profile-projection --extension-r
 Class records and claim files do not make future vocabulary valid. They state
 which existing semantic, schema, policy, adapter, gateway, encoding, and
 conformance surfaces an implementation satisfies. Future, reserved, and planned
-classes are not claimable by current implementation claim files.
+classes are `FUTURE_EXTENSION` material and are not claimable by current
+implementation claim files.
 
 Encoding-negative validation is opt-in:
 

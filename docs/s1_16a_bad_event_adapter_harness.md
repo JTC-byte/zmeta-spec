@@ -55,6 +55,9 @@ Adapter fixtures cover representative:
 
 - The adapter harness is representative, not exhaustive. It does not certify
   every native-message variant for every adapter.
+- That limit is intentional: the harness protects the semantic kernel while
+  leaving mission-specific adapter breadth to future conformance classes,
+  deployment policy, or extension branches.
 - `ZMETA-SENSOR-ADAPTER` remains planned until broader sensor-family coverage
   exists.
 - Future trust, markings, PNT, model assurance, and cross-domain export

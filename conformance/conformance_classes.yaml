@@ -45,6 +45,8 @@ claim_model:
   result_policy: required commands for each claimed class must be recorded as passed
 notes:
   - Conformance classes do not create semantics or make future vocabulary valid.
+  - Conformance classes protect the ZMeta kernel without making the core contract an exhaustive mission ontology.
+  - Future, reserved, and planned classes are FUTURE_EXTENSION material until a version branch and required evidence make them claimable.
   - v1.1.0 support remains experimental until a separate release decision promotes it.
   - Example claims are reproducible examples, not release certificates.
   - Release hashes are governance evidence. They do not alter class status, schema validity, or current vocabulary.

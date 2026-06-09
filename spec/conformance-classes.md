@@ -9,6 +9,12 @@ Conformance classes do not create semantics. They state which already-defined
 semantic, schema, policy, adapter, gateway, encoding, and conformance surfaces an
 implementation satisfies.
 
+They also preserve the core contract's completeness-without-exhaustiveness
+boundary. A class can prove support for a defined ZMeta surface, but it cannot
+turn mission-specific behavior into core semantics or certify every possible
+sensor, platform, adapter variant, policy, workflow, operator role, or edge
+case.
+
 ## Authority
 
 The semantic contract remains authoritative. Conformance classes organize
@@ -17,9 +23,9 @@ schemas, policy packs, gateway behavior, adapter rules, encoding guidance,
 extension registry decisions, examples, or conformance fixtures.
 
 A conformance class cannot make future vocabulary valid. Future or reserved
-semantic concepts must first be adopted through an approved version branch and
-the associated schema, policy, adapter/gateway, encoding, documentation, and
-conformance coverage.
+semantic concepts are `FUTURE_EXTENSION` material until adopted through an
+approved version branch and the associated schema, policy, adapter/gateway,
+encoding, documentation, and conformance coverage.
 
 v1.0 remains locked and normative. v1.1.0 remains experimental unless promoted
 by a separate version/release decision.
@@ -150,6 +156,9 @@ claimable until the registry status, version branch, schemas, policy,
 adapter/gateway behavior, encoding guidance, documentation, and tests support
 the claim.
 
+This keeps future-extension work visible without letting it blur into current
+interoperability claims.
+
 ## Evidence Requirements
 
 Each class record identifies:
@@ -181,6 +190,9 @@ lineage, risk adjudication, external projection promotion, risk filtering,
 Profile L/M/H, projection preservation, extension registry validation, compact
 CBOR, protobuf projection, generic adapter conformance, CoT projection, and the
 reference gateway.
+
+These classes protect the ZMeta kernel. They are not a mission ontology and do
+not require the core contract to enumerate every deployment-specific workflow.
 
 Risk-governance classes do not loosen schemas. They prove that tunable policy
 responses remain bounded, labeled, diagnostic, and filterable, and that external

@@ -177,7 +177,7 @@ Use this to lock down schema, policy, and semantic-contract drift and verify a c
 1. Validate the governed release baseline: `python tools/validate_release_manifest.py --manifest release/zmeta-release-manifest.yaml`
 1. Validate formal release package templates or generated package output before distribution.
 1. Run self-test: `python tools/run_gateway.py --profile H --self-test`
-1. Run conformance: `python tools/validate_conformance.py --strict --profile-projection --extension-registry --conformance-classes --encoding-negative --precision-policy --release-manifest --release-package`
+1. Run conformance: `python tools/validate_conformance.py --strict --profile-projection --extension-registry --conformance-classes --encoding-negative --precision-policy --release-manifest --release-package --bad-events --adapter-harness`
 1. Start gateway with strict mode (optional): `python tools/run_gateway.py --config configs/gateway-config.json --strict-validation`
 1. Verify metrics and drops in logs (enable `metrics_log_path` if needed).
 

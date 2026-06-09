@@ -80,6 +80,25 @@ compute tier, trust/quarantine state, replay mode, and operator view policy are
 different concepts. Implementations MUST NOT overload `profile` to mean release
 domain, trust state, emergency condition, or UI role.
 
+### 1.1 Completeness Without Exhaustiveness
+
+ZMeta defines the stable semantic primitives required to preserve operational
+meaning across heterogeneous ISR systems. It does not attempt to define a
+complete mission ontology for every sensor, platform, adapter, trust model,
+operational role, doctrine, workflow, or edge case.
+
+Implementations MAY build mission-specific workflows, policy packs, adapters,
+profiles, extensions, operator views, and mission plugins on top of ZMeta. They
+MUST NOT redefine the meaning of core event families, semantic layer
+boundaries, confidence semantics, lineage semantics, profile behavior,
+authority boundaries, command safety, or adapter/gateway obligations.
+
+The purpose of the core contract is to prevent semantic corruption, not to
+exhaustively model every possible mission. Mission-specific behavior belongs in
+policy packs, deployment configuration, adapter mappings, profile projection
+rules, extension branches, conformance-scoped branches, operator views, or
+mission plugins.
+
 ## 2. Version Semantics
 
 ### 2.1 v1.0 Locked Semantics
@@ -152,6 +171,31 @@ non-UUIDv7 ZMeta `event_id`, collapsed semantic layers, implicit units,
 missing required lineage, or invalid command safety is not compatible even if a
 legacy implementation accepted it.
 
+### 2.6 Core Semantic Change Threshold
+
+Core semantic changes SHOULD NOT be accepted unless there is an observed
+implementation failure, interoperability ambiguity, safety or audit risk, or
+validated operational requirement that cannot be solved through policy,
+profiles, adapters, governed extension branches, conformance classes, or
+mission-specific logic.
+
+A core clarification or change is appropriate when at least one of the following
+is true:
+- Two compliant implementations can interpret the same event differently.
+- An adapter can silently upgrade or launder meaning across a semantic boundary.
+- Bad, stale, degraded, unresolved, or externally promoted data can masquerade
+  as clean authoritative state.
+- Unsafe command generation can occur without an auditable basis.
+- A profile projection can hide material degradation, confidence reduction,
+  TTL reduction, or lineage uncertainty.
+
+If an issue can be solved by deployment policy, profile selection, adapter
+mapping, local operator view rules, mission plugin behavior, or a governed
+extension branch, it SHOULD NOT change the core contract. Cleaner wording,
+mission-specific preferences, and hypothetical future cases SHOULD be handled as
+documentation, policy, or extension-registry work unless they expose a concrete
+semantic ambiguity or safety/audit failure.
+
 ## 3. Enforcement Model
 
 No single implementation surface enforces the whole semantic contract. The
@@ -212,7 +256,8 @@ ZMeta does not prescribe a single mission risk tolerance. It requires that any
 accepted risk be explicitly labeled, policy-adjudicated, auditable, and
 prevented from masquerading as clean authoritative state.
 
-Policy rules fall into three classes:
+Contract and policy rules fall into four classes: `LOCKED`, `TUNABLE`,
+`ADVISORY`, and `FUTURE_EXTENSION`.
 
 - **Locked rules** protect interoperability and semantic truth. They MUST NOT be
   loosened by deployment policy. Examples include exact version selection,
@@ -228,6 +273,11 @@ Policy rules fall into three classes:
 - **Advisory rules** provide recommended quality targets, display hints, or
   operator guidance. They MUST NOT be interpreted as structural validity unless
   promoted to schema or policy enforcement by a versioned decision.
+- **Future-extension rules** reserve, propose, or describe experimental concepts
+  that are not valid current vocabulary. They MUST remain non-claimable until an
+  approved version branch defines semantic text, schema or policy behavior,
+  adapter/gateway guidance, encoding handling where applicable, and conformance
+  tests.
 
 Tunable policy responses SHOULD use a bounded action vocabulary:
 
@@ -2109,6 +2159,8 @@ or profile, and encoding/projection mappings used.
 
 | Rule / Concept | JSON Schema | Policy Pack | Adapter/Gateway | Encoding Projection | Conformance Test | Documentation Only |
 |---|---|---|---|---|---|---|
+| Completeness without exhaustiveness | No | Must not use local policy to redefine core semantics | Must keep mission-specific mapping outside the core kernel | No independent role | Bad-event, adapter, registry, and class evidence protect boundaries | Yes |
+| Core semantic change threshold | No | No runtime role | No runtime role | No independent role | Release/audit governance evidence only | Yes |
 | Exact `zmeta_version` selection | Required | Validates selected policy context | Uses canonical schema | Decodes before validation | Required | No |
 | UUIDv7 event identity | Required | Optional diagnostics | Generates at boundaries | Preserves value | Required | No |
 | Append-only immutability | Partial | Partial | Required | Preserves fields | Required for gateways/adapters | No |
@@ -2145,6 +2197,7 @@ or profile, and encoding/projection mappings used.
 | Projection/thinning metadata | Future | Future | Future | Future | Future | Current guidance only |
 | Projection origin/instance identity | Future | Future | Future | Future | Future | Current guidance only |
 | Extension namespace safety | Partial | Optional | Required | Preserves | Required for extension adoption | No |
+| Future-extension non-claimability | Required through version/subtype rejection | Must not treat future terms as current authority | Must not emit or promote reserved terms as current vocabulary | Decodes before validation | Extension registry and conformance-class validators | No |
 | Data nutrition labels | Future | Future | Future UI/projection | No | Future | Current guidance only |
 
 ## 24. Change Log / Semantic Delta
@@ -2153,6 +2206,8 @@ or profile, and encoding/projection mappings used.
 
 - The semantic contract is the authority; schema, policy, adapters, gateways,
   encodings, examples, and conformance tests are implementation surfaces.
+- ZMeta is complete enough to prevent semantic corruption without becoming an
+  exhaustive mission ontology.
 - v1.0 remains locked and normative.
 - v1.1.0 is an experimental compatibility extension branch and does not loosen
   v1.0 invariants.
@@ -2179,7 +2234,9 @@ or profile, and encoding/projection mappings used.
 - AI provenance and model-runtime guidance.
 - Raw-data-absent mode guidance.
 - Risk adjudication and operator-tunable policy.
-- Locked, tunable, and advisory rule classes.
+- Completeness without exhaustiveness as a kernel-protection doctrine.
+- Core semantic change threshold for future contract edits.
+- Locked, tunable, advisory, and future-extension rule classes.
 - Bounded policy actions: reject, warn, degrade, quarantine, and scoped ignore.
 - Allowed/prohibited use labels for accepted-risk data.
 - External projection promotion requirements for lossy tactical-track ingress.
