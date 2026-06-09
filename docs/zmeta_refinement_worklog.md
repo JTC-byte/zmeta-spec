@@ -38,6 +38,8 @@
   S1-17A audited the tracked stack against that doctrine, found no live
   schema/runtime/adapter/encoding/vocabulary drift, and promoted full
   kernel-protection conformance to CI, Makefile, and release checklist usage.
+  S1-18A added consumer-side accepted-risk filtering with operator presets for
+  display, fusion, state, command, autonomy, AAR, and audit intake posture.
   D-003 remains `OPEN - ROADMAP PLANNED`. D-004 remains closed as removed from
   ZMeta scope.
 
@@ -1431,6 +1433,49 @@
   - `python tools\validate_examples.py --strict --require-all` ->
     `overall total=40 passed=40 failed=0 warnings=0`
   - `python -m pytest -q` -> `358 passed, 108 subtests passed`
+  - `git diff --check` -> passed with normal Windows CRLF conversion warnings
+
+## S1-18A - Operator Risk Filter Tooling
+
+- Status: COMPLETE
+- Date completed: 2026-06-08
+- Output: `docs/s1_18a_operator_risk_filter_tooling.md`
+- Scope: Added consumer-side filtering for accepted-risk ZMeta streams so
+  operators can tune intake posture using existing risk labels without changing
+  semantic truth.
+- Changes:
+  - Added `tools/filter_risk.py`.
+  - Added presets for `display`, `fusion`, `state`, `command`, `autonomy`,
+    `aar`, and `audit`.
+  - Added focused tests in `gateway/tests/test_risk_filter_cli.py`.
+  - Documented filter usage in tool, gateway, config, conformance, root README,
+    and release checklist surfaces.
+  - Updated `ZMETA-RISK-FILTERING` conformance evidence and example
+    reference-gateway claim.
+  - Added the filter tool to governed release manifest conformance tooling and
+    rebuilt release/claim hashes.
+- Notes:
+  - The filter reads event-side `payload.extensions.risk_adjudication` and
+    same-stream `SYSTEM_EVENT/SCHEMA_VIOLATION` diagnostic metrics.
+  - It writes passing events unchanged and can write dropped-event reasons to a
+    sidecar.
+  - No schemas, event vocabulary, policy YAML semantics, gateway runtime
+    mutation, adapters, encodings, examples, or future-extension terms were
+    added.
+- Verification:
+  - `python -m pytest -q gateway\tests\test_risk_filter_cli.py` -> `6 passed`
+  - `python tools\validate_conformance_classes.py --manifest conformance\conformance_classes.yaml --claims conformance\claims\example-reference-gateway.yaml conformance\claims\example-core-producer.yaml` ->
+    `conformance classes ok classes=34 claims=2`
+  - `python tools\validate_release_manifest.py --manifest release\zmeta-release-manifest.yaml` ->
+    `release manifest ok groups=17 artifacts=60`
+  - `python tools\validate_conformance.py --strict --profile-projection --extension-registry --conformance-classes --encoding-negative --precision-policy --release-manifest --release-package --bad-events --adapter-harness` ->
+    `projection conformance ok total=33`, `extension registry ok entries=56`,
+    `conformance classes ok classes=34 claims=2`, `encoding negative ok total=49`,
+    `profile precision policy ok total=32`, `bad-event corpus ok total=9`,
+    `adapter conformance ok total=8`, `conformance ok`
+  - `python tools\validate_examples.py --strict --require-all` ->
+    `overall total=40 passed=40 failed=0 warnings=0`
+  - `python -m pytest -q` -> `364 passed, 108 subtests passed`
   - `git diff --check` -> passed with normal Windows CRLF conversion warnings
 
 ## Deferred Issue Register

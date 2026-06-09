@@ -33,6 +33,11 @@ Notes:
   outside `policy/` unless changing the deployment hash is intentional.
 - Context-aware lineage rules live in `policy/lineage.yaml`; tune unresolved
   parent and parent-type handling there for local AAR/event-store behavior.
+- Downstream consumers can tune accepted-risk intake without changing policy or
+  event truth by using `tools/filter_risk.py` presets such as `display`,
+  `fusion`, `command`, `autonomy`, `aar`, and `audit`. These presets filter on
+  explicit `allowed_uses`, `prohibited_uses`, `policy_decision`, and
+  `risk_dimension` labels emitted by gateway policy decisions.
 - Debug/optimization controls:
   - `stamp_profile` and `stamp_profile_profiles` control when `profile` is stamped.
   - `stamp_timing` and `stamp_timing_profiles` control gateway `t_receive`/`t_publish` stamps.

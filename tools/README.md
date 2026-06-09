@@ -101,6 +101,40 @@ subtype vocabulary mismatches, v1.1-only vocabulary used without
 misses, profile violations, and CoT projection blockers as separate categories.
 Use it before strict validation when integrating older producers.
 
+### Filter Accepted-Risk Streams
+
+```
+python tools/filter_risk.py --input gateway-output.jsonl --preset display
+python tools/filter_risk.py --input gateway-output.jsonl --preset fusion --dropped-output dropped.jsonl
+python tools/filter_risk.py --input gateway-output.jsonl --preset command --fail-on-drop
+python tools/filter_risk.py --list-presets
+```
+
+`filter_risk.py` reads JSONL ZMeta events, evaluates existing
+`payload.extensions.risk_adjudication` labels and same-stream
+`SYSTEM_EVENT/SCHEMA_VIOLATION` diagnostic metrics, then writes passing events
+unchanged. It does not rewrite events, change policy decisions, or make risky
+data clean.
+
+Presets are convenience defaults:
+
+- `display`: allows data explicitly usable for display/local awareness, including
+  quarantined display paths.
+- `fusion`: allows clean or warning-labeled data explicitly usable as
+  `FUSION_INPUT`.
+- `state`: allows clean or warning-labeled data explicitly usable as
+  `STATE_UPDATE`.
+- `command`: allows only clean data for `COMMAND_BASIS`.
+- `autonomy`: allows only clean data for `AUTONOMY_TASKING`.
+- `aar`: allows data usable for after-action review, including quarantine/AAR
+  paths.
+- `audit`: passes clean, accepted-risk, quarantine, and rejected diagnostic
+  events for audit review.
+
+Operators can tune behavior with flags such as `--max-risk`, `--require-use`,
+`--allow-dimension`, `--deny-dimension`, `--allow-decision`, and
+`--deny-decision`.
+
 ### Validate All Examples
 
 ```

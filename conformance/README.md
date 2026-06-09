@@ -56,6 +56,16 @@ applied effects. This lets deployments accept degraded data under edge
 conditions while consumers can still reject, warn, quarantine, or filter by
 explicit labels.
 
+Consumer-side risk filtering is available through:
+
+```
+python tools/filter_risk.py --input gateway-output.jsonl --preset display
+python tools/filter_risk.py --input gateway-output.jsonl --preset command --fail-on-drop
+```
+
+The filter consumes existing labels only. It does not alter source events,
+policy decisions, schemas, or semantic validity.
+
 Profile projection preservation is opt-in for the conformance runner:
 
 ```

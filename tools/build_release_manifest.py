@@ -259,6 +259,7 @@ def artifact_groups(root: Path = ROOT, *, include_tool_source: bool = True) -> d
                 "tools/validate_precision_policy.py",
                 "tools/validate_bad_events.py",
                 "tools/validate_adapter_conformance.py",
+                "tools/filter_risk.py",
             ],
         }
 

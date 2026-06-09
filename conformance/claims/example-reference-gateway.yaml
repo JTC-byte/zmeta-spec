@@ -163,8 +163,9 @@ class_claims:
   claim_status: claimed
   commands:
   - python -m pytest -q gateway/tests/test_timing_freshness.py gateway/tests/test_external_state_promotion.py gateway/tests/test_gateway_smoke.py
+  - python -m pytest -q gateway/tests/test_risk_filter_cli.py
   - python tools/validate_conformance.py --strict
-  result_summary: event-side risk labels, diagnostics, and use-limit filtering evidence passed
+  result_summary: event-side risk labels, diagnostics, use-limit labels, and consumer filter tooling evidence passed
   limitations: []
   exceptions: []
 - class_id: ZMETA-GATEWAY-REFERENCE
@@ -207,6 +208,7 @@ test_commands_run:
 - python -m pytest -q gateway/tests/test_timing_freshness.py gateway/tests/test_external_state_promotion.py gateway/tests/test_lineage_semantics.py gateway/tests/test_gateway_smoke.py
 - python -m pytest -q gateway/tests/test_external_state_promotion.py adapters/ingress/cot/test_cot_ingress.py adapters/ingress/jreap/test_jreap_ingress.py adapters/ingress/mavlink/test_mavlink_ingress.py
 - python -m pytest -q gateway/tests/test_timing_freshness.py gateway/tests/test_external_state_promotion.py gateway/tests/test_gateway_smoke.py
+- python -m pytest -q gateway/tests/test_risk_filter_cli.py
 - python -m pytest -q gateway/tests/test_gateway_smoke.py gateway/tests/test_timing_freshness.py gateway/tests/test_producer_authority.py gateway/tests/test_lineage_semantics.py
 - python tools/validate_adapter_conformance.py --fixtures conformance/adapter-harness/must-pass.jsonl
 - python -m pytest -q adapters/egress/cot adapters/ingress/cot
@@ -259,6 +261,9 @@ test_results:
 - command: python -m pytest -q gateway/tests/test_timing_freshness.py gateway/tests/test_external_state_promotion.py gateway/tests/test_gateway_smoke.py
   status: passed
   summary: risk filtering focused tests passed
+- command: python -m pytest -q gateway/tests/test_risk_filter_cli.py
+  status: passed
+  summary: consumer risk filter focused tests passed
 - command: python -m pytest -q gateway/tests/test_gateway_smoke.py gateway/tests/test_timing_freshness.py gateway/tests/test_producer_authority.py gateway/tests/test_lineage_semantics.py
   status: passed
   summary: gateway focused tests passed
@@ -281,7 +286,7 @@ release_hashes:
   schema_bundle_hash: sha256:63d5fcd7ac54ddf4c123b30b4eadd7ac8e0e5843d674374edab4c2bb6947bda2
   policy_bundle_hash: sha256:830b3e77568f9b8503ecec089fd970ff265d03f18126a61ab056f6e395fb1152
   extension_registry_hash: sha256:068c93bacbe6fd6826cf61db699c288606f817301ebd9f26e321bc6c675f543e
-  conformance_class_manifest_hash: sha256:7fd352e4bd46461d33b30f6dd7bc20ed4e7e7d20223ac8a24038c11ce0ad6ac8
+  conformance_class_manifest_hash: sha256:6a3a9d930cc06d5228cb2d1ad8b42a91048425ff1e500bf7bfee3528bf2b4524
   profile_projection_catalog_hash: sha256:88c84258dce567be5f87935b0fda87e939ced8b22a0d0281eec2b611e0316c96
   encoding_negative_suite_hash: sha256:efb1203fd7aa4f4065b094bd4e40f95594fa7f59761698cdfc2cdea1aa199ec8
   profile_precision_policy_hash: sha256:a2f51cf5f0779c43ae4118b941524fb14783181c739e693befd146f8c44a1139

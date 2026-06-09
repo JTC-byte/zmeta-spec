@@ -249,13 +249,13 @@ class_records:
     description: Accepted-risk data remains filterable through same-stream diagnostics, event-side compact self-labels, allowed/prohibited uses, and effect labels when diagnostics may not travel.
     semantic_contract_sections: ["3.3 Risk Adjudication and Operator-Tunable Policy", "23. Implementation Mapping"]
     required_policy_surfaces: ["policy/timing-freshness.yaml", "policy/lineage.yaml", "policy/producer-authority.yaml"]
-    required_gateway_surfaces: ["gateway/src/validators.py", "gateway/src/gateway.py"]
+    required_gateway_surfaces: ["gateway/src/validators.py", "gateway/src/gateway.py", "tools/filter_risk.py"]
     required_conformance_fixtures: ["conformance/must-pass.jsonl"]
-    required_test_commands: ["python -m pytest -q gateway/tests/test_timing_freshness.py gateway/tests/test_external_state_promotion.py gateway/tests/test_gateway_smoke.py", "python tools/validate_conformance.py --strict"]
+    required_test_commands: ["python -m pytest -q gateway/tests/test_timing_freshness.py gateway/tests/test_external_state_promotion.py gateway/tests/test_gateway_smoke.py", "python -m pytest -q gateway/tests/test_risk_filter_cli.py", "python tools/validate_conformance.py --strict"]
     dependencies: ["ZMETA-POLICY-ADJUDICATION"]
     allowed_claimants: ["gateway", "reference_stack"]
     current_repo_support: implemented
-    references: ["conformance/README.md", "gateway/README.md"]
+    references: ["conformance/README.md", "gateway/README.md", "tools/README.md"]
 
   - <<: *class_defaults
     class_id: ZMETA-PROFILE-L

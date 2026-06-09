@@ -122,6 +122,19 @@ failure-mode degradation also stamps accepted events under
 `payload.extensions.risk_adjudication` so confidence or TTL changes are not
 silent.
 
+Downstream consumers can filter accepted-risk streams without mutating events:
+
+```
+python tools/filter_risk.py --input gateway-output.jsonl --preset display
+python tools/filter_risk.py --input gateway-output.jsonl --preset fusion
+python tools/filter_risk.py --input gateway-output.jsonl --preset command --fail-on-drop
+```
+
+The filter reads event-side risk labels and same-stream warning diagnostics. It
+passes or drops events based on explicit `allowed_uses`, `prohibited_uses`,
+`risk_dimension`, and `policy_decision` labels; it does not change the event or
+turn degraded data into clean data.
+
 If `metrics_log_path` is set, the gateway writes JSONL metrics/violation/drop records
 and rotates logs based on `metrics_log_max_bytes` and `metrics_log_backups`.
 

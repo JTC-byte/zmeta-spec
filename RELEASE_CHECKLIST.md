@@ -11,6 +11,8 @@ Use this as the template for each release.
 - [ ] Examples and conformance corpus validate locally
 - [ ] Full kernel-protection conformance passes:
       `python tools/validate_conformance.py --strict --profile-projection --extension-registry --conformance-classes --encoding-negative --precision-policy --release-manifest --release-package --bad-events --adapter-harness`
+- [ ] Consumer risk-filter presets verified:
+      `python -m pytest -q gateway/tests/test_risk_filter_cli.py`
 - [ ] Gateway self-test passes locally
 - [ ] Adapter and gateway pytest suite passes locally
 - [ ] Profile L packet-size check passes locally
