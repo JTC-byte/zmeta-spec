@@ -2,18 +2,24 @@
 
 ## Current Resume Note
 
-- Last updated: 2026-06-08
+- Last updated: 2026-06-09
 - Quick handoff: `docs/zmeta_refinement_handoff.md`
-- Current next work item: Optional S1-11B future-branch roadmap artifact,
-  adapter-harness breadth expansion, or deployment/container runtime smoke
-  breadth.
-- Current decision: ZMeta v1.1.5 was published at
-  `https://github.com/JTC-byte/zmeta-spec/releases/tag/v1.1.5` from tag
-  `v1.1.5` on commit `d4d406b43a705ca5b7a314e1d5388c3ca39c750a`. S1-12C
-  audited the D-012 formal release packaging framework and closed D-012.
-  S1-13A audited the current stack for semantic conformance and stale files,
-  corrected the live compatibility checker and CI target to `v1.1.5`, added
-  explicit v1.0/v1.1.0 observation extension boundary tests, and closed D-009.
+- Current next work item: none required for the current downstream integration
+  baseline. Optional future work remains S1-11B future-branch roadmap artifact,
+  adapter-harness breadth from real sensor captures, release-authority
+  signatures, or deployment/container runtime breadth.
+- Current decision: ZMeta v1.1.6 was published at
+  `https://github.com/JTC-byte/zmeta-spec/releases/tag/v1.1.6` from tag
+  `v1.1.6` on commit `a42f1b1d538cf2f2318a81203f28d7c656c22ce8`. The latest
+  integration baseline is current `main`; the post-release tooling/guidance
+  commit `fe4634b` adds partner feedback guidance and
+  `tools/lint_policy_risk_modes.py` without changing schemas, event vocabulary,
+  policy YAML semantics, release assets, or the published v1.1.6 checksum set.
+  S1-12C audited the D-012 formal release
+  packaging framework and closed D-012. S1-13A audited the stack for semantic
+  conformance and stale files, corrected the live compatibility checker and CI
+  target to `v1.1.5`, added explicit v1.0/v1.1.0 observation extension boundary
+  tests, and closed D-009.
   S1-14 implemented external projection promotion hardening for CoT/JREAP/
   MAVLink state ingress through producer-authority policy, adapter metadata,
   conformance/tests, and operator-tunable reject/warn/degrade/quarantine
@@ -44,6 +50,14 @@
   egress against malformed state payloads carrying raw observation/evidence
   fields, and verified schema/policy/conformance/examples/gateway/live
   workflow/release-package/bundle-smoke paths.
+  R1-02 published `v1.1.6` with source, edge, gateway, release package,
+  manifest, notes, validation report, and checksum assets. P1-01 addressed
+  partner feedback by documenting external-promotion upgrade responsibilities,
+  clarifying that `trust_ref` is policy-scoped evidence rather than
+  authenticity proof, strengthening downstream consumer responsibility for
+  accepted-risk labels, and adding a policy lint that flags unsafe `ignore`
+  settings on material risk. GitHub CI on `main` passed for the P1-01 commit
+  `fe4634b`.
   D-003 remains `OPEN - ROADMAP PLANNED`. D-004 remains closed as removed from
   ZMeta scope.
 
@@ -1549,6 +1563,60 @@
   - `python release\build_mvp_packages.py --version vci` -> produced edge and
     gateway ZIPs
   - Extracted edge and gateway ZIPs each passed `gateway.py --self-test`
+
+## R1-02 - v1.1.6 Release Publication
+
+- Status: COMPLETE
+- Date completed: 2026-06-09 UTC / 2026-06-08 local
+- Release URL: `https://github.com/JTC-byte/zmeta-spec/releases/tag/v1.1.6`
+- Tag: `v1.1.6`
+- Tagged commit: `a42f1b1d538cf2f2318a81203f28d7c656c22ce8`
+- Scope: Published the v1.1.6 semantic-risk, kernel-protection,
+  adapter-boundary, and runtime validation release after S1-18B.
+- Published assets:
+  - `zmeta-v1.1.6-dist.zip`
+  - `zmeta-edge-v1.1.6.zip`
+  - `zmeta-gateway-v1.1.6.zip`
+  - `zmeta-release-package-v1.1.6.zip`
+  - `zmeta-release-manifest.yaml`
+  - `RELEASE_NOTES_v1.1.6.md`
+  - `VALIDATION_REPORT_v1.1.6.md`
+  - `SHA256SUMS_v1.1.6.txt`
+- Notes: No detached `.asc` signatures were attached because no approved
+  release signing key/process was available. The published release preserves
+  v1.0/v1.1.0 isolation and does not claim literal raw IQ support.
+
+## P1-01 - Post-v1.1.6 Partner Feedback Cleanup
+
+- Status: COMPLETE
+- Date completed: 2026-06-09
+- Commit: `fe4634b` - `Add post-v1.1.6 risk policy guidance and lint`
+- Scope: Addressed partner review feedback after v1.1.6 without changing
+  schemas, event vocabulary, policy YAML semantics, release assets, or
+  published checksum files.
+- Changes:
+  - Added current integration guidance for external state promotion metadata in
+    `README.md`.
+  - Clarified in adapter and policy docs that `external_promotion.trust_ref` is
+    a policy-scoped reference, not a signature, credential, or standalone proof
+    of authenticity.
+  - Strengthened downstream consumer responsibility language for honoring
+    `allowed_uses`, `prohibited_uses`, and `policy_decision`, or running an
+    equivalent accepted-risk filter.
+  - Added `tools/lint_policy_risk_modes.py` and
+    `gateway/tests/test_policy_risk_mode_lint.py`.
+- Verification:
+  - `python tools\lint_policy_risk_modes.py` -> `policy risk mode lint ok`
+  - `python -m pytest -q gateway\tests\test_policy_risk_mode_lint.py` ->
+    `5 passed`
+  - Focused risk/promotion/lineage/timing pytest -> `34 passed`
+  - Full kernel conformance -> `conformance ok`
+  - `git diff --check` -> passed with normal Windows CRLF conversion warnings
+  - `python -m pytest -q` -> `370 passed, 108 subtests passed`
+  - GitHub CI on `main` -> success, run `27228915360`
+- Decision: This stack is closed for the current downstream integration
+  baseline. Use `v1.1.6` for formal release pinning and current `main` for the
+  latest guidance/lint baseline.
 
 ## Deferred Issue Register
 
