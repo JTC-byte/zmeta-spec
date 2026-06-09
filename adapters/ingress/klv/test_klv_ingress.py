@@ -16,4 +16,5 @@ def test_klv_ingress_observation():
     assert event["event"]["ts"] == "2025-01-17T15:20:00Z"
     assert "features" in event["payload"]
     assert event["payload"]["timing_quality"]["sync_state"] == "UNSYNCED"
+    assert event["lineage"]["transform"].startswith("translate:klv@")
     assert "confidence" not in event

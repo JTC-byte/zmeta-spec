@@ -24,6 +24,8 @@ classes_claimed:
 - ZMETA-EXTERNAL-PROMOTION
 - ZMETA-RISK-FILTERING
 - ZMETA-GATEWAY-REFERENCE
+- ZMETA-ADAPTER
+- ZMETA-COT-PROJECTION
 class_claims:
 - class_id: ZMETA-CORE
   claim_status: claimed
@@ -172,6 +174,22 @@ class_claims:
   result_summary: focused reference gateway tests passed
   limitations: []
   exceptions: []
+- class_id: ZMETA-ADAPTER
+  claim_status: claimed
+  commands:
+  - python tools/validate_adapter_conformance.py --fixtures conformance/adapter-harness/must-pass.jsonl
+  result_summary: shared adapter harness passed for representative reference adapter outputs
+  limitations:
+  - Harness covers representative adapter outputs, not every native-message variant for every adapter.
+  exceptions: []
+- class_id: ZMETA-COT-PROJECTION
+  claim_status: claimed
+  commands:
+  - python -m pytest -q adapters/egress/cot adapters/ingress/cot
+  - python tools/validate_adapter_conformance.py --fixtures conformance/adapter-harness/must-pass.jsonl
+  result_summary: CoT ingress/egress tests and shared adapter harness passed
+  limitations: []
+  exceptions: []
 test_commands_run:
 - python tools/validate_conformance.py --strict
 - python -m pytest -q gateway/tests/test_schema_version_discrimination.py gateway/tests/test_compat_normalizer.py gateway/tests/test_check_compat_cli.py
@@ -190,6 +208,8 @@ test_commands_run:
 - python -m pytest -q gateway/tests/test_external_state_promotion.py adapters/ingress/cot/test_cot_ingress.py adapters/ingress/jreap/test_jreap_ingress.py adapters/ingress/mavlink/test_mavlink_ingress.py
 - python -m pytest -q gateway/tests/test_timing_freshness.py gateway/tests/test_external_state_promotion.py gateway/tests/test_gateway_smoke.py
 - python -m pytest -q gateway/tests/test_gateway_smoke.py gateway/tests/test_timing_freshness.py gateway/tests/test_producer_authority.py gateway/tests/test_lineage_semantics.py
+- python tools/validate_adapter_conformance.py --fixtures conformance/adapter-harness/must-pass.jsonl
+- python -m pytest -q adapters/egress/cot adapters/ingress/cot
 test_results:
 - command: python tools/validate_conformance.py --strict
   status: passed
@@ -242,6 +262,12 @@ test_results:
 - command: python -m pytest -q gateway/tests/test_gateway_smoke.py gateway/tests/test_timing_freshness.py gateway/tests/test_producer_authority.py gateway/tests/test_lineage_semantics.py
   status: passed
   summary: gateway focused tests passed
+- command: python tools/validate_adapter_conformance.py --fixtures conformance/adapter-harness/must-pass.jsonl
+  status: passed
+  summary: adapter conformance harness passed
+- command: python -m pytest -q adapters/egress/cot adapters/ingress/cot
+  status: passed
+  summary: CoT adapter focused tests passed
 schema_versions:
 - '1.0'
 - 1.1.0-experimental
@@ -255,10 +281,12 @@ release_hashes:
   schema_bundle_hash: sha256:63d5fcd7ac54ddf4c123b30b4eadd7ac8e0e5843d674374edab4c2bb6947bda2
   policy_bundle_hash: sha256:830b3e77568f9b8503ecec089fd970ff265d03f18126a61ab056f6e395fb1152
   extension_registry_hash: sha256:068c93bacbe6fd6826cf61db699c288606f817301ebd9f26e321bc6c675f543e
-  conformance_class_manifest_hash: sha256:52ca67a7332fb070fbc0d6e0b3edd4432d9e0e5bd370a3e5ec7a85661ef7ec0f
+  conformance_class_manifest_hash: sha256:5a22d5aac3544debf831af573c2c6f9ce6a21b551aaae2dcbd5f106ac11f20d6
   profile_projection_catalog_hash: sha256:88c84258dce567be5f87935b0fda87e939ced8b22a0d0281eec2b611e0316c96
   encoding_negative_suite_hash: sha256:efb1203fd7aa4f4065b094bd4e40f95594fa7f59761698cdfc2cdea1aa199ec8
   profile_precision_policy_hash: sha256:a2f51cf5f0779c43ae4118b941524fb14783181c739e693befd146f8c44a1139
+  bad_event_corpus_hash: sha256:12e5b25d0fbf027bc7afe07c537e3a8da45c311e9edd565d1c0d49411f9cbc25
+  adapter_conformance_hash: sha256:d2f4c4508bfbecb66d64ac5fe06538e07d53f98f082a0188872483060b27a56d
   encoding_projection_specs_hash: sha256:df81a1157548d9e57c7e13a4dd3f2693bfa4575be91f4818fc54ab8fedf9b76a
   release_manifest_hash: omitted_to_avoid_claim_manifest_circularity
 commit_hash: example_pending_checkpoint_commit
@@ -267,5 +295,5 @@ claim_owner: ZMeta Maintainers
 limitations:
 - Example claim only; release-grade claims must record actual commit and release hashes.
 - release_manifest_hash is omitted because the reference manifest includes this claim file; formal tagged releases may use post-release attestations.
-- CoT projection is not claimed because the class is partially implemented pending a shared adapter harness.
+- Adapter harness coverage is representative and does not claim every native-message variant for every adapter.
 exceptions: []

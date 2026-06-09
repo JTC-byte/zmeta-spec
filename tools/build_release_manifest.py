@@ -45,6 +45,8 @@ TOP_LEVEL_HASH_FIELDS = {
     "profile_projection": "profile_projection_catalog_hash",
     "encoding_negative": "encoding_negative_suite_hash",
     "profile_precision": "profile_precision_policy_hash",
+    "bad_event_corpus": "bad_event_corpus_hash",
+    "adapter_conformance": "adapter_conformance_hash",
     "encoding_projection_specs": "encoding_projection_specs_hash",
 }
 
@@ -184,6 +186,24 @@ def artifact_groups(root: Path = ROOT, *, include_tool_source: bool = True) -> d
                 root,
             ),
         },
+        "bad_event_corpus": {
+            "description": "Semantic bad-event fixtures that must not be accepted as clean data.",
+            "paths": _existing(
+                [
+                    "conformance/bad-events/must-fail.jsonl",
+                ],
+                root,
+            ),
+        },
+        "adapter_conformance": {
+            "description": "Shared adapter harness fixtures for representative adapter outputs.",
+            "paths": _existing(
+                [
+                    "conformance/adapter-harness/must-pass.jsonl",
+                ],
+                root,
+            ),
+        },
         "encoding_projection_specs": {
             "description": "Compact CBOR and protobuf projection specifications and codec evidence.",
             "paths": [
@@ -237,6 +257,8 @@ def artifact_groups(root: Path = ROOT, *, include_tool_source: bool = True) -> d
                 "tools/validate_conformance_classes.py",
                 "tools/validate_encoding_negative.py",
                 "tools/validate_precision_policy.py",
+                "tools/validate_bad_events.py",
+                "tools/validate_adapter_conformance.py",
             ],
         }
 
@@ -307,6 +329,8 @@ def build_manifest_data(
         "profile_projection_catalog_hash": group_hashes["profile_projection"],
         "encoding_negative_suite_hash": group_hashes["encoding_negative"],
         "profile_precision_policy_hash": group_hashes["profile_precision"],
+        "bad_event_corpus_hash": group_hashes["bad_event_corpus"],
+        "adapter_conformance_hash": group_hashes["adapter_conformance"],
         "encoding_projection_specs_hash": group_hashes["encoding_projection_specs"],
         "release_bundle_hash": release_bundle_hash(group_hashes),
         "release_manifest_hash": None,
@@ -358,6 +382,8 @@ def _claim_hash_values(manifest: dict[str, Any]) -> dict[str, Any]:
             "profile_projection_catalog_hash": manifest["profile_projection_catalog_hash"],
             "encoding_negative_suite_hash": manifest["encoding_negative_suite_hash"],
             "profile_precision_policy_hash": manifest["profile_precision_policy_hash"],
+            "bad_event_corpus_hash": manifest["bad_event_corpus_hash"],
+            "adapter_conformance_hash": manifest["adapter_conformance_hash"],
             "encoding_projection_specs_hash": manifest["encoding_projection_specs_hash"],
             "release_manifest_hash": "omitted_to_avoid_claim_manifest_circularity",
         },

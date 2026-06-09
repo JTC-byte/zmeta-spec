@@ -57,15 +57,16 @@ Default strict conformance does not run class validation unless
 
 Schema validation is necessary but not sufficient. ZMeta also depends on
 version dispatch, policy checks, profile legality, projection preservation,
-adapter layer separation, encoding decoded validation, and governed extension
-adoption. Class claims keep those surfaces separate and auditable.
+adapter layer separation, encoding decoded validation, governed extension
+adoption, and semantic bad-event rejection. Class claims keep those surfaces
+separate and auditable.
 
 Without class claims:
 
 - schema-only support can be mistaken for full semantic support;
 - profile support can be claimed without projection preservation;
 - compact or protobuf support can be claimed without decoded JSON validation;
-- adapter support can be claimed without layer-separation tests;
+- adapter support can be claimed without shared harness evidence;
 - future concepts can be claimed before registry and version approval;
 - vendors can claim compliance without evidence, commands, versions, hashes, or
   limitations.
@@ -178,18 +179,21 @@ Current baseline classes cover core semantics, version dispatch, v1.0 schema,
 v1.1.0 experimental support, policy, command governance, timing quality,
 lineage, risk adjudication, external projection promotion, risk filtering,
 Profile L/M/H, projection preservation, extension registry validation, compact
-CBOR, protobuf projection, and the reference gateway.
+CBOR, protobuf projection, generic adapter conformance, CoT projection, and the
+reference gateway.
 
 Risk-governance classes do not loosen schemas. They prove that tunable policy
 responses remain bounded, labeled, diagnostic, and filterable, and that external
 tactical-track ingress cannot become authoritative ZMeta state without explicit
 promotion evidence.
 
-`ZMETA-COT-PROJECTION` is recorded as partially implemented because current CoT
-tests cover key ingress/egress behavior, but the repo does not yet provide a
-shared adapter conformance harness.
+`ZMETA-ADAPTER` is fixture-driven. It validates representative adapter outputs
+for schema/policy validity, layer separation, UTC-Z time normalization, adapter
+lineage transforms, declared degraded timing, and external-promotion evidence.
+It is not a promise that every possible native message variant for every
+adapter has been exhaustively covered.
 
-Future and reserved classes cover generic adapters, sensor adapters, AI
+Future and reserved classes cover broader sensor-adapter certification, AI
 provenance, coalition export, mesh trust, replay, UAS identity, PNT integrity,
 data nutrition, compute elasticity, emergency/L0, cross-domain export, and
 vendor extensions. Those classes are not claimable today.

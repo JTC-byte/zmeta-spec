@@ -386,27 +386,31 @@ class_records:
   - <<: *class_defaults
     class_id: ZMETA-COT-PROJECTION
     display_name: CoT/TAK Projection
-    status: partially_implemented
+    status: implemented
     version_scope: ["1.0"]
-    description: CoT/TAK state egress projection plus CoT ingress treatment as external report evidence unless Section 4.5.1 promotion policy authorizes STATE_EVENT output; current adapter-specific tests exist but no shared adapter harness yet.
+    description: CoT/TAK state egress projection plus CoT ingress treatment as external report evidence unless Section 4.5.1 promotion policy authorizes STATE_EVENT output; evidence includes adapter-specific tests and the shared adapter harness.
     required_adapter_surfaces: ["adapters/egress/cot/zmeta_to_cot.py", "adapters/ingress/cot/cot_to_zmeta_template.py", "adapters/egress/cot/test_zmeta_to_cot.py", "adapters/ingress/cot/test_cot_ingress.py"]
-    required_test_commands: ["python -m pytest -q adapters/egress/cot adapters/ingress/cot"]
-    dependencies: ["ZMETA-CORE", "ZMETA-GATEWAY-REFERENCE", "ZMETA-TIMING-QUALITY", "ZMETA-LINEAGE-POLICY", "ZMETA-EXTERNAL-PROMOTION"]
+    required_conformance_fixtures: ["conformance/adapter-harness/must-pass.jsonl"]
+    required_test_commands: ["python -m pytest -q adapters/egress/cot adapters/ingress/cot", "python tools/validate_adapter_conformance.py --fixtures conformance/adapter-harness/must-pass.jsonl"]
+    dependencies: ["ZMETA-CORE", "ZMETA-GATEWAY-REFERENCE", "ZMETA-TIMING-QUALITY", "ZMETA-LINEAGE-POLICY", "ZMETA-EXTERNAL-PROMOTION", "ZMETA-ADAPTER"]
     allowed_claimants: ["adapter", "gateway", "reference_stack"]
-    current_repo_support: partial
-    future_or_reserved_notes: ["Needs a shared adapter conformance harness before full implemented status."]
+    current_repo_support: implemented
     references: ["adapters/egress/cot/README.md", "adapters/ingress/cot/README.md"]
 
   - <<: *class_defaults
     class_id: ZMETA-ADAPTER
     display_name: Generic Adapter Conformance
-    status: planned
-    version_scope: []
-    description: Generic adapter harness for semantic layer separation, units, time normalization, and schema/policy output validation.
-    dependencies: ["ZMETA-CORE"]
-    allowed_claimants: ["adapter"]
-    current_repo_support: future
-    future_or_reserved_notes: ["Not claimable until a shared adapter harness exists."]
+    status: implemented
+    version_scope: ["1.0"]
+    description: Generic fixture-driven adapter harness for semantic layer separation, UTC-Z time normalization, schema/policy output validation, adapter lineage transforms, declared degraded timing, and external-promotion evidence.
+    required_gateway_surfaces: ["gateway/src/validators.py"]
+    required_adapter_surfaces: ["adapters/README.md", "adapters/ingress/template/README.md", "adapters/ingress/kraken/kraken_to_zmeta.py", "adapters/ingress/moth/moth_to_zmeta.py", "adapters/ingress/eo-cv/eo_cv_to_zmeta.py", "adapters/ingress/klv/klv_to_zmeta_template.py", "adapters/ingress/cot/cot_to_zmeta_template.py", "adapters/ingress/jreap/jreap_track_to_zmeta_template.py", "adapters/ingress/mavlink/mavlink_to_zmeta_template.py"]
+    required_conformance_fixtures: ["conformance/adapter-harness/must-pass.jsonl"]
+    required_test_commands: ["python tools/validate_adapter_conformance.py --fixtures conformance/adapter-harness/must-pass.jsonl"]
+    dependencies: ["ZMETA-CORE", "ZMETA-POLICY-BASELINE", "ZMETA-TIMING-QUALITY", "ZMETA-LINEAGE-POLICY", "ZMETA-EXTERNAL-PROMOTION"]
+    allowed_claimants: ["adapter", "reference_stack"]
+    current_repo_support: implemented
+    references: ["adapters/README.md", "conformance/adapter-harness/README.md", "tools/validate_adapter_conformance.py"]
 
   - <<: *class_defaults
     class_id: ZMETA-SENSOR-ADAPTER
@@ -417,7 +421,7 @@ class_records:
     dependencies: ["ZMETA-ADAPTER"]
     allowed_claimants: ["adapter"]
     current_repo_support: future
-    future_or_reserved_notes: ["Not claimable until the generic adapter harness is implemented."]
+    future_or_reserved_notes: ["Not claimable until sensor-specific evidence covers all required sensor-adapter families, not only representative generic harness fixtures."]
 
   - <<: *class_defaults
     class_id: ZMETA-AI-PROVENANCE

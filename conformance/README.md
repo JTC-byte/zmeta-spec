@@ -12,6 +12,10 @@ version-discriminated schema plus policy pack:
 - `conformance_classes.yaml`: machine-readable conformance class manifest.
 - `claims/`: example implementation claim files for the class manifest.
 - `encoding-negative/`: compact/protobuf invalid-after-decode fixture suites.
+- `bad-events/`: semantic bad-event fixtures for dishonest or unsafe events
+  that must not be treated as clean data.
+- `adapter-harness/`: fixture-driven adapter output checks for schema/policy
+  validity, layer separation, UTC-Z timestamps, lineage, and external promotion.
 - `profile-precision/`: source/projected fixtures for Profile L/M/H precision
   ceilings, utility floors, and conservative quantization.
 - `../spec/extension-registry.yaml`: spec-owned machine-readable extension
@@ -131,3 +135,28 @@ python tools/validate_conformance.py --strict --profile-projection --extension-r
 
 The release package framework does not create tags, generate signatures, store
 keys or secrets, change validation behavior, or make future vocabulary valid.
+
+Semantic bad-event validation is opt-in:
+
+```
+python tools/validate_bad_events.py --must-fail conformance/bad-events/must-fail.jsonl
+python tools/validate_conformance.py --strict --bad-events
+```
+
+The bad-event corpus is intentionally small and high-signal. It proves that
+layer collapse, missing promotion evidence, loop/reflection risk, bad
+diagnostics, payload lineage overreach, and missing timing quality are rejected
+or explicitly surfaced with the expected governed code.
+
+Adapter harness validation is opt-in:
+
+```
+python tools/validate_adapter_conformance.py --fixtures conformance/adapter-harness/must-pass.jsonl
+python tools/validate_conformance.py --strict --adapter-harness
+```
+
+The adapter harness validates representative adapter outputs without forcing a
+single adapter API. Fixtures call adapter functions, then check canonical
+schema/policy validity, layer separation, UTC-Z timestamps, adapter lineage,
+fallback degraded timing declarations, and external-promotion evidence for
+lossy/external state projections.

@@ -50,6 +50,16 @@ def parse_args():
         help="Also validate formal release package templates.",
     )
     parser.add_argument(
+        "--bad-events",
+        action="store_true",
+        help="Also run semantic bad-event corpus fixtures.",
+    )
+    parser.add_argument(
+        "--adapter-harness",
+        action="store_true",
+        help="Also run shared adapter conformance fixtures.",
+    )
+    parser.add_argument(
         "--pass-file",
         default=str(ROOT / "conformance" / "must-pass.jsonl"),
         help="Path to must-pass JSONL",
@@ -273,6 +283,34 @@ def main():
         result = release_package.run(
             ROOT / "release" / "zmeta-release-manifest.yaml",
             templates_only=True,
+            quiet=True,
+        )
+        if result:
+            raise SystemExit(result)
+
+    if args.bad_events:
+        bad_events_path = ROOT / "tools" / "validate_bad_events.py"
+        bad_events_spec = importlib.util.spec_from_file_location(
+            "zmeta_validate_bad_events", bad_events_path
+        )
+        bad_events = importlib.util.module_from_spec(bad_events_spec)
+        bad_events_spec.loader.exec_module(bad_events)
+        result = bad_events.run(
+            must_fail_path=ROOT / "conformance" / "bad-events" / "must-fail.jsonl",
+            quiet=True,
+        )
+        if result:
+            raise SystemExit(result)
+
+    if args.adapter_harness:
+        adapter_harness_path = ROOT / "tools" / "validate_adapter_conformance.py"
+        adapter_harness_spec = importlib.util.spec_from_file_location(
+            "zmeta_validate_adapter_conformance", adapter_harness_path
+        )
+        adapter_harness = importlib.util.module_from_spec(adapter_harness_spec)
+        adapter_harness_spec.loader.exec_module(adapter_harness)
+        result = adapter_harness.run(
+            fixtures_path=ROOT / "conformance" / "adapter-harness" / "must-pass.jsonl",
             quiet=True,
         )
         if result:

@@ -4,8 +4,9 @@
 
 - Last updated: 2026-06-08
 - Quick handoff: `docs/zmeta_refinement_handoff.md`
-- Current next work item: Optional S1-11B future-branch roadmap artifact, unless
-  the next prompt continues runtime/policy hardening from S1-15B.
+- Current next work item: Optional S1-11B future-branch roadmap artifact,
+  adapter-harness breadth expansion, or local operator policy presets/filter
+  tooling.
 - Current decision: ZMeta v1.1.5 was published at
   `https://github.com/JTC-byte/zmeta-spec/releases/tag/v1.1.5` from tag
   `v1.1.5` on commit `d4d406b43a705ca5b7a314e1d5388c3ca39c750a`. S1-12C
@@ -27,6 +28,9 @@
   tactical ingress promotion to Section 4.5.1, material risk self-labels and
   safety/promotion override evidence are stronger, and conformance classes now
   cover policy adjudication, external promotion, and risk filtering.
+  S1-16A added semantic bad-event fixtures and the shared adapter conformance
+  harness, promoted `ZMETA-ADAPTER` and `ZMETA-COT-PROJECTION` to implemented,
+  and left broader `ZMETA-SENSOR-ADAPTER` certification planned.
   D-003 remains `OPEN - ROADMAP PLANNED`. D-004 remains closed as removed from
   ZMeta scope.
 
@@ -1311,6 +1315,33 @@
   - `python tools\validate_release_package.py --manifest release\zmeta-release-manifest.yaml --templates-only` -> `release package ok mode=templates`
   - `python tools\compute_contract_hash.py` -> `contract_hash=3b6c8a264f43b1aa2f36c8a62972e2b523bee46277e03ac7f2de7e124d1c71db`
   - `git diff --check` -> passed with normal Windows CRLF conversion warnings.
+
+## S1-16A - Bad-Event Corpus And Adapter Harness
+
+- Status: COMPLETE
+- Date completed: 2026-06-08
+- Output: `docs/s1_16a_bad_event_adapter_harness.md`
+- Scope: Added opt-in conformance evidence for semantic bad events and
+  representative adapter outputs without changing schemas, policy semantics,
+  encodings, profile behavior, the semantic contract, or event vocabulary.
+- Changes:
+  - Added `conformance/bad-events/must-fail.jsonl` and
+    `tools/validate_bad_events.py`.
+  - Added `conformance/adapter-harness/must-pass.jsonl` and
+    `tools/validate_adapter_conformance.py`.
+  - Added `--bad-events` and `--adapter-harness` to
+    `tools/validate_conformance.py`.
+  - Updated KLV ingress to emit `lineage.transform` per adapter template
+    guidance.
+  - Promoted `ZMETA-ADAPTER` and `ZMETA-COT-PROJECTION` to implemented with
+    explicit harness evidence; left broader `ZMETA-SENSOR-ADAPTER` planned.
+  - Updated example claims, release manifest governance, crosswalk, tool docs,
+    adapter docs, and handoff notes.
+- Notes: The adapter harness is representative, not exhaustive. It does not
+  certify every native-message variant for every adapter.
+- Verification:
+  - `python tools\validate_bad_events.py --must-fail conformance\bad-events\must-fail.jsonl` -> `bad-event corpus ok total=9`
+  - `python tools\validate_adapter_conformance.py --fixtures conformance\adapter-harness\must-pass.jsonl` -> `adapter conformance ok total=8`
 
 ## Deferred Issue Register
 

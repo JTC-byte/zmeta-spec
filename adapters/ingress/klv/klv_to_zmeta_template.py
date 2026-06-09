@@ -2,6 +2,10 @@ from adapters.ingress.time_utils import coerce_timing_quality, normalize_utc_z, 
 from zmeta_uuid import uuid7
 
 
+ADAPTER_VERSION = "0.1.0"
+SCHEMA_ID = "klv"
+
+
 def klv_decoded_to_zmeta_observation(
     decoded_klv: dict,
     *,
@@ -40,6 +44,10 @@ def klv_decoded_to_zmeta_observation(
                 decoded_klv.get("timing_quality"),
                 event_ts=event_ts,
             ),
+        },
+        "lineage": {
+            "based_on": [str(uuid7())],
+            "transform": f"translate:{SCHEMA_ID}@{ADAPTER_VERSION}",
         },
     }
 

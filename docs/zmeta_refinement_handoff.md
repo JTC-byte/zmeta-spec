@@ -6,11 +6,11 @@ This note is the quick resume point for the current ZMeta refinement effort. The
 
 ## Current Position
 
-The semantic contract has been audited, rewritten, and crosswalked against the current implementation stack. The locked v1.0 baseline was verified, and no S1-01B targeted schema implementation task is currently needed. Profile projection preservation has been implemented and audited as sidecar conformance tooling without changing v1.0 schema or event vocabulary. The extension registry has been implemented and audited. The conformance class manifest and claim model have been implemented and audited without changing schemas or making new vocabulary valid. Encoding-negative validation has been implemented and audited for compact CBOR and protobuf invalid-after-decode paths. Profile precision and quantization policy has been implemented and audited as a reference conformance default. The D-011 `TAKEOFF` crosswalk cleanup is complete. The D-001 MAVLink ingress README state payload drift cleanup is complete. S1-09A planned the contract hash and release hash follow-up for D-002, S1-09B implemented the reference release hash policy, manifest, builder, validator, claim hash updates, and optional conformance integration, and S1-09C audited that implementation and closed D-002. S1-10P removed FORGE-derived organizational artifact scope from the ZMeta baseline. S1-10B was stopped before commit, no stopped implementation files remain, and D-004 is closed as removed from ZMeta scope. S1-11A planned the D-003 future versioned semantic branch roadmap and left D-003 open as roadmap-planned. S1-12A planned formal release tag, signature, checksum, and attestation packaging for D-012, S1-12B implemented the release packaging framework without creating real tags/signatures/keys/secrets or semantic drift, and S1-12C audited it and closed D-012. R1-01 published `v1.1.5` from commit `d4d406b43a705ca5b7a314e1d5388c3ca39c750a` with release notes, validation report, release manifest, release package zip, edge/gateway/source bundles, and checksum manifest. S1-13A audited the stack for semantic conformance and stale files, corrected the live compatibility checker/CI target to `v1.1.5`, added explicit v1.0/v1.1.0 observation extension boundary tests, and closed D-009 without changing schemas, policy, adapters, encodings, the semantic contract, or event vocabulary. S1-14 implemented external projection promotion hardening so CoT/JREAP/MAVLink ingress state must carry policy-scoped promotion evidence before becoming authoritative ZMeta state, with operator-tunable reject/warn/degrade/quarantine modes that preserve diagnostics and bandwidth discipline. S1-15A added the risk adjudication semantic baseline: locked/tunable/advisory rule classes, bounded policy actions, filterable risk diagnostics, and operator override constraints. S1-15B conformed the stack to that baseline across policy use limits, validator diagnostics, gateway runtime degradation labels, conformance fixtures, tests, schemas, and docs. S1-15C cleaned up feedback on the contract text, conformance classes, claims, crosswalk, and future-only boundaries.
+The semantic contract has been audited, rewritten, and crosswalked against the current implementation stack. The locked v1.0 baseline was verified, and no S1-01B targeted schema implementation task is currently needed. Profile projection preservation has been implemented and audited as sidecar conformance tooling without changing v1.0 schema or event vocabulary. The extension registry has been implemented and audited. The conformance class manifest and claim model have been implemented and audited without changing schemas or making new vocabulary valid. Encoding-negative validation has been implemented and audited for compact CBOR and protobuf invalid-after-decode paths. Profile precision and quantization policy has been implemented and audited as a reference conformance default. The D-011 `TAKEOFF` crosswalk cleanup is complete. The D-001 MAVLink ingress README state payload drift cleanup is complete. S1-09A planned the contract hash and release hash follow-up for D-002, S1-09B implemented the reference release hash policy, manifest, builder, validator, claim hash updates, and optional conformance integration, and S1-09C audited that implementation and closed D-002. S1-10P removed FORGE-derived organizational artifact scope from the ZMeta baseline. S1-10B was stopped before commit, no stopped implementation files remain, and D-004 is closed as removed from ZMeta scope. S1-11A planned the D-003 future versioned semantic branch roadmap and left D-003 open as roadmap-planned. S1-12A planned formal release tag, signature, checksum, and attestation packaging for D-012, S1-12B implemented the release packaging framework without creating real tags/signatures/keys/secrets or semantic drift, and S1-12C audited it and closed D-012. R1-01 published `v1.1.5` from commit `d4d406b43a705ca5b7a314e1d5388c3ca39c750a` with release notes, validation report, release manifest, release package zip, edge/gateway/source bundles, and checksum manifest. S1-13A audited the stack for semantic conformance and stale files, corrected the live compatibility checker/CI target to `v1.1.5`, added explicit v1.0/v1.1.0 observation extension boundary tests, and closed D-009 without changing schemas, policy, adapters, encodings, the semantic contract, or event vocabulary. S1-14 implemented external projection promotion hardening so CoT/JREAP/MAVLink ingress state must carry policy-scoped promotion evidence before becoming authoritative ZMeta state, with operator-tunable reject/warn/degrade/quarantine modes that preserve diagnostics and bandwidth discipline. S1-15A added the risk adjudication semantic baseline: locked/tunable/advisory rule classes, bounded policy actions, filterable risk diagnostics, and operator override constraints. S1-15B conformed the stack to that baseline across policy use limits, validator diagnostics, gateway runtime degradation labels, conformance fixtures, tests, schemas, and docs. S1-15C cleaned up feedback on the contract text, conformance classes, claims, crosswalk, and future-only boundaries. S1-16A added the semantic bad-event corpus and shared adapter harness, promoted generic adapter and CoT projection conformance evidence, and kept broader sensor-adapter certification as planned future work.
 
 The next active planning item is:
 
-**S1-11B - Future Branch Roadmap Machine-Readable Artifact**, if desired. Otherwise the next practical hardening thread can build on S1-15C by adding local operator policy presets or UI/filter tooling.
+**S1-11B - Future Branch Roadmap Machine-Readable Artifact**, if desired. Otherwise the next practical hardening thread can expand adapter harness breadth or add local operator policy presets/filter tooling.
 
 Current public release:
 
@@ -65,6 +65,9 @@ Current public release:
 | `docs/s1_14_external_projection_promotion_contract.md` | S1-14 implementation note for external projection promotion policy, profile behavior, and bandwidth guardrails. |
 | `docs/s1_15b_risk_adjudication_stack_conformance_audit.md` | S1-15B folder-by-folder audit confirming policy, gateway, conformance, tests, and docs emit filterable accepted-risk semantics. |
 | `docs/s1_15c_semantic_contract_feedback_cleanup.md` | S1-15C cleanup note for semantic-contract feedback on CoT promotion, self-labels, overrides, diagnostics, conformance classes, and future-only boundaries. |
+| `docs/s1_16a_bad_event_adapter_harness.md` | S1-16A implementation note for semantic bad-event fixtures and the shared adapter conformance harness. |
+| `conformance/bad-events/` | Semantic bad-event fixture suite for dishonest or unsafe events that must not be treated as clean data. |
+| `conformance/adapter-harness/` | Shared fixture-driven adapter output harness for schema/policy validity, layer separation, lineage, timing, and external promotion. |
 | `spec/release-signing-attestation.md` | S1-12B release signing, attestation, no-secret, and verification framework. |
 | `release/RELEASE_PACKAGE_README.md` | S1-12B release package template guidance. |
 | `release/RELEASE_NOTES_v1.1.5.md` | Published v1.1.5 release notes. |
@@ -111,6 +114,7 @@ Current public release:
 | S1-14 External Projection Promotion Contract | COMPLETE | `docs/s1_14_external_projection_promotion_contract.md`, `policy/producer-authority.yaml`, `gateway/src/validators.py` |
 | S1-15B Risk Adjudication Stack Conformance Pass | COMPLETE | `docs/s1_15b_risk_adjudication_stack_conformance_audit.md`, `gateway/src/validators.py`, `gateway/src/gateway.py`, `policy/*.yaml`, `conformance/must-pass.jsonl` |
 | S1-15C Semantic Contract Feedback Cleanup | COMPLETE | `docs/s1_15c_semantic_contract_feedback_cleanup.md`, `spec/semantics-contract.md`, `conformance/conformance_classes.yaml` |
+| S1-16A Bad-Event Corpus And Adapter Harness | COMPLETE | `docs/s1_16a_bad_event_adapter_harness.md`, `conformance/bad-events/`, `conformance/adapter-harness/`, `tools/validate_bad_events.py`, `tools/validate_adapter_conformance.py` |
 
 ## Current Decisions
 
@@ -138,8 +142,9 @@ Current public release:
 - Conformance class validation is standalone and opt-in through
   `tools/validate_conformance_classes.py` or
   `tools/validate_conformance.py --strict --conformance-classes`.
-- `ZMETA-COT-PROJECTION` is recorded as `partially_implemented` pending a
-  shared adapter conformance harness.
+- `ZMETA-ADAPTER` and `ZMETA-COT-PROJECTION` are now implemented with shared
+  adapter-harness evidence. Broader `ZMETA-SENSOR-ADAPTER` certification remains
+  planned until more native-message variants are covered.
 - Example claim files now use the narrow semantic `contract_hash` from
   `release/zmeta-release-manifest.yaml` and record broader category hashes under
   `release_hashes`. `release_manifest_hash` is omitted from claims to avoid
@@ -256,9 +261,8 @@ Current public release:
      approved release signing key/process exists.
    - Whether future formal tagged releases should publish post-release claim
      attestations that include release_manifest_hash.
-   - Whether generic adapter classes should wait for a shared adapter harness.
-   - Whether `ZMETA-COT-PROJECTION` should remain partial until that harness
-     exists.
+   - How broad the next adapter-harness expansion should be before claiming
+     sensor-adapter certification.
    - Whether v1.1.0 concepts remain `experimental` or any should be promoted.
    - Whether registry validation should remain opt-in or become part of strict
      conformance after the format stabilizes.

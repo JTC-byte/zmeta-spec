@@ -112,11 +112,23 @@ python tools/validate_examples.py --strict
 
 ```
 python tools/validate_conformance.py --strict
-python tools/validate_conformance.py --strict --profile-projection --extension-registry --conformance-classes --encoding-negative --precision-policy --release-manifest --release-package
+python tools/validate_conformance.py --strict --profile-projection --extension-registry --conformance-classes --encoding-negative --precision-policy --release-manifest --release-package --bad-events --adapter-harness
 ```
 
 The optional flags validate governed support surfaces without changing default
 strict validation. Use the full command above before publishing a release.
+
+Additional focused conformance validators:
+
+```
+python tools/validate_bad_events.py --must-fail conformance/bad-events/must-fail.jsonl
+python tools/validate_adapter_conformance.py --fixtures conformance/adapter-harness/must-pass.jsonl
+```
+
+`validate_bad_events.py` proves dishonest or unsafe semantic examples are not
+accepted as clean data. `validate_adapter_conformance.py` calls representative
+adapter functions and checks their ZMeta outputs for schema/policy validity,
+layer separation, UTC-Z timestamps, lineage, and promotion evidence.
 
 ### Measure packet sizes
 

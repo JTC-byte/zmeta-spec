@@ -77,7 +77,7 @@ def test_future_reserved_planned_classes_are_not_claimable():
     non_claimable = set(data["non_claimable_statuses"])
     for record in data["class_records"]:
         if record["class_id"] in {
-            "ZMETA-ADAPTER",
+            "ZMETA-SENSOR-ADAPTER",
             "ZMETA-AI-PROVENANCE",
             "ZMETA-VENDOR-EXTENSION",
         }:
@@ -154,23 +154,13 @@ def test_synthetic_claim_missing_dependency_fails():
 
 def test_synthetic_partial_class_claimed_as_full_fails():
     claim = load_yaml(REFERENCE_CLAIM_PATH)
-    claim["classes_claimed"].append("ZMETA-COT-PROJECTION")
-    command = "python -m pytest -q adapters/egress/cot adapters/ingress/cot"
-    claim["class_claims"].append(
-        {
-            "class_id": "ZMETA-COT-PROJECTION",
-            "claim_status": "claimed",
-            "commands": [command],
-            "result_summary": "synthetic overclaim",
-            "limitations": [],
-            "exceptions": [],
-        }
-    )
-    claim["test_commands_run"].append(command)
-    claim["test_results"].append({"command": command, "status": "passed", "summary": "synthetic"})
+    manifest = load_yaml(MANIFEST_PATH)
+    for record in manifest["class_records"]:
+        if record["class_id"] == "ZMETA-COT-PROJECTION":
+            record["status"] = "partially_implemented"
     path = write_yaml("conformance_claim_partial_full", claim)
     try:
-        issues = validate_conformance_classes.validate_claim(path, load_yaml(MANIFEST_PATH))
+        issues = validate_conformance_classes.validate_claim(path, manifest)
         assert any(issue["code"] == "CONFORMANCE_PARTIAL_CLASS_CLAIMED_FULL" for issue in issues)
     finally:
         path.unlink(missing_ok=True)

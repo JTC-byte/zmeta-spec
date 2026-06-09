@@ -40,6 +40,16 @@ or command safety.
 Each adapter implements the standard `detect()` / `translate()` / `validate()`
 pattern described in `ingress/template/README.md`.
 
+Representative adapter outputs are checked by the shared conformance harness:
+
+```
+python tools/validate_adapter_conformance.py --fixtures conformance/adapter-harness/must-pass.jsonl
+```
+
+The harness validates schema/policy output, semantic layer separation, UTC-Z
+timestamp normalization, adapter lineage transforms, declared fallback timing,
+and external promotion evidence for CoT/JREAP/MAVLink state projections.
+
 Ingress adapters normalize timestamp inputs to the schema-required UTC `Z`
 format before emission. Operational events also carry explicit fallback
 `payload.timing_quality` when the source stream does not provide a better timing
