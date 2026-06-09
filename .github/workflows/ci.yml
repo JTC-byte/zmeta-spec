@@ -80,6 +80,10 @@ jobs:
         run: |
           python tools/validate_conformance.py --strict
 
+      - name: Kernel protection conformance
+        run: |
+          python tools/validate_conformance.py --strict --profile-projection --extension-registry --conformance-classes --encoding-negative --precision-policy --release-manifest --release-package --bad-events --adapter-harness
+
       - name: Contract hash
         run: |
           python tools/compute_contract_hash.py

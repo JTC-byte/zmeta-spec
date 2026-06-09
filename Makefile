@@ -1,4 +1,4 @@
-.PHONY: gateway-run gateway-live-test udp-recv replay-core replay-command validate-examples validate-conformance measure-packets release-bundle
+.PHONY: gateway-run gateway-live-test udp-recv replay-core replay-command validate-examples validate-conformance validate-kernel measure-packets release-bundle
 
 gateway-run:
 	python tools/run_gateway.py --profile H
@@ -20,6 +20,9 @@ validate-examples:
 
 validate-conformance:
 	python tools/validate_conformance.py --strict
+
+validate-kernel:
+	python tools/validate_conformance.py --strict --profile-projection --extension-registry --conformance-classes --encoding-negative --precision-policy --release-manifest --release-package --bad-events --adapter-harness
 
 measure-packets:
 	python tools/measure_packet_size.py --file examples/zmeta-profile-L-examples.jsonl --encodings compact --max-bytes 240 --summary-only

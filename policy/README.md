@@ -15,6 +15,22 @@ Files:
 Normative compliance is defined by the semantic contract and schema; this policy pack
 drives reference enforcement behavior.
 
+Rule-class posture:
+- `LOCKED` semantics are not policy knobs. Policy must not make invalid event
+  vocabulary, layer collapse, unit changes, confidence misuse, lineage gaps,
+  profile reinterpretation, command safety violations, or version mismatches
+  valid.
+- `TUNABLE` behavior belongs here or in deployment config. Examples include
+  timing freshness, unresolved-lineage tolerance, producer allowlists, routing
+  gates, external-promotion response, confidence/TTL caps, and degraded-link
+  handling.
+- `ADVISORY` checks may guide display, diagnostics, or recommended quality
+  targets, but they are not structural validity unless promoted by a versioned
+  schema or policy decision.
+- `FUTURE_EXTENSION` concepts remain invalid current vocabulary until the
+  version branch, schema/policy behavior, adapter/gateway guidance, encoding
+  handling, and conformance evidence exist.
+
 Notes:
 - `producer-authority.yaml` uses case-insensitive shell-style producer patterns
   (for example, `rf-sensor-*`) to enforce semantic authority boundaries without

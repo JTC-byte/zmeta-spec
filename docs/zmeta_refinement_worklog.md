@@ -35,6 +35,9 @@
   mission ontology, a high threshold for future core semantic changes, and
   `FUTURE_EXTENSION` as the non-claimable class for future/reserved/planned
   semantics.
+  S1-17A audited the tracked stack against that doctrine, found no live
+  schema/runtime/adapter/encoding/vocabulary drift, and promoted full
+  kernel-protection conformance to CI, Makefile, and release checklist usage.
   D-003 remains `OPEN - ROADMAP PLANNED`. D-004 remains closed as removed from
   ZMeta scope.
 
@@ -1388,6 +1391,46 @@
     `overall total=40 passed=40 failed=0 warnings=0`
   - `python tools\validate_release_package.py --manifest release\zmeta-release-manifest.yaml --templates-only` ->
     `release package ok mode=templates`
+  - `git diff --check` -> passed with normal Windows CRLF conversion warnings
+
+## S1-17A - Kernel Protection Stack Audit
+
+- Status: COMPLETE
+- Date completed: 2026-06-08
+- Output: `docs/s1_17a_kernel_protection_stack_audit.md`
+- Scope: Audited the tracked repository stack against S1-16B kernel protection:
+  locked semantics, tunable policy/config boundaries, advisory guidance,
+  `FUTURE_EXTENSION` non-claimability, and conformance evidence that protects
+  without claiming exhaustive mission coverage.
+- Changes:
+  - Added full kernel-protection conformance to GitHub CI.
+  - Added `make validate-kernel` for the same local validation path.
+  - Updated the release checklist and conformance README with the canonical
+    full-kernel command.
+  - Clarified rule-class posture in `policy/README.md`.
+  - Clarified that policy variants are tunable overlays, not semantic
+    exceptions, in `configs/policy-variants/README.md`.
+  - Updated handoff and worklog notes.
+- Findings:
+  - Tracked inventory reviewed: 284 files.
+  - No live schema, policy YAML, gateway runtime, adapter, encoding, example, or
+    conformance-fixture drift was found.
+  - Ignored local artifacts include release bundles/zips, smoke output,
+    `LOCAL_NOTES.md`, `.gitconfig-local`, Python caches, and pytest cache/output
+    folders. These are not tracked or release-governed semantic authority.
+- Notes: No schemas, event vocabulary, policy YAML semantics, gateway runtime
+  behavior, adapters, encodings, examples, or conformance fixtures were changed.
+- Verification:
+  - `python tools\validate_conformance.py --strict --profile-projection --extension-registry --conformance-classes --encoding-negative --precision-policy --release-manifest --release-package --bad-events --adapter-harness` ->
+    `projection conformance ok total=33`, `extension registry ok entries=56`,
+    `conformance classes ok classes=34 claims=2`, `encoding negative ok total=49`,
+    `profile precision policy ok total=32`, `bad-event corpus ok total=9`,
+    `adapter conformance ok total=8`, `conformance ok`
+  - `python tools\validate_release_manifest.py --manifest release\zmeta-release-manifest.yaml` ->
+    `release manifest ok groups=17 artifacts=59`
+  - `python tools\validate_examples.py --strict --require-all` ->
+    `overall total=40 passed=40 failed=0 warnings=0`
+  - `python -m pytest -q` -> `358 passed, 108 subtests passed`
   - `git diff --check` -> passed with normal Windows CRLF conversion warnings
 
 ## Deferred Issue Register

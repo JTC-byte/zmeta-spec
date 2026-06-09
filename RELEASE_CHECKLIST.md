@@ -9,6 +9,8 @@ Use this as the template for each release.
 - [ ] Schema validates against examples
 - [ ] Policy pack validation run locally
 - [ ] Examples and conformance corpus validate locally
+- [ ] Full kernel-protection conformance passes:
+      `python tools/validate_conformance.py --strict --profile-projection --extension-registry --conformance-classes --encoding-negative --precision-policy --release-manifest --release-package --bad-events --adapter-harness`
 - [ ] Gateway self-test passes locally
 - [ ] Adapter and gateway pytest suite passes locally
 - [ ] Profile L packet-size check passes locally

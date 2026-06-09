@@ -168,3 +168,14 @@ single adapter API. Fixtures call adapter functions, then check canonical
 schema/policy validity, layer separation, UTC-Z timestamps, adapter lineage,
 fallback degraded timing declarations, and external-promotion evidence for
 lossy/external state projections.
+
+Full kernel-protection conformance runs every current optional guard:
+
+```
+python tools/validate_conformance.py --strict --profile-projection --extension-registry --conformance-classes --encoding-negative --precision-policy --release-manifest --release-package --bad-events --adapter-harness
+```
+
+This is the recommended pre-release and CI-grade stack check. It proves the
+reference stack preserves the locked kernel, keeps future/reserved/planned
+concepts non-claimable, validates encodings after decode, protects profile
+projection, and checks representative adapter and semantic bad-event evidence.
