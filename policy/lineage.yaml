@@ -18,6 +18,18 @@ lineage:
   # Known parent type mismatches indicate a semantic lineage error.
   parent_type_mismatch_mode: reject
 
+  use_limits:
+    warn:
+      allowed_uses:
+        - DISPLAY
+        - LOCAL_AWARENESS
+        - ALERTING
+        - FUSION_INPUT
+        - STATE_UPDATE
+      prohibited_uses:
+        - COMMAND_BASIS
+        - AUTONOMY_TASKING
+
   allowed_parent_event_types:
     INFERENCE_EVENT:
       - OBSERVATION_EVENT

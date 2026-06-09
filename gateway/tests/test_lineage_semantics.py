@@ -140,6 +140,8 @@ class LineageSemanticsTest(unittest.TestCase):
 
         self.assertFalse(ok)
         self.assertEqual("LINEAGE_PAYLOAD_BASED_ON_NOT_SUBSET", violations[0]["code"])
+        self.assertEqual("lineage", violations[0]["details"]["risk_dimension"])
+        self.assertEqual("REJECTED", violations[0]["details"]["policy_decision"])
 
     def test_state_without_lineage_fails_schema(self):
         event = state_event([str(uuid7())])
@@ -165,6 +167,9 @@ class LineageSemanticsTest(unittest.TestCase):
         self.assertTrue(ok)
         self.assertEqual("LINEAGE_PARENT_UNRESOLVED", violations[0]["code"])
         self.assertEqual("warn", violations[0]["severity"])
+        self.assertEqual("lineage", violations[0]["details"]["risk_dimension"])
+        self.assertEqual("WARN_ACCEPT", violations[0]["details"]["policy_decision"])
+        self.assertIn("COMMAND_BASIS", violations[0]["details"]["prohibited_uses"])
 
     def test_parent_type_mismatch_fails_when_parent_store_is_available(self):
         obs = observation()
@@ -183,6 +188,7 @@ class LineageSemanticsTest(unittest.TestCase):
 
         self.assertFalse(ok)
         self.assertEqual("LINEAGE_PARENT_TYPE_INVALID", violations[0]["code"])
+        self.assertEqual("REJECTED", violations[0]["details"]["policy_decision"])
 
     def test_fusion_member_missing_from_lineage_warns(self):
         obs = observation()
@@ -199,6 +205,8 @@ class LineageSemanticsTest(unittest.TestCase):
         self.assertTrue(ok)
         self.assertEqual("LINEAGE_FUSION_MEMBERS_NOT_IN_BASED_ON", violations[0]["code"])
         self.assertEqual("warn", violations[0]["severity"])
+        self.assertEqual("lineage", violations[0]["details"]["risk_dimension"])
+        self.assertEqual("WARN_ACCEPT", violations[0]["details"]["policy_decision"])
 
     def test_state_from_fusion_parent_passes(self):
         obs = observation()

@@ -151,3 +151,9 @@ single-event JSON Schema validation cannot see.
 
 Future projection metadata remains a versioned candidate. It is not implemented
 inside v1.0 events.
+
+Policy-scoped external promotion evidence, such as
+`payload.extensions.external_promotion` on a promoted external `STATE_EVENT`, is
+not same-event profile projection metadata. It records why an external report or
+lossy adapter projection was allowed to become a new ZMeta state event. It must
+not be used to rewrite a source event while preserving `event.event_id`.

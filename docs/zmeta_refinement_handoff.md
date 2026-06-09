@@ -1,16 +1,16 @@
 # ZMeta Refinement Handoff Notes
 
-Status date: 2026-05-08 UTC / 2026-05-07 local
+Status date: 2026-06-08
 
 This note is the quick resume point for the current ZMeta refinement effort. The full task history and deferred issue register are in `docs/zmeta_refinement_worklog.md`.
 
 ## Current Position
 
-The semantic contract has been audited, rewritten, and crosswalked against the current implementation stack. The locked v1.0 baseline was verified, and no S1-01B targeted schema implementation task is currently needed. Profile projection preservation has been implemented and audited as sidecar conformance tooling without changing v1.0 schema or event vocabulary. The extension registry has been implemented and audited. The conformance class manifest and claim model have been implemented and audited without changing schemas or making new vocabulary valid. Encoding-negative validation has been implemented and audited for compact CBOR and protobuf invalid-after-decode paths. Profile precision and quantization policy has been implemented and audited as a reference conformance default. The D-011 `TAKEOFF` crosswalk cleanup is complete. The D-001 MAVLink ingress README state payload drift cleanup is complete. S1-09A planned the contract hash and release hash follow-up for D-002, S1-09B implemented the reference release hash policy, manifest, builder, validator, claim hash updates, and optional conformance integration, and S1-09C audited that implementation and closed D-002. S1-10P removed FORGE-derived organizational artifact scope from the ZMeta baseline. S1-10B was stopped before commit, no stopped implementation files remain, and D-004 is closed as removed from ZMeta scope. S1-11A planned the D-003 future versioned semantic branch roadmap and left D-003 open as roadmap-planned. S1-12A planned formal release tag, signature, checksum, and attestation packaging for D-012, S1-12B implemented the release packaging framework without creating real tags/signatures/keys/secrets or semantic drift, and S1-12C audited it and closed D-012. R1-01 published `v1.1.5` from commit `d4d406b43a705ca5b7a314e1d5388c3ca39c750a` with release notes, validation report, release manifest, release package zip, edge/gateway/source bundles, and checksum manifest.
+The semantic contract has been audited, rewritten, and crosswalked against the current implementation stack. The locked v1.0 baseline was verified, and no S1-01B targeted schema implementation task is currently needed. Profile projection preservation has been implemented and audited as sidecar conformance tooling without changing v1.0 schema or event vocabulary. The extension registry has been implemented and audited. The conformance class manifest and claim model have been implemented and audited without changing schemas or making new vocabulary valid. Encoding-negative validation has been implemented and audited for compact CBOR and protobuf invalid-after-decode paths. Profile precision and quantization policy has been implemented and audited as a reference conformance default. The D-011 `TAKEOFF` crosswalk cleanup is complete. The D-001 MAVLink ingress README state payload drift cleanup is complete. S1-09A planned the contract hash and release hash follow-up for D-002, S1-09B implemented the reference release hash policy, manifest, builder, validator, claim hash updates, and optional conformance integration, and S1-09C audited that implementation and closed D-002. S1-10P removed FORGE-derived organizational artifact scope from the ZMeta baseline. S1-10B was stopped before commit, no stopped implementation files remain, and D-004 is closed as removed from ZMeta scope. S1-11A planned the D-003 future versioned semantic branch roadmap and left D-003 open as roadmap-planned. S1-12A planned formal release tag, signature, checksum, and attestation packaging for D-012, S1-12B implemented the release packaging framework without creating real tags/signatures/keys/secrets or semantic drift, and S1-12C audited it and closed D-012. R1-01 published `v1.1.5` from commit `d4d406b43a705ca5b7a314e1d5388c3ca39c750a` with release notes, validation report, release manifest, release package zip, edge/gateway/source bundles, and checksum manifest. S1-13A audited the stack for semantic conformance and stale files, corrected the live compatibility checker/CI target to `v1.1.5`, added explicit v1.0/v1.1.0 observation extension boundary tests, and closed D-009 without changing schemas, policy, adapters, encodings, the semantic contract, or event vocabulary. S1-14 implemented external projection promotion hardening so CoT/JREAP/MAVLink ingress state must carry policy-scoped promotion evidence before becoming authoritative ZMeta state, with operator-tunable reject/warn/degrade/quarantine modes that preserve diagnostics and bandwidth discipline. S1-15A added the risk adjudication semantic baseline: locked/tunable/advisory rule classes, bounded policy actions, filterable risk diagnostics, and operator override constraints. S1-15B conformed the stack to that baseline across policy use limits, validator diagnostics, gateway runtime degradation labels, conformance fixtures, tests, schemas, and docs. S1-15C cleaned up feedback on the contract text, conformance classes, claims, crosswalk, and future-only boundaries.
 
 The next active planning item is:
 
-**S1-11B - Future Branch Roadmap Machine-Readable Artifact**, if roadmap serialization is desired. Otherwise the ZMeta baseline hardening and release-prep workstream can pause.
+**S1-11B - Future Branch Roadmap Machine-Readable Artifact**, if desired. Otherwise the next practical hardening thread can build on S1-15C by adding local operator policy presets or UI/filter tooling.
 
 Current public release:
 
@@ -61,6 +61,10 @@ Current public release:
 | `docs/s1_11_future_versioned_semantic_branch_roadmap_plan.md` | S1-11A roadmap for future versioned semantic branches under D-003. |
 | `docs/s1_12_formal_release_tag_signature_attestation_plan.md` | S1-12A plan for formal release tag, checksum, signature, attestation, and verification packaging under D-012. |
 | `docs/s1_12c_formal_release_packaging_audit.md` | S1-12C audit closing D-012 after verifying release packaging support. |
+| `docs/s1_13a_stack_conformance_and_stale_file_audit.md` | S1-13A audit confirming stack conformance, stale-file posture, v1.1.5 compatibility target alignment, and D-009 closure. |
+| `docs/s1_14_external_projection_promotion_contract.md` | S1-14 implementation note for external projection promotion policy, profile behavior, and bandwidth guardrails. |
+| `docs/s1_15b_risk_adjudication_stack_conformance_audit.md` | S1-15B folder-by-folder audit confirming policy, gateway, conformance, tests, and docs emit filterable accepted-risk semantics. |
+| `docs/s1_15c_semantic_contract_feedback_cleanup.md` | S1-15C cleanup note for semantic-contract feedback on CoT promotion, self-labels, overrides, diagnostics, conformance classes, and future-only boundaries. |
 | `spec/release-signing-attestation.md` | S1-12B release signing, attestation, no-secret, and verification framework. |
 | `release/RELEASE_PACKAGE_README.md` | S1-12B release package template guidance. |
 | `release/RELEASE_NOTES_v1.1.5.md` | Published v1.1.5 release notes. |
@@ -103,6 +107,10 @@ Current public release:
 | S1-12B Formal Release Tag / Signature / Attestation Packaging Implementation | COMPLETE | `spec/release-signing-attestation.md`, `tools/build_release_package.py`, `tools/validate_release_package.py` |
 | S1-12C Formal Release Tag / Signature / Attestation Packaging Audit | COMPLETE | `docs/s1_12c_formal_release_packaging_audit.md` |
 | R1-01 v1.1.5 Release Publication | COMPLETE | <https://github.com/JTC-byte/zmeta-spec/releases/tag/v1.1.5> |
+| S1-13A Stack Conformance And Stale File Audit | COMPLETE | `docs/s1_13a_stack_conformance_and_stale_file_audit.md` |
+| S1-14 External Projection Promotion Contract | COMPLETE | `docs/s1_14_external_projection_promotion_contract.md`, `policy/producer-authority.yaml`, `gateway/src/validators.py` |
+| S1-15B Risk Adjudication Stack Conformance Pass | COMPLETE | `docs/s1_15b_risk_adjudication_stack_conformance_audit.md`, `gateway/src/validators.py`, `gateway/src/gateway.py`, `policy/*.yaml`, `conformance/must-pass.jsonl` |
+| S1-15C Semantic Contract Feedback Cleanup | COMPLETE | `docs/s1_15c_semantic_contract_feedback_cleanup.md`, `spec/semantics-contract.md`, `conformance/conformance_classes.yaml` |
 
 ## Current Decisions
 
@@ -193,6 +201,31 @@ Current public release:
   package, release manifest, release notes, validation report, and checksum
   assets. No `.asc` signatures were attached because no approved local signing
   key was available.
+- S1-13A corrected stale live `v1.1.4` compatibility-checker and CI targets to
+  `v1.1.5`, verified ignored local artifacts are expected generated/local state,
+  and closed D-009 with explicit boundary tests for v1.0 generic observation
+  extensions versus v1.1.0 formal contracts.
+- S1-14 treats external tactical state ingress as a promotion boundary.
+  CoT/JREAP/MAVLink state producers remain allowed only when
+  `payload.extensions.external_promotion` satisfies producer-authority policy;
+  Profile L may carry compact handles only, preserving bandwidth efficiency.
+  The reference policy rejects invalid promotion by default, but operators can
+  tune the response to warn, degrade, or quarantine while retaining explicit
+  diagnostics and confidence/TTL effects.
+- S1-15A establishes risk adjudication as the semantic model for configurable
+  operational behavior: locked interoperability rules stay strict, tunable
+  runtime rules may use reject/warn/degrade/quarantine/ignore within bounds, and
+  soft acceptance must remain filterable through labels or correlated
+  diagnostics. Policy can also declare allowed/prohibited operational uses, such
+  as display-only, AAR-only, blocked-from-fusion, or blocked-from-command-basis.
+- S1-15B implements that baseline in the live stack. Timing, lineage, external
+  promotion, and runtime timing-loss degradation now produce explicit risk
+  labels and use limits when accepted under soft policy.
+- S1-15C aligns the contract text and conformance classes with that behavior:
+  lossy CoT/TAK ingress now defers to external promotion, material risk labels
+  are mandatory when diagnostics may not travel, and projection-origin,
+  network-report parent evidence, and policy-adjudication subtypes remain
+  future-only.
 
 ## Next Work Queue
 
@@ -249,7 +282,7 @@ Current public release:
    - D-007 Encoding Negative Validation Gap is closed.
    - D-008 Conformance Class Manifest Missing is closed.
    - D-004 is closed as removed from ZMeta scope by S1-10P.
-   - D-009 v1.0/v1.1 Observation Extension Boundary Needs Explicit Tests.
+   - D-009 v1.0/v1.1 Observation Extension Boundary Needs Explicit Tests is closed.
    - D-010 Profile Precision / Quantization Policy Floors is closed.
    - D-011 Crosswalk TAKEOFF Mention Cleanup is closed.
    - D-012 Formal Release Tag, Signature, and Attestation Packaging is
@@ -309,7 +342,7 @@ Release package template result: `release package ok mode=templates`.
 Temporary release package output result: `release package ok mode=package`.
 Projection validator result: `projection conformance ok total=33`.
 Extension registry result: `extension registry ok entries=56`.
-Conformance classes result: `conformance classes ok classes=30 claims=2`.
+Conformance classes result: `conformance classes ok classes=34 claims=2`.
 Encoding-negative validator result: `encoding negative ok total=49`.
 Precision policy validator result: `profile precision policy ok total=32`.
 Focused release package pytest result: `11 passed`.

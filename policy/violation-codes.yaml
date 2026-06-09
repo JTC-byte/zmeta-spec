@@ -87,6 +87,8 @@ violation_codes:
     severity: fail
   - code: TIMING_STATUS_STALE
     severity: fail
+  - code: TIMING_STATUS_UNSYNCED
+    severity: warn
   - code: TIMING_STATUS_HOLDOVER_NON_MONOTONIC
     severity: warn
   - code: RF_WINDOW_MIDPOINT_MISMATCH

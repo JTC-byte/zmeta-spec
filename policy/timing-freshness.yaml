@@ -18,6 +18,28 @@ timing_freshness:
   degrade:
     confidence_reduction_factor: 2.0
 
+  use_limits:
+    warn:
+      allowed_uses:
+        - DISPLAY
+        - LOCAL_AWARENESS
+        - ALERTING
+        - FUSION_INPUT
+        - STATE_UPDATE
+      prohibited_uses:
+        - COMMAND_BASIS
+        - AUTONOMY_TASKING
+    degrade:
+      allowed_uses:
+        - DISPLAY
+        - LOCAL_AWARENESS
+        - ALERTING
+      prohibited_uses:
+        - FUSION_INPUT
+        - STATE_UPDATE
+        - COMMAND_BASIS
+        - AUTONOMY_TASKING
+
   holdover_est_error_monotonic:
     enabled: true
     mode: warn

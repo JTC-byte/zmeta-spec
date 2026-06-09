@@ -199,7 +199,123 @@ Policy packs SHOULD enforce:
 Policy may tighten or loosen runtime behavior within the semantic contract. It
 MUST NOT make invalid semantics valid.
 
-### 3.3 Adapter and Gateway Enforcement
+### 3.3 Risk Adjudication and Operator-Tunable Policy
+
+ZMeta separates semantic truth from operational risk acceptance.
+
+The interoperability contract is locked. Deployment policy decides what to do
+when valid data is stale, incomplete, degraded, externally promoted, unresolved,
+or otherwise risky. Operators may choose what risk to accept, but ZMeta MUST make
+that risk explicit and filterable.
+
+ZMeta does not prescribe a single mission risk tolerance. It requires that any
+accepted risk be explicitly labeled, policy-adjudicated, auditable, and
+prevented from masquerading as clean authoritative state.
+
+Policy rules fall into three classes:
+
+- **Locked rules** protect interoperability and semantic truth. They MUST NOT be
+  loosened by deployment policy. Examples include exact version selection,
+  event type/subtype meaning, field units, layer separation, event identity,
+  required lineage presence for derived events, command safety, and profile
+  projection monotonicity.
+- **Tunable rules** control operational response within the semantic contract.
+  They MAY vary by deployment, profile, producer, route/link, event type,
+  consumer, or temporary operator override. Examples include timing freshness
+  thresholds, unresolved-lineage tolerance, external promotion response,
+  confidence caps, TTL caps, profile thinning, producer allowlists, routing
+  gates, and degraded-compute behavior.
+- **Advisory rules** provide recommended quality targets, display hints, or
+  operator guidance. They MUST NOT be interpreted as structural validity unless
+  promoted to schema or policy enforcement by a versioned decision.
+
+Tunable policy responses SHOULD use a bounded action vocabulary:
+
+- `reject`: do not forward the source event as accepted ZMeta data; emit a
+  diagnostic event.
+- `warn`: forward the event unchanged and emit a diagnostic event.
+- `degrade`: forward the event with reduced/capped confidence, shortened/capped
+  `payload.valid_for_ms`, route/display limits, or equivalent visible effects;
+  emit a diagnostic event.
+- `quarantine`: forward only into a restricted policy path, local display, AAR,
+  or other bounded consumer set; emit a diagnostic event and make the restricted
+  status filterable.
+- `ignore`: permitted only for explicitly non-material checks where policy says
+  no diagnostic is required. It MUST NOT hide material uncertainty, trust, timing,
+  lineage, command, or safety impacts.
+
+Soft acceptance MUST NOT make risky data look clean. Any `warn`, `degrade`, or
+`quarantine` decision MUST be filterable by consumers through the accepted event,
+a same-stream diagnostic event keyed by `original_event_id`, or both. If an
+event may travel without its diagnostic context and the policy decision
+materially affects trust, use, fusion, command basis, display, export,
+confidence, TTL, or routing interpretation, the accepted event MUST carry
+compact self-labels or policy references sufficient for downstream filtering in
+a policy-scoped extension.
+
+Degradation effects MUST respect event-type confidence rules. For event types
+that prohibit top-level `confidence`, degradation MUST be expressed through
+policy diagnostics, allowed/prohibited uses, TTL or routing limits, quality
+metadata where valid, or future approved fields.
+
+Risk adjudication diagnostics SHOULD include:
+
+- `risk_dimension`, such as `timing`, `lineage`, `external_promotion`,
+  `profile_projection`, `producer_authority`, `routing`, `compute`, `pnt`,
+  `evidence`, or a future approved dimension.
+- `reason_code` from the governed diagnostic vocabulary.
+- `policy_mode` and `policy_decision`.
+- the matched rule, policy ID, or rule path where practical.
+- scope, such as profile, producer, route/link, event type/subtype, or consumer.
+- effects such as confidence factor/cap, TTL factor/cap, route/display limits,
+  or quarantine path.
+- `allowed_uses` and `prohibited_uses` when a soft decision limits how an
+  accepted event may be consumed.
+- source identifiers and `original_event_id` for correlation.
+- schema, policy, semantic-contract, or combined contract hash when hash stamping
+  is enabled.
+
+Risk dimensions, policy decisions, reason codes, and allowed/prohibited use
+labels SHOULD come from governed vocabularies. Deployments MAY add local labels,
+but they SHOULD namespace or document them so consumers do not mistake local
+policy terms for portable ZMeta semantics.
+
+Common use labels include:
+
+- `DISPLAY`
+- `LOCAL_AWARENESS`
+- `ALERTING`
+- `FUSION_INPUT`
+- `STATE_UPDATE`
+- `COALITION_EXPORT`
+- `COMMAND_BASIS`
+- `AUTONOMY_TASKING`
+- `AAR_ONLY`
+- `DEBUG_ONLY`
+
+Policy MAY accept an event for one use while prohibiting another. For example,
+a timing-degraded or externally promoted event may be valid for display and AAR
+while prohibited from command generation, autonomy tasking, or downstream fusion.
+Use labels MUST NOT weaken locked rules; they only constrain operational
+consumption of already-valid data.
+
+Risk filters MUST operate on labels, thresholds, and policy decisions. They MUST
+NOT rewrite event meaning, units, identity, lineage, layer, version, confidence
+semantics, or command safety to make an event pass.
+
+Operator overrides are policy decisions, not semantic exceptions. A temporary
+override MAY lower the operational response for tunable rules. Any override
+that softens a material policy response SHOULD be rejected unless it includes
+reason, scope, authority, and expiry. For command-related, trust-related,
+promotion-related, safety-related, or external-boundary overrides, reason,
+scope, authority, and expiry MUST be present. Overrides MUST NOT apply to locked
+rules.
+
+`quarantine` in this section is a policy action. It is not a v1.0 schema-level
+trust state. Future trust/quarantine vocabulary must be introduced only through
+an approved versioned branch.
+
+### 3.4 Adapter and Gateway Enforcement
 
 Adapters and gateways are semantic boundaries. They MUST:
 - Preserve semantic layer separation.
@@ -210,14 +326,15 @@ Adapters and gateways are semantic boundaries. They MUST:
 - Add `lineage.transform` for translation steps when applicable.
 - Preserve source-authored semantic fields when projecting or forwarding.
 - Avoid treating schema acceptance as semantic authorization.
-- Emit SCHEMA_VIOLATION only for rejected or malformed events, not for ordinary
-  operational degradation.
+- Emit diagnostics for rejected events, malformed events, and soft policy
+  decisions without using those diagnostics as generic operational status,
+  domain trust state, or lifecycle state.
 
 Gateways MAY add non-semantic export metadata such as `profile`, `event.t_receive`,
 or gateway-supplied `event.t_publish` when allowed by Section 4.2. Gateways MUST
 NOT rewrite meaning to make an event appear valid.
 
-### 3.4 Encoding Projection Enforcement
+### 3.5 Encoding Projection Enforcement
 
 JSON, CBOR, compact CBOR, protobuf, and future encodings are projections. An
 encoding has no independent semantic authority.
@@ -230,7 +347,7 @@ semantic.
 Encoding versions, such as `compact_version`, track wire mapping compatibility.
 They do not change ZMeta semantic meaning.
 
-### 3.5 Conformance Test Enforcement
+### 3.6 Conformance Test Enforcement
 
 Conformance tests SHOULD prove:
 - Valid examples pass.
@@ -358,6 +475,62 @@ when one software stack performs multiple roles.
 
 Producer authority is deployment policy, not JSON Schema. A portable schema
 does not hard-code local producer names.
+
+### 4.5.1 External Projection Promotion
+
+External systems such as CoT/TAK, JREAP-style gateways, MAVLink bridges, and
+vendor COPs may report tracks that are already lossy projections, external
+reports, or reflections of prior ZMeta output. Schema-valid shape is not enough
+to make such input authoritative ZMeta state.
+
+A lossy adapter projection or external tactical track report MUST NOT be
+promoted to authoritative ZMeta `STATE_EVENT` unless promotion policy,
+freshness, lineage status, confidence basis, trust reference, and loop/reflection
+status are explicit and valid under active deployment policy.
+
+Promotion rules:
+- External promotion creates a new ZMeta event with a new `event.event_id`.
+- The external source identifier MAY be retained as payload-scoped provenance or
+  policy-scoped promotion metadata; it MUST NOT replace ZMeta event identity.
+- When the external report has no ZMeta parent event, promotion metadata MUST
+  preserve enough source identity and lineage status for audit. A future
+  `OBSERVATION_EVENT` subtype for network/tactical reports may provide a cleaner
+  parent evidence event, but that vocabulary is not valid in v1.0 unless a
+  version branch adopts it.
+- `lineage.transform` SHOULD identify the promotion transform, for example a
+  `promote:<adapter>:<policy>` form, rather than a generic translation.
+- A reflected ZMeta projection MUST NOT be promoted back into authoritative
+  state unless loop/reflection checks prove it is not the same semantic event
+  returning through a lossy adapter path.
+- Promotion metadata MUST NOT carry raw sensor measurements, observation
+  features, hidden defaults, or authority claims that override producer policy.
+- Confidence in promoted state MUST be grounded in an explicit basis and MUST
+  NOT increase merely because an external system reported the track.
+
+Profile behavior:
+- Profile H SHOULD carry full promotion audit detail, including source event
+  identity when available, promotion policy, projection identity, confidence
+  basis, freshness, trust reference, lineage status, and loop/reflection status.
+- Profile M MAY carry compact policy, trust, projection, confidence-basis, and
+  lineage-status references.
+- Profile L MAY carry only compact handles, reason/status codes, and minimal
+  lineage references needed to preserve auditability under the link budget.
+
+Enforcement behavior:
+- The reference policy rejects invalid external promotion by default.
+- Deployments MAY tune the enforcement response to reject, warn, degrade, or
+  quarantine according to local bandwidth, trust, and edge-operating conditions.
+- Non-reject modes MUST emit an explicit diagnostic and MUST NOT erase the fact
+  that promotion evidence was missing, stale, incomplete, or not approved.
+- Degrade/quarantine modes MUST reduce confidence, shorten TTL, cap usable
+  trust, or otherwise make the accepted state visibly lower authority than a
+  clean promoted state.
+- Loop/reflection risk SHOULD remain a hard rejection unless an operator
+  deliberately enables a softer response with equivalent audit diagnostics.
+
+External promotion metadata is policy-scoped boundary evidence. It is not
+same-event profile projection metadata, and it does not make raw observation
+fields valid inside `STATE_EVENT`.
 
 ### 4.6 Transport Is Non-Semantic
 
@@ -1027,8 +1200,10 @@ TIME_STATUS reports node timing quality. Required metrics are listed in Section
 
 #### SCHEMA_VIOLATION
 
-SCHEMA_VIOLATION represents a rejected or malformed event and provides
-auditability for AAR/debug.
+SCHEMA_VIOLATION is the v1.0 diagnostic envelope for schema and policy
+validation outcomes. It represents rejected events, malformed events, and
+gateway/policy warnings about accepted events. It provides auditability for
+AAR/debug and risk filtering.
 
 Required metrics:
 - `reason_code`
@@ -1041,9 +1216,21 @@ Recommended optional metrics:
 - `path`
 - `error`
 
-SCHEMA_VIOLATION MUST NOT be used to report normal operational degradation such
-as memory pressure, timing loss, track merge, or link degradation unless that
-degradation directly caused schema validation failure.
+For soft policy decisions, SCHEMA_VIOLATION SHOULD use `payload.state: WARNING`
+and SHOULD include the risk adjudication fields from Section 3.3 when practical.
+
+SCHEMA_VIOLATION MUST NOT be reused as a domain trust state, quarantine state,
+track lifecycle state, or general status event. Normal operational degradation
+such as memory pressure, timing loss, track merge, or link degradation SHOULD be
+reported through the appropriate status event, local log, policy warning, or
+future versioned vocabulary. If the degradation causes a policy warning or
+rejection, SCHEMA_VIOLATION MAY carry the diagnostic reason, but the diagnostic
+MUST NOT make the event's semantic meaning appear cleaner than it is.
+
+A future branch SHOULD define a clearer policy diagnostic subtype such as
+`POLICY_ADJUDICATION` or `POLICY_DIAGNOSTIC`. Until that branch is approved,
+SCHEMA_VIOLATION remains the v1.0 compatibility envelope for schema and policy
+diagnostics.
 
 ## 8. Confidence, Uncertainty, and Trust
 
@@ -1349,6 +1536,7 @@ Default failure-mode expectations:
 Even under degradation:
 - No semantic reinterpretation.
 - Uncertainty remains explicit.
+- Risk labels and policy decisions remain filterable.
 - Required lineage remains present.
 - Immutability remains intact.
 - Auditability is preserved where a status event or local log is available.
@@ -1547,9 +1735,13 @@ CoT/TAK projection rules:
 - If a projection omits confidence or lineage because the downstream format does
   not support them, the original ZMeta event remains authoritative.
 
-CoT ingress is a lossy adapter boundary. If CoT state is converted into ZMeta,
-the adapter must emit STATE_EVENT with explicit confidence and lineage or reject
-the input when those semantics cannot be supplied.
+CoT/TAK ingress is a lossy adapter boundary. CoT/TAK input SHOULD be treated as
+external report evidence unless active promotion policy authorizes conversion
+into ZMeta `STATE_EVENT`. Any promotion to `STATE_EVENT` MUST satisfy the
+external projection promotion requirements in Section 4.5.1, including explicit
+promotion policy, freshness, lineage status, confidence basis, trust reference,
+and loop/reflection status. Confidence and lineage remain necessary for promoted
+state, but they are not sufficient by themselves.
 
 ## 15. Command and Tasking Governance
 
@@ -1634,8 +1826,8 @@ low-confidence event.
 
 Schema validity is not trust validity. A schema-valid event may still be
 suspect, quarantined, replayed, or spoof-suspected under future trust policy.
-SCHEMA_VIOLATION remains the diagnostic for rejected or malformed events and
-MUST NOT be reused as a generic trust/quarantine label.
+SCHEMA_VIOLATION remains the v1.0 diagnostic envelope for schema and policy
+validation outcomes and MUST NOT be reused as a generic trust/quarantine label.
 
 ## 17. UAS Identity and Behavioral Trust
 
@@ -1898,9 +2090,13 @@ may support more than one class.
 | ZMETA-PROFILE-L | Profile L event-type constraints, unresolved lineage tolerance, explicit timing quality, short TTL/degraded confidence behavior, and compact Profile L compatibility when used. |
 | ZMETA-PROFILE-M | Profile M event-type constraints, selective observation export, timing quality, and no inference export unless a future branch permits it. |
 | ZMETA-PROFILE-H | Full fidelity v1.0 event support with all semantic layers preserved. |
-| ZMETA-ADAPTER | Correct mapping from native formats to semantic layers, timestamp/unit normalization, UUIDv7 generation, lineage transform, and rejection of ambiguous inputs. |
-| ZMETA-GATEWAY | Schema and policy validation, profile enforcement, source-field preservation, dedupe, timing status handling, contract hash gates, and non-semantic projection behavior. |
-| ZMETA-COT-PROJECTION | STATE_EVENT-only CoT/TAK projection, preservation of track ID/geo/TTL, and no projection of raw observation or inference as operator state. |
+| ZMETA-ADAPTER | Correct mapping from native formats to semantic layers, timestamp/unit normalization, UUIDv7 generation, lineage transform, rejection of ambiguous inputs, and external-boundary promotion evidence where applicable. |
+| ZMETA-GATEWAY | Schema and policy validation, profile enforcement, source-field preservation, dedupe, timing status handling, risk adjudication labels, contract hash gates, and non-semantic projection behavior. |
+| ZMETA-POLICY-ADJUDICATION | Tunable policy decisions using bounded actions, risk dimensions, governed reason codes, allowed/prohibited uses, effect labels, and diagnostic correlation. |
+| ZMETA-EXTERNAL-PROMOTION | Enforcement of external projection promotion requirements for lossy tactical tracks, including promotion metadata, freshness, lineage status, confidence basis, trust reference, and loop/reflection status. |
+| ZMETA-RISK-FILTERING | Consumer/filter behavior for accepted-risk data, including compact self-labels when diagnostics may not travel and enforcement of allowed/prohibited uses. |
+| ZMETA-COT-PROJECTION | STATE_EVENT-only CoT/TAK egress projection plus CoT/TAK ingress treatment as external report evidence unless Section 4.5.1 promotion policy authorizes STATE_EVENT output. |
+| ZMETA-PROJECTION-ORIGIN | Future projection instance/origin metadata for source event IDs, projection IDs, policy IDs, projection reasons, and same-event projection dedupe behavior. |
 | ZMETA-AI-PROVENANCE | v1.0 model name/version, inference lineage, model confidence semantics, and future model provenance fields when adopted. |
 | ZMETA-COALITION-EXPORT | Future release labels, redaction projection, export audit, and cross-domain conformance once a version branch adopts them. |
 | ZMETA-MESH-TRUST | Future signing, key identity, route trust, quarantine, spoof suspicion, and trust/confidence separation once adopted. |
@@ -1920,6 +2116,11 @@ or profile, and encoding/projection mappings used.
 | Subtype/payload discriminator match | Required | Optional | Required | Preserves fields | Required | No |
 | Layer separation | Partial | Required for context checks | Required | No independent role | Required | No |
 | Producer authority | No | Required | Required | No | Required | No |
+| Risk adjudication actions | No | Required | Required for diagnostics/effects | Preserves labels | Required | No |
+| Policy decision diagnostics | SCHEMA_VIOLATION v1.0 envelope | Required reason/use/effect fields | Emits warnings/rejections | Preserves metrics | Required | No |
+| Allowed/prohibited uses | No | Required where soft acceptance is used | Required for filters/routes | Preserves labels | Required | No |
+| Compact self-label behavior | Extension object allowed where schema permits | Required for material risk crossing boundaries | Required when diagnostics may not travel | Preserves extension labels | Required | No |
+| Operator override semantics | No current event vocabulary | Required for local override policy | Must not bypass locked rules | Preserves labels if present | Future/current policy tests | Guidance plus future audit events |
 | Timing format | Required | Optional | Normalizes | Preserves/expands | Required | No |
 | Timing freshness | No | Required | Required when stateful | No | Required | No |
 | PNT integrity labels | Future | Future | Future | Future | Future | Current guidance only |
@@ -1935,11 +2136,14 @@ or profile, and encoding/projection mappings used.
 | TASK_ACK lifecycle | Required | Required | Required | Compact maps common values | Required | No |
 | Track lifecycle machine events | Future | Future | Future | Future | Future | Current v1.0 guidance |
 | CoT/TAK projection boundary | No | Optional | Required | No | Required for projection class | No |
+| External projection promotion | No | Required | Required for CoT/JREAP/MAVLink ingress state | Preserves labels | Required | No |
+| Loop/reflection status | No | Required for external promotion | Required at promotion boundary | Preserves labels | Required | No |
 | AI model name/version | Required for inference | Optional | Required | Preserves | Required | No |
 | Model/runtime provenance | Future | Future | Future | Future | Future | Current guidance only |
 | Mesh signing/quarantine | Future | Future | Future | Future | Future | Current guidance only |
 | Coalition release/redaction | Future | Future | Future | Future | Future | Current guidance only |
 | Projection/thinning metadata | Future | Future | Future | Future | Future | Current guidance only |
+| Projection origin/instance identity | Future | Future | Future | Future | Future | Current guidance only |
 | Extension namespace safety | Partial | Optional | Required | Preserves | Required for extension adoption | No |
 | Data nutrition labels | Future | Future | Future UI/projection | No | Future | Current guidance only |
 
@@ -1959,6 +2163,10 @@ or profile, and encoding/projection mappings used.
 - Raw data absence is not a validation failure by itself.
 - Profile thinning is projection, not reinterpretation.
 - CoT/TAK projection is STATE_EVENT-only in v1.0.
+- CoT/TAK ingress is external report evidence unless active promotion policy
+  authorizes `STATE_EVENT` promotion under Section 4.5.1.
+- SCHEMA_VIOLATION is the v1.0 compatibility envelope for schema and policy
+  diagnostics, not the ideal long-term name for policy adjudication.
 - Extension adoption requires semantic text, schema/policy behavior, adapter
   guidance, encoding handling, and conformance tests.
 
@@ -1970,6 +2178,13 @@ or profile, and encoding/projection mappings used.
 - Confidence, uncertainty, and trust section.
 - AI provenance and model-runtime guidance.
 - Raw-data-absent mode guidance.
+- Risk adjudication and operator-tunable policy.
+- Locked, tunable, and advisory rule classes.
+- Bounded policy actions: reject, warn, degrade, quarantine, and scoped ignore.
+- Allowed/prohibited use labels for accepted-risk data.
+- External projection promotion requirements for lossy tactical-track ingress.
+- Soft policy decisions through diagnostics and compact self-labels.
+- Operator override constraints for material policy softening.
 - Compute elasticity and emergency compute guidance.
 - Emergency/L0 thinning and projection-policy candidate guidance.
 - Mesh trust, signing, spoof suspicion, and quarantine future guidance.
@@ -2014,11 +2229,16 @@ branch, schema, policy, and conformance tests are approved:
 - Emergency/L0 profile or emergency projection-policy vocabulary.
 - Track lifecycle event subtypes beyond v1.0 guidance.
 - Projection/thinning metadata fields.
+- Projection origin/instance metadata for dedupe and store reconciliation.
 - Data nutrition labels.
 - Confidence decomposition fields.
 - Full model/runtime provenance fields.
 - MODEL_STATUS, ASSURANCE_EVENT, PNT_STATUS, or equivalent governed status
   subtypes.
+- OBSERVATION_EVENT/NETWORK_REPORT or equivalent external-report evidence
+  subtype.
+- SYSTEM_EVENT/POLICY_ADJUDICATION or equivalent clearer policy diagnostic
+  subtype.
 - Replay/red-team/synthetic labels.
 - Machine-readable extension registry fields.
 

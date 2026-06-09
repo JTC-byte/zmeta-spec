@@ -8,6 +8,115 @@ producer_authority:
     - COMMAND_EVENT
     - SYSTEM_EVENT
 
+  # External ingress producers may only promote lossy/external tracks into
+  # authoritative ZMeta STATE_EVENTs when policy-scoped promotion evidence is
+  # present. Profile L keeps this evidence as compact handles; Profile H carries
+  # full audit detail.
+  external_state_promotion:
+    enabled: true
+    # Reference conformance is strict. Deployments may choose warn, degrade, or
+    # quarantine for edge conditions; non-reject modes still emit diagnostics.
+    mode: reject
+    # Loop/reflection risk stays a hard stop unless an operator deliberately
+    # disables this guardrail in local policy.
+    always_reject_loop_risk: true
+    degrade:
+      confidence_reduction_factor: 2.0
+      valid_for_ms_reduction_factor: 2.0
+    quarantine:
+      confidence_cap: 0.25
+      valid_for_ms_cap: 1000
+    use_limits:
+      warn:
+        allowed_uses:
+          - DISPLAY
+          - LOCAL_AWARENESS
+          - ALERTING
+        prohibited_uses:
+          - COMMAND_BASIS
+          - AUTONOMY_TASKING
+      degrade:
+        allowed_uses:
+          - DISPLAY
+          - LOCAL_AWARENESS
+          - ALERTING
+        prohibited_uses:
+          - FUSION_INPUT
+          - STATE_UPDATE
+          - COMMAND_BASIS
+          - AUTONOMY_TASKING
+      quarantine:
+        allowed_uses:
+          - DISPLAY
+          - AAR_ONLY
+          - DEBUG_ONLY
+        prohibited_uses:
+          - FUSION_INPUT
+          - STATE_UPDATE
+          - COALITION_EXPORT
+          - COMMAND_BASIS
+          - AUTONOMY_TASKING
+    metadata_path: payload.extensions.external_promotion
+    required_state_category: PROMOTED_EXTERNAL_STATE
+    allowed_origin_kinds:
+      - EXTERNAL_REPORT
+      - LOSSY_PROJECTION
+    allowed_lineage_status_by_profile:
+      L:
+        - RESOLVED
+        - EXTERNAL_SOURCE
+        - UNRESOLVED_PROFILED
+      M:
+        - RESOLVED
+        - EXTERNAL_SOURCE
+        - UNRESOLVED_PROFILED
+      H:
+        - RESOLVED
+        - EXTERNAL_SOURCE
+    source_event_uid_required_statuses:
+      - EXTERNAL_SOURCE
+    required_fields_by_profile:
+      L:
+        - state_category
+        - promotion_policy_id
+        - trust_ref
+        - lineage_status
+        - loop_status
+      M:
+        - state_category
+        - origin_kind
+        - projection_id
+        - promotion_policy_id
+        - trust_ref
+        - lineage_status
+        - loop_status
+        - confidence_basis
+      H:
+        - state_category
+        - origin_kind
+        - projection_id
+        - promotion_policy_id
+        - trust_ref
+        - lineage_status
+        - loop_status
+        - confidence_basis
+        - source_event_uid
+        - freshness_ms
+    allowed_loop_statuses:
+      - CHECKED_NOT_REFLECTION
+    loop_risk_statuses:
+      - REFLECTION_DETECTED
+      - LOOP_SUSPECTED
+    required_trust_ref_prefixes:
+      - "producer-authority:"
+      - "trust-policy:"
+    required_lineage_transform_prefixes:
+      - "promote:"
+    max_freshness_ms_by_profile:
+      L: 60000
+      M: 60000
+      H: 60000
+
   # Pattern rules are case-insensitive shell-style globs. Default exact names
   # include reference examples; deployments should narrow these to local IDs.
   producers:
@@ -127,22 +236,64 @@ producer_authority:
       allowed_event_types:
         - STATE_EVENT
         - SYSTEM_EVENT
+      external_state_promotion:
+        required: true
+        approved_policy_ids:
+          - PROMOTE-COT-STATE-V1
+        allowed_projection_ids:
+          - cot
+        allowed_confidence_basis:
+          - EXPLICIT_EXTERNAL_CONFIDENCE
+          - FUSION_BACKED_CONFIDENCE
     jreap-ingress:
       allowed_event_types:
         - STATE_EVENT
         - SYSTEM_EVENT
+      external_state_promotion:
+        required: true
+        approved_policy_ids:
+          - PROMOTE-JREAP-STATE-V1
+        allowed_projection_ids:
+          - jreap
+        allowed_confidence_basis:
+          - EXPLICIT_EXTERNAL_CONFIDENCE
+          - FUSION_BACKED_CONFIDENCE
     mavlink:
       allowed_event_types:
         - STATE_EVENT
         - SYSTEM_EVENT
+      external_state_promotion:
+        required: true
+        approved_policy_ids:
+          - PROMOTE-MAVLINK-STATE-V1
+        allowed_projection_ids:
+          - mavlink
+        allowed_confidence_basis:
+          - GPS_FIX_CONFIDENCE
     mavlink-adapter:
       allowed_event_types:
         - STATE_EVENT
         - SYSTEM_EVENT
+      external_state_promotion:
+        required: true
+        approved_policy_ids:
+          - PROMOTE-MAVLINK-STATE-V1
+        allowed_projection_ids:
+          - mavlink
+        allowed_confidence_basis:
+          - GPS_FIX_CONFIDENCE
     mavlink-*:
       allowed_event_types:
         - STATE_EVENT
         - SYSTEM_EVENT
+      external_state_promotion:
+        required: true
+        approved_policy_ids:
+          - PROMOTE-MAVLINK-STATE-V1
+        allowed_projection_ids:
+          - mavlink
+        allowed_confidence_basis:
+          - GPS_FIX_CONFIDENCE
 
     comms-deconfliction-*:
       allowed_event_types:

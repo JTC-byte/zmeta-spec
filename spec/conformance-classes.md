@@ -176,8 +176,14 @@ require mission review; they do not change schemas or create event vocabulary.
 
 Current baseline classes cover core semantics, version dispatch, v1.0 schema,
 v1.1.0 experimental support, policy, command governance, timing quality,
-lineage, Profile L/M/H, projection preservation, extension registry validation,
-compact CBOR, protobuf projection, and the reference gateway.
+lineage, risk adjudication, external projection promotion, risk filtering,
+Profile L/M/H, projection preservation, extension registry validation, compact
+CBOR, protobuf projection, and the reference gateway.
+
+Risk-governance classes do not loosen schemas. They prove that tunable policy
+responses remain bounded, labeled, diagnostic, and filterable, and that external
+tactical-track ingress cannot become authoritative ZMeta state without explicit
+promotion evidence.
 
 `ZMETA-COT-PROJECTION` is recorded as partially implemented because current CoT
 tests cover key ingress/egress behavior, but the repo does not yet provide a

@@ -1,4 +1,5 @@
 import json
+import importlib.util
 from pathlib import Path
 
 from jsonschema import Draft202012Validator, FormatChecker
@@ -11,6 +12,11 @@ ROOT = Path(__file__).resolve().parents[3]
 SCHEMA_PATH = ROOT / "schema" / "zmeta-event-1.0.schema.json"
 SCHEMA = json.loads(SCHEMA_PATH.read_text(encoding="utf-8"))
 VALIDATOR = Draft202012Validator(SCHEMA, format_checker=FormatChecker())
+VALIDATORS_PATH = ROOT / "gateway" / "src" / "validators.py"
+spec = importlib.util.spec_from_file_location("zmeta_validators", VALIDATORS_PATH)
+validators = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(validators)
+POLICY = validators.load_policy(ROOT / "policy")
 
 
 def test_jreap_track_to_state_schema_valid():
@@ -29,7 +35,14 @@ def test_jreap_track_to_state_schema_valid():
     event = jreap_track_dict_to_zmeta_track_state(track)
     assert event["event"]["event_type"] == "STATE_EVENT"
     assert event["event"]["event_subtype"] == "TRACK_STATE"
+    promotion = event["payload"]["extensions"]["external_promotion"]
+    assert promotion["promotion_policy_id"] == "PROMOTE-JREAP-STATE-V1"
+    assert event["lineage"]["transform"].startswith("promote:jreap@template:")
     VALIDATOR.validate(event)
+    ok, violations = validators.validate_producer_authority(
+        event, POLICY["producer_authority"], POLICY["violation_severities"]
+    )
+    assert ok, violations
 
 
 def test_jreap_ingress_normalizes_utc_offset_timestamp():

@@ -51,6 +51,13 @@ Fallback timing is intentionally degraded timing. `time_source: UNKNOWN` and
 fusion consumers should treat it as a bridge until source-provided GPS/NTP/PTP
 timing or periodic `TIME_STATUS` is available.
 
+External tactical track ingress is also an authority boundary. CoT, JREAP, and
+MAVLink state templates emit policy-scoped
+`payload.extensions.external_promotion` metadata and `promote:*` lineage
+transforms so reference producer-authority policy can distinguish promoted
+external reports from native ZMeta state. Schema validity alone is not
+promotion authority.
+
 Adapter modules use package-style imports from the repository root, including
 `from adapters.ingress.time_utils import ...`. Run tests and integration scripts
 from the repo root, or install/add the repo root on `PYTHONPATH`, so shared

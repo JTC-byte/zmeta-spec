@@ -19,6 +19,7 @@ from zmeta_uuid import uuid7
 
 ADAPTER_VERSION = "1.0.0"
 SCHEMA_ID = "mavlink-telemetry"
+PROMOTION_POLICY_ID = "PROMOTE-MAVLINK-STATE-V1"
 
 
 def _utc_now():
@@ -141,6 +142,28 @@ def translate_platform_state(
         quality["custom_mode"] = custom_mode
 
     event_ts = normalize_utc_z(ts) or _utc_now()
+    source_event_uid = (
+        _get("source_event_uid")
+        or _get("message_uid")
+        or _get("msg_id")
+        or f"mavlink:{platform_id}:{event_ts}"
+    )
+    promotion = {
+        "state_category": "PROMOTED_EXTERNAL_STATE",
+        "origin_kind": str(_get("origin_kind", "EXTERNAL_REPORT")),
+        "projection_id": "mavlink",
+        "promotion_policy_id": str(_get("promotion_policy_id", PROMOTION_POLICY_ID)),
+        "trust_ref": str(_get("trust_ref", f"producer-authority:{producer}")),
+        "lineage_status": str(_get("lineage_status", "EXTERNAL_SOURCE")),
+        "loop_status": str(_get("loop_status", "CHECKED_NOT_REFLECTION")),
+        "confidence_basis": str(_get("confidence_basis", "GPS_FIX_CONFIDENCE")),
+        "source_event_uid": str(source_event_uid),
+        "freshness_ms": 30000,
+    }
+    source_zmeta_event_id = _get("source_zmeta_event_id")
+    if source_zmeta_event_id:
+        promotion["source_zmeta_event_id"] = str(source_zmeta_event_id)
+
     event = {
         "zmeta_version": "1.0",
         "event": {
@@ -162,11 +185,12 @@ def translate_platform_state(
             "speed_mps": speed_mps,
             "quality": quality,
             "timing_quality": coerce_timing_quality(_get("timing_quality"), event_ts=event_ts),
+            "extensions": {"external_promotion": promotion},
         },
         "confidence": confidence,
         "lineage": {
             "based_on": [str(uuid7())],
-            "transform": f"translate:{SCHEMA_ID}@{ADAPTER_VERSION}",
+            "transform": f"promote:{SCHEMA_ID}@{ADAPTER_VERSION}:{promotion['promotion_policy_id']}",
         },
     }
     return event

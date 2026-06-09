@@ -30,6 +30,21 @@ Use:
 python tools/validate_conformance.py --strict
 ```
 
+The core fixtures include external promotion checks: schema-valid CoT/JREAP/
+MAVLink-style `STATE_EVENT`s from marked external ingress producers must carry
+valid `payload.extensions.external_promotion` evidence or fail producer
+authority as `PRODUCER_NOT_ALLOWED` under the default reference `reject` mode.
+Deployments may tune local enforcement to `warn`, `degrade`, or `quarantine`,
+but those modes must preserve diagnostics and visible trust/TTL effects rather
+than silently accepting incomplete promotion evidence.
+
+Risk-adjudication fixtures prove that soft acceptance remains filterable. A
+warning/degraded diagnostic may pass when it carries `risk_dimension`,
+`policy_mode`, `policy_decision`, governed `reason_code`, use limits, and any
+applied effects. This lets deployments accept degraded data under edge
+conditions while consumers can still reject, warn, quarantine, or filter by
+explicit labels.
+
 Profile projection preservation is opt-in for the conformance runner:
 
 ```

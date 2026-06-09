@@ -112,3 +112,18 @@ def test_check_compat_warns_on_explicit_unknown_unsynced_timing():
         assert "WARN timing_quality_fallback" in result.stdout
     finally:
         _cleanup_workdir(tmp_path)
+
+
+def test_check_compat_accepts_current_release_target():
+    tmp_path = _workdir()
+    try:
+        event = _sample_event()
+        path = tmp_path / "event.json"
+        path.write_text(json.dumps(event), encoding="utf-8")
+
+        result = _run_check(path, "--target", "v1.1.5")
+
+        assert result.returncode == 0
+        assert "issues=0" in result.stdout
+    finally:
+        _cleanup_workdir(tmp_path)

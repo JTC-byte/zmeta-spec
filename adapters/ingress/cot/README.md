@@ -6,5 +6,8 @@ Purpose: normalize CoT state into ZMeta `STATE_EVENT` / `TRACK_STATE`.
 
 Notes:
 - Input is an already-parsed CoT dict (no XML parsing in v1.0).
-- Output is a ZMeta track state with minimal lineage.
+- Output is a promoted ZMeta track state with minimal lineage.
 - `STATE_EVENT` requires `confidence` in the schema; include it in the input when available.
+- The template emits `payload.extensions.external_promotion` and a `promote:cot`
+  lineage transform so producer-authority policy can reject schema-valid CoT
+  reflections that lack explicit promotion evidence.

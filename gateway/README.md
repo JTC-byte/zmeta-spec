@@ -57,6 +57,7 @@ The config file keys are:
 - `stamp_profile` and `stamp_profile_profiles` (profile field stamping)
 - `stamp_timing` and `stamp_timing_profiles` (t_receive/t_publish stamping; default L/M/H)
 - `strip_optional_fields` and `strip_optional_fields_profiles` (bandwidth compaction)
+- `failure_modes` (edge runtime degradation controls such as timing loss)
 - `strict_validation` (treat warnings as failures)
 - `emit_metrics` and `metrics_interval_sec` (periodic gateway metrics logs)
 - `rate_limit_per_sec` (drop packets above receive rate)
@@ -113,6 +114,13 @@ adapter fallback timing from stronger source-provided GPS/NTP/PTP timing.
 `timing_quality_fallback` is a degraded-mode signal, not evidence of a healthy
 time source; deployments should drive that count down by providing real timing
 metadata per event or periodic `SYSTEM_EVENT` / `TIME_STATUS` updates.
+
+When policy soft-accepts risky data, gateway-generated warning diagnostics carry
+filterable risk fields such as `risk_dimension`, `policy_mode`,
+`policy_decision`, `allowed_uses`, `prohibited_uses`, and effect details. Runtime
+failure-mode degradation also stamps accepted events under
+`payload.extensions.risk_adjudication` so confidence or TTL changes are not
+silent.
 
 If `metrics_log_path` is set, the gateway writes JSONL metrics/violation/drop records
 and rotates logs based on `metrics_log_max_bytes` and `metrics_log_backups`.

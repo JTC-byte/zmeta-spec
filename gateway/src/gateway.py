@@ -36,6 +36,7 @@ except ImportError:  # pragma: no cover - optional dependency
 
 from validators import (
     ValidationState,
+    apply_external_promotion_policy_action,
     apply_timing_freshness_degradation,
     load_policy,
     load_schema,
@@ -745,28 +746,88 @@ def _event_timing_quality(event):
     return None
 
 
-def _apply_failure_mode_degradation(event, failure_modes, timing_state):
+def _config_list_values(value):
+    if isinstance(value, list):
+        return [str(item).strip() for item in value if str(item).strip()]
+    if isinstance(value, str) and value.strip():
+        return [value.strip()]
+    return []
+
+
+def _timing_use_limits(timing_freshness_policy, mode):
+    if not isinstance(timing_freshness_policy, dict):
+        return {}
+    limits = timing_freshness_policy.get("use_limits", {})
+    if not isinstance(limits, dict):
+        return {}
+    mode_limits = limits.get(mode, {})
+    return mode_limits if isinstance(mode_limits, dict) else {}
+
+
+def _append_gateway_risk_adjudication(event, record):
+    payload = event.get("payload") if isinstance(event, dict) else None
+    if not isinstance(payload, dict) or not isinstance(record, dict):
+        return False
+    extensions = payload.get("extensions")
+    if not isinstance(extensions, dict):
+        extensions = {}
+        payload["extensions"] = extensions
+    records = extensions.get("risk_adjudication")
+    if not isinstance(records, list):
+        records = []
+        extensions["risk_adjudication"] = records
+    records.append(record)
+    return True
+
+
+def _apply_failure_mode_degradation(
+    event, failure_modes, timing_state, timing_freshness_policy=None
+):
     if not failure_modes or not isinstance(event, dict):
-        return
+        return False
     if event.get("event", {}).get("event_type") != "STATE_EVENT":
-        return
+        return False
     timing_loss = failure_modes.get("timing_loss", {})
     if not isinstance(timing_loss, dict) or not timing_loss.get("enabled", False):
-        return
+        return False
     latest = getattr(timing_state, "latest_timing", {}).get(_source_key(event)) if timing_state else None
     if timing_state and hasattr(timing_state, "get_timing"):
         _key, latest = timing_state.get_timing(event)
     if not latest or latest.get("sync_state") != "UNSYNCED":
-        return
+        return False
     try:
         factor = float(timing_loss.get("confidence_reduction_factor", 2.0))
     except (TypeError, ValueError):
         factor = 2.0
     if factor <= 0:
-        return
+        return False
     confidence = event.get("confidence")
-    if isinstance(confidence, (int, float)):
-        event["confidence"] = max(0.0, min(1.0, confidence / factor))
+    if isinstance(confidence, bool) or not isinstance(confidence, (int, float)):
+        return False
+
+    event["confidence"] = max(0.0, min(1.0, confidence / factor))
+    limits = _timing_use_limits(timing_freshness_policy, "degrade")
+    record = {
+        "risk_dimension": "timing",
+        "reason_code": "TIMING_STATUS_UNSYNCED",
+        "policy_mode": "degrade",
+        "policy_decision": "DEGRADED_ACCEPT",
+        "policy_ref": "gateway.failure_modes.timing_loss",
+        "effects": {"confidence_reduction_factor": factor},
+    }
+    allowed_uses = _config_list_values(limits.get("allowed_uses"))
+    prohibited_uses = _config_list_values(limits.get("prohibited_uses"))
+    if allowed_uses:
+        record["allowed_uses"] = allowed_uses
+    if prohibited_uses:
+        record["prohibited_uses"] = prohibited_uses
+    source = event.get("source", {})
+    if isinstance(source, dict):
+        record["producer"] = source.get("producer")
+    if isinstance(latest, dict):
+        record["timing_status_ts"] = latest.get("_event_ts")
+        record["sync_state"] = latest.get("sync_state")
+    return _append_gateway_risk_adjudication(event, record)
 
 
 def _cot_skip_reason(event):
@@ -1354,6 +1415,9 @@ def process_message(
         instance, policy.get("producer_authority", {}), severity_map
     )
     if violations:
+        apply_external_promotion_policy_action(
+            instance, violations, policy.get("producer_authority", {})
+        )
         fails, warns = _split_violations(violations)
         if fails:
             violation = fails[0]
@@ -1634,7 +1698,12 @@ def main():
             )
             if should_strip:
                 _strip_optional_fields(outgoing, settings["strip_optional_fields"])
-            _apply_failure_mode_degradation(outgoing, settings["failure_modes"], validation_state)
+            _apply_failure_mode_degradation(
+                outgoing,
+                settings["failure_modes"],
+                validation_state,
+                policy.get("timing_freshness", {}),
+            )
             violations = validate_outgoing_event(outgoing, validator, policy, settings["profile"])
             if violations:
                 violation = violations[0]

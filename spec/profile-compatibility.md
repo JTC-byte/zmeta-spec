@@ -73,6 +73,21 @@ python tools/validate_conformance.py --strict --profile-projection
 This does not change the v1.0 schema and does not add projection metadata to
 v1.0 events. Future projection metadata remains a versioned candidate.
 
+## External Promotion Metadata
+
+External ingress from CoT/TAK, JREAP-style gateways, MAVLink, or vendor COPs is
+not a same-event profile projection. It is a boundary promotion decision.
+
+Reference policy requires external `STATE_EVENT` producers to carry
+policy-scoped promotion evidence under `payload.extensions.external_promotion`
+before their events are accepted as authoritative ZMeta state. Profile H carries
+full audit detail; Profile M carries compact policy/trust/projection references;
+Profile L may carry only minimal handles and status codes.
+
+This metadata does not authorize raw observation fields in `STATE_EVENT`, does
+not replace `lineage.based_on`, and does not turn external systems into ZMeta
+semantic authority by schema shape alone.
+
 ## Profile Precision Policy
 
 Profile L/M/H precision and quantization behavior is checked as a separate

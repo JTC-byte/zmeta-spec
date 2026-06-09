@@ -13,7 +13,8 @@ Purpose: convert external payloads into ZMeta v1.0.
 ### Required behavior
 
 - Must call schema validation using `schema/zmeta-event-1.0.schema.json`.
-- Must emit SYSTEM_EVENT/SCHEMA_VIOLATION on deterministic failure (no guessing).
+- Must emit SYSTEM_EVENT/SCHEMA_VIOLATION on deterministic failures or warning
+  diagnostics, with risk labels when policy soft-accepts degraded data.
 - Must set `lineage.transform = "translate:<schema_id>@<adapter_version>"`.
 - Must apply Units & Geodesy rules (WGS-84, meters HAE, degrees, meters/sec).
 - Must normalize timestamps with shared helpers such as

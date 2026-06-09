@@ -154,6 +154,106 @@ def _violation(code, message, details=None, severity_map=None, severity=None):
     }
 
 
+_POLICY_DECISION_BY_MODE = {
+    "reject": "REJECTED",
+    "warn": "WARN_ACCEPT",
+    "degrade": "DEGRADED_ACCEPT",
+    "quarantine": "QUARANTINE_ACCEPT",
+    "ignore": "IGNORED",
+}
+
+
+def _policy_decision_for_mode(mode):
+    return _POLICY_DECISION_BY_MODE.get(str(mode or "").strip().lower(), "REJECTED")
+
+
+def _risk_use_limits(policy, mode):
+    if not isinstance(policy, dict):
+        return {}
+    configured = policy.get("use_limits", {})
+    if not isinstance(configured, dict):
+        return {}
+    limits = configured.get(str(mode or "").strip().lower(), {})
+    return limits if isinstance(limits, dict) else {}
+
+
+def _risk_details(
+    details,
+    risk_dimension,
+    mode,
+    policy=None,
+    policy_ref=None,
+    policy_decision=None,
+):
+    result = dict(details or {})
+    mode = str(mode or "reject").strip().lower()
+    result["risk_dimension"] = risk_dimension
+    result["policy_mode"] = mode
+    result["policy_decision"] = policy_decision or _policy_decision_for_mode(mode)
+    if policy_ref:
+        result["policy_ref"] = policy_ref
+
+    limits = _risk_use_limits(policy, mode)
+    for key in ("allowed_uses", "prohibited_uses"):
+        if key in result:
+            continue
+        values = _list_values(limits.get(key))
+        if values:
+            result[key] = values
+    return result
+
+
+def _append_risk_adjudication(event, violation, effects=None):
+    if not isinstance(event, dict) or not isinstance(violation, dict):
+        return False
+    payload = event.get("payload")
+    if not isinstance(payload, dict):
+        return False
+    details = violation.get("details", {})
+    if not isinstance(details, dict):
+        return False
+    risk_dimension = details.get("risk_dimension")
+    policy_decision = details.get("policy_decision")
+    if not risk_dimension or not policy_decision:
+        return False
+
+    extensions = payload.get("extensions")
+    if not isinstance(extensions, dict):
+        extensions = {}
+        payload["extensions"] = extensions
+    records = extensions.get("risk_adjudication")
+    if not isinstance(records, list):
+        records = []
+        extensions["risk_adjudication"] = records
+
+    record = {
+        "risk_dimension": risk_dimension,
+        "reason_code": violation.get("code"),
+        "policy_mode": details.get("policy_mode"),
+        "policy_decision": policy_decision,
+    }
+    for key in (
+        "policy_ref",
+        "profile",
+        "producer",
+        "event_type",
+        "event_subtype",
+        "allowed_uses",
+        "prohibited_uses",
+    ):
+        value = details.get(key)
+        if value is not None:
+            record[key] = value
+    configured_effects = details.get("effects")
+    if isinstance(configured_effects, dict):
+        record["effects"] = dict(configured_effects)
+    if isinstance(effects, dict):
+        record["effects"] = {**record.get("effects", {}), **effects}
+
+    records.append(record)
+    return True
+
+
 def _source_keys(event):
     source = event.get("source", {}) if isinstance(event, dict) else {}
     platform_id = str(source.get("platform_id") or "UNKNOWN")
@@ -286,11 +386,37 @@ def _max_timing_status_age_ms(policy, profile):
     return max(0, value)
 
 
-def _timing_policy_violation(code, message, mode, details, severity_map=None):
-    details = dict(details or {})
-    details["policy_mode"] = mode
+def _timing_policy_violation(
+    code,
+    message,
+    mode,
+    details,
+    timing_freshness_policy=None,
+    severity_map=None,
+):
+    details = _risk_details(
+        details,
+        "timing",
+        mode,
+        policy=timing_freshness_policy,
+        policy_ref="policy/timing-freshness.yaml",
+    )
     if mode == "degrade":
         details["action"] = "degrade"
+        degradation = (
+            timing_freshness_policy.get("degrade", {})
+            if isinstance(timing_freshness_policy, dict)
+            else {}
+        )
+        if not isinstance(degradation, dict):
+            degradation = {}
+        try:
+            factor = float(degradation.get("confidence_reduction_factor", 2.0))
+        except (TypeError, ValueError):
+            factor = 2.0
+        if factor <= 0:
+            factor = 2.0
+        details["effects"] = {"confidence_reduction_factor": factor}
     return _violation(
         code,
         message,
@@ -324,7 +450,16 @@ def apply_timing_freshness_degradation(event, violations, timing_freshness_polic
     if not isinstance(confidence, (int, float)):
         return False
     event["confidence"] = max(0.0, min(1.0, confidence / factor))
-    return True
+    changed = True
+    for violation in violations or []:
+        if (
+            violation.get("details", {}).get("action") == "degrade"
+            and violation.get("code") in {"TIMING_STATUS_MISSING", "TIMING_STATUS_STALE"}
+        ):
+            changed = _append_risk_adjudication(
+                event, violation, {"confidence_reduction_factor": factor}
+            ) or changed
+    return changed
 
 
 def _normalize_pattern(value):
@@ -355,6 +490,468 @@ def _list_values(value):
     return []
 
 
+def _is_blank(value):
+    return value is None or value == "" or value == []
+
+
+def _external_promotion_rules(matching_rules):
+    rules = []
+    for pattern, rule in matching_rules:
+        if not isinstance(rule, dict):
+            continue
+        cfg = rule.get("external_state_promotion")
+        if not isinstance(cfg, dict) or cfg.get("required", False) is not True:
+            continue
+        rules.append((pattern, cfg))
+    return rules
+
+
+def _union_rule_values(rules, key):
+    values = set()
+    for _pattern, cfg in rules:
+        values.update(_list_values(cfg.get(key)))
+    return values
+
+
+_PROMOTION_MODES = {"reject", "warn", "quarantine", "degrade"}
+
+
+def _normalize_promotion_mode(value, default="reject"):
+    mode = str(value or default).strip().lower()
+    if mode not in _PROMOTION_MODES:
+        return default
+    return mode
+
+
+def _promotion_mode(global_cfg, promotion_rules, profile):
+    if not isinstance(global_cfg, dict):
+        return "reject"
+
+    mode = global_cfg.get("mode", "reject")
+    by_profile = global_cfg.get("mode_by_profile")
+    if isinstance(by_profile, dict):
+        mode = by_profile.get(profile, by_profile.get("default", mode))
+
+    for _pattern, cfg in promotion_rules or []:
+        if not isinstance(cfg, dict):
+            continue
+        rule_mode = cfg.get("mode")
+        rule_by_profile = cfg.get("mode_by_profile")
+        if isinstance(rule_by_profile, dict):
+            rule_mode = rule_by_profile.get(profile, rule_by_profile.get("default", rule_mode))
+        if rule_mode is not None:
+            mode = rule_mode
+
+    return _normalize_promotion_mode(mode)
+
+
+def _promotion_mode_severity(mode):
+    return "fail" if mode == "reject" else "warn"
+
+
+def _promotion_violation(message, details=None, severity_map=None):
+    details = dict(details or {})
+    mode = _normalize_promotion_mode(details.get("policy_mode"), default="reject")
+    details = _risk_details(
+        details,
+        "external_promotion",
+        mode,
+        policy_ref="policy/producer-authority.yaml#external_state_promotion",
+    )
+    if mode in {"degrade", "quarantine"}:
+        details["action"] = mode
+    return _violation(
+        "PRODUCER_NOT_ALLOWED",
+        message,
+        details=details,
+        severity_map=severity_map,
+        severity=_promotion_mode_severity(mode),
+    )
+
+
+def _positive_float(value, default):
+    try:
+        parsed = float(value)
+    except (TypeError, ValueError):
+        return default
+    if parsed <= 0:
+        return default
+    return parsed
+
+
+def _bounded_float(value, default, low=0.0, high=1.0):
+    try:
+        parsed = float(value)
+    except (TypeError, ValueError):
+        parsed = default
+    return max(low, min(high, parsed))
+
+
+def _non_negative_int(value, default):
+    try:
+        parsed = int(value)
+    except (TypeError, ValueError):
+        return default
+    return max(0, parsed)
+
+
+def _ensure_path_dict(value, dotted_path):
+    if not isinstance(value, dict):
+        return None
+    target = value
+    parts = [part for part in str(dotted_path).split(".") if part]
+    for part in parts:
+        if not isinstance(target, dict):
+            return None
+        child = target.get(part)
+        if not isinstance(child, dict):
+            child = {}
+            target[part] = child
+        target = child
+    return target
+
+
+def _reduce_confidence(event, factor):
+    confidence = event.get("confidence") if isinstance(event, dict) else None
+    if isinstance(confidence, bool) or not isinstance(confidence, (int, float)):
+        return False
+    event["confidence"] = max(0.0, min(1.0, float(confidence) / factor))
+    return True
+
+
+def _cap_confidence(event, cap):
+    confidence = event.get("confidence") if isinstance(event, dict) else None
+    if isinstance(confidence, bool) or not isinstance(confidence, (int, float)):
+        return False
+    event["confidence"] = max(0.0, min(1.0, min(float(confidence), cap)))
+    return True
+
+
+def _reduce_valid_for_ms(event, factor):
+    payload = event.get("payload", {}) if isinstance(event, dict) else {}
+    if not isinstance(payload, dict):
+        return False
+    value = payload.get("valid_for_ms")
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return False
+    payload["valid_for_ms"] = max(1, int(float(value) / factor))
+    return True
+
+
+def _cap_valid_for_ms(event, cap):
+    payload = event.get("payload", {}) if isinstance(event, dict) else {}
+    if not isinstance(payload, dict):
+        return False
+    value = payload.get("valid_for_ms")
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return False
+    payload["valid_for_ms"] = max(0, int(min(float(value), cap)))
+    return True
+
+
+def apply_external_promotion_policy_action(event, violations, authority_policy):
+    if not isinstance(event, dict) or not isinstance(authority_policy, dict):
+        return False
+    global_cfg = authority_policy.get("external_state_promotion", {})
+    if not isinstance(global_cfg, dict):
+        global_cfg = {}
+
+    metadata_path = global_cfg.get("metadata_path", "payload.extensions.external_promotion")
+    changed = False
+    for violation in violations or []:
+        if violation.get("code") != "PRODUCER_NOT_ALLOWED":
+            continue
+        details = violation.get("details", {})
+        action = details.get("action") if isinstance(details, dict) else None
+        if action not in {"degrade", "quarantine"}:
+            continue
+
+        metadata = _ensure_path_dict(event, metadata_path)
+        if metadata is not None:
+            metadata["policy_mode"] = action
+            metadata["policy_reason_code"] = violation.get("code")
+            metadata["policy_decision"] = _policy_decision_for_mode(action)
+            changed = True
+
+        if action == "degrade":
+            degrade_cfg = global_cfg.get("degrade", {})
+            if not isinstance(degrade_cfg, dict):
+                degrade_cfg = {}
+            confidence_factor = _positive_float(
+                degrade_cfg.get("confidence_reduction_factor"), 2.0
+            )
+            valid_for_factor = _positive_float(
+                degrade_cfg.get("valid_for_ms_reduction_factor"), confidence_factor
+            )
+            changed = _reduce_confidence(event, confidence_factor) or changed
+            changed = _reduce_valid_for_ms(event, valid_for_factor) or changed
+            changed = _append_risk_adjudication(
+                event,
+                violation,
+                {
+                    "confidence_reduction_factor": confidence_factor,
+                    "valid_for_ms_reduction_factor": valid_for_factor,
+                },
+            ) or changed
+            continue
+
+        quarantine_cfg = global_cfg.get("quarantine", {})
+        if not isinstance(quarantine_cfg, dict):
+            quarantine_cfg = {}
+        confidence_cap = _bounded_float(quarantine_cfg.get("confidence_cap"), 0.25)
+        valid_for_cap = _non_negative_int(quarantine_cfg.get("valid_for_ms_cap"), 1000)
+        changed = _cap_confidence(event, confidence_cap) or changed
+        changed = _cap_valid_for_ms(event, valid_for_cap) or changed
+        changed = _append_risk_adjudication(
+            event,
+            violation,
+            {
+                "confidence_cap": confidence_cap,
+                "valid_for_ms_cap": valid_for_cap,
+            },
+        ) or changed
+
+    return changed
+
+
+def _validate_external_state_promotion(
+    event,
+    authority_policy,
+    promotion_rules,
+    matched_patterns,
+    severity_map=None,
+):
+    if not promotion_rules:
+        return None
+
+    event_block = event.get("event", {}) if isinstance(event, dict) else {}
+    event_type = event_block.get("event_type")
+    if event_type != "STATE_EVENT":
+        return None
+
+    global_cfg = authority_policy.get("external_state_promotion", {})
+    if not isinstance(global_cfg, dict) or global_cfg.get("enabled", True) is False:
+        return None
+
+    source = event.get("source", {}) if isinstance(event, dict) else {}
+    producer = (source.get("producer") or "").strip()
+    profile = _profile_for_event(event)
+    mode = _promotion_mode(global_cfg, promotion_rules, profile)
+    metadata_path = global_cfg.get("metadata_path", "payload.extensions.external_promotion")
+    metadata = _resolve_path(event, metadata_path)
+    details = _risk_details(
+        {
+            "event_type": event_type,
+            "producer": producer,
+            "profile": profile,
+            "matched_patterns": matched_patterns,
+            "metadata_path": metadata_path,
+            "policy_mode": mode,
+        },
+        "external_promotion",
+        mode,
+        policy=global_cfg,
+        policy_ref="policy/producer-authority.yaml#external_state_promotion",
+    )
+
+    if not isinstance(metadata, dict):
+        return _promotion_violation(
+            "external STATE_EVENT promotion metadata missing",
+            details=details,
+            severity_map=severity_map,
+        )
+
+    required_by_profile = global_cfg.get("required_fields_by_profile", {})
+    if not isinstance(required_by_profile, dict):
+        required_by_profile = {}
+    required_fields = _list_values(
+        required_by_profile.get(profile, required_by_profile.get("default", []))
+    )
+    missing = [field for field in required_fields if _is_blank(metadata.get(field))]
+    if missing:
+        return _promotion_violation(
+            "external STATE_EVENT promotion metadata missing required fields",
+            details={**details, "missing": missing},
+            severity_map=severity_map,
+        )
+
+    expected_category = global_cfg.get("required_state_category")
+    if expected_category and metadata.get("state_category") != expected_category:
+        return _promotion_violation(
+            "external STATE_EVENT promotion category is not allowed",
+            details={
+                **details,
+                "state_category": metadata.get("state_category"),
+                "required_state_category": expected_category,
+            },
+            severity_map=severity_map,
+        )
+
+    allowed_origin_kinds = set(_list_values(global_cfg.get("allowed_origin_kinds")))
+    origin_kind = metadata.get("origin_kind")
+    if origin_kind is not None and allowed_origin_kinds and origin_kind not in allowed_origin_kinds:
+        return _promotion_violation(
+            "external STATE_EVENT promotion origin kind is not allowed",
+            details={**details, "origin_kind": origin_kind, "allowed_origin_kinds": sorted(allowed_origin_kinds)},
+            severity_map=severity_map,
+        )
+
+    lineage_by_profile = global_cfg.get("allowed_lineage_status_by_profile", {})
+    if not isinstance(lineage_by_profile, dict):
+        lineage_by_profile = {}
+    allowed_lineage_status = set(
+        _list_values(lineage_by_profile.get(profile, lineage_by_profile.get("default", [])))
+    )
+    lineage_status = metadata.get("lineage_status")
+    if lineage_status is not None and allowed_lineage_status and lineage_status not in allowed_lineage_status:
+        return _promotion_violation(
+            "external STATE_EVENT promotion lineage status is not allowed for profile",
+            details={
+                **details,
+                "lineage_status": lineage_status,
+                "allowed_lineage_status": sorted(allowed_lineage_status),
+            },
+            severity_map=severity_map,
+        )
+
+    source_uid_statuses = set(_list_values(global_cfg.get("source_event_uid_required_statuses")))
+    if lineage_status in source_uid_statuses and _is_blank(metadata.get("source_event_uid")):
+        return _promotion_violation(
+            "external STATE_EVENT promotion requires source event identity",
+            details={**details, "lineage_status": lineage_status, "missing": ["source_event_uid"]},
+            severity_map=severity_map,
+        )
+
+    trust_ref = metadata.get("trust_ref")
+    trust_prefixes = _list_values(global_cfg.get("required_trust_ref_prefixes"))
+    if trust_ref is not None and trust_prefixes:
+        trust_ref_text = str(trust_ref)
+        if not any(trust_ref_text.startswith(prefix) for prefix in trust_prefixes):
+            return _promotion_violation(
+                "external STATE_EVENT promotion trust reference is not allowed",
+                details={**details, "trust_ref": trust_ref, "required_prefixes": trust_prefixes},
+                severity_map=severity_map,
+            )
+
+    current_event_id = event_block.get("event_id")
+    lineage_ids = set(_lineage_based_on(event))
+    source_zmeta_event_id = metadata.get("source_zmeta_event_id")
+    loop_status = metadata.get("loop_status")
+    loop_risk_statuses = set(_list_values(global_cfg.get("loop_risk_statuses")))
+    if (
+        loop_status in loop_risk_statuses
+        or (source_zmeta_event_id and source_zmeta_event_id == current_event_id)
+        or (current_event_id and current_event_id in lineage_ids)
+    ):
+        loop_mode = mode
+        if global_cfg.get("always_reject_loop_risk", True) is not False:
+            loop_mode = "reject"
+        loop_details_source = {
+            key: value
+            for key, value in details.items()
+            if key not in {"allowed_uses", "prohibited_uses", "policy_decision"}
+        }
+        return _promotion_violation(
+            "external STATE_EVENT promotion has loop/reflection risk",
+            details=_risk_details(
+                {
+                    **loop_details_source,
+                    "policy_mode": loop_mode,
+                    "loop_status": loop_status,
+                    "source_zmeta_event_id": source_zmeta_event_id,
+                    "event_id": current_event_id,
+                },
+                "external_promotion",
+                loop_mode,
+                policy=global_cfg,
+                policy_ref="policy/producer-authority.yaml#external_state_promotion",
+            ),
+            severity_map=severity_map,
+        )
+
+    allowed_loop_statuses = set(_list_values(global_cfg.get("allowed_loop_statuses")))
+    if loop_status is not None and allowed_loop_statuses and loop_status not in allowed_loop_statuses:
+        return _promotion_violation(
+            "external STATE_EVENT promotion loop status is not allowed",
+            details={**details, "loop_status": loop_status, "allowed_loop_statuses": sorted(allowed_loop_statuses)},
+            severity_map=severity_map,
+        )
+
+    transform = event.get("lineage", {}).get("transform") if isinstance(event.get("lineage"), dict) else None
+    transform_prefixes = _list_values(global_cfg.get("required_lineage_transform_prefixes"))
+    if transform_prefixes and not any(str(transform or "").startswith(prefix) for prefix in transform_prefixes):
+        return _promotion_violation(
+            "external STATE_EVENT promotion lineage transform is not a promotion transform",
+            details={**details, "transform": transform, "required_prefixes": transform_prefixes},
+            severity_map=severity_map,
+        )
+
+    policy_id = metadata.get("promotion_policy_id")
+    approved_policy_ids = _union_rule_values(promotion_rules, "approved_policy_ids")
+    if policy_id is not None and approved_policy_ids and policy_id not in approved_policy_ids:
+        return _promotion_violation(
+            "external STATE_EVENT promotion policy is not approved for producer",
+            details={**details, "promotion_policy_id": policy_id, "approved_policy_ids": sorted(approved_policy_ids)},
+            severity_map=severity_map,
+        )
+
+    projection_id = metadata.get("projection_id")
+    allowed_projection_ids = _union_rule_values(promotion_rules, "allowed_projection_ids")
+    if projection_id is not None and allowed_projection_ids and projection_id not in allowed_projection_ids:
+        return _promotion_violation(
+            "external STATE_EVENT projection id is not approved for producer",
+            details={**details, "projection_id": projection_id, "allowed_projection_ids": sorted(allowed_projection_ids)},
+            severity_map=severity_map,
+        )
+
+    confidence_basis = metadata.get("confidence_basis")
+    allowed_confidence_basis = _union_rule_values(promotion_rules, "allowed_confidence_basis")
+    if confidence_basis is not None and allowed_confidence_basis and confidence_basis not in allowed_confidence_basis:
+        return _promotion_violation(
+            "external STATE_EVENT confidence basis is not approved for producer",
+            details={
+                **details,
+                "confidence_basis": confidence_basis,
+                "allowed_confidence_basis": sorted(allowed_confidence_basis),
+            },
+            severity_map=severity_map,
+        )
+
+    freshness_ms = metadata.get("freshness_ms")
+    if freshness_ms is not None:
+        try:
+            freshness_value = float(freshness_ms)
+        except (TypeError, ValueError):
+            return _promotion_violation(
+                "external STATE_EVENT promotion freshness is not numeric",
+                details={**details, "freshness_ms": freshness_ms},
+                severity_map=severity_map,
+            )
+        if freshness_value < 0:
+            return _promotion_violation(
+                "external STATE_EVENT promotion freshness is negative",
+                details={**details, "freshness_ms": freshness_ms},
+                severity_map=severity_map,
+            )
+        max_by_profile = global_cfg.get("max_freshness_ms_by_profile", {})
+        if not isinstance(max_by_profile, dict):
+            max_by_profile = {}
+        max_freshness = max_by_profile.get(profile, max_by_profile.get("default"))
+        if max_freshness is not None:
+            try:
+                max_freshness = float(max_freshness)
+            except (TypeError, ValueError):
+                max_freshness = None
+        if max_freshness is not None and freshness_value > max_freshness:
+            return _promotion_violation(
+                "external STATE_EVENT promotion freshness exceeds policy",
+                details={**details, "freshness_ms": freshness_ms, "max_freshness_ms": max_freshness},
+                severity_map=severity_map,
+            )
+
+    return None
+
+
 def _mode_for_profile(policy, key, profile, default="warn"):
     if not isinstance(policy, dict):
         return default
@@ -371,11 +968,29 @@ def _mode_severity(mode):
     return "fail" if mode == "reject" else "warn"
 
 
-def _mode_violation(code, message, mode, details=None, severity_map=None):
+def _mode_violation(
+    code,
+    message,
+    mode,
+    details=None,
+    severity_map=None,
+    risk_dimension=None,
+    policy=None,
+    policy_ref=None,
+):
     if mode == "ignore":
         return None
     details = dict(details or {})
-    details["policy_mode"] = mode
+    if risk_dimension:
+        details = _risk_details(
+            details,
+            risk_dimension,
+            mode,
+            policy=policy,
+            policy_ref=policy_ref,
+        )
+    else:
+        details["policy_mode"] = mode
     return _violation(
         code,
         message,
@@ -552,14 +1167,20 @@ def validate_timing_quality(
         violation = _violation(
             "TIMING_STATUS_HOLDOVER_NON_MONOTONIC",
             "HOLDOVER est_error_ms decreased compared with previous TIME_STATUS",
-            details={
-                "source": "/".join(_source_key(event)),
-                "previous_est_error_ms": previous_error,
-                "current_est_error_ms": current_error,
-                "previous_ts": previous.get("_event_ts"),
-                "current_ts": event.get("event", {}).get("ts"),
-                "policy_mode": mode,
-            },
+            details=_risk_details(
+                {
+                    "source": "/".join(_source_key(event)),
+                    "previous_est_error_ms": previous_error,
+                    "current_est_error_ms": current_error,
+                    "previous_ts": previous.get("_event_ts"),
+                    "current_ts": event.get("event", {}).get("ts"),
+                    "policy_mode": mode,
+                },
+                "timing",
+                mode,
+                policy=timing_freshness_policy,
+                policy_ref="policy/timing-freshness.yaml#holdover_est_error_monotonic",
+            ),
             severity_map=severity_map,
             severity="fail" if mode == "reject" else "warn",
         )
@@ -605,6 +1226,7 @@ def validate_timing_quality(
                 "timing_status_ts": timing_status.get("_event_ts"),
                 "event_ts": event.get("event", {}).get("ts"),
             },
+            timing_freshness_policy=timing_freshness_policy,
             severity_map=severity_map,
         )
         return violation["severity"] != "fail", [violation]
@@ -624,6 +1246,7 @@ def validate_timing_quality(
             "event_type": event_type,
             "profile": event_profile,
         },
+        timing_freshness_policy=timing_freshness_policy,
         severity_map=severity_map,
     )
     return violation["severity"] != "fail", [violation]
@@ -1020,6 +1643,9 @@ def validate_lineage(event, lineage_policy, state=None, profile=None, severity_m
                     "missing_from_lineage": missing,
                 },
                 severity_map=severity_map,
+                risk_dimension="lineage",
+                policy=lineage_policy,
+                policy_ref="policy/lineage.yaml#payload_based_on_subset_mode",
             )
             if violation:
                 violations.append(violation)
@@ -1041,6 +1667,9 @@ def validate_lineage(event, lineage_policy, state=None, profile=None, severity_m
                         "missing_members": missing_members,
                     },
                     severity_map=severity_map,
+                    risk_dimension="lineage",
+                    policy=lineage_policy,
+                    policy_ref="policy/lineage.yaml#fusion_members_in_lineage_mode",
                 )
                 if violation:
                     violations.append(violation)
@@ -1077,6 +1706,9 @@ def validate_lineage(event, lineage_policy, state=None, profile=None, severity_m
                 "unresolved": unresolved,
             },
             severity_map=severity_map,
+            risk_dimension="lineage",
+            policy=lineage_policy,
+            policy_ref="policy/lineage.yaml#unresolved_parent_mode",
         )
         if violation:
             violations.append(violation)
@@ -1094,6 +1726,9 @@ def validate_lineage(event, lineage_policy, state=None, profile=None, severity_m
                 "allowed_parent_event_types": sorted(allowed_parent_types),
             },
             severity_map=severity_map,
+            risk_dimension="lineage",
+            policy=lineage_policy,
+            policy_ref="policy/lineage.yaml#parent_type_mismatch_mode",
         )
         if violation:
             violations.append(violation)
@@ -1192,6 +1827,16 @@ def validate_producer_authority(event, authority_policy, severity_map=None):
                 severity_map=severity_map,
             )
         ]
+
+    promotion_violation = _validate_external_state_promotion(
+        event,
+        authority_policy,
+        _external_promotion_rules(matching_rules),
+        matched_patterns,
+        severity_map=severity_map,
+    )
+    if promotion_violation:
+        return promotion_violation.get("severity") != "fail", [promotion_violation]
 
     return True, []
 

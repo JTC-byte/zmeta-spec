@@ -35,8 +35,10 @@ State-safe fields used by this adapter include:
 - top-level `confidence`
 - `lineage`
 
-`payload.extensions` must not be used as a loophole for raw measurements. It is
-reserved for safe UI/rendering hints that do not reinterpret state.
+`payload.extensions` must not be used as a loophole for raw measurements. The
+MAVLink state template uses `payload.extensions.external_promotion` only as
+policy-scoped boundary evidence for the promotion decision; it does not carry
+raw telemetry or reinterpret state.
 
 | MAVLink input concept | Incorrect mapping to avoid | Correct ZMeta treatment | Notes |
 |---|---|---|---|

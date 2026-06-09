@@ -483,6 +483,43 @@ class SchemaVersionDiscriminationTest(unittest.TestCase):
 
             self.assert_valid(event)
 
+    def test_v1_0_generic_observation_features_do_not_adopt_v1_1_contracts(self):
+        event = deepcopy(valid_rf_observation("1.0"))
+        event["event"]["event_subtype"] = "EO"
+        event["payload"]["modality"] = "EO"
+        event["payload"]["features"] = {"bbox": {"x": 320, "y": 180, "w": 64, "h": 48}}
+
+        self.assert_valid(event)
+
+        event["zmeta_version"] = "1.1.0"
+        self.assert_invalid(event)
+
+        event = deepcopy(valid_rf_observation("1.0"))
+        event["event"]["event_subtype"] = "ACOUSTIC"
+        event["payload"]["modality"] = "ACOUSTIC"
+        event["payload"]["features"] = {"source_type": "rotor"}
+
+        self.assert_valid(event)
+
+        event["zmeta_version"] = "1.1.0"
+        self.assert_invalid(event)
+
+    def test_v1_0_generic_quality_and_data_refs_do_not_adopt_v1_1_contracts(self):
+        event = valid_rf_observation("1.0")
+        event["payload"]["quality"] = {
+            "measurement_error": 8.5,
+            "error_metric": "1_SIGMA",
+        }
+        event["payload"]["data_ref"] = {
+            "ref_id": "capture-001",
+            "raw_blob": "AAEC",
+        }
+
+        self.assert_valid(event)
+
+        event["zmeta_version"] = "1.1.0"
+        self.assert_invalid(event)
+
     def test_valid_v1_0_inference_subtypes_pass(self):
         for inference_type in ["CLASSIFICATION", "ASSOCIATION", "ANOMALY", "BEHAVIOR"]:
             self.assert_valid(inference_event(inference_type))

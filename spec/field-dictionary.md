@@ -46,6 +46,10 @@ validation rules, see the JSON schemas in `schema/` and the semantic contract in
 - `source_summary` (string array, optional) - short provenance hints.
 - `heading_deg` (number, optional, 0-360 inclusive), `speed_mps` (number,
   optional, non-negative).
+- `extensions.external_promotion` (object, policy-scoped) - required by the
+  reference producer-authority policy for explicitly marked external ingress
+  producers such as CoT, JREAP, and MAVLink when they promote external reports
+  into `STATE_EVENT`. Profile L may carry compact handles only.
 - Raw observation features and artifact links (`data_ref` / `data_refs`) are
   not allowed on state projections; use lineage for traceability.
 
@@ -82,7 +86,9 @@ Common fields:
 
 `SCHEMA_VIOLATION` metrics:
 - `reason_code`, `original_event_id`, optional `path`, `error`.
-- Use only for rejected or malformed events, not for operational degradation.
+- Use for schema/policy diagnostics, including rejected events and warnings
+  about accepted events. Do not reuse as a generic trust, quarantine, lifecycle,
+  or operational status label.
 
 ## Enums (Common)
 

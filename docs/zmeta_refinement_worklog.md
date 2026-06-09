@@ -2,17 +2,33 @@
 
 ## Current Resume Note
 
-- Last updated: 2026-05-08 UTC / 2026-05-07 local
+- Last updated: 2026-06-08
 - Quick handoff: `docs/zmeta_refinement_handoff.md`
-- Current next work item: S1-11B - Future Branch Roadmap Machine-Readable
-  Artifact, if maintainers want to serialize the roadmap. Otherwise the ZMeta
-  baseline hardening and release-prep workstream can pause.
+- Current next work item: Optional S1-11B future-branch roadmap artifact, unless
+  the next prompt continues runtime/policy hardening from S1-15B.
 - Current decision: ZMeta v1.1.5 was published at
   `https://github.com/JTC-byte/zmeta-spec/releases/tag/v1.1.5` from tag
   `v1.1.5` on commit `d4d406b43a705ca5b7a314e1d5388c3ca39c750a`. S1-12C
   audited the D-012 formal release packaging framework and closed D-012.
-  D-003 remains `OPEN - ROADMAP PLANNED`. D-004 remains closed as removed
-  from ZMeta scope.
+  S1-13A audited the current stack for semantic conformance and stale files,
+  corrected the live compatibility checker and CI target to `v1.1.5`, added
+  explicit v1.0/v1.1.0 observation extension boundary tests, and closed D-009.
+  S1-14 implemented external projection promotion hardening for CoT/JREAP/
+  MAVLink state ingress through producer-authority policy, adapter metadata,
+  conformance/tests, and operator-tunable reject/warn/degrade/quarantine
+  enforcement while preserving Profile L compact handles.
+  S1-15A added the risk adjudication semantic baseline: locked/tunable/advisory
+  rule classes, bounded policy actions, filterable risk diagnostics, and
+  operator override constraints.
+  S1-15B conformed the stack to that baseline across policy use limits,
+  validator diagnostics, gateway runtime degradation labels, conformance
+  fixtures, tests, and audit docs.
+  S1-15C cleaned up semantic-contract feedback: Section 14 now defers lossy
+  tactical ingress promotion to Section 4.5.1, material risk self-labels and
+  safety/promotion override evidence are stronger, and conformance classes now
+  cover policy adjudication, external promotion, and risk filtering.
+  D-003 remains `OPEN - ROADMAP PLANNED`. D-004 remains closed as removed from
+  ZMeta scope.
 
 ## S0-01 - Semantic Contract Lockdown Audit
 
@@ -1115,6 +1131,187 @@
   branch governance. Optional future release operations may add detached
   signatures only through an approved external signing-key process.
 
+## S1-13A - Stack Conformance And Stale File Audit
+
+- Status: COMPLETE
+- Date completed: 2026-06-08
+- Output: `docs/s1_13a_stack_conformance_and_stale_file_audit.md`
+- Scope: Audited tracked and ignored workspace state, current release/version
+  references, schema/policy/conformance boundary coverage, adapter/runtime
+  semantic posture, and validation surfaces for rogue or stale files.
+- Findings:
+  - No untracked non-ignored files were present.
+  - Ignored local artifacts were expected local/generated state:
+    `LOCAL_NOTES.md`, `.gitconfig-local`, Python caches, generated release zip
+    files, `release/bundles/`, `release/dist/`, and smoke extraction folders.
+  - Active README/release surfaces identify `v1.1.5` as the current release.
+  - `tools/check_compat.py` and CI still targeted `v1.1.4`; this was live
+    tooling drift and was corrected to `v1.1.5`.
+  - Historical `v1.1.4`, `TAKEOFF`, and FORGE references remain release
+    history, invalidity guards, or audit history.
+- Changes:
+  - Updated `tools/check_compat.py` to accept and default to `--target v1.1.5`.
+  - Updated `.github/workflows/ci.yml` migration compatibility checks to target
+    `v1.1.5`.
+  - Added a regression test for the documented `--target v1.1.5` invocation.
+  - Added explicit D-009 boundary tests proving v1.0 generic observation
+    extension structures do not adopt v1.1.0 formal feature, quality, or
+    data-reference contracts.
+- Notes: No semantic contract, schema, policy, extension registry, conformance
+  class manifest, adapter, codec, release manifest, or event vocabulary changed.
+- Decision: D-009 is closed. D-003 remains `OPEN - ROADMAP PLANNED`.
+
+## S1-14 - External Projection Promotion Contract
+
+- Status: COMPLETE
+- Date completed: 2026-06-08
+- Output: `docs/s1_14_external_projection_promotion_contract.md`
+- Scope: Hardened the boundary where CoT/JREAP/MAVLink or other external
+  tactical track reports re-enter ZMeta as `STATE_EVENT`.
+- Changes:
+  - Added normative semantic contract language stating that external/lossy
+    projections require explicit promotion policy, freshness, lineage status,
+    confidence basis, trust reference, and loop/reflection status before they
+    become authoritative ZMeta state.
+  - Added producer-authority policy gates for `cot-ingress`, `jreap-ingress`,
+    `mavlink`, `mavlink-adapter`, and `mavlink-*` state producers.
+  - Added validator enforcement that rejects schema-valid external
+    `STATE_EVENT`s without valid `payload.extensions.external_promotion`
+    evidence as `PRODUCER_NOT_ALLOWED`.
+  - Added operator-tunable external promotion modes: `reject` (reference
+    default), `warn`, `degrade`, and `quarantine`. Non-reject modes emit
+    diagnostics; degrade/quarantine mode also reduces confidence and/or
+    shortens `payload.valid_for_ms`.
+  - Updated CoT, JREAP, and MAVLink ingress templates to emit promotion metadata
+    and `promote:*` lineage transforms.
+  - Added focused unit tests and conformance fixtures for missing promotion
+    evidence, compact Profile L evidence, full Profile H evidence, loop risk,
+    and accidental `translate:*` promotion transforms.
+- Bandwidth decision: Profile L promotion evidence is limited to compact policy,
+  trust, lineage, and loop-status handles. Full audit detail is reserved for
+  Profile H, so the hardening does not require raw data, full ancestry, or large
+  audit blocks on constrained links. Degrade/quarantine annotations are compact
+  policy decisions, not expanded provenance.
+- Notes: No new event type, schema branch, top-level event field, v1.0/v1.1.0
+  version-discrimination change, extension-registry promotion, trust/signing
+  vocabulary, or same-event profile projection metadata was added.
+- Verification:
+  - `python -m pytest -q gateway\tests\test_external_state_promotion.py gateway\tests\test_gateway_smoke.py` -> `25 passed`
+  - `python tools\validate_conformance.py --strict` -> `conformance ok`
+  - `python tools\validate_conformance.py --strict --profile-projection --extension-registry --conformance-classes --encoding-negative --precision-policy --release-manifest --release-package` -> all opt-in suites passed
+  - `python tools\validate_examples.py --strict --require-all` -> `overall total=40 passed=40 failed=0 warnings=0`
+  - `python tools\validate_release_manifest.py --manifest release\zmeta-release-manifest.yaml` -> `release manifest ok groups=15 artifacts=55`
+  - `python tools\validate_release_package.py --manifest release\zmeta-release-manifest.yaml --templates-only` -> `release package ok mode=templates`
+  - `python -m pytest -q` -> `349 passed, 106 subtests passed`
+  - `python tools\compute_contract_hash.py` -> `contract_hash=de57a50ccd28d1d89a1d78abcc6ecb2c322a8be9cf8bb257c171e4782d915049`
+  - `git diff --check` -> passed with normal Windows CRLF conversion warnings
+
+## S1-15A - Risk Adjudication Semantic Baseline
+
+- Status: COMPLETE
+- Date completed: 2026-06-08
+- Output: `spec/semantics-contract.md`
+- Scope: Established the semantic baseline for configurable operational risk
+  response without loosening interoperability or semantic truth.
+- Changes:
+  - Added `Risk Adjudication and Operator-Tunable Policy` to the enforcement
+    model.
+  - Classified rules as `locked`, `tunable`, or `advisory`.
+  - Defined bounded policy actions: `reject`, `warn`, `degrade`, `quarantine`,
+    and narrowly scoped `ignore`.
+  - Required soft acceptance to remain filterable through accepted-event labels,
+    same-stream diagnostics keyed by `original_event_id`, or both.
+  - Added allowed/prohibited operational use labels so policy can accept data
+    for display/AAR while blocking use in fusion, state update, command basis, or
+    autonomy tasking when risk conditions require it.
+  - Clarified that SCHEMA_VIOLATION is the v1.0 diagnostic envelope for schema
+    and policy validation outcomes, not a domain trust/quarantine/lifecycle
+    state.
+  - Clarified that quarantine is currently a policy action, while schema-level
+    trust/quarantine vocabulary remains future versioned work.
+- Stack follow-up: S1-15B should audit/update policy, validators, gateway
+  warning/degrade paths, conformance, and docs to emit consistent
+  `risk_dimension`, `policy_mode`, `policy_decision`, policy reference, scope,
+  allowed/prohibited uses, and effect details.
+- Verification:
+  - `python tools\validate_release_manifest.py --manifest release\zmeta-release-manifest.yaml` -> `release manifest ok groups=15 artifacts=55`
+  - `python tools\validate_conformance.py --strict` -> `conformance ok`
+  - `python tools\compute_contract_hash.py` -> `contract_hash=7bd2206319ca85b93455d4ad1e28b011111824c10a5c108ab8cebc0f86a7bf84`
+  - `git diff --check` -> passed with normal Windows CRLF conversion warnings
+
+## S1-15B - Risk Adjudication Stack Conformance Pass
+
+- Status: COMPLETE
+- Date completed: 2026-06-08
+- Output: `docs/s1_15b_risk_adjudication_stack_conformance_audit.md`
+- Scope: Audited the stack folder-by-folder against the S1-15A semantic
+  baseline and conformed policy, gateway validators, runtime degradation,
+  conformance fixtures, tests, schemas, and docs to filterable accepted-risk
+  behavior.
+- Changes:
+  - Added normalized risk diagnostics for timing freshness, lineage warnings,
+    and external promotion policy decisions.
+  - Added event-side `payload.extensions.risk_adjudication` labels when accepted
+    events are degraded or quarantined.
+  - Added `use_limits` policy labels to timing freshness, lineage, and external
+    promotion policy surfaces.
+  - Added governed `TIMING_STATUS_UNSYNCED` diagnostic vocabulary for gateway
+    runtime timing-loss degradation.
+  - Added tests and a conformance fixture proving soft-accepted risk remains
+    filterable without duplicating source payloads.
+  - Documented the stack audit, operator-tunable behavior, and ignored local
+    generated/cache artifacts.
+- Notes: Quarantine remains a policy action, not a schema-level trust/lifecycle
+  state. No future domain vocabulary was promoted.
+- Verification:
+  - `python -m pytest -q gateway\tests\test_timing_freshness.py gateway\tests\test_external_state_promotion.py gateway\tests\test_lineage_semantics.py gateway\tests\test_gateway_smoke.py` -> `43 passed`
+  - `python tools\validate_conformance.py --strict` -> `conformance ok`
+  - `python -m pytest -q` -> `350 passed, 108 subtests passed`
+  - `python tools\validate_conformance.py --strict --profile-projection --extension-registry --conformance-classes --encoding-negative --precision-policy --release-manifest --release-package` -> all opt-in suites passed
+  - `python tools\validate_examples.py --strict --require-all` -> `overall total=40 passed=40 failed=0 warnings=0`
+  - `python tools\validate_release_manifest.py --manifest release\zmeta-release-manifest.yaml` -> `release manifest ok groups=15 artifacts=55`
+  - `python tools\validate_release_package.py --manifest release\zmeta-release-manifest.yaml --templates-only` -> `release package ok mode=templates`
+  - `python tools\compute_contract_hash.py` -> `contract_hash=46b41356f980305e031a41f9aba72e73c99d616bdf977ba4a0eb0c4dadd9b9c4`
+  - `git diff --check` -> passed with normal Windows CRLF conversion warnings
+
+## S1-15C - Semantic Contract Feedback Cleanup
+
+- Status: COMPLETE
+- Date completed: 2026-06-08
+- Output: `docs/s1_15c_semantic_contract_feedback_cleanup.md`
+- Scope: Applied feedback on the risk-governance contract without adding
+  runtime behavior or promoting future vocabulary.
+- Changes:
+  - Revised Section 14 so CoT/TAK ingress is external report evidence unless
+    active Section 4.5.1 promotion policy authorizes `STATE_EVENT` output.
+  - Strengthened material-risk self-label requirements when diagnostics may not
+    travel with accepted data.
+  - Clarified degradation effects by event type so confidence-prohibited events
+    do not gain top-level confidence.
+  - Strengthened operator override requirements for material, command,
+    trust, promotion, safety, and external-boundary softening.
+  - Added future-only notes for external-report parent evidence,
+    `POLICY_ADJUDICATION` diagnostics, and projection-origin/instance metadata.
+  - Added conformance classes and example-claim evidence for policy
+    adjudication, external promotion, risk filtering, and future projection
+    origin.
+  - Updated the implementation mapping, semantic delta, and crosswalk rows.
+- Notes: `OBSERVATION_EVENT/NETWORK_REPORT`, `SYSTEM_EVENT/POLICY_ADJUDICATION`,
+  and projection-origin fields remain future branch work, not valid v1.0
+  vocabulary.
+- Verification:
+  - `python -m pytest -q gateway\tests\test_timing_freshness.py gateway\tests\test_external_state_promotion.py gateway\tests\test_lineage_semantics.py gateway\tests\test_gateway_smoke.py` -> `43 passed`
+  - `python -m pytest -q gateway\tests\test_external_state_promotion.py adapters\ingress\cot\test_cot_ingress.py adapters\ingress\jreap\test_jreap_ingress.py adapters\ingress\mavlink\test_mavlink_ingress.py` -> `18 passed`
+  - `python tools\validate_conformance_classes.py --manifest conformance\conformance_classes.yaml --claims conformance\claims\example-reference-gateway.yaml conformance\claims\example-core-producer.yaml` -> `conformance classes ok classes=34 claims=2`
+  - `python tools\validate_conformance.py --strict` -> `conformance ok`
+  - `python -m pytest -q` -> `350 passed, 108 subtests passed`
+  - `python tools\validate_conformance.py --strict --profile-projection --extension-registry --conformance-classes --encoding-negative --precision-policy --release-manifest --release-package` -> all opt-in suites passed
+  - `python tools\validate_examples.py --strict --require-all` -> `overall total=40 passed=40 failed=0 warnings=0`
+  - `python tools\validate_release_manifest.py --manifest release\zmeta-release-manifest.yaml` -> `release manifest ok groups=15 artifacts=55`
+  - `python tools\validate_release_package.py --manifest release\zmeta-release-manifest.yaml --templates-only` -> `release package ok mode=templates`
+  - `python tools\compute_contract_hash.py` -> `contract_hash=3b6c8a264f43b1aa2f36c8a62972e2b523bee46277e03ac7f2de7e124d1c71db`
+  - `git diff --check` -> passed with normal Windows CRLF conversion warnings.
+
 ## Deferred Issue Register
 
 ### D-001 - MAVLink Adapter README State Payload Drift
@@ -1287,7 +1484,7 @@
 
 ### D-009 - v1.0/v1.1 Observation Extension Boundary Needs Explicit Tests
 
-- Status: OPEN
+- Status: CLOSED
 - Discovered during: S1-01A
 - Issue: v1.0 intentionally allows EO, IR, ACOUSTIC, and NETWORK observation
   subtype names with generic `features`, and also allows generic `quality`,
@@ -1298,6 +1495,12 @@
   boundary explicit.
 - Proposed follow-up: Add boundary documentation/tests during extension registry
   or conformance-class work. Do not treat this as a v1.0 schema defect.
+- S1-13A coverage: Added explicit
+  `gateway/tests/test_schema_version_discrimination.py` cases proving that
+  structurally valid generic v1.0 observation extension fields do not adopt the
+  stricter v1.1.0 EO/ACOUSTIC feature contracts, structured quality contract,
+  or formal data-reference contract. D-009 is closed without schema,
+  contract, policy, registry, adapter, encoding, or vocabulary changes.
 
 ### D-010 - Profile Precision / Quantization Policy Floors
 

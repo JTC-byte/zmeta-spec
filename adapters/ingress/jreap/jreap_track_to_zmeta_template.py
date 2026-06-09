@@ -5,6 +5,7 @@ from zmeta_uuid import uuid7
 
 
 DEFAULT_VALID_FOR_MS = 5000
+PROMOTION_POLICY_ID = "PROMOTE-JREAP-STATE-V1"
 
 
 def _iso_now():
@@ -30,6 +31,15 @@ def _compute_valid_for_ms(ts, stale_ts):
         if delta_ms > 0:
             return delta_ms
     return DEFAULT_VALID_FOR_MS
+
+
+def _detail_value(track, key, default=None):
+    if key in track:
+        return track.get(key)
+    detail = track.get("detail")
+    if isinstance(detail, dict) and key in detail:
+        return detail.get(key)
+    return default
 
 
 def jreap_track_dict_to_zmeta_track_state(track: dict) -> dict:
@@ -63,20 +73,41 @@ def jreap_track_dict_to_zmeta_track_state(track: dict) -> dict:
     if not based_on:
         raise ValueError("track must include based_on lineage event ids")
 
+    source_event_uid = str(_detail_value(track, "source_event_uid", track_id))
+    promotion = {
+        "state_category": "PROMOTED_EXTERNAL_STATE",
+        "origin_kind": str(_detail_value(track, "origin_kind", "EXTERNAL_REPORT")),
+        "projection_id": "jreap",
+        "promotion_policy_id": str(_detail_value(track, "promotion_policy_id", PROMOTION_POLICY_ID)),
+        "trust_ref": str(_detail_value(track, "trust_ref", "producer-authority:jreap-ingress")),
+        "lineage_status": str(_detail_value(track, "lineage_status", "EXTERNAL_SOURCE")),
+        "loop_status": str(_detail_value(track, "loop_status", "CHECKED_NOT_REFLECTION")),
+        "confidence_basis": str(
+            _detail_value(track, "confidence_basis", "EXPLICIT_EXTERNAL_CONFIDENCE")
+        ),
+        "source_event_uid": source_event_uid,
+        "freshness_ms": valid_for_ms,
+    }
+    source_zmeta_event_id = _detail_value(track, "source_zmeta_event_id")
+    if source_zmeta_event_id:
+        promotion["source_zmeta_event_id"] = str(source_zmeta_event_id)
+
     payload = {
         "track_id": str(track_id),
         "geo": {"lat": lat, "lon": lon, "alt_m": hae_m},
         "valid_for_ms": valid_for_ms,
         "timing_quality": coerce_timing_quality(track.get("timing_quality"), event_ts=ts),
+        "extensions": {"external_promotion": promotion},
     }
     track_type = track.get("track_type")
     if track_type:
         payload["class"] = str(track_type)
 
+    event_id = str(uuid7())
     event = {
         "zmeta_version": "1.0",
         "event": {
-            "event_id": str(uuid7()),
+            "event_id": event_id,
             "event_type": "STATE_EVENT",
             "event_subtype": "TRACK_STATE",
             "ts": ts,
@@ -90,7 +121,7 @@ def jreap_track_dict_to_zmeta_track_state(track: dict) -> dict:
         "confidence": confidence,
         "lineage": {
             "based_on": [str(item) for item in based_on],
-            "transform": "translate:jreap@template",
+            "transform": f"promote:jreap@template:{promotion['promotion_policy_id']}",
         },
     }
 

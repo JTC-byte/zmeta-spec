@@ -1,5 +1,6 @@
 import importlib.util
 import json
+import copy
 import unittest
 from zmeta_uuid import uuid7
 from pathlib import Path
@@ -318,6 +319,141 @@ class GatewaySmokeTest(unittest.TestCase):
         self.assertEqual(second[0]["payload"]["metrics"]["reason_code"], "TASK_DUPLICATE")
         self.assertEqual(second[0]["payload"]["metrics"]["task_id"], event["payload"]["task_id"])
         self.assertEqual(second[0]["payload"]["metrics"]["original_event_id"], event["event"]["event_id"])
+
+    def test_external_promotion_degrade_mode_forwards_warning(self):
+        policy = copy.deepcopy(self.policy)
+        policy["producer_authority"]["external_state_promotion"]["mode"] = "degrade"
+        event = {
+            "zmeta_version": "1.0",
+            "event": {
+                "event_id": str(uuid7()),
+                "event_type": "STATE_EVENT",
+                "event_subtype": "TRACK_STATE",
+                "ts": "2025-01-17T15:05:00Z",
+            },
+            "source": {
+                "platform_id": "cot-gateway-1",
+                "node_role": "GATEWAY",
+                "producer": "cot-ingress",
+            },
+            "profile": "H",
+            "payload": {
+                "track_id": "external-track-1",
+                "geo": {"lat": 34.0, "lon": -118.0, "alt_m": 100.0},
+                "valid_for_ms": 2000,
+                "timing_quality": {
+                    "time_source": "GPS_PPS",
+                    "sync_state": "LOCKED",
+                    "est_error_ms": 1,
+                    "last_sync_ts": "2025-01-17T15:04:59Z",
+                },
+            },
+            "confidence": 0.8,
+            "lineage": {
+                "based_on": [str(uuid7())],
+                "transform": "promote:cot@template:PROMOTE-COT-STATE-V1",
+            },
+        }
+
+        outgoing = gateway.process_message(
+            json.dumps(event).encode("utf-8"),
+            self.validator,
+            policy,
+            "H",
+            None,
+            "json",
+        )
+
+        self.assertEqual(2, len(outgoing))
+        self.assertEqual("STATE_EVENT", outgoing[0]["event"]["event_type"])
+        self.assertAlmostEqual(0.4, outgoing[0]["confidence"])
+        self.assertEqual(1000, outgoing[0]["payload"]["valid_for_ms"])
+        metadata = outgoing[0]["payload"]["extensions"]["external_promotion"]
+        self.assertEqual("DEGRADED_ACCEPT", metadata["policy_decision"])
+        risk = outgoing[0]["payload"]["extensions"]["risk_adjudication"][0]
+        self.assertEqual("external_promotion", risk["risk_dimension"])
+        self.assertEqual("DEGRADED_ACCEPT", risk["policy_decision"])
+        self.assertIn("COMMAND_BASIS", risk["prohibited_uses"])
+        self.assertEqual("SYSTEM_EVENT", outgoing[1]["event"]["event_type"])
+        self.assertEqual("WARNING", outgoing[1]["payload"]["state"])
+        self.assertEqual(
+            "PRODUCER_NOT_ALLOWED",
+            outgoing[1]["payload"]["metrics"]["reason_code"],
+        )
+        self.assertEqual(
+            "external_promotion",
+            outgoing[1]["payload"]["metrics"]["risk_dimension"],
+        )
+        self.assertEqual(
+            "DEGRADED_ACCEPT",
+            outgoing[1]["payload"]["metrics"]["policy_decision"],
+        )
+
+    def test_failure_mode_timing_loss_stamps_risk_adjudication(self):
+        timing_state = validators.ValidationState()
+        timing_state.record_timing(
+            {
+                "zmeta_version": "1.0",
+                "event": {
+                    "event_id": str(uuid7()),
+                    "event_type": "SYSTEM_EVENT",
+                    "event_subtype": "TIME_STATUS",
+                    "ts": "2025-01-17T15:04:59Z",
+                },
+                "source": {
+                    "platform_id": "fusion-node-01",
+                    "node_role": "GATEWAY",
+                    "producer": "fusion-engine",
+                },
+                "payload": {
+                    "system_type": "TIME_STATUS",
+                    "state": "UNSYNCED",
+                    "metrics": {
+                        "time_source": "GPS_PPS",
+                        "sync_state": "UNSYNCED",
+                        "est_error_ms": 500,
+                        "last_sync_ts": "2025-01-17T15:04:00Z",
+                    },
+                },
+            }
+        )
+        event = {
+            "zmeta_version": "1.0",
+            "event": {
+                "event_id": str(uuid7()),
+                "event_type": "STATE_EVENT",
+                "event_subtype": "TRACK_STATE",
+                "ts": "2025-01-17T15:05:00Z",
+            },
+            "source": {
+                "platform_id": "fusion-node-01",
+                "node_role": "GATEWAY",
+                "producer": "fusion-engine",
+            },
+            "profile": "L",
+            "payload": {
+                "track_id": "track-1",
+                "geo": {"lat": 34.0, "lon": -118.0, "alt_m": 100.0},
+                "valid_for_ms": 1000,
+            },
+            "confidence": 0.8,
+            "lineage": {"based_on": [str(uuid7())]},
+        }
+
+        changed = gateway._apply_failure_mode_degradation(
+            event,
+            {"timing_loss": {"enabled": True, "confidence_reduction_factor": 2.0}},
+            timing_state,
+            self.policy["timing_freshness"],
+        )
+
+        self.assertTrue(changed)
+        self.assertAlmostEqual(0.4, event["confidence"])
+        risk = event["payload"]["extensions"]["risk_adjudication"][0]
+        self.assertEqual("timing", risk["risk_dimension"])
+        self.assertEqual("TIMING_STATUS_UNSYNCED", risk["reason_code"])
+        self.assertEqual("DEGRADED_ACCEPT", risk["policy_decision"])
+        self.assertIn("COMMAND_BASIS", risk["prohibited_uses"])
 
     def test_cot_skip_reason_reports_missing_track_id(self):
         event = {

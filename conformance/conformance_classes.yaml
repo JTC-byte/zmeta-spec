@@ -3,7 +3,7 @@ zmeta_versions:
   - "1.0"
   - "1.1.0-experimental"
 authority: spec/semantics-contract.md
-last_updated: "2026-05-07"
+last_updated: "2026-06-08"
 status_values:
   - implemented
   - partially_implemented
@@ -148,7 +148,7 @@ class_records:
     display_name: Baseline Policy Pack
     status: implemented
     version_scope: ["1.0"]
-    description: Baseline policy enforcement for roles, profiles, semantics, lineage, timing, producer authority, routing, and violation severities.
+    description: Baseline policy enforcement for roles, profiles, semantics, lineage, timing, producer authority, routing, risk use limits, and violation severities.
     required_policy_surfaces: ["policy/roles.yaml", "policy/profiles.yaml", "policy/semantics.yaml", "policy/lineage.yaml", "policy/producer-authority.yaml", "policy/routing.yaml", "policy/timing-freshness.yaml", "policy/violation-codes.yaml"]
     required_gateway_surfaces: ["gateway/src/validators.py"]
     required_conformance_fixtures: ["conformance/must-pass.jsonl", "conformance/must-fail.jsonl"]
@@ -204,6 +204,56 @@ class_records:
     allowed_claimants: ["producer", "gateway", "reference_stack"]
     current_repo_support: implemented
     references: ["gateway/tests/test_lineage_semantics.py", "conformance/profile-projection/README.md"]
+
+  - <<: *class_defaults
+    class_id: ZMETA-POLICY-ADJUDICATION
+    display_name: Policy Adjudication and Risk Labels
+    status: implemented
+    version_scope: ["1.0"]
+    description: Tunable policy decisions using bounded actions, risk dimensions, policy decisions, allowed/prohibited uses, diagnostic correlation, and visible effects.
+    semantic_contract_sections: ["3.3 Risk Adjudication and Operator-Tunable Policy", "7.9 SCHEMA_VIOLATION"]
+    required_schema_surfaces: ["schema/zmeta-event-1.0.schema.json", "schema/zmeta-event-1.1.0.schema.json"]
+    required_policy_surfaces: ["policy/timing-freshness.yaml", "policy/lineage.yaml", "policy/producer-authority.yaml", "policy/semantics.yaml", "policy/violation-codes.yaml"]
+    required_gateway_surfaces: ["gateway/src/validators.py", "gateway/src/gateway.py"]
+    required_conformance_fixtures: ["conformance/must-pass.jsonl", "conformance/must-fail.jsonl"]
+    required_test_commands: ["python -m pytest -q gateway/tests/test_timing_freshness.py gateway/tests/test_external_state_promotion.py gateway/tests/test_lineage_semantics.py gateway/tests/test_gateway_smoke.py", "python tools/validate_conformance.py --strict"]
+    dependencies: ["ZMETA-CORE", "ZMETA-POLICY-BASELINE", "ZMETA-TIMING-QUALITY", "ZMETA-LINEAGE-POLICY"]
+    allowed_claimants: ["gateway", "reference_stack"]
+    current_repo_support: implemented
+    references: ["spec/semantics-contract.md", "policy/README.md", "docs/s1_15b_risk_adjudication_stack_conformance_audit.md"]
+
+  - <<: *class_defaults
+    class_id: ZMETA-EXTERNAL-PROMOTION
+    display_name: External Projection Promotion
+    status: implemented
+    version_scope: ["1.0"]
+    description: External tactical-track promotion enforcement for CoT/JREAP/MAVLink-style ingress state, including promotion evidence, freshness, lineage status, confidence basis, trust reference, loop/reflection status, and soft-policy diagnostics.
+    semantic_contract_sections: ["4.5.1 External Projection Promotion", "14. Operator State Projection and CoT/TAK Mapping"]
+    required_policy_surfaces: ["policy/producer-authority.yaml", "policy/violation-codes.yaml"]
+    required_gateway_surfaces: ["gateway/src/validators.py", "gateway/src/gateway.py"]
+    required_adapter_surfaces: ["adapters/ingress/cot/cot_to_zmeta_template.py", "adapters/ingress/jreap/jreap_track_to_zmeta_template.py", "adapters/ingress/mavlink/mavlink_to_zmeta_template.py"]
+    required_conformance_fixtures: ["conformance/must-pass.jsonl", "conformance/must-fail.jsonl"]
+    required_test_commands: ["python -m pytest -q gateway/tests/test_external_state_promotion.py adapters/ingress/cot/test_cot_ingress.py adapters/ingress/jreap/test_jreap_ingress.py adapters/ingress/mavlink/test_mavlink_ingress.py", "python tools/validate_conformance.py --strict"]
+    dependencies: ["ZMETA-CORE", "ZMETA-POLICY-BASELINE", "ZMETA-POLICY-ADJUDICATION", "ZMETA-LINEAGE-POLICY"]
+    allowed_claimants: ["adapter", "gateway", "reference_stack"]
+    current_repo_support: implemented
+    references: ["policy/producer-authority.yaml", "docs/s1_14_external_projection_promotion_contract.md"]
+
+  - <<: *class_defaults
+    class_id: ZMETA-RISK-FILTERING
+    display_name: Accepted-Risk Filtering
+    status: implemented
+    version_scope: ["1.0"]
+    description: Accepted-risk data remains filterable through same-stream diagnostics, event-side compact self-labels, allowed/prohibited uses, and effect labels when diagnostics may not travel.
+    semantic_contract_sections: ["3.3 Risk Adjudication and Operator-Tunable Policy", "23. Implementation Mapping"]
+    required_policy_surfaces: ["policy/timing-freshness.yaml", "policy/lineage.yaml", "policy/producer-authority.yaml"]
+    required_gateway_surfaces: ["gateway/src/validators.py", "gateway/src/gateway.py"]
+    required_conformance_fixtures: ["conformance/must-pass.jsonl"]
+    required_test_commands: ["python -m pytest -q gateway/tests/test_timing_freshness.py gateway/tests/test_external_state_promotion.py gateway/tests/test_gateway_smoke.py", "python tools/validate_conformance.py --strict"]
+    dependencies: ["ZMETA-POLICY-ADJUDICATION"]
+    allowed_claimants: ["gateway", "reference_stack"]
+    current_repo_support: implemented
+    references: ["conformance/README.md", "gateway/README.md"]
 
   - <<: *class_defaults
     class_id: ZMETA-PROFILE-L
@@ -266,6 +316,19 @@ class_records:
     references: ["spec/profile-projection-field-catalog.md", "spec/profile-precision-policy.md", "docs/s1_02c_projection_preservation_audit.md"]
 
   - <<: *class_defaults
+    class_id: ZMETA-PROJECTION-ORIGIN
+    display_name: Projection Origin and Instance Metadata
+    status: future
+    version_scope: []
+    description: Future projection metadata for source_event_id, projection_id, projection_policy_id, projection reason/status, and store/dedupe reconciliation across profile projections.
+    semantic_contract_sections: ["10.4 Projection Policy Metadata", "23. Implementation Mapping", "24.4 Future Work"]
+    dependencies: ["ZMETA-PROJECTION-PRESERVATION"]
+    allowed_claimants: ["gateway", "reference_stack", "tooling"]
+    current_repo_support: future
+    future_or_reserved_notes: ["Not claimable until projection-origin vocabulary, schema/policy behavior, and conformance fixtures are adopted by a versioned branch."]
+    references: ["spec/semantics-contract.md", "spec/profile-projection-field-catalog.md"]
+
+  - <<: *class_defaults
     class_id: ZMETA-EXTENSION-REGISTRY
     display_name: Extension Registry Governance
     status: implemented
@@ -312,10 +375,10 @@ class_records:
     display_name: Reference Gateway
     status: implemented
     version_scope: ["1.0"]
-    description: Reference gateway schema, policy, profile, dedupe, timing, CoT skip, metrics, and hash behavior.
+    description: Reference gateway schema, policy, profile, dedupe, timing, risk adjudication labels, external promotion actions, CoT skip, metrics, and hash behavior.
     required_gateway_surfaces: ["gateway/src/gateway.py", "gateway/src/validators.py"]
     required_test_commands: ["python -m pytest -q gateway/tests/test_gateway_smoke.py gateway/tests/test_timing_freshness.py gateway/tests/test_producer_authority.py gateway/tests/test_lineage_semantics.py"]
-    dependencies: ["ZMETA-CORE", "ZMETA-V1-0-SCHEMA", "ZMETA-POLICY-BASELINE", "ZMETA-TIMING-QUALITY", "ZMETA-LINEAGE-POLICY"]
+    dependencies: ["ZMETA-CORE", "ZMETA-V1-0-SCHEMA", "ZMETA-POLICY-BASELINE", "ZMETA-TIMING-QUALITY", "ZMETA-LINEAGE-POLICY", "ZMETA-POLICY-ADJUDICATION", "ZMETA-EXTERNAL-PROMOTION", "ZMETA-RISK-FILTERING"]
     allowed_claimants: ["gateway", "reference_stack"]
     current_repo_support: implemented
     references: ["gateway/src/gateway.py", "gateway/tests/test_gateway_smoke.py"]
@@ -325,10 +388,10 @@ class_records:
     display_name: CoT/TAK Projection
     status: partially_implemented
     version_scope: ["1.0"]
-    description: CoT/TAK state projection and CoT ingress state conversion boundaries with current adapter-specific tests but no shared adapter harness yet.
+    description: CoT/TAK state egress projection plus CoT ingress treatment as external report evidence unless Section 4.5.1 promotion policy authorizes STATE_EVENT output; current adapter-specific tests exist but no shared adapter harness yet.
     required_adapter_surfaces: ["adapters/egress/cot/zmeta_to_cot.py", "adapters/ingress/cot/cot_to_zmeta_template.py", "adapters/egress/cot/test_zmeta_to_cot.py", "adapters/ingress/cot/test_cot_ingress.py"]
     required_test_commands: ["python -m pytest -q adapters/egress/cot adapters/ingress/cot"]
-    dependencies: ["ZMETA-CORE", "ZMETA-GATEWAY-REFERENCE", "ZMETA-TIMING-QUALITY", "ZMETA-LINEAGE-POLICY"]
+    dependencies: ["ZMETA-CORE", "ZMETA-GATEWAY-REFERENCE", "ZMETA-TIMING-QUALITY", "ZMETA-LINEAGE-POLICY", "ZMETA-EXTERNAL-PROMOTION"]
     allowed_claimants: ["adapter", "gateway", "reference_stack"]
     current_repo_support: partial
     future_or_reserved_notes: ["Needs a shared adapter conformance harness before full implemented status."]

@@ -31,15 +31,33 @@ Notes:
   governed vocabulary.
 - `timing-freshness.yaml` defines profile-specific maximum TIME_STATUS age and
   whether stale or missing timing status is rejected, warned, or used to degrade
-  confidence.
+  confidence. Its `use_limits` labels define what degraded timing data may and
+  may not be used for when a deployment chooses soft acceptance.
 - `lineage.yaml` defines payload/envelope lineage consistency, permitted parent
   event types when a local event store is available, and unresolved-parent
-  handling by profile.
+  handling by profile. Its `use_limits` keep unresolved-lineage warnings
+  filterable without making Profile L links fail by default.
 - When you introduce new producers, update `producer-authority.yaml` first.
   Update `routing.yaml` only for command-path or transport-specific routing
   constraints.
 - `producer_authority.require_match_for_event_types` can require that event
   types only originate from matching producer authority rules.
+- `producer_authority.external_state_promotion` requires CoT/JREAP/MAVLink and
+  other explicitly marked external ingress producers to attach valid promotion
+  evidence before their `STATE_EVENT` output is accepted as authoritative ZMeta
+  state. This prevents schema-valid lossy projections from re-entering as
+  laundered state. The default mode is `reject`; deployments may tune this to
+  `warn`, `degrade`, or `quarantine` for edge conditions. Non-reject modes still
+  emit diagnostics, and degrade/quarantine modes lower confidence and/or shorten
+  `payload.valid_for_ms` so accepted state does not look equivalent to clean
+  promoted state. Mode may be set globally, by profile with `mode_by_profile`,
+  or on a specific producer's `external_state_promotion` rule. Its `use_limits`
+  declare which downstream uses remain allowed under warn, degrade, or
+  quarantine.
+- Tunable policy modes must not bypass the semantic contract. Soft acceptance
+  should carry `risk_dimension`, `policy_mode`, `policy_decision`, policy
+  reference, allowed/prohibited uses, and applied effects when data is still
+  forwarded.
 - `routing.producer_enforcement.require_allowlist_for_event_types` is reserved
   for routing-layer allowlists such as COMMAND_EVENT origin gates.
 

@@ -140,6 +140,9 @@ class TimingFreshnessTest(unittest.TestCase):
         self.assertTrue(ok)
         self.assertEqual("TIMING_STATUS_STALE", violations[0]["code"])
         self.assertEqual("warn", violations[0]["severity"])
+        self.assertEqual("timing", violations[0]["details"]["risk_dimension"])
+        self.assertEqual("WARN_ACCEPT", violations[0]["details"]["policy_decision"])
+        self.assertIn("COMMAND_BASIS", violations[0]["details"]["prohibited_uses"])
 
     def test_degrade_mode_reduces_confidence(self):
         policy = copy.deepcopy(self.freshness)
@@ -161,7 +164,23 @@ class TimingFreshnessTest(unittest.TestCase):
         self.assertTrue(ok)
         self.assertTrue(changed)
         self.assertEqual("warn", violations[0]["severity"])
+        self.assertEqual("timing", violations[0]["details"]["risk_dimension"])
+        self.assertEqual("DEGRADED_ACCEPT", violations[0]["details"]["policy_decision"])
+        self.assertEqual("degrade", violations[0]["details"]["action"])
+        self.assertEqual(
+            {"confidence_reduction_factor": 2.0},
+            violations[0]["details"]["effects"],
+        )
         self.assertAlmostEqual(0.4, event["confidence"])
+        risk = event["payload"]["extensions"]["risk_adjudication"][0]
+        self.assertEqual("timing", risk["risk_dimension"])
+        self.assertEqual("TIMING_STATUS_STALE", risk["reason_code"])
+        self.assertEqual("DEGRADED_ACCEPT", risk["policy_decision"])
+        self.assertEqual(
+            {"confidence_reduction_factor": 2.0},
+            risk["effects"],
+        )
+        self.assertIn("COMMAND_BASIS", risk["prohibited_uses"])
 
     def test_profile_specific_degrade_mode_applies_to_profile_l(self):
         policy = copy.deepcopy(self.freshness)
@@ -186,7 +205,12 @@ class TimingFreshnessTest(unittest.TestCase):
         self.assertEqual("TIMING_STATUS_STALE", violations[0]["code"])
         self.assertEqual("warn", violations[0]["severity"])
         self.assertEqual("degrade", violations[0]["details"]["policy_mode"])
+        self.assertEqual("DEGRADED_ACCEPT", violations[0]["details"]["policy_decision"])
         self.assertAlmostEqual(0.4, event["confidence"])
+        self.assertEqual(
+            "DEGRADED_ACCEPT",
+            event["payload"]["extensions"]["risk_adjudication"][0]["policy_decision"],
+        )
 
     def test_profile_specific_degrade_does_not_apply_to_profile_h(self):
         policy = copy.deepcopy(self.freshness)
@@ -259,6 +283,8 @@ class TimingFreshnessTest(unittest.TestCase):
         self.assertTrue(ok)
         self.assertEqual("TIMING_STATUS_HOLDOVER_NON_MONOTONIC", violations[0]["code"])
         self.assertEqual("warn", violations[0]["severity"])
+        self.assertEqual("timing", violations[0]["details"]["risk_dimension"])
+        self.assertEqual("WARN_ACCEPT", violations[0]["details"]["policy_decision"])
 
 
 if __name__ == "__main__":

@@ -5,6 +5,7 @@ from zmeta_uuid import uuid7
 
 
 DEFAULT_VALID_FOR_MS = 5000
+PROMOTION_POLICY_ID = "PROMOTE-COT-STATE-V1"
 
 
 def _iso_now():
@@ -41,6 +42,15 @@ def _extract_confidence(cot):
     return None
 
 
+def _detail_value(cot, key, default=None):
+    if key in cot:
+        return cot.get(key)
+    detail = cot.get("detail")
+    if isinstance(detail, dict) and key in detail:
+        return detail.get(key)
+    return default
+
+
 def cot_dict_to_zmeta_track_state(cot: dict) -> dict:
     """
     Template: Convert a parsed CoT dict into a ZMeta TRACK_STATE event.
@@ -64,27 +74,48 @@ def cot_dict_to_zmeta_track_state(cot: dict) -> dict:
     if confidence is None:
         raise ValueError("cot must include confidence for STATE_EVENT")
 
-    detail = cot.get("detail")
     based_on = cot.get("based_on")
+    detail = cot.get("detail")
     if based_on is None and isinstance(detail, dict):
         based_on = detail.get("based_on")
     if not based_on:
         raise ValueError("cot must include based_on lineage event ids")
+
+    source_event_uid = str(_detail_value(cot, "source_event_uid", uid))
+    promotion = {
+        "state_category": "PROMOTED_EXTERNAL_STATE",
+        "origin_kind": str(_detail_value(cot, "origin_kind", "EXTERNAL_REPORT")),
+        "projection_id": "cot",
+        "promotion_policy_id": str(_detail_value(cot, "promotion_policy_id", PROMOTION_POLICY_ID)),
+        "trust_ref": str(_detail_value(cot, "trust_ref", "producer-authority:cot-ingress")),
+        "lineage_status": str(_detail_value(cot, "lineage_status", "EXTERNAL_SOURCE")),
+        "loop_status": str(_detail_value(cot, "loop_status", "CHECKED_NOT_REFLECTION")),
+        "confidence_basis": str(
+            _detail_value(cot, "confidence_basis", "EXPLICIT_EXTERNAL_CONFIDENCE")
+        ),
+        "source_event_uid": source_event_uid,
+        "freshness_ms": valid_for_ms,
+    }
+    source_zmeta_event_id = _detail_value(cot, "source_zmeta_event_id")
+    if source_zmeta_event_id:
+        promotion["source_zmeta_event_id"] = str(source_zmeta_event_id)
 
     payload = {
         "track_id": str(uid),
         "geo": {"lat": lat, "lon": lon, "alt_m": hae},
         "valid_for_ms": valid_for_ms,
         "timing_quality": coerce_timing_quality(cot.get("timing_quality"), event_ts=ts),
+        "extensions": {"external_promotion": promotion},
     }
     cot_type = cot.get("type")
     if cot_type:
         payload["class"] = str(cot_type)
 
+    event_id = str(uuid7())
     event = {
         "zmeta_version": "1.0",
         "event": {
-            "event_id": str(uuid7()),
+            "event_id": event_id,
             "event_type": "STATE_EVENT",
             "event_subtype": "TRACK_STATE",
             "ts": ts,
@@ -98,7 +129,7 @@ def cot_dict_to_zmeta_track_state(cot: dict) -> dict:
         "confidence": confidence,
         "lineage": {
             "based_on": [str(item) for item in based_on],
-            "transform": "translate:cot@template",
+            "transform": f"promote:cot@template:{promotion['promotion_policy_id']}",
         },
     }
 

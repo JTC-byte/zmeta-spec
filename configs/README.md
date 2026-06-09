@@ -37,7 +37,9 @@ Notes:
   - `stamp_profile` and `stamp_profile_profiles` control when `profile` is stamped.
   - `stamp_timing` and `stamp_timing_profiles` control gateway `t_receive`/`t_publish` stamps.
   - `failure_modes` controls timing-loss, observation-timeout, deconfliction-offline,
-    and fusion-instability defaults for edge operation.
+    and fusion-instability defaults for edge operation. Runtime degradation must
+    leave risk labels on accepted events so operators can filter by explicit
+    policy decision rather than infer risk from missing data.
   - `strip_optional_fields` and `strip_optional_fields_profiles` remove optional fields
     for bandwidth efficiency.
   - `strict_validation` treats warnings as failures (no forward).
