@@ -135,6 +135,18 @@ Operators can tune behavior with flags such as `--max-risk`, `--require-use`,
 `--allow-dimension`, `--deny-dimension`, `--allow-decision`, and
 `--deny-decision`.
 
+### Lint Policy Risk Modes
+
+```
+python tools/lint_policy_risk_modes.py
+```
+
+`lint_policy_risk_modes.py` flags policy settings that use `ignore` for
+material timing, lineage, external-promotion, command, trust, or safety risk.
+The reference policy only allows `ignore` for the Profile L unresolved-parent
+case, where profile thinning may intentionally leave parent events unavailable
+on the link.
+
 ### Validate All Examples
 
 ```

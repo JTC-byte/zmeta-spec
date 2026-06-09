@@ -133,7 +133,10 @@ python tools/filter_risk.py --input gateway-output.jsonl --preset command --fail
 The filter reads event-side risk labels and same-stream warning diagnostics. It
 passes or drops events based on explicit `allowed_uses`, `prohibited_uses`,
 `risk_dimension`, and `policy_decision` labels; it does not change the event or
-turn degraded data into clean data.
+turn degraded data into clean data. Consumers that do not run this tool still
+have the same responsibility: honor `allowed_uses`, `prohibited_uses`, and
+`policy_decision` before using accepted-risk data for fusion, state update,
+command basis, autonomy, or export.
 
 If `metrics_log_path` is set, the gateway writes JSONL metrics/violation/drop records
 and rotates logs based on `metrics_log_max_bytes` and `metrics_log_backups`.

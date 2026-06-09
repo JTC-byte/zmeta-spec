@@ -1000,6 +1000,227 @@ def _mode_violation(
     )
 
 
+_NON_MATERIAL_IGNORE_ALLOWLIST = {
+    ("lineage", "unresolved_parent_mode", "L", "LINEAGE_PARENT_UNRESOLVED"),
+}
+
+
+def _policy_mode_entries(section, config, key, reason_codes, risk_dimension):
+    if not isinstance(config, dict) or key not in config:
+        return
+    value = config.get(key)
+    if isinstance(value, dict):
+        for profile, mode in value.items():
+            yield {
+                "section": section,
+                "path": f"{section}.{key}.{profile}",
+                "key": key,
+                "profile": str(profile),
+                "mode": str(mode or "").strip().lower(),
+                "risk_dimension": risk_dimension,
+                "reason_codes": list(reason_codes),
+            }
+        return
+    yield {
+        "section": section,
+        "path": f"{section}.{key}",
+        "key": key,
+        "profile": None,
+        "mode": str(value or "").strip().lower(),
+        "risk_dimension": risk_dimension,
+        "reason_codes": list(reason_codes),
+    }
+
+
+def _ignore_is_allowlisted(entry):
+    profile = entry.get("profile")
+    if profile is None:
+        return False
+    for reason_code in entry.get("reason_codes", []):
+        key = (entry.get("section"), entry.get("key"), profile, reason_code)
+        if key not in _NON_MATERIAL_IGNORE_ALLOWLIST:
+            return False
+    return True
+
+
+def lint_policy_risk_modes(policy):
+    """Return policy lint issues for risk modes that can hide material risk."""
+    issues = []
+    if not isinstance(policy, dict):
+        return issues
+
+    entries = []
+    timing = policy.get("timing_freshness", {})
+    entries.extend(
+        _policy_mode_entries(
+            "timing_freshness",
+            timing,
+            "mode",
+            ["TIMING_STATUS_MISSING", "TIMING_STATUS_STALE"],
+            "timing",
+        )
+    )
+    entries.extend(
+        _policy_mode_entries(
+            "timing_freshness",
+            timing,
+            "mode_by_profile",
+            ["TIMING_STATUS_MISSING", "TIMING_STATUS_STALE"],
+            "timing",
+        )
+    )
+    entries.extend(
+        _policy_mode_entries(
+            "timing_freshness",
+            timing,
+            "missing_mode",
+            ["TIMING_STATUS_MISSING"],
+            "timing",
+        )
+    )
+    entries.extend(
+        _policy_mode_entries(
+            "timing_freshness",
+            timing,
+            "missing_mode_by_profile",
+            ["TIMING_STATUS_MISSING"],
+            "timing",
+        )
+    )
+    entries.extend(
+        _policy_mode_entries(
+            "timing_freshness",
+            timing,
+            "stale_mode",
+            ["TIMING_STATUS_STALE"],
+            "timing",
+        )
+    )
+    entries.extend(
+        _policy_mode_entries(
+            "timing_freshness",
+            timing,
+            "stale_mode_by_profile",
+            ["TIMING_STATUS_STALE"],
+            "timing",
+        )
+    )
+    holdover = timing.get("holdover_est_error_monotonic", {})
+    entries.extend(
+        _policy_mode_entries(
+            "timing_freshness.holdover_est_error_monotonic",
+            holdover,
+            "mode",
+            ["TIMING_STATUS_HOLDOVER_NON_MONOTONIC"],
+            "timing",
+        )
+    )
+
+    lineage = policy.get("lineage", {})
+    entries.extend(
+        _policy_mode_entries(
+            "lineage",
+            lineage,
+            "payload_based_on_subset_mode",
+            ["LINEAGE_PAYLOAD_BASED_ON_NOT_SUBSET"],
+            "lineage",
+        )
+    )
+    entries.extend(
+        _policy_mode_entries(
+            "lineage",
+            lineage,
+            "fusion_members_in_lineage_mode",
+            ["LINEAGE_FUSION_MEMBERS_NOT_IN_BASED_ON"],
+            "lineage",
+        )
+    )
+    entries.extend(
+        _policy_mode_entries(
+            "lineage",
+            lineage,
+            "unresolved_parent_mode",
+            ["LINEAGE_PARENT_UNRESOLVED"],
+            "lineage",
+        )
+    )
+    entries.extend(
+        _policy_mode_entries(
+            "lineage",
+            lineage,
+            "parent_type_mismatch_mode",
+            ["LINEAGE_PARENT_TYPE_INVALID"],
+            "lineage",
+        )
+    )
+
+    producer_authority = policy.get("producer_authority", {})
+    promotion = producer_authority.get("external_state_promotion", {})
+    entries.extend(
+        _policy_mode_entries(
+            "producer_authority.external_state_promotion",
+            promotion,
+            "mode",
+            ["PRODUCER_NOT_ALLOWED"],
+            "external_promotion",
+        )
+    )
+    entries.extend(
+        _policy_mode_entries(
+            "producer_authority.external_state_promotion",
+            promotion,
+            "mode_by_profile",
+            ["PRODUCER_NOT_ALLOWED"],
+            "external_promotion",
+        )
+    )
+    producers = producer_authority.get("producers", {})
+    if isinstance(producers, dict):
+        for producer, producer_rule in producers.items():
+            if not isinstance(producer_rule, dict):
+                continue
+            rule = producer_rule.get("external_state_promotion", {})
+            if not isinstance(rule, dict):
+                continue
+            section = f"producer_authority.producers.{producer}.external_state_promotion"
+            entries.extend(
+                _policy_mode_entries(
+                    section,
+                    rule,
+                    "mode",
+                    ["PRODUCER_NOT_ALLOWED"],
+                    "external_promotion",
+                )
+            )
+            entries.extend(
+                _policy_mode_entries(
+                    section,
+                    rule,
+                    "mode_by_profile",
+                    ["PRODUCER_NOT_ALLOWED"],
+                    "external_promotion",
+                )
+            )
+
+    for entry in entries:
+        if entry.get("mode") != "ignore" or _ignore_is_allowlisted(entry):
+            continue
+        issues.append(
+            {
+                "code": "POLICY_IGNORE_MATERIAL_RISK",
+                "path": entry["path"],
+                "risk_dimension": entry["risk_dimension"],
+                "reason_codes": entry["reason_codes"],
+                "message": (
+                    "ignore is only allowed for explicitly non-material checks; "
+                    "material timing, lineage, promotion, command, trust, or safety "
+                    "risk must be rejected, warned, degraded, quarantined, or labeled"
+                ),
+            }
+        )
+    return issues
+
+
 def _ids_from_list(value):
     if not isinstance(value, list):
         return []

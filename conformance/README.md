@@ -66,6 +66,17 @@ python tools/filter_risk.py --input gateway-output.jsonl --preset command --fail
 The filter consumes existing labels only. It does not alter source events,
 policy decisions, schemas, or semantic validity.
 
+Policy risk-mode linting is available through:
+
+```
+python tools/lint_policy_risk_modes.py
+```
+
+The lint flags material timing, lineage, external-promotion, command, trust, or
+safety checks configured to `ignore`. The only reference-policy ignore exception
+is Profile L unresolved parent lineage, where profile thinning may intentionally
+leave parent events unavailable on the link.
+
 Profile projection preservation is opt-in for the conformance runner:
 
 ```

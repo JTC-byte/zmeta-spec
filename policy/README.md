@@ -69,11 +69,17 @@ Notes:
   promoted state. Mode may be set globally, by profile with `mode_by_profile`,
   or on a specific producer's `external_state_promotion` rule. Its `use_limits`
   declare which downstream uses remain allowed under warn, degrade, or
-  quarantine.
+  quarantine. `trust_ref` is a policy-scoped reference, not cryptographic proof
+  of producer authenticity.
 - Tunable policy modes must not bypass the semantic contract. Soft acceptance
   should carry `risk_dimension`, `policy_mode`, `policy_decision`, policy
   reference, allowed/prohibited uses, and applied effects when data is still
   forwarded.
+- Use `python tools/lint_policy_risk_modes.py` after policy edits. The lint
+  flags `ignore` on material timing, lineage, external-promotion, command,
+  trust, or safety risk; the reference policy only allows `ignore` for the
+  Profile L unresolved-parent case where profile thinning can make parent
+  references unavailable by design.
 - `routing.producer_enforcement.require_allowlist_for_event_types` is reserved
   for routing-layer allowlists such as COMMAND_EVENT origin gates.
 

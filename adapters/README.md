@@ -66,7 +66,9 @@ MAVLink state templates emit policy-scoped
 `payload.extensions.external_promotion` metadata and `promote:*` lineage
 transforms so reference producer-authority policy can distinguish promoted
 external reports from native ZMeta state. Schema validity alone is not
-promotion authority.
+promotion authority. The `trust_ref` value is an asserted policy reference for
+promotion adjudication, not a signature, credential, or standalone proof of
+authenticity.
 
 Adapter modules use package-style imports from the repository root, including
 `from adapters.ingress.time_utils import ...`. Run tests and integration scripts

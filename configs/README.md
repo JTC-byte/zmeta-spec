@@ -37,7 +37,12 @@ Notes:
   event truth by using `tools/filter_risk.py` presets such as `display`,
   `fusion`, `command`, `autonomy`, `aar`, and `audit`. These presets filter on
   explicit `allowed_uses`, `prohibited_uses`, `policy_decision`, and
-  `risk_dimension` labels emitted by gateway policy decisions.
+  `risk_dimension` labels emitted by gateway policy decisions. Consumers that
+  do not run the reference tool must still enforce equivalent label handling
+  before using accepted-risk data for fusion, state update, command basis,
+  autonomy, or export.
+- Run `python tools/lint_policy_risk_modes.py` after policy edits to catch
+  material risk checks configured to `ignore`.
 - Debug/optimization controls:
   - `stamp_profile` and `stamp_profile_profiles` control when `profile` is stamped.
   - `stamp_timing` and `stamp_timing_profiles` control gateway `t_receive`/`t_publish` stamps.

@@ -1,6 +1,10 @@
 # Changelog
 
 ## [Unreleased]
+- Added post-v1.1.6 integration guidance for external state promotion metadata,
+  `trust_ref` limits, and consumer responsibility for accepted-risk labels.
+- Added `tools/lint_policy_risk_modes.py` to flag unsafe `ignore` settings on
+  material timing, lineage, external-promotion, command, trust, or safety risk.
 
 ## [1.1.6] - 2026-06-09
 - Added the semantic risk-adjudication baseline: locked, tunable, advisory, and

@@ -17,6 +17,22 @@
 - Experimental extension: `schema/zmeta-event-1.1.0.schema.json` is provided for proposed
   compatibility testing only; v1.1.0-only fields are not part of the locked v1.0 contract.
 
+## v1.1.6 Integration Notes
+
+- Custom CoT/JREAP/MAVLink and other external-track ingress adapters that emit
+  authoritative `STATE_EVENT` output must attach valid
+  `payload.extensions.external_promotion` metadata and a `promote:*` lineage
+  transform, or the reference producer-authority policy rejects the event.
+- `external_promotion.trust_ref` is a policy reference used for promotion
+  adjudication. It is not a signature, credential, or standalone proof of
+  authenticity.
+- Downstream consumers must honor `allowed_uses`, `prohibited_uses`, and
+  `policy_decision` labels, or run an equivalent filter such as
+  `tools/filter_risk.py`; a validated degraded or quarantined event is not clean
+  for fusion, state update, command basis, or autonomy by default.
+- Use `python tools/lint_policy_risk_modes.py` before deployment to catch
+  material risk checks configured to `ignore`.
+
 ## What ZMeta Is
 - A semantic contract
 - A JSON schema
