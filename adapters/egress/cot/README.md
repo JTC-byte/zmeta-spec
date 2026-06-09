@@ -3,6 +3,11 @@
 Converts ZMeta `STATE_EVENT` track states into CoT v2.0 XML for TAK
 interoperability (ATAK, WinTAK, TAK Server).
 
+The adapter expects a semantically valid ZMeta `STATE_EVENT`. It refuses
+non-state inputs and state payloads that still carry raw observation/evidence
+fields such as `features`, `raw_features`, `modality`, `data_ref`, or
+`data_refs`; those events must be rejected or corrected before projection.
+
 ### Features
 
 | Feature | Details |

@@ -91,6 +91,24 @@ def test_zmeta_to_cot_no_geo_returns_none():
     assert zmeta_to_cot_module.zmeta_to_cot(event) is None
 
 
+def test_zmeta_to_cot_rejects_state_with_raw_observation_fields():
+    event = {
+        "event": {
+            "event_type": "STATE_EVENT",
+            "event_subtype": "TRACK_STATE",
+            "ts": "2025-01-17T14:30:05Z",
+        },
+        "payload": {
+            "track_id": "track-raw",
+            "geo": {"lat": 34.0, "lon": -118.0, "alt_m": 0},
+            "valid_for_ms": 60000,
+            "features": {"center_freq_hz": 2450000000},
+        },
+    }
+
+    assert zmeta_to_cot_module.zmeta_to_cot(event, cot_config=_TEST_CONFIG) is None
+
+
 def test_zmeta_to_cot_hostile_callsign_fallback():
     """Hostile tracks should never show raw track IDs as callsigns."""
     event = {

@@ -5,8 +5,8 @@
 - Last updated: 2026-06-08
 - Quick handoff: `docs/zmeta_refinement_handoff.md`
 - Current next work item: Optional S1-11B future-branch roadmap artifact,
-  adapter-harness breadth expansion, or local operator policy presets/filter
-  tooling.
+  adapter-harness breadth expansion, or deployment/container runtime smoke
+  breadth.
 - Current decision: ZMeta v1.1.5 was published at
   `https://github.com/JTC-byte/zmeta-spec/releases/tag/v1.1.5` from tag
   `v1.1.5` on commit `d4d406b43a705ca5b7a314e1d5388c3ca39c750a`. S1-12C
@@ -40,6 +40,10 @@
   kernel-protection conformance to CI, Makefile, and release checklist usage.
   S1-18A added consumer-side accepted-risk filtering with operator presets for
   display, fusion, state, command, autonomy, AAR, and audit intake posture.
+  S1-18B completed an end-to-end stack and runtime audit, hardened direct CoT
+  egress against malformed state payloads carrying raw observation/evidence
+  fields, and verified schema/policy/conformance/examples/gateway/live
+  workflow/release-package/bundle-smoke paths.
   D-003 remains `OPEN - ROADMAP PLANNED`. D-004 remains closed as removed from
   ZMeta scope.
 
@@ -1477,6 +1481,74 @@
     `overall total=40 passed=40 failed=0 warnings=0`
   - `python -m pytest -q` -> `364 passed, 108 subtests passed`
   - `git diff --check` -> passed with normal Windows CRLF conversion warnings
+
+## S1-18B - End-to-End Stack and Runtime Audit
+
+- Status: COMPLETE
+- Date completed: 2026-06-08
+- Output: `docs/s1_18b_end_to_end_stack_runtime_audit.md`
+- Scope: Audited the tracked stack folder by folder against the semantic
+  contract and ran a local runtime sweep across validators, examples,
+  compatibility checks, gateway self-tests, live UDP workflows, encodings,
+  risk filtering, packet-size checks, release-package planning, Docker Compose
+  config rendering, MVP bundle build, and extracted bundle smoke tests.
+- Cleanup:
+  - Hardened `adapters/egress/cot/zmeta_to_cot.py` so direct CoT egress refuses
+    malformed `STATE_EVENT` payloads that carry raw observation/evidence fields
+    such as `features`, `raw_features`, `modality`, `data_ref`, or `data_refs`.
+  - Added focused CoT egress coverage in
+    `adapters/egress/cot/test_zmeta_to_cot.py`.
+  - Documented the CoT egress precondition in `adapters/egress/cot/README.md`.
+  - Added `.tmp/` to `.gitignore` for generated local smoke-test extraction
+    directories.
+- Findings:
+  - No blocking semantic-contract drift or stale tracked file was found after
+    the CoT egress hardening.
+  - Historical older-version references remain in release notes, checksum
+    files, prior audit docs, or compatibility history by design.
+  - Ignored local artifacts are expected local state and are not part of the
+    governed repo baseline.
+  - Direct Docker container boot was left for a future deployment-specific
+    audit because live runtime paths were exercised directly and compose configs
+    rendered successfully.
+- Verification:
+  - `python -m pytest -q adapters\egress\cot` -> `9 passed`
+  - `python tools\validate_conformance.py --strict --profile-projection --extension-registry --conformance-classes --encoding-negative --precision-policy --release-manifest --release-package --bad-events --adapter-harness` ->
+    `projection conformance ok total=33`, `extension registry ok entries=56`,
+    `conformance classes ok classes=34 claims=2`,
+    `encoding negative ok total=49`, `profile precision policy ok total=32`,
+    `bad-event corpus ok total=9`, `adapter conformance ok total=8`,
+    `conformance ok`
+  - `python tools\validate_examples.py --strict --require-all` ->
+    `overall total=40 passed=40 failed=0 warnings=0`
+  - `python tools\validate_release_manifest.py --manifest release\zmeta-release-manifest.yaml` ->
+    `release manifest ok groups=17 artifacts=60`
+  - `python tools\validate_release_package.py --manifest release\zmeta-release-manifest.yaml --templates-only` ->
+    `release package ok mode=templates`
+  - Focused projection, extension-registry, conformance-class,
+    encoding-negative, precision-policy, bad-event, and adapter-harness
+    validators all passed.
+  - All seven example JSONL streams passed strict `v1.1.5` compatibility
+    checks.
+  - Gateway Profile H, gateway config, and edge config self-tests all passed.
+  - Live workflow tools passed Profile H/M/L JSON, Profile H CBOR, Profile L
+    compact, Profile H protobuf, command duplicate ACK, state forwarding, and
+    CoT output paths.
+  - `python tools\measure_packet_size.py --file examples\zmeta-profile-L-examples.jsonl --encodings compact,proto --max-bytes 240 --max-bytes-encoding compact --summary-only` ->
+    `COMPACT max=150`, `PROTO max=301`
+  - `python tools\filter_risk.py --input examples\zmeta-command-examples.jsonl --preset command --fail-on-drop --quiet` ->
+    passed without drops
+  - `python tools\compute_contract_hash.py` ->
+    `contract_hash=9aa997d264d71575eb24c21ba93935a4d4165a24aef07bae0e6ced7e40949590`
+  - `python -m pytest -q` -> `365 passed, 108 subtests passed`
+  - `python tools\build_release_package.py --manifest release\zmeta-release-manifest.yaml --output-dir release\package-audit --release-id zmeta-audit-runtime --release-state audit_runtime_sweep --dry-run --no-signatures` ->
+    dry-run planned expected release-package outputs
+  - `docker compose -f deploy\gateway\docker-compose.yml config` and
+    `docker compose -f deploy\edge\docker-compose.yml config` -> rendered
+    successfully with local Docker config access warnings only
+  - `python release\build_mvp_packages.py --version vci` -> produced edge and
+    gateway ZIPs
+  - Extracted edge and gateway ZIPs each passed `gateway.py --self-test`
 
 ## Deferred Issue Register
 

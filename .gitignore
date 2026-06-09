@@ -218,6 +218,7 @@ release/*.zip
 # Local smoke artifacts
 release/bundles/
 release/smoke-*/
+.tmp/
 
 # Local pytest cache artifacts
 pytest-cache-files-*

@@ -22,6 +22,17 @@ from datetime import datetime, timedelta, timezone
 
 
 DEFAULT_COT_TYPE = "a-u-G"
+STATE_PROHIBITED_PAYLOAD_FIELDS = {
+    "features",
+    "raw_features",
+    "modality",
+    "measurement",
+    "measurements",
+    "t_start",
+    "t_end",
+    "data_ref",
+    "data_refs",
+}
 
 
 def _parse_utc(ts):
@@ -38,6 +49,12 @@ def _esc(text):
         .replace(">", "&gt;")
         .replace('"', "&quot;")
     )
+
+
+def _has_state_prohibited_payload_fields(payload):
+    if not isinstance(payload, dict):
+        return True
+    return any(field in payload for field in STATE_PROHIBITED_PAYLOAD_FIELDS)
 
 
 def zmeta_to_cot(event, cot_config=None):
@@ -64,6 +81,9 @@ def zmeta_to_cot(event, cot_config=None):
 
     cot_config = cot_config or {}
     payload = event.get("payload", {})
+    if _has_state_prohibited_payload_fields(payload):
+        return None
+
     geo = payload.get("geo")
     if not geo or geo.get("lat") is None or geo.get("lon") is None:
         return None
@@ -127,11 +147,7 @@ def zmeta_to_cot(event, cot_config=None):
             or callsign.startswith("Track ")
             or callsign.startswith("torchai-track-")
         ):
-            modality = payload.get("modality") or payload.get("features", {}).get("modality", "RF")
-            if modality == "EO":
-                callsign = "Detection"
-            else:
-                callsign = "RF Emitter"
+            callsign = "RF Emitter"
 
     # Remarks from source_summary + error ellipse details
     source_summary = payload.get("source_summary", [])
