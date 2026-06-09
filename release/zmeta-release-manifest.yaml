@@ -1,8 +1,8 @@
 manifest_version: 1
-release_id: zmeta-reference-hardening-baseline-2026-05-07
-release_name: ZMeta Reference Hardening Baseline
-release_status: reference_hardening_baseline
-release_date: '2026-05-07'
+release_id: zmeta-v1.1.6
+release_name: ZMeta v1.1.6
+release_status: formal_release
+release_date: '2026-06-09'
 zmeta_versions:
   normative:
   - '1.0'
@@ -28,7 +28,7 @@ bad_event_corpus_hash: sha256:12e5b25d0fbf027bc7afe07c537e3a8da45c311e9edd565d1c
 adapter_conformance_hash: sha256:d2f4c4508bfbecb66d64ac5fe06538e07d53f98f082a0188872483060b27a56d
 encoding_projection_specs_hash: sha256:df81a1157548d9e57c7e13a4dd3f2693bfa4575be91f4818fc54ab8fedf9b76a
 release_bundle_hash: sha256:72b15433086d5093ec45880efe24015dc034f200e6135db8339e76acec572b90
-release_manifest_hash: sha256:d83b8568a5eb917a38ccdf72450fa7d4f92ba61deb3a7f6a8272bbfdfe376d09
+release_manifest_hash: sha256:29097eff42011134f24f8f647ab3ea672870a2485824aed1eaf48ab605068bf0
 artifact_hashes:
 - path: configs/policy-variants/producer-authority.strict.yaml
   group: policy_bundle
@@ -404,7 +404,7 @@ tool_versions:
   builder: tools/build_release_manifest.py
   validator: tools/validate_release_manifest.py
 git_commit: explicit_release_input_required
-branch: explicit_release_input_required
+branch: main
 generated_by: tools/build_release_manifest.py
 notes:
 - Reference hardening-baseline manifest, not a formal tagged release.

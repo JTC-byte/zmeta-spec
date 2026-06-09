@@ -2,6 +2,24 @@
 
 ## [Unreleased]
 
+## [1.1.6] - 2026-06-09
+- Added the semantic risk-adjudication baseline: locked, tunable, advisory, and
+  future-extension rule classes with bounded reject, warn, degrade, quarantine,
+  and ignore behavior.
+- Added explicit operator-side accepted-risk filtering with display, fusion,
+  state, command, autonomy, AAR, and audit presets.
+- Added semantic bad-event fixtures and a shared adapter conformance harness.
+- Added kernel-protection doctrine and full kernel-protection validation across
+  projection, registry, conformance classes, encoding negatives, precision
+  policy, release manifest/package, bad-event corpus, and adapter harness.
+- Hardened direct CoT egress so malformed state payloads carrying raw
+  observation/evidence fields fail closed.
+- Completed an end-to-end stack and runtime audit covering examples,
+  compatibility, gateway self-tests, live UDP workflows, Profile L packet size,
+  release/package smoke tests, and containerized SDR-derived RF workflow checks.
+- Preserved v1.0/v1.1.0 version isolation; no future vocabulary became valid
+  and literal raw IQ support remains future work pending real sensor samples.
+
 ## [1.1.5] - 2026-05-07
 - Hardened the ZMeta semantic-governance baseline through S0/S1 audits covering
   contract lockdown, contract-to-stack alignment, release hashing, and formal

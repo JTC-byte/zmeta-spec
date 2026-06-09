@@ -217,6 +217,7 @@ release/*.zip
 
 # Local smoke artifacts
 release/bundles/
+release/package*/
 release/smoke-*/
 .tmp/
 

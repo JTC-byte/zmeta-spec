@@ -11,7 +11,7 @@ import subprocess
 from pathlib import Path
 
 
-VERSION = "v1.1.5"
+VERSION = "v1.1.6"
 
 
 def _release_dir() -> Path:
@@ -23,6 +23,8 @@ def _artifact_names(version: str) -> list[str]:
         f"zmeta-{version}-dist.zip",
         f"zmeta-edge-{version}.zip",
         f"zmeta-gateway-{version}.zip",
+        f"zmeta-release-package-{version}.zip",
+        "zmeta-release-manifest.yaml",
         f"RELEASE_NOTES_{version}.md",
         f"VALIDATION_REPORT_{version}.md",
     ]
@@ -171,7 +173,7 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Generate SHA256SUMS and detached PGP signatures for release artifacts."
     )
-    parser.add_argument("--version", default=VERSION, help="Release version tag, e.g. v1.1.5.")
+    parser.add_argument("--version", default=VERSION, help="Release version tag, e.g. v1.1.6.")
     parser.add_argument("--release-dir", default=str(_release_dir()), help="Directory containing artifacts.")
     parser.add_argument("--write-checksums", action="store_true", help="Rewrite SHA256SUMS_<version>.txt.")
     parser.add_argument("--verify-checksums", action="store_true", help="Verify SHA256SUMS_<version>.txt.")

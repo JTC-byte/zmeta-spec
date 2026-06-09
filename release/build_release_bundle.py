@@ -2,7 +2,7 @@ import argparse
 import shutil
 from pathlib import Path
 
-VERSION = "1.1.5"
+VERSION = "1.1.6"
 
 
 def collect_sources(root, version):

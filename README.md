@@ -1,4 +1,4 @@
-# ZMeta Specification (v1.0 Locked, current release v1.1.5)
+# ZMeta Specification (v1.0 Locked, current release v1.1.6)
 
 ## Overview
 - ZMeta is a transport-agnostic, event-based metadata standard for resilient ISR.
@@ -7,10 +7,11 @@
 
 ## Current Release
 
-- Current release: `v1.1.5`
-- Release notes and assets: <https://github.com/JTC-byte/zmeta-spec/releases/tag/v1.1.5>
-- Release focus: hardened semantic baseline, release/hash governance, conformance expansion,
-  formal release package tooling, and strict preservation of version-dispatched validation.
+- Current release: `v1.1.6`
+- Release notes and assets: <https://github.com/JTC-byte/zmeta-spec/releases/tag/v1.1.6>
+- Release focus: semantic risk adjudication, operator accepted-risk filtering,
+  kernel-protection conformance, adapter boundary hardening, and end-to-end
+  runtime validation while preserving version-dispatched validation.
 - Normative contract: v1.0 locked semantic contract, canonical version-discriminated
   JSON schema, v1.0 JSON schema, and policy pack.
 - Experimental extension: `schema/zmeta-event-1.1.0.schema.json` is provided for proposed
@@ -98,7 +99,7 @@ python tools/run_gateway.py --profile H
 python tools/udp_receiver.py
 python tools/udp_sender.py --file examples/zmeta-command-examples.jsonl
 python tools/replay.py --file examples/zmeta-command-examples.jsonl --delay-ms 200
-python tools/check_compat.py legacy-events.jsonl --target v1.1.5
+python tools/check_compat.py legacy-events.jsonl --target v1.1.6
 python tools/validate.py --file examples/zmeta-command-examples.jsonl --profile H
 python tools/validate_conformance.py --strict
 python tools/validate_release_manifest.py --manifest release/zmeta-release-manifest.yaml
@@ -162,10 +163,10 @@ Deployment helpers:
 - Config templates: `configs/edge-config.json`, `configs/gateway-config.json`
 - Docker Compose: `deploy/edge/docker-compose.yml`, `deploy/gateway/docker-compose.yml`
 - Bundle builders:
-    - `python release/build_mvp_packages.py --version v1.1.5` produces `zmeta-edge-v1.1.5.zip` and `zmeta-gateway-v1.1.5.zip`
-    - `python release/build_release_bundle.py --version 1.1.5` produces `zmeta-v1.1.5-dist.zip`
-    - `python tools/build_release_package.py --manifest release/zmeta-release-manifest.yaml --output-dir release/package-v1.1.5 --release-id zmeta-v1.1.5 --release-state formal_release --no-signatures` builds formal package metadata without creating signatures.
-    - `python release/sign_release_artifacts.py --version v1.1.5 --write-checksums --sign --target all` signs release assets with detached PGP signatures when an approved signing key is available.
+    - `python release/build_mvp_packages.py --version v1.1.6` produces `zmeta-edge-v1.1.6.zip` and `zmeta-gateway-v1.1.6.zip`
+    - `python release/build_release_bundle.py --version 1.1.6` produces `zmeta-v1.1.6-dist.zip`
+    - `python tools/build_release_package.py --manifest release/zmeta-release-manifest.yaml --output-dir release/package-v1.1.6 --release-id zmeta-v1.1.6 --release-state formal_release --no-signatures` builds formal package metadata without creating signatures.
+    - `python release/sign_release_artifacts.py --version v1.1.6 --write-checksums --sign --target all` signs release assets with detached PGP signatures when an approved signing key is available.
 
 ## Deployment Checklist (Compact)
 
