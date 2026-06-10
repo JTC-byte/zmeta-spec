@@ -36,6 +36,7 @@ Current public release:
 | --- | --- |
 | `AGENTS.md` | Root quick-start guide for human maintainers and AI agents working in this governed repository. |
 | `docs/zmeta_change_governance.md` | Formal change process, authority order, left/right limits, documentation matrix, validation gates, and release publication workflow. |
+| `docs/zmeta_professional_overview.md` | Advisory overview for engineers, operators, and leadership explaining ZMeta purpose, architecture, profiles, governance, provenance, and enabled workflows. |
 | `spec/semantics-contract.md` | Authoritative hardened semantic contract. Schemas, policy packs, adapters, encodings, examples, gateways, and conformance tests must preserve it. |
 | `docs/zmeta_semantic_contract_lockdown_audit.md` | S0-01 audit of the prior contract against intended ZMeta roles, implementation surfaces, and future ISR/edge AI/coalition/mesh trust needs. |
 | `docs/zmeta_contract_to_stack_crosswalk.md` | S0-03 contract-to-implementation crosswalk and prioritized implementation backlog. |

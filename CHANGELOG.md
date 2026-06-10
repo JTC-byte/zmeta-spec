@@ -1,7 +1,10 @@
 # Changelog
 
 ## [Unreleased]
-- None.
+- Added `docs/zmeta_professional_overview.md`, an advisory overview for
+  engineers, operators, and leadership covering ZMeta purpose, architecture,
+  schemas, adapters, gateway deployment, profiles, encodings, data governance,
+  AI provenance, and RF-to-tasking workflows.
 
 ## [1.1.7] - 2026-06-10
 - Added formal human/AI agent change governance through `AGENTS.md` and
