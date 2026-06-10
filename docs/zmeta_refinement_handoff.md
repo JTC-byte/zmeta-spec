@@ -23,7 +23,8 @@ Current public release:
 
 - Release URL: <https://github.com/JTC-byte/zmeta-spec/releases/tag/v1.1.7>
 - Tag: `v1.1.7`
-- Tagged commit: the `v1.1.7` tag target.
+- Tagged commit: `e7b014f` - `Prepare v1.1.7 release`
+- GitHub CI: run `27246838717` passed for `main` push on 2026-06-10.
 - Signature status: no detached `.asc` signatures were attached for `v1.1.7`
   because no approved local release signing key was available. Use
   `SHA256SUMS_v1.1.7.txt`, the structured release manifest, and the release

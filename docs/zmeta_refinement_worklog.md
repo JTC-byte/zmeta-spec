@@ -1726,6 +1726,10 @@
 
 - Status: COMPLETE
 - Date completed: 2026-06-10
+- Release URL: `https://github.com/JTC-byte/zmeta-spec/releases/tag/v1.1.7`
+- Tag: `v1.1.7`
+- Tagged commit: `e7b014f` - `Prepare v1.1.7 release`
+- GitHub CI: run `27246838717` passed for `main` push on 2026-06-10.
 - Scope: Audited the full tracked stack for stale current-release references,
   ignored local release residue, tracked-source secret risk, generated release
   artifact residue, and release-target drift; promoted the post-v1.1.6
