@@ -2,6 +2,8 @@
 
 Use this as the template for each release.
 
+- [ ] `AGENTS.md` and `docs/zmeta_change_governance.md` reviewed for process requirements
+- [ ] Change class identified and documented in handoff/worklog
 - [ ] Semantic contract finalized for target version
 - [ ] Contract hash recomputed
 - [ ] Release manifest built and validated
@@ -23,6 +25,8 @@ Use this as the template for each release.
 - [ ] No private keys, credentials, tokens, or signing secrets are present in release package paths
 - [ ] Release notes updated
 - [ ] Changelog updated
+- [ ] `docs/zmeta_refinement_worklog.md` updated
+- [ ] `docs/zmeta_refinement_handoff.md` updated
 - [ ] SHA256SUMS generated for release assets
 - [ ] SHA256SUMS verified
 - [ ] Detached signatures generated for SHA256SUMS and release assets

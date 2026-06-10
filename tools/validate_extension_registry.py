@@ -23,6 +23,7 @@ REQUIRED_TOP_LEVEL = {
     "last_updated",
     "status_values",
     "category_values",
+    "projection_behavior_values",
     "entries",
 }
 
@@ -46,9 +47,14 @@ REQUIRED_ENTRY_FIELDS = {
     "encoding_status",
     "conformance_status",
     "ignorable_by_default",
+    "profile_projection_behavior",
+    "risk_relevant",
+    "must_preserve_when_used_for_policy",
     "collision_rules",
     "security_release_notes",
+    "security_privacy_notes",
     "migration_notes",
+    "fixture_references",
     "references",
     "date_added",
     "review_state",
@@ -462,6 +468,7 @@ def validate_registry(
 
     status_values = set(registry.get("status_values") or [])
     category_values = set(registry.get("category_values") or [])
+    projection_behavior_values = set(registry.get("projection_behavior_values") or [])
     names: dict[str, str] = {}
 
     for idx, entry in enumerate(entries):
@@ -493,6 +500,7 @@ def validate_registry(
 
         status = str(entry.get("status", "") or "")
         category = str(entry.get("category", "") or "")
+        projection_behavior = str(entry.get("profile_projection_behavior", "") or "")
         version_branch = entry.get("version_branch")
         introduced_in = entry.get("introduced_in")
 
@@ -500,6 +508,104 @@ def validate_registry(
             issues.append(_issue("REGISTRY_STATUS_INVALID", f"invalid status: {status}", entry=name))
         if category not in category_values:
             issues.append(_issue("REGISTRY_CATEGORY_INVALID", f"invalid category: {category}", entry=name))
+        if projection_behavior not in projection_behavior_values:
+            issues.append(
+                _issue(
+                    "REGISTRY_PROJECTION_BEHAVIOR_INVALID",
+                    f"invalid profile_projection_behavior: {projection_behavior}",
+                    entry=name,
+                )
+            )
+
+        for bool_field in ("risk_relevant", "must_preserve_when_used_for_policy"):
+            if not isinstance(entry.get(bool_field), bool):
+                issues.append(
+                    _issue(
+                        "REGISTRY_BOOLEAN_FIELD_INVALID",
+                        f"{bool_field} must be true or false",
+                        entry=name,
+                    )
+                )
+
+        for list_field in (
+            "security_release_notes",
+            "security_privacy_notes",
+            "migration_notes",
+            "fixture_references",
+            "references",
+        ):
+            if not isinstance(entry.get(list_field), list):
+                issues.append(
+                    _issue(
+                        "REGISTRY_LIST_FIELD_INVALID",
+                        f"{list_field} must be a list",
+                        entry=name,
+                    )
+                )
+
+        risk_relevant = entry.get("risk_relevant") is True
+        must_preserve = entry.get("must_preserve_when_used_for_policy") is True
+        fixture_references = entry.get("fixture_references") or []
+        security_privacy_notes = entry.get("security_privacy_notes") or []
+
+        if must_preserve and not risk_relevant:
+            issues.append(
+                _issue(
+                    "REGISTRY_POLICY_PRESERVE_WITHOUT_RISK",
+                    "must_preserve_when_used_for_policy requires risk_relevant: true",
+                    entry=name,
+                )
+            )
+        if must_preserve and entry.get("ignorable_by_default") is True:
+            issues.append(
+                _issue(
+                    "REGISTRY_POLICY_PRESERVE_IGNORABLE",
+                    "policy-relevant extensions that must be preserved cannot be ignorable_by_default",
+                    entry=name,
+                )
+            )
+        if risk_relevant and projection_behavior in {"optional_omission", "not_applicable"}:
+            issues.append(
+                _issue(
+                    "REGISTRY_RISK_PROJECTION_BEHAVIOR_INVALID",
+                    "risk-relevant entries must declare preserve, preserve_or_compact, prohibited, or future_branch_required projection behavior",
+                    entry=name,
+                )
+            )
+        if risk_relevant and not security_privacy_notes:
+            issues.append(
+                _issue(
+                    "REGISTRY_RISK_SECURITY_NOTES_MISSING",
+                    "risk-relevant entries must include security_privacy_notes",
+                    entry=name,
+                )
+            )
+        if status in {"experimental", "adopted"} and risk_relevant and not fixture_references:
+            issues.append(
+                _issue(
+                    "REGISTRY_RISK_FIXTURES_MISSING",
+                    "implemented risk-relevant entries must reference positive or negative fixtures",
+                    entry=name,
+                )
+            )
+        for fixture_path in fixture_references:
+            if not isinstance(fixture_path, str) or not fixture_path:
+                issues.append(
+                    _issue(
+                        "REGISTRY_FIXTURE_REFERENCE_INVALID",
+                        "fixture_references entries must be non-empty strings",
+                        entry=name,
+                    )
+                )
+                continue
+            if status in {"experimental", "adopted"} and not (ROOT / fixture_path).exists():
+                issues.append(
+                    _issue(
+                        "REGISTRY_FIXTURE_REFERENCE_MISSING",
+                        f"fixture reference does not exist: {fixture_path}",
+                        entry=name,
+                    )
+                )
 
         if status in {"experimental", "adopted", "deprecated", "superseded"} and not version_branch:
             issues.append(

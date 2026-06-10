@@ -36,6 +36,7 @@ REQUIRED_TOP_LEVEL = {
     "bad_event_corpus_hash",
     "adapter_conformance_hash",
     "encoding_projection_specs_hash",
+    "process_governance_hash",
     "release_bundle_hash",
     "release_manifest_hash",
     "artifact_hashes",
@@ -67,6 +68,7 @@ REQUIRED_GROUPS = {
     "conformance_tools",
     "claims",
     "release_policy",
+    "process_governance",
     "release_packaging",
 }
 

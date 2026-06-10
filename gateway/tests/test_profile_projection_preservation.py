@@ -107,6 +107,8 @@ def test_projection_failure_codes_include_required_contract_set():
         "PROJECTION_PROHIBITED_FIELD_ADDED",
         "PROJECTION_SEMANTIC_LAYER_COLLAPSE",
         "PROJECTION_PROFILE_ILLEGAL_EVENT",
+        "PROJECTION_POLICY_RISK_LABEL_REMOVED",
+        "PROJECTION_EXTERNAL_PROMOTION_EVIDENCE_REMOVED",
         "PROJECTION_UNDECLARED_OPTIONAL_OMISSION",
         "PROJECTION_ENCODING_DECODE_INVALID",
         "PROJECTION_SCHEMA_INVALID_SOURCE",
@@ -144,6 +146,15 @@ def test_projection_optional_omission_must_be_cataloged():
     assert validate_projection.compare_projection(good, catalog, policy, schema_validator) == []
     assert "PROJECTION_UNDECLARED_OPTIONAL_OMISSION" in _codes(
         "undeclared-optional-omission-fail"
+    )
+
+
+def test_projection_preserves_policy_risk_extensions():
+    assert "PROJECTION_POLICY_RISK_LABEL_REMOVED" in _codes(
+        "risk-adjudication-stripped-fail"
+    )
+    assert "PROJECTION_EXTERNAL_PROMOTION_EVIDENCE_REMOVED" in _codes(
+        "external-promotion-compact-evidence-stripped-fail"
     )
 
 

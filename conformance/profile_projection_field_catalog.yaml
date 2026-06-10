@@ -18,6 +18,8 @@ statuses:
   - prohibited_in_profile_l
   - prohibited_in_state
   - never_mutable
+  - policy_risk_extension
+  - external_promotion_evidence
   - contextual
 
 comparison_modes:
@@ -162,6 +164,139 @@ rules:
     status: [contextual]
     comparison: contextual
     notes: Alternate per-event timing quality path used by current policy.
+
+  - path: payload.extensions.risk_adjudication
+    event_types: ["STATE_EVENT", "COMMAND_EVENT"]
+    profiles: ["L", "M", "H"]
+    status: [policy_risk_extension, never_mutable]
+    comparison: equality
+    notes: Accepted-risk labels, policy decisions, use limits, and applied effects must remain explicit and filterable across profile projection.
+
+  - path: payload.extensions.external_promotion.state_category
+    event_types: ["STATE_EVENT"]
+    profiles: ["L", "M", "H"]
+    status: [external_promotion_evidence, never_mutable]
+    comparison: equality
+    notes: Compact external promotion category is required evidence when present.
+
+  - path: payload.extensions.external_promotion.promotion_policy_id
+    event_types: ["STATE_EVENT"]
+    profiles: ["L", "M", "H"]
+    status: [external_promotion_evidence, never_mutable]
+    comparison: equality
+    notes: Promotion policy identity must remain available to consumers and filters.
+
+  - path: payload.extensions.external_promotion.trust_ref
+    event_types: ["STATE_EVENT"]
+    profiles: ["L", "M", "H"]
+    status: [external_promotion_evidence, never_mutable]
+    comparison: equality
+    notes: Policy-scoped trust reference must not be stripped or rewritten.
+
+  - path: payload.extensions.external_promotion.lineage_status
+    event_types: ["STATE_EVENT"]
+    profiles: ["L", "M", "H"]
+    status: [external_promotion_evidence, never_mutable]
+    comparison: equality
+    notes: External lineage status affects consumer use and must remain explicit.
+
+  - path: payload.extensions.external_promotion.loop_status
+    event_types: ["STATE_EVENT"]
+    profiles: ["L", "M", "H"]
+    status: [external_promotion_evidence, never_mutable]
+    comparison: equality
+    notes: Loop/reflection status affects trust and routing decisions.
+
+  - path: payload.extensions.external_promotion.policy_mode
+    event_types: ["STATE_EVENT"]
+    profiles: ["L", "M", "H"]
+    status: [external_promotion_evidence, never_mutable]
+    comparison: equality
+    notes: When policy action metadata is present, projection must preserve the applied mode.
+
+  - path: payload.extensions.external_promotion.policy_decision
+    event_types: ["STATE_EVENT"]
+    profiles: ["L", "M", "H"]
+    status: [external_promotion_evidence, never_mutable]
+    comparison: equality
+    notes: When policy action metadata is present, projection must preserve the decision label.
+
+  - path: payload.extensions.external_promotion.policy_reason_code
+    event_types: ["STATE_EVENT"]
+    profiles: ["L", "M", "H"]
+    status: [external_promotion_evidence, never_mutable]
+    comparison: equality
+    notes: When policy action metadata is present, projection must preserve the reason code.
+
+  - path: payload.extensions.external_promotion.origin_kind
+    event_types: ["STATE_EVENT"]
+    profiles: ["M", "H"]
+    status: [external_promotion_evidence, never_mutable]
+    comparison: equality
+    notes: Profile M/H preserve external origin kind.
+
+  - path: payload.extensions.external_promotion.origin_kind
+    event_types: ["STATE_EVENT"]
+    profiles: ["L"]
+    status: [optional_removable, external_promotion_evidence]
+    comparison: optional_omission
+    notes: Profile L may omit high-detail origin kind when compact promotion handles remain.
+
+  - path: payload.extensions.external_promotion.projection_id
+    event_types: ["STATE_EVENT"]
+    profiles: ["M", "H"]
+    status: [external_promotion_evidence, never_mutable]
+    comparison: equality
+    notes: Profile M/H preserve projection identifier.
+
+  - path: payload.extensions.external_promotion.projection_id
+    event_types: ["STATE_EVENT"]
+    profiles: ["L"]
+    status: [optional_removable, external_promotion_evidence]
+    comparison: optional_omission
+    notes: Profile L may omit high-detail projection identifier when compact promotion handles remain.
+
+  - path: payload.extensions.external_promotion.confidence_basis
+    event_types: ["STATE_EVENT"]
+    profiles: ["M", "H"]
+    status: [external_promotion_evidence, never_mutable]
+    comparison: equality
+    notes: Profile M/H preserve confidence basis for promoted external state.
+
+  - path: payload.extensions.external_promotion.confidence_basis
+    event_types: ["STATE_EVENT"]
+    profiles: ["L"]
+    status: [optional_removable, external_promotion_evidence]
+    comparison: optional_omission
+    notes: Profile L may omit high-detail confidence basis when compact promotion handles remain.
+
+  - path: payload.extensions.external_promotion.source_event_uid
+    event_types: ["STATE_EVENT"]
+    profiles: ["H"]
+    status: [external_promotion_evidence, never_mutable]
+    comparison: equality
+    notes: Profile H preserves source external event identity.
+
+  - path: payload.extensions.external_promotion.source_event_uid
+    event_types: ["STATE_EVENT"]
+    profiles: ["L", "M"]
+    status: [optional_removable, external_promotion_evidence]
+    comparison: optional_omission
+    notes: Profile L/M may omit source external event identity unless active policy requires it for the selected lineage status.
+
+  - path: payload.extensions.external_promotion.freshness_ms
+    event_types: ["STATE_EVENT"]
+    profiles: ["H"]
+    status: [external_promotion_evidence, never_mutable]
+    comparison: equality
+    notes: Profile H preserves freshness audit detail.
+
+  - path: payload.extensions.external_promotion.freshness_ms
+    event_types: ["STATE_EVENT"]
+    profiles: ["L", "M"]
+    status: [optional_removable, external_promotion_evidence]
+    comparison: optional_omission
+    notes: Profile L/M may omit freshness detail when TTL and compact promotion handles remain.
 
   - path: payload.modality
     event_types: ["OBSERVATION_EVENT"]

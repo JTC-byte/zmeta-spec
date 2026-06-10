@@ -51,9 +51,20 @@ def test_statuses_and_categories_are_valid():
     data = load_registry()
     statuses = set(data["status_values"])
     categories = set(data["category_values"])
+    projection_behaviors = set(data["projection_behavior_values"])
     for entry in data["entries"]:
         assert entry["status"] in statuses
         assert entry["category"] in categories
+        assert entry["profile_projection_behavior"] in projection_behaviors
+
+
+def test_projection_risk_contract_fields_have_valid_types():
+    data = load_registry()
+    for entry in data["entries"]:
+        assert isinstance(entry["risk_relevant"], bool), entry["name"]
+        assert isinstance(entry["must_preserve_when_used_for_policy"], bool), entry["name"]
+        assert isinstance(entry["security_privacy_notes"], list), entry["name"]
+        assert isinstance(entry["fixture_references"], list), entry["name"]
 
 
 def test_current_registry_validator_succeeds():
@@ -119,6 +130,49 @@ def test_adopted_entry_without_coverage_fails():
         codes = {issue["code"] for issue in issues}
         assert "REGISTRY_ADOPTED_SURFACE_MISSING" in codes
         assert "REGISTRY_ADOPTED_CONFORMANCE_MISSING" in codes
+    finally:
+        path.unlink(missing_ok=True)
+
+
+def test_invalid_projection_behavior_fails():
+    data = load_registry()
+    data["entries"][0]["profile_projection_behavior"] = "strip_silently"
+    path = write_registry("extension_registry_bad_projection_behavior", data)
+    try:
+        issues = validate_extension_registry.validate_registry(path)
+        assert any(issue["code"] == "REGISTRY_PROJECTION_BEHAVIOR_INVALID" for issue in issues)
+    finally:
+        path.unlink(missing_ok=True)
+
+
+def test_policy_preserved_extension_cannot_be_ignorable():
+    data = load_registry()
+    entry = data["entries"][0]
+    entry["risk_relevant"] = True
+    entry["must_preserve_when_used_for_policy"] = True
+    entry["profile_projection_behavior"] = "preserve"
+    entry["ignorable_by_default"] = True
+    entry["security_privacy_notes"] = ["Policy-relevant regression fixture."]
+    entry["fixture_references"] = ["conformance/profile-projection/must-pass.jsonl"]
+    path = write_registry("extension_registry_policy_preserve_ignorable", data)
+    try:
+        issues = validate_extension_registry.validate_registry(path)
+        assert any(issue["code"] == "REGISTRY_POLICY_PRESERVE_IGNORABLE" for issue in issues)
+    finally:
+        path.unlink(missing_ok=True)
+
+
+def test_risk_relevant_extension_requires_fixture_references():
+    data = load_registry()
+    entry = data["entries"][0]
+    entry["risk_relevant"] = True
+    entry["profile_projection_behavior"] = "preserve"
+    entry["security_privacy_notes"] = ["Risk-relevant regression fixture."]
+    entry["fixture_references"] = []
+    path = write_registry("extension_registry_risk_missing_fixtures", data)
+    try:
+        issues = validate_extension_registry.validate_registry(path)
+        assert any(issue["code"] == "REGISTRY_RISK_FIXTURES_MISSING" for issue in issues)
     finally:
         path.unlink(missing_ok=True)
 

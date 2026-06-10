@@ -1,6 +1,26 @@
 # Changelog
 
 ## [Unreleased]
+- None.
+
+## [1.1.7] - 2026-06-10
+- Added formal human/AI agent change governance through `AGENTS.md` and
+  `docs/zmeta_change_governance.md`, including change classes, documentation
+  requirements, validation gates, release limits, and publication workflow.
+- Added downstream clone guidance distinguishing local integration freedom from
+  compatibility-breaking private ZMeta dialect or fork changes.
+- Added governed `process_governance_hash` release-manifest coverage for
+  process guidance.
+- Added a release audit record for stale/current-release references, ignored
+  local build residue, generated artifact handling, and tracked-source secret
+  scans.
+- Added machine-checkable profile-projection preservation rules and fixtures for
+  `payload.extensions.risk_adjudication` and
+  `payload.extensions.external_promotion`, preventing lower-profile exports
+  from stripping accepted-risk labels or compact external-promotion evidence.
+- Strengthened the extension registry contract with validated projection
+  behavior, risk relevance, policy-preservation, security/privacy, and fixture
+  reference fields.
 - Added post-v1.1.6 integration guidance for external state promotion metadata,
   `trust_ref` limits, and consumer responsibility for accepted-risk labels.
 - Added `tools/lint_policy_risk_modes.py` to flag unsafe `ignore` settings on

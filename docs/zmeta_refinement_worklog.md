@@ -2,19 +2,17 @@
 
 ## Current Resume Note
 
-- Last updated: 2026-06-09
+- Last updated: 2026-06-10
 - Quick handoff: `docs/zmeta_refinement_handoff.md`
 - Current next work item: none required for the current downstream integration
   baseline. Optional future work remains S1-11B future-branch roadmap artifact,
   adapter-harness breadth from real sensor captures, release-authority
   signatures, or deployment/container runtime breadth.
-- Current decision: ZMeta v1.1.6 was published at
-  `https://github.com/JTC-byte/zmeta-spec/releases/tag/v1.1.6` from tag
-  `v1.1.6` on commit `a42f1b1d538cf2f2318a81203f28d7c656c22ce8`. The latest
-  integration baseline is current `main`; the post-release tooling/guidance
-  commit `fe4634b` adds partner feedback guidance and
-  `tools/lint_policy_risk_modes.py` without changing schemas, event vocabulary,
-  policy YAML semantics, release assets, or the published v1.1.6 checksum set.
+- Current decision: ZMeta v1.1.7 is the current formal release baseline. It
+  publishes the post-v1.1.6 projection, extension registry, policy-risk lint,
+  process governance, downstream clone interoperability, stale-reference audit,
+  and release packaging cleanup work without changing schemas, event
+  vocabulary, policy YAML semantics, or the locked v1.0 semantic kernel.
   S1-12C audited the D-012 formal release
   packaging framework and closed D-012. S1-13A audited the stack for semantic
   conformance and stale files, corrected the live compatibility checker and CI
@@ -56,8 +54,19 @@
   clarifying that `trust_ref` is policy-scoped evidence rather than
   authenticity proof, strengthening downstream consumer responsibility for
   accepted-risk labels, and adding a policy lint that flags unsafe `ignore`
-  settings on material risk. GitHub CI on `main` passed for the P1-01 commit
-  `fe4634b`.
+  settings on material risk. P1-02 added machine-checkable profile-projection
+  preservation for `payload.extensions.risk_adjudication` and compact
+  `payload.extensions.external_promotion` evidence, strengthened the extension
+  registry entry contract with validated projection/risk/security/fixture
+  fields, and rebuilt the current-main release manifest and example claim
+  hashes. P1-03 added formal human/AI agent change governance through
+  `AGENTS.md` and `docs/zmeta_change_governance.md`, linked it from public
+  entry points, added downstream clone interoperability limits, and added
+  governed release-manifest coverage for process guidance. R1-03 audited the
+  current stack for stale release references, ignored local build residue, and
+  tracked-source secret/generated-artifact risk; updated active release
+  surfaces to v1.1.7; built source, edge, gateway, release package, manifest,
+  notes, validation report, and checksum assets for publication.
   D-003 remains `OPEN - ROADMAP PLANNED`. D-004 remains closed as removed from
   ZMeta scope.
 
@@ -1617,6 +1626,167 @@
 - Decision: This stack is closed for the current downstream integration
   baseline. Use `v1.1.6` for formal release pinning and current `main` for the
   latest guidance/lint baseline.
+
+## P1-02 - Post-v1.1.6 Projection And Registry Hardening
+
+- Status: COMPLETE
+- Date completed: 2026-06-10
+- Scope: Applied downstream live-use feedback that accepted-risk labels,
+  policy use limits, and external-promotion evidence must remain
+  machine-checkable through profile projection and future extension registry
+  work.
+- Changes:
+  - Added projection catalog rules for
+    `payload.extensions.risk_adjudication` and
+    `payload.extensions.external_promotion`.
+  - Added profile-projection pass/fail fixtures proving Profile L projection
+    preserves accepted-risk labels and compact external-promotion policy,
+    trust, lineage, and loop evidence.
+  - Added explicit projection failure codes for removed risk labels and removed
+    external-promotion evidence.
+  - Strengthened `spec/extension-registry.yaml` defaults and
+    `tools/validate_extension_registry.py` validation for
+    `profile_projection_behavior`, `risk_relevant`,
+    `must_preserve_when_used_for_policy`, `security_privacy_notes`, and
+    `fixture_references`.
+  - Updated `spec/extension-registry.md`,
+    `spec/profile-projection-field-catalog.md`, and
+    `spec/semantics-contract.md` to align with the implemented registry and
+    projection contract.
+  - Rebuilt `release/zmeta-release-manifest.yaml` and example claim hashes for
+    the current working baseline. Published `v1.1.6` release assets and
+    `SHA256SUMS_v1.1.6.txt` remain historical release outputs, not regenerated
+    by this post-release hardening pass.
+- Verification:
+  - `python tools\validate_projection.py --catalog conformance\profile_projection_field_catalog.yaml --must-pass conformance\profile-projection\must-pass.jsonl --must-fail conformance\profile-projection\must-fail.jsonl --quiet` ->
+    `projection conformance ok total=37`
+  - `python tools\validate_extension_registry.py --registry spec\extension-registry.yaml` ->
+    `extension registry ok entries=56`
+  - `python tools\validate_release_manifest.py --manifest release\zmeta-release-manifest.yaml` ->
+    `release manifest ok groups=17 artifacts=60`
+  - `python tools\validate_release_package.py --manifest release\zmeta-release-manifest.yaml --templates-only` ->
+    `release package ok mode=templates`
+  - `python tools\validate_conformance.py --strict --profile-projection --extension-registry --conformance-classes --encoding-negative --precision-policy --release-manifest --release-package --bad-events --adapter-harness` ->
+    `projection conformance ok total=37`, `extension registry ok entries=56`,
+    `conformance classes ok classes=34 claims=2`, `encoding negative ok
+    total=49`, `profile precision policy ok total=32`, `bad-event corpus ok
+    total=9`, `adapter conformance ok total=8`, `conformance ok`
+  - `python -m pytest -q gateway\tests\test_profile_projection_preservation.py gateway\tests\test_extension_registry.py gateway\tests\test_release_manifest.py gateway\tests\test_conformance_classes.py gateway\tests\test_policy_risk_mode_lint.py` ->
+    `64 passed`
+  - `python tools\lint_policy_risk_modes.py` -> `policy risk mode lint ok`
+
+## P1-03 - Human And AI Agent Change Governance
+
+- Status: COMPLETE
+- Date completed: 2026-06-10
+- Scope: Added a formal internal process for human maintainers and AI agents to
+  propose, implement, validate, document, and publish changes to the ZMeta
+  stack without over-specializing the semantic kernel or bypassing release
+  governance.
+- Changes:
+  - Added `AGENTS.md` as the root quick-start guide for agents and maintainers.
+  - Added `docs/zmeta_change_governance.md` with authority order, left/right
+    limits, change classes, documentation matrix, versioning rules, validation
+    gates, release publication workflow, and human/agent responsibility splits.
+  - Added downstream clone guidance that permits local integrations around a
+    pinned ZMeta release while classifying local schema, vocabulary, version,
+    projection, risk, or command-authority changes as private dialect/fork
+    work unless governed and versioned.
+  - Linked the process from `README.md`, `release/README.md`, and
+    `RELEASE_CHECKLIST.md`.
+  - Added a governed `process_governance` release-manifest artifact group and
+    top-level `process_governance_hash`.
+  - Updated `spec/release-hash-policy.md`,
+    `tools/build_release_manifest.py`, and
+    `tools/validate_release_manifest.py` to include the process governance
+    category.
+  - Rebuilt `release/zmeta-release-manifest.yaml` and example claim hashes for
+    the current working baseline.
+- Verification:
+  - `python tools\build_release_manifest.py --release-id zmeta-v1.1.6 --release-name "ZMeta v1.1.6" --release-status formal_release --release-date 2026-06-09 --git-commit a42f1b1d538cf2f2318a81203f28d7c656c22ce8 --branch main --update-claims` ->
+    wrote `release/zmeta-release-manifest.yaml`
+  - `python tools\validate_release_manifest.py --manifest release\zmeta-release-manifest.yaml` ->
+    `release manifest ok groups=18 artifacts=62`
+  - `python tools\validate_release_package.py --manifest release\zmeta-release-manifest.yaml --templates-only` ->
+    `release package ok mode=templates`
+  - `python tools\validate_conformance.py --strict --profile-projection --extension-registry --conformance-classes --encoding-negative --precision-policy --release-manifest --release-package --bad-events --adapter-harness` ->
+    `projection conformance ok total=37`, `extension registry ok entries=56`,
+    `conformance classes ok classes=34 claims=2`, `encoding negative ok
+    total=49`, `profile precision policy ok total=32`, `bad-event corpus ok
+    total=9`, `adapter conformance ok total=8`, `conformance ok`
+  - `python -m pytest -q gateway\tests\test_release_manifest.py gateway\tests\test_release_package.py gateway\tests\test_profile_projection_preservation.py gateway\tests\test_extension_registry.py` ->
+    `51 passed`
+  - After the downstream clone guidance refresh,
+    `python -m pytest -q gateway\tests\test_release_manifest.py gateway\tests\test_release_package.py` ->
+    `27 passed`
+  - `python -m pytest -q` -> `375 passed, 108 subtests passed`
+  - `git diff --check` -> passed with normal Windows CRLF conversion warnings
+
+## R1-03 - v1.1.7 Stack Audit And Release
+
+- Status: COMPLETE
+- Date completed: 2026-06-10
+- Scope: Audited the full tracked stack for stale current-release references,
+  ignored local release residue, tracked-source secret risk, generated release
+  artifact residue, and release-target drift; promoted the post-v1.1.6
+  projection, registry, policy-risk lint, process governance, and downstream
+  clone compatibility work into the v1.1.7 patch release.
+- Outputs:
+  - `docs/r1_03_v1_1_7_stack_audit_release.md`
+  - `release/RELEASE_NOTES_v1.1.7.md`
+  - `release/VALIDATION_REPORT_v1.1.7.md`
+  - `release/SHA256SUMS_v1.1.7.txt`
+  - `release/zmeta-release-manifest.yaml`
+  - `zmeta-v1.1.7-dist.zip`
+  - `zmeta-edge-v1.1.7.zip`
+  - `zmeta-gateway-v1.1.7.zip`
+  - `zmeta-release-package-v1.1.7.zip`
+- Audit:
+  - Active current-release references and compatibility defaults now target
+    v1.1.7.
+  - Historical v1.1.5/v1.1.6 release notes, validation reports, checksums, and
+    audit docs remain intentionally preserved.
+  - Ignored local generated directories `release/bundles/`,
+    `release/smoke-edge/`, `release/smoke-gateway/`, and
+    `release/package-v1.1.6/` were confirmed untracked and removed before
+    rebuilding v1.1.7 artifacts.
+  - Tracked-source scans found no secret-like filenames, private key blocks,
+    token markers, credential markers, or tracked release ZIP/signature residue.
+- Verification:
+  - `python tools\validate_release_manifest.py --manifest release\zmeta-release-manifest.yaml` ->
+    `release manifest ok groups=18 artifacts=62`
+  - `python tools\validate_release_package.py --manifest release\zmeta-release-manifest.yaml --templates-only` ->
+    `release package ok mode=templates`
+  - `python tools\validate_examples.py --strict --require-all` ->
+    `overall total=40 passed=40 failed=0 warnings=0`
+  - `python tools\validate_conformance.py --strict --profile-projection --extension-registry --conformance-classes --encoding-negative --precision-policy --release-manifest --release-package --bad-events --adapter-harness` ->
+    `projection conformance ok total=37`, `extension registry ok entries=56`,
+    `conformance classes ok classes=34 claims=2`, `encoding negative ok
+    total=49`, `profile precision policy ok total=32`, `bad-event corpus ok
+    total=9`, `adapter conformance ok total=8`, `conformance ok`
+  - Focused projection, registry, conformance-class, encoding-negative,
+    precision-policy, bad-event, adapter-harness, and policy-risk lint
+    validators passed.
+  - All example streams passed `python tools\check_compat.py --target v1.1.7
+    --strict`.
+  - Gateway self-tests passed for Profile H, `configs/gateway-config.json`, and
+    `configs/edge-config.json`.
+  - End-to-end workflow checks passed for Profile H, Profile M command/system,
+    Profile L, CBOR, compact, and protobuf variants after rerunning sequentially
+    with unique ports to avoid local UDP port collisions.
+  - Live gateway tests passed for Profile H JSON, Profile L compact, and
+    Profile H protobuf paths.
+  - Docker Compose gateway and edge config rendering passed with local Docker
+    config access warnings.
+  - `python -m pytest -q` -> `375 passed, 108 subtests passed`
+  - `python tools\validate_release_package.py --manifest release\zmeta-release-manifest.yaml --package-dir release\package-v1.1.7` ->
+    `release package ok mode=package`
+  - `python release\sign_release_artifacts.py --version v1.1.7 --write-checksums --verify-checksums` ->
+    `checksums ok: SHA256SUMS_v1.1.7.txt`
+  - `git diff --check` -> passed with normal Windows CRLF conversion warnings
+- Signature status: No detached `.asc` signatures were generated because no
+  approved local signing identity was provided. Integrity is covered by
+  `SHA256SUMS_v1.1.7.txt` and the structured release manifest.
 
 ## Deferred Issue Register
 

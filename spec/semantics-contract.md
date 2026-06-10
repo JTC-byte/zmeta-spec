@@ -2297,7 +2297,8 @@ branch, schema, policy, and conformance tests are approved:
 - SYSTEM_EVENT/POLICY_ADJUDICATION or equivalent clearer policy diagnostic
   subtype.
 - Replay/red-team/synthetic labels.
-- Machine-readable extension registry fields.
+- Future machine-readable extension registry field expansions beyond the
+  current registry contract.
 
 ## Appendix A. Data Reference Convention
 

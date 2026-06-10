@@ -21,6 +21,10 @@
 ## Vendor Guidance
 
 - Pin schema and policy to a tagged release, not the main branch.
+- Prefer adapters, policy/config, profiles, and namespaced extensions for local
+  integration. A local change to schema, event vocabulary, version dispatch, or
+  semantic meaning is a private dialect unless it is versioned, documented,
+  covered by conformance evidence, and released through governance.
 
 ## Component Versioning
 

@@ -61,6 +61,8 @@ Release manifests use these SHA-256 categories:
   fixtures.
 - `encoding_projection_specs_hash`: compact CBOR and protobuf projection specs,
   protobuf `.proto`, and reference codec source.
+- `process_governance_hash`: human and AI agent change governance, limits, and
+  workflow requirements.
 - `release_bundle_hash`: deterministic hash over the listed artifact groups.
 - `release_manifest_hash`: deterministic hash over the manifest with its own
   hash field set to `null`.
@@ -95,6 +97,8 @@ artifacts into these groups:
 - `conformance_tools`: conformance validator tools.
 - `claims`: example reference gateway and core producer claims.
 - `release_policy`: this human-readable release hash policy.
+- `process_governance`: `AGENTS.md` and
+  `docs/zmeta_change_governance.md`.
 - `release_packaging`: formal release signing/attestation policy, package
   templates, and release package build/validation tooling.
 

@@ -43,6 +43,10 @@ field rule allows them:
 - Numeric precision reduction.
 - Confidence preservation or reduction.
 - `payload.valid_for_ms` preservation or reduction.
+- Preservation of accepted-risk labels and use limits under
+  `payload.extensions.risk_adjudication`.
+- Compact preservation of external-promotion policy, trust, lineage, and loop
+  handles under `payload.extensions.external_promotion`.
 - Gateway export metadata such as `event.t_receive` or `event.t_publish`.
 - Omission of whole events that are illegal in the target profile, provided the
   fixture records an explicit omission reason instead of rewriting the event.
@@ -62,6 +66,10 @@ including:
 - Lineage deletion.
 - Raw observation fields inserted into `STATE_EVENT`.
 - Command altitude-like fields.
+- Removal of policy/risk labels that affect display, fusion, command basis,
+  autonomy tasking, TAK/coalition export, TTL, confidence, or routing.
+- Removal or rewrite of compact external-promotion evidence needed to judge an
+  external `STATE_EVENT`.
 - Hidden defaults that change event meaning.
 - Profile-incompatible events emitted as if they were valid projections.
 
@@ -78,6 +86,34 @@ Each catalog rule contains:
 
 The catalog is a conformance aid. It does not replace JSON Schema and does not
 add v1.0 event fields.
+
+## Policy And Risk Extensions
+
+Profile projection may thin audit detail, but it must not make degraded,
+accepted-risk, or externally promoted state look cleaner than the source event.
+
+When `payload.extensions.risk_adjudication` is present on an event, projection
+must preserve the risk records exactly. Those records carry policy decisions,
+allowed/prohibited use labels, and applied effects that consumers use for
+display, fusion, command basis, autonomy, export, TTL, confidence, and routing
+decisions.
+
+When `payload.extensions.external_promotion` is present on a promoted external
+`STATE_EVENT`, every target profile must preserve the compact promotion handles
+that remain policy relevant:
+
+- `state_category`
+- `promotion_policy_id`
+- `trust_ref`
+- `lineage_status`
+- `loop_status`
+- policy action labels when present
+
+Profile M/H preserve additional origin, projection, and confidence-basis
+metadata. Profile L may omit selected audit-detail fields such as
+`origin_kind`, `projection_id`, `confidence_basis`, `source_event_uid`, and
+`freshness_ms` only when the compact policy/trust/lineage/loop handles remain
+and active producer-authority policy still validates the projected event.
 
 ## Precision Policy Boundary
 
@@ -156,4 +192,6 @@ Policy-scoped external promotion evidence, such as
 `payload.extensions.external_promotion` on a promoted external `STATE_EVENT`, is
 not same-event profile projection metadata. It records why an external report or
 lossy adapter projection was allowed to become a new ZMeta state event. It must
-not be used to rewrite a source event while preserving `event.event_id`.
+not be used to rewrite a source event while preserving `event.event_id`. Once
+that promoted state event exists, later H/M/L profile projections must preserve
+the compact policy evidence defined by the catalog.

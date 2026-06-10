@@ -41,6 +41,8 @@ Without a registry, implementation work can accidentally:
 - Add fields without schema, policy, gateway, encoding, or conformance coverage.
 - Hide required meaning in ignorable-looking payload extensions.
 - Treat examples or adapters as semantic authority.
+- Strip vendor, edge, or risk-relevant extension labels during profile
+  projection so degraded data appears cleaner than it is.
 
 The registry keeps future work branch-scoped and testable.
 
@@ -122,6 +124,49 @@ The current category set is:
 Categories describe the semantic area governed by the record. They do not make
 the record valid vocabulary.
 
+## Projection And Risk Fields
+
+Every registry entry declares how it behaves under profile projection:
+
+`not_applicable`
+: The entry does not define payload content whose projection behavior needs a
+  registry rule.
+
+`preserve`
+: If present, the field or concept must be preserved exactly across profile
+  projection.
+
+`preserve_or_compact`
+: The field or concept may be compacted for lower profiles, but policy-relevant
+  labels, handles, or decision codes must remain present and equivalent.
+
+`optional_omission`
+: The entry may be omitted during projection when omission does not change
+  event meaning or hide material risk.
+
+`prohibited`
+: The entry must not appear in the governed profile or event context.
+
+`future_branch_required`
+: Projection behavior is intentionally undecided until an approved version
+  branch defines schema, policy, and conformance fixtures.
+
+Entries also declare:
+
+- `risk_relevant`: whether the concept can affect trust, safety, privacy,
+  display, fusion, routing, command basis, autonomy, export, TTL, confidence, or
+  other operational policy decisions.
+- `must_preserve_when_used_for_policy`: whether consumers must preserve the
+  field whenever policy uses it. Such entries cannot be marked
+  `ignorable_by_default`.
+- `security_privacy_notes`: security, privacy, or misuse considerations.
+- `fixture_references`: positive or negative conformance fixtures that exercise
+  implemented behavior.
+
+Risk-relevant implemented entries must include security/privacy notes and
+fixture references. Risk-relevant entries must not use `optional_omission` or
+`not_applicable` projection behavior.
+
 ## Collision And Namespace Rules
 
 Extension records must obey these rules:
@@ -156,6 +201,10 @@ An extension cannot move to `adopted` until the record identifies:
 - Encoding notes if wire behavior changes.
 - Positive fixtures.
 - Negative fixtures.
+- Profile projection behavior.
+- Risk relevance and preservation requirements.
+- Security/privacy notes.
+- Fixture references for implemented behavior.
 - Conformance class impact.
 - Migration guidance.
 - Release/security review where applicable.

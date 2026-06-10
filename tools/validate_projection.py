@@ -46,6 +46,8 @@ FAILURE_CODES = (
     "PROJECTION_PROHIBITED_FIELD_ADDED",
     "PROJECTION_SEMANTIC_LAYER_COLLAPSE",
     "PROJECTION_PROFILE_ILLEGAL_EVENT",
+    "PROJECTION_POLICY_RISK_LABEL_REMOVED",
+    "PROJECTION_EXTERNAL_PROMOTION_EVIDENCE_REMOVED",
     "PROJECTION_UNDECLARED_OPTIONAL_OMISSION",
     "PROJECTION_ENCODING_DECODE_INVALID",
     "PROJECTION_SCHEMA_INVALID_SOURCE",
@@ -856,10 +858,20 @@ def _check_undeclared_omissions(
             continue
         if path.startswith("payload.timing_quality") or path.startswith("payload.quality.timing_quality"):
             continue
+        code = "PROJECTION_UNDECLARED_OPTIONAL_OMISSION"
+        message = "source field was omitted without a catalog allowance"
+        if path == "payload.extensions.risk_adjudication" or path.startswith(
+            "payload.extensions.risk_adjudication."
+        ):
+            code = "PROJECTION_POLICY_RISK_LABEL_REMOVED"
+            message = "policy risk adjudication labels were removed during projection"
+        elif path.startswith("payload.extensions.external_promotion."):
+            code = "PROJECTION_EXTERNAL_PROMOTION_EVIDENCE_REMOVED"
+            message = "external promotion evidence was removed during projection"
         out.append(
             _violation(
-                "PROJECTION_UNDECLARED_OPTIONAL_OMISSION",
-                "source field was omitted without a catalog allowance",
+                code,
+                message,
                 path=path,
             )
         )

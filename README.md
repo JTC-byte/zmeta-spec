@@ -1,4 +1,4 @@
-# ZMeta Specification (v1.0 Locked, current release v1.1.6)
+# ZMeta Specification (v1.0 Locked, current release v1.1.7)
 
 ## Overview
 - ZMeta is a transport-agnostic, event-based metadata standard for resilient ISR.
@@ -7,18 +7,24 @@
 
 ## Current Release
 
-- Current release: `v1.1.6`
-- Release notes and assets: <https://github.com/JTC-byte/zmeta-spec/releases/tag/v1.1.6>
-- Release focus: semantic risk adjudication, operator accepted-risk filtering,
-  kernel-protection conformance, adapter boundary hardening, and end-to-end
-  runtime validation while preserving version-dispatched validation.
+- Current release: `v1.1.7`
+- Release notes and assets: <https://github.com/JTC-byte/zmeta-spec/releases/tag/v1.1.7>
+- Release focus: profile-projection preservation for risk and external
+  promotion evidence, stricter extension registry metadata, downstream clone
+  interoperability limits, process governance, and release audit cleanup while
+  preserving version-dispatched validation.
 - Normative contract: v1.0 locked semantic contract, canonical version-discriminated
   JSON schema, v1.0 JSON schema, and policy pack.
 - Experimental extension: `schema/zmeta-event-1.1.0.schema.json` is provided for proposed
   compatibility testing only; v1.1.0-only fields are not part of the locked v1.0 contract.
 
-## v1.1.6 Integration Notes
+## v1.1.7 Integration Notes
 
+- Downstream clone users should pin to a tagged release and integrate through
+  adapters, policy/config, profiles, and namespaced extensions. Local changes to
+  core schema, event vocabulary, version dispatch, risk semantics, projection
+  behavior, or command authority create a private dialect unless governed and
+  versioned. See `AGENTS.md` and `docs/zmeta_change_governance.md`.
 - Custom CoT/JREAP/MAVLink and other external-track ingress adapters that emit
   authoritative `STATE_EVENT` output must attach valid
   `payload.extensions.external_promotion` metadata and a `promote:*` lineage
@@ -52,6 +58,11 @@
 - Interoperability across vendors and transports
 
 ## Start Here
+- Agents and maintainers: read `AGENTS.md` and
+  `docs/zmeta_change_governance.md` before changing governed artifacts.
+- Downstream integrators using a clone: read the downstream clone limits in
+  `AGENTS.md` and `docs/zmeta_change_governance.md` before altering schema,
+  semantics, policy authority, or event vocabulary.
 - New to ZMeta: read `spec/installation-guide.md` for a full step-by-step install.
 - Developer walkthrough: read `spec/quickstart.md` for runnable examples.
 - Contract and semantics: read `spec/semantics-contract.md`.
@@ -68,6 +79,8 @@
 - `gateway/` Reference gateway implementation and tests.
 - `adapters/` Ingress and egress adapter patterns and templates.
 - `tools/` Utilities for validation and development workflows.
+- `AGENTS.md`, `docs/zmeta_change_governance.md` Human and AI agent change
+  governance, process limits, documentation requirements, and release workflow.
 
 ## Adapters
 
@@ -115,7 +128,7 @@ python tools/run_gateway.py --profile H
 python tools/udp_receiver.py
 python tools/udp_sender.py --file examples/zmeta-command-examples.jsonl
 python tools/replay.py --file examples/zmeta-command-examples.jsonl --delay-ms 200
-python tools/check_compat.py legacy-events.jsonl --target v1.1.6
+python tools/check_compat.py legacy-events.jsonl --target v1.1.7
 python tools/validate.py --file examples/zmeta-command-examples.jsonl --profile H
 python tools/validate_conformance.py --strict
 python tools/validate_release_manifest.py --manifest release/zmeta-release-manifest.yaml
@@ -179,10 +192,10 @@ Deployment helpers:
 - Config templates: `configs/edge-config.json`, `configs/gateway-config.json`
 - Docker Compose: `deploy/edge/docker-compose.yml`, `deploy/gateway/docker-compose.yml`
 - Bundle builders:
-    - `python release/build_mvp_packages.py --version v1.1.6` produces `zmeta-edge-v1.1.6.zip` and `zmeta-gateway-v1.1.6.zip`
-    - `python release/build_release_bundle.py --version 1.1.6` produces `zmeta-v1.1.6-dist.zip`
-    - `python tools/build_release_package.py --manifest release/zmeta-release-manifest.yaml --output-dir release/package-v1.1.6 --release-id zmeta-v1.1.6 --release-state formal_release --no-signatures` builds formal package metadata without creating signatures.
-    - `python release/sign_release_artifacts.py --version v1.1.6 --write-checksums --sign --target all` signs release assets with detached PGP signatures when an approved signing key is available.
+    - `python release/build_mvp_packages.py --version v1.1.7` produces `zmeta-edge-v1.1.7.zip` and `zmeta-gateway-v1.1.7.zip`
+    - `python release/build_release_bundle.py --version 1.1.7` produces `zmeta-v1.1.7-dist.zip`
+    - `python tools/build_release_package.py --manifest release/zmeta-release-manifest.yaml --output-dir release/package-v1.1.7 --release-id zmeta-v1.1.7 --release-state formal_release --no-signatures` builds formal package metadata without creating signatures.
+    - `python release/sign_release_artifacts.py --version v1.1.7 --write-checksums --sign --target all` signs release assets with detached PGP signatures when an approved signing key is available.
 
 ## Deployment Checklist (Compact)
 
@@ -198,6 +211,10 @@ Use this to lock down schema, policy, and semantic-contract drift and verify a c
 1. Verify consumer risk posture where needed: `python tools/filter_risk.py --input gateway-output.jsonl --preset command --fail-on-drop`
 1. Start gateway with strict mode (optional): `python tools/run_gateway.py --config configs/gateway-config.json --strict-validation`
 1. Verify metrics and drops in logs (enable `metrics_log_path` if needed).
+
+Before publishing changes to the repository itself, follow
+`docs/zmeta_change_governance.md`; release publication additionally requires
+`RELEASE_CHECKLIST.md`.
 
 ## Normative vs Reference
 

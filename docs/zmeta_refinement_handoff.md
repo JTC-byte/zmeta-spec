@@ -1,35 +1,40 @@
 # ZMeta Refinement Handoff Notes
 
-Status date: 2026-06-09
+Status date: 2026-06-10
 
 This note is the quick resume point for the current ZMeta refinement effort. The full task history and deferred issue register are in `docs/zmeta_refinement_worklog.md`.
 
 ## Current Position
 
-The semantic contract has been audited, rewritten, and crosswalked against the current implementation stack. The locked v1.0 baseline was verified, and no S1-01B targeted schema implementation task is currently needed. Profile projection preservation has been implemented and audited as sidecar conformance tooling without changing v1.0 schema or event vocabulary. The extension registry has been implemented and audited. The conformance class manifest and claim model have been implemented and audited without changing schemas or making new vocabulary valid. Encoding-negative validation has been implemented and audited for compact CBOR and protobuf invalid-after-decode paths. Profile precision and quantization policy has been implemented and audited as a reference conformance default. The D-011 `TAKEOFF` crosswalk cleanup is complete. The D-001 MAVLink ingress README state payload drift cleanup is complete. S1-09A planned the contract hash and release hash follow-up for D-002, S1-09B implemented the reference release hash policy, manifest, builder, validator, claim hash updates, and optional conformance integration, and S1-09C audited that implementation and closed D-002. S1-10P removed FORGE-derived organizational artifact scope from the ZMeta baseline. S1-10B was stopped before commit, no stopped implementation files remain, and D-004 is closed as removed from ZMeta scope. S1-11A planned the D-003 future versioned semantic branch roadmap and left D-003 open as roadmap-planned. S1-12A planned formal release tag, signature, checksum, and attestation packaging for D-012, S1-12B implemented the release packaging framework without creating real tags/signatures/keys/secrets or semantic drift, and S1-12C audited it and closed D-012. R1-01 published `v1.1.5` from commit `d4d406b43a705ca5b7a314e1d5388c3ca39c750a` with release notes, validation report, release manifest, release package zip, edge/gateway/source bundles, and checksum manifest. S1-13A audited the stack for semantic conformance and stale files, corrected the live compatibility checker/CI target to `v1.1.5`, added explicit v1.0/v1.1.0 observation extension boundary tests, and closed D-009 without changing schemas, policy, adapters, encodings, the semantic contract, or event vocabulary. S1-14 implemented external projection promotion hardening so CoT/JREAP/MAVLink ingress state must carry policy-scoped promotion evidence before becoming authoritative ZMeta state, with operator-tunable reject/warn/degrade/quarantine modes that preserve diagnostics and bandwidth discipline. S1-15A added the risk adjudication semantic baseline: locked/tunable/advisory rule classes, bounded policy actions, filterable risk diagnostics, and operator override constraints. S1-15B conformed the stack to that baseline across policy use limits, validator diagnostics, gateway runtime degradation labels, conformance fixtures, tests, schemas, and docs. S1-15C cleaned up feedback on the contract text, conformance classes, claims, crosswalk, and future-only boundaries. S1-16A added the semantic bad-event corpus and shared adapter harness, promoted generic adapter and CoT projection conformance evidence, and kept broader sensor-adapter certification as planned future work. S1-16B added the kernel-protection doctrine: ZMeta is complete without becoming exhaustive, future core changes must clear a concrete need threshold, and `FUTURE_EXTENSION` remains non-claimable until versioned adoption. S1-17A audited the tracked stack against that doctrine, added full kernel-protection conformance to CI and Makefile, and clarified policy/config tunability boundaries. S1-18A added consumer-side risk filter tooling so operators can choose display, fusion, command, autonomy, AAR, or audit intake posture using existing risk labels without mutating events. S1-18B completed an end-to-end stack and runtime audit, hardened direct CoT egress so malformed state payloads carrying raw observation/evidence fields fail closed, and confirmed the full local validation/runtime/package sweep passes. R1-02 published `v1.1.6` from commit `a42f1b1d538cf2f2318a81203f28d7c656c22ce8`. P1-01 then addressed partner feedback in commit `fe4634b` by adding post-v1.1.6 integration guidance for external-promotion metadata, clarifying that `trust_ref` is policy-scoped evidence rather than proof of authenticity, strengthening consumer responsibilities for accepted-risk labels, and adding `tools/lint_policy_risk_modes.py` with tests to flag unsafe `ignore` settings on material risk.
+The semantic contract has been audited, rewritten, and crosswalked against the current implementation stack. The locked v1.0 baseline was verified, and no S1-01B targeted schema implementation task is currently needed. Profile projection preservation has been implemented and audited as sidecar conformance tooling without changing v1.0 schema or event vocabulary. The extension registry has been implemented and audited. The conformance class manifest and claim model have been implemented and audited without changing schemas or making new vocabulary valid. Encoding-negative validation has been implemented and audited for compact CBOR and protobuf invalid-after-decode paths. Profile precision and quantization policy has been implemented and audited as a reference conformance default. The D-011 `TAKEOFF` crosswalk cleanup is complete. The D-001 MAVLink ingress README state payload drift cleanup is complete. S1-09A planned the contract hash and release hash follow-up for D-002, S1-09B implemented the reference release hash policy, manifest, builder, validator, claim hash updates, and optional conformance integration, and S1-09C audited that implementation and closed D-002. S1-10P removed FORGE-derived organizational artifact scope from the ZMeta baseline. S1-10B was stopped before commit, no stopped implementation files remain, and D-004 is closed as removed from ZMeta scope. S1-11A planned the D-003 future versioned semantic branch roadmap and left D-003 open as roadmap-planned. S1-12A planned formal release tag, signature, checksum, and attestation packaging for D-012, S1-12B implemented the release packaging framework without creating real tags/signatures/keys/secrets or semantic drift, and S1-12C audited it and closed D-012. R1-01 published `v1.1.5` from commit `d4d406b43a705ca5b7a314e1d5388c3ca39c750a` with release notes, validation report, release manifest, release package zip, edge/gateway/source bundles, and checksum manifest. S1-13A audited the stack for semantic conformance and stale files, corrected the live compatibility checker/CI target to `v1.1.5`, added explicit v1.0/v1.1.0 observation extension boundary tests, and closed D-009 without changing schemas, policy, adapters, encodings, the semantic contract, or event vocabulary. S1-14 implemented external projection promotion hardening so CoT/JREAP/MAVLink ingress state must carry policy-scoped promotion evidence before becoming authoritative ZMeta state, with operator-tunable reject/warn/degrade/quarantine modes that preserve diagnostics and bandwidth discipline. S1-15A added the risk adjudication semantic baseline: locked/tunable/advisory rule classes, bounded policy actions, filterable risk diagnostics, and operator override constraints. S1-15B conformed the stack to that baseline across policy use limits, validator diagnostics, gateway runtime degradation labels, conformance fixtures, tests, schemas, and docs. S1-15C cleaned up feedback on the contract text, conformance classes, claims, crosswalk, and future-only boundaries. S1-16A added the semantic bad-event corpus and shared adapter harness, promoted generic adapter and CoT projection conformance evidence, and kept broader sensor-adapter certification as planned future work. S1-16B added the kernel-protection doctrine: ZMeta is complete without becoming exhaustive, future core changes must clear a concrete need threshold, and `FUTURE_EXTENSION` remains non-claimable until versioned adoption. S1-17A audited the tracked stack against that doctrine, added full kernel-protection conformance to CI and Makefile, and clarified policy/config tunability boundaries. S1-18A added consumer-side risk filter tooling so operators can choose display, fusion, command, autonomy, AAR, or audit intake posture using existing risk labels without mutating events. S1-18B completed an end-to-end stack and runtime audit, hardened direct CoT egress so malformed state payloads carrying raw observation/evidence fields fail closed, and confirmed the full local validation/runtime/package sweep passes. R1-02 published `v1.1.6` from commit `a42f1b1d538cf2f2318a81203f28d7c656c22ce8`. P1-01 addressed partner feedback by adding post-v1.1.6 integration guidance for external-promotion metadata, clarifying that `trust_ref` is policy-scoped evidence rather than proof of authenticity, strengthening consumer responsibilities for accepted-risk labels, and adding `tools/lint_policy_risk_modes.py` with tests to flag unsafe `ignore` settings on material risk. P1-02 added machine-checkable profile-projection preservation for `payload.extensions.risk_adjudication` and compact `payload.extensions.external_promotion` evidence, strengthened extension registry entry metadata for projection/risk/security/fixture behavior, and rebuilt the current-main release manifest plus example claim hashes. P1-03 added `AGENTS.md` and `docs/zmeta_change_governance.md` as the formal human/AI agent change process, linked them from README/release surfaces, and added governed `process_governance_hash` release-manifest coverage plus downstream clone compatibility limits. R1-03 audited the stack for stale current-release references, ignored local build residue, tracked-source secret risk, and generated artifact residue, then prepared v1.1.7 as the current formal patch release without changing schemas, event vocabulary, or the locked v1.0 semantic kernel.
 
 Current stack status:
 
 - No active ZMeta stack work remains for the current integration baseline.
-- Use tag `v1.1.6` for formal release assets/checksums.
-- Use current `main` for the latest integration baseline with post-v1.1.6 partner-feedback guidance and policy-risk linting.
+- Use tag `v1.1.7` for formal release assets/checksums.
+- Use current `main` for the latest integration baseline with policy-risk
+  linting, projection preservation for risk/promotion extensions, stricter
+  extension registry metadata, formal human/AI agent change governance,
+  downstream clone interoperability limits, and stale-release-reference audit
+  cleanup.
 - Future work is optional and should be driven by real sensor captures, a versioned semantic branch decision, or a release-authority signing process.
 
 Current public release:
 
-- Release URL: <https://github.com/JTC-byte/zmeta-spec/releases/tag/v1.1.6>
-- Tag: `v1.1.6`
-- Tagged commit: `a42f1b1d538cf2f2318a81203f28d7c656c22ce8`
-- Latest post-release tooling/guidance commit: `fe4634b` - `Add post-v1.1.6 risk policy guidance and lint`
-- Signature status: no detached `.asc` signatures were attached for `v1.1.6`
+- Release URL: <https://github.com/JTC-byte/zmeta-spec/releases/tag/v1.1.7>
+- Tag: `v1.1.7`
+- Tagged commit: the `v1.1.7` tag target.
+- Signature status: no detached `.asc` signatures were attached for `v1.1.7`
   because no approved local release signing key was available. Use
-  `SHA256SUMS_v1.1.6.txt`, the structured release manifest, and the release
+  `SHA256SUMS_v1.1.7.txt`, the structured release manifest, and the release
   package checksum file for integrity verification.
 
 ## Key Docs
 
 | Document | Purpose |
 | --- | --- |
+| `AGENTS.md` | Root quick-start guide for human maintainers and AI agents working in this governed repository. |
+| `docs/zmeta_change_governance.md` | Formal change process, authority order, left/right limits, documentation matrix, validation gates, and release publication workflow. |
 | `spec/semantics-contract.md` | Authoritative hardened semantic contract. Schemas, policy packs, adapters, encodings, examples, gateways, and conformance tests must preserve it. |
 | `docs/zmeta_semantic_contract_lockdown_audit.md` | S0-01 audit of the prior contract against intended ZMeta roles, implementation surfaces, and future ISR/edge AI/coalition/mesh trust needs. |
 | `docs/zmeta_contract_to_stack_crosswalk.md` | S0-03 contract-to-implementation crosswalk and prioritized implementation backlog. |
@@ -74,14 +79,15 @@ Current public release:
 | `docs/s1_17a_kernel_protection_stack_audit.md` | S1-17A stack audit confirming live tracked surfaces conform to kernel-protection doctrine and wiring full kernel conformance into CI/local release flow. |
 | `docs/s1_18a_operator_risk_filter_tooling.md` | S1-18A implementation note for consumer-side accepted-risk filtering and operator posture presets. |
 | `docs/s1_18b_end_to_end_stack_runtime_audit.md` | S1-18B audit note for folder-by-folder semantic conformance, runtime workflow sweep, package smoke tests, and CoT egress hardening. |
+| `docs/r1_03_v1_1_7_stack_audit_release.md` | R1-03 audit and release note for v1.1.7 stale-reference, generated-residue, secret-scan, and release-package cleanup. |
 | `conformance/bad-events/` | Semantic bad-event fixture suite for dishonest or unsafe events that must not be treated as clean data. |
 | `conformance/adapter-harness/` | Shared fixture-driven adapter output harness for schema/policy validity, layer separation, lineage, timing, and external promotion. |
 | `spec/release-signing-attestation.md` | S1-12B release signing, attestation, no-secret, and verification framework. |
 | `release/RELEASE_PACKAGE_README.md` | S1-12B release package template guidance. |
-| `release/RELEASE_NOTES_v1.1.6.md` | Published v1.1.6 release notes. |
-| `release/VALIDATION_REPORT_v1.1.6.md` | Published v1.1.6 validation report. |
-| `release/SHA256SUMS_v1.1.6.txt` | Published v1.1.6 checksum manifest for standard release assets. |
-| `tools/lint_policy_risk_modes.py` | Post-v1.1.6 policy lint for unsafe `ignore` settings on material risk. |
+| `release/RELEASE_NOTES_v1.1.7.md` | Published v1.1.7 release notes. |
+| `release/VALIDATION_REPORT_v1.1.7.md` | Published v1.1.7 validation report. |
+| `release/SHA256SUMS_v1.1.7.txt` | Published v1.1.7 checksum manifest for standard release assets. |
+| `tools/lint_policy_risk_modes.py` | Policy lint for unsafe `ignore` settings on material risk. |
 | `docs/zmeta_refinement_worklog.md` | Running worklog, completed work items, pending work items, and deferred issue register. |
 
 ## Completed Recently
@@ -130,11 +136,20 @@ Current public release:
 | S1-18B End-to-End Stack and Runtime Audit | COMPLETE | `docs/s1_18b_end_to_end_stack_runtime_audit.md`, `adapters/egress/cot/zmeta_to_cot.py`, `.gitignore` |
 | R1-02 v1.1.6 Release Publication | COMPLETE | <https://github.com/JTC-byte/zmeta-spec/releases/tag/v1.1.6> |
 | P1-01 Post-v1.1.6 Partner Feedback Cleanup | COMPLETE | `README.md`, `tools/lint_policy_risk_modes.py`, `gateway/tests/test_policy_risk_mode_lint.py` |
+| P1-02 Post-v1.1.6 Projection And Registry Hardening | COMPLETE | `conformance/profile_projection_field_catalog.yaml`, `conformance/profile-projection/`, `tools/validate_projection.py`, `spec/extension-registry.yaml`, `tools/validate_extension_registry.py` |
+| P1-03 Human And AI Agent Change Governance | COMPLETE | `AGENTS.md`, `docs/zmeta_change_governance.md`, `tools/build_release_manifest.py`, `tools/validate_release_manifest.py`, downstream clone compatibility guidance |
+| R1-03 v1.1.7 Stack Audit And Release | COMPLETE | `docs/r1_03_v1_1_7_stack_audit_release.md`, `release/RELEASE_NOTES_v1.1.7.md`, `release/VALIDATION_REPORT_v1.1.7.md`, `release/SHA256SUMS_v1.1.7.txt` |
 
 ## Current Decisions
 
 - The semantic contract is authoritative; implementation surfaces must preserve it.
-- Current formal release is `v1.1.6`; latest integration baseline is current `main`.
+- Humans and AI agents should follow `AGENTS.md` and
+  `docs/zmeta_change_governance.md` before changing governed artifacts.
+- Downstream clone users can integrate locally around pinned releases, but
+  schema, vocabulary, version-dispatch, projection, risk, or command-authority
+  changes are private dialect/fork work unless governed, versioned, documented,
+  and backed by conformance evidence.
+- Current formal release is `v1.1.7`; latest integration baseline is current `main`.
 - v1.0 remains locked.
 - Do not add v1.1.0 or future concepts to v1.0.
 - S1-01A found no schema-enforceable v1.0 gap requiring S1-01B.
@@ -178,6 +193,20 @@ Current public release:
   `risk_adjudication` and diagnostic labels. Presets include `display`,
   `fusion`, `state`, `command`, `autonomy`, `aar`, and `audit`; the tool passes
   accepted events unchanged and can emit dropped-event reasons to a sidecar.
+- Profile projection treats `payload.extensions.risk_adjudication` as
+  preserved policy/use-limit evidence when present. Profile L/M/H projections
+  must not strip accepted-risk labels in ways that make degraded data appear
+  clean.
+- Profile projection requires compact
+  `payload.extensions.external_promotion` evidence to preserve policy ID,
+  trust reference, lineage status, and loop/reflection status while allowing
+  Profile L to omit selected H-only audit detail when producer-authority policy
+  still validates the projected event.
+- Extension registry entries declare and validate
+  `profile_projection_behavior`, `risk_relevant`,
+  `must_preserve_when_used_for_policy`, `security_privacy_notes`, and
+  `fixture_references` so future vendor or edge extensions cannot hide
+  policy-relevant behavior behind ignorable metadata.
 - Example claim files now use the narrow semantic `contract_hash` from
   `release/zmeta-release-manifest.yaml` and record broader category hashes under
   `release_hashes`. `release_manifest_hash` is omitted from claims to avoid
@@ -354,26 +383,31 @@ Current public release:
 
 ## Verification State
 
-Most recent validation after the post-v1.1.6 partner-feedback cleanup:
+Most recent validation for the v1.1.7 stack audit and release:
 
 ```powershell
-python tools\lint_policy_risk_modes.py
-python -m pytest -q gateway\tests\test_policy_risk_mode_lint.py
-python -m pytest -q gateway\tests\test_risk_filter_cli.py gateway\tests\test_external_state_promotion.py gateway\tests\test_lineage_semantics.py gateway\tests\test_timing_freshness.py
+python tools\validate_release_manifest.py --manifest release\zmeta-release-manifest.yaml
+python tools\validate_release_package.py --manifest release\zmeta-release-manifest.yaml --templates-only
+python tools\validate_examples.py --strict --require-all
 python tools\validate_conformance.py --strict --profile-projection --extension-registry --conformance-classes --encoding-negative --precision-policy --release-manifest --release-package --bad-events --adapter-harness
-git diff --check
 python -m pytest -q
+python tools\validate_release_package.py --manifest release\zmeta-release-manifest.yaml --package-dir release\package-v1.1.7
+python release\sign_release_artifacts.py --version v1.1.7 --write-checksums --verify-checksums
+git diff --check
 ```
 
-Policy risk mode lint result: `policy risk mode lint ok`.
-Focused policy lint result: `5 passed`.
-Focused risk/promotion/lineage/timing pytest result: `34 passed`.
-Full kernel conformance result: `projection conformance ok total=33`,
+Release manifest result: `release manifest ok groups=18 artifacts=62`.
+Release package template result: `release package ok mode=templates`.
+Examples result: `overall total=40 passed=40 failed=0 warnings=0`.
+Full kernel conformance result: `projection conformance ok total=37`,
 `extension registry ok entries=56`, `conformance classes ok classes=34
 claims=2`, `encoding negative ok total=49`, `profile precision policy ok
 total=32`, `bad-event corpus ok total=9`, `adapter conformance ok total=8`,
 `conformance ok`.
+Full pytest result: `375 passed, 108 subtests passed`.
+Release package output result: `release package ok mode=package`.
+Release checksum result: `checksums ok: SHA256SUMS_v1.1.7.txt`.
+Runtime workflow, live gateway, packet-size, compatibility, focused validator,
+policy-risk lint, and Docker Compose config checks are recorded in
+`release/VALIDATION_REPORT_v1.1.7.md`.
 Whitespace check result: passed with normal Windows CRLF conversion warnings.
-Full pytest result: `370 passed, 108 subtests passed`.
-P1-01 GitHub CI result: `completed/success` for commit `fe4634b`, run
-`27228915360`, started `2026-06-09T18:59:25Z`.

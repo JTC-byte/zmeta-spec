@@ -3,7 +3,7 @@ generated_for_zmeta_versions:
   - "1.0"
   - "1.1.0"
 authority: spec/semantics-contract.md
-last_updated: "2026-05-07"
+last_updated: "2026-06-10"
 status_values:
   - reserved
   - proposed
@@ -32,6 +32,13 @@ category_values:
   - track_lifecycle
   - data_evidence
   - operator_display
+projection_behavior_values:
+  - not_applicable
+  - preserve
+  - preserve_or_compact
+  - optional_omission
+  - prohibited
+  - future_branch_required
 
 defaults:
   entry: &entry_defaults
@@ -48,12 +55,17 @@ defaults:
     encoding_status: none
     conformance_status: none
     ignorable_by_default: true
+    profile_projection_behavior: not_applicable
+    risk_relevant: false
+    must_preserve_when_used_for_policy: false
     collision_rules:
       - no_v1_0_collision
       - no_layer_collapse
       - no_core_redefinition
     security_release_notes: []
+    security_privacy_notes: []
     migration_notes: []
+    fixture_references: []
     references:
       - docs/s1_03_extension_registry_plan.md
     date_added: "2026-05-07"

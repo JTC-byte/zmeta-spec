@@ -48,6 +48,7 @@ TOP_LEVEL_HASH_FIELDS = {
     "bad_event_corpus": "bad_event_corpus_hash",
     "adapter_conformance": "adapter_conformance_hash",
     "encoding_projection_specs": "encoding_projection_specs_hash",
+    "process_governance": "process_governance_hash",
 }
 
 
@@ -226,6 +227,13 @@ def artifact_groups(root: Path = ROOT, *, include_tool_source: bool = True) -> d
             "description": "Human-readable release hash taxonomy and canonicalization policy.",
             "paths": ["spec/release-hash-policy.md"],
         },
+        "process_governance": {
+            "description": "Human and AI agent change governance, limits, and workflow requirements.",
+            "paths": [
+                "AGENTS.md",
+                "docs/zmeta_change_governance.md",
+            ],
+        },
         "release_packaging": {
             "description": "Formal release signing, attestation, package template, and package validation support.",
             "paths": [
@@ -333,6 +341,7 @@ def build_manifest_data(
         "bad_event_corpus_hash": group_hashes["bad_event_corpus"],
         "adapter_conformance_hash": group_hashes["adapter_conformance"],
         "encoding_projection_specs_hash": group_hashes["encoding_projection_specs"],
+        "process_governance_hash": group_hashes["process_governance"],
         "release_bundle_hash": release_bundle_hash(group_hashes),
         "release_manifest_hash": None,
         "artifact_hashes": sorted(artifact_hashes, key=lambda item: item["path"]),
@@ -386,6 +395,7 @@ def _claim_hash_values(manifest: dict[str, Any]) -> dict[str, Any]:
             "bad_event_corpus_hash": manifest["bad_event_corpus_hash"],
             "adapter_conformance_hash": manifest["adapter_conformance_hash"],
             "encoding_projection_specs_hash": manifest["encoding_projection_specs_hash"],
+            "process_governance_hash": manifest["process_governance_hash"],
             "release_manifest_hash": "omitted_to_avoid_claim_manifest_circularity",
         },
     }
