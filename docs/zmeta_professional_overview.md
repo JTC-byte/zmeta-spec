@@ -335,26 +335,30 @@ ZMeta semantics.
 
 The reference gateway validates, policy-checks, profiles, encodes, forwards,
 and optionally projects events to CoT. It is a role rather than a mandatory
-network hop: the same logic can run on the edge node itself, so a node can
-normalize, validate, and policy-check locally and emit validated ZMeta straight
-to fusion.
+network hop. The lightweight part - schema validation, profile projection, and
+encoding - is cheap enough to run on the edge node itself, so a node can
+normalize and emit validated ZMeta straight to fusion. The fuller policy pack
+(producer authority, timing freshness, command safety, external promotion, and
+contract-hash gates) is the gateway role; it can run co-located on that same
+node or as a separate hop.
 
 ```mermaid
 flowchart LR
-  subgraph edgeNode ["Edge node (ingress + enforcement)"]
+  subgraph edgeNode ["Edge node"]
     Sensors["Native sensors<br/>SDR / EO-IR / MAVLink / KLV"]
     Ingress["Ingress adapters<br/>(semantic boundary)"]
-    GW["Validate schema<br/>enforce policy<br/>profile + encode<br/>(gateway logic)"]
+    Val["Schema validation<br/>+ profile + encode"]
     Sensors --> Ingress
-    Ingress -->|"canonical ZMeta"| GW
+    Ingress -->|"canonical ZMeta"| Val
   end
-  GW -->|"validated ZMeta<br/>JSON / CBOR / compact"| Fusion["Fusion / analytics"]
+  Val -->|"validated ZMeta<br/>JSON / CBOR / compact"| Policy["Gateway policy role<br/>authority, timing,<br/>command safety,<br/>promotion, hash gates<br/>(co-located or separate hop)"]
+  Policy --> Fusion["Fusion / analytics"]
   Fusion -->|"STATE_EVENT"| Egress["Egress adapters"]
-  GW -.->|"valid STATE_EVENT"| Egress
+  Policy -.->|"valid STATE_EVENT"| Egress
   Egress --> CoT["CoT to TAK / ATAK / WinTAK"]
   Egress --> JREAP["JREAP-style track JSON"]
   Egress --> MI["MissionIntent to deconfliction to MAVLink"]
-  GW -.->|"SYSTEM_EVENT diagnostics"| AAR["Audit / AAR store"]
+  Policy -.->|"SYSTEM_EVENT diagnostics"| AAR["Audit / AAR store"]
 ```
 
 Typical gateway responsibilities are:
@@ -384,9 +388,10 @@ deploy/gateway/docker-compose.yml
 ```
 
 In a fielded architecture, the gateway is a role, not necessarily a separate
-hop. An edge node can run ingress adapters together with the gateway's
-validation and policy enforcement, then emit validated ZMeta straight to fusion
-and analytics. The same enforcement can also be split across a constrained link:
+hop. An edge node can run ingress adapters together with schema validation,
+profile projection, and the gateway policy checks, then emit validated ZMeta
+straight to fusion and analytics. The same enforcement can also be split across
+a constrained link:
 an edge container normalizes local sensors into ZMeta, applies a Profile L or M
 export policy, and sends compact packets, while a downstream gateway container
 decodes, validates, routes, forwards to analytics or tactical displays, and
@@ -577,25 +582,26 @@ system remains responsible for actual retasking and actuation.
 ```mermaid
 sequenceDiagram
   participant S as Sensor / edge adapter
-  participant G as Gateway
+  participant G as Validation (edge or gateway)
   participant F as Fusion / analytics
-  participant T as TAK / operator
+  participant O as Operator (TAK)
   participant C as C2 / deconfliction
   participant P as Platform
 
   S->>G: OBSERVATION_EVENT (RF)
   G->>F: validated event
-  F->>F: INFERENCE_EVENT, FUSION_EVENT
-  F->>G: STATE_EVENT
-  G->>T: CoT track (uncertainty + lineage)
-  T->>G: COMMAND_EVENT (GOTO / ORBIT)
-  G->>G: command policy + dedupe
-  G->>C: MissionIntent JSON
-  C->>P: MAVLink (out-of-band)
-  P-->>G: SYSTEM_EVENT TASK_ACK: RECEIVED
-  P-->>G: TASK_ACK: ACCEPTED
-  P-->>G: TASK_ACK: EXECUTING
-  P-->>G: TASK_ACK: COMPLETED
+  F->>F: INFERENCE_EVENT, FUSION_EVENT, STATE_EVENT
+  F->>O: STATE_EVENT projected to CoT
+  F->>F: detect collection gap, build COMMAND_EVENT (GOTO / ORBIT)
+  opt manual-approval mode
+    F->>O: hold COMMAND_EVENT for approval
+    O-->>F: approve or deny
+  end
+  F->>C: COMMAND_EVENT (policy, dedupe, TTL)
+  C->>P: MissionIntent then MAVLink (out-of-band)
+  C-->>F: SYSTEM_EVENT TASK_ACK: RECEIVED
+  C-->>F: TASK_ACK: ACCEPTED / EXECUTING / COMPLETED
+  F->>F: match task_id, update lifecycle
   P->>S: new collection geometry
   Note over S,F: new observations feed stronger fusion (loop)
 ```
