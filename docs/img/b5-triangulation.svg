@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="430" viewBox="0 0 1000 430" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" role="img" aria-label="Multi-LOB triangulation and error-ellipse reduction">
+<rect x="0.0" y="0.0" width="1000.0" height="430.0" rx="0" fill="#ffffff" stroke="none" stroke-width="1.0"/>
+<text x="26.0" y="34.0" font-size="21" fill="#1b2330" text-anchor="start" font-weight="700" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">Fusion: more bearings, tighter fix</text>
+<text x="26.0" y="56.0" font-size="13" fill="#5b6b7b" text-anchor="start" font-weight="normal" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">Independent RF lines of bearing intersect into a track; geometry drives the error ellipse.</text>
+<rect x="26.0" y="78.0" width="460.0" height="320.0" rx="10" fill="#f3f6fa" stroke="#cdd8e3" stroke-width="1.2"/>
+<text x="42.0" y="104.0" font-size="14.5" fill="#1b2330" text-anchor="start" font-weight="700" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">2 LOBs - single retask pending</text>
+<line x1="96.0" y1="299.0" x2="252.1" y2="158.5" stroke="#9fb0c0" stroke-width="1.6" stroke-dasharray="5 4"/>
+<line x1="166.0" y1="312.0" x2="261.3" y2="124.9" stroke="#9fb0c0" stroke-width="1.6" stroke-dasharray="5 4"/>
+<ellipse cx="237.6" cy="171.5" rx="125.0" ry="23.2" fill="#2e8b6f" stroke="none" stroke-width="1.5" opacity="0.16" transform="rotate(-52.50 237.6 171.5)"/>
+<ellipse cx="237.6" cy="171.5" rx="125.0" ry="23.2" fill="none" stroke="#2e8b6f" stroke-width="2" opacity="1.0" transform="rotate(-52.50 237.6 171.5)"/>
+<text x="42.0" y="382.0" font-size="12.5" fill="#2e8b6f" text-anchor="start" font-weight="700" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">GDOP 3.95    ellipse area 1.00x</text>
+<circle cx="226.0" cy="184.0" r="4.5" fill="#b5483d" stroke="none" stroke-width="1.0"/>
+<text x="235.0" y="188.0" font-size="11" fill="#b5483d" text-anchor="start" font-weight="normal" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">emitter</text>
+<polygon points="96.0,293.0 90.0,304.0 102.0,304.0" fill="#2f6f9f" stroke="none" stroke-width="1.0"/>
+<text x="105.0" y="303.0" font-size="11" fill="#2f6f9f" text-anchor="start" font-weight="normal" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">S1</text>
+<polygon points="166.0,306.0 160.0,317.0 172.0,317.0" fill="#2f6f9f" stroke="none" stroke-width="1.0"/>
+<text x="175.0" y="316.0" font-size="11" fill="#2f6f9f" text-anchor="start" font-weight="normal" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">S2</text>
+<rect x="514.0" y="78.0" width="460.0" height="320.0" rx="10" fill="#f3f6fa" stroke="#cdd8e3" stroke-width="1.2"/>
+<text x="530.0" y="104.0" font-size="14.5" fill="#1b2330" text-anchor="start" font-weight="700" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">3 LOBs - after retasking</text>
+<line x1="584.0" y1="299.0" x2="740.1" y2="158.5" stroke="#9fb0c0" stroke-width="1.6" stroke-dasharray="5 4"/>
+<line x1="654.0" y1="312.0" x2="749.3" y2="124.9" stroke="#9fb0c0" stroke-width="1.6" stroke-dasharray="5 4"/>
+<line x1="844.0" y1="264.0" x2="662.1" y2="159.0" stroke="#9fb0c0" stroke-width="1.6" stroke-dasharray="5 4"/>
+<ellipse cx="713.6" cy="187.2" rx="31.7" ry="23.0" fill="#2e8b6f" stroke="none" stroke-width="1.5" opacity="0.16" transform="rotate(-44.49 713.6 187.2)"/>
+<ellipse cx="713.6" cy="187.2" rx="31.7" ry="23.0" fill="none" stroke="#2e8b6f" stroke-width="2" opacity="1.0" transform="rotate(-44.49 713.6 187.2)"/>
+<text x="530.0" y="382.0" font-size="12.5" fill="#2e8b6f" text-anchor="start" font-weight="700" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">GDOP 1.22    ellipse area 0.25x</text>
+<circle cx="714.0" cy="184.0" r="4.5" fill="#b5483d" stroke="none" stroke-width="1.0"/>
+<text x="723.0" y="188.0" font-size="11" fill="#b5483d" text-anchor="start" font-weight="normal" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">emitter</text>
+<polygon points="584.0,293.0 578.0,304.0 590.0,304.0" fill="#2f6f9f" stroke="none" stroke-width="1.0"/>
+<text x="593.0" y="303.0" font-size="11" fill="#2f6f9f" text-anchor="start" font-weight="normal" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">S1</text>
+<polygon points="654.0,306.0 648.0,317.0 660.0,317.0" fill="#2f6f9f" stroke="none" stroke-width="1.0"/>
+<text x="663.0" y="316.0" font-size="11" fill="#2f6f9f" text-anchor="start" font-weight="normal" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">S2</text>
+<polygon points="844.0,258.0 838.0,269.0 850.0,269.0" fill="#2f6f9f" stroke="none" stroke-width="1.0"/>
+<text x="853.0" y="268.0" font-size="11" fill="#2f6f9f" text-anchor="start" font-weight="normal" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">S3</text>
+<line x1="489.0" y1="238.0" x2="502.0" y2="238.0" stroke="#5b6b7b" stroke-width="2.4"/>
+<polygon points="511.0,238.0 502.9,241.9 502.9,234.1" fill="#5b6b7b" stroke="none" stroke-width="1.0"/>
+</svg>

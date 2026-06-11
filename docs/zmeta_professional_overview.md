@@ -9,6 +9,8 @@ contract. When implementation details conflict, use the authority order in
 `docs/zmeta_change_governance.md`, starting with `spec/semantics-contract.md`,
 the canonical schemas under `schema/`, and the policy pack under `policy/`.
 
+![ZMeta at a glance: sensors collect, an edge adapter translates to OBSERVATION events, which become INFERENCE, FUSION, STATE, and COMMAND events, with a retask loop back to collection and SYSTEM events across every stage.](img/c1-zmeta-at-a-glance.svg)
+
 ## Executive Summary
 
 ZMeta is a transport-agnostic semantic metadata standard for resilient ISR,
@@ -135,11 +137,24 @@ ZMeta models ISR information as events. Each event says what happened, who
 produced it, when it happened, what it means, and how it relates to prior
 events.
 
-```text
-OBSERVATION_EVENT -> INFERENCE_EVENT -> FUSION_EVENT -> STATE_EVENT
-                                      \
-                                       -> COMMAND_EVENT / SYSTEM_EVENT
+```mermaid
+flowchart LR
+  Obs["OBSERVATION_EVENT<br/>measured facts"]
+  Inf["INFERENCE_EVENT<br/>AI / analytic claim"]
+  Fus["FUSION_EVENT<br/>track identity"]
+  St["STATE_EVENT<br/>operator-facing track"]
+  Cmd["COMMAND_EVENT<br/>bounded mission intent"]
+  Sys["SYSTEM_EVENT<br/>health, timing, link, TASK_ACK"]
+
+  Obs -->|"derive (+ lineage)"| Inf
+  Inf -->|"contribute to"| Fus
+  Fus -->|"project"| St
+  St -->|"justify"| Cmd
+  Sys -.->|"status across every stage"| St
 ```
+
+Each transition is a deliberate, evidence-bearing promotion: data only moves
+to a higher-authority lane when lineage, timing, and confidence support it.
 
 The primary event families are:
 
@@ -198,6 +213,12 @@ A ZMeta event has a stable envelope:
 }
 ```
 
+![Annotated anatomy of a ZMeta event: zmeta_version, event, source, payload, confidence, lineage, and profile, each labeled with what it guarantees.](img/b1-event-anatomy.svg)
+
+*Figure: identity, origin, meaning, trust, and lineage travel together in every
+event. Rendered from the repo's own example events; see
+`docs/diagrams/generate_figures.py`.*
+
 The schema enforces structural and cross-field rules, including:
 
 - exact version selection;
@@ -250,6 +271,31 @@ policy diagnostics, schema violations, and health reports.
 Adapters translate between native systems and ZMeta. They are semantic
 boundaries, not just field mappers.
 
+```mermaid
+flowchart LR
+  K["KrakenSDR DOA"]
+  M["Moth peaks"]
+  S["SignalHunter PSD"]
+  E["EO / CV detections"]
+  V["MAVLink telemetry"]
+  X["CoT / JREAP / KLV"]
+
+  K --> A
+  M --> A
+  S --> A
+  E --> A
+  V --> A
+  X --> A
+
+  subgraph boundary [Ingress adapter - semantic boundary]
+    A["Normalize:<br/>UTC time, explicit units,<br/>UUIDv7 identity, lineage transform,<br/>timing-quality fallback,<br/>external promotion evidence"]
+  end
+
+  A --> RFO["RF OBSERVATION_EVENT"]
+  A --> INF["INFERENCE_EVENT"]
+  A --> STT["Promoted STATE_EVENT"]
+```
+
 Ingress adapters convert native inputs into ZMeta:
 
 | Native source | ZMeta output | Purpose |
@@ -258,6 +304,7 @@ Ingress adapters convert native inputs into ZMeta:
 | Moth RF sensor output | RF `OBSERVATION_EVENT` | Peak frequency, power, optional bearing or wide uncertainty |
 | SignalHunter PSD captures | RF `OBSERVATION_EVENT` | Power-gradient derived LOBs from spectrum sweeps |
 | EO/CV detections | `INFERENCE_EVENT` | Classification or detection claims with model lineage |
+| Decoded MISB KLV metadata | `OBSERVATION_EVENT` | EO/FMV sensor metadata from decoded KLV tags (not a STANAG 4609 parser) |
 | MAVLink telemetry | `STATE_EVENT` and `SYSTEM_EVENT` | Platform state and status after safe projection |
 | CoT, JREAP, vendor COP tracks | Promoted `STATE_EVENT` only with policy evidence | External tactical track promotion |
 
@@ -267,6 +314,7 @@ Egress adapters project ZMeta into external systems:
 | --- | --- | --- |
 | `STATE_EVENT` | CoT XML | TAK/ATAK/WinTAK display interoperability |
 | `STATE_EVENT` | JREAP-style track JSON | Program-of-record tactical gateway handoff |
+| `OBSERVATION_EVENT` | KLV-style tag dictionary | Sensor-metadata projection for external video pipelines (not a STANAG 4609 binary encoder) |
 | `COMMAND_EVENT` | MissionIntent JSON | Deconfliction node input before MAVLink or swarm API translation |
 
 Adapters must preserve:
@@ -286,7 +334,28 @@ ZMeta semantics.
 ## Gateway And Containerized Deployment
 
 The reference gateway validates, policy-checks, profiles, encodes, forwards,
-and optionally projects events to CoT.
+and optionally projects events to CoT. It is a role rather than a mandatory
+network hop: the same logic can run on the edge node itself, so a node can
+normalize, validate, and policy-check locally and emit validated ZMeta straight
+to fusion.
+
+```mermaid
+flowchart LR
+  subgraph edgeNode ["Edge node (ingress + enforcement)"]
+    Sensors["Native sensors<br/>SDR / EO-IR / MAVLink / KLV"]
+    Ingress["Ingress adapters<br/>(semantic boundary)"]
+    GW["Validate schema<br/>enforce policy<br/>profile + encode<br/>(gateway logic)"]
+    Sensors --> Ingress
+    Ingress -->|"canonical ZMeta"| GW
+  end
+  GW -->|"validated ZMeta<br/>JSON / CBOR / compact"| Fusion["Fusion / analytics"]
+  Fusion -->|"STATE_EVENT"| Egress["Egress adapters"]
+  GW -.->|"valid STATE_EVENT"| Egress
+  Egress --> CoT["CoT to TAK / ATAK / WinTAK"]
+  Egress --> JREAP["JREAP-style track JSON"]
+  Egress --> MI["MissionIntent to deconfliction to MAVLink"]
+  GW -.->|"SYSTEM_EVENT diagnostics"| AAR["Audit / AAR store"]
+```
 
 Typical gateway responsibilities are:
 
@@ -314,11 +383,16 @@ deploy/edge/docker-compose.yml
 deploy/gateway/docker-compose.yml
 ```
 
-In a fielded architecture, an edge container can normalize local sensors into
-ZMeta, apply a Profile L or M export policy, and send compact packets over a
-constrained link. A gateway container can decode those packets, validate them,
-route them, forward them to analytics or tactical displays, and emit CoT tracks
-for operator consumption.
+In a fielded architecture, the gateway is a role, not necessarily a separate
+hop. An edge node can run ingress adapters together with the gateway's
+validation and policy enforcement, then emit validated ZMeta straight to fusion
+and analytics. The same enforcement can also be split across a constrained link:
+an edge container normalizes local sensors into ZMeta, applies a Profile L or M
+export policy, and sends compact packets, while a downstream gateway container
+decodes, validates, routes, forwards to analytics or tactical displays, and
+emits CoT tracks for operator consumption. Either way, schema validation and
+policy enforcement run before fusion; the topology only changes where they run,
+not whether they happen.
 
 The gateway is not the semantic authority. The semantic contract, schemas, and
 policy pack define compliance. The gateway is the reference implementation that
@@ -333,6 +407,11 @@ ZMeta supports three export profiles:
 | H | High-fidelity local, gateway, analytic, audit, or service links. | All event families |
 | M | Moderate-bandwidth links that can carry observations, fusion, state, commands, and system events. | No inference export by default |
 | L | Bandwidth-constrained tactical links. | State, system, and command events |
+
+![Matrix of export profiles H, M, and L against the six event families, showing which families each profile may carry.](img/b4-profile-matrix.svg)
+
+*Figure: which event families each profile may export, generated directly from
+`policy/profiles.yaml`. Allowed families are still carried in full.*
 
 Profiles thin data for export. They do not change meaning.
 
@@ -364,6 +443,12 @@ ZMeta separates event meaning from wire format.
 | CBOR | Deterministic binary projection of the same event shape. | General binary transport |
 | Compact CBOR | Integer-key Profile L mapping. | Low-bandwidth tactical links |
 | Protobuf | Experimental typed envelope projection. | Service links, queues, gateway pipelines |
+
+![Bar chart comparing the byte size of one Profile L STATE_EVENT encoded as JSON, CBOR, compact CBOR, and protobuf.](img/b3-encoding-sizes.svg)
+
+*Figure: the same Profile L `STATE_EVENT` across four wire formats. Byte counts
+are measured with the repo encoders (`zmeta_cbor`, `zmeta_compact`,
+`zmeta_proto`); every format decodes back to the identical canonical JSON.*
 
 All encodings must decode to canonical ZMeta JSON before validation. Encoding
 does not create authority. A compact or protobuf packet is valid only if the
@@ -428,6 +513,19 @@ The policy model supports bounded responses:
 - `quarantine`
 - limited `ignore` for non-material checks only
 
+```mermaid
+flowchart TD
+  Ev["Incoming event"] --> Chk{"Policy checks:<br/>authority, timing,<br/>lineage, promotion"}
+  Chk -->|"pass"| Fwd["Forward unchanged"]
+  Chk -->|"reject"| Drop["Drop + SYSTEM_EVENT diagnostic"]
+  Chk -->|"warn / degrade / quarantine"| Lbl["Attach risk labels:<br/>dimension, decision, reason,<br/>allowed/prohibited uses, TTL effect"]
+  Chk -->|"ignore (non-material)"| Fwd
+  Lbl --> Fwd
+  Fwd --> Filt{"Consumer posture<br/>tools/filter_risk.py"}
+  Filt -->|"display / AAR"| Show["Show with caveats"]
+  Filt -->|"fusion / command / autonomy"| Block["Drop if prohibited for that use"]
+```
+
 Soft acceptance must be explicit, auditable, and filterable. If a degraded or
 quarantined event is forwarded, downstream consumers need labels such as:
 
@@ -475,6 +573,32 @@ automation process because the systems in that process can exchange normalized,
 validated, policy-labeled metadata and bounded mission intent. The GCS,
 autonomy stack, deconfliction node, operator workflow, or platform control
 system remains responsible for actual retasking and actuation.
+
+```mermaid
+sequenceDiagram
+  participant S as Sensor / edge adapter
+  participant G as Gateway
+  participant F as Fusion / analytics
+  participant T as TAK / operator
+  participant C as C2 / deconfliction
+  participant P as Platform
+
+  S->>G: OBSERVATION_EVENT (RF)
+  G->>F: validated event
+  F->>F: INFERENCE_EVENT, FUSION_EVENT
+  F->>G: STATE_EVENT
+  G->>T: CoT track (uncertainty + lineage)
+  T->>G: COMMAND_EVENT (GOTO / ORBIT)
+  G->>G: command policy + dedupe
+  G->>C: MissionIntent JSON
+  C->>P: MAVLink (out-of-band)
+  P-->>G: SYSTEM_EVENT TASK_ACK: RECEIVED
+  P-->>G: TASK_ACK: ACCEPTED
+  P-->>G: TASK_ACK: EXECUTING
+  P-->>G: TASK_ACK: COMPLETED
+  P->>S: new collection geometry
+  Note over S,F: new observations feed stronger fusion (loop)
+```
 
 ### 1. SDR or RF sensor captures emissions
 
@@ -569,6 +693,13 @@ A fusion service can combine those observations into a track estimate and emit
 full evidence chain, while Profile L consumers can receive compact state over a
 constrained link without losing lineage or risk labels.
 
+![Triangulation comparison: two lines of bearing produce a large, elongated error ellipse; adding a third bearing after retasking produces a much smaller ellipse.](img/b5-triangulation.svg)
+
+*Figure: geometry drives the fix. Two LOBs from a short baseline leave an
+elongated error ellipse; retasking a platform to add a third bearing with a
+stronger crossing angle shrinks the ellipse and lowers GDOP. This is the
+fusion-plus-retasking loop the operational scenario describes.*
+
 ### RF-Cued EO Or IR Collection
 
 An RF track may be good enough to cue additional collection but not good enough
@@ -643,6 +774,12 @@ Because ZMeta events are append-only and lineage-aware, the same stream can
 support AAR and replay. Analysts can inspect which observations led to an
 inference, which inferences contributed to fusion, what state was displayed,
 what risk labels were present, and what command intent was generated.
+
+![Lineage chain of four linked events: an observation feeds an inference, which feeds a fusion event, which feeds an operator-facing state event, each carrying based_on identifiers.](img/b2-lineage-chain.svg)
+
+*Figure: a real `based_on` chain across the pipeline. Because lineage is
+explicit, replay can reconstruct exactly which evidence justified each track and
+command.*
 
 Replay can preserve event time while gateways add receive/publish timestamps
 for latency and workflow analysis.
@@ -765,6 +902,7 @@ A practical adoption path is:
 | Semantic contract | `spec/semantics-contract.md` | Normative meaning |
 | Canonical schema | `schema/zmeta-event.schema.json` | Version-dispatched validation |
 | v1.0 schema | `schema/zmeta-event-1.0.schema.json` | Locked v1.0 validation |
+| v1.1.0 schema | `schema/zmeta-event-1.1.0.schema.json` | Experimental, version-selected validation |
 | Policy pack | `policy/` | Runtime enforcement |
 | Gateway | `gateway/src/gateway.py` | Reference validation and forwarding |
 | Ingress adapters | `adapters/ingress/` | Native to ZMeta |
