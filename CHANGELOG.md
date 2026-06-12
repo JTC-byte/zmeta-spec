@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+
+## [1.1.8] - 2026-06-12
 - Added a machine-checkable bearing reference-frame marker: optional
   `payload.bearing.frame` with single-value enum `["TRUE_NORTH"]` in the
   v1.1.0 schema, a normative semantics-contract section 6.4 (canonical

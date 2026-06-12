@@ -1,6 +1,6 @@
 # ZMeta Refinement Handoff Notes
 
-Status date: 2026-06-11
+Status date: 2026-06-12
 
 This note is the quick resume point for the current ZMeta refinement effort. The full task history and deferred issue register are in `docs/zmeta_refinement_worklog.md`.
 
@@ -10,35 +10,34 @@ The semantic contract has been audited, rewritten, and crosswalked against the c
 
 Current stack status:
 
-- The P1-04 bearing reference-frame integrity pass is complete on branch
-  `worktree-bearing-frame-fixes` (built on `develop`); it has not been merged
-  or released. Schema 1.1.0 gained the optional `bearing.frame` marker; the
-  locked v1.0 schema is untouched.
-- P1-04R closed the review blockers found in PR #2 on local branch
-  `review/pr2-frame-fixes`: Moth tunnel/replay and MAVLink `hdg` values no
-  longer emit canonical bearing/heading fields unless callers explicitly
-  assert `TRUE_NORTH`; unasserted native values remain auditable under
-  explicitly named non-canonical fields.
-- Use tag `v1.1.7` for formal release assets/checksums.
-- Use current `main` for the latest integration baseline with policy-risk
-  linting, projection preservation for risk/promotion extensions, stricter
-  extension registry metadata, formal human/AI agent change governance,
-  downstream clone interoperability limits, and stale-release-reference audit
-  cleanup.
+- The P1-04 bearing reference-frame integrity pass and P1-04R review fixes are
+  adopted on `main` for v1.1.8. Schema 1.1.0 gained the optional
+  `bearing.frame` marker; the locked v1.0 schema is untouched.
+- Moth tunnel/replay and MAVLink `hdg` values no longer emit canonical
+  bearing/heading fields unless callers explicitly assert `TRUE_NORTH`;
+  unasserted native values remain auditable under explicitly named
+  non-canonical fields.
+- Use tag `v1.1.8` for current formal release assets/checksums once R1-04 is
+  published. Use tag `v1.1.7` only for the previous formal release baseline.
+- Use current `main` for the latest integration baseline with bearing-frame
+  integrity, policy-risk linting, projection preservation for risk/promotion
+  extensions, stricter extension registry metadata, formal human/AI agent
+  change governance, downstream clone interoperability limits, and
+  stale-release-reference audit cleanup.
 - Open findings D-013 (timing-freshness negative-age clamp) and D-014
   (compact codec unknown integer payload keys) await a maintainer semantics
   decision; see "Open Findings Awaiting Maintainer Decision" below.
 - Future work is optional and should be driven by real sensor captures, a versioned semantic branch decision, or a release-authority signing process.
 
-Current public release:
+Current release target:
 
-- Release URL: <https://github.com/JTC-byte/zmeta-spec/releases/tag/v1.1.7>
-- Tag: `v1.1.7`
-- Tagged commit: `e7b014f` - `Prepare v1.1.7 release`
-- GitHub CI: run `27246838717` passed for `main` push on 2026-06-10.
-- Signature status: no detached `.asc` signatures were attached for `v1.1.7`
-  because no approved local release signing key was available. Use
-  `SHA256SUMS_v1.1.7.txt`, the structured release manifest, and the release
+- Release URL: <https://github.com/JTC-byte/zmeta-spec/releases/tag/v1.1.8>
+- Tag: `v1.1.8`
+- Release commit: R1-04 release commit on `main`
+- GitHub CI: must pass for the pushed v1.1.8 release commit/tag.
+- Signature status: v1.1.8 release artifacts are generated in no-signature
+  mode unless an approved release signing key is supplied. Use
+  `SHA256SUMS_v1.1.8.txt`, the structured release manifest, and the release
   package checksum file for integrity verification.
 
 ## Key Docs

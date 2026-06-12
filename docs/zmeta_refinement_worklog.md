@@ -1918,6 +1918,35 @@
   - `python -m pytest -q` -> `435 passed, 108 subtests passed`
   - `git diff --check` -> clean; Git reported normal Windows LF-to-CRLF working-copy warnings.
 
+## R1-04 - v1.1.8 Bearing-Frame Integrity Release
+
+- Status: COMPLETE
+- Target release date: 2026-06-12
+- Target tag: `v1.1.8`
+- Change class: Class E release publication for the adopted P1-04/P1-04R
+  governed baseline and runtime/reference changes.
+- Scope: Publish the partner bearing-frame integrity stack and local
+  frame-gap closure as the current formal release baseline. Release artifacts
+  include the source distribution, edge bundle, gateway bundle, no-signature
+  release package, release manifest, release notes, validation report, and
+  `SHA256SUMS_v1.1.8.txt`.
+- Semantic boundary:
+  - v1.0 schema remains locked and unchanged.
+  - v1.1.0 `bearing.frame` remains optional and single-valued.
+  - Unknown-frame Moth bearings and MAVLink headings are no longer canonical
+    by default; explicit `TRUE_NORTH` assertions are required.
+  - D-013 and D-014 remain deferred for maintainer semantics decisions.
+- Validation: final command output is recorded in
+  `release/VALIDATION_REPORT_v1.1.8.md`.
+  Summary: release manifest, package templates, strict examples, full kernel
+  conformance, focused validators, policy-risk lint, full pytest, gateway
+  self-tests, packet-size budget, risk filter, compatibility checks,
+  end-to-end workflows, live gateway checks, Docker Compose config rendering,
+  package validation, checksum generation/verification, and whitespace checks
+  passed. Docker reported local access warnings for
+  `C:\Users\User\.docker\config.json` during config rendering, but both
+  compose commands exited successfully.
+
 ## Deferred Issue Register
 
 ### D-001 - MAVLink Adapter README State Payload Drift

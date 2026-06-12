@@ -1,8 +1,8 @@
 manifest_version: 1
-release_id: zmeta-v1.1.7
-release_name: ZMeta v1.1.7
+release_id: zmeta-v1.1.8
+release_name: ZMeta v1.1.8
 release_status: formal_release
-release_date: '2026-06-10'
+release_date: '2026-06-12'
 zmeta_versions:
   normative:
   - '1.0'
@@ -29,7 +29,7 @@ adapter_conformance_hash: sha256:859c736cbbb0be8529d3c28cd761ebf07409a9caff7acc8
 encoding_projection_specs_hash: sha256:df81a1157548d9e57c7e13a4dd3f2693bfa4575be91f4818fc54ab8fedf9b76a
 process_governance_hash: sha256:9c67274d915a24effa08dd2db5c2f8da410cd444309840e7f6855e2e783cd448
 release_bundle_hash: sha256:3a56110f094ea2c8128859cd69f2ad99b7cac2f30e9bd807969a16942f7788bf
-release_manifest_hash: sha256:dfeb2af617ce42a89a9ef0c50f1f046dfc284bca097daefbc2a3dff743d5dd6e
+release_manifest_hash: sha256:8f8ef6500e669f726d0ae86d496baac28f2c92b69fca1805e3b0342faf2b9a0f
 artifact_hashes:
 - path: AGENTS.md
   group: process_governance

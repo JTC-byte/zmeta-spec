@@ -2,7 +2,7 @@ import argparse
 import shutil
 from pathlib import Path
 
-VERSION_TAG = "v1.1.7"
+VERSION_TAG = "v1.1.8"
 IGNORE_NAMES = (
     "__pycache__",
     ".pytest_cache",
@@ -72,7 +72,7 @@ def make_zip(root: Path, bundle_dir: Path, archive_name: str) -> Path:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Build edge and gateway ZMeta release packages.")
-    parser.add_argument("--version", default=VERSION_TAG, help="Release tag, e.g. v1.1.7.")
+    parser.add_argument("--version", default=VERSION_TAG, help="Release tag, e.g. v1.1.8.")
     return parser.parse_args()
 
 

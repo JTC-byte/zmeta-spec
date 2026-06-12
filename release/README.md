@@ -10,11 +10,11 @@ Build release artifacts from the repo root:
 ```powershell
 python tools/build_release_manifest.py --output release/zmeta-release-manifest.yaml
 python tools/validate_release_manifest.py --manifest release/zmeta-release-manifest.yaml
-python release/build_mvp_packages.py --version v1.1.7
-python release/build_release_bundle.py --version 1.1.7
-python tools/build_release_package.py --manifest release/zmeta-release-manifest.yaml --output-dir release/package-v1.1.7 --release-id zmeta-v1.1.7 --release-state formal_release --no-signatures
-python tools/validate_release_package.py --manifest release/zmeta-release-manifest.yaml --package-dir release/package-v1.1.7
-python release/sign_release_artifacts.py --version v1.1.7 --write-checksums --verify-checksums
+python release/build_mvp_packages.py --version v1.1.8
+python release/build_release_bundle.py --version 1.1.8
+python tools/build_release_package.py --manifest release/zmeta-release-manifest.yaml --output-dir release/package-v1.1.8 --release-id zmeta-v1.1.8 --release-state formal_release --no-signatures
+python tools/validate_release_package.py --manifest release/zmeta-release-manifest.yaml --package-dir release/package-v1.1.8
+python release/sign_release_artifacts.py --version v1.1.8 --write-checksums --verify-checksums
 ```
 
 The release package builder defaults to no-signature mode. It does not create a
@@ -25,19 +25,19 @@ Create detached PGP signatures for the checksum manifest and every release
 asset:
 
 ```powershell
-python release/sign_release_artifacts.py --version v1.1.7 --sign --target all --gpg-key-id <fingerprint>
+python release/sign_release_artifacts.py --version v1.1.8 --sign --target all --gpg-key-id <fingerprint>
 ```
 
 Verify before upload:
 
 ```powershell
-python release/sign_release_artifacts.py --version v1.1.7 --verify-checksums --verify-signatures --target all
+python release/sign_release_artifacts.py --version v1.1.8 --verify-checksums --verify-signatures --target all
 ```
 
 Dry-run the signing commands when GPG is not available on the current machine:
 
 ```powershell
-python release/sign_release_artifacts.py --version v1.1.7 --sign --target all --dry-run
+python release/sign_release_artifacts.py --version v1.1.8 --sign --target all --dry-run
 ```
 
 Upload the release zips, `zmeta-release-manifest.yaml`, the release package
