@@ -47,6 +47,18 @@ class PolicyRiskModeLintTest(unittest.TestCase):
         self.assertEqual("POLICY_IGNORE_MATERIAL_RISK", issues[0]["code"])
         self.assertEqual("timing_freshness.mode_by_profile.L", issues[0]["path"])
         self.assertIn("TIMING_STATUS_STALE", issues[0]["reason_codes"])
+        self.assertIn("TIMING_STATUS_AGE_NEGATIVE", issues[0]["reason_codes"])
+
+    def test_negative_age_timing_ignore_is_flagged(self):
+        policy = copy.deepcopy(self.policy)
+        policy["timing_freshness"]["negative_age_mode"] = "ignore"
+
+        issues = validators.lint_policy_risk_modes(policy)
+
+        self.assertEqual(1, len(issues))
+        self.assertEqual("POLICY_IGNORE_MATERIAL_RISK", issues[0]["code"])
+        self.assertEqual("timing_freshness.negative_age_mode", issues[0]["path"])
+        self.assertEqual(["TIMING_STATUS_AGE_NEGATIVE"], issues[0]["reason_codes"])
 
     def test_material_lineage_ignore_is_flagged(self):
         policy = copy.deepcopy(self.policy)

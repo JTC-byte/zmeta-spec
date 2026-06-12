@@ -73,7 +73,7 @@ examples, and conformance tests. No implementation files were changed.
 | 21. v1.1.0 Extension Semantics | Enforced | Experimental schema and conformance fixtures isolate SENSOR_STATUS, PLATFORM_STATUS, structured quality, data_ref/data_refs, and expanded tasks. |
 | 22. Conformance Classes | Enforced | Machine-readable conformance-class manifest and example claims exist, including risk adjudication and external promotion classes. |
 | 23. Implementation Mapping | Enforced | Current document maps surfaces; this crosswalk turns gaps into backlog items. |
-| 24. Change Log / Semantic Delta | Enforced | Documentation only; implementation blockers remain deferred. |
+| 24. Change Log / Semantic Delta | Enforced | Documentation only; D-013/D-014 follow-up blockers are closed on current `main`. |
 
 ## Contract-to-Stack Crosswalk
 

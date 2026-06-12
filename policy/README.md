@@ -45,10 +45,11 @@ Notes:
   are intentionally narrower than the full violation-code list. Versioned
   schemas may expose only the diagnostic codes applicable to that version's
   governed vocabulary.
-- `timing-freshness.yaml` defines profile-specific maximum TIME_STATUS age and
-  whether stale or missing timing status is rejected, warned, or used to degrade
-  confidence. Its `use_limits` labels define what degraded timing data may and
-  may not be used for when a deployment chooses soft acceptance.
+- `timing-freshness.yaml` defines profile-specific maximum TIME_STATUS age,
+  negative-age tolerance, and whether stale, missing, or clock-anomalous timing
+  status is rejected, warned, or used to degrade confidence. Its `use_limits`
+  labels define what degraded timing data may and may not be used for when a
+  deployment chooses soft acceptance.
 - `lineage.yaml` defines payload/envelope lineage consistency, permitted parent
   event types when a local event store is available, and unresolved-parent
   handling by profile. Its `use_limits` keep unresolved-lineage warnings

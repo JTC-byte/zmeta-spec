@@ -7,10 +7,7 @@
 - Current next work item: none required for the current downstream integration
   baseline. Optional future work remains S1-11B future-branch roadmap artifact,
   adapter-harness breadth from real sensor captures, release-authority
-  signatures, or deployment/container runtime breadth. Maintainer decisions
-  are pending for D-013 (timing-freshness negative-age clamp) and D-014
-  (compact codec unknown integer payload keys); see the deferred issue
-  register.
+  signatures, or deployment/container runtime breadth.
 - Current decision: ZMeta v1.1.8 is the current formal release baseline. It
   publishes the partner bearing-frame integrity stack, adapter hardening,
   gateway runtime guard improvements, professional overview documentation, and
@@ -84,8 +81,8 @@
   point current-facing guidance at `v1.1.8`; historical `v1.1.7` release
   records and published checksum files remain unchanged.
   D-003 remains `OPEN - ROADMAP PLANNED`. D-004 remains closed as removed from
-  ZMeta scope. D-013 and D-014 are new open findings awaiting a maintainer
-  semantics decision.
+  ZMeta scope. S1-19 closed D-013 and D-014 by adding negative TIME_STATUS age
+  diagnostics and compact unknown-integer-key rejection.
 
 ## S0-01 - Semantic Contract Lockdown Audit
 
@@ -1871,9 +1868,10 @@
     `tools/README.md`, `conformance/adapter-harness/README.md`, this
     worklog, and the handoff updated; release manifest and example claim
     hashes regenerated.
-- New deferred issues: D-013 (timing-freshness negative-age clamp) and
-  D-014 (compact codec unknown integer payload keys) recorded below as
-  verified-but-deferred findings needing a maintainer semantics decision.
+- New deferred issues at P1-04 closeout: D-013 (timing-freshness
+  negative-age clamp) and D-014 (compact codec unknown integer payload keys)
+  recorded below as verified-but-deferred findings needing a maintainer
+  semantics decision. S1-19 later closed both findings on current `main`.
   Two follow-up notes recorded in the handoff: unhandled `OSError` on
   oversize outgoing UDP datagrams, and ingress adapters fabricating
   `lineage.based_on` with fresh random UUIDv7 values.
@@ -1940,7 +1938,9 @@
   - v1.1.0 `bearing.frame` remains optional and single-valued.
   - Unknown-frame Moth bearings and MAVLink headings are no longer canonical
     by default; explicit `TRUE_NORTH` assertions are required.
-  - D-013 and D-014 remain deferred for maintainer semantics decisions.
+  - At v1.1.8 release publication time, D-013 and D-014 remained deferred
+    for maintainer semantics decisions. S1-19 later closed both findings on
+    current `main`.
 - Validation: final command output is recorded in
   `release/VALIDATION_REPORT_v1.1.8.md`.
   Summary: release manifest, package templates, strict examples, full kernel
@@ -1983,6 +1983,39 @@
     Docker Compose emitted only the known local
     `C:\Users\User\.docker\config.json` access warning while exiting 0.
   - `git diff --check` -> clean with normal Windows LF-to-CRLF warnings.
+
+## S1-19 - Timing Negative-Age And Compact Unknown-Key Closure
+
+- Status: COMPLETE
+- Date completed: 2026-06-12
+- Change class: Governed baseline plus runtime/reference conformance
+  alignment.
+- Scope: Close D-013 and D-014 instead of deferring them.
+- D-013 implementation:
+  - Added `TIMING_STATUS_AGE_NEGATIVE` to governed diagnostic vocabulary,
+    v1.0/v1.1.0 SCHEMA_VIOLATION reason-code enums, policy allowlists, and
+    compact reason-code mapping.
+  - Added `max_negative_age_ms` and `negative_age_mode` to
+    `policy/timing-freshness.yaml`; the reference default warns beyond
+    profile tolerance and still allows deployments to reject or degrade.
+  - Updated timing freshness validation to compare raw event-vs-TIME_STATUS
+    age, emit the new timing risk label beyond tolerance, and avoid clamping
+    negative age to zero.
+  - Added focused tests plus a core conformance must-fail fixture with
+    TIME_STATUS preload.
+- D-014 implementation:
+  - Added compact spec text requiring unknown integer keys in governed compact
+    maps to fail decode.
+  - Updated `zmeta_compact.py` to reject unknown integer keys while preserving
+    string extension keys.
+  - Added a compact encoding-negative generated fixture for unknown integer
+    payload keys.
+- Boundary: This is a current-main governed change after v1.1.8 publication.
+  It does not rewrite historical v1.1.8 release notes, validation report,
+  GitHub release assets, or `SHA256SUMS_v1.1.8.txt`.
+- Verification: focused timing, policy lint, encoding roundtrip,
+  encoding-negative, reason-code, and strict conformance checks passed before
+  manifest regeneration.
 
 ## Deferred Issue Register
 
@@ -2267,7 +2300,7 @@
 
 ### D-013 - Timing-Freshness Negative-Age Clamp Hides Producer Clock Anomalies
 
-- Status: OPEN - NEEDS MAINTAINER SEMANTICS DECISION
+- Status: CLOSED
 - Discovered during: P1-04 code-review lead verification (verified line by
   line; deferred because the fix needs new semantic surface)
 - Issue: `gateway/src/validators.py:1430` clamps the event-versus-TIME_STATUS
@@ -2287,10 +2320,19 @@
   check, implemented as a governed Class B/D change with conformance fixtures.
   Not implemented in P1-04 because it adds violation-code vocabulary and
   policy surface to locked v1.0 timing semantics.
+- S1-19 closure: Implemented the governed diagnostic and policy surface.
+  Validators now preserve raw negative age, tolerate only profile-configured
+  small negative intervals, and emit `TIMING_STATUS_AGE_NEGATIVE` with timing
+  risk labels beyond tolerance. Default reference policy warns; deployments may
+  tune to reject or degrade. Added schema/policy reason-code coverage, compact
+  reason-code mapping, focused tests, and core conformance coverage. The
+  optional `t_receive` plausibility check was not added because gateway
+  `t_receive` stamping happens after inbound validation and is latency/AAR
+  metadata rather than producer timing authority.
 
 ### D-014 - Compact Codec Degrades Unknown Integer Payload Keys on Re-Encode
 
-- Status: OPEN - NEEDS MAINTAINER SEMANTICS DECISION
+- Status: CLOSED
 - Discovered during: P1-04 code-review lead verification (verified line by
   line; deferred because the fix needs spec text and a fixture decision)
 - Issue: `zmeta_compact.py` decode converts unknown integer payload keys to
@@ -2307,3 +2349,7 @@
   align the decoder, as a governed Class B change. Rejection is preferred over
   re-mapping because re-mapping cannot disambiguate a genuine string key
   `"99"` from a degraded integer key 99.
+- S1-19 closure: Implemented compact v1 decode rejection for unknown integer
+  keys in governed compact maps, added spec text, preserved string extension
+  keys, and added a generated encoding-negative fixture that fails before
+  schema/policy validation as `ENCODE_NEGATIVE_UNKNOWN_COMPACT_KEY`.

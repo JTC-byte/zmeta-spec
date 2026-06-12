@@ -46,6 +46,7 @@ FAILURE_CODES = (
     "ENCODE_NEGATIVE_UNSUPPORTED_COMPACT_VERSION",
     "ENCODE_NEGATIVE_INVALID_COMPACT_SHAPE",
     "ENCODE_NEGATIVE_INVALID_COMPACT_ENUM",
+    "ENCODE_NEGATIVE_UNKNOWN_COMPACT_KEY",
     "ENCODE_NEGATIVE_INVALID_UUID_BYTES",
     "ENCODE_NEGATIVE_MALFORMED_PROTOBUF",
     "ENCODE_NEGATIVE_UNSUPPORTED_PROTOBUF_WIRE_TYPE",
@@ -180,6 +181,8 @@ def _map_compact_decode_error(exc: BaseException) -> dict[str, Any]:
         return _result("decode", "ENCODE_NEGATIVE_MALFORMED_CBOR", message)
     if "Unsupported compact_version" in message:
         return _result("decode", "ENCODE_NEGATIVE_UNSUPPORTED_COMPACT_VERSION", message)
+    if "Unknown compact integer key" in message:
+        return _result("decode", "ENCODE_NEGATIVE_UNKNOWN_COMPACT_KEY", message)
     if "has no attribute" in message or "not subscriptable" in message or "compact shape" in message:
         return _result("decode", "ENCODE_NEGATIVE_INVALID_COMPACT_SHAPE", message)
     if "CBOR" in message or "unexpected end" in message or "indefinite lengths" in message:
@@ -262,9 +265,9 @@ def _compact_map_for_case(name: str) -> Any:
                 v.SOURCE_KEYS["producer"]: "fusion-engine",
             },
             v.TOP_KEYS["payload"]: {
-                v.STATE_PAYLOAD_KEYS["track_id"]: "TRACK-NEG-501",
-                v.STATE_PAYLOAD_KEYS["geo"]: {1: 34.0, 2: -118.0, 3: 100.0},
-                v.STATE_PAYLOAD_KEYS["valid_for_ms"]: 1000,
+                "track_id": "TRACK-NEG-501",
+                "geo": {"lat": 34.0, "lon": -118.0, "alt_m": 100.0},
+                "valid_for_ms": 1000,
             },
             v.TOP_KEYS["confidence"]: 0.7,
             v.TOP_KEYS["lineage"]: {v.LINEAGE_KEYS["based_on"]: [bytes.fromhex("019c2b5cc05270e1b6aa34bf14c8c501")]},
@@ -291,6 +294,11 @@ def _compact_map_for_case(name: str) -> Any:
         event = _base_state_event("019c2b5c-c052-70e1-b6aa-34bf14c8d505")
         compact = zmeta_compact.encode_event(event)
         compact[v.TOP_KEYS["event"]][v.EVENT_KEYS["ts"]] = "2025-02-03T12:00:00"
+        return compact
+    if name == "compact_unknown_integer_payload_key":
+        event = _base_state_event("019c2b5c-c052-70e1-b6aa-34bf14c8d506")
+        compact = zmeta_compact.encode_event(event)
+        compact[v.TOP_KEYS["payload"]][99] = "future-field"
         return compact
     raise ValueError(f"unknown compact generated case: {name}")
 

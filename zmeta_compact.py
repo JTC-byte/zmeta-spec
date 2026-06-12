@@ -262,6 +262,7 @@ REASON_CODE_MAP = {
     "CONFIG_ERROR": 38,
     "POWER_SAVE": 39,
     "UNKNOWN_CAUSE": 40,
+    "TIMING_STATUS_AGE_NEGATIVE": 41,
 }
 
 
@@ -307,6 +308,12 @@ def is_compact(obj: Any) -> bool:
     return any(isinstance(key, int) for key in obj.keys())
 
 
+def _reject_unknown_integer_keys(mapping: Dict[Any, Any], known_keys: set[int], context: str) -> None:
+    unknown = sorted(key for key in mapping if isinstance(key, int) and key not in known_keys)
+    if unknown:
+        raise ValueError(f"Unknown compact integer key in {context}: {unknown[0]}")
+
+
 def encode_event(event: Dict[str, Any]) -> Dict[int, Any]:
     out: Dict[int, Any] = {}
     out[TOP_KEYS["compact_version"]] = COMPACT_VERSION
@@ -333,6 +340,10 @@ def encode_event(event: Dict[str, Any]) -> Dict[int, Any]:
 
 
 def decode_event(compact: Dict[int, Any]) -> Dict[str, Any]:
+    if not isinstance(compact, dict):
+        raise ValueError("compact shape must be a map")
+    _reject_unknown_integer_keys(compact, set(TOP_KEYS.values()), "top-level")
+
     event: Dict[str, Any] = {"zmeta_version": "1.0"}
 
     if TOP_KEYS["compact_version"] in compact:
@@ -398,6 +409,7 @@ def _encode_event_block(block: Dict[str, Any]) -> Dict[int, Any]:
 
 
 def _decode_event_block(block: Dict[int, Any]) -> Dict[str, Any]:
+    _reject_unknown_integer_keys(block, set(EVENT_KEYS.values()), "event")
     out: Dict[str, Any] = {}
     if EVENT_KEYS["event_id"] in block:
         out["event_id"] = _uuid_from_bytes(block.get(EVENT_KEYS["event_id"]))
@@ -430,6 +442,7 @@ def _encode_source(source: Dict[str, Any]) -> Dict[int, Any]:
 
 
 def _decode_source(source: Dict[int, Any]) -> Dict[str, Any]:
+    _reject_unknown_integer_keys(source, set(SOURCE_KEYS.values()), "source")
     out: Dict[str, Any] = {}
     if SOURCE_KEYS["platform_id"] in source:
         out["platform_id"] = source.get(SOURCE_KEYS["platform_id"])
@@ -457,6 +470,7 @@ def _encode_lineage(lineage: Dict[str, Any]) -> Dict[int, Any]:
 def _decode_lineage(lineage: Any) -> Any:
     if not isinstance(lineage, dict):
         return lineage
+    _reject_unknown_integer_keys(lineage, set(LINEAGE_KEYS.values()), "lineage")
     out: Dict[str, Any] = {}
     if LINEAGE_KEYS["based_on"] in lineage:
         values = lineage.get(LINEAGE_KEYS["based_on"], [])
@@ -488,6 +502,7 @@ def _decode_payload(payload: Any, event_type: Any) -> Any:
         return _decode_command_payload(payload)
     if event_type == "SYSTEM_EVENT":
         return _decode_system_payload(payload)
+    _reject_unknown_integer_keys(payload, set(), "payload")
     return payload
 
 
@@ -508,6 +523,7 @@ def _encode_state_payload(payload: Dict[str, Any]) -> Dict[int, Any]:
 
 
 def _decode_state_payload(payload: Dict[int, Any]) -> Dict[str, Any]:
+    _reject_unknown_integer_keys(payload, set(STATE_PAYLOAD_KEYS.values()), "STATE_EVENT payload")
     out: Dict[str, Any] = {}
     for key, idx in STATE_PAYLOAD_KEYS.items():
         if idx not in payload:
@@ -546,6 +562,7 @@ def _encode_command_payload(payload: Dict[str, Any]) -> Dict[int, Any]:
 
 
 def _decode_command_payload(payload: Dict[int, Any]) -> Dict[str, Any]:
+    _reject_unknown_integer_keys(payload, set(COMMAND_PAYLOAD_KEYS.values()), "COMMAND_EVENT payload")
     out: Dict[str, Any] = {}
     for key, idx in COMMAND_PAYLOAD_KEYS.items():
         if idx not in payload:
@@ -586,6 +603,7 @@ def _encode_system_payload(payload: Dict[str, Any]) -> Dict[int, Any]:
 
 
 def _decode_system_payload(payload: Dict[int, Any]) -> Dict[str, Any]:
+    _reject_unknown_integer_keys(payload, set(SYSTEM_PAYLOAD_KEYS.values()), "SYSTEM_EVENT payload")
     out: Dict[str, Any] = {}
     system_type = None
     if SYSTEM_PAYLOAD_KEYS["system_type"] in payload:
@@ -610,6 +628,7 @@ def _encode_geo(geo: Dict[str, Any]) -> Dict[int, Any]:
 
 
 def _decode_geo(geo: Dict[int, Any]) -> Dict[str, Any]:
+    _reject_unknown_integer_keys(geo, set(GEO_KEYS.values()), "geo")
     out: Dict[str, Any] = {}
     for key, idx in GEO_KEYS.items():
         if idx in geo:
@@ -626,6 +645,7 @@ def _encode_geo2d(geo: Dict[str, Any]) -> Dict[int, Any]:
 
 
 def _decode_geo2d(geo: Dict[int, Any]) -> Dict[str, Any]:
+    _reject_unknown_integer_keys(geo, set(GEO2D_KEYS.values()), "target_geo")
     out: Dict[str, Any] = {}
     for key, idx in GEO2D_KEYS.items():
         if idx in geo:
@@ -668,6 +688,7 @@ def _decode_metrics(system_type: Any, metrics: Any) -> Any:
         return _decode_metrics_with_keys(
             metrics, SCHEMA_VIOLATION_METRICS_KEYS, uuid_keys={"original_event_id"}
         )
+    _reject_unknown_integer_keys(metrics, set(), "metrics")
     return metrics
 
 
@@ -697,6 +718,7 @@ def _decode_metrics_with_keys(
     key_map: Dict[str, int],
     uuid_keys: set[str] | None = None,
 ) -> Dict[str, Any]:
+    _reject_unknown_integer_keys(metrics, set(key_map.values()), "metrics")
     out: Dict[str, Any] = {}
     uuid_keys = uuid_keys or set()
     reverse = _reverse_map(key_map)
@@ -735,6 +757,7 @@ def _encode_time_status_metrics(metrics: Dict[str, Any]) -> Dict[int, Any]:
 
 
 def _decode_time_status_metrics(metrics: Dict[int, Any]) -> Dict[str, Any]:
+    _reject_unknown_integer_keys(metrics, set(TIME_STATUS_METRICS_KEYS.values()), "TIME_STATUS metrics")
     out: Dict[str, Any] = {}
     for key, idx in TIME_STATUS_METRICS_KEYS.items():
         if idx not in metrics:

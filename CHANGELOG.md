@@ -1,6 +1,14 @@
 # Changelog
 
 ## [Unreleased]
+- Closed D-013 by adding `TIMING_STATUS_AGE_NEGATIVE`, profile-specific
+  `max_negative_age_ms`, default warn-mode policy handling, risk-adjudication
+  support, schema/policy diagnostic vocabulary coverage, and tests/conformance
+  for event timestamps that predate the latest applicable TIME_STATUS beyond
+  tolerance.
+- Closed D-014 by specifying that unknown compact integer keys are rejected at
+  decode, preserving string extension keys, adding decoder enforcement, and
+  extending encoding-negative fixtures for the unknown-key path.
 - Aligned post-release current-facing documentation, tool examples, CI
   compatibility target, and the compatibility CLI test with the published
   `v1.1.8` release after the stack audit. Historical `v1.1.7` release records

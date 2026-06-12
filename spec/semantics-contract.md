@@ -729,6 +729,15 @@ current timing status is available, consumers SHOULD treat timing quality as
 unknown or stale and degrade confidence, gate fusion, warn, or reject according
 to deployment policy.
 
+When an event relies on periodic TIME_STATUS, consumers SHOULD compare the
+event timestamp with the latest TIME_STATUS timestamp from the same source
+identity. If the event timestamp is earlier than that TIME_STATUS by more than
+the configured negative-age tolerance, the event MUST be labeled with
+`TIMING_STATUS_AGE_NEGATIVE` or rejected according to policy. Implementations
+MUST NOT clamp that negative interval to zero and treat it as clean freshness.
+Small negative intervals within policy tolerance MAY be accepted to accommodate
+benign out-of-order delivery.
+
 ### 5.4 Worst-Case Error Semantics
 
 `est_error_ms` is a conservative upper bound. It is not 1-sigma, RMS, or a
@@ -1271,6 +1280,11 @@ Allowed LINK_STATUS reason codes:
 
 TIME_STATUS reports node timing quality. Required metrics are listed in Section
 5.3.
+
+`TIMING_STATUS_AGE_NEGATIVE` is the governed diagnostic reason for events whose
+timestamp predates the latest applicable TIME_STATUS by more than policy
+tolerance. It is a timing-quality anomaly label; it does not create new event
+vocabulary or new timing fields.
 
 #### SCHEMA_VIOLATION
 

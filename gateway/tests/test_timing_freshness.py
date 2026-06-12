@@ -109,6 +109,61 @@ class TimingFreshnessTest(unittest.TestCase):
         self.assertEqual("TIMING_STATUS_STALE", violations[0]["code"])
         self.assertEqual("fail", violations[0]["severity"])
 
+    def test_small_negative_time_status_age_passes_within_tolerance(self):
+        state = validators.ValidationState()
+        state.record_timing(time_status("2025-01-17T14:30:00Z"))
+
+        ok, violations = validators.validate_timing_quality(
+            state_event("2025-01-17T14:29:59.500Z"),
+            self.semantics,
+            state=state,
+            severity_map=self.severity_map,
+            timing_freshness_policy=self.freshness,
+            profile="H",
+        )
+
+        self.assertTrue(ok, violations)
+        self.assertEqual([], violations)
+
+    def test_negative_time_status_age_warns_by_default(self):
+        state = validators.ValidationState()
+        state.record_timing(time_status("2025-01-17T14:30:00Z"))
+
+        ok, violations = validators.validate_timing_quality(
+            state_event("2025-01-17T14:29:58Z"),
+            self.semantics,
+            state=state,
+            severity_map=self.severity_map,
+            timing_freshness_policy=self.freshness,
+            profile="H",
+        )
+
+        self.assertTrue(ok)
+        self.assertEqual("TIMING_STATUS_AGE_NEGATIVE", violations[0]["code"])
+        self.assertEqual("warn", violations[0]["severity"])
+        self.assertEqual("WARN_ACCEPT", violations[0]["details"]["policy_decision"])
+        self.assertEqual(2000.0, violations[0]["details"]["negative_age_ms"])
+        self.assertEqual(1000, violations[0]["details"]["max_negative_age_ms"])
+
+    def test_negative_time_status_age_can_reject_by_policy(self):
+        policy = copy.deepcopy(self.freshness)
+        policy["negative_age_mode"] = "reject"
+        state = validators.ValidationState()
+        state.record_timing(time_status("2025-01-17T14:30:00Z"))
+
+        ok, violations = validators.validate_timing_quality(
+            state_event("2025-01-17T14:29:58Z"),
+            self.semantics,
+            state=state,
+            severity_map=self.severity_map,
+            timing_freshness_policy=policy,
+            profile="H",
+        )
+
+        self.assertFalse(ok)
+        self.assertEqual("TIMING_STATUS_AGE_NEGATIVE", violations[0]["code"])
+        self.assertEqual("fail", violations[0]["severity"])
+
     def test_missing_time_status_rejects_by_default(self):
         ok, violations = validators.validate_timing_quality(
             state_event("2025-01-17T14:30:05Z"),
@@ -181,6 +236,31 @@ class TimingFreshnessTest(unittest.TestCase):
             risk["effects"],
         )
         self.assertIn("COMMAND_BASIS", risk["prohibited_uses"])
+
+    def test_negative_time_status_age_can_degrade_by_policy(self):
+        policy = copy.deepcopy(self.freshness)
+        policy["negative_age_mode"] = "degrade"
+        event = state_event("2025-01-17T14:29:58Z", confidence=0.8)
+        state = validators.ValidationState()
+        state.record_timing(time_status("2025-01-17T14:30:00Z"))
+
+        ok, violations = validators.validate_timing_quality(
+            event,
+            self.semantics,
+            state=state,
+            severity_map=self.severity_map,
+            timing_freshness_policy=policy,
+            profile="H",
+        )
+        changed = validators.apply_timing_freshness_degradation(event, violations, policy)
+
+        self.assertTrue(ok)
+        self.assertTrue(changed)
+        self.assertEqual("TIMING_STATUS_AGE_NEGATIVE", violations[0]["code"])
+        self.assertEqual("DEGRADED_ACCEPT", violations[0]["details"]["policy_decision"])
+        self.assertAlmostEqual(0.4, event["confidence"])
+        risk = event["payload"]["extensions"]["risk_adjudication"][0]
+        self.assertEqual("TIMING_STATUS_AGE_NEGATIVE", risk["reason_code"])
 
     def test_profile_specific_degrade_mode_applies_to_profile_l(self):
         policy = copy.deepcopy(self.freshness)

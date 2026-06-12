@@ -146,6 +146,26 @@ def test_compact_decode_accepts_cbor_limits():
         zmeta_compact.loads(encoded, max_depth=1)
 
 
+def test_compact_decode_rejects_unknown_integer_payload_key():
+    event = _load_events()[0]
+    compact = zmeta_compact.encode_event(event)
+    compact[zmeta_compact.TOP_KEYS["payload"]][99] = "future-field"
+    encoded = zmeta_cbor.dumps(compact)
+
+    with pytest.raises(ValueError, match="Unknown compact integer key"):
+        zmeta_compact.loads(encoded)
+
+
+def test_compact_decode_preserves_string_extension_payload_key():
+    event = _load_events()[0]
+    event = {**event, "payload": {**event["payload"], "x-vendor-note": "ok"}}
+    encoded = zmeta_compact.dumps(event)
+
+    decoded = zmeta_compact.loads(encoded)
+
+    assert decoded["payload"]["x-vendor-note"] == "ok"
+
+
 def test_compact_prefers_builtin_cbor_when_cbor2_is_present():
     class ExplodingCbor2:
         @staticmethod

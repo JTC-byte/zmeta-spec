@@ -1608,6 +1608,7 @@
                       "PROFILE_MISMATCH",
                       "TIMING_STATUS_MISSING",
                       "TIMING_STATUS_STALE",
+                      "TIMING_STATUS_AGE_NEGATIVE",
                       "TIMING_STATUS_UNSYNCED",
                       "TIMING_STATUS_HOLDOVER_NON_MONOTONIC",
                       "RF_WINDOW_MIDPOINT_MISMATCH",

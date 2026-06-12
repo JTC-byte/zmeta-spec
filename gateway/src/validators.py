@@ -386,6 +386,27 @@ def _max_timing_status_age_ms(policy, profile):
     return max(0, value)
 
 
+def _max_negative_timing_status_age_ms(policy, profile):
+    defaults = {"L": 5000, "M": 2000, "H": 1000}
+    configured = policy.get("max_negative_age_ms", {}) if isinstance(policy, dict) else {}
+    if isinstance(configured, dict):
+        raw = configured.get(profile, defaults.get(profile, defaults["H"]))
+    else:
+        raw = configured
+    try:
+        value = int(raw)
+    except (TypeError, ValueError):
+        value = defaults.get(profile, defaults["H"])
+    return max(0, value)
+
+
+_TIMING_DEGRADABLE_CODES = {
+    "TIMING_STATUS_MISSING",
+    "TIMING_STATUS_STALE",
+    "TIMING_STATUS_AGE_NEGATIVE",
+}
+
+
 def _timing_policy_violation(
     code,
     message,
@@ -431,7 +452,7 @@ def apply_timing_freshness_degradation(event, violations, timing_freshness_polic
         return False
     if not any(
         violation.get("details", {}).get("action") == "degrade"
-        and violation.get("code") in {"TIMING_STATUS_MISSING", "TIMING_STATUS_STALE"}
+        and violation.get("code") in _TIMING_DEGRADABLE_CODES
         for violation in violations or []
     ):
         return False
@@ -454,7 +475,7 @@ def apply_timing_freshness_degradation(event, violations, timing_freshness_polic
     for violation in violations or []:
         if (
             violation.get("details", {}).get("action") == "degrade"
-            and violation.get("code") in {"TIMING_STATUS_MISSING", "TIMING_STATUS_STALE"}
+            and violation.get("code") in _TIMING_DEGRADABLE_CODES
         ):
             changed = _append_risk_adjudication(
                 event, violation, {"confidence_reduction_factor": factor}
@@ -1056,7 +1077,7 @@ def lint_policy_risk_modes(policy):
             "timing_freshness",
             timing,
             "mode",
-            ["TIMING_STATUS_MISSING", "TIMING_STATUS_STALE"],
+            ["TIMING_STATUS_MISSING", "TIMING_STATUS_STALE", "TIMING_STATUS_AGE_NEGATIVE"],
             "timing",
         )
     )
@@ -1065,7 +1086,7 @@ def lint_policy_risk_modes(policy):
             "timing_freshness",
             timing,
             "mode_by_profile",
-            ["TIMING_STATUS_MISSING", "TIMING_STATUS_STALE"],
+            ["TIMING_STATUS_MISSING", "TIMING_STATUS_STALE", "TIMING_STATUS_AGE_NEGATIVE"],
             "timing",
         )
     )
@@ -1102,6 +1123,24 @@ def lint_policy_risk_modes(policy):
             timing,
             "stale_mode_by_profile",
             ["TIMING_STATUS_STALE"],
+            "timing",
+        )
+    )
+    entries.extend(
+        _policy_mode_entries(
+            "timing_freshness",
+            timing,
+            "negative_age_mode",
+            ["TIMING_STATUS_AGE_NEGATIVE"],
+            "timing",
+        )
+    )
+    entries.extend(
+        _policy_mode_entries(
+            "timing_freshness",
+            timing,
+            "negative_age_mode_by_profile",
+            ["TIMING_STATUS_AGE_NEGATIVE"],
             "timing",
         )
     )
@@ -1427,8 +1466,37 @@ def validate_timing_quality(
         status_ts = _parse_utc_z(timing_status.get("_event_ts"))
         if event_ts is None or status_ts is None:
             return True, []
-        age_ms = max(0.0, (event_ts - status_ts).total_seconds() * 1000.0)
+        raw_age_ms = (event_ts - status_ts).total_seconds() * 1000.0
         event_profile = _profile_for_event(event, profile)
+        if raw_age_ms < 0:
+            negative_age_ms = abs(raw_age_ms)
+            max_negative_age_ms = _max_negative_timing_status_age_ms(
+                timing_freshness_policy, event_profile
+            )
+            if negative_age_ms <= max_negative_age_ms:
+                return True, []
+
+            mode = _timing_mode(timing_freshness_policy, "negative_age", event_profile)
+            violation = _timing_policy_violation(
+                "TIMING_STATUS_AGE_NEGATIVE",
+                "event timestamp is earlier than latest TIME_STATUS beyond policy tolerance",
+                mode,
+                {
+                    "source": "/".join(timing_key or _source_key(event)),
+                    "event_type": event_type,
+                    "profile": event_profile,
+                    "age_ms": raw_age_ms,
+                    "negative_age_ms": negative_age_ms,
+                    "max_negative_age_ms": max_negative_age_ms,
+                    "timing_status_ts": timing_status.get("_event_ts"),
+                    "event_ts": event.get("event", {}).get("ts"),
+                },
+                timing_freshness_policy=timing_freshness_policy,
+                severity_map=severity_map,
+            )
+            return violation["severity"] != "fail", [violation]
+
+        age_ms = raw_age_ms
         max_age_ms = _max_timing_status_age_ms(timing_freshness_policy, event_profile)
         if age_ms <= max_age_ms:
             return True, []

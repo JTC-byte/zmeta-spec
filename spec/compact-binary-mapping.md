@@ -181,6 +181,19 @@ Reason codes:
 - Mapped to small integers by the reference implementation.
 - Unknown reason codes may be transmitted as strings and are preserved.
 
+## Unknown Integer Keys
+
+For compact version 1, integer map keys are reserved for the tables defined in
+this document. Decoders MUST reject any integer key that is not listed for the
+specific compact map being decoded, including top-level, event, source,
+lineage, payload, geo, target_geo, and metrics maps.
+
+String keys are still allowed for canonical JSON fields and namespaced
+extensions where the schema or policy permits them. Unknown integer keys MUST
+NOT be converted to decimal string keys because that loses the distinction
+between a future compact assignment such as key `99` and a producer that
+intentionally sent the string key `"99"`.
+
 ## Compatibility
 
 - The compact mapping is **wire-level only**.
