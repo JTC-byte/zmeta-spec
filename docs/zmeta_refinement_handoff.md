@@ -28,6 +28,10 @@ Current stack status:
   current-facing docs, tools examples, CI compatibility target, and the
   compatibility CLI test with `v1.1.8`. No published v1.1.8 release assets,
   manifests, checksums, tags, or signatures were changed.
+- Final baseline audit cleanup aligned two remaining current-facing guidance
+  examples with `v1.1.8`: the adapter `check_compat` command and the
+  change-governance manifest rebuild command. Published
+  `SHA256SUMS_v1.1.8.txt` and release assets remain unchanged.
 - D-013 (timing-freshness negative-age clamp) and D-014 (compact codec
   unknown integer payload keys) are closed on current `main`. The stack now
   labels out-of-tolerance negative TIME_STATUS age with

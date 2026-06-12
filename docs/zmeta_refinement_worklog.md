@@ -8,6 +8,10 @@
   baseline. Optional future work remains S1-11B future-branch roadmap artifact,
   adapter-harness breadth from real sensor captures, release-authority
   signatures, or deployment/container runtime breadth.
+- Current-main audit note: the final baseline audit corrected two missed
+  current-facing guidance examples to the `v1.1.8` target: the adapter
+  `check_compat` invocation and the change-governance manifest rebuild command.
+  Published `SHA256SUMS_v1.1.8.txt` and release assets remain unchanged.
 - Current decision: ZMeta v1.1.8 is the current formal release baseline. It
   publishes the partner bearing-frame integrity stack, adapter hardening,
   gateway runtime guard improvements, professional overview documentation, and

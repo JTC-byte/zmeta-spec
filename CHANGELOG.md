@@ -24,6 +24,9 @@
   compatibility target, and the compatibility CLI test with the published
   `v1.1.8` release after the stack audit. Historical `v1.1.7` release records
   and published checksums remain unchanged.
+- Corrected two remaining current-facing audit references: the adapter
+  compatibility example and the change-governance manifest rebuild example now
+  target the `v1.1.8` baseline.
 
 ## [1.1.8] - 2026-06-12
 - Added a machine-checkable bearing reference-frame marker: optional
