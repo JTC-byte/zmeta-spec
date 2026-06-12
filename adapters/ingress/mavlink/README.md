@@ -43,7 +43,7 @@ raw telemetry or reinterpret state.
 | MAVLink input concept | Incorrect mapping to avoid | Correct ZMeta treatment | Notes |
 |---|---|---|---|
 | Global position / GPS fix | `payload.features.position` or raw GPS fields | `STATE_EVENT` `payload.geo` after state projection; GPS quality goes to `payload.quality` or status metadata | Do not expose native GPS packet fields as state features. |
-| Heading | `payload.features.heading` | `STATE_EVENT` `payload.heading_deg` | Derived from `GLOBAL_POSITION_INT.hdg` when available. |
+| Heading | `payload.features.heading` | `STATE_EVENT` `payload.heading_deg` | Derived from `GLOBAL_POSITION_INT.hdg` when available; omitted (never defaulted to 0) when `hdg` is unknown (`UINT16_MAX`). |
 | Ground speed | `payload.features.speed` | `STATE_EVENT` `payload.speed_mps` | Computed from velocity components as state, not raw telemetry. |
 | GPS fix type / satellite count | `payload.features.gps_fix_type`, `payload.features.satellites_visible` | `payload.quality.gps_fix_type`, `payload.quality.satellites_visible`, and conservative top-level `confidence` | Quality metadata describes state reliability; it is not an observation feature block. |
 | Attitude roll/pitch/yaw | `payload.features.*` | `payload.quality.roll_deg`, `payload.quality.pitch_deg`, `payload.quality.yaw_deg` when retained | These are platform-state quality/context fields, not raw observation features. |
@@ -87,6 +87,24 @@ event = translate_platform_state(state, platform_id="uav-01")
 - Ingress is telemetry/status only; do not emit `COMMAND_EVENT` from MAVLink.
 - GPS fix type maps to confidence: 3D+ = 0.8, 2D = 0.5, lower = 0.2.
 - When `gps_fix_type < 3`, `payload.quality.geo_status` is set to `STALE`.
+
+### Heading and attitude frame provenance (known gap)
+
+ZMeta `payload.heading_deg` is contractually degrees true north (semantics
+contract section 6.4). The MAVLink wire format does not guarantee that frame:
+
+- `GLOBAL_POSITION_INT.hdg` is defined only as "vehicle heading (yaw angle)"
+  in centidegrees, with no declared true-vs-magnetic reference. On typical
+  autopilots it is EKF yaw, which is true-north-referenced only when magnetic
+  declination is correctly configured.
+- `ATTITUDE.yaw` (retained as `payload.quality.yaw_deg`) carries the same
+  ambiguity; it is platform-state context, not a canonical heading.
+
+Because the source does not guarantee the frame, this adapter does **not**
+assert `quality.heading_source`. Deployments must guarantee a true-north
+heading upstream (correct declination / AHRS configuration) before treating
+`payload.heading_deg` as canonical. An unknown heading (`hdg = UINT16_MAX`)
+is omitted from the payload rather than fabricated as `0.0`.
 
 ## Source
 

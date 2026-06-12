@@ -18,6 +18,12 @@ it infers bearing toward the emitter.
 These synthetic LOBs carry large angular error (default 75 deg) but converge
 through WLS fusion when many observations accumulate.
 
+Because the bearing is the geodesic travel direction (or its reverse) between
+two GPS fixes, it is degrees true north by construction — no heading
+compensation is involved. Events therefore assert frame provenance per
+semantics contract section 6.4: `quality.bearing_frame = "TRUE_NORTH"` and
+`quality.heading_source = "GPS_COURSE"`.
+
 ### Input format
 
 Binary `.bin` capture files with:

@@ -36,6 +36,17 @@ with UAS heading during yaw scans.
 - All events include `features.sensor_hw = "moth"` and `features.source_format`
   to indicate the input transport.
 
+### Bearing frame (known gap)
+
+Canonical `bearing.az_deg` is contractually degrees true north (semantics
+contract section 6.4). Neither the Moth TUNNEL ICD field (`bearing_deg`) nor
+the JSON replay format declares a reference frame, so this adapter passes the
+value through as received and deliberately asserts **no**
+`quality.bearing_frame` provenance — it will not claim a frame the source does
+not guarantee. Deployments must guarantee that upstream Moth tunnel/replay
+bearings are already degrees true north; consumers needing an asserted frame
+should treat these LOBs as legacy unlabeled bearings.
+
 ### Usage
 
 ```python

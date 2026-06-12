@@ -179,6 +179,11 @@ def translate_tunnel_payload(payload_bytes, *, platform_id, sensor_geo=None,
     The TUNNEL message contains a full LOB with bearing, frequency, power,
     SNR, elevation, and confidence from the Moth ICD.
 
+    The ICD field is named ``bearing_deg`` but does not state a reference
+    frame, so the value is passed through as received and no
+    ``quality.bearing_frame`` assertion is made: the upstream producer must
+    guarantee degrees true north per semantics contract section 6.4.
+
     Returns:
         ZMeta event dict, or None if payload is invalid.
     """
@@ -339,7 +344,10 @@ def translate_json_replay(raw, *, platform_id, sensor_geo=None, sensor_id=None):
 
     Used for offline replay / bench testing. Accepts the structured dict
     format with bearing, frequency, power sub-objects. The input bearing,
-    when present, is passed through as measured. When the input carries no
+    when present, is passed through as measured; the replay format does not
+    guarantee a reference frame, so no ``quality.bearing_frame`` assertion
+    is made (the replay source must guarantee degrees true north per
+    semantics contract section 6.4). When the input carries no
     bearing.az_deg the reading is omnidirectional and the canonical
     ``bearing`` block (and any angular error) is omitted.
 

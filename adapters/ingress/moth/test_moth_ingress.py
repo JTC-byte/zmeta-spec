@@ -115,6 +115,25 @@ def test_json_replay_real_bearing_preserved():
     assert event["payload"]["quality"]["measurement_error"]["value"] == pytest.approx(7.5)
 
 
+def test_tunnel_bearing_carries_no_frame_assertion():
+    # The Moth tunnel ICD does not declare a reference frame for bearing_deg,
+    # so the adapter must not fabricate quality.bearing_frame/heading_source
+    # provenance (semantics contract section 6.4 conservative pass-through).
+    event = translate_tunnel_payload(
+        TUNNEL_BYTES, platform_id="uav-01", timestamp_ms=TS_MS
+    )
+
+    assert "bearing_frame" not in event["payload"]["quality"]
+    assert "heading_source" not in event["payload"]["quality"]
+
+
+def test_json_replay_bearing_carries_no_frame_assertion():
+    event = translate_json_replay(dict(REPLAY_WITH_BEARING), platform_id="uav-01")
+
+    assert "bearing_frame" not in event["payload"]["quality"]
+    assert "heading_source" not in event["payload"]["quality"]
+
+
 def test_json_replay_without_bearing_omits_bearing_and_error():
     event = translate_json_replay(dict(REPLAY_WITHOUT_BEARING), platform_id="uav-01")
 

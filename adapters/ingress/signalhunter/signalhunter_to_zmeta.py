@@ -9,6 +9,11 @@ increases, the operator is moving toward the emitter and the bearing is
 the travel direction. These synthetic LOBs carry large angular error
 (~75 deg) but converge through WLS fusion when many observations accumulate.
 
+Because the bearing is a geodesic direction between GPS positions, it is
+degrees true north by construction (semantics contract section 6.4); events
+assert this via quality.bearing_frame = "TRUE_NORTH" with
+quality.heading_source = "GPS_COURSE".
+
 Input format:
   - Binary .bin capture file with 1060-byte header followed by 822-bin
     float32 PSD frames. GPS is encoded in trailing fill frames.
@@ -23,7 +28,7 @@ from typing import Dict, List, Optional, Tuple
 from adapters.ingress.time_utils import coerce_timing_quality, epoch_ms_to_utc_z, utc_now_z
 from zmeta_uuid import uuid7
 
-ADAPTER_VERSION = "1.0.0"
+ADAPTER_VERSION = "1.0.1"
 SCHEMA_ID = "signalhunter-psd"
 DEFAULT_SENSOR_ID = "signalhunter_rf"
 
@@ -356,6 +361,15 @@ def translate_bin_file(
                             "unit": "deg",
                             "metric": "1_SIGMA",
                         },
+                        # The gradient LOB is the geodesic travel direction (or
+                        # its reverse) between two GPS fixes. An initial bearing
+                        # computed from geodetic lat/lon is degrees true north by
+                        # construction, so the frame assertion required by the
+                        # semantics contract (section 6.4) holds without any
+                        # heading compensation; the heading reference is the GPS
+                        # ground course.
+                        "bearing_frame": "TRUE_NORTH",
+                        "heading_source": "GPS_COURSE",
                         "calibration_state": "UNCALIBRATED",
                         "geo_status": "UNAVAILABLE",
                         "sensor_position_2d": {

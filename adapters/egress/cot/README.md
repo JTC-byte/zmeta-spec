@@ -32,11 +32,25 @@ fields such as `features`, `raw_features`, `modality`, `data_ref`, or
 | `payload.geo.error_ellipse_m` | `point ce/le` + `precisionlocation` | |
 | `payload.geo.ce_display_m` | `point ce` | Fusion-engine computed |
 | `payload.valid_for_ms` | `stale` | `time + valid_for_ms` |
-| `payload.heading_deg` | `track course` | |
+| `payload.heading_deg` | `track course` | Frame-preserving: both are degrees true north (see below) |
 | `payload.speed_mps` | `track speed` | |
 | `payload.callsign` | `contact callsign` | With hostile fallback |
 | `payload.source_summary` | `remarks` | Joined with `;` |
 | `event.confidence` | `remarks` | Appended if no source_summary |
+
+### Heading / course frame
+
+CoT `track@course` is degrees true north by convention, and ZMeta
+`payload.heading_deg` is contractually degrees true north (semantics contract
+section 6.4), so the projection is frame-preserving with no conversion.
+The adapter relies on the upstream producer having honored that contract; it
+does not (and cannot) re-verify the frame at egress.
+
+Caveat: when `speed_mps` is present but `heading_deg` is absent, the `<track>`
+element is still emitted with the placeholder `course="0.0"` because TAK
+requires the attribute to render speed. Consumers should not interpret that
+placeholder as a real due-north heading; ZMeta events that omit `heading_deg`
+carry no heading claim.
 
 ### Configuration
 

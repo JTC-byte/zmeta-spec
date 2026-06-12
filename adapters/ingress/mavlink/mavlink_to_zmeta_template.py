@@ -17,7 +17,7 @@ import math
 from adapters.ingress.time_utils import coerce_timing_quality, normalize_utc_z, utc_now_z
 from zmeta_uuid import uuid7
 
-ADAPTER_VERSION = "1.0.0"
+ADAPTER_VERSION = "1.0.1"
 SCHEMA_ID = "mavlink-telemetry"
 PROMOTION_POLICY_ID = "PROMOTE-MAVLINK-STATE-V1"
 
@@ -83,7 +83,8 @@ def translate_platform_state(
               lat (float): degrees
               lon (float): degrees
               alt_m (float): metres AMSL
-              heading_deg (float): 0-360
+              heading_deg (float, optional): 0-360; None or absent means
+                unknown and omits payload.heading_deg (no 0.0 default)
               speed_mps (float): ground speed m/s
               gps_fix_type (int): ArduPilot fix type 0-6
               satellites_visible (int)
@@ -107,7 +108,14 @@ def translate_platform_state(
     lat = _get("lat", 0.0)
     lon = _get("lon", 0.0)
     alt_m = _get("alt_m", 0.0)
-    heading_deg = _get("heading_deg", 0.0)
+    # heading_deg comes from GLOBAL_POSITION_INT.hdg, which reports the value
+    # as unknown (UINT16_MAX -> None after decode). An unknown heading is
+    # omitted from the payload, never fabricated as a 0.0 (due-north) default.
+    # Note the MAVLink message definition does not declare a true-vs-magnetic
+    # reference for hdg, so no quality.heading_source provenance is asserted;
+    # the deployment must guarantee degrees true north upstream (semantics
+    # contract section 6.4).
+    heading_deg = _get("heading_deg")
     speed_mps = _get("speed_mps", 0.0)
     gps_fix_type = _get("gps_fix_type", 0)
     satellites_visible = _get("satellites_visible", 0)
@@ -181,7 +189,6 @@ def translate_platform_state(
             "track_id": f"{producer}-{platform_id}-platform-position",
             "geo": geo,
             "valid_for_ms": 30000,
-            "heading_deg": heading_deg,
             "speed_mps": speed_mps,
             "quality": quality,
             "timing_quality": coerce_timing_quality(_get("timing_quality"), event_ts=event_ts),
@@ -193,6 +200,8 @@ def translate_platform_state(
             "transform": f"promote:{SCHEMA_ID}@{ADAPTER_VERSION}:{promotion['promotion_policy_id']}",
         },
     }
+    if heading_deg is not None:
+        event["payload"]["heading_deg"] = heading_deg
     return event
 
 
@@ -206,6 +215,12 @@ def decode_global_position_int(msg_dict):
 
     ArduPilot sends lat/lon as int32 (degE7), alt as int32 (mm),
     velocities as int16 (cm/s), heading as uint16 (cdeg, 65535=unknown).
+
+    The MAVLink common message definition describes ``hdg`` only as
+    "vehicle heading (yaw angle)" in centidegrees; it does not declare a
+    true-vs-magnetic north reference. The decoded ``heading_deg`` is
+    therefore passed through without frame provenance, and an unknown
+    heading decodes to None (omitted downstream, never defaulted).
     """
     lat = msg_dict.get("lat", 0) / 1e7
     lon = msg_dict.get("lon", 0) / 1e7
