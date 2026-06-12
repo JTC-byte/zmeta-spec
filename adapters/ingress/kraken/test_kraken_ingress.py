@@ -42,6 +42,15 @@ def test_csv_heading_compensation_rotates_doa_to_true_north():
     assert event["payload"]["features"]["doa_array_relative_deg"] == pytest.approx(123.4)
 
 
+def test_csv_zero_heading_still_takes_compensated_path():
+    # Heading 0.0 is a valid heading (north-facing fixed mount), not "absent":
+    # the convert-or-omit pivot must be an `is None` check, never truthiness.
+    event = _csv_event(platform_heading_deg=0.0)
+
+    assert event["payload"]["bearing"]["az_deg"] == pytest.approx(123.4)
+    assert event["payload"]["quality"]["bearing_frame"] == "TRUE_NORTH"
+
+
 def test_csv_heading_compensation_wraps_past_360():
     fields = list(CSV_FIELDS)
     fields[1] = "300.0"
