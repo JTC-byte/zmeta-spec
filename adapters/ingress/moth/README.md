@@ -4,7 +4,9 @@ Translates Moth RF sensor output into ZMeta RF `OBSERVATION_EVENT` (LOB) events.
 
 The Moth is a compact RF sensor that outputs peak frequency and signal strength
 readings via serial, MAVLink TUNNEL messages, or a custom MAVLink dialect.
-It has no antenna array, so raw readings carry 180-degree bearing uncertainty.
+It has no antenna array, so raw serial and custom MAVLink readings are
+omnidirectional: they carry no bearing, and the canonical `bearing` block is
+omitted per the convert-or-omit rule (semantics contract section 6.4).
 True bearing estimates are derived downstream by correlating signal strength
 with UAS heading during yaw scans.
 
@@ -24,9 +26,13 @@ with UAS heading during yaw scans.
 
 ### Key behaviors
 
-- Serial and custom MAVLink readings produce events with `bearing.az_deg = 0.0`
-  and `angular_error_deg = 180.0` (omnidirectional).
+- Serial and custom MAVLink readings are omnidirectional, so the `bearing`
+  block and `angular_error_deg` are omitted entirely (a fabricated north
+  bearing with 180-degree error would mislead downstream LOB fusion).
 - TUNNEL messages contain the full ICD and produce proper bearing estimates.
+- JSON replay inputs that carry `bearing.az_deg` pass it through as measured;
+  replay inputs without bearing data omit the `bearing` block and any
+  angular error, same as the serial path.
 - All events include `features.sensor_hw = "moth"` and `features.source_format`
   to indicate the input transport.
 
