@@ -57,6 +57,11 @@ Notes:
   - `rate_limit_per_sec` drops packets above the configured receive rate.
   - `rate_limit_producer_per_sec` drops packets per producer above the configured rate.
   - `metrics_log_path`, `metrics_log_max_bytes`, `metrics_log_backups` enable JSONL metrics logs.
+  - `warn_datagram_bytes` logs a metrics warning when an outgoing UDP datagram
+    (forward or CoT) exceeds the configured byte threshold (`0` disables, the
+    default). Observability only: datagrams are still sent unchanged. Set it
+    near the path MTU (e.g. `1400`) on links where IP fragmentation matters;
+    UDP sends above ~65507 bytes fail at the socket layer regardless.
   - Timing metrics distinguish source-provided timing from degraded fallback
     timing with `timing_quality_source`, `timing_quality_fallback`, and
     `timing_quality_modes`.

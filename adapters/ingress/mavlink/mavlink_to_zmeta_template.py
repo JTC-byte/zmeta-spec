@@ -80,8 +80,8 @@ def translate_platform_state(
     Args:
         state: Dict (or object with attributes) containing MAVLink-derived
             platform telemetry. Expected fields:
-              lat (float): degrees
-              lon (float): degrees
+              lat (float): degrees; absent/None refuses emission (no default)
+              lon (float): degrees; absent/None refuses emission (no default)
               alt_m (float): metres AMSL
               heading_deg (float, optional): 0-360; None or absent means
                 unknown and omits payload.heading_deg (no 0.0 default)
@@ -98,15 +98,19 @@ def translate_platform_state(
         ts: ISO timestamp (default: current UTC).
 
     Returns:
-        ZMeta STATE_EVENT dict.
+        ZMeta STATE_EVENT dict, or None when no usable position exists
+        (lat/lon absent, or the ArduPilot no-fix null-island signature:
+        gps_fix_type < 2 with lat == 0.0 and lon == 0.0). A position is
+        never fabricated from defaults (kraken/moth anti-fabrication
+        pattern: convert or refuse, never invent).
     """
     if isinstance(state, dict):
         _get = state.get
     else:
         _get = lambda k, d=None: getattr(state, k, d)
 
-    lat = _get("lat", 0.0)
-    lon = _get("lon", 0.0)
+    lat = _get("lat")
+    lon = _get("lon")
     alt_m = _get("alt_m", 0.0)
     # heading_deg comes from GLOBAL_POSITION_INT.hdg, which reports the value
     # as unknown (UINT16_MAX -> None after decode). An unknown heading is
@@ -119,6 +123,16 @@ def translate_platform_state(
     speed_mps = _get("speed_mps", 0.0)
     gps_fix_type = _get("gps_fix_type", 0)
     satellites_visible = _get("satellites_visible", 0)
+
+    # Refuse to fabricate a position. The v1.0 schema requires payload.geo on
+    # TRACK_STATE, so an event without a usable position must not be emitted:
+    # - absent lat/lon must not default to (0, 0);
+    # - ArduPilot reports lat=0, lon=0 before GPS lock (fix types 0/1), the
+    #   "null island" no-fix signature.
+    if lat is None or lon is None:
+        return None
+    if gps_fix_type < 2 and lat == 0.0 and lon == 0.0:
+        return None
 
     geo = {"lat": lat, "lon": lon, "alt_m": alt_m}
     confidence = _gps_fix_confidence(gps_fix_type)
@@ -221,9 +235,14 @@ def decode_global_position_int(msg_dict):
     true-vs-magnetic north reference. The decoded ``heading_deg`` is
     therefore passed through without frame provenance, and an unknown
     heading decodes to None (omitted downstream, never defaulted).
+
+    Absent ``lat``/``lon`` fields decode to None rather than (0, 0) so the
+    translator can refuse to fabricate a null-island position.
     """
-    lat = msg_dict.get("lat", 0) / 1e7
-    lon = msg_dict.get("lon", 0) / 1e7
+    lat_raw = msg_dict.get("lat")
+    lon_raw = msg_dict.get("lon")
+    lat = lat_raw / 1e7 if lat_raw is not None else None
+    lon = lon_raw / 1e7 if lon_raw is not None else None
     alt_m = msg_dict.get("alt", 0) / 1000.0
     vx = msg_dict.get("vx", 0) / 100.0
     vy = msg_dict.get("vy", 0) / 100.0

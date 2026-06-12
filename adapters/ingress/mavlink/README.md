@@ -87,6 +87,16 @@ event = translate_platform_state(state, platform_id="uav-01")
 - Ingress is telemetry/status only; do not emit `COMMAND_EVENT` from MAVLink.
 - GPS fix type maps to confidence: 3D+ = 0.8, 2D = 0.5, lower = 0.2.
 - When `gps_fix_type < 3`, `payload.quality.geo_status` is set to `STALE`.
+- `translate_platform_state()` refuses to fabricate a position (returns
+  `None`, no event) when `lat`/`lon` are absent, or when `gps_fix_type < 2`
+  with `lat == 0.0` and `lon == 0.0` (the ArduPilot pre-lock "null island"
+  signature). The v1.0 schema requires `payload.geo` on `TRACK_STATE`, so a
+  state without a usable position must not be emitted rather than defaulted
+  to (0, 0). `decode_global_position_int()` likewise decodes absent
+  `lat`/`lon` to `None` instead of `0.0`. Stale-but-real coordinates without
+  a current fix are still emitted with `geo_status: STALE` and floor
+  confidence. This follows the kraken/moth anti-fabrication pattern
+  (convert or refuse, never invent).
 
 ### Heading and attitude frame provenance (known gap)
 

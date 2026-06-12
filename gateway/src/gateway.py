@@ -70,6 +70,11 @@ DEFAULT_RATE_LIMIT_PER_SEC = 0
 DEFAULT_RATE_LIMIT_PRODUCER_PER_SEC = 0
 DEFAULT_METRICS_LOG_MAX_BYTES = 5_000_000
 DEFAULT_METRICS_LOG_BACKUPS = 3
+# Warn (metrics/log only) when an outgoing UDP datagram exceeds this many
+# bytes. 0 disables the check. This is observability only: oversized
+# datagrams are still sent unchanged (they may IP-fragment or be dropped by
+# the network; UDP sends above ~65507 bytes fail at the socket layer).
+DEFAULT_WARN_DATAGRAM_BYTES = 0
 
 
 def utc_now():
@@ -222,11 +227,13 @@ class GatewayMetrics:
             "duplicates": 0,
             "violations": 0,
             "warnings": 0,
+            "oversize_datagrams": 0,
             "drop_reasons": {},
             "cot_skip_reasons": {},
             "timing_quality_modes": {},
             "violation_codes": {},
             "warning_codes": {},
+            "oversize_datagram_kinds": {},
         }
 
     def _bump(self, key, inc=1):
@@ -307,6 +314,16 @@ class GatewayMetrics:
             payload["producer"] = producer
         self._log_event("warning", payload)
 
+    def record_oversize_datagram(self, size, threshold, kind, event_id=None, producer=None):
+        self._bump("oversize_datagrams", 1)
+        self._bump_map("oversize_datagram_kinds", kind)
+        payload = {"size_bytes": size, "threshold_bytes": threshold, "kind": kind}
+        if event_id:
+            payload["event_id"] = event_id
+        if producer:
+            payload["producer"] = producer
+        self._log_event("oversize_datagram", payload)
+
     def record_duplicate(self, task_id=None):
         self._bump("duplicates", 1)
         payload = {}
@@ -354,6 +371,14 @@ class GatewayMetrics:
                 f"{key}:{value}" for key, value in sorted(window["warning_codes"].items())
             )
             print(f"metrics warning_codes={reasons}")
+        if window["oversize_datagrams"]:
+            kinds = ", ".join(
+                f"{key}:{value}"
+                for key, value in sorted(window["oversize_datagram_kinds"].items())
+            )
+            print(
+                f"metrics oversize_datagrams={window['oversize_datagrams']} kinds={kinds}"
+            )
         self._log_event(
             "metrics",
             {
@@ -369,11 +394,13 @@ class GatewayMetrics:
                 "violations": window["violations"],
                 "warnings": window["warnings"],
                 "duplicates": window["duplicates"],
+                "oversize_datagrams": window["oversize_datagrams"],
                 "drop_reasons": window["drop_reasons"],
                 "cot_skip_reasons": window["cot_skip_reasons"],
                 "timing_quality_modes": window["timing_quality_modes"],
                 "violation_codes": window["violation_codes"],
                 "warning_codes": window["warning_codes"],
+                "oversize_datagram_kinds": window["oversize_datagram_kinds"],
             },
         )
         self.window = self._new_window()
@@ -419,22 +446,40 @@ class ProducerRateLimiter:
             limit = 0
         self.limit = max(0, limit)
         self.counters = {}
+        self._window = None
 
     def allow(self, producer):
         if self.limit <= 0:
             return True
         key = producer or "UNKNOWN"
         now_window = int(time.monotonic())
-        window, count = self.counters.get(key, (now_window, 0))
-        if window != now_window:
-            window = now_window
-            count = 0
+        if now_window != self._window:
+            # Counts from previous one-second windows can never influence
+            # another decision; drop them so the per-producer map stays
+            # bounded by the number of producers seen in the current window.
+            self._window = now_window
+            self.counters.clear()
+        count = self.counters.get(key, 0)
         if count >= self.limit:
-            self.counters[key] = (window, count)
             return False
-        count += 1
-        self.counters[key] = (window, count)
+        self.counters[key] = count + 1
         return True
+
+
+def _check_datagram_size(metrics, payload_len, threshold, kind, event_id=None, producer=None):
+    """Record an oversize-datagram warning; never alters send behavior.
+
+    Returns True when a warning was recorded. Disabled when threshold is
+    falsy/non-positive or when no metrics sink exists.
+    """
+    if not metrics or not threshold or threshold <= 0:
+        return False
+    if payload_len <= threshold:
+        return False
+    metrics.record_oversize_datagram(
+        payload_len, threshold, kind, event_id=event_id, producer=producer
+    )
+    return True
 
 
 def ttl_ms_from_payload(payload):
@@ -904,6 +949,7 @@ def build_settings(root, args, config):
         "metrics_log_path": None,
         "metrics_log_max_bytes": DEFAULT_METRICS_LOG_MAX_BYTES,
         "metrics_log_backups": DEFAULT_METRICS_LOG_BACKUPS,
+        "warn_datagram_bytes": DEFAULT_WARN_DATAGRAM_BYTES,
         "stamp_contract_hash": False,
         "require_schema_hash": None,
         "require_policy_hash": None,
@@ -980,6 +1026,10 @@ def build_settings(root, args, config):
             settings["metrics_log_backups"] = _normalize_int(
                 config["metrics_log_backups"], "metrics_log_backups", allow_zero=True
             )
+        if "warn_datagram_bytes" in config:
+            settings["warn_datagram_bytes"] = _normalize_int(
+                config["warn_datagram_bytes"], "warn_datagram_bytes", allow_zero=True
+            )
         if "stamp_contract_hash" in config:
             settings["stamp_contract_hash"] = bool(config["stamp_contract_hash"])
         if "require_schema_hash" in config:
@@ -1052,6 +1102,10 @@ def build_settings(root, args, config):
         settings["metrics_log_backups"] = _normalize_int(
             args.metrics_log_backups, "metrics_log_backups", allow_zero=True
         )
+    if args.warn_datagram_bytes is not None:
+        settings["warn_datagram_bytes"] = _normalize_int(
+            args.warn_datagram_bytes, "warn_datagram_bytes", allow_zero=True
+        )
     if args.stamp_contract_hash:
         settings["stamp_contract_hash"] = True
     if args.require_schema_hash:
@@ -1093,6 +1147,8 @@ def build_settings(root, args, config):
         settings["metrics_log_max_bytes"] = DEFAULT_METRICS_LOG_MAX_BYTES
     if settings["metrics_log_backups"] is None or settings["metrics_log_backups"] < 0:
         settings["metrics_log_backups"] = DEFAULT_METRICS_LOG_BACKUPS
+    if settings["warn_datagram_bytes"] is None or settings["warn_datagram_bytes"] <= 0:
+        settings["warn_datagram_bytes"] = 0
 
     if not settings["schema_path"].is_file():
         raise FileNotFoundError(f"schema not found: {settings['schema_path']}")
@@ -1543,6 +1599,7 @@ def parse_args():
     parser.add_argument("--metrics-log-path")
     parser.add_argument("--metrics-log-max-bytes", type=int)
     parser.add_argument("--metrics-log-backups", type=int)
+    parser.add_argument("--warn-datagram-bytes", type=int)
     parser.add_argument("--stamp-contract-hash", action="store_true")
     parser.add_argument("--require-schema-hash")
     parser.add_argument("--require-policy-hash")
@@ -1725,13 +1782,32 @@ def main():
                 if should_stamp_profile:
                     outgoing["profile"] = settings["profile"]
             payload = _encode_message(outgoing, settings["output_encoding"])
+            event_block = outgoing.get("event", {}) if isinstance(outgoing, dict) else {}
+            source_block = outgoing.get("source", {}) if isinstance(outgoing, dict) else {}
+            _check_datagram_size(
+                metrics,
+                len(payload),
+                settings["warn_datagram_bytes"],
+                "forward",
+                event_id=event_block.get("event_id") if isinstance(event_block, dict) else None,
+                producer=source_block.get("producer") if isinstance(source_block, dict) else None,
+            )
             sock_out.sendto(payload, forward_addr)
             if metrics:
                 metrics.record_forwarded()
             if settings["emit_cot"]:
                 cot_xml = zmeta_to_cot(outgoing)
                 if cot_xml:
-                    sock_out.sendto(cot_xml.encode("utf-8"), cot_addr)
+                    cot_payload = cot_xml.encode("utf-8")
+                    _check_datagram_size(
+                        metrics,
+                        len(cot_payload),
+                        settings["warn_datagram_bytes"],
+                        "cot",
+                        event_id=event_block.get("event_id") if isinstance(event_block, dict) else None,
+                        producer=source_block.get("producer") if isinstance(source_block, dict) else None,
+                    )
+                    sock_out.sendto(cot_payload, cot_addr)
                     if metrics:
                         metrics.record_cot()
                 elif metrics:

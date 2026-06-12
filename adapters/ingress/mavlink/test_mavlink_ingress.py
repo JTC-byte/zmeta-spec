@@ -107,6 +107,65 @@ def test_decode_global_position_int_unknown_hdg_yields_none():
     assert decoded["heading_deg"] is None
 
 
+def test_decode_global_position_int_missing_lat_lon_yields_none():
+    # A GLOBAL_POSITION_INT without lat/lon must not decode to (0, 0); absent
+    # coordinates decode to None so downstream refuses to fabricate a position.
+    decoded = decode_global_position_int({"alt": 120000, "hdg": 65535})
+
+    assert decoded["lat"] is None
+    assert decoded["lon"] is None
+
+
+def test_decode_global_position_int_present_lat_lon_preserved():
+    decoded = decode_global_position_int(
+        {"lat": 340000000, "lon": -1180000000, "alt": 120000, "hdg": 9000}
+    )
+
+    assert decoded["lat"] == 34.0
+    assert decoded["lon"] == -118.0
+
+
+def test_mavlink_refuses_null_island_without_fix():
+    # ArduPilot emits lat=0, lon=0 before GPS lock (fix types 0/1). The adapter
+    # must refuse to fabricate a null-island TRACK_STATE position.
+    assert _state_event(lat=0.0, lon=0.0, gps_fix_type=0) is None
+    assert _state_event(lat=0.0, lon=0.0, gps_fix_type=1) is None
+
+
+def test_mavlink_refuses_absent_lat_lon():
+    state = {k: v for k, v in _BASE_STATE.items() if k not in ("lat", "lon")}
+    event = translate_platform_state(
+        state,
+        platform_id="uav-1",
+        producer="mavlink-adapter",
+        ts="2025-01-17T15:20:00+00:00",
+    )
+
+    assert event is None
+
+
+def test_mavlink_null_island_with_2d_fix_still_emits():
+    # A claimed 2D+ fix at exactly (0, 0) is not the no-fix signature; the
+    # adapter keeps the position and lets quality/confidence carry the doubt.
+    event = _state_event(lat=0.0, lon=0.0, gps_fix_type=2)
+
+    assert event is not None
+    assert event["payload"]["geo"]["lat"] == 0.0
+    assert event["payload"]["geo"]["lon"] == 0.0
+    VALIDATOR.validate(event)
+
+
+def test_mavlink_no_fix_with_nonzero_coords_still_emits_degraded():
+    # Stale-but-real coordinates without a current fix remain emitted with
+    # geo_status STALE and floor confidence; only fabricated (0, 0) is refused.
+    event = _state_event(gps_fix_type=0)
+
+    assert event is not None
+    assert event["payload"]["quality"]["geo_status"] == "STALE"
+    assert event["confidence"] == 0.2
+    VALIDATOR.validate(event)
+
+
 def test_mavlink_task_ack_schema_valid():
     msg = {
         "msg_type": "MISSION_ACK",
