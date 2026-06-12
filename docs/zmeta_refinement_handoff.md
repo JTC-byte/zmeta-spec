@@ -1,22 +1,28 @@
 # ZMeta Refinement Handoff Notes
 
-Status date: 2026-06-10
+Status date: 2026-06-11
 
 This note is the quick resume point for the current ZMeta refinement effort. The full task history and deferred issue register are in `docs/zmeta_refinement_worklog.md`.
 
 ## Current Position
 
-The semantic contract has been audited, rewritten, and crosswalked against the current implementation stack. The locked v1.0 baseline was verified, and no S1-01B targeted schema implementation task is currently needed. Profile projection preservation has been implemented and audited as sidecar conformance tooling without changing v1.0 schema or event vocabulary. The extension registry has been implemented and audited. The conformance class manifest and claim model have been implemented and audited without changing schemas or making new vocabulary valid. Encoding-negative validation has been implemented and audited for compact CBOR and protobuf invalid-after-decode paths. Profile precision and quantization policy has been implemented and audited as a reference conformance default. The D-011 `TAKEOFF` crosswalk cleanup is complete. The D-001 MAVLink ingress README state payload drift cleanup is complete. S1-09A planned the contract hash and release hash follow-up for D-002, S1-09B implemented the reference release hash policy, manifest, builder, validator, claim hash updates, and optional conformance integration, and S1-09C audited that implementation and closed D-002. S1-10P removed FORGE-derived organizational artifact scope from the ZMeta baseline. S1-10B was stopped before commit, no stopped implementation files remain, and D-004 is closed as removed from ZMeta scope. S1-11A planned the D-003 future versioned semantic branch roadmap and left D-003 open as roadmap-planned. S1-12A planned formal release tag, signature, checksum, and attestation packaging for D-012, S1-12B implemented the release packaging framework without creating real tags/signatures/keys/secrets or semantic drift, and S1-12C audited it and closed D-012. R1-01 published `v1.1.5` from commit `d4d406b43a705ca5b7a314e1d5388c3ca39c750a` with release notes, validation report, release manifest, release package zip, edge/gateway/source bundles, and checksum manifest. S1-13A audited the stack for semantic conformance and stale files, corrected the live compatibility checker/CI target to `v1.1.5`, added explicit v1.0/v1.1.0 observation extension boundary tests, and closed D-009 without changing schemas, policy, adapters, encodings, the semantic contract, or event vocabulary. S1-14 implemented external projection promotion hardening so CoT/JREAP/MAVLink ingress state must carry policy-scoped promotion evidence before becoming authoritative ZMeta state, with operator-tunable reject/warn/degrade/quarantine modes that preserve diagnostics and bandwidth discipline. S1-15A added the risk adjudication semantic baseline: locked/tunable/advisory rule classes, bounded policy actions, filterable risk diagnostics, and operator override constraints. S1-15B conformed the stack to that baseline across policy use limits, validator diagnostics, gateway runtime degradation labels, conformance fixtures, tests, schemas, and docs. S1-15C cleaned up feedback on the contract text, conformance classes, claims, crosswalk, and future-only boundaries. S1-16A added the semantic bad-event corpus and shared adapter harness, promoted generic adapter and CoT projection conformance evidence, and kept broader sensor-adapter certification as planned future work. S1-16B added the kernel-protection doctrine: ZMeta is complete without becoming exhaustive, future core changes must clear a concrete need threshold, and `FUTURE_EXTENSION` remains non-claimable until versioned adoption. S1-17A audited the tracked stack against that doctrine, added full kernel-protection conformance to CI and Makefile, and clarified policy/config tunability boundaries. S1-18A added consumer-side risk filter tooling so operators can choose display, fusion, command, autonomy, AAR, or audit intake posture using existing risk labels without mutating events. S1-18B completed an end-to-end stack and runtime audit, hardened direct CoT egress so malformed state payloads carrying raw observation/evidence fields fail closed, and confirmed the full local validation/runtime/package sweep passes. R1-02 published `v1.1.6` from commit `a42f1b1d538cf2f2318a81203f28d7c656c22ce8`. P1-01 addressed partner feedback by adding post-v1.1.6 integration guidance for external-promotion metadata, clarifying that `trust_ref` is policy-scoped evidence rather than proof of authenticity, strengthening consumer responsibilities for accepted-risk labels, and adding `tools/lint_policy_risk_modes.py` with tests to flag unsafe `ignore` settings on material risk. P1-02 added machine-checkable profile-projection preservation for `payload.extensions.risk_adjudication` and compact `payload.extensions.external_promotion` evidence, strengthened extension registry entry metadata for projection/risk/security/fixture behavior, and rebuilt the current-main release manifest plus example claim hashes. P1-03 added `AGENTS.md` and `docs/zmeta_change_governance.md` as the formal human/AI agent change process, linked them from README/release surfaces, and added governed `process_governance_hash` release-manifest coverage plus downstream clone compatibility limits. R1-03 audited the stack for stale current-release references, ignored local build residue, tracked-source secret risk, and generated artifact residue, then prepared v1.1.7 as the current formal patch release without changing schemas, event vocabulary, or the locked v1.0 semantic kernel.
+The semantic contract has been audited, rewritten, and crosswalked against the current implementation stack. The locked v1.0 baseline was verified, and no S1-01B targeted schema implementation task is currently needed. Profile projection preservation has been implemented and audited as sidecar conformance tooling without changing v1.0 schema or event vocabulary. The extension registry has been implemented and audited. The conformance class manifest and claim model have been implemented and audited without changing schemas or making new vocabulary valid. Encoding-negative validation has been implemented and audited for compact CBOR and protobuf invalid-after-decode paths. Profile precision and quantization policy has been implemented and audited as a reference conformance default. The D-011 `TAKEOFF` crosswalk cleanup is complete. The D-001 MAVLink ingress README state payload drift cleanup is complete. S1-09A planned the contract hash and release hash follow-up for D-002, S1-09B implemented the reference release hash policy, manifest, builder, validator, claim hash updates, and optional conformance integration, and S1-09C audited that implementation and closed D-002. S1-10P removed FORGE-derived organizational artifact scope from the ZMeta baseline. S1-10B was stopped before commit, no stopped implementation files remain, and D-004 is closed as removed from ZMeta scope. S1-11A planned the D-003 future versioned semantic branch roadmap and left D-003 open as roadmap-planned. S1-12A planned formal release tag, signature, checksum, and attestation packaging for D-012, S1-12B implemented the release packaging framework without creating real tags/signatures/keys/secrets or semantic drift, and S1-12C audited it and closed D-012. R1-01 published `v1.1.5` from commit `d4d406b43a705ca5b7a314e1d5388c3ca39c750a` with release notes, validation report, release manifest, release package zip, edge/gateway/source bundles, and checksum manifest. S1-13A audited the stack for semantic conformance and stale files, corrected the live compatibility checker/CI target to `v1.1.5`, added explicit v1.0/v1.1.0 observation extension boundary tests, and closed D-009 without changing schemas, policy, adapters, encodings, the semantic contract, or event vocabulary. S1-14 implemented external projection promotion hardening so CoT/JREAP/MAVLink ingress state must carry policy-scoped promotion evidence before becoming authoritative ZMeta state, with operator-tunable reject/warn/degrade/quarantine modes that preserve diagnostics and bandwidth discipline. S1-15A added the risk adjudication semantic baseline: locked/tunable/advisory rule classes, bounded policy actions, filterable risk diagnostics, and operator override constraints. S1-15B conformed the stack to that baseline across policy use limits, validator diagnostics, gateway runtime degradation labels, conformance fixtures, tests, schemas, and docs. S1-15C cleaned up feedback on the contract text, conformance classes, claims, crosswalk, and future-only boundaries. S1-16A added the semantic bad-event corpus and shared adapter harness, promoted generic adapter and CoT projection conformance evidence, and kept broader sensor-adapter certification as planned future work. S1-16B added the kernel-protection doctrine: ZMeta is complete without becoming exhaustive, future core changes must clear a concrete need threshold, and `FUTURE_EXTENSION` remains non-claimable until versioned adoption. S1-17A audited the tracked stack against that doctrine, added full kernel-protection conformance to CI and Makefile, and clarified policy/config tunability boundaries. S1-18A added consumer-side risk filter tooling so operators can choose display, fusion, command, autonomy, AAR, or audit intake posture using existing risk labels without mutating events. S1-18B completed an end-to-end stack and runtime audit, hardened direct CoT egress so malformed state payloads carrying raw observation/evidence fields fail closed, and confirmed the full local validation/runtime/package sweep passes. R1-02 published `v1.1.6` from commit `a42f1b1d538cf2f2318a81203f28d7c656c22ce8`. P1-01 addressed partner feedback by adding post-v1.1.6 integration guidance for external-promotion metadata, clarifying that `trust_ref` is policy-scoped evidence rather than proof of authenticity, strengthening consumer responsibilities for accepted-risk labels, and adding `tools/lint_policy_risk_modes.py` with tests to flag unsafe `ignore` settings on material risk. P1-02 added machine-checkable profile-projection preservation for `payload.extensions.risk_adjudication` and compact `payload.extensions.external_promotion` evidence, strengthened extension registry entry metadata for projection/risk/security/fixture behavior, and rebuilt the current-main release manifest plus example claim hashes. P1-03 added `AGENTS.md` and `docs/zmeta_change_governance.md` as the formal human/AI agent change process, linked them from README/release surfaces, and added governed `process_governance_hash` release-manifest coverage plus downstream clone compatibility limits. R1-03 audited the stack for stale current-release references, ignored local build residue, tracked-source secret risk, and generated artifact residue, then prepared v1.1.7 as the current formal patch release without changing schemas, event vocabulary, or the locked v1.0 semantic kernel. P1-04 (branch `worktree-bearing-frame-fixes`, dated 2026-06-11) closed the bearing reference-frame ambiguity: semantics-contract section 6.4 now normatively requires canonical `payload.bearing.az_deg` to be degrees true north with a convert-or-omit rule for sensor-native frames; the v1.1.0 schema gained an optional `bearing.frame` marker with single-value enum `["TRUE_NORTH"]` (v1.0 untouched and still rejecting the key); the extension registry gained the experimental `BEARING_FRAME` entry; the bad-event corpus gained `observation-bearing-frame-mislabeled` (total 10); the adapter harness gained a value-pinning `expected_values` mechanism (1e-6 numeric tolerance, distinct missing/mismatch codes, boolean pins never match numbers) with the kraken rotation math pinned and a no-heading convert-or-omit fixture (total 9); the Kraken adapter (1.1.0) gained platform-heading compensation and stopped fabricating CSV SNR; the Moth adapter (1.1.0) stopped fabricating omnidirectional bearings; SignalHunter (1.0.1) asserts `TRUE_NORTH`/`GPS_COURSE` provenance for geodesically constructed gradient LOBs; the MAVLink adapter (1.1.0) omits unknown headings (`hdg=65535`/absent) and refuses null-island `(0, 0)` TRACK_STATE fabrication; and the gateway gained opt-in `warn_datagram_bytes` oversize-datagram observability plus a decision-preserving rate-limiter stale-window purge. P1-04 also recorded two verified open findings, D-013 and D-014, that need a maintainer semantics decision before implementation.
 
 Current stack status:
 
-- No active ZMeta stack work remains for the current integration baseline.
+- The P1-04 bearing reference-frame integrity pass is complete on branch
+  `worktree-bearing-frame-fixes` (built on `develop`); it has not been merged
+  or released. Schema 1.1.0 gained the optional `bearing.frame` marker; the
+  locked v1.0 schema is untouched.
 - Use tag `v1.1.7` for formal release assets/checksums.
 - Use current `main` for the latest integration baseline with policy-risk
   linting, projection preservation for risk/promotion extensions, stricter
   extension registry metadata, formal human/AI agent change governance,
   downstream clone interoperability limits, and stale-release-reference audit
   cleanup.
+- Open findings D-013 (timing-freshness negative-age clamp) and D-014
+  (compact codec unknown integer payload keys) await a maintainer semantics
+  decision; see "Open Findings Awaiting Maintainer Decision" below.
 - Future work is optional and should be driven by real sensor captures, a versioned semantic branch decision, or a release-authority signing process.
 
 Current public release:
@@ -141,6 +147,7 @@ Current public release:
 | P1-02 Post-v1.1.6 Projection And Registry Hardening | COMPLETE | `conformance/profile_projection_field_catalog.yaml`, `conformance/profile-projection/`, `tools/validate_projection.py`, `spec/extension-registry.yaml`, `tools/validate_extension_registry.py` |
 | P1-03 Human And AI Agent Change Governance | COMPLETE | `AGENTS.md`, `docs/zmeta_change_governance.md`, `tools/build_release_manifest.py`, `tools/validate_release_manifest.py`, downstream clone compatibility guidance |
 | R1-03 v1.1.7 Stack Audit And Release | COMPLETE | `docs/r1_03_v1_1_7_stack_audit_release.md`, `release/RELEASE_NOTES_v1.1.7.md`, `release/VALIDATION_REPORT_v1.1.7.md`, `release/SHA256SUMS_v1.1.7.txt` |
+| P1-04 Bearing Reference-Frame Integrity Pass | COMPLETE (branch `worktree-bearing-frame-fixes`, unmerged) | `spec/semantics-contract.md` 6.4, `schema/zmeta-event-1.1.0.schema.json`, `spec/extension-registry.yaml`, `conformance/bad-events/`, `conformance/adapter-harness/`, `tools/validate_adapter_conformance.py`, kraken/moth/signalhunter/mavlink adapters, `gateway/src/gateway.py` |
 
 ## Current Decisions
 
@@ -299,6 +306,57 @@ Current public release:
   and local runtime workflows. Direct CoT egress now rejects malformed
   `STATE_EVENT` payloads that still carry raw observation/evidence fields,
   matching the layer-separation rule already enforced by gateway validation.
+- P1-04 makes canonical bearings true north by contract (section 6.4):
+  sensor-native frames must convert (with a heading source) or omit the
+  canonical bearing while preserving the raw measurement in `features`.
+  `bearing.frame` is an optional v1.1.0 marker with single-value enum
+  `["TRUE_NORTH"]`; `BEARING_FRAME` is experimental in the registry; v1.0
+  producers carry `quality.bearing_frame`/`quality.heading_source`
+  provenance instead. Adapters must not fabricate bearings, SNR, headings,
+  or positions; refuse-to-emit/omit is the schema-legal response to
+  unavailable data.
+- The adapter harness can pin exact output values per fixture through
+  `expected_values` (1e-6 numeric tolerance, distinct
+  `ADAPTER_EXPECTED_VALUE_MISSING`/`MISMATCH` codes, and a boolean type
+  guard so a boolean pin never matches numeric output).
+
+## Open Findings Awaiting Maintainer Decision
+
+Both findings were verified line by line during P1-04 but need new semantic
+surface, so they are deferred for a maintainer decision. Full register
+entries: D-013 and D-014 in `docs/zmeta_refinement_worklog.md`.
+
+- **D-013 (timing freshness)**: `gateway/src/validators.py:1430` clamps the
+  event-versus-TIME_STATUS age with `max(0.0, ...)`, so negative age (event
+  earlier than its timing reference) validates as "fresh", conflating benign
+  out-of-order delivery with producer clock anomalies. Freshness compares
+  only producer-supplied timestamps with each other, so a self-consistently
+  wrong producer clock validates cleanly. No existing violation code covers
+  negative age (codes: `TIMING_STATUS_MISSING`/`STALE`/`UNSYNCED`/
+  `HOLDOVER_NON_MONOTONIC`), and contract section 5.10 locks timing
+  semantics in v1.0. Proposed: a new `TIMING_STATUS_AGE_NEGATIVE` warn code,
+  a `max_negative_age_ms` policy knob, and an optional `t_receive`
+  plausibility check, as a governed Class B/D change with fixtures.
+- **D-014 (compact codec)**: `zmeta_compact.py` decode converts unknown
+  integer payload keys to `str(key)` while encode passes string keys
+  through, so decode-then-re-encode degrades a future integer key `99` to
+  the string key `"99"` on the wire. `spec/compact-binary-mapping.md` is
+  silent on unknown integer keys and no encoding-negative fixture covers the
+  path. Proposed: spec text stating unknown integer keys MUST be rejected at
+  decode, a compact must-fail fixture, and an aligned decoder, as a governed
+  Class B change (rejection preferred over re-mapping, which cannot
+  disambiguate a genuine string key `"99"`).
+
+Follow-up notes (candidates for future hardening decisions, not register
+entries):
+
+- Outgoing UDP payloads larger than roughly 65507 bytes raise an unhandled
+  `OSError` in the gateway main loop (crash risk). The `warn_datagram_bytes`
+  guard added in P1-04 is observability only and does not change send
+  behavior; whether to catch/drop/truncate is a future hardening decision.
+- Several ingress adapters fabricate `lineage.based_on` with a fresh random
+  UUIDv7 (pre-existing behavior, out of scope for P1-04); candidate for a
+  future lineage-policy pass.
 
 ## Next Work Queue
 
@@ -361,6 +419,10 @@ Current public release:
    - D-011 Crosswalk TAKEOFF Mention Cleanup is closed.
    - D-012 Formal Release Tag, Signature, and Attestation Packaging is
      closed.
+   - D-013 Timing-Freshness Negative-Age Clamp is
+     `OPEN - NEEDS MAINTAINER SEMANTICS DECISION`.
+   - D-014 Compact Codec Unknown Integer Payload Keys is
+     `OPEN - NEEDS MAINTAINER SEMANTICS DECISION`.
 
 4. **Later versioned semantic branches**
    - Markings/releasability.
@@ -384,6 +446,28 @@ Current public release:
 - Document any newly discovered issues in the deferred issue register in `docs/zmeta_refinement_worklog.md`.
 
 ## Verification State
+
+Most recent validation for the P1-04 bearing reference-frame pass on branch
+`worktree-bearing-frame-fixes` (2026-06-11, macOS, Python 3.12):
+
+```bash
+python3.12 tools/build_release_manifest.py --release-id zmeta-v1.1.7 --release-name "ZMeta v1.1.7" --release-status formal_release --release-date 2026-06-10 --branch main --update-claims
+python3.12 tools/validate_release_manifest.py --manifest release/zmeta-release-manifest.yaml
+python3.12 tools/validate_release_package.py --manifest release/zmeta-release-manifest.yaml --templates-only
+python3.12 tools/validate_conformance.py --strict --profile-projection --extension-registry --conformance-classes --encoding-negative --precision-policy --release-manifest --release-package --bad-events --adapter-harness
+python3.12 -m pytest -q
+git diff --check
+```
+
+Release manifest result: `release manifest ok groups=18 artifacts=62`.
+Release package template result: `release package ok mode=templates`.
+Full kernel conformance result: `projection conformance ok total=37`,
+`extension registry ok entries=57`, `conformance classes ok classes=34
+claims=2`, `encoding negative ok total=49`, `profile precision policy ok
+total=32`, `bad-event corpus ok total=10`, `adapter conformance ok total=9`,
+`conformance ok`.
+Full pytest result: `430 passed, 108 subtests passed`.
+Whitespace check result: passed.
 
 Most recent validation for the v1.1.7 stack audit and release:
 

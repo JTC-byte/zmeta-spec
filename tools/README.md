@@ -176,7 +176,8 @@ accepted as clean data. `validate_adapter_conformance.py` calls representative
 adapter functions and checks their ZMeta outputs for schema/policy validity,
 layer separation, UTC-Z timestamps, lineage, promotion evidence, and exact
 output values pinned by per-fixture `expected_values` maps (numeric values
-compare within a 1e-6 absolute tolerance).
+compare within a 1e-6 absolute tolerance; a boolean never matches a
+non-boolean, so a `true` pin cannot be satisfied by `1`/`1.0` output).
 
 ### Measure packet sizes
 

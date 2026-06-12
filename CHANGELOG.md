@@ -1,6 +1,47 @@
 # Changelog
 
 ## [Unreleased]
+- Added a machine-checkable bearing reference-frame marker: optional
+  `payload.bearing.frame` with single-value enum `["TRUE_NORTH"]` in the
+  v1.1.0 schema, a normative semantics-contract section 6.4 (canonical
+  bearings SHALL be degrees true north; sensor-native frames convert or omit;
+  `quality.bearing_frame`/`quality.heading_source` provenance path for v1.0
+  producers), and an experimental `BEARING_FRAME` extension-registry entry.
+  The locked v1.0 schema is untouched and still rejects the `frame` key.
+- Enforced the bearing reference-frame contract in governed conformance
+  corpora: new `observation-bearing-frame-mislabeled` bad-event entry (corpus
+  total 10) and an adapter-harness `expected_values` mechanism that pins exact
+  output values per fixture (1e-6 numeric tolerance, distinct
+  missing/mismatch codes, boolean pins never match numeric output). The
+  kraken fixture now pins the rotation math and a new no-heading fixture
+  proves convert-or-omit (harness total 9).
+- Hardened the Kraken adapter (1.1.0): optional platform-heading compensation
+  emits true-north `bearing.az_deg` as `(doa + heading + offset) % 360` with
+  frame/heading-source provenance, omits the canonical bearing when no heading
+  is supplied, always preserves raw DOA in
+  `features.doa_array_relative_deg`, and no longer fabricates CSV
+  `quality.snr_db` from RSSI.
+- Hardened the Moth adapter (1.1.0): serial and custom-MAVLink omnidirectional
+  detections no longer fabricate a `bearing.az_deg 0.0` /
+  `angular_error_deg 180.0` placeholder, JSON replay no longer invents a
+  bearing when the input carries none, and tunnel/replay measured bearings
+  pass through unchanged without fabricated frame provenance.
+- Audited remaining bearing/heading producers: SignalHunter (1.0.1) gradient
+  LOBs now assert `TRUE_NORTH`/`GPS_COURSE` provenance (true north by
+  geodesic construction); the MAVLink adapter (1.1.0) omits
+  `payload.heading_deg` when `hdg` is 65535 (unknown) or absent instead of
+  emitting an invalid or fabricated value, and its true-vs-magnetic heading
+  reference gap is documented; Moth tunnel/replay and CoT egress frame gaps
+  are documented with pinning tests; eo-cv, CoT ingress, and JREAP have no
+  bearing/heading exposure.
+- Added runtime fabrication and resource guards: MAVLink platform state
+  refuses null-island `(0, 0)` TRACK_STATE fabrication when position is
+  absent or pre-fix, the gateway gained an opt-in `warn_datagram_bytes`
+  oversize-datagram observability setting (default off, send behavior
+  unchanged), and the producer rate limiter purges stale windows without
+  changing accept/reject decisions.
+- Regenerated the release manifest and example claim hashes for the governed
+  changes. No event vocabulary became valid under `zmeta_version: "1.0"`.
 - Added `docs/zmeta_professional_overview.md`, an advisory overview for
   engineers, operators, and leadership covering ZMeta purpose, architecture,
   schemas, adapters, gateway deployment, profiles, encodings, data governance,

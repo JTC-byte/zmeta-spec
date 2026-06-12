@@ -231,6 +231,8 @@ def _expectation_issues(event: dict[str, Any], expect: dict[str, Any]) -> list[d
         value = _get_path(event, path)
         if value is MISSING:
             issues.append(_issue("ADAPTER_EXPECTED_VALUE_MISSING", f"expected value path missing {path}", path=path))
+        elif isinstance(expected, bool) != isinstance(value, bool):
+            issues.append(_issue("ADAPTER_EXPECTED_VALUE_MISMATCH", f"expected {path} == {expected!r}, got {value!r}", path=path, details={"expected": expected, "actual": value}))
         elif _is_number(expected) and _is_number(value):
             if abs(float(value) - float(expected)) > EXPECTED_VALUE_TOLERANCE:
                 issues.append(_issue("ADAPTER_EXPECTED_VALUE_MISMATCH", f"expected {path} ~= {expected}, got {value}", path=path, details={"expected": expected, "actual": value}))

@@ -1,4 +1,5 @@
 import importlib.util
+import json
 import subprocess
 import sys
 from pathlib import Path
@@ -11,6 +12,16 @@ FIXTURE_PATH = ROOT / "conformance" / "adapter-harness" / "must-pass.jsonl"
 spec = importlib.util.spec_from_file_location("zmeta_validate_adapter_conformance", VALIDATOR_PATH)
 validate_adapter_conformance = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(validate_adapter_conformance)
+
+
+def _fixture(name):
+    for line in FIXTURE_PATH.read_text(encoding="utf-8").splitlines():
+        if not line.strip():
+            continue
+        item = json.loads(line)
+        if item.get("name") == name:
+            return item
+    raise AssertionError(f"fixture not found: {name}")
 
 
 def test_adapter_conformance_run_succeeds():
@@ -109,35 +120,29 @@ def test_expected_values_numeric_comparison_uses_absolute_tolerance():
     assert [item["code"] for item in issues] == ["ADAPTER_EXPECTED_VALUE_MISMATCH"]
 
 
+def test_expected_values_bool_pin_does_not_match_equal_number():
+    bool_pin = {"utc_z_paths": [], "expected_values": {"payload.flag": True}}
+
+    numeric_actual = {"payload": {"flag": 1.0}}
+    issues = validate_adapter_conformance._expectation_issues(numeric_actual, bool_pin)
+    assert [item["code"] for item in issues] == ["ADAPTER_EXPECTED_VALUE_MISMATCH"]
+
+    bool_actual = {"payload": {"flag": True}}
+    assert validate_adapter_conformance._expectation_issues(bool_actual, bool_pin) == []
+
+
 def test_kraken_fixture_expected_values_prove_bearing_rotation():
     schema = validate_adapter_conformance.validators.load_schema(
         ROOT / "schema" / "zmeta-event.schema.json"
     )
     policy = validate_adapter_conformance.validators.load_policy(ROOT / "policy")
-    fixture = {
-        "module": "adapters/ingress/kraken/kraken_to_zmeta.py",
-        "callable": "translate_csv_row",
-        "args": [["1737127200", "123.4", "80", "-70.5", "2450000000"]],
-        "kwargs": {
-            "platform_id": "sensor-node-kraken",
-            "sensor_geo": {"lat": 34.0, "lon": -118.0, "alt_m": 120.0},
-            "sensor_id": "kraken-01",
-            "platform_heading_deg": 90.0,
-            "heading_source": "AHRS_TRUE",
-        },
-        "profile": "H",
-        "expect": {
-            "event_type": "OBSERVATION_EVENT",
-            "event_subtype": "RF",
-            "allow_degraded_timing": True,
-            "expected_values": {
-                "payload.bearing.az_deg": 213.4,
-                "payload.features.doa_array_relative_deg": 123.4,
-                "payload.quality.bearing_frame": "TRUE_NORTH",
-                "payload.quality.heading_source": "AHRS_TRUE",
-            },
-        },
-    }
+    fixture = _fixture("kraken-csv-rf-observation")
+
+    expected_values = fixture["expect"]["expected_values"]
+    assert expected_values["payload.bearing.az_deg"] == 213.4
+    assert expected_values["payload.features.doa_array_relative_deg"] == 123.4
+    assert expected_values["payload.quality.bearing_frame"] == "TRUE_NORTH"
+    assert expected_values["payload.quality.heading_source"] == "AHRS_TRUE"
 
     assert validate_adapter_conformance.evaluate_fixture(fixture, schema, policy) == []
 

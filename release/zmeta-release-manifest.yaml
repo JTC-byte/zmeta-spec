@@ -28,8 +28,8 @@ bad_event_corpus_hash: sha256:eeed7321ed7677e26cc9d4270f916f5c285f36e56c10ac5899
 adapter_conformance_hash: sha256:95d9cb0011a6293cd63eb8eddf80978e056095b0f6e89a1ca44971ac6fa490c6
 encoding_projection_specs_hash: sha256:df81a1157548d9e57c7e13a4dd3f2693bfa4575be91f4818fc54ab8fedf9b76a
 process_governance_hash: sha256:9c67274d915a24effa08dd2db5c2f8da410cd444309840e7f6855e2e783cd448
-release_bundle_hash: sha256:7fc3621f56d3b710242d5867e890535d9169ebd21f52423232cc9dc10f7e953b
-release_manifest_hash: sha256:2a13e90fb1ac562c27c8f92a1bb1eb0313a39bec1d0480c7e894e8b319c4b864
+release_bundle_hash: sha256:40c8b277200d7dd39e6f490f1937ec31c02a116119b5fe47b2822c77f43d5639
+release_manifest_hash: sha256:6e71704c1073d9ad08c2a41af148272a0b1ec75183b6efab755d2d4e45a2e652
 artifact_hashes:
 - path: AGENTS.md
   group: process_governance
@@ -229,7 +229,7 @@ artifact_hashes:
   canonicalization: text_lf
 - path: tools/validate_adapter_conformance.py
   group: conformance_tools
-  hash: sha256:a2397fface7b9b5e503ad224196cf866fe6005468e99afdc6488bbf5860d8cae
+  hash: sha256:9267932bd73d266eaa4a73871d5c4a44741b9460aff070488480405120b3331c
   canonicalization: text_lf
 - path: tools/validate_bad_events.py
   group: conformance_tools
@@ -413,7 +413,7 @@ artifact_groups:
     - tools/validate_extension_registry.py
     - tools/validate_precision_policy.py
     - tools/validate_projection.py
-    hash: sha256:ef66529405432d2f950e8ade970fae000124823e237324a59119350b065c0761
+    hash: sha256:2fd9681191a3ad55ba77438acac8939bc1a3bf428f48e3fbcebef86f093b5555
 tool_versions:
   python: 3.12.11
   builder: tools/build_release_manifest.py
