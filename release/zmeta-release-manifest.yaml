@@ -25,11 +25,11 @@ profile_projection_catalog_hash: sha256:bae61b3a01cc0a3c2aa1f90391f231d404841752
 encoding_negative_suite_hash: sha256:efb1203fd7aa4f4065b094bd4e40f95594fa7f59761698cdfc2cdea1aa199ec8
 profile_precision_policy_hash: sha256:a2f51cf5f0779c43ae4118b941524fb14783181c739e693befd146f8c44a1139
 bad_event_corpus_hash: sha256:12e5b25d0fbf027bc7afe07c537e3a8da45c311e9edd565d1c0d49411f9cbc25
-adapter_conformance_hash: sha256:d2f4c4508bfbecb66d64ac5fe06538e07d53f98f082a0188872483060b27a56d
+adapter_conformance_hash: sha256:4b93942d3dd6423c2f2987568e06d140f3d009cc44020d908ab401880626a5c4
 encoding_projection_specs_hash: sha256:df81a1157548d9e57c7e13a4dd3f2693bfa4575be91f4818fc54ab8fedf9b76a
 process_governance_hash: sha256:9c67274d915a24effa08dd2db5c2f8da410cd444309840e7f6855e2e783cd448
-release_bundle_hash: sha256:eaf27ecc76aaaa3e3bda0017808f7c7d6361a2e6c34a07ee5069e2a93970b8a3
-release_manifest_hash: sha256:8c16c1782c1190653c0576ecec6a7ff42f4a98e88884f2f27e791f094d560a49
+release_bundle_hash: sha256:ccfe91ece4dab1d4b0dbdf66790c6097cc7265ce108e6704c5f62fc1780624d5
+release_manifest_hash: sha256:ed832b55bd47b92c52e10b5706ba6530d6a0547e37d0b418f291297e3c348ae5
 artifact_hashes:
 - path: AGENTS.md
   group: process_governance
@@ -45,7 +45,7 @@ artifact_hashes:
   canonicalization: text_lf
 - path: conformance/adapter-harness/must-pass.jsonl
   group: adapter_conformance
-  hash: sha256:a53d6ae2730b2d49b12aca16304ee8cc54d387169592b9d08c12cf7f425bde80
+  hash: sha256:fb5647ea36e33add60b49422dd3a0047c1a6264ce269dc64fcfdc06f14426dfb
   canonicalization: text_lf
 - path: conformance/bad-events/must-fail.jsonl
   group: bad_event_corpus
@@ -53,11 +53,11 @@ artifact_hashes:
   canonicalization: text_lf
 - path: conformance/claims/example-core-producer.yaml
   group: claims
-  hash: sha256:32dc6d8542a0749c1ebbaf9a10c4162027d984cac8a9accb3efc447756fb69a3
+  hash: sha256:195bfa3ad567a9012f0c9a31f9069ddcd0e27a86ba1378d79793e78c36413d00
   canonicalization: text_lf
 - path: conformance/claims/example-reference-gateway.yaml
   group: claims
-  hash: sha256:ba908f0d1199e1f35172beee06449938d4ad8f27d4335890c36833131b8e94de
+  hash: sha256:b181428ff937f16ed2281a96b5d18f37f05eabb0d3d46c3e057250bec592472f
   canonicalization: text_lf
 - path: conformance/conformance_classes.yaml
   group: conformance_classes
@@ -356,7 +356,7 @@ artifact_groups:
     description: Shared adapter harness fixtures for representative adapter outputs.
     paths:
     - conformance/adapter-harness/must-pass.jsonl
-    hash: sha256:d2f4c4508bfbecb66d64ac5fe06538e07d53f98f082a0188872483060b27a56d
+    hash: sha256:4b93942d3dd6423c2f2987568e06d140f3d009cc44020d908ab401880626a5c4
   encoding_projection_specs:
     description: Compact CBOR and protobuf projection specifications and codec evidence.
     paths:
@@ -372,7 +372,7 @@ artifact_groups:
     paths:
     - conformance/claims/example-core-producer.yaml
     - conformance/claims/example-reference-gateway.yaml
-    hash: sha256:7bf9c72df1bfaa90f536aa329ee56f4690dc1f1af0f9f3b97b610675844a4d15
+    hash: sha256:644810325092b1e8b81a42985bb453c9c2d6cb884718571a9a75b53ff5db5d50
   release_policy:
     description: Human-readable release hash taxonomy and canonicalization policy.
     paths:
