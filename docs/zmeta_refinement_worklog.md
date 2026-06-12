@@ -1844,11 +1844,15 @@
     `quality.snr_db`.
   - Moth adapter 1.1.0: serial/custom-MAVLink omnidirectional paths no
     longer fabricate `az_deg 0.0` / `angular_error_deg 180.0`; replay omits
-    bearings absent from input; tunnel measured bearings unchanged.
+    bearings absent from input; tunnel/replay measured bearings emit
+    canonical `payload.bearing` only when callers explicitly assert
+    `bearing_frame="TRUE_NORTH"`, otherwise raw unknown-frame bearings are
+    preserved under explicit `features.bearing_frame_unknown_*` keys.
   - SignalHunter 1.0.1: gradient LOBs assert `TRUE_NORTH`/`GPS_COURSE`
-    (true north by geodesic construction). MAVLink 1.1.0: `hdg=65535` or
-    absent omits `payload.heading_deg`; the true-vs-magnetic reference gap
-    is documented rather than papered over.
+    (true north by geodesic construction). MAVLink 1.1.0: `hdg=65535`,
+    absent, or present without explicit `heading_frame="TRUE_NORTH"` omits
+    canonical `payload.heading_deg`; unasserted known headings are preserved
+    as `payload.quality.mavlink_hdg_frame_unknown_deg`.
   - Runtime guards: MAVLink platform state returns `None` instead of
     fabricating a null-island `(0, 0)` TRACK_STATE; gateway gained opt-in
     `warn_datagram_bytes` oversize-datagram observability (default 0 =
@@ -1875,6 +1879,44 @@
   - `python3.12 tools/validate_conformance.py --strict --profile-projection --extension-registry --conformance-classes --encoding-negative --precision-policy --release-manifest --release-package --bad-events --adapter-harness` -> `projection conformance ok total=37`, `extension registry ok entries=57`, `conformance classes ok classes=34 claims=2`, `encoding negative ok total=49`, `profile precision policy ok total=32`, `bad-event corpus ok total=10`, `adapter conformance ok total=9`, `conformance ok`
   - `python3.12 -m pytest -q` -> `430 passed, 108 subtests passed`
   - `git diff --check` -> clean
+
+## P1-04R - Partner Review Frame-Gap Closure
+
+- Status: COMPLETE
+- Date completed: 2026-06-12
+- Branch: `review/pr2-frame-fixes` (local review branch on top of PR #2)
+- Change class: Class C adapter behavior and tests, with governed docs and
+  release-manifest refresh because manifest-listed artifacts changed.
+- Scope: Closed the two adoption blockers found during review of PR #2:
+  Moth tunnel/replay bearings and MAVLink `hdg` values documented an unknown
+  reference frame but still emitted canonical ZMeta bearing/heading fields.
+- What changed:
+  - `translate_tunnel_payload()` and `translate_json_replay()` now omit
+    canonical `payload.bearing` by default for Moth tunnel/replay inputs whose
+    frame is not asserted. The native values are preserved under explicit
+    `features.bearing_frame_unknown_*` keys.
+  - Moth tunnel/replay callers may pass `bearing_frame="TRUE_NORTH"` only when
+    upstream ICD or deployment configuration guarantees a true-north bearing.
+    In that mode the adapter emits canonical `payload.bearing` and records
+    `quality.bearing_frame = "TRUE_NORTH"`.
+  - `translate_platform_state()` now omits canonical `payload.heading_deg` for
+    known MAVLink `hdg` values unless the caller passes
+    `heading_frame="TRUE_NORTH"`. Unasserted headings are preserved as
+    `payload.quality.mavlink_hdg_frame_unknown_deg`.
+  - MAVLink callers may pass `heading_source` with the true-north assertion;
+    otherwise the adapter records
+    `MAVLINK_GLOBAL_POSITION_INT_TRUE_NORTH`.
+  - Moth/MAVLink README guidance, adapter tests, CHANGELOG, handoff, and this
+    worklog were updated; `release/zmeta-release-manifest.yaml` was rebuilt.
+- Verification (2026-06-12, Windows, Python):
+  - `python -m pytest -q adapters\ingress\moth\test_moth_ingress.py adapters\ingress\mavlink\test_mavlink_ingress.py` -> `29 passed`
+  - `python tools\validate_adapter_conformance.py --quiet` -> `adapter conformance ok total=10`
+  - `python tools\build_release_manifest.py --release-id zmeta-v1.1.7 --release-name "ZMeta v1.1.7" --release-status formal_release --release-date 2026-06-10 --branch main --update-claims` -> manifest rebuilt
+  - `python tools\validate_release_manifest.py --manifest release\zmeta-release-manifest.yaml` -> `release manifest ok groups=18 artifacts=62`
+  - `python tools\validate_release_package.py --manifest release\zmeta-release-manifest.yaml --templates-only` -> `release package ok mode=templates`
+  - `python tools\validate_conformance.py --strict --profile-projection --extension-registry --conformance-classes --encoding-negative --precision-policy --release-manifest --release-package --bad-events --adapter-harness` -> `projection conformance ok total=37`, `extension registry ok entries=57`, `conformance classes ok classes=34 claims=2`, `encoding negative ok total=49`, `profile precision policy ok total=32`, `bad-event corpus ok total=10`, `adapter conformance ok total=10`, `conformance ok`
+  - `python -m pytest -q` -> `435 passed, 108 subtests passed`
+  - `git diff --check` -> clean; Git reported normal Windows LF-to-CRLF working-copy warnings.
 
 ## Deferred Issue Register
 

@@ -13,8 +13,9 @@
   total 10) and an adapter-harness `expected_values` mechanism that pins exact
   output values per fixture (1e-6 numeric tolerance, distinct
   missing/mismatch codes, boolean pins never match numeric output). The
-  kraken fixture now pins the rotation math and a new no-heading fixture
-  proves convert-or-omit (harness total 9).
+  kraken fixture now pins the rotation math, a no-heading fixture proves
+  convert-or-omit, and Moth/MAVLink fixtures pin unknown-frame omission
+  behavior (harness total 10).
 - Hardened the Kraken adapter (1.1.0): optional platform-heading compensation
   emits true-north `bearing.az_deg` as `(doa + heading + offset) % 360` with
   frame/heading-source provenance, omits the canonical bearing when no heading
@@ -25,15 +26,17 @@
   detections no longer fabricate a `bearing.az_deg 0.0` /
   `angular_error_deg 180.0` placeholder, JSON replay no longer invents a
   bearing when the input carries none, and tunnel/replay measured bearings
-  pass through unchanged without fabricated frame provenance.
+  emit canonical `payload.bearing` only when the caller explicitly asserts
+  `bearing_frame="TRUE_NORTH"`; otherwise raw unknown-frame bearings are
+  preserved under explicit `features.bearing_frame_unknown_*` keys.
 - Audited remaining bearing/heading producers: SignalHunter (1.0.1) gradient
   LOBs now assert `TRUE_NORTH`/`GPS_COURSE` provenance (true north by
   geodesic construction); the MAVLink adapter (1.1.0) omits
-  `payload.heading_deg` when `hdg` is 65535 (unknown) or absent instead of
-  emitting an invalid or fabricated value, and its true-vs-magnetic heading
-  reference gap is documented; Moth tunnel/replay and CoT egress frame gaps
-  are documented with pinning tests; eo-cv, CoT ingress, and JREAP have no
-  bearing/heading exposure.
+  `payload.heading_deg` when `hdg` is 65535 (unknown), absent, or present
+  without explicit `heading_frame="TRUE_NORTH"` instead of emitting an invalid
+  or fabricated canonical heading, while preserving unasserted values under
+  `payload.quality.mavlink_hdg_frame_unknown_deg`; CoT egress frame behavior is
+  documented; eo-cv, CoT ingress, and JREAP have no bearing/heading exposure.
 - Added runtime fabrication and resource guards: MAVLink platform state
   refuses null-island `(0, 0)` TRACK_STATE fabrication when position is
   absent or pre-fix, the gateway gained an opt-in `warn_datagram_bytes`

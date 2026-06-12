@@ -14,6 +14,11 @@ Current stack status:
   `worktree-bearing-frame-fixes` (built on `develop`); it has not been merged
   or released. Schema 1.1.0 gained the optional `bearing.frame` marker; the
   locked v1.0 schema is untouched.
+- P1-04R closed the review blockers found in PR #2 on local branch
+  `review/pr2-frame-fixes`: Moth tunnel/replay and MAVLink `hdg` values no
+  longer emit canonical bearing/heading fields unless callers explicitly
+  assert `TRUE_NORTH`; unasserted native values remain auditable under
+  explicitly named non-canonical fields.
 - Use tag `v1.1.7` for formal release assets/checksums.
 - Use current `main` for the latest integration baseline with policy-risk
   linting, projection preservation for risk/promotion extensions, stricter
@@ -314,7 +319,10 @@ Current public release:
   producers carry `quality.bearing_frame`/`quality.heading_source`
   provenance instead. Adapters must not fabricate bearings, SNR, headings,
   or positions; refuse-to-emit/omit is the schema-legal response to
-  unavailable data.
+  unavailable data. Moth tunnel/replay and MAVLink `hdg` inputs now require
+  explicit `TRUE_NORTH` assertions before emitting canonical bearing/heading
+  fields; otherwise the native values are retained only under explicitly named
+  non-canonical fields.
 - The adapter harness can pin exact output values per fixture through
   `expected_values` (1e-6 numeric tolerance, distinct
   `ADAPTER_EXPECTED_VALUE_MISSING`/`MISMATCH` codes, and a boolean type
@@ -446,6 +454,33 @@ entries):
 - Document any newly discovered issues in the deferred issue register in `docs/zmeta_refinement_worklog.md`.
 
 ## Verification State
+
+Most recent validation for the P1-04R review fixes on branch
+`review/pr2-frame-fixes` (2026-06-12, Windows, Python):
+
+```powershell
+python -m pytest -q adapters\ingress\moth\test_moth_ingress.py adapters\ingress\mavlink\test_mavlink_ingress.py
+python tools\validate_adapter_conformance.py --quiet
+python tools\build_release_manifest.py --release-id zmeta-v1.1.7 --release-name "ZMeta v1.1.7" --release-status formal_release --release-date 2026-06-10 --branch main --update-claims
+python tools\validate_release_manifest.py --manifest release\zmeta-release-manifest.yaml
+python tools\validate_release_package.py --manifest release\zmeta-release-manifest.yaml --templates-only
+python tools\validate_conformance.py --strict --profile-projection --extension-registry --conformance-classes --encoding-negative --precision-policy --release-manifest --release-package --bad-events --adapter-harness
+python -m pytest -q
+git diff --check
+```
+
+Focused adapter pytest result: `29 passed`.
+Adapter harness result: `adapter conformance ok total=10`.
+Release manifest result: `release manifest ok groups=18 artifacts=62`.
+Release package template result: `release package ok mode=templates`.
+Full kernel conformance result: `projection conformance ok total=37`,
+`extension registry ok entries=57`, `conformance classes ok classes=34
+claims=2`, `encoding negative ok total=49`, `profile precision policy ok
+total=32`, `bad-event corpus ok total=10`, `adapter conformance ok total=10`,
+`conformance ok`.
+Full pytest result: `435 passed, 108 subtests passed`.
+Whitespace check result: clean with normal Windows LF-to-CRLF working-copy
+warnings.
 
 Most recent validation for the P1-04 bearing reference-frame pass on branch
 `worktree-bearing-frame-fixes` (2026-06-11, macOS, Python 3.12):

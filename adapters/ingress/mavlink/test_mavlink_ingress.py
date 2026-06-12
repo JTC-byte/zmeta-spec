@@ -63,6 +63,11 @@ _BASE_STATE = {
 
 
 def _state_event(**overrides):
+    translator_kwargs = {}
+    if "heading_frame" in overrides:
+        translator_kwargs["heading_frame"] = overrides.pop("heading_frame")
+    if "heading_source" in overrides:
+        translator_kwargs["heading_source"] = overrides.pop("heading_source")
     state = dict(_BASE_STATE)
     state.update(overrides)
     return translate_platform_state(
@@ -70,17 +75,39 @@ def _state_event(**overrides):
         platform_id="uav-1",
         producer="mavlink-adapter",
         ts="2025-01-17T15:20:00+00:00",
+        **translator_kwargs,
     )
 
 
-def test_mavlink_known_heading_passes_through_without_frame_assertion():
+def test_mavlink_known_heading_without_frame_omits_canonical_heading():
     # GLOBAL_POSITION_INT.hdg does not declare a true-vs-magnetic reference,
-    # so the adapter must not fabricate quality.heading_source provenance.
+    # so the adapter must not emit canonical payload.heading_deg by default.
     event = _state_event(heading_deg=90.0)
 
-    assert event["payload"]["heading_deg"] == 90.0
+    assert "heading_deg" not in event["payload"]
+    assert event["payload"]["quality"]["mavlink_hdg_frame_unknown_deg"] == 90.0
     assert "heading_source" not in event["payload"]["quality"]
     VALIDATOR.validate(event)
+
+
+def test_mavlink_true_north_heading_frame_emits_canonical_heading():
+    event = _state_event(
+        heading_deg=90.0,
+        heading_frame="TRUE_NORTH",
+        heading_source="AHRS_TRUE",
+    )
+
+    assert event["payload"]["heading_deg"] == 90.0
+    assert event["payload"]["quality"]["heading_source"] == "AHRS_TRUE"
+    assert "mavlink_hdg_frame_unknown_deg" not in event["payload"]["quality"]
+    VALIDATOR.validate(event)
+
+
+def test_mavlink_invalid_heading_frame_rejected():
+    import pytest
+
+    with pytest.raises(ValueError, match="heading_frame"):
+        _state_event(heading_deg=90.0, heading_frame="MAGNETIC_NORTH")
 
 
 def test_mavlink_unknown_heading_omitted_not_fabricated():
@@ -89,6 +116,7 @@ def test_mavlink_unknown_heading_omitted_not_fabricated():
     event = _state_event(heading_deg=None)
 
     assert "heading_deg" not in event["payload"]
+    assert "mavlink_hdg_frame_unknown_deg" not in event["payload"]["quality"]
     VALIDATOR.validate(event)
 
 

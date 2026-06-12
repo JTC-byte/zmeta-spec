@@ -27,7 +27,8 @@ State-safe fields used by this adapter include:
 
 - `payload.track_id`
 - `payload.geo`
-- `payload.heading_deg`
+- `payload.heading_deg` only when deployment config explicitly asserts a
+  true-north heading frame
 - `payload.speed_mps`
 - `payload.valid_for_ms`
 - `payload.timing_quality`
@@ -43,7 +44,7 @@ raw telemetry or reinterpret state.
 | MAVLink input concept | Incorrect mapping to avoid | Correct ZMeta treatment | Notes |
 |---|---|---|---|
 | Global position / GPS fix | `payload.features.position` or raw GPS fields | `STATE_EVENT` `payload.geo` after state projection; GPS quality goes to `payload.quality` or status metadata | Do not expose native GPS packet fields as state features. |
-| Heading | `payload.features.heading` | `STATE_EVENT` `payload.heading_deg` | Derived from `GLOBAL_POSITION_INT.hdg` when available; omitted (never defaulted to 0) when `hdg` is unknown (`UINT16_MAX`). |
+| Heading | `payload.features.heading` | `STATE_EVENT` `payload.heading_deg` only with `heading_frame="TRUE_NORTH"`; otherwise `payload.quality.mavlink_hdg_frame_unknown_deg` | Derived from `GLOBAL_POSITION_INT.hdg` when available; omitted (never defaulted to 0) when `hdg` is unknown (`UINT16_MAX`). |
 | Ground speed | `payload.features.speed` | `STATE_EVENT` `payload.speed_mps` | Computed from velocity components as state, not raw telemetry. |
 | GPS fix type / satellite count | `payload.features.gps_fix_type`, `payload.features.satellites_visible` | `payload.quality.gps_fix_type`, `payload.quality.satellites_visible`, and conservative top-level `confidence` | Quality metadata describes state reliability; it is not an observation feature block. |
 | Attitude roll/pitch/yaw | `payload.features.*` | `payload.quality.roll_deg`, `payload.quality.pitch_deg`, `payload.quality.yaw_deg` when retained | These are platform-state quality/context fields, not raw observation features. |
@@ -78,7 +79,12 @@ state = {}
 state.update(decode_global_position_int({"lat": 434900000, "lon": -1120400000, "alt": 1500000, "hdg": 13500, "vx": 500, "vy": 0, "vz": 0}))
 state.update(decode_gps_raw_int({"fix_type": 3, "satellites_visible": 12}))
 
-event = translate_platform_state(state, platform_id="uav-01")
+event = translate_platform_state(
+    state,
+    platform_id="uav-01",
+    heading_frame="TRUE_NORTH",
+    heading_source="AHRS_TRUE",
+)
 ```
 
 ## Notes
@@ -98,7 +104,7 @@ event = translate_platform_state(state, platform_id="uav-01")
   confidence. This follows the kraken/moth anti-fabrication pattern
   (convert or refuse, never invent).
 
-### Heading and attitude frame provenance (known gap)
+### Heading and attitude frame provenance
 
 ZMeta `payload.heading_deg` is contractually degrees true north (semantics
 contract section 6.4). The MAVLink wire format does not guarantee that frame:
@@ -110,11 +116,19 @@ contract section 6.4). The MAVLink wire format does not guarantee that frame:
 - `ATTITUDE.yaw` (retained as `payload.quality.yaw_deg`) carries the same
   ambiguity; it is platform-state context, not a canonical heading.
 
-Because the source does not guarantee the frame, this adapter does **not**
-assert `quality.heading_source`. Deployments must guarantee a true-north
-heading upstream (correct declination / AHRS configuration) before treating
-`payload.heading_deg` as canonical. An unknown heading (`hdg = UINT16_MAX`)
-is omitted from the payload rather than fabricated as `0.0`.
+Because the source does not guarantee the frame, this adapter does not emit
+canonical `payload.heading_deg` by default. Known but unasserted MAVLink
+headings are preserved as `payload.quality.mavlink_hdg_frame_unknown_deg` so
+consumers can audit the native value without confusing it for canonical state.
+An unknown heading (`hdg = UINT16_MAX`) is omitted from the payload rather than
+fabricated as `0.0`.
+
+Deployments may pass `heading_frame="TRUE_NORTH"` to
+`translate_platform_state()` only when upstream configuration guarantees a
+true-north heading, such as verified AHRS or correct magnetic-declination
+configuration. In that mode the adapter emits canonical `payload.heading_deg`
+and records `quality.heading_source` from the provided `heading_source` value
+or the default `MAVLINK_GLOBAL_POSITION_INT_TRUE_NORTH`.
 
 ## Source
 

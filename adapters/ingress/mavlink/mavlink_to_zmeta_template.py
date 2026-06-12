@@ -26,6 +26,14 @@ def _utc_now():
     return utc_now_z()
 
 
+def _assert_true_north_heading_frame(heading_frame):
+    if heading_frame is None:
+        return None
+    if heading_frame != "TRUE_NORTH":
+        raise ValueError("heading_frame must be TRUE_NORTH when provided")
+    return heading_frame
+
+
 def _gps_fix_confidence(gps_fix_type):
     """Map MAVLink GPS fix type to a conservative track-state confidence.
 
@@ -74,6 +82,8 @@ def translate_platform_state(
     platform_id,
     producer="mavlink-adapter",
     ts=None,
+    heading_frame=None,
+    heading_source=None,
 ):
     """Translate a MAVLink platform state into a ZMeta STATE_EVENT.
 
@@ -84,7 +94,9 @@ def translate_platform_state(
               lon (float): degrees; absent/None refuses emission (no default)
               alt_m (float): metres AMSL
               heading_deg (float, optional): 0-360; None or absent means
-                unknown and omits payload.heading_deg (no 0.0 default)
+                unknown and omits payload.heading_deg (no 0.0 default).
+                A known value is canonical only when heading_frame is
+                explicitly "TRUE_NORTH".
               speed_mps (float): ground speed m/s
               gps_fix_type (int): ArduPilot fix type 0-6
               satellites_visible (int)
@@ -96,6 +108,11 @@ def translate_platform_state(
         platform_id: Platform identifier string.
         producer: Producer string (default "mavlink-adapter").
         ts: ISO timestamp (default: current UTC).
+        heading_frame: Optional heading reference-frame assertion. Only
+            "TRUE_NORTH" is accepted; absent keeps MAVLink hdg out of the
+            canonical payload.heading_deg field.
+        heading_source: Optional quality.heading_source label to record when
+            heading_frame is "TRUE_NORTH".
 
     Returns:
         ZMeta STATE_EVENT dict, or None when no usable position exists
@@ -109,16 +126,17 @@ def translate_platform_state(
     else:
         _get = lambda k, d=None: getattr(state, k, d)
 
+    heading_frame = _assert_true_north_heading_frame(heading_frame)
     lat = _get("lat")
     lon = _get("lon")
     alt_m = _get("alt_m", 0.0)
     # heading_deg comes from GLOBAL_POSITION_INT.hdg, which reports the value
     # as unknown (UINT16_MAX -> None after decode). An unknown heading is
     # omitted from the payload, never fabricated as a 0.0 (due-north) default.
-    # Note the MAVLink message definition does not declare a true-vs-magnetic
-    # reference for hdg, so no quality.heading_source provenance is asserted;
-    # the deployment must guarantee degrees true north upstream (semantics
-    # contract section 6.4).
+    # MAVLink does not declare a true-vs-magnetic reference for hdg, so a known
+    # heading is canonical only when deployment config explicitly asserts
+    # heading_frame="TRUE_NORTH"; otherwise the raw value is retained only as
+    # quality context.
     heading_deg = _get("heading_deg")
     speed_mps = _get("speed_mps", 0.0)
     gps_fix_type = _get("gps_fix_type", 0)
@@ -214,8 +232,13 @@ def translate_platform_state(
             "transform": f"promote:{SCHEMA_ID}@{ADAPTER_VERSION}:{promotion['promotion_policy_id']}",
         },
     }
-    if heading_deg is not None:
+    if heading_deg is not None and heading_frame == "TRUE_NORTH":
         event["payload"]["heading_deg"] = heading_deg
+        event["payload"]["quality"]["heading_source"] = (
+            heading_source or "MAVLINK_GLOBAL_POSITION_INT_TRUE_NORTH"
+        )
+    elif heading_deg is not None:
+        event["payload"]["quality"]["mavlink_hdg_frame_unknown_deg"] = heading_deg
     return event
 
 
@@ -232,9 +255,10 @@ def decode_global_position_int(msg_dict):
 
     The MAVLink common message definition describes ``hdg`` only as
     "vehicle heading (yaw angle)" in centidegrees; it does not declare a
-    true-vs-magnetic north reference. The decoded ``heading_deg`` is
-    therefore passed through without frame provenance, and an unknown
-    heading decodes to None (omitted downstream, never defaulted).
+    true-vs-magnetic north reference. The decoded ``heading_deg`` therefore
+    remains non-canonical until translate_platform_state receives an explicit
+    heading_frame="TRUE_NORTH" assertion. Unknown heading decodes to None
+    (omitted downstream, never defaulted).
 
     Absent ``lat``/``lon`` fields decode to None rather than (0, 0) so the
     translator can refuse to fabricate a null-island position.

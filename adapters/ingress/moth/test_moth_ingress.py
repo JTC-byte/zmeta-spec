@@ -95,30 +95,36 @@ def test_custom_mavlink_omits_fabricated_bearing():
     assert event["payload"]["features"]["power_dbm"] == pytest.approx(-45.0)
 
 
-def test_tunnel_real_bearing_preserved():
+def test_tunnel_unknown_frame_omits_canonical_bearing_and_preserves_raw():
     event = translate_tunnel_payload(
         TUNNEL_BYTES, platform_id="uav-01", timestamp_ms=TS_MS
     )
 
-    assert event["payload"]["bearing"]["az_deg"] == pytest.approx(123.4)
-    assert event["payload"]["bearing"]["el_deg"] == pytest.approx(2.0)
-    assert event["payload"]["features"]["angular_error_deg"] == pytest.approx(5.0)
-    assert event["payload"]["quality"]["measurement_error"]["value"] == pytest.approx(5.0)
+    features = event["payload"]["features"]
+    assert "bearing" not in event["payload"]
+    assert "angular_error_deg" not in features
+    assert "measurement_error" not in event["payload"]["quality"]
+    assert features["bearing_frame_unknown_deg"] == pytest.approx(123.4)
+    assert features["bearing_frame_unknown_el_deg"] == pytest.approx(2.0)
+    assert features["bearing_frame_unknown_error_deg"] == pytest.approx(5.0)
 
 
-def test_json_replay_real_bearing_preserved():
+def test_json_replay_unknown_frame_omits_canonical_bearing_and_preserves_raw():
     event = translate_json_replay(dict(REPLAY_WITH_BEARING), platform_id="uav-01")
 
-    assert event["payload"]["bearing"]["az_deg"] == pytest.approx(123.4)
-    assert event["payload"]["bearing"]["el_deg"] == pytest.approx(2.0)
-    assert event["payload"]["features"]["angular_error_deg"] == pytest.approx(7.5)
-    assert event["payload"]["quality"]["measurement_error"]["value"] == pytest.approx(7.5)
+    features = event["payload"]["features"]
+    assert "bearing" not in event["payload"]
+    assert "angular_error_deg" not in features
+    assert "measurement_error" not in event["payload"]["quality"]
+    assert features["bearing_frame_unknown_deg"] == pytest.approx(123.4)
+    assert features["bearing_frame_unknown_el_deg"] == pytest.approx(2.0)
+    assert features["bearing_frame_unknown_error_deg"] == pytest.approx(7.5)
 
 
 def test_tunnel_bearing_carries_no_frame_assertion():
     # The Moth tunnel ICD does not declare a reference frame for bearing_deg,
     # so the adapter must not fabricate quality.bearing_frame/heading_source
-    # provenance (semantics contract section 6.4 conservative pass-through).
+    # provenance (semantics contract section 6.4 convert-or-omit).
     event = translate_tunnel_payload(
         TUNNEL_BYTES, platform_id="uav-01", timestamp_ms=TS_MS
     )
@@ -132,6 +138,47 @@ def test_json_replay_bearing_carries_no_frame_assertion():
 
     assert "bearing_frame" not in event["payload"]["quality"]
     assert "heading_source" not in event["payload"]["quality"]
+
+
+def test_tunnel_true_north_frame_emits_canonical_bearing():
+    event = translate_tunnel_payload(
+        TUNNEL_BYTES,
+        platform_id="uav-01",
+        timestamp_ms=TS_MS,
+        bearing_frame="TRUE_NORTH",
+    )
+
+    assert event["payload"]["bearing"]["az_deg"] == pytest.approx(123.4)
+    assert event["payload"]["bearing"]["el_deg"] == pytest.approx(2.0)
+    assert event["payload"]["features"]["angular_error_deg"] == pytest.approx(5.0)
+    assert event["payload"]["quality"]["measurement_error"]["value"] == pytest.approx(5.0)
+    assert event["payload"]["quality"]["bearing_frame"] == "TRUE_NORTH"
+    assert "bearing_frame_unknown_deg" not in event["payload"]["features"]
+
+
+def test_json_replay_true_north_frame_emits_canonical_bearing():
+    event = translate_json_replay(
+        dict(REPLAY_WITH_BEARING),
+        platform_id="uav-01",
+        bearing_frame="TRUE_NORTH",
+    )
+
+    assert event["payload"]["bearing"]["az_deg"] == pytest.approx(123.4)
+    assert event["payload"]["bearing"]["el_deg"] == pytest.approx(2.0)
+    assert event["payload"]["features"]["angular_error_deg"] == pytest.approx(7.5)
+    assert event["payload"]["quality"]["measurement_error"]["value"] == pytest.approx(7.5)
+    assert event["payload"]["quality"]["bearing_frame"] == "TRUE_NORTH"
+    assert "bearing_frame_unknown_deg" not in event["payload"]["features"]
+
+
+def test_moth_invalid_bearing_frame_rejected():
+    with pytest.raises(ValueError, match="bearing_frame"):
+        translate_tunnel_payload(
+            TUNNEL_BYTES,
+            platform_id="uav-01",
+            timestamp_ms=TS_MS,
+            bearing_frame="MAGNETIC_NORTH",
+        )
 
 
 def test_json_replay_without_bearing_omits_bearing_and_error():
@@ -150,7 +197,18 @@ def test_events_validate_against_v1_0_schema():
         _serial_event('{"peakDbm": -45.2, "peakFreqMhz": 2437.0}'),
         translate_custom_mavlink(CUSTOM_FRAME, platform_id="uav-01", timestamp_ms=TS_MS),
         translate_tunnel_payload(TUNNEL_BYTES, platform_id="uav-01", timestamp_ms=TS_MS),
+        translate_tunnel_payload(
+            TUNNEL_BYTES,
+            platform_id="uav-01",
+            timestamp_ms=TS_MS,
+            bearing_frame="TRUE_NORTH",
+        ),
         translate_json_replay(dict(REPLAY_WITH_BEARING), platform_id="uav-01"),
+        translate_json_replay(
+            dict(REPLAY_WITH_BEARING),
+            platform_id="uav-01",
+            bearing_frame="TRUE_NORTH",
+        ),
         translate_json_replay(dict(REPLAY_WITHOUT_BEARING), platform_id="uav-01"),
     ):
         VALIDATOR.validate(event)
