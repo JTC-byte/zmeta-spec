@@ -24,6 +24,10 @@ Current stack status:
   extensions, stricter extension registry metadata, formal human/AI agent
   change governance, downstream clone interoperability limits, and
   stale-release-reference audit cleanup.
+- Post-release cleanup commit `9fc526e` is pushed to `origin/main`; it aligned
+  current-facing docs, tools examples, CI compatibility target, and the
+  compatibility CLI test with `v1.1.8`. No published v1.1.8 release assets,
+  manifests, checksums, tags, or signatures were changed.
 - Open findings D-013 (timing-freshness negative-age clamp) and D-014
   (compact codec unknown integer payload keys) await a maintainer semantics
   decision; see "Open Findings Awaiting Maintainer Decision" below.
@@ -157,6 +161,7 @@ Current release target:
 | R1-03 v1.1.7 Stack Audit And Release | COMPLETE | `docs/r1_03_v1_1_7_stack_audit_release.md`, `release/RELEASE_NOTES_v1.1.7.md`, `release/VALIDATION_REPORT_v1.1.7.md`, `release/SHA256SUMS_v1.1.7.txt` |
 | P1-04 Bearing Reference-Frame Integrity Pass | COMPLETE (adopted on `main`) | `spec/semantics-contract.md` 6.4, `schema/zmeta-event-1.1.0.schema.json`, `spec/extension-registry.yaml`, `conformance/bad-events/`, `conformance/adapter-harness/`, `tools/validate_adapter_conformance.py`, kraken/moth/signalhunter/mavlink adapters, `gateway/src/gateway.py` |
 | R1-04 v1.1.8 Bearing-Frame Integrity Release | COMPLETE | `docs/r1_04_v1_1_8_bearing_frame_release.md`, `release/RELEASE_NOTES_v1.1.8.md`, `release/VALIDATION_REPORT_v1.1.8.md`, `release/SHA256SUMS_v1.1.8.txt` |
+| R1-04A v1.1.8 Post-Release Reference Cleanup | COMPLETE | `README.md`, `.github/workflows/ci.yml`, `tools/README.md`, `docs/zmeta_professional_overview.md`, `gateway/tests/test_check_compat_cli.py`, current handoff/worklog notes |
 
 ## Current Decisions
 

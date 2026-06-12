@@ -78,6 +78,11 @@
   omnidirectional-bearing removal, SignalHunter/MAVLink frame-provenance
   audit fixes, and MAVLink null-island, gateway oversize-datagram, and
   rate-limiter runtime guards. The locked v1.0 schema is untouched.
+  R1-04A completed the post-release current-reference cleanup after the full
+  stack audit: `README.md`, tool examples, the CI compatibility target,
+  professional overview, compatibility CLI test, handoff, and worklog now
+  point current-facing guidance at `v1.1.8`; historical `v1.1.7` release
+  records and published checksum files remain unchanged.
   D-003 remains `OPEN - ROADMAP PLANNED`. D-004 remains closed as removed from
   ZMeta scope. D-013 and D-014 are new open findings awaiting a maintainer
   semantics decision.
@@ -1946,6 +1951,38 @@
   passed. Docker reported local access warnings for
   `C:\Users\User\.docker\config.json` during config rendering, but both
   compose commands exited successfully.
+
+## R1-04A - v1.1.8 Post-Release Reference Cleanup
+
+- Status: COMPLETE
+- Date completed: 2026-06-12
+- Pushed cleanup commit: `9fc526e` - `Align current-release references with
+  v1.1.8`
+- Change class: Docs/advisory plus CI compatibility-target alignment.
+- Scope: Full-stack audit found current-facing `v1.1.7` drift after the
+  v1.1.8 release. Updated active guidance and examples in `README.md`,
+  `tools/README.md`, `docs/zmeta_professional_overview.md`, the handoff and
+  worklog notes, `.github/workflows/ci.yml`, and
+  `gateway/tests/test_check_compat_cli.py` to use `v1.1.8`.
+- Boundary: Historical v1.1.7 release notes, validation report, checksum
+  manifest, and audit records were intentionally left unchanged. No schemas,
+  policy YAML, adapters, runtime code, release package assets, tags,
+  signatures, or published checksum files were changed.
+- Verification:
+  - `python tools\validate_conformance.py --strict --profile-projection --extension-registry --conformance-classes --encoding-negative --precision-policy --release-manifest --release-package --bad-events --adapter-harness` -> `conformance ok`
+  - `python -m pytest -q` -> `435 passed, 108 subtests passed`
+  - `python tools\validate_examples.py --strict --require-all` -> `overall total=40 passed=40 failed=0 warnings=0`
+  - `python tools\validate_release_manifest.py --manifest release\zmeta-release-manifest.yaml` -> `release manifest ok groups=18 artifacts=62`
+  - `python tools\validate_release_package.py --manifest release\zmeta-release-manifest.yaml --templates-only` -> `release package ok mode=templates`
+  - `python tools\validate_release_package.py --manifest release\zmeta-release-manifest.yaml --package-dir release\package-v1.1.8` -> `release package ok mode=package`
+  - `python release\sign_release_artifacts.py --version v1.1.8 --verify-checksums` -> `checksums ok: SHA256SUMS_v1.1.8.txt`
+  - `python -m pytest -q gateway\tests\test_check_compat_cli.py` -> `4 passed`
+  - All seven `examples/*.jsonl` streams passed `python tools\check_compat.py --target v1.1.8 --strict`.
+  - End-to-end workflow, live gateway, packet-size, risk-filter, gateway
+    self-test, and Docker Compose config checks passed during the audit.
+    Docker Compose emitted only the known local
+    `C:\Users\User\.docker\config.json` access warning while exiting 0.
+  - `git diff --check` -> clean with normal Windows LF-to-CRLF warnings.
 
 ## Deferred Issue Register
 

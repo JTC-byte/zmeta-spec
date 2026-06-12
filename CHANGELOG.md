@@ -1,6 +1,10 @@
 # Changelog
 
 ## [Unreleased]
+- Aligned post-release current-facing documentation, tool examples, CI
+  compatibility target, and the compatibility CLI test with the published
+  `v1.1.8` release after the stack audit. Historical `v1.1.7` release records
+  and published checksums remain unchanged.
 
 ## [1.1.8] - 2026-06-12
 - Added a machine-checkable bearing reference-frame marker: optional
