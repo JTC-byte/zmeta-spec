@@ -25,6 +25,8 @@ Use this order when resolving conflicts:
    - `conformance/conformance_classes.yaml`
    - `conformance/profile_projection_field_catalog.yaml`
    - release manifest and package metadata
+   - IP, contribution, conformance, trademark, and defensive-publication
+     governance docs
 5. validators and tests in `tools/` and `gateway/tests/`
 6. README, examples, adapters, deployment docs, worklogs, and handoff notes
 
@@ -59,6 +61,33 @@ Humans and agents must not, without explicit maintainer approval:
 
 When in doubt, preserve the kernel and add policy/config/adapter/registry
 surface area rather than changing core semantics.
+
+## IP, Conformance, And Industry Sharing
+
+ZMeta is intended to remain an open, implementation-neutral specification and
+reference stack. The repository's Apache License 2.0 baseline remains in
+`LICENSE`; project-specific contributor authority, conformance, naming, and
+public-sharing posture is documented in:
+
+- `IP_POLICY.md`
+- `CONTRIBUTING.md`
+- `CONFORMANCE.md`
+- `TRADEMARK.md`
+- `docs/zmeta_defensive_publication.md`
+
+These documents do not create legal advice, a trademark registration, a patent
+opinion, or a standards-body patent commitment. They make the project posture
+explicit so public feedback can happen through published material rather than
+private disclosure of unpublished roadmap concepts.
+
+For industry meetings and broader socialization:
+
+- cite a public tag, release notes, validation report, release manifest hash,
+  conformance evidence, and defensive-publication text;
+- avoid privately disclosing unpublished future vocabulary, roadmap concepts,
+  or deployment-specific mappings unless covered by an appropriate agreement;
+- record substantive feedback as public issues or pull requests when possible;
+- require contributor authority before accepting normative or governed changes.
 
 ## Downstream Clone And Integration Limits
 
@@ -217,6 +246,7 @@ Use this matrix for every change:
 | Tools | `tools/README.md`, tests, release manifest if governed |
 | Release process | `release/README.md`, `RELEASE_CHECKLIST.md`, release notes/report |
 | Agent/process guidance | `AGENTS.md`, this document, release manifest governance group |
+| IP/conformance/name-use posture | `IP_POLICY.md`, `CONTRIBUTING.md`, `CONFORMANCE.md`, `TRADEMARK.md`, `docs/zmeta_defensive_publication.md`, release manifest governance group |
 
 `LOCAL_NOTES.md` may be used for private workspace memory, but durable state
 belongs in tracked docs.

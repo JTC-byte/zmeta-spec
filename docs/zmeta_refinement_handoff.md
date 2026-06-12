@@ -33,7 +33,13 @@ Current stack status:
   labels out-of-tolerance negative TIME_STATUS age with
   `TIMING_STATUS_AGE_NEGATIVE` and rejects unknown compact integer keys at
   decode instead of degrading them to strings.
-- Future work is optional and should be driven by real sensor captures, a versioned semantic branch decision, or a release-authority signing process.
+- Current `main` also adds advisory industry-sharing posture docs:
+  `IP_POLICY.md`, `CONTRIBUTING.md`, `CONFORMANCE.md`, `TRADEMARK.md`, and
+  `docs/zmeta_defensive_publication.md`. These docs clarify Apache-2.0
+  baseline limits, contributor authority, conformance/private dialect claims,
+  ZMeta name use, and public defensive-publication posture without changing
+  schemas, policy behavior, event vocabulary, or the locked v1.0 kernel.
+- Future work is optional and should be driven by real sensor captures, a versioned semantic branch decision, release-authority signing process, formal legal review, or standards-body adoption.
 
 Current release target:
 
@@ -52,6 +58,11 @@ Current release target:
 | --- | --- |
 | `AGENTS.md` | Root quick-start guide for human maintainers and AI agents working in this governed repository. |
 | `docs/zmeta_change_governance.md` | Formal change process, authority order, left/right limits, documentation matrix, validation gates, and release publication workflow. |
+| `IP_POLICY.md` | Advisory open-specification, contributor authority, and industry-sharing posture. |
+| `CONTRIBUTING.md` | Contribution license, authority, sign-off, semantic-boundary, and validation expectations. |
+| `CONFORMANCE.md` | Definitions for ZMeta-conformant, compatible, derived, private dialect, and experimental extension claims. |
+| `TRADEMARK.md` | Advisory name-use guidance for ZMeta compatibility and conformance statements. |
+| `docs/zmeta_defensive_publication.md` | Public technical disclosure intended to make the open ZMeta architecture easier to cite and socialize. |
 | `docs/zmeta_professional_overview.md` | Advisory overview for engineers, operators, and leadership explaining ZMeta purpose, architecture, profiles, governance, provenance, and enabled workflows. |
 | `spec/semantics-contract.md` | Authoritative hardened semantic contract. Schemas, policy packs, adapters, encodings, examples, gateways, and conformance tests must preserve it. |
 | `docs/zmeta_semantic_contract_lockdown_audit.md` | S0-01 audit of the prior contract against intended ZMeta roles, implementation surfaces, and future ISR/edge AI/coalition/mesh trust needs. |

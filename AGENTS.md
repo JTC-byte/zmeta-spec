@@ -10,6 +10,17 @@ For the full change process, read:
 docs/zmeta_change_governance.md
 ```
 
+For contribution, conformance, name-use, and industry-sharing posture, also
+read:
+
+```text
+IP_POLICY.md
+CONTRIBUTING.md
+CONFORMANCE.md
+TRADEMARK.md
+docs/zmeta_defensive_publication.md
+```
+
 ## Operating Model
 
 - Preserve the semantic kernel: event identity, version dispatch, event-family
@@ -24,6 +35,9 @@ docs/zmeta_change_governance.md
 - Future concepts may be documented or reserved, but they are not valid event
   vocabulary until a versioned branch adds schema, policy, adapter/encoding,
   conformance, release, and audit coverage.
+- Share only public release, conformance, and defensive-publication material in
+  industry circles unless unpublished material is covered by an appropriate
+  agreement or has explicit maintainer approval.
 
 ## Downstream Clone Users
 

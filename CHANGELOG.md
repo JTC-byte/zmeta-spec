@@ -1,6 +1,12 @@
 # Changelog
 
 ## [Unreleased]
+- Added advisory industry-sharing and open-specification posture docs:
+  `IP_POLICY.md`, `CONTRIBUTING.md`, `CONFORMANCE.md`, `TRADEMARK.md`, and
+  `docs/zmeta_defensive_publication.md`. These clarify Apache-2.0 baseline
+  limits, contributor authority, private dialects, conformance claims, ZMeta
+  name use, and public defensive-publication guidance without changing schemas,
+  policy behavior, event vocabulary, or the locked v1.0 kernel.
 - Closed D-013 by adding `TIMING_STATUS_AGE_NEGATIVE`, profile-specific
   `max_negative_age_ms`, default warn-mode policy handling, risk-adjudication
   support, schema/policy diagnostic vocabulary coverage, and tests/conformance

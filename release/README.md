@@ -5,6 +5,12 @@ process in `AGENTS.md` and `docs/zmeta_change_governance.md`. Release
 publication requires an explicit release-authority decision for tags, uploads,
 and detached signatures.
 
+For industry sharing, cite a tagged release, the release notes, validation
+report, release manifest hash, conformance evidence, and
+`docs/zmeta_defensive_publication.md`. `IP_POLICY.md`, `CONTRIBUTING.md`,
+`CONFORMANCE.md`, and `TRADEMARK.md` define the advisory contribution,
+compatibility, private-dialect, and name-use posture for the public baseline.
+
 Build release artifacts from the repo root:
 
 ```powershell

@@ -62,12 +62,30 @@
 - Downstream integrators using a clone: read the downstream clone limits in
   `AGENTS.md` and `docs/zmeta_change_governance.md` before altering schema,
   semantics, policy authority, or event vocabulary.
+- Industry reviewers and contributors: read `IP_POLICY.md`,
+  `CONTRIBUTING.md`, `CONFORMANCE.md`, `TRADEMARK.md`, and
+  `docs/zmeta_defensive_publication.md` before relying on compatibility,
+  contribution, or public-sharing claims.
 - New to ZMeta: read `spec/installation-guide.md` for a full step-by-step install.
 - Developer walkthrough: read `spec/quickstart.md` for runnable examples.
 - Contract and semantics: read `spec/semantics-contract.md`.
 - Profile compatibility matrix: read `spec/profile-compatibility.md`.
 - Field dictionary for UIs: read `spec/field-dictionary.md`.
 - Encoding guidance: read `spec/compact-binary-mapping.md` and `spec/protobuf-encoding.md`.
+
+## Industry Sharing And IP Posture
+
+ZMeta is published under Apache License 2.0 as an open specification and
+reference stack. For broad industry conversations, cite the public repository,
+a tagged release, release notes, release manifest hashes, conformance evidence,
+and `docs/zmeta_defensive_publication.md`. Avoid privately disclosing
+unpublished roadmap concepts, future vocabulary, or deployment-specific
+mappings before they are public or covered by an appropriate agreement.
+
+`IP_POLICY.md`, `CONTRIBUTING.md`, `CONFORMANCE.md`, and `TRADEMARK.md` define
+the project's advisory posture for contributor authority, private dialects,
+conformance claims, and use of the ZMeta name. These documents are project
+governance, not legal advice or a formal standards-body patent policy.
 
 ## Repository Structure
 - `spec/` Core specification and normative text.

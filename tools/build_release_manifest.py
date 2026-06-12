@@ -228,9 +228,14 @@ def artifact_groups(root: Path = ROOT, *, include_tool_source: bool = True) -> d
             "paths": ["spec/release-hash-policy.md"],
         },
         "process_governance": {
-            "description": "Human and AI agent change governance, limits, and workflow requirements.",
+            "description": "Human and AI agent change governance, IP posture, conformance, name-use, and workflow requirements.",
             "paths": [
                 "AGENTS.md",
+                "CONFORMANCE.md",
+                "CONTRIBUTING.md",
+                "IP_POLICY.md",
+                "TRADEMARK.md",
+                "docs/zmeta_defensive_publication.md",
                 "docs/zmeta_change_governance.md",
             ],
         },

@@ -82,7 +82,10 @@
   records and published checksum files remain unchanged.
   D-003 remains `OPEN - ROADMAP PLANNED`. D-004 remains closed as removed from
   ZMeta scope. S1-19 closed D-013 and D-014 by adding negative TIME_STATUS age
-  diagnostics and compact unknown-integer-key rejection.
+  diagnostics and compact unknown-integer-key rejection. S1-20 added advisory
+  industry-sharing, contributor-authority, conformance, name-use, and
+  defensive-publication posture without changing schemas, policy behavior,
+  event vocabulary, or the locked v1.0 kernel.
 
 ## S0-01 - Semantic Contract Lockdown Audit
 
@@ -2016,6 +2019,40 @@
 - Verification: focused timing, policy lint, encoding roundtrip,
   encoding-negative, reason-code, and strict conformance checks passed before
   manifest regeneration.
+
+## S1-20 - Industry Sharing And Open-Specification IP Posture
+
+- Status: COMPLETE
+- Date completed: 2026-06-12
+- Change class: Advisory documentation plus governed process-manifest coverage.
+- Scope: Make the public sharing posture explicit before broader industry
+  conversations.
+- What changed:
+  - Added `IP_POLICY.md` for Apache-2.0 baseline limits, open-specification
+    intent, contributor authority, public feedback boundaries, and defensive
+    publication references.
+  - Added `CONTRIBUTING.md` with Apache-2.0 contribution default, `Not a
+    Contribution` handling, DCO-style sign-off guidance, semantic boundaries,
+    and validation expectations.
+  - Added `CONFORMANCE.md` defining ZMeta-conformant, compatible, derived,
+    private dialect, and experimental extension claims.
+  - Added `TRADEMARK.md` with advisory name-use guidance for compatibility and
+    conformance statements.
+  - Added `docs/zmeta_defensive_publication.md` as a public technical
+    disclosure of the open architecture: event-family separation, semantic
+    authority, version dispatch, timing/lineage/confidence, accepted risk,
+    producer authority, profile projection, units/geodesy/reference frames,
+    command safety, encoding projections, release hashes, and adapters.
+  - Linked the new posture from README, AGENTS, change governance, release
+    README, handoff, and changelog.
+  - Added the new docs to `process_governance` release-manifest coverage.
+- Boundary: Advisory process/governance change only. This does not create legal
+  advice, a formal patent covenant, a trademark registration, standards-body
+  approval, schema changes, policy behavior changes, event vocabulary changes,
+  or release publication changes.
+- Recommended next step before broad industry push: attorney review for formal
+  defensive publication venue, trademark filing, contributor agreement choice,
+  and any standards-body patent policy.
 
 ## Deferred Issue Register
 
