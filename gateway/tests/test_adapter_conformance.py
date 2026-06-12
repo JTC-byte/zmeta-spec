@@ -57,6 +57,91 @@ def test_adapter_conformance_detects_fixture_output_contract():
     assert validate_adapter_conformance.evaluate_fixture(fixture, schema, policy) == []
 
 
+def test_expected_values_match_produces_no_issues():
+    event = {"payload": {"bearing": {"az_deg": 213.4}, "quality": {"bearing_frame": "TRUE_NORTH"}}}
+    expect = {
+        "utc_z_paths": [],
+        "expected_values": {
+            "payload.bearing.az_deg": 213.4,
+            "payload.quality.bearing_frame": "TRUE_NORTH",
+        },
+    }
+
+    assert validate_adapter_conformance._expectation_issues(event, expect) == []
+
+
+def test_expected_values_mismatch_is_reported():
+    event = {"payload": {"bearing": {"az_deg": 123.4}}}
+    expect = {"utc_z_paths": [], "expected_values": {"payload.bearing.az_deg": 213.4}}
+
+    issues = validate_adapter_conformance._expectation_issues(event, expect)
+
+    assert [item["code"] for item in issues] == ["ADAPTER_EXPECTED_VALUE_MISMATCH"]
+    assert issues[0]["path"] == "payload.bearing.az_deg"
+
+
+def test_expected_values_non_numeric_mismatch_is_reported():
+    event = {"payload": {"quality": {"bearing_frame": "ARRAY_RELATIVE"}}}
+    expect = {"utc_z_paths": [], "expected_values": {"payload.quality.bearing_frame": "TRUE_NORTH"}}
+
+    issues = validate_adapter_conformance._expectation_issues(event, expect)
+
+    assert [item["code"] for item in issues] == ["ADAPTER_EXPECTED_VALUE_MISMATCH"]
+
+
+def test_expected_values_missing_path_is_reported_with_distinct_code():
+    event = {"payload": {"features": {}}}
+    expect = {"utc_z_paths": [], "expected_values": {"payload.features.doa_array_relative_deg": 123.4}}
+
+    issues = validate_adapter_conformance._expectation_issues(event, expect)
+
+    assert [item["code"] for item in issues] == ["ADAPTER_EXPECTED_VALUE_MISSING"]
+    assert issues[0]["path"] == "payload.features.doa_array_relative_deg"
+
+
+def test_expected_values_numeric_comparison_uses_absolute_tolerance():
+    within = {"payload": {"bearing": {"az_deg": 213.4 + 5e-7}}}
+    beyond = {"payload": {"bearing": {"az_deg": 213.4 + 5e-6}}}
+    expect = {"utc_z_paths": [], "expected_values": {"payload.bearing.az_deg": 213.4}}
+
+    assert validate_adapter_conformance._expectation_issues(within, expect) == []
+    issues = validate_adapter_conformance._expectation_issues(beyond, expect)
+    assert [item["code"] for item in issues] == ["ADAPTER_EXPECTED_VALUE_MISMATCH"]
+
+
+def test_kraken_fixture_expected_values_prove_bearing_rotation():
+    schema = validate_adapter_conformance.validators.load_schema(
+        ROOT / "schema" / "zmeta-event.schema.json"
+    )
+    policy = validate_adapter_conformance.validators.load_policy(ROOT / "policy")
+    fixture = {
+        "module": "adapters/ingress/kraken/kraken_to_zmeta.py",
+        "callable": "translate_csv_row",
+        "args": [["1737127200", "123.4", "80", "-70.5", "2450000000"]],
+        "kwargs": {
+            "platform_id": "sensor-node-kraken",
+            "sensor_geo": {"lat": 34.0, "lon": -118.0, "alt_m": 120.0},
+            "sensor_id": "kraken-01",
+            "platform_heading_deg": 90.0,
+            "heading_source": "AHRS_TRUE",
+        },
+        "profile": "H",
+        "expect": {
+            "event_type": "OBSERVATION_EVENT",
+            "event_subtype": "RF",
+            "allow_degraded_timing": True,
+            "expected_values": {
+                "payload.bearing.az_deg": 213.4,
+                "payload.features.doa_array_relative_deg": 123.4,
+                "payload.quality.bearing_frame": "TRUE_NORTH",
+                "payload.quality.heading_source": "AHRS_TRUE",
+            },
+        },
+    }
+
+    assert validate_adapter_conformance.evaluate_fixture(fixture, schema, policy) == []
+
+
 def test_conformance_runner_adapter_harness_flag_exits_success():
     result = subprocess.run(
         [

@@ -174,7 +174,9 @@ python tools/validate_adapter_conformance.py --fixtures conformance/adapter-harn
 `validate_bad_events.py` proves dishonest or unsafe semantic examples are not
 accepted as clean data. `validate_adapter_conformance.py` calls representative
 adapter functions and checks their ZMeta outputs for schema/policy validity,
-layer separation, UTC-Z timestamps, lineage, and promotion evidence.
+layer separation, UTC-Z timestamps, lineage, promotion evidence, and exact
+output values pinned by per-fixture `expected_values` maps (numeric values
+compare within a 1e-6 absolute tolerance).
 
 ### Measure packet sizes
 

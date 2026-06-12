@@ -61,6 +61,35 @@ def test_bad_event_external_promotion_fixture_hits_policy_code():
     assert "PRODUCER_NOT_ALLOWED" in result["codes"]
 
 
+def test_bad_event_bearing_frame_fixture_fails_for_frame_label_only():
+    schema, policy = _schema_policy()
+    fixture = _fixture("observation-bearing-frame-mislabeled")
+
+    result = validate_bad_events.evaluate_fixture(fixture, schema, policy)
+    assert result["passed"]
+    assert result["codes"] == ["SCHEMA_INVALID"]
+
+    event = json.loads(json.dumps(fixture["event"]))
+    assert event["payload"]["bearing"]["frame"] == "ARRAY_RELATIVE"
+
+    sub_errors = []
+    for err in schema.iter_errors(event):
+        sub_errors.extend(err.context or [])
+    frame_errors = [sub for sub in sub_errors if list(sub.absolute_path) == ["payload", "bearing", "frame"]]
+    assert frame_errors, "expected a violation at payload.bearing.frame"
+    assert any("TRUE_NORTH" in sub.message for sub in frame_errors)
+
+    # The same event with the mislabeled frame corrected (or removed) is clean,
+    # proving the frame label is the only cause of rejection.
+    state = validate_bad_events.validators.ValidationState()
+    event["payload"]["bearing"]["frame"] = "TRUE_NORTH"
+    assert validate_bad_events._run_checks(event, "H", policy, schema, state) == []
+
+    state = validate_bad_events.validators.ValidationState()
+    del event["payload"]["bearing"]["frame"]
+    assert validate_bad_events._run_checks(event, "H", policy, schema, state) == []
+
+
 def test_conformance_runner_bad_events_flag_exits_success():
     result = subprocess.run(
         [sys.executable, str(ROOT / "tools" / "validate_conformance.py"), "--strict", "--bad-events"],

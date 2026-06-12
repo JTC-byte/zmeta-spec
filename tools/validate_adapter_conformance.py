@@ -20,6 +20,7 @@ validators_spec.loader.exec_module(validators)
 
 UTC_Z_RE = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z$")
 MISSING = object()
+EXPECTED_VALUE_TOLERANCE = 1e-6
 
 
 def parse_args() -> argparse.Namespace:
@@ -61,6 +62,10 @@ def _get_path(value: Any, path: str) -> Any:
         else:
             return MISSING
     return target
+
+
+def _is_number(value: Any) -> bool:
+    return isinstance(value, (int, float)) and not isinstance(value, bool)
 
 
 def _load_module(module_path: str):
@@ -221,6 +226,16 @@ def _expectation_issues(event: dict[str, Any], expect: dict[str, Any]) -> list[d
     for path in expect.get("forbidden_paths", []):
         if _get_path(event, path) is not MISSING:
             issues.append(_issue("ADAPTER_FORBIDDEN_PATH_PRESENT", f"forbidden path present {path}", path=path))
+
+    for path, expected in expect.get("expected_values", {}).items():
+        value = _get_path(event, path)
+        if value is MISSING:
+            issues.append(_issue("ADAPTER_EXPECTED_VALUE_MISSING", f"expected value path missing {path}", path=path))
+        elif _is_number(expected) and _is_number(value):
+            if abs(float(value) - float(expected)) > EXPECTED_VALUE_TOLERANCE:
+                issues.append(_issue("ADAPTER_EXPECTED_VALUE_MISMATCH", f"expected {path} ~= {expected}, got {value}", path=path, details={"expected": expected, "actual": value}))
+        elif value != expected:
+            issues.append(_issue("ADAPTER_EXPECTED_VALUE_MISMATCH", f"expected {path} == {expected!r}, got {value!r}", path=path, details={"expected": expected, "actual": value}))
 
     for path in expect.get("utc_z_paths", ["event.ts"]):
         value = _get_path(event, path)
