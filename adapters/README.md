@@ -61,6 +61,28 @@ Fallback timing is intentionally degraded timing. `time_source: UNKNOWN` and
 fusion consumers should treat it as a bridge until source-provided GPS/NTP/PTP
 timing or periodic `TIME_STATUS` is available.
 
+## Frame Assertions And Anti-Fabrication
+
+Canonical bearings and headings are degrees true north. Adapters must convert
+sensor-native frames before canonical emission or preserve native values under
+explicitly named non-canonical fields.
+
+For v1.1.8 and later:
+
+- Moth tunnel/replay callers must pass `bearing_frame="TRUE_NORTH"` before
+  those bearings are emitted as canonical `payload.bearing`.
+- MAVLink platform-state callers must pass `heading_frame="TRUE_NORTH"` before
+  `GLOBAL_POSITION_INT.hdg` is emitted as canonical `payload.heading_deg`.
+- Kraken callers must provide `platform_heading_deg` before array-relative DOA
+  is converted to canonical `payload.bearing`.
+- Kraken CSV input does not provide a noise floor; `quality.snr_db` is omitted
+  instead of fabricated from RSSI.
+
+Frame markers and heading-source fields are provenance assertions by the
+producer or adapter configuration. They are not signatures, credentials,
+calibration proofs, or independent verification that a true-north assertion is
+correct. Treat them as inputs to trust and deployment policy, not as proof.
+
 External tactical track ingress is also an authority boundary. CoT, JREAP, and
 MAVLink state templates emit policy-scoped
 `payload.extensions.external_promotion` metadata and `promote:*` lineage

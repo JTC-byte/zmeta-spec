@@ -1,6 +1,11 @@
 # Changelog
 
 ## [Unreleased]
+- Clarified v1.1.8 current-main upgrade guidance for Moth tunnel/replay
+  bearings, MAVLink headings, Kraken heading compensation, and Kraken CSV SNR
+  omission. The docs now also state explicitly that `bearing.frame`,
+  `quality.bearing_frame`, and `quality.heading_source` are producer
+  assertions/provenance, not proof of calibration, authenticity, or correctness.
 - Added advisory industry-sharing and open-specification posture docs:
   `IP_POLICY.md`, `CONTRIBUTING.md`, `CONFORMANCE.md`, `TRADEMARK.md`, and
   `docs/zmeta_defensive_publication.md`. These clarify Apache-2.0 baseline

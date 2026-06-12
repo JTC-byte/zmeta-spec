@@ -372,6 +372,11 @@ entries):
 - Several ingress adapters fabricate `lineage.based_on` with a fresh random
   UUIDv7 (pre-existing behavior, out of scope for P1-04); candidate for a
   future lineage-policy pass.
+- Bearing frame provenance is still producer/configuration asserted. The
+  `TRUE_NORTH` marker and `quality.heading_source` make the assertion auditable
+  and reject unsupported labels, but they do not prove calibration,
+  authenticity, or frame correctness. Treat deeper verification as future
+  trust/PNT/integrity work rather than a current release blocker.
 
 ## Next Work Queue
 

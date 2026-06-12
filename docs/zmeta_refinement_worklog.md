@@ -85,7 +85,9 @@
   diagnostics and compact unknown-integer-key rejection. S1-20 added advisory
   industry-sharing, contributor-authority, conformance, name-use, and
   defensive-publication posture without changing schemas, policy behavior,
-  event vocabulary, or the locked v1.0 kernel.
+  event vocabulary, or the locked v1.0 kernel. S1-21 incorporated post-release
+  feedback by clarifying current-main adapter upgrade guidance and recording
+  that frame assertions are producer provenance, not proof.
 
 ## S0-01 - Semantic Contract Lockdown Audit
 
@@ -2053,6 +2055,28 @@
 - Recommended next step before broad industry push: attorney review for formal
   defensive publication venue, trademark filing, contributor agreement choice,
   and any standards-body patent policy.
+
+## S1-21 - v1.1.8 Adapter Upgrade And Frame-Provenance Clarification
+
+- Status: COMPLETE
+- Date completed: 2026-06-12
+- Change class: Advisory documentation plus semantic-contract clarification.
+- Scope: Incorporate post-release feedback on v1.1.7/v1.1.8 hardening.
+- What changed:
+  - Added current-main README upgrade guidance that Moth tunnel/replay
+    bearings and MAVLink headings require explicit `TRUE_NORTH` assertions
+    before canonical emission, Kraken emits no canonical bearing without
+    heading compensation, and Kraken CSV no longer fabricates `quality.snr_db`.
+  - Added adapter overview guidance for frame assertions and anti-fabrication.
+  - Clarified semantics-contract section 6.4 so `bearing.frame`,
+    `quality.bearing_frame`, and `quality.heading_source` are treated as
+    producer/configuration provenance, not independent proof of calibration,
+    authenticity, or correctness.
+  - Recorded the frame-provenance trust boundary as future trust/PNT/integrity
+    work rather than a current release blocker.
+- Boundary: Documentation and contract clarification only. No schema, policy,
+  adapter runtime, event vocabulary, or published v1.1.8 release artifact
+  changes.
 
 ## Deferred Issue Register
 

@@ -861,8 +861,10 @@ that cannot be confused with canonical bearings.
 
 Under `zmeta_version` 1.1.0, producers SHOULD assert the frame explicitly via
 `bearing.frame: "TRUE_NORTH"`. `TRUE_NORTH` is the only valid value; any other
-frame label is schema-invalid, so a mislabeled sensor-native frame is
-machine-caught rather than silently consumed.
+frame label is schema-invalid. This catches unsupported frame labels before
+they are silently consumed as canonical bearings, but it is still a
+producer assertion, not independent proof that the upstream sensor,
+calibration, or deployment configuration is correct.
 
 Producers MAY record frame provenance in the free-form quality object via
 `quality.bearing_frame` and `quality.heading_source`. `quality.bearing_frame`
@@ -875,7 +877,10 @@ features key naming the frame. `quality.heading_source` (string) identifies
 the heading reference used for compensation, e.g. `AHRS_TRUE`, `GPS_COURSE`,
 `FIXED_MOUNT_SURVEYED`. Because v1.0 is locked and its `bearing` object
 rejects the `frame` key, this quality-scoped mechanism is the only frame
-provenance available to v1.0-emitting producers.
+provenance available to v1.0-emitting producers. Consumers SHOULD treat these
+fields as provenance and policy inputs, not as cryptographic authenticity,
+calibration proof, or a guarantee that the producer's true-north assertion is
+correct.
 
 Pitch, roll, and yaw, if present, are degrees.
 

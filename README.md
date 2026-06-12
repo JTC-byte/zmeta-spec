@@ -31,6 +31,18 @@
 - `external_promotion.trust_ref` is a policy reference used for promotion
   adjudication. It is not a signature, credential, or standalone proof of
   authenticity.
+- Adapter callers that previously consumed Moth tunnel/replay bearings or
+  MAVLink headings as canonical must now pass explicit
+  `bearing_frame="TRUE_NORTH"` or `heading_frame="TRUE_NORTH"` only when
+  deployment configuration actually guarantees that frame. Otherwise those
+  native values remain in explicitly named non-canonical fields. Kraken emits
+  no canonical bearing without platform heading compensation, and the Kraken
+  CSV path no longer fabricates `quality.snr_db` from RSSI.
+- `bearing.frame`, `quality.bearing_frame`, and `quality.heading_source` are
+  producer assertions and provenance. They make frame handling auditable and
+  catch unsupported labels, but they are not a signature, credential, sensor
+  calibration proof, or independent verification that the producer's
+  `TRUE_NORTH` assertion is correct.
 - Downstream consumers must honor `allowed_uses`, `prohibited_uses`, and
   `policy_decision` labels, or run an equivalent filter such as
   `tools/filter_risk.py`; a validated degraded or quarantined event is not clean
