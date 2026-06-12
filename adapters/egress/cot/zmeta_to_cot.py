@@ -178,7 +178,13 @@ def zmeta_to_cot(event, cot_config=None):
     if remarks_text:
         remarks_xml = f"\n    <remarks>{_esc(remarks_text)}</remarks>"
 
-    # <track> element for heading/speed (TAK renders directional arrows)
+    # <track> element for heading/speed (TAK renders directional arrows).
+    # Frame note: CoT track@course is degrees true north by convention, and
+    # ZMeta payload.heading_deg is contractually degrees true north
+    # (semantics contract section 6.4), so this is a frame-preserving 1:1
+    # projection. When only speed is known, course is emitted as the "0.0"
+    # placeholder TAK requires; it is a rendering artifact, not a heading
+    # claim (see README).
     track_xml = ""
     heading = payload.get("heading_deg")
     speed = payload.get("speed_mps")

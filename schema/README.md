@@ -125,6 +125,13 @@ Eliminates (0,0,0) sentinel pattern for GPS-denied edges.
 controlled `error_ellipse_m` uncertainty block. Alternate datums and altitude
 references are not valid canonical `geo` fields.
 
+### Bearing Reference Frame Marker
+`bearing` allows an optional `frame` property asserting the canonical
+reference frame. `TRUE_NORTH` is the only valid value; any other label (for
+example `ARRAY_RELATIVE`) is schema-invalid, so mislabeled sensor-native
+frames fail validation instead of passing as canonical true-north bearings.
+v1.0 `bearing` objects remain locked and reject the `frame` key.
+
 ### Expanded COMMAND_EVENT Task Types
 Added: `RETURN_TO_BASE`, `LAND`, `LOITER`, `SCAN_RF`, `TRACK_TARGET`, `CHANGE_SENSOR_MODE`
 with task-specific validation. For example, `SCAN_RF` requires `sensor_id`,

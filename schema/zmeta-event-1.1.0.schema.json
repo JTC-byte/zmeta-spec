@@ -704,6 +704,11 @@
           "type": "number",
           "minimum": -90,
           "maximum": 90
+        },
+        "frame": {
+          "type": "string",
+          "enum": ["TRUE_NORTH"],
+          "description": "Optional explicit assertion of the canonical bearing reference frame. Canonical bearings are always degrees true north; any other frame label is invalid so mislabeled sensor-native frames fail validation."
         }
       }
     },

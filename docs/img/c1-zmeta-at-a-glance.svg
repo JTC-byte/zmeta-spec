@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="360" viewBox="0 0 1000 360" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" role="img" aria-label="ZMeta at a glance">
+<rect x="0.0" y="0.0" width="1000.0" height="360.0" rx="0" fill="#ffffff" stroke="none" stroke-width="1.0"/>
+<text x="26.0" y="34.0" font-size="21" fill="#1b2330" text-anchor="start" font-weight="700" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">ZMeta at a glance</text>
+<text x="26.0" y="56.0" font-size="13" fill="#5b6b7b" text-anchor="start" font-weight="normal" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">Sensors become governed events that move - lane by lane - to operator display and bounded mission intent.</text>
+<text x="95.0" y="88.0" font-size="11" fill="#5b6b7b" text-anchor="middle" font-weight="normal" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">collect</text>
+<rect x="26.0" y="96.0" width="138.0" height="86.0" rx="10" fill="#f3f6fa" stroke="#5b6b7b" stroke-width="2"/>
+<rect x="26.0" y="96.0" width="138.0" height="8.0" rx="4" fill="#5b6b7b" stroke="none" stroke-width="1.0"/>
+<rect x="26.0" y="100.0" width="138.0" height="5.0" rx="0" fill="#5b6b7b" stroke="none" stroke-width="1.0"/>
+<text x="95.0" y="136.0" font-size="14" fill="#5b6b7b" text-anchor="middle" font-weight="700" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">Sensors</text>
+<text x="95.0" y="158.0" font-size="10.5" fill="#1b2330" text-anchor="middle" font-weight="normal" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">SDR / EO-IR / MAVLink</text>
+<text x="257.0" y="88.0" font-size="11" fill="#5b6b7b" text-anchor="middle" font-weight="normal" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">translate</text>
+<rect x="188.0" y="96.0" width="138.0" height="86.0" rx="10" fill="#f3f6fa" stroke="#2f6f9f" stroke-width="2"/>
+<rect x="188.0" y="96.0" width="138.0" height="8.0" rx="4" fill="#2f6f9f" stroke="none" stroke-width="1.0"/>
+<rect x="188.0" y="100.0" width="138.0" height="5.0" rx="0" fill="#2f6f9f" stroke="none" stroke-width="1.0"/>
+<text x="257.0" y="136.0" font-size="14" fill="#2f6f9f" text-anchor="middle" font-weight="700" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">OBSERVATION</text>
+<text x="257.0" y="158.0" font-size="10.5" fill="#1b2330" text-anchor="middle" font-weight="normal" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">edge adapter normalizes</text>
+<text x="419.0" y="88.0" font-size="11" fill="#5b6b7b" text-anchor="middle" font-weight="normal" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">infer</text>
+<rect x="350.0" y="96.0" width="138.0" height="86.0" rx="10" fill="#f3f6fa" stroke="#7a5ea8" stroke-width="2"/>
+<rect x="350.0" y="96.0" width="138.0" height="8.0" rx="4" fill="#7a5ea8" stroke="none" stroke-width="1.0"/>
+<rect x="350.0" y="100.0" width="138.0" height="5.0" rx="0" fill="#7a5ea8" stroke="none" stroke-width="1.0"/>
+<text x="419.0" y="136.0" font-size="14" fill="#7a5ea8" text-anchor="middle" font-weight="700" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">INFERENCE</text>
+<text x="419.0" y="158.0" font-size="10.5" fill="#1b2330" text-anchor="middle" font-weight="normal" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">AI / analytic claim</text>
+<text x="581.0" y="88.0" font-size="11" fill="#5b6b7b" text-anchor="middle" font-weight="normal" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">fuse</text>
+<rect x="512.0" y="96.0" width="138.0" height="86.0" rx="10" fill="#f3f6fa" stroke="#2e8b6f" stroke-width="2"/>
+<rect x="512.0" y="96.0" width="138.0" height="8.0" rx="4" fill="#2e8b6f" stroke="none" stroke-width="1.0"/>
+<rect x="512.0" y="100.0" width="138.0" height="5.0" rx="0" fill="#2e8b6f" stroke="none" stroke-width="1.0"/>
+<text x="581.0" y="136.0" font-size="14" fill="#2e8b6f" text-anchor="middle" font-weight="700" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">FUSION</text>
+<text x="581.0" y="158.0" font-size="10.5" fill="#1b2330" text-anchor="middle" font-weight="normal" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">track identity</text>
+<text x="743.0" y="88.0" font-size="11" fill="#5b6b7b" text-anchor="middle" font-weight="normal" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">project</text>
+<rect x="674.0" y="96.0" width="138.0" height="86.0" rx="10" fill="#f3f6fa" stroke="#c47f2a" stroke-width="2"/>
+<rect x="674.0" y="96.0" width="138.0" height="8.0" rx="4" fill="#c47f2a" stroke="none" stroke-width="1.0"/>
+<rect x="674.0" y="100.0" width="138.0" height="5.0" rx="0" fill="#c47f2a" stroke="none" stroke-width="1.0"/>
+<text x="743.0" y="136.0" font-size="14" fill="#c47f2a" text-anchor="middle" font-weight="700" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">STATE</text>
+<text x="743.0" y="158.0" font-size="10.5" fill="#1b2330" text-anchor="middle" font-weight="normal" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">CoT to TAK / ATAK</text>
+<text x="905.0" y="88.0" font-size="11" fill="#5b6b7b" text-anchor="middle" font-weight="normal" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">retask</text>
+<rect x="836.0" y="96.0" width="138.0" height="86.0" rx="10" fill="#f3f6fa" stroke="#b5483d" stroke-width="2"/>
+<rect x="836.0" y="96.0" width="138.0" height="8.0" rx="4" fill="#b5483d" stroke="none" stroke-width="1.0"/>
+<rect x="836.0" y="100.0" width="138.0" height="5.0" rx="0" fill="#b5483d" stroke="none" stroke-width="1.0"/>
+<text x="905.0" y="136.0" font-size="14" fill="#b5483d" text-anchor="middle" font-weight="700" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">COMMAND</text>
+<text x="905.0" y="158.0" font-size="10.5" fill="#1b2330" text-anchor="middle" font-weight="normal" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">bounded mission intent</text>
+<line x1="168.0" y1="139.0" x2="176.0" y2="139.0" stroke="#5b6b7b" stroke-width="2"/>
+<polygon points="184.0,139.0 176.8,142.5 176.8,135.5" fill="#5b6b7b" stroke="none" stroke-width="1.0"/>
+<line x1="330.0" y1="139.0" x2="338.0" y2="139.0" stroke="#5b6b7b" stroke-width="2"/>
+<polygon points="346.0,139.0 338.8,142.5 338.8,135.5" fill="#5b6b7b" stroke="none" stroke-width="1.0"/>
+<line x1="492.0" y1="139.0" x2="500.0" y2="139.0" stroke="#5b6b7b" stroke-width="2"/>
+<polygon points="508.0,139.0 500.8,142.5 500.8,135.5" fill="#5b6b7b" stroke="none" stroke-width="1.0"/>
+<line x1="654.0" y1="139.0" x2="662.0" y2="139.0" stroke="#5b6b7b" stroke-width="2"/>
+<polygon points="670.0,139.0 662.8,142.5 662.8,135.5" fill="#5b6b7b" stroke="none" stroke-width="1.0"/>
+<line x1="816.0" y1="139.0" x2="824.0" y2="139.0" stroke="#5b6b7b" stroke-width="2"/>
+<polygon points="832.0,139.0 824.8,142.5 824.8,135.5" fill="#5b6b7b" stroke="none" stroke-width="1.0"/>
+<line x1="905.0" y1="182.0" x2="905.0" y2="224.0" stroke="#b5483d" stroke-width="2"/>
+<line x1="905.0" y1="224.0" x2="95.0" y2="224.0" stroke="#b5483d" stroke-width="2"/>
+<line x1="95.0" y1="224.0" x2="95.0" y2="192.0" stroke="#b5483d" stroke-width="2"/>
+<polygon points="95.0,184.0 98.5,191.2 91.5,191.2" fill="#b5483d" stroke="none" stroke-width="1.0"/>
+<text x="500.0" y="216.0" font-size="11" fill="#b5483d" text-anchor="middle" font-weight="normal" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">retask loop: COMMAND_EVENT -&gt; deconfliction -&gt; new collection</text>
+<rect x="26.0" y="254.0" width="948.0" height="26.0" rx="8" fill="#eef2f6" stroke="#cdd8e3" stroke-width="1"/>
+<text x="36.0" y="271.0" font-size="11.5" fill="#5b6b7b" text-anchor="start" font-weight="normal" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">SYSTEM_EVENT - timing, link, validation, and TASK_ACK status run across every stage</text>
+<text x="26.0" y="304.0" font-size="11.5" fill="#1b2330" text-anchor="start" font-weight="normal" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">Profiles:  H high-fidelity  |  M moderate  |  L constrained tactical</text>
+<text x="26.0" y="322.0" font-size="11.5" fill="#1b2330" text-anchor="start" font-weight="normal" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">Encodings:  JSON  |  CBOR  |  compact CBOR  |  protobuf   (all decode to canonical JSON)</text>
+</svg>

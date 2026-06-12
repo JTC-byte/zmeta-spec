@@ -4,7 +4,9 @@ Translates Moth RF sensor output into ZMeta RF `OBSERVATION_EVENT` (LOB) events.
 
 The Moth is a compact RF sensor that outputs peak frequency and signal strength
 readings via serial, MAVLink TUNNEL messages, or a custom MAVLink dialect.
-It has no antenna array, so raw readings carry 180-degree bearing uncertainty.
+It has no antenna array, so raw serial and custom MAVLink readings are
+omnidirectional: they carry no bearing, and the canonical `bearing` block is
+omitted per the convert-or-omit rule (semantics contract section 6.4).
 True bearing estimates are derived downstream by correlating signal strength
 with UAS heading during yaw scans.
 
@@ -24,11 +26,34 @@ with UAS heading during yaw scans.
 
 ### Key behaviors
 
-- Serial and custom MAVLink readings produce events with `bearing.az_deg = 0.0`
-  and `angular_error_deg = 180.0` (omnidirectional).
-- TUNNEL messages contain the full ICD and produce proper bearing estimates.
+- Serial and custom MAVLink readings are omnidirectional, so the `bearing`
+  block and `angular_error_deg` are omitted entirely (a fabricated north
+  bearing with 180-degree error would mislead downstream LOB fusion).
+- TUNNEL messages contain the full ICD bearing fields, but the canonical
+  `bearing` block is emitted only when the caller passes
+  `bearing_frame="TRUE_NORTH"`.
+- JSON replay inputs that carry `bearing.az_deg` follow the same rule:
+  unknown-frame bearings are preserved as raw, explicitly named feature fields;
+  replay inputs without bearing data omit bearing and angular error fields.
 - All events include `features.sensor_hw = "moth"` and `features.source_format`
   to indicate the input transport.
+
+### Bearing frame
+
+Canonical `bearing.az_deg` is contractually degrees true north (semantics
+contract section 6.4). Neither the Moth TUNNEL ICD field (`bearing_deg`) nor
+the JSON replay format declares a reference frame. By default this adapter
+therefore omits canonical `payload.bearing` and preserves the raw input under
+explicit feature names such as `features.bearing_frame_unknown_deg`,
+`features.bearing_frame_unknown_error_deg`, and
+`features.bearing_frame_unknown_el_deg`.
+
+Deployments that have upstream ICD or configuration evidence that the
+tunnel/replay bearing is already degrees true north may pass
+`bearing_frame="TRUE_NORTH"` to `translate_tunnel_payload()` or
+`translate_json_replay()`. In that mode the adapter emits canonical
+`payload.bearing`, records `quality.bearing_frame = "TRUE_NORTH"`, and keeps
+the angular error as canonical bearing uncertainty.
 
 ### Usage
 

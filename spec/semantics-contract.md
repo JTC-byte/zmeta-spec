@@ -844,6 +844,30 @@ Bearings and headings are degrees true north, increasing clockwise, range
 0-360 inclusive. `360` is valid and equivalent to `0`; adapters MAY normalize
 `360` to `0`, but consumers MUST treat both as valid.
 
+Canonical `bearing.az_deg` SHALL be degrees true north. Sensor-native frames,
+such as array-relative, platform-relative, or magnetic bearings, MUST be
+converted to true north before canonical emission or the canonical `bearing`
+omitted with the raw values placed in explicitly named payload-scoped fields
+that cannot be confused with canonical bearings.
+
+Under `zmeta_version` 1.1.0, producers SHOULD assert the frame explicitly via
+`bearing.frame: "TRUE_NORTH"`. `TRUE_NORTH` is the only valid value; any other
+frame label is schema-invalid, so a mislabeled sensor-native frame is
+machine-caught rather than silently consumed.
+
+Producers MAY record frame provenance in the free-form quality object via
+`quality.bearing_frame` and `quality.heading_source`. `quality.bearing_frame`
+(string) describes the canonical bearing only and therefore permits exactly
+the same single value, `TRUE_NORTH`, as `bearing.frame`; its purpose is to let
+v1.0 consumers distinguish assertively frame-compensated bearings from legacy
+unlabeled ones. Raw sensor-native angles never use this field; they carry
+their frame in their explicitly named payload-scoped field, for example a
+features key naming the frame. `quality.heading_source` (string) identifies
+the heading reference used for compensation, e.g. `AHRS_TRUE`, `GPS_COURSE`,
+`FIXED_MOUNT_SURVEYED`. Because v1.0 is locked and its `bearing` object
+rejects the `frame` key, this quality-scoped mechanism is the only frame
+provenance available to v1.0-emitting producers.
+
 Pitch, roll, and yaw, if present, are degrees.
 
 ### 6.5 Distance, Range, and RF Units

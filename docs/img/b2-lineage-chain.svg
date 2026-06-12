@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="320" viewBox="0 0 1000 320" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" role="img" aria-label="ZMeta lineage chain">
+<rect x="0.0" y="0.0" width="1000.0" height="320.0" rx="0" fill="#ffffff" stroke="none" stroke-width="1.0"/>
+<text x="26.0" y="34.0" font-size="21" fill="#1b2330" text-anchor="start" font-weight="700" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">Lineage you can audit</text>
+<text x="26.0" y="56.0" font-size="13" fill="#5b6b7b" text-anchor="start" font-weight="normal" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">Each derived event carries based_on back to its evidence - no stage silently becomes the next.</text>
+<rect x="26.0" y="110.0" width="206.0" height="96.0" rx="10" fill="#f3f6fa" stroke="#2f6f9f" stroke-width="2"/>
+<rect x="26.0" y="110.0" width="206.0" height="26.0" rx="10" fill="#2f6f9f" stroke="none" stroke-width="1.0"/>
+<rect x="26.0" y="124.0" width="206.0" height="12.0" rx="0" fill="#2f6f9f" stroke="none" stroke-width="1.0"/>
+<text x="38.0" y="128.0" font-size="12.5" fill="#ffffff" text-anchor="start" font-weight="700" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">OBSERVATION_EVENT</text>
+<text x="38.0" y="158.0" font-size="11" fill="#5b6b7b" text-anchor="start" font-weight="normal" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">event_id</text>
+<text x="38.0" y="174.0" font-size="13" fill="#1b2330" text-anchor="start" font-weight="normal" font-family="ui-monospace, SFMono-Regular, Consolas, 'Liberation Mono', monospace">...54e47028</text>
+<text x="38.0" y="194.0" font-size="11" fill="#5b6b7b" text-anchor="start" font-weight="normal" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">root (measured fact)</text>
+<rect x="273.3" y="110.0" width="206.0" height="96.0" rx="10" fill="#f3f6fa" stroke="#7a5ea8" stroke-width="2"/>
+<rect x="273.3" y="110.0" width="206.0" height="26.0" rx="10" fill="#7a5ea8" stroke="none" stroke-width="1.0"/>
+<rect x="273.3" y="124.0" width="206.0" height="12.0" rx="0" fill="#7a5ea8" stroke="none" stroke-width="1.0"/>
+<text x="285.3" y="128.0" font-size="12.5" fill="#ffffff" text-anchor="start" font-weight="700" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">INFERENCE_EVENT</text>
+<text x="285.3" y="158.0" font-size="11" fill="#5b6b7b" text-anchor="start" font-weight="normal" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">event_id</text>
+<text x="285.3" y="174.0" font-size="13" fill="#1b2330" text-anchor="start" font-weight="normal" font-family="ui-monospace, SFMono-Regular, Consolas, 'Liberation Mono', monospace">...765672fa</text>
+<text x="285.3" y="194.0" font-size="11" fill="#5b6b7b" text-anchor="start" font-weight="normal" font-family="ui-monospace, SFMono-Regular, Consolas, 'Liberation Mono', monospace">based_on ...54e47028</text>
+<rect x="520.7" y="110.0" width="206.0" height="96.0" rx="10" fill="#f3f6fa" stroke="#2e8b6f" stroke-width="2"/>
+<rect x="520.7" y="110.0" width="206.0" height="26.0" rx="10" fill="#2e8b6f" stroke="none" stroke-width="1.0"/>
+<rect x="520.7" y="124.0" width="206.0" height="12.0" rx="0" fill="#2e8b6f" stroke="none" stroke-width="1.0"/>
+<text x="532.7" y="128.0" font-size="12.5" fill="#ffffff" text-anchor="start" font-weight="700" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">FUSION_EVENT</text>
+<text x="532.7" y="158.0" font-size="11" fill="#5b6b7b" text-anchor="start" font-weight="normal" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">event_id</text>
+<text x="532.7" y="174.0" font-size="13" fill="#1b2330" text-anchor="start" font-weight="normal" font-family="ui-monospace, SFMono-Regular, Consolas, 'Liberation Mono', monospace">...b6fea8a0</text>
+<text x="532.7" y="194.0" font-size="11" fill="#5b6b7b" text-anchor="start" font-weight="normal" font-family="ui-monospace, SFMono-Regular, Consolas, 'Liberation Mono', monospace">based_on ...54e47028</text>
+<rect x="768.0" y="110.0" width="206.0" height="96.0" rx="10" fill="#f3f6fa" stroke="#c47f2a" stroke-width="2"/>
+<rect x="768.0" y="110.0" width="206.0" height="26.0" rx="10" fill="#c47f2a" stroke="none" stroke-width="1.0"/>
+<rect x="768.0" y="124.0" width="206.0" height="12.0" rx="0" fill="#c47f2a" stroke="none" stroke-width="1.0"/>
+<text x="780.0" y="128.0" font-size="12.5" fill="#ffffff" text-anchor="start" font-weight="700" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">STATE_EVENT</text>
+<text x="780.0" y="158.0" font-size="11" fill="#5b6b7b" text-anchor="start" font-weight="normal" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">event_id</text>
+<text x="780.0" y="174.0" font-size="13" fill="#1b2330" text-anchor="start" font-weight="normal" font-family="ui-monospace, SFMono-Regular, Consolas, 'Liberation Mono', monospace">...2b6aa6ea</text>
+<text x="780.0" y="194.0" font-size="11" fill="#5b6b7b" text-anchor="start" font-weight="normal" font-family="ui-monospace, SFMono-Regular, Consolas, 'Liberation Mono', monospace">based_on ...b6fea8a0</text>
+<line x1="238.0" y1="158.0" x2="258.3" y2="158.0" stroke="#5b6b7b" stroke-width="2.2"/>
+<polygon points="267.3,158.0 259.2,161.9 259.2,154.1" fill="#5b6b7b" stroke="none" stroke-width="1.0"/>
+<text x="252.7" y="148.0" font-size="10.5" fill="#5b6b7b" text-anchor="middle" font-weight="normal" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">based_on</text>
+<line x1="485.3" y1="158.0" x2="505.7" y2="158.0" stroke="#5b6b7b" stroke-width="2.2"/>
+<polygon points="514.7,158.0 506.6,161.9 506.6,154.1" fill="#5b6b7b" stroke="none" stroke-width="1.0"/>
+<text x="500.0" y="148.0" font-size="10.5" fill="#5b6b7b" text-anchor="middle" font-weight="normal" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">based_on</text>
+<line x1="732.7" y1="158.0" x2="753.0" y2="158.0" stroke="#5b6b7b" stroke-width="2.2"/>
+<polygon points="762.0,158.0 753.9,161.9 753.9,154.1" fill="#5b6b7b" stroke="none" stroke-width="1.0"/>
+<text x="747.3" y="148.0" font-size="10.5" fill="#5b6b7b" text-anchor="middle" font-weight="normal" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">based_on</text>
+<text x="26.0" y="252.0" font-size="12" fill="#5b6b7b" text-anchor="start" font-weight="normal" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">COMMAND_EVENT and SYSTEM_EVENT reference this same chain, so retasking intent and task acknowledgements stay tied to the evidence that justified them.</text>
+</svg>

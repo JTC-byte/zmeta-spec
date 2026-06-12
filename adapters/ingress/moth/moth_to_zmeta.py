@@ -12,9 +12,10 @@ Input formats:
   - JSON replay: {bearing: {az_deg, ...}, frequency: {center_hz, ...}, ...}
 
 The Moth hardware outputs peak signal readings (no antenna array), so
-raw serial/custom-message detections carry 180-deg bearing error. True
-LOBs are derived later by correlating power with UAS heading during a
-yaw scan.
+raw serial/custom-message detections are omnidirectional: they have no
+bearing, and per the convert-or-omit rule (semantics contract section
+6.4) the canonical ``bearing`` block is omitted entirely. True LOBs are
+derived later by correlating power with UAS heading during a yaw scan.
 
 Source: Z-ISR edge/edge/sensors/moth_rf.py and edge/edge/zmeta_builder.py
 """
@@ -24,7 +25,7 @@ import struct
 from adapters.ingress.time_utils import coerce_timing_quality, epoch_ms_to_utc_z, utc_now_z
 from zmeta_uuid import uuid7
 
-ADAPTER_VERSION = "1.0.0"
+ADAPTER_VERSION = "1.1.0"
 SCHEMA_ID_SERIAL = "moth-serial"
 SCHEMA_ID_MAVLINK = "moth-mavlink"
 SCHEMA_ID_TUNNEL = "moth-tunnel"
@@ -45,6 +46,22 @@ _MOTH_CUSTOM_STRUCT = struct.Struct("<fh")
 
 def _utc_now():
     return utc_now_z()
+
+
+def _assert_true_north_bearing_frame(bearing_frame):
+    if bearing_frame is None:
+        return None
+    if bearing_frame != "TRUE_NORTH":
+        raise ValueError("bearing_frame must be TRUE_NORTH when provided")
+    return bearing_frame
+
+
+def _record_unknown_frame_bearing(features, *, az_deg, error_deg=None, el_deg=None):
+    features["bearing_frame_unknown_deg"] = az_deg
+    if error_deg is not None:
+        features["bearing_frame_unknown_error_deg"] = error_deg
+    if el_deg not in (None, 0):
+        features["bearing_frame_unknown_el_deg"] = el_deg
 
 
 def detect(input_bytes):
@@ -90,7 +107,8 @@ def translate_serial_line(line, *, platform_id, sensor_geo=None, sensor_id=None,
       - JSON: {"peakDbm": -45.2, "peakFreqMhz": 2437.0}
       - CSV:  2437.0,-45.2  (freq_mhz, power_dbm)
 
-    Serial readings have no bearing information (180-deg error).
+    Serial readings are omnidirectional (no bearing information), so the
+    canonical ``bearing`` block is omitted and no angular error is claimed.
     Bearing is derived later by correlating with UAS heading during scans.
 
     Returns:
@@ -147,12 +165,10 @@ def translate_serial_line(line, *, platform_id, sensor_geo=None, sensor_id=None,
         },
         "payload": {
             "modality": "RF",
-            "bearing": {"az_deg": 0.0},
             "features": {
                 "center_freq_hz": peak_freq_mhz * 1e6,
                 "bandwidth_hz": 0.0,
                 "power_dbm": peak_dbm,
-                "angular_error_deg": 180.0,
                 "sensor_hw": "moth",
                 "source_format": "serial",
                 "peak_freq_mhz": peak_freq_mhz,
@@ -173,11 +189,18 @@ def translate_serial_line(line, *, platform_id, sensor_geo=None, sensor_id=None,
 
 
 def translate_tunnel_payload(payload_bytes, *, platform_id, sensor_geo=None,
-                              sensor_id=None, timestamp_ms=None):
+                              sensor_id=None, timestamp_ms=None,
+                              bearing_frame=None):
     """Translate a MAVLink TUNNEL payload (32 bytes) into a ZMeta event.
 
     The TUNNEL message contains a full LOB with bearing, frequency, power,
     SNR, elevation, and confidence from the Moth ICD.
+
+    The ICD field is named ``bearing_deg`` but does not state a reference
+    frame. By default the raw value is preserved only in explicitly named
+    ``features.bearing_frame_unknown_*`` fields and no canonical ``bearing``
+    block is emitted. Pass ``bearing_frame="TRUE_NORTH"`` only when deployment
+    configuration or upstream ICD evidence guarantees degrees true north.
 
     Returns:
         ZMeta event dict, or None if payload is invalid.
@@ -187,6 +210,7 @@ def translate_tunnel_payload(payload_bytes, *, platform_id, sensor_geo=None,
     if len(payload_bytes) < _TUNNEL_STRUCT.size:
         return None
 
+    bearing_frame = _assert_true_north_bearing_frame(bearing_frame)
     values = _TUNNEL_STRUCT.unpack_from(payload_bytes)
     raw = dict(zip(_TUNNEL_FIELDS, values))
 
@@ -196,27 +220,36 @@ def translate_tunnel_payload(payload_bytes, *, platform_id, sensor_geo=None,
     geo = dict(sensor_geo) if sensor_geo else None
     sid = sensor_id or DEFAULT_SENSOR_ID
 
-    bearing = {"az_deg": raw["bearing_deg"]}
-    if raw["el_deg"] != 0:
-        bearing["el_deg"] = raw["el_deg"]
-
     features = {
         "center_freq_hz": raw["freq_hz"],
         "bandwidth_hz": raw["bw_hz"],
         "power_dbm": raw["power_dbm"],
-        "angular_error_deg": raw["bearing_err_deg"],
         "sensor_hw": "moth",
         "source_format": "tunnel",
     }
 
     quality = {
-        "measurement_error": {
+        "calibration_state": "CALIBRATED",
+    }
+    bearing = None
+    if bearing_frame == "TRUE_NORTH":
+        bearing = {"az_deg": raw["bearing_deg"]}
+        if raw["el_deg"] != 0:
+            bearing["el_deg"] = raw["el_deg"]
+        features["angular_error_deg"] = raw["bearing_err_deg"]
+        quality["measurement_error"] = {
             "value": raw["bearing_err_deg"],
             "unit": "deg",
             "metric": "1_SIGMA",
-        },
-        "calibration_state": "CALIBRATED",
-    }
+        }
+        quality["bearing_frame"] = "TRUE_NORTH"
+    else:
+        _record_unknown_frame_bearing(
+            features,
+            az_deg=raw["bearing_deg"],
+            error_deg=raw["bearing_err_deg"],
+            el_deg=raw["el_deg"],
+        )
     if raw["snr_db"] != 0:
         features["snr_db"] = raw["snr_db"]
         quality["snr_db"] = raw["snr_db"]
@@ -237,7 +270,6 @@ def translate_tunnel_payload(payload_bytes, *, platform_id, sensor_geo=None,
         },
         "payload": {
             "modality": "RF",
-            "bearing": bearing,
             "features": features,
             "quality": quality,
             "timing_quality": coerce_timing_quality(event_ts=ts_iso),
@@ -253,6 +285,9 @@ def translate_tunnel_payload(payload_bytes, *, platform_id, sensor_geo=None,
     else:
         quality["geo_status"] = "UNAVAILABLE"
 
+    if bearing is not None:
+        event["payload"]["bearing"] = bearing
+
     if raw["confidence"] > 0:
         quality["sensor_confidence"] = min(1.0, raw["confidence"])
 
@@ -265,7 +300,8 @@ def translate_custom_mavlink(frame_bytes, *, platform_id, sensor_geo=None,
 
     The Moth firmware sends freq_mhz (float32) + power_dbm (int16) as a
     6-byte payload. Without the dialect XML, pymavlink reports these as
-    UNKNOWN_NNNNN with raw frame data.
+    UNKNOWN_NNNNN with raw frame data. These readings are omnidirectional
+    (no bearing information), so the canonical ``bearing`` block is omitted.
 
     Args:
         frame_bytes: Full MAVLink v2 frame bytes (10-byte header + payload + CRC).
@@ -310,12 +346,10 @@ def translate_custom_mavlink(frame_bytes, *, platform_id, sensor_geo=None,
         },
         "payload": {
             "modality": "RF",
-            "bearing": {"az_deg": 0.0},
             "features": {
                 "center_freq_hz": freq_mhz * 1e6,
                 "bandwidth_hz": 0.0,
                 "power_dbm": float(power_dbm),
-                "angular_error_deg": 180.0,
                 "sensor_hw": "moth",
                 "source_format": "mavlink_custom",
                 "peak_freq_mhz": freq_mhz,
@@ -335,11 +369,17 @@ def translate_custom_mavlink(frame_bytes, *, platform_id, sensor_geo=None,
     return event
 
 
-def translate_json_replay(raw, *, platform_id, sensor_geo=None, sensor_id=None):
+def translate_json_replay(raw, *, platform_id, sensor_geo=None, sensor_id=None,
+                          bearing_frame=None):
     """Translate a Moth JSON replay dict into a ZMeta event.
 
     Used for offline replay / bench testing. Accepts the structured dict
-    format with bearing, frequency, power sub-objects.
+    format with bearing, frequency, power sub-objects. The replay format does
+    not guarantee a reference frame. By default input bearings are preserved
+    only under explicitly named ``features.bearing_frame_unknown_*`` fields.
+    Pass ``bearing_frame="TRUE_NORTH"`` only when the replay source is known
+    to carry degrees true north; otherwise the canonical ``bearing`` block is
+    omitted.
 
     Args:
         raw: Dict with keys like bearing.az_deg, frequency.center_hz,
@@ -350,6 +390,7 @@ def translate_json_replay(raw, *, platform_id, sensor_geo=None, sensor_id=None):
     """
     import time
 
+    bearing_frame = _assert_true_north_bearing_frame(bearing_frame)
     bearing_obj = raw.get("bearing", {})
     freq_obj = raw.get("frequency", {})
     power_obj = raw.get("power", {})
@@ -367,27 +408,37 @@ def translate_json_replay(raw, *, platform_id, sensor_geo=None, sensor_id=None):
 
     sid = sensor_id or DEFAULT_SENSOR_ID
 
-    bearing = {"az_deg": bearing_obj.get("az_deg", 0.0)}
-    if bearing_obj.get("el_deg") is not None:
-        bearing["el_deg"] = bearing_obj["el_deg"]
-
     features = {
         "center_freq_hz": freq_obj.get("center_hz", 0.0),
         "bandwidth_hz": freq_obj.get("bandwidth_hz", 0.0),
         "power_dbm": power_obj.get("rssi_dbm", -100.0),
-        "angular_error_deg": raw.get("bearing_error_deg", 10.0),
         "sensor_hw": "moth",
         "source_format": "json_replay",
     }
 
     quality = {
-        "measurement_error": {
-            "value": raw.get("bearing_error_deg", 10.0),
-            "unit": "deg",
-            "metric": "1_SIGMA",
-        },
         "calibration_state": "CALIBRATED",
     }
+    bearing = None
+    if bearing_obj.get("az_deg") is not None and bearing_frame == "TRUE_NORTH":
+        bearing = {"az_deg": bearing_obj["az_deg"]}
+        if bearing_obj.get("el_deg") is not None:
+            bearing["el_deg"] = bearing_obj["el_deg"]
+        err = raw.get("bearing_error_deg", 10.0)
+        features["angular_error_deg"] = err
+        quality["measurement_error"] = {
+            "value": err,
+            "unit": "deg",
+            "metric": "1_SIGMA",
+        }
+        quality["bearing_frame"] = "TRUE_NORTH"
+    elif bearing_obj.get("az_deg") is not None:
+        _record_unknown_frame_bearing(
+            features,
+            az_deg=bearing_obj["az_deg"],
+            error_deg=raw.get("bearing_error_deg"),
+            el_deg=bearing_obj.get("el_deg"),
+        )
     if power_obj.get("snr_db") is not None:
         features["snr_db"] = power_obj["snr_db"]
         quality["snr_db"] = power_obj["snr_db"]
@@ -412,7 +463,6 @@ def translate_json_replay(raw, *, platform_id, sensor_geo=None, sensor_id=None):
         },
         "payload": {
             "modality": "RF",
-            "bearing": bearing,
             "features": features,
             "quality": quality,
             "timing_quality": coerce_timing_quality(raw.get("timing_quality"), event_ts=ts_iso),
@@ -422,6 +472,8 @@ def translate_json_replay(raw, *, platform_id, sensor_geo=None, sensor_id=None):
             "transform": f"translate:{SCHEMA_ID_SERIAL}@{ADAPTER_VERSION}",
         },
     }
+    if bearing is not None:
+        event["payload"]["bearing"] = bearing
     if geo:
         event["payload"]["geo"] = geo
         quality["geo_status"] = "AVAILABLE"

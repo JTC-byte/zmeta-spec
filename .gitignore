@@ -206,6 +206,9 @@ marimo/_static/
 marimo/_lsp/
 __marimo__/
 
+# Local agent workspace (settings, worktrees)
+.claude/
+
 # Local notes
 LOCAL_NOTES.md
 
