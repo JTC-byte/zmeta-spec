@@ -17,7 +17,7 @@ import math
 from adapters.ingress.time_utils import coerce_timing_quality, normalize_utc_z, utc_now_z
 from zmeta_uuid import uuid7
 
-ADAPTER_VERSION = "1.0.1"
+ADAPTER_VERSION = "1.1.0"
 SCHEMA_ID = "mavlink-telemetry"
 PROMOTION_POLICY_ID = "PROMOTE-MAVLINK-STATE-V1"
 

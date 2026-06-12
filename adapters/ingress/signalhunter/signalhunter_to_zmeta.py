@@ -364,7 +364,7 @@ def translate_bin_file(
                         # The gradient LOB is the geodesic travel direction (or
                         # its reverse) between two GPS fixes. An initial bearing
                         # computed from geodetic lat/lon is degrees true north by
-                        # construction, so the frame assertion required by the
+                        # construction, so the frame assertion permitted by the
                         # semantics contract (section 6.4) holds without any
                         # heading compensation; the heading reference is the GPS
                         # ground course.
