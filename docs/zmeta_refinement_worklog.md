@@ -12,6 +12,13 @@
   current-facing guidance examples to the `v1.1.8` target: the adapter
   `check_compat` invocation and the change-governance manifest rebuild command.
   Published `SHA256SUMS_v1.1.8.txt` and release assets remain unchanged.
+- Final closeout note: S1-22 completed a full baseline audit and notes/log
+  refresh. Current `main` is clean and pushed at `beffed3`; GitHub CI passed;
+  local validation covered the governed kernel gate, examples, release
+  manifest/package validation, full pytest, workflow/live gateway smoke tests,
+  direct focused validators, package/bundle builders, Docker Compose config
+  rendering, stale/secret/generated-artifact scans, and GitHub PR/issue queue
+  checks. No baseline blockers remain.
 - Current decision: ZMeta v1.1.8 is the current formal release baseline. It
   publishes the partner bearing-frame integrity stack, adapter hardening,
   gateway runtime guard improvements, professional overview documentation, and
@@ -91,7 +98,8 @@
   defensive-publication posture without changing schemas, policy behavior,
   event vocabulary, or the locked v1.0 kernel. S1-21 incorporated post-release
   feedback by clarifying current-main adapter upgrade guidance and recording
-  that frame assertions are producer provenance, not proof.
+  that frame assertions are producer provenance, not proof. S1-22 completed
+  the final baseline audit/closeout and updated durable plus local notes.
 
 ## S0-01 - Semantic Contract Lockdown Audit
 
@@ -2081,6 +2089,65 @@
 - Boundary: Documentation and contract clarification only. No schema, policy,
   adapter runtime, event vocabulary, or published v1.1.8 release artifact
   changes.
+
+## S1-22 - Final Baseline Audit And Closeout Notes
+
+- Status: COMPLETE
+- Date completed: 2026-06-12
+- Pushed cleanup commit: `beffed3` - `Finalize baseline audit guidance cleanup`
+- Change class: Docs/advisory audit closeout plus current-main manifest/claim
+  hash refresh for a process-governance guidance correction.
+- Scope: Perform one final full inspection of the current stack before moving
+  future work to roadmap-only status. The audit covered tracked inventory,
+  ignored/local residue, stale current-facing release references, TODO/FIXME
+  style markers, secret/key markers, generated-artifact tracking risk,
+  semantic/governance alignment, conformance surfaces, package/build tooling,
+  runtime smoke paths, Docker Compose config rendering, and GitHub queue/CI
+  status.
+- Cleanup performed:
+  - Corrected the adapter `check_compat` example to target `v1.1.8`.
+  - Corrected the change-governance release-manifest rebuild example to target
+    `v1.1.8`.
+  - Rebuilt `release/zmeta-release-manifest.yaml` and example claim hashes
+    because `docs/zmeta_change_governance.md` is a manifest-covered
+    process-governance artifact.
+  - Recorded the audit result in `CHANGELOG.md`, this worklog, the handoff,
+    and ignored `LOCAL_NOTES.md`.
+- Validation summary:
+  - Full governed kernel gate passed: projection `37`, extension registry `57`,
+    conformance classes `34` with `2` claims, encoding-negative `50`,
+    precision policy `32`, bad-event corpus `10`, adapter harness `10`, and
+    final `conformance ok`.
+  - Strict examples passed: `40/40`.
+  - Release manifest passed: `groups=18 artifacts=67`.
+  - Release package templates and a throwaway no-signature package under
+    `.tmp/audit-package-v1.1.8-20260612` both validated.
+  - Full pytest passed: `442 passed, 110 subtests passed`.
+  - End-to-end workflow checks passed for H/M/L and command/system paths after
+    rerunning profile checks sequentially on separate ports; the first parallel
+    attempt hit expected localhost UDP port conflicts.
+  - Live gateway smoke checks passed for JSON, CBOR, compact, and protobuf
+    paths.
+  - Focused validators for projection, extension registry, conformance
+    classes, bad events, adapter harness, encoding-negative, precision policy,
+    risk-mode lint, compatibility, packet size, schema validation, conversion,
+    and contract hash computation passed.
+  - Source, edge, and gateway bundle builders completed; generated zips and
+    bundle directories remain ignored local build outputs.
+  - Docker Compose config rendering passed for `gateway/docker-compose.yml`,
+    `deploy/edge/docker-compose.yml`, and `deploy/gateway/docker-compose.yml`;
+    Docker reported only local `C:\Users\User\.docker\config.json` access
+    warnings.
+  - GitHub PR and issue queues returned no open items. GitHub CI passed for
+    `beffed3`.
+  - `git diff --check` passed and final `git status --short --branch` was
+    clean against `origin/main`.
+- Boundary: No schemas, policy behavior, adapter/runtime behavior, event
+  vocabulary, release tags, GitHub release assets, detached signatures, or
+  published `SHA256SUMS_v1.1.8.txt` were changed. Remaining work is future
+  roadmap only: D-003 versioned semantic branch planning, real sensor-capture
+  adapter breadth, release-authority signatures/Sigstore process, and broader
+  deployment/container runtime coverage.
 
 ## Deferred Issue Register
 

@@ -32,6 +32,11 @@ Current stack status:
   examples with `v1.1.8`: the adapter `check_compat` command and the
   change-governance manifest rebuild command. Published
   `SHA256SUMS_v1.1.8.txt` and release assets remain unchanged.
+- Final baseline audit closeout is pushed at `beffed3` on `origin/main`.
+  The full local validation suite, focused validators, workflow/live gateway
+  smoke tests, package/bundle build checks, Docker Compose config rendering,
+  GitHub PR/issue queue check, and GitHub CI passed. The tracked worktree is
+  clean; only ignored local cache/build residue remains.
 - D-013 (timing-freshness negative-age clamp) and D-014 (compact codec
   unknown integer payload keys) are closed on current `main`. The stack now
   labels out-of-tolerance negative TIME_STATUS age with
@@ -51,6 +56,8 @@ Current release target:
 - Tag: `v1.1.8`
 - Release commit: `9d4f521` - `Prepare v1.1.8 release`
 - GitHub CI: passed for the pushed v1.1.8 release commit/tag.
+- Latest integration commit: `beffed3` - `Finalize baseline audit guidance
+  cleanup`; GitHub CI passed for this pushed current-main closeout commit.
 - Signature status: v1.1.8 release artifacts are generated in no-signature
   mode unless an approved release signing key is supplied. Use
   `SHA256SUMS_v1.1.8.txt`, the structured release manifest, and the release
@@ -179,6 +186,7 @@ Current release target:
 | P1-04 Bearing Reference-Frame Integrity Pass | COMPLETE (adopted on `main`) | `spec/semantics-contract.md` 6.4, `schema/zmeta-event-1.1.0.schema.json`, `spec/extension-registry.yaml`, `conformance/bad-events/`, `conformance/adapter-harness/`, `tools/validate_adapter_conformance.py`, kraken/moth/signalhunter/mavlink adapters, `gateway/src/gateway.py` |
 | R1-04 v1.1.8 Bearing-Frame Integrity Release | COMPLETE | `docs/r1_04_v1_1_8_bearing_frame_release.md`, `release/RELEASE_NOTES_v1.1.8.md`, `release/VALIDATION_REPORT_v1.1.8.md`, `release/SHA256SUMS_v1.1.8.txt` |
 | R1-04A v1.1.8 Post-Release Reference Cleanup | COMPLETE | `README.md`, `.github/workflows/ci.yml`, `tools/README.md`, `docs/zmeta_professional_overview.md`, `gateway/tests/test_check_compat_cli.py`, current handoff/worklog notes |
+| S1-22 Final Baseline Audit And Closeout Notes | COMPLETE | `CHANGELOG.md`, `docs/zmeta_refinement_worklog.md`, `docs/zmeta_refinement_handoff.md`, local `LOCAL_NOTES.md`; audit cleanup commit `beffed3` |
 
 ## Current Decisions
 
@@ -469,35 +477,69 @@ entries):
 
 ## Verification State
 
-Most recent validation for the current v1.1.8 stack audit on `main`
-(2026-06-12, Windows, Python):
+Most recent validation for the final current-main baseline audit on `main`
+(2026-06-12, Windows, Python, pushed commit `beffed3`):
 
 ```powershell
 python tools\validate_conformance.py --strict --profile-projection --extension-registry --conformance-classes --encoding-negative --precision-policy --release-manifest --release-package --bad-events --adapter-harness
+python tools\validate_examples.py --strict --require-all
+python tools\validate_release_manifest.py --manifest release\zmeta-release-manifest.yaml
+python tools\validate_release_package.py --manifest release\zmeta-release-manifest.yaml --templates-only
+python tools\lint_policy_risk_modes.py
+python tools\check_compat.py examples\zmeta-v1.1-examples.jsonl --target v1.1.8
+python tools\measure_packet_size.py --file examples\zmeta-profile-L-examples.jsonl --encodings compact --max-bytes 240 --summary-only
 python -m pytest -q
-python tools\test_workflow_end_to_end.py --profile H
-python tools\test_workflow_end_to_end.py --profile M --expect COMMAND_EVENT,SYSTEM_EVENT --listen-port 19011 --forward-port 19012 --cot-port 19013
-python tools\test_workflow_end_to_end.py --profile L --listen-port 19021 --forward-port 19022 --cot-port 19023
-python tools\test_workflow_end_to_end.py --profile H --encoding cbor --input-encoding cbor --listen-port 19031 --forward-port 19032 --cot-port 19033
-python tools\test_workflow_end_to_end.py --profile L --encoding compact --input-encoding compact --no-cot --listen-port 19041 --forward-port 19042 --cot-port 19043
-python tools\test_workflow_end_to_end.py --profile H --encoding proto --input-encoding proto --no-cot --listen-port 19051 --forward-port 19052 --cot-port 19053
-python tools\test_gateway_live.py --profile H --listen-port 19101 --forward-port 19102 --cot-port 19103
-python tools\test_gateway_live.py --profile L --encoding compact --input-encoding compact --no-cot --listen-port 19111 --forward-port 19112 --cot-port 19113
-python tools\test_gateway_live.py --profile H --encoding proto --input-encoding proto --no-cot --listen-port 19121 --forward-port 19122 --cot-port 19123
+python tools\test_workflow_end_to_end.py
+python tools\test_workflow_end_to_end.py --profile M
+python tools\test_workflow_end_to_end.py --profile L --listen-port 5655 --forward-port 5656 --cot-port 5657
+python tools\test_workflow_end_to_end.py --profile M --expect COMMAND_EVENT,SYSTEM_EVENT --listen-port 5665 --forward-port 5666 --cot-port 5667
+python tools\test_gateway_live.py --listen-port 5675 --forward-port 5676 --cot-port 5677
+python tools\test_gateway_live.py --profile L --encoding cbor --input-encoding cbor --listen-port 5685 --forward-port 5686 --cot-port 5687
+python tools\test_gateway_live.py --profile L --encoding compact --input-encoding compact --listen-port 5695 --forward-port 5696 --cot-port 5697
+python tools\test_gateway_live.py --profile H --encoding proto --input-encoding proto --no-cot --listen-port 5705 --forward-port 5706 --cot-port 5707
+python tools\build_release_package.py --manifest release\zmeta-release-manifest.yaml --output-dir .tmp\audit-package-v1.1.8-20260612 --release-id zmeta-v1.1.8 --release-state current-main-audit --no-signatures --allow-dirty
+python tools\validate_release_package.py --manifest release\zmeta-release-manifest.yaml --package-dir .tmp\audit-package-v1.1.8-20260612
+python release\build_release_bundle.py --version 1.1.8
+python release\build_mvp_packages.py --version v1.1.8
+python tools\compute_contract_hash.py
+python tools\validate_projection.py --catalog conformance\profile_projection_field_catalog.yaml --must-pass conformance\profile-projection\must-pass.jsonl --must-fail conformance\profile-projection\must-fail.jsonl --quiet
+python tools\validate_extension_registry.py --registry spec\extension-registry.yaml
+python tools\validate_conformance_classes.py --manifest conformance\conformance_classes.yaml --claims conformance\claims\example-reference-gateway.yaml conformance\claims\example-core-producer.yaml
+python tools\validate_bad_events.py --must-fail conformance\bad-events\must-fail.jsonl
+python tools\validate_adapter_conformance.py --fixtures conformance\adapter-harness\must-pass.jsonl
+python tools\validate_encoding_negative.py --fixtures conformance\encoding-negative
+python tools\validate_precision_policy.py --policy policy\profile-precision.yaml --must-pass conformance\profile-precision\must-pass.jsonl --must-fail conformance\profile-precision\must-fail.jsonl
+python tools\validate.py --file examples\zmeta-command-examples.jsonl --profile L --strict
 docker compose -f deploy\gateway\docker-compose.yml config
 docker compose -f deploy\edge\docker-compose.yml config
+docker compose -f gateway\docker-compose.yml config
+gh pr list --repo JTC-byte/zmeta-spec --state open --limit 20
+gh issue list --repo JTC-byte/zmeta-spec --state open --limit 20
 git diff --check
 ```
 
-Full kernel conformance result: `conformance ok`.
-Full pytest result: `435 passed, 108 subtests passed`.
-Compatibility result: all seven example streams passed
-`python tools\check_compat.py --target v1.1.8 --strict`.
-End-to-end and live gateway results: Profile H/M/L, CBOR, compact, and proto
-paths passed. Docker Compose rendered gateway and edge configs successfully
-with local `C:\Users\User\.docker\config.json` access warnings only.
-Release asset verification remains recorded in
-`release/VALIDATION_REPORT_v1.1.8.md`.
+Full kernel conformance result: `projection conformance ok total=37`,
+`extension registry ok entries=57`, `conformance classes ok classes=34
+claims=2`, `encoding negative ok total=50`, `profile precision policy ok
+total=32`, `bad-event corpus ok total=10`, `adapter conformance ok total=10`,
+`conformance ok`.
+Examples result: `overall total=40 passed=40 failed=0 warnings=0`.
+Release manifest result: `release manifest ok groups=18 artifacts=67`.
+Release package result: `release package ok mode=templates` and
+`release package ok mode=package` for the throwaway `.tmp` audit package.
+Policy lint result: `policy risk mode lint ok`.
+Compatibility result: `issues=0 failed=0 warnings=0` for the v1.1 example
+stream against target `v1.1.8`.
+Packet-size result: compact Profile L `max=150` under the 240-byte check.
+Full pytest result: `442 passed, 110 subtests passed`.
+End-to-end and live gateway results: Profile H/M/L, command/system, JSON, CBOR,
+compact, and proto paths passed. One attempted parallel workflow run failed
+only because multiple tests bound the same localhost UDP ports; sequential
+reruns on unique ports passed. Docker Compose rendered all three configs
+successfully with local `C:\Users\User\.docker\config.json` access warnings
+only. GitHub PR and issue list checks returned no open items. GitHub CI passed
+for pushed commit `beffed3`. Final local status was clean against
+`origin/main`.
 
 Earlier validation for the P1-04R review fixes on branch
 `review/pr2-frame-fixes` (2026-06-12, Windows, Python):
