@@ -3,7 +3,7 @@ generated_for_zmeta_versions:
   - "1.0"
   - "1.1.0"
 authority: spec/semantics-contract.md
-last_updated: "2026-06-10"
+last_updated: "2026-06-11"
 status_values:
   - reserved
   - proposed
@@ -116,6 +116,31 @@ entries:
       - schema/README.md
       - gateway/tests/test_schema_version_discrimination.py
     review_state: approved
+
+  - <<: *entry_defaults
+    name: BEARING_FRAME
+    display_name: Bearing reference frame marker
+    category: state_extension
+    status: experimental
+    version_branch: "1.1.0"
+    introduced_in: "1.1.0"
+    semantic_definition: v1.1.0 optional bearing.frame marker asserting the canonical true-north reference frame; TRUE_NORTH is the only valid value so mislabeled sensor-native frames fail schema validation.
+    rationale: Records bearing frame provenance on the wire so array-relative or otherwise uncompensated direction-of-arrival values cannot masquerade as canonical true-north bearings.
+    allowed_event_types: ["OBSERVATION_EVENT", "FUSION_EVENT"]
+    payload_scope: ["payload.bearing.frame", "payload.estimated_state.bearing.frame"]
+    schema_status: implemented
+    policy_status: not_applicable
+    conformance_status: implemented
+    references:
+      - schema/zmeta-event-1.1.0.schema.json
+      - schema/README.md
+      - spec/semantics-contract.md
+      - gateway/tests/test_schema_version_discrimination.py
+    date_added: "2026-06-11"
+    review_state: approved
+    notes:
+      - Experimental v1.1.0 only; v1.0 bearing objects are locked and reject the frame key.
+      - v1.0 producers may record frame provenance only via free-form quality.bearing_frame and quality.heading_source.
 
   - <<: *entry_defaults
     name: DATA_REF_FORMAL_BEHAVIOR

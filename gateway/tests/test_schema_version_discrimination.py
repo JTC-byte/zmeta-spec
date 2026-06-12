@@ -777,6 +777,24 @@ class SchemaVersionDiscriminationTest(unittest.TestCase):
 
             self.assert_valid(event)
 
+    def test_v1_1_bearing_frame_true_north_passes(self):
+        event = valid_rf_observation("1.1.0")
+        event["payload"]["bearing"] = {"az_deg": 123.4, "frame": "TRUE_NORTH"}
+
+        self.assert_valid(event)
+
+    def test_v1_1_bearing_frame_array_relative_fails(self):
+        event = valid_rf_observation("1.1.0")
+        event["payload"]["bearing"] = {"az_deg": 123.4, "frame": "ARRAY_RELATIVE"}
+
+        self.assert_invalid(event)
+
+    def test_v1_0_bearing_frame_key_fails(self):
+        event = valid_rf_observation("1.0")
+        event["payload"]["bearing"] = {"az_deg": 123.4, "frame": "TRUE_NORTH"}
+
+        self.assert_invalid(event)
+
     def test_v1_1_quality_measurement_error_scalar_fails(self):
         event = valid_rf_observation("1.1.0")
         event["payload"]["quality"] = {
