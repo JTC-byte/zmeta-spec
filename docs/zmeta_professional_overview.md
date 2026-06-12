@@ -1,7 +1,7 @@
 # ZMeta Professional Overview
 
 Status: advisory overview for engineers, operators, and leadership.
-Current release context: ZMeta v1.1.7.
+Current release context: ZMeta v1.1.8.
 
 This document explains what ZMeta is, why it exists, how the reference stack
 works, and what operational workflows it enables. It is not the normative
@@ -890,7 +890,7 @@ governed capability.
 
 A practical adoption path is:
 
-1. Pin to a release, currently v1.1.7 for the formal baseline.
+1. Pin to a release, currently v1.1.8 for the formal baseline.
 2. Validate existing examples and conformance locally.
 3. Add one ingress adapter for the first sensor or data source.
 4. Run schema and policy validation at the gateway boundary.
@@ -922,7 +922,7 @@ A practical adoption path is:
 
 ## Current Limits And Future Work
 
-ZMeta v1.1.7 intentionally does not claim everything.
+ZMeta v1.1.8 intentionally does not claim everything.
 
 Current limits include:
 

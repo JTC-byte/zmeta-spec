@@ -2,7 +2,7 @@
 
 ## Current Resume Note
 
-- Last updated: 2026-06-11
+- Last updated: 2026-06-12
 - Quick handoff: `docs/zmeta_refinement_handoff.md`
 - Current next work item: none required for the current downstream integration
   baseline. Optional future work remains S1-11B future-branch roadmap artifact,
@@ -11,11 +11,11 @@
   are pending for D-013 (timing-freshness negative-age clamp) and D-014
   (compact codec unknown integer payload keys); see the deferred issue
   register.
-- Current decision: ZMeta v1.1.7 is the current formal release baseline. It
-  publishes the post-v1.1.6 projection, extension registry, policy-risk lint,
-  process governance, downstream clone interoperability, stale-reference audit,
-  and release packaging cleanup work without changing schemas, event
-  vocabulary, policy YAML semantics, or the locked v1.0 semantic kernel.
+- Current decision: ZMeta v1.1.8 is the current formal release baseline. It
+  publishes the partner bearing-frame integrity stack, adapter hardening,
+  gateway runtime guard improvements, professional overview documentation, and
+  current-release reference cleanup without changing the locked v1.0 schema or
+  making v1.1.0 concepts valid under `zmeta_version: "1.0"`.
   S1-12C audited the D-012 formal release
   packaging framework and closed D-012. S1-13A audited the stack for semantic
   conformance and stale files, corrected the live compatibility checker and CI

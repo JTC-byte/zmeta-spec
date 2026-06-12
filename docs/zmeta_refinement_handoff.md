@@ -17,8 +17,8 @@ Current stack status:
   bearing/heading fields unless callers explicitly assert `TRUE_NORTH`;
   unasserted native values remain auditable under explicitly named
   non-canonical fields.
-- Use tag `v1.1.8` for current formal release assets/checksums once R1-04 is
-  published. Use tag `v1.1.7` only for the previous formal release baseline.
+- Use tag `v1.1.8` for current formal release assets/checksums. Use tag
+  `v1.1.7` only for the previous formal release baseline.
 - Use current `main` for the latest integration baseline with bearing-frame
   integrity, policy-risk linting, projection preservation for risk/promotion
   extensions, stricter extension registry metadata, formal human/AI agent
@@ -33,8 +33,8 @@ Current release target:
 
 - Release URL: <https://github.com/JTC-byte/zmeta-spec/releases/tag/v1.1.8>
 - Tag: `v1.1.8`
-- Release commit: R1-04 release commit on `main`
-- GitHub CI: must pass for the pushed v1.1.8 release commit/tag.
+- Release commit: `9d4f521` - `Prepare v1.1.8 release`
+- GitHub CI: passed for the pushed v1.1.8 release commit/tag.
 - Signature status: v1.1.8 release artifacts are generated in no-signature
   mode unless an approved release signing key is supplied. Use
   `SHA256SUMS_v1.1.8.txt`, the structured release manifest, and the release
@@ -92,6 +92,7 @@ Current release target:
 | `docs/s1_18a_operator_risk_filter_tooling.md` | S1-18A implementation note for consumer-side accepted-risk filtering and operator posture presets. |
 | `docs/s1_18b_end_to_end_stack_runtime_audit.md` | S1-18B audit note for folder-by-folder semantic conformance, runtime workflow sweep, package smoke tests, and CoT egress hardening. |
 | `docs/r1_03_v1_1_7_stack_audit_release.md` | R1-03 audit and release note for v1.1.7 stale-reference, generated-residue, secret-scan, and release-package cleanup. |
+| `docs/r1_04_v1_1_8_bearing_frame_release.md` | R1-04 audit and release note for v1.1.8 bearing-frame integrity, adapter hardening, and release publication. |
 | `conformance/bad-events/` | Semantic bad-event fixture suite for dishonest or unsafe events that must not be treated as clean data. |
 | `conformance/adapter-harness/` | Shared fixture-driven adapter output harness for schema/policy validity, layer separation, lineage, timing, and external promotion. |
 | `spec/release-signing-attestation.md` | S1-12B release signing, attestation, no-secret, and verification framework. |
@@ -99,6 +100,9 @@ Current release target:
 | `release/RELEASE_NOTES_v1.1.7.md` | Published v1.1.7 release notes. |
 | `release/VALIDATION_REPORT_v1.1.7.md` | Published v1.1.7 validation report. |
 | `release/SHA256SUMS_v1.1.7.txt` | Published v1.1.7 checksum manifest for standard release assets. |
+| `release/RELEASE_NOTES_v1.1.8.md` | Published v1.1.8 release notes. |
+| `release/VALIDATION_REPORT_v1.1.8.md` | Published v1.1.8 validation report. |
+| `release/SHA256SUMS_v1.1.8.txt` | Published v1.1.8 checksum manifest for standard release assets. |
 | `tools/lint_policy_risk_modes.py` | Policy lint for unsafe `ignore` settings on material risk. |
 | `docs/zmeta_refinement_worklog.md` | Running worklog, completed work items, pending work items, and deferred issue register. |
 
@@ -151,7 +155,8 @@ Current release target:
 | P1-02 Post-v1.1.6 Projection And Registry Hardening | COMPLETE | `conformance/profile_projection_field_catalog.yaml`, `conformance/profile-projection/`, `tools/validate_projection.py`, `spec/extension-registry.yaml`, `tools/validate_extension_registry.py` |
 | P1-03 Human And AI Agent Change Governance | COMPLETE | `AGENTS.md`, `docs/zmeta_change_governance.md`, `tools/build_release_manifest.py`, `tools/validate_release_manifest.py`, downstream clone compatibility guidance |
 | R1-03 v1.1.7 Stack Audit And Release | COMPLETE | `docs/r1_03_v1_1_7_stack_audit_release.md`, `release/RELEASE_NOTES_v1.1.7.md`, `release/VALIDATION_REPORT_v1.1.7.md`, `release/SHA256SUMS_v1.1.7.txt` |
-| P1-04 Bearing Reference-Frame Integrity Pass | COMPLETE (branch `worktree-bearing-frame-fixes`, unmerged) | `spec/semantics-contract.md` 6.4, `schema/zmeta-event-1.1.0.schema.json`, `spec/extension-registry.yaml`, `conformance/bad-events/`, `conformance/adapter-harness/`, `tools/validate_adapter_conformance.py`, kraken/moth/signalhunter/mavlink adapters, `gateway/src/gateway.py` |
+| P1-04 Bearing Reference-Frame Integrity Pass | COMPLETE (adopted on `main`) | `spec/semantics-contract.md` 6.4, `schema/zmeta-event-1.1.0.schema.json`, `spec/extension-registry.yaml`, `conformance/bad-events/`, `conformance/adapter-harness/`, `tools/validate_adapter_conformance.py`, kraken/moth/signalhunter/mavlink adapters, `gateway/src/gateway.py` |
+| R1-04 v1.1.8 Bearing-Frame Integrity Release | COMPLETE | `docs/r1_04_v1_1_8_bearing_frame_release.md`, `release/RELEASE_NOTES_v1.1.8.md`, `release/VALIDATION_REPORT_v1.1.8.md`, `release/SHA256SUMS_v1.1.8.txt` |
 
 ## Current Decisions
 
@@ -162,7 +167,7 @@ Current release target:
   schema, vocabulary, version-dispatch, projection, risk, or command-authority
   changes are private dialect/fork work unless governed, versioned, documented,
   and backed by conformance evidence.
-- Current formal release is `v1.1.7`; latest integration baseline is current `main`.
+- Current formal release is `v1.1.8`; latest integration baseline is current `main`.
 - v1.0 remains locked.
 - Do not add v1.1.0 or future concepts to v1.0.
 - S1-01A found no schema-enforceable v1.0 gap requiring S1-01B.
@@ -454,7 +459,37 @@ entries):
 
 ## Verification State
 
-Most recent validation for the P1-04R review fixes on branch
+Most recent validation for the current v1.1.8 stack audit on `main`
+(2026-06-12, Windows, Python):
+
+```powershell
+python tools\validate_conformance.py --strict --profile-projection --extension-registry --conformance-classes --encoding-negative --precision-policy --release-manifest --release-package --bad-events --adapter-harness
+python -m pytest -q
+python tools\test_workflow_end_to_end.py --profile H
+python tools\test_workflow_end_to_end.py --profile M --expect COMMAND_EVENT,SYSTEM_EVENT --listen-port 19011 --forward-port 19012 --cot-port 19013
+python tools\test_workflow_end_to_end.py --profile L --listen-port 19021 --forward-port 19022 --cot-port 19023
+python tools\test_workflow_end_to_end.py --profile H --encoding cbor --input-encoding cbor --listen-port 19031 --forward-port 19032 --cot-port 19033
+python tools\test_workflow_end_to_end.py --profile L --encoding compact --input-encoding compact --no-cot --listen-port 19041 --forward-port 19042 --cot-port 19043
+python tools\test_workflow_end_to_end.py --profile H --encoding proto --input-encoding proto --no-cot --listen-port 19051 --forward-port 19052 --cot-port 19053
+python tools\test_gateway_live.py --profile H --listen-port 19101 --forward-port 19102 --cot-port 19103
+python tools\test_gateway_live.py --profile L --encoding compact --input-encoding compact --no-cot --listen-port 19111 --forward-port 19112 --cot-port 19113
+python tools\test_gateway_live.py --profile H --encoding proto --input-encoding proto --no-cot --listen-port 19121 --forward-port 19122 --cot-port 19123
+docker compose -f deploy\gateway\docker-compose.yml config
+docker compose -f deploy\edge\docker-compose.yml config
+git diff --check
+```
+
+Full kernel conformance result: `conformance ok`.
+Full pytest result: `435 passed, 108 subtests passed`.
+Compatibility result: all seven example streams passed
+`python tools\check_compat.py --target v1.1.8 --strict`.
+End-to-end and live gateway results: Profile H/M/L, CBOR, compact, and proto
+paths passed. Docker Compose rendered gateway and edge configs successfully
+with local `C:\Users\User\.docker\config.json` access warnings only.
+Release asset verification remains recorded in
+`release/VALIDATION_REPORT_v1.1.8.md`.
+
+Earlier validation for the P1-04R review fixes on branch
 `review/pr2-frame-fixes` (2026-06-12, Windows, Python):
 
 ```powershell
@@ -481,7 +516,7 @@ Full pytest result: `435 passed, 108 subtests passed`.
 Whitespace check result: clean with normal Windows LF-to-CRLF working-copy
 warnings.
 
-Most recent validation for the P1-04 bearing reference-frame pass on branch
+Earlier validation for the P1-04 bearing reference-frame pass on branch
 `worktree-bearing-frame-fixes` (2026-06-11, macOS, Python 3.12):
 
 ```bash
@@ -503,7 +538,7 @@ total=32`, `bad-event corpus ok total=10`, `adapter conformance ok total=9`,
 Full pytest result: `430 passed, 108 subtests passed`.
 Whitespace check result: passed.
 
-Most recent validation for the v1.1.7 stack audit and release:
+Earlier validation for the v1.1.7 stack audit and release:
 
 ```powershell
 python tools\validate_release_manifest.py --manifest release\zmeta-release-manifest.yaml
