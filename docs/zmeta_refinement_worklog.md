@@ -2,7 +2,7 @@
 
 ## Current Resume Note
 
-- Last updated: 2026-06-12
+- Last updated: 2026-06-18
 - Quick handoff: `docs/zmeta_refinement_handoff.md`
 - Current next work item: none required for the current downstream integration
   baseline. Optional future work remains S1-11B future-branch roadmap artifact,
@@ -13,17 +13,23 @@
   `check_compat` invocation and the change-governance manifest rebuild command.
   Published `SHA256SUMS_v1.1.8.txt` and release assets remain unchanged.
 - Final closeout note: S1-22 completed a full baseline audit and notes/log
-  refresh. Current `main` is clean and pushed at `beffed3`; GitHub CI passed;
+  refresh. Current `main` is clean and pushed at `c814d95`; GitHub CI passed;
   local validation covered the governed kernel gate, examples, release
   manifest/package validation, full pytest, workflow/live gateway smoke tests,
   direct focused validators, package/bundle builders, Docker Compose config
   rendering, stale/secret/generated-artifact scans, and GitHub PR/issue queue
   checks. No baseline blockers remain.
-- Current decision: ZMeta v1.1.8 is the current formal release baseline. It
-  publishes the partner bearing-frame integrity stack, adapter hardening,
-  gateway runtime guard improvements, professional overview documentation, and
-  current-release reference cleanup without changing the locked v1.0 schema or
-  making v1.1.0 concepts valid under `zmeta_version: "1.0"`.
+- Documentation freshness note: S1-23 audited the README-linked documentation
+  surface on 2026-06-18, refreshed `spec/installation-guide.md` around the
+  maintained `configs/` templates and current validation gates, corrected stale
+  `beffed3` final-closeout references to `c814d95`, verified tracked
+  Markdown/TXT relative links, and found no rogue untracked files outside
+  expected ignored local/build outputs.
+- Current decision: ZMeta v1.1.9 is the current formal release target for the
+  post-v1.1.8 current-main documentation freshness, governance hygiene,
+  timing/compact follow-up, adapter guidance, and release-process cleanup
+  baseline. It preserves the locked v1.0 schema and does not make v1.1.0
+  concepts valid under `zmeta_version: "1.0"`.
   S1-12C audited the D-012 formal release
   packaging framework and closed D-012. S1-13A audited the stack for semantic
   conformance and stale files, corrected the live compatibility checker and CI
@@ -100,6 +106,8 @@
   feedback by clarifying current-main adapter upgrade guidance and recording
   that frame assertions are producer provenance, not proof. S1-22 completed
   the final baseline audit/closeout and updated durable plus local notes.
+  S1-23 refreshed README-linked documentation and install guidance. R1-05
+  publishes those current-main updates as the v1.1.9 formal patch release.
 
 ## S0-01 - Semantic Contract Lockdown Audit
 
@@ -2095,6 +2103,8 @@
 - Status: COMPLETE
 - Date completed: 2026-06-12
 - Pushed cleanup commit: `beffed3` - `Finalize baseline audit guidance cleanup`
+- Final pushed audit closeout commit: `c814d95` - `Record final baseline audit
+  closeout`
 - Change class: Docs/advisory audit closeout plus current-main manifest/claim
   hash refresh for a process-governance guidance correction.
 - Scope: Perform one final full inspection of the current stack before moving
@@ -2139,7 +2149,7 @@
     Docker reported only local `C:\Users\User\.docker\config.json` access
     warnings.
   - GitHub PR and issue queues returned no open items. GitHub CI passed for
-    `beffed3`.
+    `c814d95` as run `27447655568`.
   - `git diff --check` passed and final `git status --short --branch` was
     clean against `origin/main`.
 - Boundary: No schemas, policy behavior, adapter/runtime behavior, event
@@ -2148,6 +2158,80 @@
   roadmap only: D-003 versioned semantic branch planning, real sensor-capture
   adapter breadth, release-authority signatures/Sigstore process, and broader
   deployment/container runtime coverage.
+
+## S1-23 - README-Linked Documentation Freshness Audit
+
+- Status: COMPLETE
+- Date completed: 2026-06-18
+- Change class: Docs/advisory freshness audit.
+- Scope: Audit root README-linked documentation and adjacent detail docs for
+  stale install guidance, broken relative links, stale release/current-main
+  wording, rogue untracked files, and generated/local output tracking risk.
+- Cleanup performed:
+  - Refreshed `spec/installation-guide.md` to direct new installs to the
+    maintained `configs/` templates, document wizard output as a local option,
+    cover Docker Compose deployment, map-pack replacement flags, validation
+    gates, and release-package boundaries.
+  - Corrected stale handoff/worklog/local-note references that treated
+    `beffed3` as the latest final closeout commit; the current pushed
+    integration closeout is `c814d95` with CI run `27447655568`.
+  - Recorded this audit in `CHANGELOG.md`, this worklog, the handoff, and
+    ignored `LOCAL_NOTES.md`.
+- Audit results:
+  - Tracked Markdown/TXT relative-link audit returned no missing paths.
+  - `git ls-files --others --exclude-standard` returned no rogue untracked
+    files.
+  - `git ls-files` found no tracked generated release bundle/package/zip or
+    cache outputs from the ignored local residue set.
+  - `git check-ignore -v` confirmed expected ignore coverage for
+    `LOCAL_NOTES.md`, `.tmp/`, `release/dist/`, `release/bundles/`,
+    `release/package-v1.1.8/`, release zip outputs, and `__pycache__/`.
+- Boundary: Documentation-only. No schemas, policy behavior, adapters,
+  runtime code, event vocabulary, release tags, GitHub release assets, detached
+  signatures, published checksum files, or release-manifest-governed artifacts
+  were changed.
+
+## R1-05 - v1.1.9 Documentation Freshness Release
+
+- Status: COMPLETE
+- Date completed: 2026-06-18
+- Target tag: `v1.1.9`
+- Change class: Release/publication for post-v1.1.8 current-main docs,
+  governance, timing/compact, and release-hygiene work.
+- Scope: Publish the accumulated post-v1.1.8 current-main changes as a formal
+  patch release: README-linked documentation freshness, maintained install
+  template guidance, stale closeout-reference cleanup, advisory
+  IP/contribution/conformance/name-use posture, D-013 negative TIME_STATUS age
+  diagnostics, D-014 compact unknown-integer-key rejection, adapter
+  frame-provenance clarification, release tooling default updates, and release
+  package/checksum artifacts.
+- Release artifacts:
+  - `release/RELEASE_NOTES_v1.1.9.md`
+  - `release/VALIDATION_REPORT_v1.1.9.md`
+  - `release/SHA256SUMS_v1.1.9.txt`
+  - `release/zmeta-release-manifest.yaml`
+  - `zmeta-v1.1.9-dist.zip`
+  - `zmeta-edge-v1.1.9.zip`
+  - `zmeta-gateway-v1.1.9.zip`
+  - `zmeta-release-package-v1.1.9.zip`
+- Validation summary:
+  - Release manifest validation: `release manifest ok groups=18 artifacts=67`.
+  - Release package templates and generated package validation passed.
+  - Strict examples passed: `40/40`.
+  - Full governed kernel gate passed with projection `37`, extension registry
+    `57`, conformance classes `34` with `2` claims, encoding-negative `50`,
+    precision policy `32`, bad-event corpus `10`, adapter harness `10`, and
+    final `conformance ok`.
+  - Full pytest passed: `442 passed, 110 subtests passed`.
+  - Gateway self-tests, Profile L packet-size check, risk-filter command
+    preset, compatibility checks, workflow/live-gateway checks, Docker Compose
+    config rendering, checksum generation/verification, tracked-doc link audit,
+    and rogue-file/generated-residue checks passed.
+- Boundary: No private keys, credentials, tokens, certificates with private
+  material, signing secrets, or detached signatures are included. Detached
+  signatures remain future work until an approved signing key/process is
+  supplied. Historical `v1.1.8` release notes, validation report, assets, and
+  `SHA256SUMS_v1.1.8.txt` remain unchanged.
 
 ## Deferred Issue Register
 

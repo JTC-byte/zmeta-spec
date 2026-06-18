@@ -1,6 +1,6 @@
 # ZMeta Refinement Handoff Notes
 
-Status date: 2026-06-12
+Status date: 2026-06-18
 
 This note is the quick resume point for the current ZMeta refinement effort. The full task history and deferred issue register are in `docs/zmeta_refinement_worklog.md`.
 
@@ -17,8 +17,8 @@ Current stack status:
   bearing/heading fields unless callers explicitly assert `TRUE_NORTH`;
   unasserted native values remain auditable under explicitly named
   non-canonical fields.
-- Use tag `v1.1.8` for current formal release assets/checksums. Use tag
-  `v1.1.7` only for the previous formal release baseline.
+- Use tag `v1.1.9` for current formal release assets/checksums. Use tag
+  `v1.1.8` for the previous bearing-frame integrity release baseline.
 - Use current `main` for the latest integration baseline with bearing-frame
   integrity, policy-risk linting, projection preservation for risk/promotion
   extensions, stricter extension registry metadata, formal human/AI agent
@@ -32,11 +32,21 @@ Current stack status:
   examples with `v1.1.8`: the adapter `check_compat` command and the
   change-governance manifest rebuild command. Published
   `SHA256SUMS_v1.1.8.txt` and release assets remain unchanged.
-- Final baseline audit closeout is pushed at `beffed3` on `origin/main`.
+- Final baseline audit closeout is pushed at `c814d95` on `origin/main`
+  (`beffed3` was the preceding guidance-cleanup commit).
   The full local validation suite, focused validators, workflow/live gateway
   smoke tests, package/bundle build checks, Docker Compose config rendering,
   GitHub PR/issue queue check, and GitHub CI passed. The tracked worktree is
   clean; only ignored local cache/build residue remains.
+- S1-23 refreshed the README-linked documentation surface on 2026-06-18. The
+  tracked Markdown/TXT link audit found no broken relative links, `git
+  ls-files --others --exclude-standard` returned no rogue untracked files, and
+  `spec/installation-guide.md` now points new installs at the maintained
+  `configs/` templates while keeping release-publication boundaries explicit.
+- R1-05 publishes the post-v1.1.8 current-main documentation freshness,
+  governance hygiene, timing/compact follow-up, and release-process cleanup as
+  `v1.1.9`. Historical `v1.1.8` release notes, validation report, assets, and
+  checksums remain preserved.
 - D-013 (timing-freshness negative-age clamp) and D-014 (compact codec
   unknown integer payload keys) are closed on current `main`. The stack now
   labels out-of-tolerance negative TIME_STATUS age with
@@ -52,15 +62,15 @@ Current stack status:
 
 Current release target:
 
-- Release URL: <https://github.com/JTC-byte/zmeta-spec/releases/tag/v1.1.8>
-- Tag: `v1.1.8`
-- Release commit: `9d4f521` - `Prepare v1.1.8 release`
-- GitHub CI: passed for the pushed v1.1.8 release commit/tag.
-- Latest integration commit: `beffed3` - `Finalize baseline audit guidance
-  cleanup`; GitHub CI passed for this pushed current-main closeout commit.
-- Signature status: v1.1.8 release artifacts are generated in no-signature
+- Release URL: <https://github.com/JTC-byte/zmeta-spec/releases/tag/v1.1.9>
+- Tag: `v1.1.9`
+- Release commit: the R1-05 release closeout commit on `main`.
+- GitHub CI: must pass for the pushed v1.1.9 release commit/tag.
+- Previous integration closeout: `c814d95` - `Record final baseline audit
+  closeout`; GitHub CI passed for that pushed current-main closeout commit.
+- Signature status: v1.1.9 release artifacts are generated in no-signature
   mode unless an approved release signing key is supplied. Use
-  `SHA256SUMS_v1.1.8.txt`, the structured release manifest, and the release
+  `SHA256SUMS_v1.1.9.txt`, the structured release manifest, and the release
   package checksum file for integrity verification.
 
 ## Key Docs
@@ -131,6 +141,9 @@ Current release target:
 | `release/RELEASE_NOTES_v1.1.8.md` | Published v1.1.8 release notes. |
 | `release/VALIDATION_REPORT_v1.1.8.md` | Published v1.1.8 validation report. |
 | `release/SHA256SUMS_v1.1.8.txt` | Published v1.1.8 checksum manifest for standard release assets. |
+| `release/RELEASE_NOTES_v1.1.9.md` | Published v1.1.9 release notes. |
+| `release/VALIDATION_REPORT_v1.1.9.md` | Published v1.1.9 validation report. |
+| `release/SHA256SUMS_v1.1.9.txt` | Published v1.1.9 checksum manifest for standard release assets. |
 | `tools/lint_policy_risk_modes.py` | Policy lint for unsafe `ignore` settings on material risk. |
 | `docs/zmeta_refinement_worklog.md` | Running worklog, completed work items, pending work items, and deferred issue register. |
 
@@ -186,7 +199,9 @@ Current release target:
 | P1-04 Bearing Reference-Frame Integrity Pass | COMPLETE (adopted on `main`) | `spec/semantics-contract.md` 6.4, `schema/zmeta-event-1.1.0.schema.json`, `spec/extension-registry.yaml`, `conformance/bad-events/`, `conformance/adapter-harness/`, `tools/validate_adapter_conformance.py`, kraken/moth/signalhunter/mavlink adapters, `gateway/src/gateway.py` |
 | R1-04 v1.1.8 Bearing-Frame Integrity Release | COMPLETE | `docs/r1_04_v1_1_8_bearing_frame_release.md`, `release/RELEASE_NOTES_v1.1.8.md`, `release/VALIDATION_REPORT_v1.1.8.md`, `release/SHA256SUMS_v1.1.8.txt` |
 | R1-04A v1.1.8 Post-Release Reference Cleanup | COMPLETE | `README.md`, `.github/workflows/ci.yml`, `tools/README.md`, `docs/zmeta_professional_overview.md`, `gateway/tests/test_check_compat_cli.py`, current handoff/worklog notes |
-| S1-22 Final Baseline Audit And Closeout Notes | COMPLETE | `CHANGELOG.md`, `docs/zmeta_refinement_worklog.md`, `docs/zmeta_refinement_handoff.md`, local `LOCAL_NOTES.md`; audit cleanup commit `beffed3` |
+| S1-22 Final Baseline Audit And Closeout Notes | COMPLETE | `CHANGELOG.md`, `docs/zmeta_refinement_worklog.md`, `docs/zmeta_refinement_handoff.md`, local `LOCAL_NOTES.md`; final audit closeout commit `c814d95` |
+| S1-23 README-Linked Documentation Freshness Audit | COMPLETE | `spec/installation-guide.md`, `CHANGELOG.md`, `docs/zmeta_refinement_worklog.md`, `docs/zmeta_refinement_handoff.md`, local `LOCAL_NOTES.md` |
+| R1-05 v1.1.9 Documentation Freshness Release | COMPLETE | `release/RELEASE_NOTES_v1.1.9.md`, `release/VALIDATION_REPORT_v1.1.9.md`, `release/SHA256SUMS_v1.1.9.txt`, `release/zmeta-release-manifest.yaml` |
 
 ## Current Decisions
 
@@ -197,7 +212,7 @@ Current release target:
   schema, vocabulary, version-dispatch, projection, risk, or command-authority
   changes are private dialect/fork work unless governed, versioned, documented,
   and backed by conformance evidence.
-- Current formal release is `v1.1.8`; latest integration baseline is current `main`.
+- Current formal release is `v1.1.9`; latest integration baseline is current `main`.
 - v1.0 remains locked.
 - Do not add v1.1.0 or future concepts to v1.0.
 - S1-01A found no schema-enforceable v1.0 gap requiring S1-01B.
@@ -478,7 +493,9 @@ entries):
 ## Verification State
 
 Most recent validation for the final current-main baseline audit on `main`
-(2026-06-12, Windows, Python, pushed commit `beffed3`):
+(2026-06-12, Windows, Python, final pushed audit commit `c814d95`; validation
+was originally performed across the `beffed3` guidance cleanup and the
+subsequent `c814d95` closeout-note commit):
 
 ```powershell
 python tools\validate_conformance.py --strict --profile-projection --extension-registry --conformance-classes --encoding-negative --precision-policy --release-manifest --release-package --bad-events --adapter-harness
@@ -538,8 +555,8 @@ only because multiple tests bound the same localhost UDP ports; sequential
 reruns on unique ports passed. Docker Compose rendered all three configs
 successfully with local `C:\Users\User\.docker\config.json` access warnings
 only. GitHub PR and issue list checks returned no open items. GitHub CI passed
-for pushed commit `beffed3`. Final local status was clean against
-`origin/main`.
+for pushed commit `c814d95` as run `27447655568`. Final local status was clean
+against `origin/main`.
 
 Earlier validation for the P1-04R review fixes on branch
 `review/pr2-frame-fixes` (2026-06-12, Windows, Python):

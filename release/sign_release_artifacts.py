@@ -11,7 +11,7 @@ import subprocess
 from pathlib import Path
 
 
-VERSION = "v1.1.8"
+VERSION = "v1.1.9"
 
 
 def _release_dir() -> Path:
@@ -173,7 +173,7 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Generate SHA256SUMS and detached PGP signatures for release artifacts."
     )
-    parser.add_argument("--version", default=VERSION, help="Release version tag, e.g. v1.1.8.")
+    parser.add_argument("--version", default=VERSION, help="Release version tag, e.g. v1.1.9.")
     parser.add_argument("--release-dir", default=str(_release_dir()), help="Directory containing artifacts.")
     parser.add_argument("--write-checksums", action="store_true", help="Rewrite SHA256SUMS_<version>.txt.")
     parser.add_argument("--verify-checksums", action="store_true", help="Verify SHA256SUMS_<version>.txt.")

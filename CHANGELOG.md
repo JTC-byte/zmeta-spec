@@ -1,6 +1,13 @@
 # Changelog
 
 ## [Unreleased]
+
+## [1.1.9] - 2026-06-18
+- Refreshed the README-linked documentation surface after the v1.1.8 closeout:
+  `spec/installation-guide.md` now points new installs at the maintained
+  `configs/` templates, documents Docker/mapping-pack/validation boundaries,
+  and the handoff/worklog no longer treat the pre-closeout `beffed3` cleanup
+  commit as the latest pushed integration baseline.
 - Clarified v1.1.8 current-main upgrade guidance for Moth tunnel/replay
   bearings, MAVLink headings, Kraken heading compensation, and Kraken CSV SNR
   omission. The docs now also state explicitly that `bearing.frame`,
