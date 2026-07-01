@@ -1,0 +1,204 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/JTC-byte/zmeta-spec/blob/main/schema/zmeta-event-1.2.0.schema.json",
+  "title": "ZMeta Event v1.2.0",
+  "description": "Canonical envelope for a ZMeta event. v1.2.0 adds four backward-compatible additions over v1.1.0: event.correlation, event.payload_schema_uri, event.payload_cardinality, and payload.media[]. All additions are optional; v1.1.0 senders' messages remain valid v1.2.0 messages.",
+  "type": "object",
+  "required": ["zmeta_version", "event", "source", "payload"],
+  "additionalProperties": true,
+  "properties": {
+    "zmeta_version": {
+      "type": "string",
+      "description": "Spec version this event targets. Senders SHOULD set '1.2.0' when emitting v1.2 fields; v1.2-aware consumers MUST accept '1.1.0' senders verbatim.",
+      "enum": ["1.1.0", "1.2.0"]
+    },
+
+    "event": {
+      "type": "object",
+      "required": ["event_type", "ts"],
+      "additionalProperties": true,
+      "properties": {
+        "event_id": {
+          "type": "string",
+          "description": "Unique identifier for this event instance. Typically a UUID."
+        },
+        "event_type": {
+          "type": "string",
+          "description": "Top-level event category. Unchanged from v1.1.0.",
+          "enum": [
+            "OBSERVATION_EVENT",
+            "INFERENCE_EVENT",
+            "FUSION_EVENT",
+            "STATE_EVENT",
+            "COMMAND_EVENT",
+            "SYSTEM_EVENT"
+          ]
+        },
+        "event_subtype": {
+          "type": "string",
+          "description": "Domain-specific discriminator under event_type. Free-form by spec; see spec/subtype-registry-seed.md for proposed common values."
+        },
+        "ts": {
+          "type": "string",
+          "format": "date-time",
+          "description": "ISO-8601 timestamp at which the event happened (NOT publication time)."
+        },
+
+        "correlation": {
+          "type": "object",
+          "description": "NEW in v1.2: cross-sensor correlation identity, populated by a fusion engine. Absent until the entity has been correlated. See spec/correlation-semantics.md.",
+          "additionalProperties": false,
+          "properties": {
+            "correlation_id": {
+              "type": "string",
+              "description": "Stable identifier for the real-world entity this event is about. Assigned by the fusion engine; persists across sensor handoffs."
+            },
+            "primary_alias": {
+              "$ref": "#/$defs/Alias",
+              "description": "Most-specific known identifier (e.g., MMSI preferred over ICAO24 preferred over an internal track id)."
+            },
+            "aliases": {
+              "type": "array",
+              "description": "All known aliases for this entity, across all schemes.",
+              "items": { "$ref": "#/$defs/Alias" }
+            },
+            "confidence": {
+              "type": "number",
+              "minimum": 0.0,
+              "maximum": 1.0,
+              "description": "Fusion engine's confidence in this correlation."
+            },
+            "fusion_revision": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Bumps every time the set of bonded contributors changes."
+            }
+          }
+        },
+
+        "payload_schema_uri": {
+          "type": "string",
+          "format": "uri",
+          "description": "NEW in v1.2: URI pointing at the schema the `payload` conforms to. ZMeta does not host payload schemas; this field merely identifies them. See spec/payload-typing.md."
+        },
+
+        "payload_cardinality": {
+          "type": "string",
+          "description": "NEW in v1.2: declares whether the payload describes one entity or a snapshot of many. When 'snapshot', validators require payload.entries[]. See spec/payload-typing.md.",
+          "enum": ["single", "snapshot"],
+          "default": "single"
+        }
+      }
+    },
+
+    "source": {
+      "type": "object",
+      "description": "The platform that produced this event.",
+      "required": ["platform_id"],
+      "additionalProperties": true,
+      "properties": {
+        "platform_id": {
+          "type": "string",
+          "description": "Stable identifier for the source platform (sensor, service, ingestor)."
+        }
+      }
+    },
+
+    "payload": {
+      "type": "object",
+      "description": "Domain-specific event payload. Validated against `event.payload_schema_uri` if provided. When `event.payload_cardinality == 'snapshot'`, MUST contain `entries[]`.",
+      "additionalProperties": true,
+      "properties": {
+        "entries": {
+          "type": "array",
+          "description": "Required when payload_cardinality is 'snapshot'. Each item is one entity in the snapshot.",
+          "items": { "type": "object" }
+        },
+        "media": {
+          "type": "array",
+          "description": "NEW in v1.2: standardized convention for binary attachments. Each entry references an out-of-band blob (with optional inline preview). See spec/media-attachments.md.",
+          "items": { "$ref": "#/$defs/MediaAttachment" }
+        }
+      }
+    }
+  },
+
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "event": {
+            "properties": {
+              "payload_cardinality": { "const": "snapshot" }
+            },
+            "required": ["payload_cardinality"]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "required": ["entries"]
+          }
+        }
+      }
+    }
+  ],
+
+  "$defs": {
+    "Alias": {
+      "type": "object",
+      "required": ["scheme", "value"],
+      "additionalProperties": false,
+      "properties": {
+        "scheme": {
+          "type": "string",
+          "description": "Identifier scheme. Common values: MMSI, ICAO24, callsign, internal."
+        },
+        "value": {
+          "type": "string",
+          "description": "The identifier value under the named scheme."
+        }
+      }
+    },
+
+    "MediaAttachment": {
+      "type": "object",
+      "required": ["ref", "content_type"],
+      "additionalProperties": true,
+      "properties": {
+        "ref": {
+          "type": "string",
+          "description": "Where to fetch the binary. URL (http/https), URI (mqtt-blob/ipfs/etc.), or relative path. Consumers fetch lazily."
+        },
+        "content_type": {
+          "type": "string",
+          "description": "RFC-6838 media type, or a custom application/x-* type for project-specific formats."
+        },
+        "size_bytes": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Size of the referenced blob, if known."
+        },
+        "etag": {
+          "type": "string",
+          "description": "Strong identifier for the blob's content. Consumers MAY use as a cache key. Recommended format: 'sha256:HEX'."
+        },
+        "valid_until": {
+          "type": "string",
+          "format": "date-time",
+          "description": "If set, the ref is expected to be valid only until this ISO-8601 timestamp."
+        },
+        "preview": {
+          "type": ["string", "null"],
+          "description": "Optional inline preview as a data URI. RECOMMENDED only when the encoded preview is <= 4 KB."
+        },
+        "metadata": {
+          "type": "object",
+          "description": "Free-form metadata about the blob (bbox, resolution, framerate, etc.). Schema is content_type-specific.",
+          "additionalProperties": true
+        }
+      }
+    }
+  }
+}

@@ -13,6 +13,11 @@
       "title": "ZMetaEvent_v1_1_0",
       "$comment": "v1.0 invariants plus v1.1.0 extension vocabulary.",
       "$ref": "https://praesens.io/schemas/zmeta-event-1.1.0.schema.json"
+    },
+    {
+      "title": "ZMetaEvent_v1_2_0",
+      "$comment": "v1.1.0 vocabulary plus v1.2.0 backward-compatible envelope additions (correlation, payload typing, media). See spec/versioning notes.",
+      "$ref": "https://praesens.io/schemas/zmeta-event-1.2.0.schema.json"
     }
   ]
 }

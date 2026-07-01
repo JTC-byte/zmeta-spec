@@ -26,6 +26,14 @@ message Event {
   string ts = 4;
   optional string t_publish = 5;
   optional string t_receive = 6;
+
+  // v1.2 addition: lifted from event.correlation.correlation_id in the
+  // canonical JSON envelope so receivers can filter/index without parsing
+  // payload_json. The full event.correlation object (type, parent, extras)
+  // rides in the canonical JSON envelope. Senders that do not use
+  // correlation leave this empty. Proto3 unknown-field semantics mean a
+  // v1.1 receiver decoding a v1.2 message drops this field silently.
+  optional string correlation_id = 7;
 }
 
 message Source {

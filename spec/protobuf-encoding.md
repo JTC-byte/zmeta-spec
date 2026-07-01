@@ -142,3 +142,69 @@ to a normative or stable reference encoding in a future release.
 
 Once promoted, field numbers must be treated as permanent and compatibility
 rules must reserve removed fields instead of reusing them.
+
+
+# Protobuf encoding — v1.2 addendum
+
+This addendum extends `spec/protobuf-encoding.md`. When merging
+upstream, append the content below to the existing protobuf encoding
+document under a new heading. **Do not replace the file.**
+
+---
+
+## v1.2 additions
+
+The v1.2 protobuf wire format extends v1.1 with a single new top-level
+scalar so receivers can filter by `correlation_id` without parsing the
+JSON payload. All other v1.2 additions ride inside `payload_json` and
+are recovered when the receiver decodes the canonical JSON object.
+
+The canonical proto definition is in `proto/zmeta_event.proto`.
+
+### Wire fields after v1.2
+
+```protobuf
+message ZmetaEvent {
+  string zmeta_version = 1;   // unchanged from v1.1
+  string event_id      = 2;   // unchanged
+  string event_type    = 3;   // unchanged
+  string event_subtype = 4;   // unchanged
+  string ts            = 5;   // unchanged
+  string platform_id   = 6;   // unchanged (lifted from source.platform_id)
+  bytes  payload_json  = 7;   // unchanged — canonical UTF-8 JSON of the full event
+
+  // NEW in v1.2: indexable correlation id, lifted from
+  // event.correlation.correlation_id so receivers can filter on it
+  // without unmarshalling payload_json.
+  string correlation_id = 8;
+}
+```
+
+### Backward compatibility
+
+- A v1.1 receiver decoding a v1.2 message: proto3 unknown-field
+  semantics drop field 8 silently. The v1.2 event is still recovered
+  from `payload_json`.
+- A v1.2 receiver decoding a v1.1 message: field 8 reads as the proto3
+  default (empty string), identical to a v1.2 sender that has not yet
+  been correlated.
+
+### Why only correlation_id is lifted
+
+The other v1.2 additions (`payload_schema_uri`, `payload_cardinality`,
+`payload.media[]`) stay inside `payload_json`. Rationale: they're either
+infrequent (`payload_schema_uri` is typically constant per
+`event_subtype`) or structural (`payload_cardinality` and `media[]`)
+and don't benefit from broker-side filtering. Receivers parse the JSON
+to access them.
+
+`correlation_id` is the exception because filtering on it — "give me
+every event about this fused track regardless of source" — is a hot
+path for tactical bridges (CoT, JREAP) and per-correlation_id MQTT
+subscriptions.
+
+### No wire-level magic prefix
+
+Preserved from v1.1: there is no length prefix, magic bytes, or
+framing byte preceding the proto message. The transport (MQTT topic,
+UDP datagram, etc.) carries framing duties.
