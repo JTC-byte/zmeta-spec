@@ -88,3 +88,8 @@ promise.
 - Never create tags, push branches, upload releases, generate signatures, or
   rewrite published checksums unless explicitly asked (see `AGENTS.md` release
   limits).
+- **Commit attribution is human-only.** Attribute commits and PRs to the human
+  maintainer alone. Do **not** add `Co-Authored-By` trailers naming Claude, and
+  do not list the agent as a contributor — every contributor in the stack works
+  through Claude, so the repo's history tracks *people*, not the tool. This
+  applies to commits and PRs, not to agent-guidance files like this one.
