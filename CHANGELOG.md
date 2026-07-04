@@ -2,6 +2,53 @@
 
 ## [Unreleased]
 
+## [1.1.10] - 2026-07-03
+- Command-altitude enforcement hardened: `policy/semantics.yaml`
+  `command_event.payload_must_not_contain` expanded from `[alt, alt_m,
+  altitude]` to the full contract §7.8 altitude set (adds `altitude_m`,
+  `alt_hae_m`, `alt_msl_m`, `agl_m`, `target_alt_m`, `target_altitude`; bare
+  `alt` retained as a defensive superset). `COMMAND_EVENT` must not specify
+  altitude at any nesting depth in payload, `target_geo`, `geometry`, or
+  `extensions`; vertical deconfliction remains with the receiving autonomy.
+- STATE laundering enforcement hardened: `state_event.payload_must_not_contain`
+  expanded from `[features, raw_features]` to the full contract §7.7 set (adds
+  `modality`, `measurement`, `measurements`, `t_start`, `t_end`, `data_ref`,
+  `data_refs`), and the STATE semantic check in `gateway/src/validators.py` now
+  recurses via `_find_forbidden_key` (case-insensitive, reporting
+  `{field, path}`) like the observation/inference/command branches. Nested raw
+  features, measurements, observation timestamps, and raw-artifact pointers can
+  no longer launder into a STATE projection.
+- Adapter calibration honesty: the Kraken and Moth reference adapters no longer
+  hardcode `calibration_state: CALIBRATED`. `calibration_state` is now a keyword
+  parameter defaulting to the conservative, honest `UNCALIBRATED` (enum
+  `CALIBRATED`/`UNCALIBRATED`/`DEGRADED`), so `CALIBRATED`/`DEGRADED` are
+  asserted only when a deployment substantiates them — mirroring the existing
+  `platform_heading_deg` convert-or-config pattern. SignalHunter was already
+  honest.
+- Egress MAVLink command guard aligned: the altitude guard in
+  `adapters/egress/mavlink/zmeta_command_to_mission_intent.py` expanded from
+  `{alt, alt_m, altitude}` to the full §7.8 set, so the command→mission-intent
+  projection refuses altitude at any nesting depth.
+- Denylist key normalization: the semantic forbidden-key check
+  (`_find_forbidden_key`) and the egress MAVLink altitude guard now strip and
+  casefold keys before matching, so whitespace- or case-padded copies of a
+  reserved name (e.g. `"features "`, `"alt_hae_m "`) can no longer evade the
+  STATE/command denylists that the schema pins only for the exact bytes. The
+  remaining residual — arbitrarily *renamed* raw content or altitude (e.g.
+  `z_m`) in free-form objects — is the inherent limit of a name denylist;
+  closed payload schemas plus producer conformance, not denylist growth, are
+  the mitigation.
+- Conformance: added eleven `conformance/bad-events/must-fail.jsonl` fixtures
+  exercising deep-nested (schema-valid) STATE laundering across every §7.7
+  category, case-insensitive and whitespace-padded evasion, and command altitude
+  nested in `extensions` across §7.8 field names; added direct
+  `validate_semantics` unit tests asserting the new `{field, path}` STATE detail
+  shape. Enforcement was adversarially verified (100+ empirical bypass attempts).
+- These changes align policy and reference enforcement with the
+  already-normative semantics contract §7.7/§7.8; they add no schema or locked
+  v1.0/v1.1.0 vocabulary. Tightened enforcement rejects events that were always
+  contract-violating.
+
 ## [1.1.9] - 2026-06-18
 - Refreshed the README-linked documentation surface after the v1.1.8 closeout:
   `spec/installation-guide.md` now points new installs at the maintained

@@ -1,6 +1,6 @@
 # ZMeta Refinement Handoff Notes
 
-Status date: 2026-06-18
+Status date: 2026-07-03
 
 This note is the quick resume point for the current ZMeta refinement effort. The full task history and deferred issue register are in `docs/zmeta_refinement_worklog.md`.
 
@@ -10,6 +10,44 @@ The semantic contract has been audited, rewritten, and crosswalked against the c
 
 Current stack status:
 
+- S1-24 (2026-07-03) prepared the v1.1.10 fielded-safety enforcement release on
+  current `main`, aligning policy and reference enforcement with the
+  already-normative semantics contract §7.7/§7.8. No schema or v1.0/v1.1.0
+  vocabulary change; tightened enforcement rejects events that were always
+  contract-violating.
+  - Command altitude: `command_event.payload_must_not_contain` now carries the
+    full §7.8 set (bare `alt` retained as a superset); `COMMAND_EVENT` altitude
+    is refused at any nesting depth (payload/target_geo/geometry/extensions).
+    The egress MAVLink command→mission-intent altitude guard was aligned to the
+    same set.
+  - STATE laundering: the STATE branch in `gateway/src/validators.py` now
+    recurses via `_find_forbidden_key` (case-insensitive, reports
+    `{field, path}`) like its sibling branches and enforces the full §7.7
+    raw-artifact list; deep-nested raw features/measurements/observation
+    timestamps/data-refs no longer launder into a STATE projection.
+  - Adapter honesty: Kraken and Moth no longer hardcode
+    `quality.calibration_state: CALIBRATED`; it is now a keyword parameter
+    defaulting to the conservative `UNCALIBRATED`, asserted otherwise only when
+    a deployment substantiates it. SignalHunter was already honest.
+  - Hardening from adversarial verification: the semantic forbidden-key check
+    (`_find_forbidden_key`) and the egress MAVLink altitude guard now
+    strip+casefold keys before matching, closing a whitespace-/case-padding
+    bypass of the exact-name denylists across all four event families. The
+    residual — arbitrarily *renamed* raw content/altitude in free-form objects
+    (e.g. `z_m`) — is the inherent limit of a name denylist (closed schemas +
+    producer conformance are the mitigation, not denylist growth).
+  - Coverage/validation: eleven new deep-nested (schema-valid) bad-event
+    fixtures in `conformance/bad-events/must-fail.jsonl` (total 21) plus two
+    direct `validate_semantics` unit tests; enforcement was adversarially
+    verified with 100+ empirical bypass attempts. The release manifest and
+    example claims were regenerated for `zmeta-v1.1.10` (2026-07-03). The full
+    kernel gate (incl. `--release-manifest --release-package --bad-events
+    --adapter-harness`) and pytest (`444 passed`, 110 subtests) are green.
+  - Remaining is release-authority only and was NOT performed by the agent:
+    create the `v1.1.10` tag, generate detached signatures (signing re-enabled
+    after the v1.1.5–1.1.9 checksums-only gap), and publish
+    `SHA256SUMS_v1.1.10.txt`. Published v1.1.9 assets/checksums/signatures are
+    unchanged.
 - The P1-04 bearing reference-frame integrity pass and P1-04R review fixes are
   adopted on `main` for v1.1.8. Schema 1.1.0 gained the optional
   `bearing.frame` marker; the locked v1.0 schema is untouched.

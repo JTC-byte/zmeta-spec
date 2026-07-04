@@ -122,6 +122,82 @@ class GatewaySmokeTest(unittest.TestCase):
         self.assertFalse(ok)
         self.assertEqual(violations[0]["code"], "SCHEMA_INVALID")
 
+    def test_state_with_nested_raw_features_is_semantically_rejected(self):
+        # raw_features buried >=2 levels deep is schema-valid (extensions is
+        # additionalProperties:true), so it slips past the schema and must be
+        # caught by the recursive semantic check. The former top-level-only
+        # STATE check would have missed this laundering path.
+        event = {
+            "zmeta_version": "1.0",
+            "event": {
+                "event_id": str(uuid7()),
+                "event_type": "STATE_EVENT",
+                "event_subtype": "TRACK_STATE",
+                "ts": "2025-01-17T14:32:10Z",
+            },
+            "source": {
+                "platform_id": "fusion-node-01",
+                "node_role": "GATEWAY",
+                "producer": "torch",
+            },
+            "payload": {
+                "track_id": "track-1",
+                "geo": {"lat": 40.0, "lon": -75.0, "alt_m": 120.5},
+                "valid_for_ms": 1000,
+                "extensions": {"render": {"raw_features": {"center_freq_hz": 2450000000}}},
+            },
+            "confidence": 0.9,
+            "lineage": {"based_on": [str(uuid7())]},
+        }
+
+        ok, violations = validators.validate_schema(event, self.validator, self.policy["violation_severities"])
+        self.assertTrue(ok)
+        ok, violations = validators.validate_semantics(event, self.policy["semantics"], self.policy["violation_severities"])
+        self.assertFalse(ok)
+        self.assertEqual(violations[0]["code"], "STATE_HAS_RAW_FEATURES")
+        self.assertEqual(violations[0]["details"]["field"], "raw_features")
+        self.assertEqual(violations[0]["details"]["path"], "extensions/render/raw_features")
+
+    def test_command_with_nested_altitude_is_semantically_rejected(self):
+        # alt_hae_m buried in a free-form extension object is schema-valid but
+        # must be rejected: COMMAND_EVENT SHALL NOT specify altitude at any
+        # depth; the receiving autonomy deconflicts vertical internally.
+        event = {
+            "zmeta_version": "1.0",
+            "event": {
+                "event_id": str(uuid7()),
+                "event_type": "COMMAND_EVENT",
+                "event_subtype": "GOTO",
+                "ts": "2025-01-17T14:32:10Z",
+            },
+            "source": {
+                "platform_id": "gateway-node-01",
+                "node_role": "GATEWAY",
+                "producer": "sensorops",
+            },
+            "payload": {
+                "task_id": "task-1",
+                "task_type": "GOTO",
+                "target_geo": {"lat": 40.0, "lon": -75.0},
+                "valid_for_ms": 60000,
+                "requires_deconfliction": True,
+                "extensions": {"waypoint": {"alt_hae_m": 120.0}},
+                "timing_quality": {
+                    "time_source": "GPS_PPS",
+                    "sync_state": "LOCKED",
+                    "est_error_ms": 1,
+                    "last_sync_ts": "2025-01-17T14:29:59Z",
+                },
+            },
+        }
+
+        ok, violations = validators.validate_schema(event, self.validator, self.policy["violation_severities"])
+        self.assertTrue(ok)
+        ok, violations = validators.validate_semantics(event, self.policy["semantics"], self.policy["violation_severities"])
+        self.assertFalse(ok)
+        self.assertEqual(violations[0]["code"], "COMMAND_HAS_ALTITUDE")
+        self.assertEqual(violations[0]["details"]["field"], "alt_hae_m")
+
     def test_rf_window_midpoint_mismatch_is_rejected(self):
         event = {
             "zmeta_version": "1.0",

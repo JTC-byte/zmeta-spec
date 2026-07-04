@@ -80,6 +80,7 @@ def translate_csv_row(
     platform_heading_deg=None,
     array_offset_deg=0.0,
     heading_source=None,
+    calibration_state="UNCALIBRATED",
 ):
     """Translate a single Kraken DOA CSV row into a ZMeta OBSERVATION_EVENT.
 
@@ -161,7 +162,7 @@ def translate_csv_row(
                     "unit": "deg",
                     "metric": "1_SIGMA",
                 },
-                "calibration_state": "CALIBRATED",
+                "calibration_state": calibration_state,
                 "geo_status": "AVAILABLE" if geo else "UNAVAILABLE",
             },
             "timing_quality": coerce_timing_quality(event_ts=ts_iso),
@@ -188,6 +189,7 @@ def translate_json(
     platform_heading_deg=None,
     array_offset_deg=0.0,
     heading_source=None,
+    calibration_state="UNCALIBRATED",
 ):
     """Translate a Kraken JSON replay dict into a ZMeta OBSERVATION_EVENT.
 
@@ -246,7 +248,7 @@ def translate_json(
             "unit": "deg",
             "metric": "1_SIGMA",
         },
-        "calibration_state": "CALIBRATED",
+        "calibration_state": calibration_state,
     }
     if snr is not None:
         quality["snr_db"] = snr
@@ -296,6 +298,7 @@ def translate_http_body(
     platform_heading_deg=None,
     array_offset_deg=0.0,
     heading_source=None,
+    calibration_state="UNCALIBRATED",
 ):
     """Translate a full Kraken DOA HTTP response body into ZMeta events.
 
@@ -322,6 +325,7 @@ def translate_http_body(
             platform_heading_deg=platform_heading_deg,
             array_offset_deg=array_offset_deg,
             heading_source=heading_source,
+            calibration_state=calibration_state,
         )
         if evt is not None:
             events = [evt]

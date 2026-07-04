@@ -1,8 +1,8 @@
 manifest_version: 1
-release_id: zmeta-v1.1.9
-release_name: ZMeta v1.1.9
+release_id: zmeta-v1.1.10
+release_name: ZMeta v1.1.10
 release_status: formal_release
-release_date: '2026-06-18'
+release_date: '2026-07-03'
 zmeta_versions:
   normative:
   - '1.0'
@@ -18,18 +18,18 @@ hash_canonicalization:
   release_manifest_hash: sha256 over canonical YAML manifest content with release_manifest_hash set to null
 semantic_contract_hash: sha256:4a5e1d1439478896aacc8e975c161af0cf899fee4b293b575c9de76224da5086
 schema_bundle_hash: sha256:89484bdaceca86c77c47a9bf6902f8ee4c60035d66cbe4206de1f54b975785ef
-policy_bundle_hash: sha256:17aa9bc036cf19d4786755c25538080f82f313a5f3c85e6e877e554251dce30f
+policy_bundle_hash: sha256:23b7fff745beb83a647f93ba2fab3557bed49816cec51179f28709b8ef960e13
 extension_registry_hash: sha256:b973ca515cfcdbb82b5b36e1bb448171092d50bd9e6db041531b2e3a83914e64
 conformance_class_manifest_hash: sha256:6a3a9d930cc06d5228cb2d1ad8b42a91048425ff1e500bf7bfee3528bf2b4524
 profile_projection_catalog_hash: sha256:bae61b3a01cc0a3c2aa1f90391f231d40484175280bce9dbb43371eb0ea04341
 encoding_negative_suite_hash: sha256:d36e2109e535fde0dd191b92fd3a7dbd07839ce3539b3d9fdf5dd8aed04487b0
 profile_precision_policy_hash: sha256:a2f51cf5f0779c43ae4118b941524fb14783181c739e693befd146f8c44a1139
-bad_event_corpus_hash: sha256:eeed7321ed7677e26cc9d4270f916f5c285f36e56c10ac589961d3f7c64f2493
+bad_event_corpus_hash: sha256:99adc6211481f9b7586fb3ce171c23e925711a258535291ba7e5cf8987d969fd
 adapter_conformance_hash: sha256:859c736cbbb0be8529d3c28cd761ebf07409a9caff7acc8fc0a74c9c2e5ffae5
 encoding_projection_specs_hash: sha256:70d0db35710e93dcdd8e923ec67864950df1af8be3259233b93df894f8d0f171
 process_governance_hash: sha256:13580a728b0785e475170f31a96e6097f2e5b5aedfbdc7867ed482b33be561d4
-release_bundle_hash: sha256:0992089b67d1bf304d1355cdaba5559b15862e7d16cfb2812e5eef6058671995
-release_manifest_hash: sha256:5fe82fedc32240de38a784989963ea09eb3598c2351efd5f4ae154368ca6e7e8
+release_bundle_hash: sha256:f8feda8abd2b172375623431b3a4f3bb0bff24f28679161fb3cac3cae390f7cd
+release_manifest_hash: sha256:b519c0ee9eabadb268df579bfd6d43c4c85858b7f37d53cd5ee5b4ea3e70fdf2
 artifact_hashes:
 - path: AGENTS.md
   group: process_governance
@@ -65,15 +65,15 @@ artifact_hashes:
   canonicalization: text_lf
 - path: conformance/bad-events/must-fail.jsonl
   group: bad_event_corpus
-  hash: sha256:4d77fc7190b9ec4dbdd7f1db15a38a6a3b4b7ffcb45aa066a64e4d126893dc08
+  hash: sha256:72635708a0418e60a615ca1940e6712cd30bf20e23b8a6e1b5d82cf0b2bf2254
   canonicalization: text_lf
 - path: conformance/claims/example-core-producer.yaml
   group: claims
-  hash: sha256:e263ade2bcd0526caaeaec7509bf743a2d51bc438bdc9542605d072667ef4206
+  hash: sha256:b71e85bfffc1c3d4a0f2bca6cd97fae2779d5eb131f2bbd2eb3cd818d44a2071
   canonicalization: text_lf
 - path: conformance/claims/example-reference-gateway.yaml
   group: claims
-  hash: sha256:5869a6e7d6046ad09a8866b8d8c0da3c81ec656f2a0013f572df131964dd2863
+  hash: sha256:ae9f26af6d038649616251ace0700ac081eccd364a8d3e494397d3a9de576348
   canonicalization: text_lf
 - path: conformance/conformance_classes.yaml
   group: conformance_classes
@@ -169,7 +169,7 @@ artifact_hashes:
   canonicalization: text_lf
 - path: policy/semantics.yaml
   group: policy_bundle
-  hash: sha256:74210a86cb982e9309d509c398f6a78826e01ce8714d897d030e2705906cc519
+  hash: sha256:db60d227ba6c11ddf64e5c4cf44f1671ce063d37b88b9aa5d86c77391e1e0254
   canonicalization: text_lf
 - path: policy/timing-freshness.yaml
   group: policy_bundle
@@ -326,7 +326,7 @@ artifact_groups:
     - policy/semantics.yaml
     - policy/timing-freshness.yaml
     - policy/violation-codes.yaml
-    hash: sha256:17aa9bc036cf19d4786755c25538080f82f313a5f3c85e6e877e554251dce30f
+    hash: sha256:23b7fff745beb83a647f93ba2fab3557bed49816cec51179f28709b8ef960e13
   extension_registry:
     description: Machine-readable extension and reserved-vocabulary registry.
     paths:
@@ -371,7 +371,7 @@ artifact_groups:
     description: Semantic bad-event fixtures that must not be accepted as clean data.
     paths:
     - conformance/bad-events/must-fail.jsonl
-    hash: sha256:eeed7321ed7677e26cc9d4270f916f5c285f36e56c10ac589961d3f7c64f2493
+    hash: sha256:99adc6211481f9b7586fb3ce171c23e925711a258535291ba7e5cf8987d969fd
   adapter_conformance:
     description: Shared adapter harness fixtures for representative adapter outputs.
     paths:
@@ -392,7 +392,7 @@ artifact_groups:
     paths:
     - conformance/claims/example-core-producer.yaml
     - conformance/claims/example-reference-gateway.yaml
-    hash: sha256:b17c7c5a5dfecd27264265be09d89eb14a47f0aa43b38fe8ae112b0bc616cfdd
+    hash: sha256:36d4f0a661b0da45bbd78c2b9115c0be7a27257cbb5df0106ffc4eb6193479d1
   release_policy:
     description: Human-readable release hash taxonomy and canonicalization policy.
     paths:

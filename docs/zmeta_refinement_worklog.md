@@ -2,12 +2,22 @@
 
 ## Current Resume Note
 
-- Last updated: 2026-06-18
+- Last updated: 2026-07-03
 - Quick handoff: `docs/zmeta_refinement_handoff.md`
-- Current next work item: none required for the current downstream integration
-  baseline. Optional future work remains S1-11B future-branch roadmap artifact,
-  adapter-harness breadth from real sensor captures, release-authority
-  signatures, or deployment/container runtime breadth.
+- Current next work item: S1-24 prepared the v1.1.10 fielded-safety enforcement
+  release on current `main` — command-altitude denylist completion to the full
+  §7.8 set, a recursive STATE laundering check with whitespace/case key
+  normalization plus the full §7.7 list, adapter calibration honesty
+  (Kraken/Moth stop hardcoding `CALIBRATED`; default conservative
+  `UNCALIBRATED`), and egress MAVLink altitude-guard alignment — with eleven new
+  deep-nested bad-event fixtures, two direct `validate_semantics` unit tests,
+  adversarial bypass verification, and a regenerated release manifest and
+  claims. The full kernel gate and pytest are green. Remaining is
+  release-authority only: tag `v1.1.10`, generate detached signatures (signing
+  re-enabled after the v1.1.5–1.1.9 checksums-only gap), and publish
+  `SHA256SUMS_v1.1.10.txt`. Optional future work remains S1-11B future-branch
+  roadmap artifact, adapter-harness breadth from real sensor captures, or
+  deployment/container runtime breadth.
 - Current-main audit note: the final baseline audit corrected two missed
   current-facing guidance examples to the `v1.1.8` target: the adapter
   `check_compat` invocation and the change-governance manifest rebuild command.

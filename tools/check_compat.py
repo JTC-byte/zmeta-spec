@@ -22,6 +22,7 @@ TARGETS = (
     "v1.1.7",
     "v1.1.8",
     "v1.1.9",
+    "v1.1.10",
 )
 
 TIMESTAMP_KEYS = {
@@ -86,7 +87,7 @@ def parse_args():
     parser.add_argument("file", help="ZMeta JSON or JSONL file to check.")
     parser.add_argument(
         "--target",
-        default="v1.1.9",
+        default="v1.1.10",
         choices=TARGETS,
         help="Release target to check against. v1.1.x keeps zmeta_version 1.0 and 1.1.0.",
     )

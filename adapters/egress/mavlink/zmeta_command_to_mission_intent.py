@@ -1,8 +1,24 @@
+# Canonical altitude field names a COMMAND_EVENT must never carry (semantics
+# contract 7.8). COMMAND_EVENT SHALL NOT specify altitude - the receiving
+# autonomy/drone deconflicts vertical internally. This egress guard rejects a
+# command whose projected geometry (target_geo, geometry) carries an altitude
+# field at any depth within those objects, so no vertical intent reaches the
+# mission-intent output. The authoritative, whole-payload altitude gate is the
+# gateway validator (COMMAND_HAS_ALTITUDE); this set is kept a superset of, and
+# in sync with, policy/semantics.yaml command_event.payload_must_not_contain.
+_ALTITUDE_FIELDS = frozenset({
+    "alt", "alt_m", "altitude", "altitude_m", "alt_hae_m", "alt_msl_m",
+    "agl_m", "target_alt_m", "target_altitude",
+})
+
+
 def _contains_altitude(value):
     if isinstance(value, dict):
         for key, item in value.items():
-            key_lc = str(key).lower()
-            if key_lc in {"alt", "alt_m", "altitude"}:
+            # strip+casefold so whitespace-/case-padded altitude keys cannot
+            # slip the guard (matches the gateway validator's key normalization).
+            key_lc = str(key).strip().casefold()
+            if key_lc in _ALTITUDE_FIELDS:
                 return True
             if _contains_altitude(item):
                 return True

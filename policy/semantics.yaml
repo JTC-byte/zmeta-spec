@@ -12,15 +12,38 @@ semantics:
     payload_must_not_contain:
       - track_id
   state_event:
+    # Full contract 7.7 raw-artifact denylist. A STATE projection is a fused
+    # summary and MUST NOT re-carry raw observation features, measurements,
+    # observation modality, observation timestamps, or raw artifact references.
+    # Enforced recursively, so nesting inside extensions/objects cannot launder
+    # a raw field into an operator-facing state event.
     payload_must_not_contain:
       - features
       - raw_features
+      - modality
+      - measurement
+      - measurements
+      - t_start
+      - t_end
+      - data_ref
+      - data_refs
   command_event:
     requires_deconfliction: true
+    # Full contract 7.8 altitude denylist. COMMAND_EVENT SHALL NOT specify
+    # altitude; the receiving autonomy/drone deconflicts vertical internally, so
+    # a command must never carry it (in payload, target_geo, geometry, or
+    # extensions - the recursive check covers all nesting). Bare `alt` is kept
+    # as a defensive superset of the eight names the contract enumerates.
     payload_must_not_contain:
       - alt
       - alt_m
       - altitude
+      - altitude_m
+      - alt_hae_m
+      - alt_msl_m
+      - agl_m
+      - target_alt_m
+      - target_altitude
     dedupe_key: task_id
   timing_quality:
     required: true

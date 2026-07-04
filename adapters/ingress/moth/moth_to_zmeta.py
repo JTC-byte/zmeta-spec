@@ -190,7 +190,7 @@ def translate_serial_line(line, *, platform_id, sensor_geo=None, sensor_id=None,
 
 def translate_tunnel_payload(payload_bytes, *, platform_id, sensor_geo=None,
                               sensor_id=None, timestamp_ms=None,
-                              bearing_frame=None):
+                              bearing_frame=None, calibration_state="UNCALIBRATED"):
     """Translate a MAVLink TUNNEL payload (32 bytes) into a ZMeta event.
 
     The TUNNEL message contains a full LOB with bearing, frequency, power,
@@ -229,7 +229,7 @@ def translate_tunnel_payload(payload_bytes, *, platform_id, sensor_geo=None,
     }
 
     quality = {
-        "calibration_state": "CALIBRATED",
+        "calibration_state": calibration_state,
     }
     bearing = None
     if bearing_frame == "TRUE_NORTH":
@@ -370,7 +370,7 @@ def translate_custom_mavlink(frame_bytes, *, platform_id, sensor_geo=None,
 
 
 def translate_json_replay(raw, *, platform_id, sensor_geo=None, sensor_id=None,
-                          bearing_frame=None):
+                          bearing_frame=None, calibration_state="UNCALIBRATED"):
     """Translate a Moth JSON replay dict into a ZMeta event.
 
     Used for offline replay / bench testing. Accepts the structured dict
@@ -417,7 +417,7 @@ def translate_json_replay(raw, *, platform_id, sensor_geo=None, sensor_id=None,
     }
 
     quality = {
-        "calibration_state": "CALIBRATED",
+        "calibration_state": calibration_state,
     }
     bearing = None
     if bearing_obj.get("az_deg") is not None and bearing_frame == "TRUE_NORTH":

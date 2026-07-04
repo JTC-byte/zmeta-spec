@@ -291,11 +291,20 @@ def _resolve_path(value, dotted_path):
     return target
 
 
+def _normalize_key(value):
+    # Normalize a key for denylist comparison: strip surrounding whitespace and
+    # casefold, so whitespace- or case-padded copies of a reserved name (e.g.
+    # "features ", "\tRAW_FEATURES") cannot slip past the semantic denylist that
+    # the schema pins only for the exact bytes. Both the payload key and the
+    # forbidden set are normalized the same way for a symmetric compare.
+    return str(value).strip().casefold()
+
+
 def _find_forbidden_key(value, forbidden_keys):
     if isinstance(value, dict):
         for key, item in value.items():
             key_str = str(key)
-            if key_str.lower() in forbidden_keys:
+            if _normalize_key(key_str) in forbidden_keys:
                 return key_str, [key_str]
             found = _find_forbidden_key(item, forbidden_keys)
             if found:
@@ -1601,7 +1610,7 @@ def validate_semantics(event, semantics_policy, severity_map=None):
 
     if event_type == "OBSERVATION_EVENT":
         forbidden = semantics_policy.get("observation_event", {}).get("payload_must_not_contain", [])
-        forbidden_keys = {str(key).lower() for key in forbidden}
+        forbidden_keys = {_normalize_key(key) for key in forbidden}
         found = _find_forbidden_key(payload, forbidden_keys)
         if found:
             found_key, path = found
@@ -1647,7 +1656,7 @@ def validate_semantics(event, semantics_policy, severity_map=None):
 
     if event_type == "INFERENCE_EVENT":
         forbidden = semantics_policy.get("inference_event", {}).get("payload_must_not_contain", [])
-        forbidden_keys = {str(key).lower() for key in forbidden}
+        forbidden_keys = {_normalize_key(key) for key in forbidden}
         found = _find_forbidden_key(payload, forbidden_keys)
         if found:
             found_key, path = found
@@ -1662,16 +1671,18 @@ def validate_semantics(event, semantics_policy, severity_map=None):
 
     if event_type == "STATE_EVENT":
         forbidden = semantics_policy.get("state_event", {}).get("payload_must_not_contain", [])
-        for key in forbidden:
-            if key in payload:
-                return False, [
-                    _violation(
-                        "STATE_HAS_RAW_FEATURES",
-                        "state payload contains raw sensor features",
-                        details={"field": key},
-                        severity_map=severity_map,
-                    )
-                ]
+        forbidden_keys = {_normalize_key(key) for key in forbidden}
+        found = _find_forbidden_key(payload, forbidden_keys)
+        if found:
+            found_key, path = found
+            return False, [
+                _violation(
+                    "STATE_HAS_RAW_FEATURES",
+                    "state payload contains raw sensor features",
+                    details={"field": found_key, "path": "/".join(path)},
+                    severity_map=severity_map,
+                )
+            ]
 
     if event_type == "COMMAND_EVENT":
         requires_deconfliction = (
@@ -1689,7 +1700,7 @@ def validate_semantics(event, semantics_policy, severity_map=None):
         forbidden = semantics_policy.get("command_event", {}).get("payload_must_not_contain", [])
         if not forbidden:
             forbidden = semantics_policy.get("command_event", {}).get("target_geo_must_not_include", [])
-        forbidden_keys = {str(key).lower() for key in forbidden}
+        forbidden_keys = {_normalize_key(key) for key in forbidden}
         found = _find_forbidden_key(payload, forbidden_keys) if forbidden_keys else None
         if found:
             found_key, path = found
