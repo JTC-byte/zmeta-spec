@@ -552,12 +552,29 @@ entries):
 
 ## Next Work Queue
 
-1. **No active required ZMeta work**
-   - The current stack is closed for the downstream integration baseline.
-   - Optional follow-ups remain future work only when real sensor data,
-     versioned semantic branch approval, or release-authority signing inputs
-     exist.
-   - S1-11B remains an optional future artifact, not an active blocker.
+1. **Queued next session: v1.1.0 adoption decision (all fourteen concepts)**
+   - Maintainer direction (2026-07-08): the very next working session in
+     this repository builds the per-concept evidence worksheet (repo-side
+     evidence for all fourteen experimental v1.1.0 registry concepts,
+     field-side evidence supplied by the maintainer) and makes the
+     adopt-vs-stay-experimental decision for every concept in that same
+     session — no prolonging. Scheduled immediately after the maintainer's
+     demo; until then the stack is intentionally quiet.
+   - Evidence standard: the promotion evidence bar in
+     `spec/extension-registry.md` (two or more independent implementations
+     demonstrating the need plus a documented semantic-contract Section 2.6
+     failure condition). Candidate telemetry: the maintainer's fielded
+     deployment plus the upstream PR #4 deployment; check PR #4 for
+     contributor revisions before deciding.
+   - Expected shape for concepts that clear the bar: registry status
+     changes (`experimental` -> `adopted`), conformance-class and doc
+     updates, one release; no schema file changes. Expanded command-task
+     concepts stay experimental absent fielded command-loop evidence.
+   - Aside from that queued session, the stack is closed for the downstream
+     integration baseline: S1-11B is implemented, the deferred issue
+     register is fully closed, and remaining follow-ups activate only on
+     real sensor data, an evidence-bar tripwire, or release-authority
+     signing inputs.
 
 2. **Standing defaults (recorded 2026-07-08 by maintainer direction)**
    The former open-ended "human decisions for future hardening" list is
