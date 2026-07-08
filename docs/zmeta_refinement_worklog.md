@@ -45,6 +45,18 @@
   notes/report/SHA256SUMS_v1.1.12.txt; annotated tag created locally;
   publication (push, GitHub release, optional signatures) remains with the
   release authority.
+- R1-08 (2026-07-08): `v1.1.12` published per explicit release-authority
+  direction — `main` and the annotated tag pushed (release commit `e5a88b1`),
+  GitHub CI green for the pushed commit, GitHub release created with all
+  eight assets including `SHA256SUMS_v1.1.12.txt`, marked Latest. Published
+  checksums-only per the maintainer's direction; he is standing up the
+  signing process for the next release. Post-publication alignment updated
+  current-facing docs (README, installation guide, tools README,
+  professional overview), the CI compatibility target, and the compatibility
+  CLI test to `v1.1.12`. **D-003 closed by maintainer decision** in the same
+  pass: the roadmap artifact + registry + evidence bar now track future
+  branch work individually (register entry updated). The deferred issue
+  register is now fully closed — D-001 through D-014 all resolved.
 - Current next work item: S1-24 prepared the v1.1.10 fielded-safety enforcement
   release on current `main` — command-altitude denylist completion to the full
   §7.8 set, a recursive STATE laundering check with whitespace/case key
@@ -2361,7 +2373,7 @@
 
 ### D-003 - Future Semantics Require Versioned Implementation Branches
 
-- Status: OPEN - ROADMAP PLANNED
+- Status: CLOSED - ROADMAP ARTIFACT IMPLEMENTED
 - Discovered during: S0-02
 - Issue: The rewritten contract defines future candidates for markings,
   integrity, anti-replay, trust, MODEL_STATUS/ASSURANCE_EVENT, PNT integrity,
@@ -2382,9 +2394,16 @@
   promotion tripwires, validated by `tools/validate_future_roadmap.py` and
   registered in the release manifest. The S1-11A Section M closure condition
   (a machine-readable roadmap/governance artifact sufficient to track future
-  branch work individually) is now met; closing D-003 is recommended and
-  awaits the maintainer's decision. Until then D-003 remains the open
-  umbrella issue and no future vocabulary is valid.
+  branch work individually) is now met.
+- Resolution (2026-07-08): the maintainer approved closure after the v1.1.12
+  publication (R1-08). The future-branch roadmap artifact, the extension
+  registry, and the promotion evidence bar in `spec/extension-registry.md`
+  now track all future versioned-branch work individually; the leak
+  prevention D-003 existed for is enforced by CI kernel conformance, the
+  registry validators, and the roadmap status-leakage check. Reserved,
+  proposed, and future concepts remain invalid vocabulary; any future branch
+  still requires its own Sx-A/Sx-B/Sx-C cycle, the evidence bar, and
+  explicit maintainer approval.
 
 ### D-004 - Out-of-Scope Artifact Set
 

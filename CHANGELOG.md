@@ -1,6 +1,14 @@
 # Changelog
 
 ## [Unreleased]
+- Recorded the v1.1.12 publication (R1-08: pushed tag/commit `e5a88b1`,
+  GitHub release with all eight assets, marked Latest, checksums-only) and
+  aligned current-facing docs, the CI compatibility target, and the
+  compatibility CLI test with the published `v1.1.12` release.
+- Closed D-003 by maintainer decision: the S1-11B future-branch roadmap
+  artifact, the extension registry, and the promotion evidence bar now
+  track future versioned-branch work individually. The deferred issue
+  register is fully closed (D-001 through D-014).
 
 ## [1.1.12] - 2026-07-08
 - Governance (governed docs): `spec/extension-registry.md` gains a

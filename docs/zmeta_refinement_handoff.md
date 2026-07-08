@@ -135,9 +135,15 @@ Current stack status:
     (47/47), policy lint, pytest (465 passed, 110 subtests), workflow
     end-to-end (H/M), live gateway (JSON/compact), gateway self-tests,
     check_compat `v1.1.12` for all eight corpora, packet-size max=150/240,
-    release package validation, and verified `SHA256SUMS_v1.1.12.txt`. The
-    annotated tag `v1.1.12` is created locally; push/publication and
-    optional signatures remain with the release authority.
+    release package validation, and verified `SHA256SUMS_v1.1.12.txt`.
+  - R1-08: `v1.1.12` was published on 2026-07-08 with explicit
+    release-authority direction: `main` and the annotated tag pushed
+    (release commit `e5a88b1`), GitHub CI green, GitHub release with all
+    eight assets, marked Latest, checksums-only (the maintainer is standing
+    up the signing process for the next release). Post-publication
+    alignment moved current-facing docs, the CI compatibility target, and
+    the compatibility CLI test to `v1.1.12`, and D-003 was closed by
+    maintainer decision — the deferred issue register is now fully closed.
 - The P1-04 bearing reference-frame integrity pass and P1-04R review fixes are
   adopted on `main` for v1.1.8. Schema 1.1.0 gained the optional
   `bearing.frame` marker; the locked v1.0 schema is untouched.
@@ -145,9 +151,8 @@ Current stack status:
   bearing/heading fields unless callers explicitly assert `TRUE_NORTH`;
   unasserted native values remain auditable under explicitly named
   non-canonical fields.
-- Use tag `v1.1.11` for the latest published formal release
-  assets/checksums; `v1.1.12` is prepared and locally tagged, awaiting
-  release-authority publication.
+- Use tag `v1.1.12` for current formal release assets/checksums. Use tag
+  `v1.1.11` for the previous field-driven adoption-guidance baseline.
 - Use current `main` for the latest integration baseline with bearing-frame
   integrity, policy-risk linting, projection preservation for risk/promotion
   extensions, stricter extension registry metadata, formal human/AI agent
@@ -191,24 +196,20 @@ Current stack status:
 
 Current release target:
 
-- Prepared release: `v1.1.12` (governance and honesty closeout) — release
-  commit on current `main` with `RELEASE_NOTES_v1.1.12.md`,
-  `VALIDATION_REPORT_v1.1.12.md`, `SHA256SUMS_v1.1.12.txt`, regenerated
-  `zmeta-v1.1.12` release manifest/claims, and all eight assets built and
-  checksum-verified. The annotated `v1.1.12` tag exists locally;
-  **publication (push, GitHub release upload, optional detached
-  signatures) awaits the release authority.** The maintainer is standing up
-  a signing process (2026-07-08); v1.1.12 may be the first signed release
-  or ship checksums-only like its predecessors.
-- Latest published release: `v1.1.11` —
-  <https://github.com/JTC-byte/zmeta-spec/releases/tag/v1.1.11>, annotated
-  tag on release commit `922f0ca`, GitHub CI green, checksums-only.
-- Previous release: `v1.1.10` (tag on `6ce4f29`); its published assets,
+- Release URL: <https://github.com/JTC-byte/zmeta-spec/releases/tag/v1.1.12>
+- Tag: `v1.1.12` (annotated, on release commit `e5a88b1`)
+- Release commit: `e5a88b1` - `Release v1.1.12: governance and honesty
+  closeout`.
+- GitHub CI: passed for the pushed v1.1.12 release commit. R1-08 published
+  the release on 2026-07-08 with explicit release-authority direction: all
+  eight assets uploaded including `SHA256SUMS_v1.1.12.txt`, marked Latest.
+- Previous release: `v1.1.11` (tag on `922f0ca`); its published assets,
   checksums, and release records are unchanged.
-- Signature status: all published releases v1.1.5 through v1.1.11 are
-  checksums-only. Use `SHA256SUMS_<version>.txt`, the structured release
-  manifest, and the release package checksum file for integrity
-  verification.
+- Signature status: v1.1.12 is published checksums-only per the
+  maintainer's direction, consistent with v1.1.5 through v1.1.11. The
+  maintainer is standing up the release-signing process for the next
+  release. Use `SHA256SUMS_<version>.txt`, the structured release manifest,
+  and the release package checksum file for integrity verification.
 
 ## Key Docs
 
@@ -355,8 +356,8 @@ Current release target:
   schema, vocabulary, version-dispatch, projection, risk, or command-authority
   changes are private dialect/fork work unless governed, versioned, documented,
   and backed by conformance evidence.
-- Latest published formal release is `v1.1.11`; `v1.1.12` is prepared and
-  awaiting publication; latest integration baseline is current `main`.
+- Current formal release is `v1.1.12`; latest integration baseline is
+  current `main`.
 - v1.0 remains locked.
 - Do not add v1.1.0 or future concepts to v1.0.
 - S1-01A found no schema-enforceable v1.0 gap requiring S1-01B.
@@ -598,7 +599,10 @@ entries):
    - D-001 MAVLink Adapter README State Payload Drift is closed.
    - D-002 Contract Hash / Release Hash Follow-Up is closed.
    - D-003 Future Semantics Require Versioned Implementation Branches is
-     `OPEN - ROADMAP PLANNED`.
+     closed (2026-07-08, maintainer decision after S1-11B): the
+     future-branch roadmap artifact, extension registry, and promotion
+     evidence bar now track future branch work individually. The deferred
+     issue register is fully closed.
    - D-007 Encoding Negative Validation Gap is closed.
    - D-008 Conformance Class Manifest Missing is closed.
    - D-004 is closed as removed from ZMeta scope by S1-10P.

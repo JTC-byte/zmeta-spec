@@ -1,4 +1,4 @@
-# ZMeta Specification (v1.0 Locked, current release v1.1.11)
+# ZMeta Specification (v1.0 Locked, current release v1.1.12)
 
 ## Overview
 - ZMeta is a transport-agnostic, event-based metadata standard for resilient ISR.
@@ -7,19 +7,40 @@
 
 ## Current Release
 
-- Current release: `v1.1.11`
-- Release notes and assets: <https://github.com/JTC-byte/zmeta-spec/releases/tag/v1.1.11>
-- Release focus: field-driven adoption guidance harvested from a live
-  at-scale deployment — advisory MQTT transport-binding guidance, a
-  deployment-concept-to-canonical-vocabulary crosswalk, the cross-sensor
-  correlation (association bond) pattern with runnable examples, four
-  governance entries in the extension registry, and two new anti-laundering
-  conformance fixtures. No schema, policy-behavior, or event-vocabulary
-  change; the locked v1.0 kernel is unchanged.
+- Current release: `v1.1.12`
+- Release notes and assets: <https://github.com/JTC-byte/zmeta-spec/releases/tag/v1.1.12>
+- Release focus: governance and honesty closeout — a promotion evidence bar
+  for extension-registry status transitions, the machine-readable
+  future-branch roadmap (`spec/future-branch-roadmap.yaml`), removal of
+  fabricated `lineage.based_on` from the reference ingress adapters
+  (omit-or-refuse semantics), gateway UDP send-failure containment, and
+  claims-vs-reality documentation for mapping packs and the honesty
+  primitives. No schema or event-vocabulary change; the locked v1.0 kernel
+  is unchanged.
 - Normative contract: v1.0 locked semantic contract, canonical version-discriminated
   JSON schema, v1.0 JSON schema, and policy pack.
 - Experimental extension: `schema/zmeta-event-1.1.0.schema.json` is provided for proposed
   compatibility testing only; v1.1.0-only fields are not part of the locked v1.0 contract.
+
+## v1.1.12 Integration Notes
+
+- Reference ingress adapters no longer fabricate `lineage.based_on`:
+  observation and system outputs omit `lineage` unless the caller supplies
+  real parent event ids (`based_on=[...]`), and mandatory-lineage events
+  refuse to emit instead of inventing parents (the MAVLink state translator
+  requires `based_on` or `source_zmeta_event_id`; the eo-cv inference
+  translator requires `parent_event_ids` or a schema-valid UUIDv7
+  `source_event_id`). Integrations that assumed lineage presence on these
+  outputs were consuming fabricated ids; pass real provenance instead.
+- The reference gateway now survives oversize outgoing UDP payloads: the
+  datagram is dropped with an explicit `send_failure` metric/diagnostic
+  instead of terminating the process. Nothing is truncated or retried.
+- Extension-registry status promotion now has an evidence bar (two or more
+  independent implementations plus a documented semantic-contract Section
+  2.6 failure condition); candidate-level evidence and promotion tripwires
+  live in `spec/future-branch-roadmap.yaml`.
+- Mapping packs are declarative descriptions plus test evidence; no runtime
+  engine executes `mapping.yaml` — see `adapters/mapping-packs/README.md`.
 
 ## v1.1.11 Integration Notes
 
@@ -50,7 +71,7 @@
   `calibration_state="CALIBRATED"` (or `"DEGRADED"`) explicitly only when the
   deployment can substantiate it.
 - Deployments using release or contract hash gates should update expected
-  hashes from the v1.1.10 release manifest.
+  hashes from the v1.1.12 release manifest.
 - Downstream clone users should pin to a tagged release and integrate through
   adapters, policy/config, profiles, and namespaced extensions. Local changes to
   core schema, event vocabulary, version dispatch, risk semantics, projection
@@ -189,7 +210,7 @@ python tools/run_gateway.py --profile H
 python tools/udp_receiver.py
 python tools/udp_sender.py --file examples/zmeta-command-examples.jsonl
 python tools/replay.py --file examples/zmeta-command-examples.jsonl --delay-ms 200
-python tools/check_compat.py legacy-events.jsonl --target v1.1.11
+python tools/check_compat.py legacy-events.jsonl --target v1.1.12
 python tools/validate.py --file examples/zmeta-command-examples.jsonl --profile H
 python tools/validate_conformance.py --strict
 python tools/validate_release_manifest.py --manifest release/zmeta-release-manifest.yaml
@@ -253,10 +274,10 @@ Deployment helpers:
 - Config templates: `configs/edge-config.json`, `configs/gateway-config.json`
 - Docker Compose: `deploy/edge/docker-compose.yml`, `deploy/gateway/docker-compose.yml`
 - Bundle builders:
-    - `python release/build_mvp_packages.py --version v1.1.11` produces `zmeta-edge-v1.1.11.zip` and `zmeta-gateway-v1.1.11.zip`
-    - `python release/build_release_bundle.py --version 1.1.11` produces `zmeta-v1.1.11-dist.zip`
-    - `python tools/build_release_package.py --manifest release/zmeta-release-manifest.yaml --output-dir release/package-v1.1.11 --release-id zmeta-v1.1.11 --release-state formal_release --no-signatures` builds formal package metadata without creating signatures.
-    - `python release/sign_release_artifacts.py --version v1.1.11 --write-checksums --sign --target all` signs release assets with detached PGP signatures when an approved signing key is available.
+    - `python release/build_mvp_packages.py --version v1.1.12` produces `zmeta-edge-v1.1.12.zip` and `zmeta-gateway-v1.1.12.zip`
+    - `python release/build_release_bundle.py --version 1.1.12` produces `zmeta-v1.1.12-dist.zip`
+    - `python tools/build_release_package.py --manifest release/zmeta-release-manifest.yaml --output-dir release/package-v1.1.12 --release-id zmeta-v1.1.12 --release-state formal_release --no-signatures` builds formal package metadata without creating signatures.
+    - `python release/sign_release_artifacts.py --version v1.1.12 --write-checksums --sign --target all` signs release assets with detached PGP signatures when an approved signing key is available.
 
 ## Deployment Checklist (Compact)
 
