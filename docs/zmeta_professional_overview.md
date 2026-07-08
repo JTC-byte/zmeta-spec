@@ -547,6 +547,24 @@ display, fusion, state update, command, autonomy, AAR, and audit intake. The
 filter passes accepted events unchanged or drops them based on labels. It does
 not rewrite risky data into clean data.
 
+### Where these primitives are enforced
+
+`payload.extensions.risk_adjudication` and
+`payload.extensions.external_promotion` live in the extensions layer *above*
+the locked v1.0 schema kernel, and that placement is deliberate, not an
+oversight. Their enforcement home is the policy packs (`policy/*.yaml`), the
+reference validators, the profile-projection preservation catalog, and the
+kernel-conformance gates — not JSON Schema. This keeps the locked kernel
+small and stable while the honesty semantics stay normative in the contract
+(Sections 4.5.1 and 2.5) and machine-checked in conformance. The practical
+consequence: a producer can emit a schema-valid event that omits or corrupts
+these blocks, and it is *policy validation and conformance evidence* — not
+schema rejection — that catches it. Deployments that need the guarantee must
+therefore run policy validation, not schema validation alone. Promoting these
+primitives into schema-level vocabulary is tracked as an evidence-gated
+future-branch candidate in `spec/future-branch-roadmap.yaml`; it is not
+planned absent field evidence that the policy-layer home is insufficient.
+
 ## AI Provenance
 
 ZMeta gives edge AI output a disciplined place in the pipeline.

@@ -4,6 +4,18 @@ Overview: see `adapters/README.md`.
 
 Mapping packs describe how to translate vendor payloads into ZMeta v1.0.
 
+### What a mapping pack is (and is not)
+
+A mapping pack is a *declarative description plus test evidence*: field maps,
+enum translations, unit conversions, and input/expected-output samples. This
+repository does **not** ship a runtime engine that executes `mapping.yaml`
+automatically — translation runs in adapter code (see
+`adapters/ingress/template/`), and the pack's `tests/` samples are the
+conformance evidence that the adapter implements the pack faithfully.
+`tools/install_mapping_pack.py` copies and registers a pack; it does not make
+the pack executable by itself. Plan adapter implementation effort
+accordingly.
+
 ### schema_id naming convention
 
 Use a stable, vendor-scoped identifier:

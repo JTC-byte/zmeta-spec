@@ -22,6 +22,9 @@ spec.loader.exec_module(validators)
 POLICY = validators.load_policy(ROOT / "policy")
 
 
+_PARENT_EVENT_ID = "019c2b5c-c053-70e1-b6aa-340000000001"
+
+
 def test_mavlink_platform_state_promotion_authority_valid():
     event = translate_platform_state(
         {
@@ -33,6 +36,7 @@ def test_mavlink_platform_state_promotion_authority_valid():
             "gps_fix_type": 3,
             "satellites_visible": 10,
             "source_event_uid": "mavlink:sysid-1:seq-1",
+            "based_on": [_PARENT_EVENT_ID],
         },
         platform_id="uav-1",
         producer="mavlink-adapter",
@@ -44,6 +48,7 @@ def test_mavlink_platform_state_promotion_authority_valid():
         "PROMOTE-MAVLINK-STATE-V1"
     )
     assert event["lineage"]["transform"].startswith("promote:mavlink-telemetry@")
+    assert event["lineage"]["based_on"] == [_PARENT_EVENT_ID]
     VALIDATOR.validate(event)
     ok, violations = validators.validate_producer_authority(
         event, POLICY["producer_authority"], POLICY["violation_severities"]
@@ -59,6 +64,7 @@ _BASE_STATE = {
     "gps_fix_type": 3,
     "satellites_visible": 10,
     "source_event_uid": "mavlink:sysid-1:seq-1",
+    "based_on": [_PARENT_EVENT_ID],
 }
 
 
@@ -170,6 +176,68 @@ def test_mavlink_refuses_absent_lat_lon():
     )
 
     assert event is None
+
+
+def test_mavlink_refuses_missing_lineage_instead_of_fabricating():
+    # STATE_EVENT lineage is mandatory (contract 4.8) and must reference real
+    # events. Without caller-supplied based_on or source_zmeta_event_id, the
+    # adapter refuses to emit rather than fabricating a parent id.
+    state = {k: v for k, v in _BASE_STATE.items() if k != "based_on"}
+    event = translate_platform_state(
+        state,
+        platform_id="uav-1",
+        producer="mavlink-adapter",
+        ts="2025-01-17T15:20:00+00:00",
+    )
+
+    assert event is None
+
+
+def test_mavlink_source_zmeta_event_id_used_as_lineage_fallback():
+    state = {k: v for k, v in _BASE_STATE.items() if k != "based_on"}
+    state["source_zmeta_event_id"] = _PARENT_EVENT_ID
+    event = translate_platform_state(
+        state,
+        platform_id="uav-1",
+        producer="mavlink-adapter",
+        ts="2025-01-17T15:20:00+00:00",
+    )
+
+    assert event["lineage"]["based_on"] == [_PARENT_EVENT_ID]
+    VALIDATOR.validate(event)
+
+
+def test_mavlink_system_events_omit_lineage_by_default():
+    from adapters.ingress.mavlink.mavlink_to_zmeta_template import (
+        translate_link_status,
+        translate_time_status,
+    )
+
+    link = translate_link_status(platform_id="uav-1", ts="2025-01-17T15:20:00+00:00")
+    time_status = translate_time_status(
+        platform_id="uav-1",
+        est_error_ms=1.0,
+        last_sync_ts="2025-01-17T15:19:59+00:00",
+        ts="2025-01-17T15:20:00+00:00",
+    )
+
+    assert "lineage" not in link
+    assert "lineage" not in time_status
+    VALIDATOR.validate(link)
+    VALIDATOR.validate(time_status)
+
+
+def test_mavlink_system_events_carry_caller_lineage_when_supplied():
+    from adapters.ingress.mavlink.mavlink_to_zmeta_template import translate_link_status
+
+    link = translate_link_status(
+        platform_id="uav-1",
+        ts="2025-01-17T15:20:00+00:00",
+        based_on=[_PARENT_EVENT_ID],
+    )
+
+    assert link["lineage"]["based_on"] == [_PARENT_EVENT_ID]
+    VALIDATOR.validate(link)
 
 
 def test_mavlink_null_island_with_2d_fix_still_emits():

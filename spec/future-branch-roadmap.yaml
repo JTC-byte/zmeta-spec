@@ -1,0 +1,518 @@
+# ZMeta Future-Branch Roadmap (S1-11B)
+#
+# Machine-readable roadmap for future versioned semantic branches under D-003.
+# This artifact records candidate status, dependencies, required surfaces,
+# recorded field evidence, promotion tripwires, and rejection/defer decisions.
+#
+# This file is NOT a vocabulary source. Nothing in it is valid event
+# vocabulary. Name governance stays in spec/extension-registry.yaml; semantic
+# authority stays in spec/semantics-contract.md.
+
+roadmap_version: 1
+last_updated: "2026-07-08"
+source_plan: docs/s1_11_future_versioned_semantic_branch_roadmap_plan.md
+evidence_bar: >
+  Promotion from reserved/proposed into a named version branch requires the
+  promotion evidence bar in spec/extension-registry.md: at least two
+  independent implementations or deployments demonstrating the need, plus at
+  least one documented failure condition from spec/semantics-contract.md
+  Section 2.6 (Core Semantic Change Threshold) that policy, configuration,
+  profiles, adapter mappings, and namespaced extensions cannot solve.
+  Meeting the bar is necessary, not sufficient; an explicit maintainer
+  adoption decision is still required.
+authority: >
+  This roadmap does not make any concept valid. It does not modify schemas,
+  the extension registry, conformance classes, validators, runtime behavior,
+  or event vocabulary. Reserved and proposed concepts remain invalid until an
+  approved version branch adds schema, policy, adapter/gateway, encoding,
+  documentation, fixture, conformance, release, and audit coverage.
+
+status_values:
+  - candidate
+  - reserved
+  - proposed
+  - experimental
+  - implemented_pending_audit
+  - adopted
+  - rejected
+  - superseded
+  - deprecated
+
+priority_values:
+  - near_term
+  - mid_term
+  - long_term
+  - evidence_gated
+
+# Required implementation surfaces for every branch, per S1-11A Section D.
+# Individual candidates may mark a surface not_applicable at plan time, but
+# the default expectation is the full gate list.
+default_required_surfaces:
+  - semantic_definition
+  - version_branch_decision
+  - schema_shape_if_structural
+  - policy_rules_if_contextual
+  - adapter_gateway_requirements
+  - encoding_implications
+  - positive_fixtures
+  - negative_fixtures
+  - conformance_class_impact
+  - release_hash_impact
+  - migration_guidance
+  - post_implementation_audit
+
+candidates:
+  - id: projection-metadata
+    display_name: Projection metadata
+    status: reserved
+    priority: near_term
+    purpose: >
+      Record explicit projection/thinning/redaction/degradation reason without
+      changing same-event meaning.
+    affected_events: [OBSERVATION_EVENT, INFERENCE_EVENT, FUSION_EVENT, STATE_EVENT, COMMAND_EVENT, SYSTEM_EVENT]
+    registry_refs: [PROJECTION_METADATA]
+    depends_on: []
+    required_surfaces: default
+    promotion_evidence: []
+    tripwires:
+      - >
+        Meets the promotion evidence bar: two or more independent
+        implementations demonstrating the need plus a documented Section 2.6
+        failure condition (most likely: a profile projection hiding material
+        degradation in a way current risk labels cannot express).
+    recommendation: >
+      Strong near-term candidate because profiles already need auditable
+      degradation; precedes coalition export/redaction and Emergency/L0.
+    notes: Schema-or-sidecar decision unresolved; compact/protobuf mapping required.
+
+  - id: raw-data-absent-evidence-status
+    display_name: Raw-data-absent / evidence status
+    status: reserved
+    priority: near_term
+    purpose: >
+      Make raw-present, raw-referenced, lineage-only, withheld, redacted, or
+      not-retained evidence status explicit.
+    affected_events: [OBSERVATION_EVENT, INFERENCE_EVENT, FUSION_EVENT, STATE_EVENT]
+    registry_refs: [RAW_DATA_ABSENT_STATUS]
+    depends_on: []
+    required_surfaces: default
+    promotion_evidence: []
+    tripwires:
+      - >
+        Meets the promotion evidence bar; the natural Section 2.6 condition is
+        hidden uncertainty (degraded evidence basis masquerading as clean).
+    recommendation: >
+      Good near-term candidate because it strengthens lineage honesty;
+      precedes richer trust and release policy behavior.
+    notes: Schema-or-policy-only decision unresolved; Profile L lineage tolerance interaction.
+
+  - id: pnt-integrity
+    display_name: PNT integrity / navigation confidence
+    status: proposed
+    priority: near_term
+    purpose: Represent navigation integrity beyond timing error.
+    affected_events: [SYSTEM_EVENT, STATE_EVENT, FUSION_EVENT, OBSERVATION_EVENT]
+    registry_refs: [PNT_STATUS]
+    depends_on: []
+    required_surfaces: default
+    promotion_evidence: []
+    tripwires:
+      - >
+        Meets the promotion evidence bar; the natural Section 2.6 condition is
+        degraded-navigation state masquerading as clean position truth
+        (jamming, spoofing, holdover, conflicting PNT sources).
+    recommendation: >
+      Plan first among status branches because it protects confidence and
+      state reliability; precedes confidence caps for degraded navigation.
+    notes: Fixtures should cover spoofing, holdover, and conflicting sources.
+
+  - id: event-signing-anti-replay
+    display_name: Event signing / key identity / anti-replay
+    status: proposed
+    priority: near_term
+    purpose: >
+      Authenticate event origin and detect replay without changing event
+      meaning.
+    affected_events: [SYSTEM_EVENT]
+    registry_refs: [EVENT_SIGNATURE, KEY_IDENTITY, ANTI_REPLAY_NONCE]
+    depends_on: []
+    required_surfaces: default
+    promotion_evidence: []
+    tripwires:
+      - >
+        Meets the promotion evidence bar; deployments requiring an adversarial
+        trust boundary rather than the current cooperative-producer posture
+        are the expected evidence source.
+    recommendation: >
+      Plan before mesh trust because trust needs key and replay primitives;
+      envelope-or-sidecar decision is structural.
+    notes: Negative fixtures for bad/missing signatures required.
+
+  - id: mesh-trust-quarantine
+    display_name: Mesh trust / quarantine
+    status: proposed
+    priority: mid_term
+    purpose: Separate source/path trust from event confidence.
+    affected_events: [SYSTEM_EVENT]
+    registry_refs: [TRUST_STATUS, TRUST_SCORE, MESH_ROUTE_TRUST, SUSPECT_EVENT, QUARANTINED_EVENT, QUARANTINE_STATUS]
+    depends_on: [event-signing-anti-replay]
+    required_surfaces: default
+    promotion_evidence: []
+    tripwires:
+      - Meets the promotion evidence bar after signing/key identity exists.
+    recommendation: Policy-heavy; keep confidence and trust strictly separate.
+    notes: Gateway routing/quarantine behavior; conformance for confidence/trust separation.
+
+  - id: model-assurance
+    display_name: AI model assurance / MODEL_STATUS / ASSURANCE_EVENT
+    status: proposed
+    priority: mid_term
+    purpose: >
+      Express event-relevant model/runtime health, drift, calibration, and
+      assurance state.
+    affected_events: [INFERENCE_EVENT, SYSTEM_EVENT]
+    registry_refs: [MODEL_STATUS, ASSURANCE_EVENT]
+    depends_on: [raw-data-absent-evidence-status]
+    required_surfaces: default
+    promotion_evidence: []
+    tripwires:
+      - >
+        Meets the promotion evidence bar; the natural Section 2.6 condition is
+        drifted or degraded model output masquerading as clean inference.
+    recommendation: >
+      Plan as event-level runtime/model semantics only; must avoid model-card
+      or process-governance scope.
+    notes: Policy for degraded model outputs; fixtures for drift/runtime status.
+
+  - id: track-lifecycle
+    display_name: Track lifecycle
+    status: reserved
+    priority: mid_term
+    purpose: Define track new/active/stale/lost/merged/split/retired semantics.
+    affected_events: [FUSION_EVENT, STATE_EVENT, SYSTEM_EVENT]
+    registry_refs: [TRACK_NEW, TRACK_ACTIVE, TRACK_STALE, TRACK_LOST, TRACK_MERGED, TRACK_SPLIT, TRACK_RETIRED]
+    depends_on: []
+    required_surfaces: default
+    promotion_evidence: []
+    tripwires:
+      - >
+        Meets the promotion evidence bar; note the advisory correlation
+        pattern (docs/zmeta_correlation_pattern.md) already expresses bond
+        assignment/dissolution and atomic split/merge in current vocabulary,
+        so evidence must show lifecycle needs beyond that pattern.
+    recommendation: >
+      Plan after projection and lineage coverage remain stable; merge/split
+      must be representable without mutating old events.
+    notes: Lineage rules for merge/split; gateway dedupe interaction.
+
+  - id: compute-elasticity
+    display_name: Compute elasticity / degradation state
+    status: candidate
+    priority: mid_term
+    purpose: >
+      Represent degraded runtime tier or fallback mode when it affects
+      outputs.
+    affected_events: [SYSTEM_EVENT, INFERENCE_EVENT]
+    registry_refs: []
+    depends_on: []
+    required_surfaces: default
+    promotion_evidence: []
+    tripwires:
+      - >
+        Meets the promotion evidence bar AND current SYSTEM_EVENT status plus
+        policy cannot carry the state safely (keep policy-first; add schema
+        only if unavoidable).
+    recommendation: Keep policy-first.
+    notes: Confidence impact and gateway handling if promoted.
+
+  - id: future-modality-contracts
+    display_name: Future modality feature contracts
+    status: reserved
+    priority: mid_term
+    purpose: >
+      Add observation feature contracts for RADAR, LIDAR, MAGNETIC, SEISMIC,
+      SIGINT, CYBER, ENVIRONMENTAL, MARITIME.
+    affected_events: [OBSERVATION_EVENT, SYSTEM_EVENT]
+    registry_refs: [RADAR, LIDAR, MAGNETIC, SEISMIC, CYBER, SIGINT, ENVIRONMENTAL, MARITIME]
+    depends_on: []
+    required_surfaces: default
+    promotion_evidence: []
+    tripwires:
+      - >
+        Per-modality: meets the promotion evidence bar with real sensor
+        captures for that modality; implement one modality at a time only
+        when its feature contract is complete.
+    recommendation: One modality at a time; adapter unit normalization required.
+    notes: Negative tests for leakage into v1.0 required per modality.
+
+  - id: replay-synthetic-labels
+    display_name: Replay / synthetic / red-team labels
+    status: reserved
+    priority: evidence_gated
+    purpose: >
+      Label replayed, simulated, exercise, synthetic, or red-team-injected
+      events so test traffic can never masquerade as live truth.
+    affected_events: [OBSERVATION_EVENT, INFERENCE_EVENT, FUSION_EVENT, STATE_EVENT, SYSTEM_EVENT]
+    registry_refs: [REPLAY_STATUS, REPLAY_LABEL, SYNTHETIC_EVENT, RED_TEAM_INJECTION]
+    depends_on: []
+    required_surfaces: default
+    promotion_evidence:
+      - >
+        2026-07 fielded EO/CV deployment: producer-side synthetic/test markers
+        observed not surviving adaptation into canonical events, so opted-in
+        test stubs can appear as clean state downstream (1 independent
+        deployment).
+    tripwires:
+      - >
+        A second independent deployment demonstrates synthetic/replay/test
+        traffic entering canonical events without a surviving label (Section
+        2.6: dirty data masquerading as clean state).
+    recommendation: >
+      Watch closely; the recorded evidence is exactly the laundering failure
+      class this branch exists to prevent.
+    notes: Interim mitigation is producer-side suppression or namespaced extensions.
+
+  - id: coalition-release-export
+    display_name: Coalition release / cross-domain export labels
+    status: reserved
+    priority: long_term
+    purpose: Govern event-level release/redaction/export semantics.
+    affected_events: [STATE_EVENT, FUSION_EVENT]
+    registry_refs: [RELEASE_STATUS, EXPORT_AUDIT, RELEASE_LABEL, REDACTION_PROFILE]
+    depends_on: [projection-metadata]
+    required_surfaces: default
+    promotion_evidence: []
+    tripwires:
+      - Meets the promotion evidence bar after projection metadata exists.
+    recommendation: >
+      Defer until projection metadata and release policy are better defined;
+      must not become data-rights governance.
+    notes: Policy-heavy; projection metadata dependency.
+
+  - id: uas-identity
+    display_name: UAS identity / behavioral identity
+    status: reserved
+    priority: long_term
+    purpose: Represent declared, signed, or inferred UAS identity evidence.
+    affected_events: [INFERENCE_EVENT, FUSION_EVENT, STATE_EVENT]
+    registry_refs: [UAS_IDENTITY, BEHAVIORAL_IDENTITY]
+    depends_on: [raw-data-absent-evidence-status, future-modality-contracts, pnt-integrity, event-signing-anti-replay]
+    required_surfaces: default
+    promotion_evidence: []
+    tripwires:
+      - Meets the promotion evidence bar after the evidence model is mature.
+    recommendation: >
+      Keep future until the evidence model is mature; must not become IFF
+      authority.
+    notes: Needs lineage/evidence and confidence semantics.
+
+  - id: emergency-l0-profile
+    display_name: Emergency / L0 profile
+    status: candidate
+    priority: long_term
+    purpose: >
+      Define behavior below Profile L for severe emergency or denied links.
+    affected_events: [STATE_EVENT, SYSTEM_EVENT, COMMAND_EVENT]
+    registry_refs: []
+    depends_on: [projection-metadata]
+    required_surfaces: default
+    promotion_evidence: []
+    tripwires:
+      - >
+        Meets the promotion evidence bar AND profile projection plus precision
+        policy can prove no required semantics are silently dropped.
+    recommendation: High safety risk; defer.
+    notes: Compact encoding impact.
+
+  - id: data-quality-summary
+    display_name: Data quality / operator-facing data summary
+    status: reserved
+    priority: long_term
+    purpose: >
+      Summarize event-relevant quality, freshness, confidence, lineage, and
+      trust in a compact operator-facing way.
+    affected_events: [SYSTEM_EVENT]
+    registry_refs: [DATA_NUTRITION_LABEL]
+    depends_on: []
+    required_surfaces: default
+    promotion_evidence: []
+    tripwires:
+      - >
+        Meets the promotion evidence bar AND is scoped as a strict semantic
+        summary; reject organizational reporting variants.
+    recommendation: >
+      Defer; high conflation risk with UI/reporting. Must not replace
+      confidence, quality, lineage, or trust fields.
+    notes: Could be derived rather than carried.
+
+  - id: correlation-identity
+    display_name: First-class correlation identity
+    status: proposed
+    priority: evidence_gated
+    purpose: >
+      Give cross-sensor correlation identity first-class envelope or payload
+      standing beyond the existing FUSION_EVENT identity, INFERENCE_EVENT
+      ASSOCIATION bonds, and the namespaced correlation_hint extension.
+    affected_events: [OBSERVATION_EVENT, INFERENCE_EVENT, FUSION_EVENT, STATE_EVENT]
+    registry_refs: [CORRELATION_HINT]
+    depends_on: []
+    required_surfaces: default
+    promotion_evidence:
+      - >
+        2026-07-07 upstream PR #4: live multi-node ISR deployment (drones,
+        fusion engine, COP client, TAK bridges, ~14 ingestors) requested
+        correlation identity; the need is served in v1.1.11 by the advisory
+        correlation pattern plus the CORRELATION_HINT namespaced extension
+        (1 independent deployment).
+    tripwires:
+      - >
+        A second independent implementation adopts
+        payload.extensions.correlation_hint or requests first-class
+        correlation identity.
+      - >
+        Documented evidence that consumers cannot reconstruct fused identity
+        from FUSION_EVENT identity plus INFERENCE_EVENT/ASSOCIATION bonds at
+        operational scale (Section 2.6 divergent interpretation or
+        interoperability ambiguity).
+      - >
+        Upstream PR #4 revisions demonstrate a fielded need the advisory
+        correlation pattern cannot express in current vocabulary.
+    recommendation: >
+      Watchful wait. The correlation pattern doc proves the need is
+      composable from locked vocabulary today; promotion without new evidence
+      would violate the alphabet-not-dictionary gate.
+    notes: See docs/zmeta_correlation_pattern.md and the CORRELATION_HINT registry entry.
+
+  - id: data-ref-media-metadata
+    display_name: data_ref media metadata enrichment
+    status: proposed
+    priority: evidence_gated
+    purpose: >
+      Enrich OBSERVATION_EVENT data_ref/data_refs with RFC-6838 content type,
+      reference expiry, and bounded content descriptors so consumers can
+      route, render, and cache without fetching.
+    affected_events: [OBSERVATION_EVENT]
+    registry_refs: [DATA_REF_MEDIA_METADATA]
+    depends_on: []
+    required_surfaces: default
+    promotion_evidence:
+      - >
+        2026-07-07 upstream PR #4: the same deployment proposed a parallel
+        payload.media[] mechanism; harvested as enrichment of the single
+        existing data_ref mechanism because two mechanisms for one concept is
+        dialect drift (1 independent deployment).
+    tripwires:
+      - >
+        A second independent deployment needs typed or expiring data
+        references.
+      - >
+        Documented consumer misroute or misrender of data_ref content caused
+        by missing content type (Section 2.6 divergent interpretation).
+      - >
+        A versioned branch opens for other reasons; fold this in as an anchor
+        item because v1.1.0 data_ref is a closed object and cannot be
+        extension-solved.
+    recommendation: >
+      Strongest genuine future-branch candidate from the PR #4 harvest, but
+      n=1 evidence; hold at proposed until the bar is met.
+    notes: Cannot be solved as a namespaced extension; requires a versioned branch.
+
+  - id: aggregate-state-snapshot
+    display_name: Aggregate state snapshot container
+    status: reserved
+    priority: evidence_gated
+    purpose: >
+      Reserved name for a container event carrying a wholesale-replacing
+      snapshot of many entities at once (bulk late-join synchronization).
+    affected_events: [STATE_EVENT, SYSTEM_EVENT]
+    registry_refs: [AGGREGATE_STATE_SNAPSHOT]
+    depends_on: []
+    required_surfaces: default
+    promotion_evidence:
+      - >
+        2026-07-07 upstream PR #4: the same deployment proposed snapshot
+        cardinality / retained containers; rejected as proposed because a
+        multi-entity container has no per-entity identity, lineage, TTL, or
+        deduplication and lets a transport retained-slot mutate operational
+        truth. The name is reserved, not adopted (1 independent deployment).
+    tripwires:
+      - >
+        A future branch defines an honest aggregate contract with per-entry
+        identity, lineage, TTL, and deduplication.
+      - >
+        Two or more independent deployments demonstrate per-entity retained
+        STATE_EVENTs cannot serve late-join synchronization at their scale.
+    recommendation: >
+      Likely never enters the kernel; per-entity retained STATE_EVENTs (see
+      docs/zmeta_mqtt_binding_guidance.md) serve the need honestly. Any
+      future proposal must clear the Section F reject tests from scratch.
+    notes: Emitting snapshot containers today creates a private dialect.
+
+  - id: honesty-primitives-schema-standing
+    display_name: Schema-level standing for risk_adjudication / external_promotion
+    status: candidate
+    priority: evidence_gated
+    purpose: >
+      Decide whether the honesty primitives payload.extensions.risk_adjudication
+      and payload.extensions.external_promotion should gain schema-level
+      vocabulary standing in a versioned branch, or remain enforced by policy
+      packs, reference validators, projection preservation, and conformance
+      gates above the locked kernel.
+    affected_events: [OBSERVATION_EVENT, INFERENCE_EVENT, FUSION_EVENT, STATE_EVENT, SYSTEM_EVENT]
+    registry_refs: []
+    depends_on: []
+    required_surfaces: default
+    promotion_evidence: []
+    tripwires:
+      - >
+        Field evidence that the policy-layer enforcement home is insufficient:
+        for example, a deployment where honesty labels are silently dropped or
+        corrupted by a schema-only consumer in a way policy validation and
+        conformance evidence cannot catch (Section 2.6 laundering condition).
+      - >
+        Two or more independent implementations requesting schema-level
+        standing for the same honesty primitive.
+    recommendation: >
+      The 2026-07-08 standing decision is that policy + conformance is the
+      intended enforcement home (see docs/zmeta_professional_overview.md,
+      "Where these primitives are enforced"). Do not schema-churn without a
+      tripwire firing.
+    notes: >
+      Deployments needing the guarantee must run policy validation, not schema
+      validation alone.
+
+rejected_or_deferred:
+  - id: payload-schema-uri
+    display_name: payload_schema_uri envelope field
+    decision: rejected
+    date: "2026-07-07"
+    registry_refs: [PAYLOAD_SCHEMA_URI]
+    rationale: >
+      An envelope pointer to external payload schemas inverts the
+      canonical-model premise, reintroduces the N-by-N problem, converts
+      ZMeta into a transport envelope, and creates a laundering vector for
+      unnormalized vendor content. The underlying need is served at ingress
+      by adapter mapping packs. Recorded in the extension registry as
+      rejected so the concept is not re-litigated.
+
+  - id: aggregate-snapshot-as-proposed
+    display_name: Snapshot cardinality / retained mutation semantics (as proposed in upstream PR 4)
+    decision: rejected_as_proposed_name_reserved
+    date: "2026-07-07"
+    registry_refs: [AGGREGATE_STATE_SNAPSHOT]
+    rationale: >
+      Breaks one-event-one-assertion, per-entity identity, lineage, TTL, and
+      deduplication, and lets transport retained-slots mutate operational
+      truth. The name is held under the aggregate-state-snapshot candidate in
+      case a future branch defines an honest aggregate contract.
+
+  - id: forge-organizational-scope
+    display_name: FORGE-derived organizational artifact scope
+    decision: removed_from_scope
+    date: "2026-05-07"
+    registry_refs: []
+    rationale: >
+      Removed by S1-10P. Acquisition, vendor scoring, data-rights governance,
+      DevSecOps evidence, TTP/training, procurement, and organizational
+      transition packages are not ZMeta event semantics and must not be
+      reintroduced as semantic branches.

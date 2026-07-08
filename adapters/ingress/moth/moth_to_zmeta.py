@@ -25,7 +25,7 @@ import struct
 from adapters.ingress.time_utils import coerce_timing_quality, epoch_ms_to_utc_z, utc_now_z
 from zmeta_uuid import uuid7
 
-ADAPTER_VERSION = "1.1.0"
+ADAPTER_VERSION = "1.2.0"
 SCHEMA_ID_SERIAL = "moth-serial"
 SCHEMA_ID_MAVLINK = "moth-mavlink"
 SCHEMA_ID_TUNNEL = "moth-tunnel"
@@ -100,7 +100,7 @@ def detect(input_bytes):
 
 
 def translate_serial_line(line, *, platform_id, sensor_geo=None, sensor_id=None,
-                          timestamp_ms=None):
+                          timestamp_ms=None, based_on=None):
     """Translate a single Moth serial output line into a ZMeta event.
 
     Supports two formats:
@@ -110,6 +110,10 @@ def translate_serial_line(line, *, platform_id, sensor_geo=None, sensor_id=None,
     Serial readings are omnidirectional (no bearing information), so the
     canonical ``bearing`` block is omitted and no angular error is claimed.
     Bearing is derived later by correlating with UAS heading during scans.
+
+    ``based_on`` may carry real parent ZMeta event ids (UUIDv7 strings); when
+    None (default), lineage is omitted because this reading is an original
+    observation with no ZMeta parent. Parent ids are never fabricated.
 
     Returns:
         ZMeta event dict, or None if unparseable.
@@ -178,11 +182,12 @@ def translate_serial_line(line, *, platform_id, sensor_geo=None, sensor_id=None,
             },
             "timing_quality": coerce_timing_quality(event_ts=ts_iso),
         },
-        "lineage": {
-            "based_on": [str(uuid7())],
-            "transform": f"translate:{SCHEMA_ID_SERIAL}@{ADAPTER_VERSION}",
-        },
     }
+    if based_on:
+        event["lineage"] = {
+            "based_on": [str(item) for item in based_on],
+            "transform": f"translate:{SCHEMA_ID_SERIAL}@{ADAPTER_VERSION}",
+        }
     if geo:
         event["payload"]["geo"] = geo
     return event
@@ -190,7 +195,8 @@ def translate_serial_line(line, *, platform_id, sensor_geo=None, sensor_id=None,
 
 def translate_tunnel_payload(payload_bytes, *, platform_id, sensor_geo=None,
                               sensor_id=None, timestamp_ms=None,
-                              bearing_frame=None, calibration_state="UNCALIBRATED"):
+                              bearing_frame=None, calibration_state="UNCALIBRATED",
+                              based_on=None):
     """Translate a MAVLink TUNNEL payload (32 bytes) into a ZMeta event.
 
     The TUNNEL message contains a full LOB with bearing, frequency, power,
@@ -274,11 +280,12 @@ def translate_tunnel_payload(payload_bytes, *, platform_id, sensor_geo=None,
             "quality": quality,
             "timing_quality": coerce_timing_quality(event_ts=ts_iso),
         },
-        "lineage": {
-            "based_on": [str(uuid7())],
-            "transform": f"translate:{SCHEMA_ID_TUNNEL}@{ADAPTER_VERSION}",
-        },
     }
+    if based_on:
+        event["lineage"] = {
+            "based_on": [str(item) for item in based_on],
+            "transform": f"translate:{SCHEMA_ID_TUNNEL}@{ADAPTER_VERSION}",
+        }
     if geo:
         event["payload"]["geo"] = geo
         quality["geo_status"] = "AVAILABLE"
@@ -295,7 +302,7 @@ def translate_tunnel_payload(payload_bytes, *, platform_id, sensor_geo=None,
 
 
 def translate_custom_mavlink(frame_bytes, *, platform_id, sensor_geo=None,
-                              sensor_id=None, timestamp_ms=None):
+                              sensor_id=None, timestamp_ms=None, based_on=None):
     """Translate a Moth custom MAVLink message (UNKNOWN_15610) into ZMeta.
 
     The Moth firmware sends freq_mhz (float32) + power_dbm (int16) as a
@@ -359,18 +366,20 @@ def translate_custom_mavlink(frame_bytes, *, platform_id, sensor_geo=None,
             },
             "timing_quality": coerce_timing_quality(event_ts=ts_iso),
         },
-        "lineage": {
-            "based_on": [str(uuid7())],
-            "transform": f"translate:{SCHEMA_ID_MAVLINK}@{ADAPTER_VERSION}",
-        },
     }
+    if based_on:
+        event["lineage"] = {
+            "based_on": [str(item) for item in based_on],
+            "transform": f"translate:{SCHEMA_ID_MAVLINK}@{ADAPTER_VERSION}",
+        }
     if geo:
         event["payload"]["geo"] = geo
     return event
 
 
 def translate_json_replay(raw, *, platform_id, sensor_geo=None, sensor_id=None,
-                          bearing_frame=None, calibration_state="UNCALIBRATED"):
+                          bearing_frame=None, calibration_state="UNCALIBRATED",
+                          based_on=None):
     """Translate a Moth JSON replay dict into a ZMeta event.
 
     Used for offline replay / bench testing. Accepts the structured dict
@@ -467,11 +476,12 @@ def translate_json_replay(raw, *, platform_id, sensor_geo=None, sensor_id=None,
             "quality": quality,
             "timing_quality": coerce_timing_quality(raw.get("timing_quality"), event_ts=ts_iso),
         },
-        "lineage": {
-            "based_on": [str(uuid7())],
-            "transform": f"translate:{SCHEMA_ID_SERIAL}@{ADAPTER_VERSION}",
-        },
     }
+    if based_on:
+        event["lineage"] = {
+            "based_on": [str(item) for item in based_on],
+            "transform": f"translate:{SCHEMA_ID_SERIAL}@{ADAPTER_VERSION}",
+        }
     if bearing is not None:
         event["payload"]["bearing"] = bearing
     if geo:

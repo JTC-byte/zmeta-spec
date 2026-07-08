@@ -21,7 +21,12 @@ MAVLink platform telemetry can contribute to a ZMeta `STATE_EVENT` only after it
 is projected into state-safe fields. `STATE_EVENT` payloads must not contain
 `payload.features.*`, raw telemetry measurements, observation modality fields,
 observation time windows, or raw data references. Traceability belongs in
-`lineage.based_on` and `lineage.transform`.
+`lineage.based_on` and `lineage.transform`, and it must be real: the caller
+supplies `state["based_on"]` (parent ZMeta event ids, UUIDv7) or
+`state["source_zmeta_event_id"]`. Without one of those the translator refuses
+to emit — a lineage parent is never fabricated. The SYSTEM_EVENT builders
+(`translate_link_status`, `translate_time_status`) omit lineage unless the
+caller passes `based_on` (SYSTEM_EVENT lineage is optional).
 
 State-safe fields used by this adapter include:
 

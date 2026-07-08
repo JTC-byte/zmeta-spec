@@ -3,12 +3,16 @@
 Covers non-semantic runtime safeguards:
 - ProducerRateLimiter memory bounds (stale per-producer windows are evicted).
 - Oversize-datagram warning metrics on the UDP send path.
+- Send-failure containment: an OSError from sendto (for example a >65507-byte
+  UDP payload) drops that datagram with an explicit diagnostic instead of
+  crashing the gateway main loop.
 
 These guards must not change accept/reject semantics; the rate-limit
 decisions and forwarding behavior are asserted unchanged.
 """
 
 import importlib.util
+import socket
 import unittest
 from pathlib import Path
 from unittest import mock
@@ -121,6 +125,85 @@ class OversizeDatagramWarningTest(unittest.TestCase):
         settings = gateway.build_settings(ROOT, args, {"warn_datagram_bytes": 1400})
         # CLI overrides config.
         self.assertEqual(900, settings["warn_datagram_bytes"])
+
+
+class _FakeSocket:
+    def __init__(self, error=None):
+        self.error = error
+        self.sent = []
+
+    def sendto(self, payload, addr):
+        if self.error is not None:
+            raise self.error
+        self.sent.append((payload, addr))
+        return len(payload)
+
+
+class SendFailureGuardTest(unittest.TestCase):
+    def test_send_datagram_success_returns_true_and_sends(self):
+        sock = _FakeSocket()
+        metrics = gateway.GatewayMetrics(interval_sec=30, emit=False)
+
+        sent = gateway._send_datagram(
+            sock, b"payload", ("127.0.0.1", 5556), metrics=metrics, kind="forward"
+        )
+
+        self.assertTrue(sent)
+        self.assertEqual([(b"payload", ("127.0.0.1", 5556))], sock.sent)
+        self.assertEqual(0, metrics.window["send_failures"])
+
+    def test_send_datagram_oserror_is_dropped_and_recorded(self):
+        sock = _FakeSocket(error=OSError("message too long"))
+        logger = _ListLogger()
+        metrics = gateway.GatewayMetrics(interval_sec=30, emit=False, logger=logger)
+
+        sent = gateway._send_datagram(
+            sock,
+            b"x" * 70000,
+            ("127.0.0.1", 5556),
+            metrics=metrics,
+            kind="cot",
+            event_id="evt-1",
+            producer="prod-1",
+        )
+
+        self.assertFalse(sent)
+        self.assertEqual(1, metrics.window["send_failures"])
+        self.assertEqual({"cot": 1}, metrics.window["send_failure_kinds"])
+        record = logger.records[-1]
+        self.assertEqual("send_failure", record["type"])
+        self.assertEqual("cot", record["kind"])
+        self.assertEqual(70000, record["size_bytes"])
+        self.assertEqual("evt-1", record["event_id"])
+        self.assertEqual("prod-1", record["producer"])
+
+    def test_send_datagram_survives_real_oversize_udp_payload(self):
+        # A real UDP socket refuses datagrams above the ~65507-byte limit with
+        # an OSError. The guard must contain it; before this guard the gateway
+        # main loop crashed here.
+        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        try:
+            metrics = gateway.GatewayMetrics(interval_sec=30, emit=False)
+            sent = gateway._send_datagram(
+                sock,
+                b"x" * 70000,
+                ("127.0.0.1", 5556),
+                metrics=metrics,
+                kind="forward",
+            )
+
+            self.assertFalse(sent)
+            self.assertEqual(1, metrics.window["send_failures"])
+            self.assertEqual({"forward": 1}, metrics.window["send_failure_kinds"])
+        finally:
+            sock.close()
+
+    def test_send_datagram_without_metrics_does_not_raise(self):
+        sock = _FakeSocket(error=OSError("message too long"))
+
+        sent = gateway._send_datagram(sock, b"x" * 70000, ("127.0.0.1", 5556), metrics=None)
+
+        self.assertFalse(sent)
 
 
 if __name__ == "__main__":

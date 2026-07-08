@@ -140,6 +140,16 @@ def artifact_groups(root: Path = ROOT, *, include_tool_source: bool = True) -> d
             "description": "Machine-readable extension and reserved-vocabulary registry.",
             "paths": ["spec/extension-registry.yaml"],
         },
+        "future_branch_roadmap": {
+            "description": "Machine-readable future versioned-branch roadmap with promotion evidence and tripwires.",
+            "paths": _existing(
+                [
+                    "spec/future-branch-roadmap.yaml",
+                    "spec/future-branch-roadmap.md",
+                ],
+                root,
+            ),
+        },
         "conformance_classes": {
             "description": "Machine-readable conformance class manifest.",
             "paths": ["conformance/conformance_classes.yaml"],
@@ -272,6 +282,7 @@ def artifact_groups(root: Path = ROOT, *, include_tool_source: bool = True) -> d
                 "tools/validate_precision_policy.py",
                 "tools/validate_bad_events.py",
                 "tools/validate_adapter_conformance.py",
+                "tools/validate_future_roadmap.py",
                 "tools/filter_risk.py",
             ],
         }

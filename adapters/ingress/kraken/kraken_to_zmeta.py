@@ -14,7 +14,7 @@ Source: Z-ISR edge/edge/sensors/kraken_rf.py
 from adapters.ingress.time_utils import coerce_timing_quality, epoch_ms_to_utc_z, utc_now_z
 from zmeta_uuid import uuid7
 
-ADAPTER_VERSION = "1.1.0"
+ADAPTER_VERSION = "1.2.0"
 SCHEMA_ID = "krakensdr-doa"
 DEFAULT_SENSOR_ID = "krakensdr_rf"
 
@@ -81,6 +81,7 @@ def translate_csv_row(
     array_offset_deg=0.0,
     heading_source=None,
     calibration_state="UNCALIBRATED",
+    based_on=None,
 ):
     """Translate a single Kraken DOA CSV row into a ZMeta OBSERVATION_EVENT.
 
@@ -104,6 +105,11 @@ def translate_csv_row(
         heading_source: Optional heading reference label recorded in
             quality.heading_source (e.g. "AHRS_TRUE", "GPS_COURSE",
             "FIXED_MOUNT_SURVEYED").
+        based_on: Optional list of real parent ZMeta event ids (UUIDv7
+            strings). When provided, an envelope lineage block is emitted;
+            when None (default), lineage is omitted because this row is an
+            original observation with no ZMeta parent. Parent ids are never
+            fabricated.
 
     Returns:
         ZMeta event dict, or None if the row cannot be parsed.
@@ -167,11 +173,12 @@ def translate_csv_row(
             },
             "timing_quality": coerce_timing_quality(event_ts=ts_iso),
         },
-        "lineage": {
-            "based_on": [str(uuid7())],
-            "transform": f"translate:{SCHEMA_ID}@{ADAPTER_VERSION}",
-        },
     }
+    if based_on:
+        event["lineage"] = {
+            "based_on": [str(item) for item in based_on],
+            "transform": f"translate:{SCHEMA_ID}@{ADAPTER_VERSION}",
+        }
     _apply_bearing_frame(
         event["payload"], doa_deg, platform_heading_deg, array_offset_deg, heading_source
     )
@@ -190,6 +197,7 @@ def translate_json(
     array_offset_deg=0.0,
     heading_source=None,
     calibration_state="UNCALIBRATED",
+    based_on=None,
 ):
     """Translate a Kraken JSON replay dict into a ZMeta OBSERVATION_EVENT.
 
@@ -209,6 +217,9 @@ def translate_json(
             platform heading.
         heading_source: Optional heading reference label recorded in
             quality.heading_source.
+        based_on: Optional list of real parent ZMeta event ids (UUIDv7
+            strings). When None (default), lineage is omitted; parent ids
+            are never fabricated.
 
     Returns:
         ZMeta event dict.
@@ -275,11 +286,12 @@ def translate_json(
             "quality": quality,
             "timing_quality": coerce_timing_quality(raw.get("timing_quality"), event_ts=ts_iso),
         },
-        "lineage": {
-            "based_on": [str(uuid7())],
-            "transform": f"translate:{SCHEMA_ID}@{ADAPTER_VERSION}",
-        },
     }
+    if based_on:
+        event["lineage"] = {
+            "based_on": [str(item) for item in based_on],
+            "transform": f"translate:{SCHEMA_ID}@{ADAPTER_VERSION}",
+        }
     _apply_bearing_frame(
         event["payload"], doa_deg, platform_heading_deg, array_offset_deg, heading_source
     )
@@ -299,6 +311,7 @@ def translate_http_body(
     array_offset_deg=0.0,
     heading_source=None,
     calibration_state="UNCALIBRATED",
+    based_on=None,
 ):
     """Translate a full Kraken DOA HTTP response body into ZMeta events.
 
@@ -326,6 +339,7 @@ def translate_http_body(
             array_offset_deg=array_offset_deg,
             heading_source=heading_source,
             calibration_state=calibration_state,
+            based_on=based_on,
         )
         if evt is not None:
             events = [evt]

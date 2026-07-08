@@ -2,6 +2,58 @@
 
 ## [Unreleased]
 
+## [1.1.12] - 2026-07-08
+- Governance (governed docs): `spec/extension-registry.md` gains a
+  "Promotion Evidence Requirements" section — promoting a reserved/proposed
+  concept into a named version branch now requires at least two independent
+  implementations demonstrating the need plus a documented semantic-contract
+  Section 2.6 failure condition that policy, config, profiles, adapter
+  mappings, and namespaced extensions cannot solve; the change-governance
+  Class D checklist references the bar. Encodes the
+  external-PRs-are-field-telemetry intake doctrine into governed process.
+- S1-11B (governed baseline): new machine-readable future-branch roadmap —
+  `spec/future-branch-roadmap.yaml` (18 candidates with status, priority,
+  dependencies, required adoption surfaces, recorded field evidence, and
+  promotion tripwires; 3 recorded rejection/defer decisions) plus
+  `spec/future-branch-roadmap.md` governance companion,
+  `tools/validate_future_roadmap.py` (structure, vocabulary, dependency and
+  registry cross-reference resolution, tripwire coverage, and a
+  status-leakage check), focused tests, and a new `future_branch_roadmap`
+  release-manifest group (groups=19, artifacts=70). The roadmap makes no
+  concept valid. The S1-11A Section M condition for closing D-003 is now
+  met; closure is recommended and awaits the maintainer.
+- Adapter lineage honesty (runtime/reference): kraken (1.2.0), moth (1.2.0),
+  signalhunter (1.1.0), KLV template (0.2.0), MAVLink template (1.2.0), and
+  eo-cv (1.1.0) no longer fabricate `lineage.based_on` with fresh random
+  UUIDv7 values. Observation and system outputs omit lineage unless the
+  caller supplies real parent ids (`based_on=[...]`); mandatory-lineage
+  events refuse to emit instead of inventing parents (MAVLink STATE requires
+  `based_on`/`source_zmeta_event_id`; eo-cv INFERENCE requires
+  `parent_event_ids` or a schema-valid UUIDv7 `source_event_id`, which now
+  feeds real lineage instead of being dropped). Adapter-harness fixtures pin
+  the honest behavior (one new caller-supplied-lineage fixture; total 11);
+  new eo-cv ingress tests; the ingress template README lineage rule is now
+  "never fabricate — omit or refuse".
+- Gateway send-failure containment (runtime): outgoing UDP sends are routed
+  through `_send_datagram`, which catches `OSError` (e.g. payloads above the
+  ~65507-byte UDP limit), drops that datagram with new `send_failure`
+  metrics/log diagnostics, and keeps the main loop alive; forwarded/CoT
+  counters only increment on actual sends. Previously an oversize payload
+  terminated the gateway process. Covered by new tests including a
+  real-socket oversize proof.
+- Documentation honesty (advisory): `adapters/mapping-packs/README.md`
+  states that packs are declarative descriptions plus test evidence — no
+  runtime engine executes `mapping.yaml`;
+  `docs/zmeta_professional_overview.md` documents that
+  `risk_adjudication`/`external_promotion` are deliberately enforced by
+  policy + conformance above the locked schema kernel, with schema-level
+  standing parked as an evidence-gated roadmap candidate.
+- Process closeout: the handoff's open-ended human-decision list is resolved
+  to recorded standing defaults, leaving two genuinely open maintainer
+  decisions (release-signing process, v1.1.0 adopted-vs-experimental).
+  `tools/check_compat.py` gains the `v1.1.12` target; release manifest and
+  example claims regenerated for `zmeta-v1.1.12`.
+
 ## [1.1.11] - 2026-07-07
 - Field-driven adoption guidance harvested from a live at-scale deployment
   (upstream PR #4, reviewed and not merged): three new advisory docs —

@@ -2,8 +2,49 @@
 
 ## Current Resume Note
 
-- Last updated: 2026-07-07
+- Last updated: 2026-07-08
 - Quick handoff: `docs/zmeta_refinement_handoff.md`
+- S1-26 (2026-07-08): prepared v1.1.12 (governance and honesty closeout) on
+  current `main` per explicit maintainer direction to work the full
+  relock-gap list. Delivered: (1) promotion evidence bar in
+  `spec/extension-registry.md` + change-governance Class D — moving
+  reserved/proposed concepts into a version branch now requires two or more
+  independent implementations demonstrating the need plus a documented
+  contract Section 2.6 failure condition the outer rings cannot solve;
+  (2) S1-11B implemented — `spec/future-branch-roadmap.yaml`/`.md` (18
+  candidates with evidence + tripwires, 3 recorded rejections/deferrals,
+  including the PR #4 tranche-3 candidates and honesty-primitive schema
+  standing), `tools/validate_future_roadmap.py`, tests, and a new
+  `future_branch_roadmap` release-manifest group (groups=19, artifacts=70);
+  D-003 closure condition met, closure recommended (maintainer call);
+  (3) lineage honesty — kraken/moth/signalhunter/klv/mavlink/eo-cv no longer
+  fabricate `lineage.based_on` with random UUIDv7s: observation/system
+  outputs omit lineage unless callers pass real `based_on`;
+  mandatory-lineage events refuse to emit without real parents (mavlink
+  STATE needs `based_on`/`source_zmeta_event_id`; eo-cv INFERENCE needs
+  `parent_event_ids` or a UUIDv7 `source_event_id`); adapter versions
+  bumped; harness fixtures updated + 1 new caller-lineage fixture (total
+  11); new eo-cv test file; ingress template README never-fabricate rule;
+  (4) gateway UDP send containment — `_send_datagram` catches OSError
+  (oversize ~65507-byte sends), drops with new `send_failure`
+  metrics/diagnostics instead of crashing the main loop; real-socket
+  oversize test proves it; (5) truth-in-advertising — mapping-packs README
+  states no runtime engine executes `mapping.yaml` (declarative packs +
+  adapter code + test evidence); (6) honesty-primitive enforcement home
+  documented in the professional overview (policy + conformance is the
+  intended home; schema standing parked as an evidence-gated roadmap
+  candidate); (7) handoff human-decision list resolved to standing defaults
+  with two genuinely open items (signing process — maintainer generating a
+  signature 2026-07-08; v1.1.0 adopted-vs-experimental). Validation: full
+  kernel gate green (projection 37, registry 61, classes 34/2,
+  encoding-negative 50, precision 32, bad-events 23, adapter 11), roadmap
+  validator ok (18/3), examples 47/47, policy lint ok, pytest 465 + 110
+  subtests, workflow end-to-end H/M, live gateway JSON/compact, gateway
+  self-tests x3, check_compat v1.1.12 for all 8 corpora, packet-size
+  max=150/240, release package ok, checksums ok. Release commit carries
+  notes/report/SHA256SUMS_v1.1.12.txt; annotated tag created locally;
+  publication (push, GitHub release, optional signatures) remains with the
+  release authority.
 - Current next work item: S1-24 prepared the v1.1.10 fielded-safety enforcement
   release on current `main` — command-altitude denylist completion to the full
   §7.8 set, a recursive STATE laundering check with whitespace/case key
@@ -2335,6 +2376,15 @@
   interaction, conformance-class interaction, release/hash impact, and standard
   Sx-A/Sx-B/Sx-C implementation pattern. No branch was implemented and no
   future vocabulary became valid.
+- S1-26 coverage (2026-07-08): S1-11B is implemented —
+  `spec/future-branch-roadmap.yaml` / `.md` record all candidates with
+  status, dependencies, required surfaces, recorded field evidence, and
+  promotion tripwires, validated by `tools/validate_future_roadmap.py` and
+  registered in the release manifest. The S1-11A Section M closure condition
+  (a machine-readable roadmap/governance artifact sufficient to track future
+  branch work individually) is now met; closing D-003 is recommended and
+  awaits the maintainer's decision. Until then D-003 remains the open
+  umbrella issue and no future vocabulary is valid.
 
 ### D-004 - Out-of-Scope Artifact Set
 

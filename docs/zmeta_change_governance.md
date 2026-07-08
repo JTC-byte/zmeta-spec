@@ -198,6 +198,10 @@ Requirements:
 - start with a plan-only document;
 - record the candidate in the extension registry as reserved/proposed before
   implementation;
+- meet the promotion evidence bar in `spec/extension-registry.md` —
+  independent demonstrated need from at least two implementations plus a
+  documented semantic-contract Section 2.6 failure condition — before moving
+  a candidate into a named version branch;
 - identify version target and compatibility impact;
 - update schema, policy, adapters/gateway, encoding, conformance, docs, release
   manifest, and claims together;

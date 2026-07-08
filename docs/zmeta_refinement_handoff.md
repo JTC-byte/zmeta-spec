@@ -87,6 +87,57 @@ Current stack status:
     consistent with v1.1.5 through v1.1.10; detached signatures remain an
     optional release-authority step. Published v1.1.10-and-earlier
     assets/checksums are unchanged.
+- S1-26 (2026-07-08) prepared the v1.1.12 governance and honesty closeout
+  release on current `main`, working the full relock-gap list per explicit
+  maintainer direction. No schema or v1.0/v1.1.0 vocabulary change.
+  - Promotion evidence bar (governed docs): `spec/extension-registry.md`
+    "Promotion Evidence Requirements" — reserved/proposed concepts enter a
+    named version branch only with two or more independent implementations
+    demonstrating the need plus a documented contract Section 2.6 failure
+    condition the outer rings cannot solve; referenced from the
+    change-governance Class D checklist. Encodes the intake doctrine
+    (external PRs are field telemetry) into governed process.
+  - S1-11B implemented (governed baseline): `spec/future-branch-roadmap.yaml`
+    and `.md` — 18 candidates with status, priority, dependencies, required
+    surfaces, recorded evidence, and promotion tripwires (including the
+    PR #4 tranche-3 candidates and honesty-primitive schema standing), plus
+    3 recorded rejection/defer decisions; validated by
+    `tools/validate_future_roadmap.py` (registry cross-references, tripwire
+    coverage, status-leakage check) with focused tests; new
+    `future_branch_roadmap` release-manifest group (groups=19,
+    artifacts=70). D-003's closure condition is met; closure recommended,
+    maintainer decision pending.
+  - Lineage honesty (runtime/reference): kraken/moth/signalhunter/klv/
+    mavlink/eo-cv no longer fabricate `lineage.based_on` with random
+    UUIDv7s. Observation/system outputs omit lineage unless callers pass
+    real `based_on`; mandatory-lineage events refuse to emit without real
+    parents (mavlink STATE: `based_on`/`source_zmeta_event_id`; eo-cv
+    INFERENCE: `parent_event_ids` or UUIDv7 `source_event_id`). Adapter
+    versions bumped; harness fixtures pin the honest behavior (total 11);
+    new eo-cv test file; ingress template README states the never-fabricate
+    rule (omit or refuse).
+  - Gateway containment (runtime): `_send_datagram` catches OSError on the
+    two UDP send paths (oversize ~65507-byte payloads previously crashed the
+    main loop), drops the datagram with new `send_failure`
+    metrics/diagnostics, and counts forwarded/CoT only on actual sends;
+    real-socket oversize test included.
+  - Documentation honesty (advisory): mapping packs documented as
+    declarative descriptions plus test evidence (no runtime engine executes
+    `mapping.yaml`); professional overview documents policy + conformance as
+    the deliberate enforcement home for `risk_adjudication`/
+    `external_promotion`, with schema standing parked as an evidence-gated
+    roadmap candidate.
+  - Process closeout: the open-ended human-decision list in this handoff is
+    resolved to standing defaults (see Next Work Queue); genuinely open:
+    release-signing process (maintainer generating a signature, 2026-07-08)
+    and v1.1.0 adopted-vs-experimental status.
+  - Validation: full kernel gate, roadmap validator, strict examples
+    (47/47), policy lint, pytest (465 passed, 110 subtests), workflow
+    end-to-end (H/M), live gateway (JSON/compact), gateway self-tests,
+    check_compat `v1.1.12` for all eight corpora, packet-size max=150/240,
+    release package validation, and verified `SHA256SUMS_v1.1.12.txt`. The
+    annotated tag `v1.1.12` is created locally; push/publication and
+    optional signatures remain with the release authority.
 - The P1-04 bearing reference-frame integrity pass and P1-04R review fixes are
   adopted on `main` for v1.1.8. Schema 1.1.0 gained the optional
   `bearing.frame` marker; the locked v1.0 schema is untouched.
@@ -94,8 +145,9 @@ Current stack status:
   bearing/heading fields unless callers explicitly assert `TRUE_NORTH`;
   unasserted native values remain auditable under explicitly named
   non-canonical fields.
-- Use tag `v1.1.10` for current formal release assets/checksums. Use tag
-  `v1.1.9` for the previous documentation-freshness release baseline.
+- Use tag `v1.1.11` for the latest published formal release
+  assets/checksums; `v1.1.12` is prepared and locally tagged, awaiting
+  release-authority publication.
 - Use current `main` for the latest integration baseline with bearing-frame
   integrity, policy-risk linting, projection preservation for risk/promotion
   extensions, stricter extension registry metadata, formal human/AI agent
@@ -139,18 +191,24 @@ Current stack status:
 
 Current release target:
 
-- Release URL: <https://github.com/JTC-byte/zmeta-spec/releases/tag/v1.1.11>
-- Tag: `v1.1.11` (annotated, on release commit `922f0ca`)
-- Release commit: `922f0ca` - `Release v1.1.11: field-driven adoption
-  guidance`.
-- GitHub CI: passed for the pushed v1.1.11 release commit.
+- Prepared release: `v1.1.12` (governance and honesty closeout) — release
+  commit on current `main` with `RELEASE_NOTES_v1.1.12.md`,
+  `VALIDATION_REPORT_v1.1.12.md`, `SHA256SUMS_v1.1.12.txt`, regenerated
+  `zmeta-v1.1.12` release manifest/claims, and all eight assets built and
+  checksum-verified. The annotated `v1.1.12` tag exists locally;
+  **publication (push, GitHub release upload, optional detached
+  signatures) awaits the release authority.** The maintainer is standing up
+  a signing process (2026-07-08); v1.1.12 may be the first signed release
+  or ship checksums-only like its predecessors.
+- Latest published release: `v1.1.11` —
+  <https://github.com/JTC-byte/zmeta-spec/releases/tag/v1.1.11>, annotated
+  tag on release commit `922f0ca`, GitHub CI green, checksums-only.
 - Previous release: `v1.1.10` (tag on `6ce4f29`); its published assets,
   checksums, and release records are unchanged.
-- Signature status: v1.1.11 release artifacts are published checksums-only,
-  consistent with v1.1.5 through v1.1.10. Use `SHA256SUMS_v1.1.11.txt`, the
-  structured release manifest, and the release package checksum file for
-  integrity verification. Detached signatures remain an optional
-  release-authority step.
+- Signature status: all published releases v1.1.5 through v1.1.11 are
+  checksums-only. Use `SHA256SUMS_<version>.txt`, the structured release
+  manifest, and the release package checksum file for integrity
+  verification.
 
 ## Key Docs
 
@@ -176,6 +234,9 @@ Current release target:
 | `spec/extension-registry.md` | Human-readable extension registry governance, status definitions, collision rules, and adoption requirements. |
 | `spec/extension-registry.yaml` | Machine-readable extension registry. Existing v1.1.0 entries are experimental; future entries are reserved/proposed. |
 | `docs/s1_03c_extension_registry_audit.md` | S1-03C audit confirming extension registry implementation, validation behavior, and version-boundary protection. |
+| `spec/future-branch-roadmap.md` | Governance companion for the S1-11B machine-readable future-branch roadmap: authority limits, field definitions, and usage. |
+| `spec/future-branch-roadmap.yaml` | Machine-readable D-003 roadmap: candidates with status, dependencies, required surfaces, recorded evidence, promotion tripwires, and rejection/defer decisions. Not a vocabulary source. |
+| `tools/validate_future_roadmap.py` | Standalone validator for the future-branch roadmap (structure, registry cross-references, tripwire coverage, status-leakage check). |
 | `docs/s1_04_conformance_class_manifest_plan.md` | S1-04A plan for conformance class artifacts, claim model, dependencies, validation, and implementation path. |
 | `spec/conformance-classes.md` | Human-readable conformance class and claim model. |
 | `conformance/conformance_classes.yaml` | Machine-readable conformance class manifest. |
@@ -223,6 +284,9 @@ Current release target:
 | `release/RELEASE_NOTES_v1.1.9.md` | Published v1.1.9 release notes. |
 | `release/VALIDATION_REPORT_v1.1.9.md` | Published v1.1.9 validation report. |
 | `release/SHA256SUMS_v1.1.9.txt` | Published v1.1.9 checksum manifest for standard release assets. |
+| `release/RELEASE_NOTES_v1.1.12.md` | Prepared v1.1.12 release notes (publication pending). |
+| `release/VALIDATION_REPORT_v1.1.12.md` | Prepared v1.1.12 validation report (publication pending). |
+| `release/SHA256SUMS_v1.1.12.txt` | Prepared v1.1.12 checksum manifest for standard release assets (publication pending). |
 | `tools/lint_policy_risk_modes.py` | Policy lint for unsafe `ignore` settings on material risk. |
 | `docs/zmeta_refinement_worklog.md` | Running worklog, completed work items, pending work items, and deferred issue register. |
 
@@ -291,7 +355,8 @@ Current release target:
   schema, vocabulary, version-dispatch, projection, risk, or command-authority
   changes are private dialect/fork work unless governed, versioned, documented,
   and backed by conformance evidence.
-- Current formal release is `v1.1.9`; latest integration baseline is current `main`.
+- Latest published formal release is `v1.1.11`; `v1.1.12` is prepared and
+  awaiting publication; latest integration baseline is current `main`.
 - v1.0 remains locked.
 - Do not add v1.1.0 or future concepts to v1.0.
 - S1-01A found no schema-enforceable v1.0 gap requiring S1-01B.
@@ -493,46 +558,43 @@ entries):
      exist.
    - S1-11B remains an optional future artifact, not an active blocker.
 
-2. **Human decisions for future hardening**
-   - Exact candidate precision defaults by profile and field family.
-   - Whether precision values are global defaults or mission/profile
-     configurable.
-   - Whether Profile L has one universal precision policy or multiple mission
-     policies.
-   - Whether coordinate quantization is decimal-place-based, grid-based, or
-     uncertainty/CEP-based.
-   - Whether confidence rounding floors to fixed decimals or configured buckets.
-   - Whether command geometry precision policy is stricter than STATE_EVENT
-     display policy.
-   - Whether RF quantization varies by modality, sensor resolution, band, or
-     mission.
-   - Whether precision policy is enforced in gateway exports, conformance only,
-     or both.
-   - Whether current class statuses should be `implemented` or `active`.
-   - Whether claim files should require captured test output artifacts or only
-     command/result summaries.
-   - Whether future formal releases should publish detached signatures after an
-     approved release signing key/process exists.
-   - Whether future formal tagged releases should publish post-release claim
-     attestations that include release_manifest_hash.
-   - How broad the next adapter-harness expansion should be before claiming
-     sensor-adapter certification.
-   - Whether v1.1.0 concepts remain `experimental` or any should be promoted.
-   - Whether registry validation should remain opt-in or become part of strict
-     conformance after the format stabilizes.
-   - How to represent vendor/private namespaces and classified/restricted names.
-   - Whether encoding-negative fixtures should store malformed bytes as hex,
-     base64, or generated-at-test-time inputs.
-   - Whether to add a future `ZMETA-ENCODING-NEGATIVE-VALIDATION` class or fold
-     the suite into existing compact/protobuf classes.
-   - Whether `--encoding-negative` should remain opt-in indefinitely or later
-     join strict release conformance.
-   - Whether `--precision-policy` should remain opt-in indefinitely or later
-     join strict release conformance.
-   - Whether to implement S1-11B or keep the future-branch roadmap as
-     documentation only.
+2. **Standing defaults (recorded 2026-07-08 by maintainer direction)**
+   The former open-ended "human decisions for future hardening" list is
+   resolved to standing defaults: the shipped reference behavior stands
+   unless field evidence or a promotion-evidence-bar tripwire
+   (`spec/extension-registry.md`, `spec/future-branch-roadmap.yaml`) forces a
+   revisit. Specifically:
+   - Precision policy reference defaults (values, profile scoping,
+     quantization basis, confidence rounding, command-vs-display strictness,
+     RF variation) stand as reference conformance defaults requiring mission
+     review; enforcement stays in conformance, not gateway exports.
+   - Opt-in conformance flags (`--encoding-negative`, `--precision-policy`,
+     `--extension-registry`) remain opt-in for downstream users; CI and
+     `make validate-kernel` already run the full kernel path, which is the
+     gate that protects releases.
+   - Conformance class statuses stay `implemented`; claim files keep
+     command/result summaries without captured-output artifacts.
+   - Encoding-negative fixtures keep their current byte-storage format; no
+     separate `ZMETA-ENCODING-NEGATIVE-VALIDATION` class — evidence stays
+     folded into the compact/protobuf classes.
+   - Vendor/private namespaces keep the `vendor.<owner>.<name>` convention;
+     classified/restricted name representation is deferred to the
+     future-branch roadmap.
+   - Adapter-harness breadth grows only with real sensor captures; broader
+     `ZMETA-SENSOR-ADAPTER` certification stays planned until then.
+   - S1-11B is implemented (`spec/future-branch-roadmap.yaml` +
+     `tools/validate_future_roadmap.py`); that decision is closed.
 
-3. **Deferred issue cleanup**
+3. **Genuinely open maintainer decisions**
+   - Release signing: releases since v1.1.5 are checksums-only. The release
+     authority is standing up a signature (in progress 2026-07-08); whether
+     future formal releases publish detached signatures and post-release
+     claim attestations (including `release_manifest_hash`) follows from
+     that process.
+   - Whether v1.1.0 remains permanently `experimental` or is adopted as a
+     baseline (open question from the future-branch roadmap, Section N).
+
+4. **Deferred issue cleanup**
    - D-001 MAVLink Adapter README State Payload Drift is closed.
    - D-002 Contract Hash / Release Hash Follow-Up is closed.
    - D-003 Future Semantics Require Versioned Implementation Branches is
@@ -548,7 +610,7 @@ entries):
    - D-013 Timing-Freshness Negative-Age Clamp is closed.
    - D-014 Compact Codec Unknown Integer Payload Keys is closed.
 
-4. **Later versioned semantic branches**
+5. **Later versioned semantic branches**
    - Markings/releasability.
    - Integrity, signing, anti-replay, mesh trust, and quarantine.
    - MODEL_STATUS / assurance and drift monitoring.
@@ -571,7 +633,58 @@ entries):
 
 ## Verification State
 
-Most recent validation for the final current-main baseline audit on `main`
+Most recent validation for the S1-26 v1.1.12 release preparation on `main`
+(2026-07-08, Windows, Python):
+
+```powershell
+python tools\build_release_manifest.py --release-id zmeta-v1.1.12 --release-name "ZMeta v1.1.12" --release-status formal_release --release-date 2026-07-08 --branch main --update-claims
+python tools\validate_release_manifest.py --manifest release\zmeta-release-manifest.yaml
+python tools\validate_conformance.py --strict --profile-projection --extension-registry --conformance-classes --encoding-negative --precision-policy --release-manifest --release-package --bad-events --adapter-harness
+python tools\validate_examples.py --strict --require-all
+python tools\lint_policy_risk_modes.py
+python tools\validate_future_roadmap.py
+python -m pytest -q
+python tools\test_workflow_end_to_end.py
+python tools\test_workflow_end_to_end.py --profile M --listen-port 5665 --forward-port 5666 --cot-port 5667
+python tools\test_gateway_live.py --listen-port 5675 --forward-port 5676 --cot-port 5677
+python tools\test_gateway_live.py --profile L --encoding compact --input-encoding compact --listen-port 5695 --forward-port 5696 --cot-port 5697
+python gateway\src\gateway.py --profile H --self-test
+python gateway\src\gateway.py --config configs\gateway-config.json --self-test
+python gateway\src\gateway.py --config configs\edge-config.json --self-test
+python tools\check_compat.py --target v1.1.12 --strict <each examples\*.jsonl>
+python tools\measure_packet_size.py --file examples\zmeta-profile-L-examples.jsonl --encodings compact --max-bytes 240 --summary-only
+python release\build_mvp_packages.py --version v1.1.12
+python release\build_release_bundle.py --version 1.1.12
+python tools\build_release_package.py --manifest release\zmeta-release-manifest.yaml --output-dir release\package-v1.1.12 --release-id zmeta-v1.1.12 --release-state formal_release --no-signatures --allow-dirty --clean-output
+python tools\validate_release_package.py --manifest release\zmeta-release-manifest.yaml --package-dir release\package-v1.1.12
+python release\sign_release_artifacts.py --version v1.1.12 --write-checksums --verify-checksums
+git diff --check
+```
+
+Full kernel conformance result: `projection conformance ok total=37`,
+`extension registry ok entries=61`, `conformance classes ok classes=34
+claims=2`, `encoding negative ok total=50`, `profile precision policy ok
+total=32`, `bad-event corpus ok total=23`, `adapter conformance ok
+total=11`, `conformance ok`.
+Roadmap result: `future-branch roadmap ok candidates=18
+rejected_or_deferred=3`.
+Examples result: `overall total=47 passed=47 failed=0 warnings=0`.
+Policy lint result: `policy risk mode lint ok`.
+Release manifest result: `release manifest ok groups=19 artifacts=70`.
+Release package result: `release package ok mode=package`.
+Full pytest result: `465 passed, 110 subtests passed`.
+Workflow/live gateway results: Profile H/M end-to-end and JSON/compact live
+paths passed with CoT wire output; gateway self-tests passed for Profile H,
+gateway config, and edge config.
+Compatibility result: `issues=0 failed=0 warnings=0` for all eight example
+corpora against target `v1.1.12`.
+Packet-size result: compact Profile L `min=98 avg=116.0 max=150` under the
+240-byte check.
+Checksum result: `checksums ok: SHA256SUMS_v1.1.12.txt`.
+Docker Compose config rendering was not re-exercised this session (deploy
+YAML unchanged since the last validated baseline).
+
+Earlier validation for the final current-main baseline audit on `main`
 (2026-06-12, Windows, Python, final pushed audit commit `c814d95`; validation
 was originally performed across the `beffed3` guidance cleanup and the
 subsequent `c814d95` closeout-note commit):

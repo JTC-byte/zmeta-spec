@@ -1,6 +1,9 @@
 from adapters.ingress.klv.klv_to_zmeta_template import klv_decoded_to_zmeta_observation
 
 
+_PARENT_EVENT_ID = "019c2b5c-c053-70e1-b6aa-340000000001"
+
+
 def test_klv_ingress_observation():
     decoded = {"lat": 34.0, "lon": -118.0, "alt_m": 120.0, "sensor_mode": "EO"}
     event = klv_decoded_to_zmeta_observation(
@@ -16,5 +19,22 @@ def test_klv_ingress_observation():
     assert event["event"]["ts"] == "2025-01-17T15:20:00Z"
     assert "features" in event["payload"]
     assert event["payload"]["timing_quality"]["sync_state"] == "UNSYNCED"
-    assert event["lineage"]["transform"].startswith("translate:klv@")
     assert "confidence" not in event
+    # Original observations carry no ZMeta parent; lineage is omitted, never
+    # fabricated with a random parent id.
+    assert "lineage" not in event
+
+
+def test_klv_ingress_observation_carries_caller_lineage_when_supplied():
+    decoded = {"lat": 34.0, "lon": -118.0, "alt_m": 120.0, "sensor_mode": "EO"}
+    event = klv_decoded_to_zmeta_observation(
+        decoded,
+        platform_id="platform-1",
+        sensor_id="sensor-1",
+        producer="klv:misb:0601",
+        ts="2025-01-17T15:20:00+00:00",
+        based_on=[_PARENT_EVENT_ID],
+    )
+
+    assert event["lineage"]["based_on"] == [_PARENT_EVENT_ID]
+    assert event["lineage"]["transform"].startswith("translate:klv@")

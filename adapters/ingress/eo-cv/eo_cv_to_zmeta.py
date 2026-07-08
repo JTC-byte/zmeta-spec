@@ -25,14 +25,22 @@ Source: Z-ISR edge/edge/sensors/eo_consumer.py and edge/edge/zmeta_builder.py
 """
 
 import math
+import re
 from typing import Any, Dict, List, Optional
 
 from adapters.ingress.time_utils import coerce_timing_quality, normalize_utc_z, utc_now_z
 from zmeta_uuid import uuid7
 
-ADAPTER_VERSION = "1.0.0"
+ADAPTER_VERSION = "1.1.0"
 SCHEMA_ID = "eo-cv-detection"
 DEFAULT_SENSOR_ID = "eo_camera"
+
+# Mirrors schema $defs/uuid (UUIDv7 per RFC 9562). INFERENCE_EVENT lineage
+# must reference real parent events, so only schema-valid parent ids are
+# accepted; nothing is ever fabricated to satisfy the requirement.
+_UUID7_RE = re.compile(
+    r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$"
+)
 
 _GEO_MAX_SENSOR_DELTA_M = 10000.0
 
@@ -81,6 +89,7 @@ def translate(
     confidence_floor: float = 0.0,
     strip_thumbnail: bool = True,
     strip_embedding: bool = True,
+    parent_event_ids: Optional[List[str]] = None,
 ) -> Optional[dict]:
     """Translate a CV detection JSON into a ZMeta EO INFERENCE_EVENT.
 
@@ -101,9 +110,17 @@ def translate(
         confidence_floor: Minimum confidence to accept (default 0.0).
         strip_thumbnail: Remove heavyweight thumbnail field (default True).
         strip_embedding: Remove heavyweight embedding field (default True).
+        parent_event_ids: Optional list of real parent ZMeta event ids
+            (UUIDv7 strings) identifying the source observation events.
+            When absent, the detection's ``source_event_id`` is used if it
+            is a schema-valid UUIDv7.
 
     Returns:
-        ZMeta event dict, or None if detection is invalid or below threshold.
+        ZMeta event dict, or None if detection is invalid, below threshold,
+        or carries no schema-valid parent event id. INFERENCE_EVENT lineage
+        must reference the real input observations (semantic contract 4.8
+        and 11.3); a parent id is never fabricated, so a detection without
+        one is refused rather than emitted with invented lineage.
     """
     # Unwrap envelope if present
     msg_type = detection.get("type", "")
@@ -176,9 +193,19 @@ def translate(
 
     ts = normalize_utc_z(payload.get("timestamp")) or _utc_now()
     sid = stream_id or DEFAULT_SENSOR_ID
-    parent_event_id = str(uuid7())
-    if payload.get("source_event_id"):
-        claim["source_event_id"] = str(payload.get("source_event_id"))
+
+    source_event_id = payload.get("source_event_id")
+    if source_event_id:
+        claim["source_event_id"] = str(source_event_id)
+
+    if parent_event_ids:
+        parents = [str(item) for item in parent_event_ids]
+    elif source_event_id and _UUID7_RE.match(str(source_event_id)):
+        parents = [str(source_event_id)]
+    else:
+        parents = []
+    if not parents or not all(_UUID7_RE.match(item) for item in parents):
+        return None
 
     return {
         "zmeta_version": "1.0",
@@ -201,7 +228,7 @@ def translate(
                 "name": str(payload.get("model_name") or "eo-cv"),
                 "version": str(payload.get("model_version") or ADAPTER_VERSION),
             },
-            "based_on": [parent_event_id],
+            "based_on": parents,
             "timing_quality": coerce_timing_quality(
                 payload.get("timing_quality"),
                 event_ts=ts,
@@ -209,7 +236,7 @@ def translate(
         },
         "confidence": confidence,
         "lineage": {
-            "based_on": [parent_event_id],
+            "based_on": parents,
             "transform": f"translate:{SCHEMA_ID}@{ADAPTER_VERSION}",
         },
     }
@@ -221,6 +248,7 @@ def translate_batch(
     platform_id: str,
     sensor_geo: Optional[Dict[str, float]] = None,
     confidence_floor: float = 0.0,
+    parent_event_ids: Optional[List[str]] = None,
 ) -> List[dict]:
     """Translate a batch of CV detection messages into ZMeta events.
 
@@ -236,6 +264,7 @@ def translate_batch(
             platform_id=platform_id,
             sensor_geo=sensor_geo,
             confidence_floor=confidence_floor,
+            parent_event_ids=parent_event_ids,
         )
         if evt is not None:
             events.append(evt)

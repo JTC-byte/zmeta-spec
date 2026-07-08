@@ -228,12 +228,14 @@ class GatewayMetrics:
             "violations": 0,
             "warnings": 0,
             "oversize_datagrams": 0,
+            "send_failures": 0,
             "drop_reasons": {},
             "cot_skip_reasons": {},
             "timing_quality_modes": {},
             "violation_codes": {},
             "warning_codes": {},
             "oversize_datagram_kinds": {},
+            "send_failure_kinds": {},
         }
 
     def _bump(self, key, inc=1):
@@ -324,6 +326,16 @@ class GatewayMetrics:
             payload["producer"] = producer
         self._log_event("oversize_datagram", payload)
 
+    def record_send_failure(self, kind, error, size, event_id=None, producer=None):
+        self._bump("send_failures", 1)
+        self._bump_map("send_failure_kinds", kind)
+        payload = {"kind": kind, "error": error, "size_bytes": size}
+        if event_id:
+            payload["event_id"] = event_id
+        if producer:
+            payload["producer"] = producer
+        self._log_event("send_failure", payload)
+
     def record_duplicate(self, task_id=None):
         self._bump("duplicates", 1)
         payload = {}
@@ -379,6 +391,12 @@ class GatewayMetrics:
             print(
                 f"metrics oversize_datagrams={window['oversize_datagrams']} kinds={kinds}"
             )
+        if window["send_failures"]:
+            kinds = ", ".join(
+                f"{key}:{value}"
+                for key, value in sorted(window["send_failure_kinds"].items())
+            )
+            print(f"metrics send_failures={window['send_failures']} kinds={kinds}")
         self._log_event(
             "metrics",
             {
@@ -395,12 +413,14 @@ class GatewayMetrics:
                 "warnings": window["warnings"],
                 "duplicates": window["duplicates"],
                 "oversize_datagrams": window["oversize_datagrams"],
+                "send_failures": window["send_failures"],
                 "drop_reasons": window["drop_reasons"],
                 "cot_skip_reasons": window["cot_skip_reasons"],
                 "timing_quality_modes": window["timing_quality_modes"],
                 "violation_codes": window["violation_codes"],
                 "warning_codes": window["warning_codes"],
                 "oversize_datagram_kinds": window["oversize_datagram_kinds"],
+                "send_failure_kinds": window["send_failure_kinds"],
             },
         )
         self.window = self._new_window()
@@ -480,6 +500,32 @@ def _check_datagram_size(metrics, payload_len, threshold, kind, event_id=None, p
         payload_len, threshold, kind, event_id=event_id, producer=producer
     )
     return True
+
+
+def _send_datagram(sock, payload, addr, *, metrics=None, kind="forward", event_id=None, producer=None):
+    """Send one UDP datagram; drop with an explicit diagnostic instead of crashing.
+
+    UDP sends raise OSError for payloads above the ~65507-byte datagram limit
+    and for transient socket errors. The gateway main loop must survive both:
+    the datagram is dropped, the failure is counted and logged as a
+    send_failure diagnostic, and the caller's success accounting only runs
+    when the send actually happened. Nothing is truncated or retried, so no
+    event is ever silently altered.
+    """
+    try:
+        sock.sendto(payload, addr)
+        return True
+    except OSError as exc:
+        if metrics:
+            metrics.record_send_failure(
+                kind, str(exc), len(payload), event_id=event_id, producer=producer
+            )
+        else:
+            print(
+                f"send failure kind={kind} bytes={len(payload)} error={exc}",
+                file=sys.stderr,
+            )
+        return False
 
 
 def ttl_ms_from_payload(payload):
@@ -1792,8 +1838,16 @@ def main():
                 event_id=event_block.get("event_id") if isinstance(event_block, dict) else None,
                 producer=source_block.get("producer") if isinstance(source_block, dict) else None,
             )
-            sock_out.sendto(payload, forward_addr)
-            if metrics:
+            sent = _send_datagram(
+                sock_out,
+                payload,
+                forward_addr,
+                metrics=metrics,
+                kind="forward",
+                event_id=event_block.get("event_id") if isinstance(event_block, dict) else None,
+                producer=source_block.get("producer") if isinstance(source_block, dict) else None,
+            )
+            if sent and metrics:
                 metrics.record_forwarded()
             if settings["emit_cot"]:
                 cot_xml = zmeta_to_cot(outgoing)
@@ -1807,8 +1861,16 @@ def main():
                         event_id=event_block.get("event_id") if isinstance(event_block, dict) else None,
                         producer=source_block.get("producer") if isinstance(source_block, dict) else None,
                     )
-                    sock_out.sendto(cot_payload, cot_addr)
-                    if metrics:
+                    cot_sent = _send_datagram(
+                        sock_out,
+                        cot_payload,
+                        cot_addr,
+                        metrics=metrics,
+                        kind="cot",
+                        event_id=event_block.get("event_id") if isinstance(event_block, dict) else None,
+                        producer=source_block.get("producer") if isinstance(source_block, dict) else None,
+                    )
+                    if cot_sent and metrics:
                         metrics.record_cot()
                 elif metrics:
                     reason = _cot_skip_reason(outgoing)

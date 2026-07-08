@@ -55,6 +55,7 @@ def test_adapter_conformance_detects_fixture_output_contract():
             "sensor_id": "sensor-1",
             "producer": "klv:misb:0601",
             "ts": "2025-01-17T15:20:00+00:00",
+            "based_on": ["019c2b5c-c053-70e1-b6aa-340000000001"],
         },
         "profile": "H",
         "expect": {

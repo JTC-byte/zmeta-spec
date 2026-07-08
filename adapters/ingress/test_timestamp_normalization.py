@@ -65,6 +65,7 @@ def test_eo_cv_timestamp_uses_trailing_z():
             "class_name": "vehicle",
             "confidence": 0.9,
             "timestamp": "2025-01-17T15:20:00+00:00",
+            "source_event_id": "019c2b5c-c053-70e1-b6aa-340000000001",
         },
         platform_id="camera-node-1",
     )

@@ -15,7 +15,9 @@ Mapping guidance:
 - geo fields -> payload.geo (WGS-84, HAE)
 - derived analytics -> separate INFERENCE_EVENT
 - store-and-forward raw KLV/video is separate
-- lineage.transform -> `translate:klv@<adapter_version>`
+- lineage is omitted unless the caller supplies real parent event ids via
+  `based_on`; when supplied, lineage.transform ->
+  `translate:klv@<adapter_version>`. Parent ids are never fabricated.
 
 ### Smoke test
 

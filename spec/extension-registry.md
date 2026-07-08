@@ -214,6 +214,45 @@ An extension cannot move to `adopted` until the record identifies:
 If a surface is not applicable, the record must say so explicitly. Missing
 coverage is not equivalent to `not_applicable`.
 
+## Promotion Evidence Requirements
+
+Adoption Requirements above define the surface completeness a record needs.
+Status promotion also requires field evidence. A concept does not enter a
+named version branch because its record is tidy; it enters because fielded
+reality demonstrated the need.
+
+To move from `reserved` or `proposed` to `experimental` in a named version
+branch, the record must document both of the following in its rationale,
+notes, or referenced evidence:
+
+1. **Independent demonstrated need.** At least two independent
+   implementations or deployments — not derived from the same codebase,
+   vendor, or organization — demonstrating the same need. A single
+   deployment's need is served in place by namespaced extensions, policy,
+   profiles, adapter mappings, or advisory binding guidance; the registry
+   entry holds the name so later promotion stays collision-safe.
+2. **A concrete failure condition.** At least one documented failure
+   condition from `spec/semantics-contract.md` Section 2.6 (Core Semantic
+   Change Threshold) — divergent interpretation between compliant
+   implementations, silent meaning laundering, degraded data masquerading as
+   clean state, unauditable command basis, or projection hiding material
+   degradation — that policy, configuration, profiles, adapter mappings, and
+   namespaced extensions cannot solve.
+
+External contributions are treated as field telemetry: harvest the
+requirement, re-derive the solution from the locked kernel outward, and do
+not merge dialect surfaces. Declined concepts receive a `rejected` entry with
+rationale so the decision is durable and is not re-litigated.
+
+Meeting the evidence bar is necessary, not sufficient. Promotion still
+requires an approved version branch, the full adoption surface list above,
+and an explicit maintainer adoption decision.
+
+Candidate-level evidence, dependencies, and promotion tripwires are tracked
+in the machine-readable future-branch roadmap
+(`spec/future-branch-roadmap.yaml`, governed by
+`spec/future-branch-roadmap.md`).
+
 ## How Future Prompts Should Use The Registry
 
 Future schema, policy, adapter, gateway, encoding, and conformance prompts

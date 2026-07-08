@@ -1,0 +1,7 @@
+9b1b610a8e22ae544c5043d4f391757c87850ed3e5dd306ab34ca7896cb4df52  zmeta-v1.1.12-dist.zip
+ad9f5d5f78fefe520e2c5b967b4089b322d7efad68455d4ed141e9cb22a7fdc0  zmeta-edge-v1.1.12.zip
+4f5606defe299c158f4e63a4bcbf178a7572c9c9228dd0c2da3648ba9f68629e  zmeta-gateway-v1.1.12.zip
+7bc34217c228889e98e92efeaee647dd27c1237dcdf1f4fd6af31e845ddcf124  zmeta-release-package-v1.1.12.zip
+1d2fc3cb5becebf95d1d7faa6dc946696af4a1f699e14f6a02112dcbf834518f  zmeta-release-manifest.yaml
+a3816831e054fb404f14a3063cd507bb00776c9dbe390c368628e01654ddfae2  RELEASE_NOTES_v1.1.12.md
+7744d11dcd061f3d2804dc7f3c1ef2eaf512c085735d3a60176f4cac37f43fef  VALIDATION_REPORT_v1.1.12.md

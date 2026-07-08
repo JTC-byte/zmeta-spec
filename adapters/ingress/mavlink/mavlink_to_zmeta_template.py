@@ -17,7 +17,7 @@ import math
 from adapters.ingress.time_utils import coerce_timing_quality, normalize_utc_z, utc_now_z
 from zmeta_uuid import uuid7
 
-ADAPTER_VERSION = "1.1.0"
+ADAPTER_VERSION = "1.2.0"
 SCHEMA_ID = "mavlink-telemetry"
 PROMOTION_POLICY_ID = "PROMOTE-MAVLINK-STATE-V1"
 
@@ -117,9 +117,12 @@ def translate_platform_state(
     Returns:
         ZMeta STATE_EVENT dict, or None when no usable position exists
         (lat/lon absent, or the ArduPilot no-fix null-island signature:
-        gps_fix_type < 2 with lat == 0.0 and lon == 0.0). A position is
-        never fabricated from defaults (kraken/moth anti-fabrication
-        pattern: convert or refuse, never invent).
+        gps_fix_type < 2 with lat == 0.0 and lon == 0.0), or when no real
+        lineage is available. STATE_EVENT lineage is mandatory (semantic
+        contract 4.8) and must reference real events: supply
+        ``state["based_on"]`` (list of parent ZMeta event ids, UUIDv7) or
+        ``state["source_zmeta_event_id"]``. Neither a position nor a lineage
+        parent is ever fabricated (convert or refuse, never invent).
     """
     if isinstance(state, dict):
         _get = state.get
@@ -204,6 +207,15 @@ def translate_platform_state(
     if source_zmeta_event_id:
         promotion["source_zmeta_event_id"] = str(source_zmeta_event_id)
 
+    # STATE_EVENT lineage is mandatory and must reference real events.
+    # Refuse to emit rather than fabricate a parent id (same refusal rule as
+    # the position handling above and the CoT/JREAP ingress templates).
+    based_on = _get("based_on")
+    if not based_on and source_zmeta_event_id:
+        based_on = [source_zmeta_event_id]
+    if not based_on:
+        return None
+
     event = {
         "zmeta_version": "1.0",
         "event": {
@@ -228,7 +240,7 @@ def translate_platform_state(
         },
         "confidence": confidence,
         "lineage": {
-            "based_on": [str(uuid7())],
+            "based_on": [str(item) for item in based_on],
             "transform": f"promote:{SCHEMA_ID}@{ADAPTER_VERSION}:{promotion['promotion_policy_id']}",
         },
     }
@@ -396,9 +408,15 @@ def translate_link_status(
     active_link="unknown",
     producer="mavlink-adapter",
     ts=None,
+    based_on=None,
 ):
-    """Build a LINK_STATUS SYSTEM_EVENT from MAVLink SYS_STATUS / battery data."""
-    return {
+    """Build a LINK_STATUS SYSTEM_EVENT from MAVLink SYS_STATUS / battery data.
+
+    ``based_on`` may carry real parent ZMeta event ids (UUIDv7 strings); when
+    None (default), lineage is omitted (SYSTEM_EVENT lineage is optional and
+    parent ids are never fabricated).
+    """
+    event = {
         "zmeta_version": "1.0",
         "event": {
             "event_id": str(uuid7()),
@@ -425,11 +443,13 @@ def translate_link_status(
                 "throughput_bps": 0,
             },
         },
-        "lineage": {
-            "based_on": [str(uuid7())],
-            "transform": f"translate:{SCHEMA_ID}@{ADAPTER_VERSION}",
-        },
     }
+    if based_on:
+        event["lineage"] = {
+            "based_on": [str(item) for item in based_on],
+            "transform": f"translate:{SCHEMA_ID}@{ADAPTER_VERSION}",
+        }
+    return event
 
 
 def translate_time_status(
@@ -441,12 +461,18 @@ def translate_time_status(
     last_sync_ts=None,
     producer="mavlink-adapter",
     ts=None,
+    based_on=None,
 ):
-    """Build a TIME_STATUS SYSTEM_EVENT from MAVLink SYSTEM_TIME data."""
+    """Build a TIME_STATUS SYSTEM_EVENT from MAVLink SYSTEM_TIME data.
+
+    ``based_on`` may carry real parent ZMeta event ids (UUIDv7 strings); when
+    None (default), lineage is omitted (SYSTEM_EVENT lineage is optional and
+    parent ids are never fabricated).
+    """
     event_ts = normalize_utc_z(ts) or _utc_now()
     normalized_sync_state = "LOCKED" if sync_state == "SYNCED" else sync_state
     normalized_last_sync_ts = normalize_utc_z(last_sync_ts) or event_ts
-    return {
+    event = {
         "zmeta_version": "1.0",
         "event": {
             "event_id": str(uuid7()),
@@ -469,8 +495,10 @@ def translate_time_status(
                 "last_sync_ts": normalized_last_sync_ts,
             },
         },
-        "lineage": {
-            "based_on": [str(uuid7())],
-            "transform": f"translate:{SCHEMA_ID}@{ADAPTER_VERSION}",
-        },
     }
+    if based_on:
+        event["lineage"] = {
+            "based_on": [str(item) for item in based_on],
+            "transform": f"translate:{SCHEMA_ID}@{ADAPTER_VERSION}",
+        }
+    return event

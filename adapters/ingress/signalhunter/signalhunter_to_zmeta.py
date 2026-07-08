@@ -28,7 +28,7 @@ from typing import Dict, List, Optional, Tuple
 from adapters.ingress.time_utils import coerce_timing_quality, epoch_ms_to_utc_z, utc_now_z
 from zmeta_uuid import uuid7
 
-ADAPTER_VERSION = "1.0.1"
+ADAPTER_VERSION = "1.1.0"
 SCHEMA_ID = "signalhunter-psd"
 DEFAULT_SENSOR_ID = "signalhunter_rf"
 
@@ -233,6 +233,7 @@ def translate_bin_file(
     bearing_error_deg: float = 75.0,
     peak_persistence_count: int = 3,
     peak_persistence_window: int = 5,
+    based_on: Optional[List[str]] = None,
 ) -> List[dict]:
     """Translate a complete SignalHunter .bin capture into ZMeta events.
 
@@ -250,6 +251,10 @@ def translate_bin_file(
         bearing_error_deg: Angular error assigned to gradient LOBs (default 75).
         peak_persistence_count: Minimum peak appearances in the window.
         peak_persistence_window: Sliding window size for persistence check.
+        based_on: Optional list of real parent ZMeta event ids (UUIDv7
+            strings). When None (default), lineage is omitted because the
+            gradient LOBs are original observations built from raw capture
+            data with no ZMeta parent. Parent ids are never fabricated.
 
     Returns:
         List of ZMeta event dicts.
@@ -328,7 +333,7 @@ def translate_bin_file(
             ts_ms = int(time.time() * 1000)
             ts_iso = epoch_ms_to_utc_z(ts_ms)
 
-            events.append({
+            lob_event = {
                 "zmeta_version": "1.0",
                 "event": {
                     "event_id": str(uuid7()),
@@ -379,10 +384,12 @@ def translate_bin_file(
                     },
                     "timing_quality": coerce_timing_quality(event_ts=ts_iso),
                 },
-                "lineage": {
-                    "based_on": [str(uuid7())],
+            }
+            if based_on:
+                lob_event["lineage"] = {
+                    "based_on": [str(item) for item in based_on],
                     "transform": f"translate:{SCHEMA_ID}@{ADAPTER_VERSION}",
-                },
-            })
+                }
+            events.append(lob_event)
 
     return events
