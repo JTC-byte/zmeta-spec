@@ -80,9 +80,13 @@ Current stack status:
     harvest requirements, re-derive from the kernel outward, never merge
     dialect surfaces, record rejections in the registry, credit contributors,
     and compare our implementation against the contributor's revisions.
-  - Remaining is release-authority only: tag `v1.1.11`, publish the GitHub
-    release with built assets and `SHA256SUMS_v1.1.11.txt`, and optionally
-    sign. Published v1.1.10-and-earlier assets/checksums are unchanged.
+  - R1-07: `v1.1.11` was published on 2026-07-08 with explicit release-authority
+    direction: annotated tag `v1.1.11` on release commit `922f0ca`, GitHub
+    release with all eight expected assets including `SHA256SUMS_v1.1.11.txt`,
+    CI green for the pushed release commit. Published checksums-only,
+    consistent with v1.1.5 through v1.1.10; detached signatures remain an
+    optional release-authority step. Published v1.1.10-and-earlier
+    assets/checksums are unchanged.
 - The P1-04 bearing reference-frame integrity pass and P1-04R review fixes are
   adopted on `main` for v1.1.8. Schema 1.1.0 gained the optional
   `bearing.frame` marker; the locked v1.0 schema is untouched.
@@ -135,14 +139,15 @@ Current stack status:
 
 Current release target:
 
-- Release URL: <https://github.com/JTC-byte/zmeta-spec/releases/tag/v1.1.10>
-- Tag: `v1.1.10` (annotated, on release commit `6ce4f29`)
-- Release commit: `6ce4f29` - `Release v1.1.10: fielded-safety enforcement`.
-- GitHub CI: passed for the pushed v1.1.10 release commit.
-- Previous release: `v1.1.9` (tag `56c19f4`); its published assets, checksums,
-  and release records are unchanged.
-- Signature status: v1.1.10 release artifacts are published checksums-only,
-  consistent with v1.1.5 through v1.1.9. Use `SHA256SUMS_v1.1.10.txt`, the
+- Release URL: <https://github.com/JTC-byte/zmeta-spec/releases/tag/v1.1.11>
+- Tag: `v1.1.11` (annotated, on release commit `922f0ca`)
+- Release commit: `922f0ca` - `Release v1.1.11: field-driven adoption
+  guidance`.
+- GitHub CI: passed for the pushed v1.1.11 release commit.
+- Previous release: `v1.1.10` (tag on `6ce4f29`); its published assets,
+  checksums, and release records are unchanged.
+- Signature status: v1.1.11 release artifacts are published checksums-only,
+  consistent with v1.1.5 through v1.1.10. Use `SHA256SUMS_v1.1.11.txt`, the
   structured release manifest, and the release package checksum file for
   integrity verification. Detached signatures remain an optional
   release-authority step.

@@ -35,12 +35,13 @@
   DATA_REF_MEDIA_METADATA proposed, AGGREGATE_STATE_SNAPSHOT reserved,
   PAYLOAD_SCHEMA_URI rejected), a 7-event runnable correlation example
   corpus, and two bad-event anti-laundering fixtures (corpus 23). No schema,
-  policy-behavior, or vocabulary change. Remaining is release-authority
-  only: tag `v1.1.11`, publish assets + `SHA256SUMS_v1.1.11.txt`, optional
-  signing. Optional future work remains S1-11B future-branch roadmap
-  artifact (now informed by PR #4's data_ref-enrichment and correlation
-  requirements), adapter-harness breadth from real sensor captures, or
-  deployment/container runtime breadth.
+  policy-behavior, or vocabulary change. R1-07: published 2026-07-08 with
+  explicit release-authority direction — annotated tag `v1.1.11` on `922f0ca`,
+  GitHub release with all eight assets including `SHA256SUMS_v1.1.11.txt`,
+  CI green; checksums-only, consistent with v1.1.5 through v1.1.10. Optional
+  future work remains S1-11B future-branch roadmap artifact (now informed by
+  PR #4's data_ref-enrichment and correlation requirements), adapter-harness
+  breadth from real sensor captures, or deployment/container runtime breadth.
 - Current-main audit note: the final baseline audit corrected two missed
   current-facing guidance examples to the `v1.1.8` target: the adapter
   `check_compat` invocation and the change-governance manifest rebuild command.
