@@ -1,4 +1,4 @@
-# ZMeta Specification (v1.0 Locked, current release v1.1.9)
+# ZMeta Specification (v1.0 Locked, current release v1.1.10)
 
 ## Overview
 - ZMeta is a transport-agnostic, event-based metadata standard for resilient ISR.
@@ -7,19 +7,36 @@
 
 ## Current Release
 
-- Current release: `v1.1.9`
-- Release notes and assets: <https://github.com/JTC-byte/zmeta-spec/releases/tag/v1.1.9>
-- Release focus: documentation freshness, current-main release hygiene,
-  advisory governance posture, timing/compact follow-up closure, adapter
-  upgrade guidance, and installation/package guidance while preserving
-  version-dispatched validation and the locked v1.0 kernel.
+- Current release: `v1.1.10`
+- Release notes and assets: <https://github.com/JTC-byte/zmeta-spec/releases/tag/v1.1.10>
+- Release focus: fielded-safety enforcement — command-altitude denylist
+  completion (contract section 7.8), recursive STATE laundering enforcement
+  with key normalization (contract section 7.7), and adapter calibration
+  honesty — aligning policy and reference enforcement with the
+  already-normative contract while preserving version-dispatched validation
+  and the locked v1.0 kernel.
 - Normative contract: v1.0 locked semantic contract, canonical version-discriminated
   JSON schema, v1.0 JSON schema, and policy pack.
 - Experimental extension: `schema/zmeta-event-1.1.0.schema.json` is provided for proposed
   compatibility testing only; v1.1.0-only fields are not part of the locked v1.0 contract.
 
-## v1.1.9 Integration Notes
+## v1.1.10 Integration Notes
 
+- Producers that emitted altitude on a `COMMAND_EVENT` under any contract
+  section 7.8 field name, or that nested raw observation fields
+  (`features`, `modality`, `measurement`, `t_start`/`t_end`,
+  `data_ref`/`data_refs`, ...) inside a `STATE_EVENT` payload, were already
+  violating the contract and are now rejected: the reference enforcement
+  recurses to any nesting depth and normalizes whitespace-/case-padded key
+  names. Move altitude out of commands (the receiving autonomy owns vertical
+  deconfliction) and keep STATE projections raw-free, using
+  `lineage.based_on` for traceability.
+- The Kraken and Moth reference adapters now default
+  `quality.calibration_state` to `UNCALIBRATED`. Pass
+  `calibration_state="CALIBRATED"` (or `"DEGRADED"`) explicitly only when the
+  deployment can substantiate it.
+- Deployments using release or contract hash gates should update expected
+  hashes from the v1.1.10 release manifest.
 - Downstream clone users should pin to a tagged release and integrate through
   adapters, policy/config, profiles, and namespaced extensions. Local changes to
   core schema, event vocabulary, version dispatch, risk semantics, projection
@@ -158,7 +175,7 @@ python tools/run_gateway.py --profile H
 python tools/udp_receiver.py
 python tools/udp_sender.py --file examples/zmeta-command-examples.jsonl
 python tools/replay.py --file examples/zmeta-command-examples.jsonl --delay-ms 200
-python tools/check_compat.py legacy-events.jsonl --target v1.1.9
+python tools/check_compat.py legacy-events.jsonl --target v1.1.10
 python tools/validate.py --file examples/zmeta-command-examples.jsonl --profile H
 python tools/validate_conformance.py --strict
 python tools/validate_release_manifest.py --manifest release/zmeta-release-manifest.yaml
@@ -222,10 +239,10 @@ Deployment helpers:
 - Config templates: `configs/edge-config.json`, `configs/gateway-config.json`
 - Docker Compose: `deploy/edge/docker-compose.yml`, `deploy/gateway/docker-compose.yml`
 - Bundle builders:
-    - `python release/build_mvp_packages.py --version v1.1.9` produces `zmeta-edge-v1.1.9.zip` and `zmeta-gateway-v1.1.9.zip`
-    - `python release/build_release_bundle.py --version 1.1.9` produces `zmeta-v1.1.9-dist.zip`
-    - `python tools/build_release_package.py --manifest release/zmeta-release-manifest.yaml --output-dir release/package-v1.1.9 --release-id zmeta-v1.1.9 --release-state formal_release --no-signatures` builds formal package metadata without creating signatures.
-    - `python release/sign_release_artifacts.py --version v1.1.9 --write-checksums --sign --target all` signs release assets with detached PGP signatures when an approved signing key is available.
+    - `python release/build_mvp_packages.py --version v1.1.10` produces `zmeta-edge-v1.1.10.zip` and `zmeta-gateway-v1.1.10.zip`
+    - `python release/build_release_bundle.py --version 1.1.10` produces `zmeta-v1.1.10-dist.zip`
+    - `python tools/build_release_package.py --manifest release/zmeta-release-manifest.yaml --output-dir release/package-v1.1.10 --release-id zmeta-v1.1.10 --release-state formal_release --no-signatures` builds formal package metadata without creating signatures.
+    - `python release/sign_release_artifacts.py --version v1.1.10 --write-checksums --sign --target all` signs release assets with detached PGP signatures when an approved signing key is available.
 
 ## Deployment Checklist (Compact)
 

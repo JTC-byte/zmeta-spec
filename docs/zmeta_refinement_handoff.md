@@ -1,6 +1,6 @@
 # ZMeta Refinement Handoff Notes
 
-Status date: 2026-07-03
+Status date: 2026-07-07
 
 This note is the quick resume point for the current ZMeta refinement effort. The full task history and deferred issue register are in `docs/zmeta_refinement_worklog.md`.
 
@@ -43,11 +43,18 @@ Current stack status:
     example claims were regenerated for `zmeta-v1.1.10` (2026-07-03). The full
     kernel gate (incl. `--release-manifest --release-package --bad-events
     --adapter-harness`) and pytest (`444 passed`, 110 subtests) are green.
-  - Remaining is release-authority only and was NOT performed by the agent:
-    create the `v1.1.10` tag, generate detached signatures (signing re-enabled
-    after the v1.1.5–1.1.9 checksums-only gap), and publish
-    `SHA256SUMS_v1.1.10.txt`. Published v1.1.9 assets/checksums/signatures are
-    unchanged.
+  - R1-06: the release authority published `v1.1.10` on 2026-07-04: annotated
+    tag `v1.1.10` on release commit `6ce4f29`, GitHub release with all seven
+    expected assets plus `SHA256SUMS_v1.1.10.txt`, GitHub CI green for the
+    pushed release commit. Published checksums-only, consistent with v1.1.5
+    through v1.1.9; detached signatures remain an optional release-authority
+    step. Published v1.1.9 assets/checksums are unchanged.
+  - Post-publication alignment (2026-07-07): current-facing docs, tool
+    examples, the CI compatibility target, and the compatibility CLI test were
+    aligned with the published `v1.1.10` release (README, installation guide,
+    tools README, professional overview header, `.github/workflows/ci.yml`,
+    `gateway/tests/test_check_compat_cli.py`). No published release assets,
+    manifests, checksums, tags, or signatures were changed.
 - The P1-04 bearing reference-frame integrity pass and P1-04R review fixes are
   adopted on `main` for v1.1.8. Schema 1.1.0 gained the optional
   `bearing.frame` marker; the locked v1.0 schema is untouched.
@@ -55,8 +62,8 @@ Current stack status:
   bearing/heading fields unless callers explicitly assert `TRUE_NORTH`;
   unasserted native values remain auditable under explicitly named
   non-canonical fields.
-- Use tag `v1.1.9` for current formal release assets/checksums. Use tag
-  `v1.1.8` for the previous bearing-frame integrity release baseline.
+- Use tag `v1.1.10` for current formal release assets/checksums. Use tag
+  `v1.1.9` for the previous documentation-freshness release baseline.
 - Use current `main` for the latest integration baseline with bearing-frame
   integrity, policy-risk linting, projection preservation for risk/promotion
   extensions, stricter extension registry metadata, formal human/AI agent
@@ -100,16 +107,17 @@ Current stack status:
 
 Current release target:
 
-- Release URL: <https://github.com/JTC-byte/zmeta-spec/releases/tag/v1.1.9>
-- Tag: `v1.1.9`
-- Release commit: the R1-05 release closeout commit on `main`.
-- GitHub CI: must pass for the pushed v1.1.9 release commit/tag.
-- Previous integration closeout: `c814d95` - `Record final baseline audit
-  closeout`; GitHub CI passed for that pushed current-main closeout commit.
-- Signature status: v1.1.9 release artifacts are generated in no-signature
-  mode unless an approved release signing key is supplied. Use
-  `SHA256SUMS_v1.1.9.txt`, the structured release manifest, and the release
-  package checksum file for integrity verification.
+- Release URL: <https://github.com/JTC-byte/zmeta-spec/releases/tag/v1.1.10>
+- Tag: `v1.1.10` (annotated, on release commit `6ce4f29`)
+- Release commit: `6ce4f29` - `Release v1.1.10: fielded-safety enforcement`.
+- GitHub CI: passed for the pushed v1.1.10 release commit.
+- Previous release: `v1.1.9` (tag `56c19f4`); its published assets, checksums,
+  and release records are unchanged.
+- Signature status: v1.1.10 release artifacts are published checksums-only,
+  consistent with v1.1.5 through v1.1.9. Use `SHA256SUMS_v1.1.10.txt`, the
+  structured release manifest, and the release package checksum file for
+  integrity verification. Detached signatures remain an optional
+  release-authority step.
 
 ## Key Docs
 

@@ -1,6 +1,14 @@
 # Changelog
 
 ## [Unreleased]
+- Aligned post-release current-facing documentation, tool examples, the CI
+  compatibility target, and the compatibility CLI test with the published
+  `v1.1.10` release (README, `spec/installation-guide.md`, `tools/README.md`,
+  `docs/zmeta_professional_overview.md`, `.github/workflows/ci.yml`,
+  `gateway/tests/test_check_compat_cli.py`), and recorded the v1.1.10
+  publication (tag, GitHub release, checksums-only status) in the
+  handoff/worklog. Historical `v1.1.10` release records and published
+  checksums remain unchanged.
 
 ## [1.1.10] - 2026-07-03
 - Command-altitude enforcement hardened: `policy/semantics.yaml`

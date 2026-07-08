@@ -2,7 +2,7 @@
 
 ## Current Resume Note
 
-- Last updated: 2026-07-03
+- Last updated: 2026-07-07
 - Quick handoff: `docs/zmeta_refinement_handoff.md`
 - Current next work item: S1-24 prepared the v1.1.10 fielded-safety enforcement
   release on current `main` — command-altitude denylist completion to the full
@@ -12,12 +12,17 @@
   `UNCALIBRATED`), and egress MAVLink altitude-guard alignment — with eleven new
   deep-nested bad-event fixtures, two direct `validate_semantics` unit tests,
   adversarial bypass verification, and a regenerated release manifest and
-  claims. The full kernel gate and pytest are green. Remaining is
-  release-authority only: tag `v1.1.10`, generate detached signatures (signing
-  re-enabled after the v1.1.5–1.1.9 checksums-only gap), and publish
-  `SHA256SUMS_v1.1.10.txt`. Optional future work remains S1-11B future-branch
-  roadmap artifact, adapter-harness breadth from real sensor captures, or
-  deployment/container runtime breadth.
+  claims. The full kernel gate and pytest are green.
+- R1-06 publication note: the release authority published `v1.1.10` on
+  2026-07-04 — annotated tag on release commit `6ce4f29`, GitHub release with
+  all seven expected assets plus `SHA256SUMS_v1.1.10.txt`, CI green.
+  Published checksums-only, consistent with v1.1.5 through v1.1.9; detached
+  signatures remain an optional release-authority step. A post-publication
+  alignment pass (2026-07-07) updated current-facing docs, tool examples, the
+  CI compatibility target, and the compatibility CLI test to the published
+  `v1.1.10` baseline without touching any published release assets. Optional
+  future work remains S1-11B future-branch roadmap artifact, adapter-harness
+  breadth from real sensor captures, or deployment/container runtime breadth.
 - Current-main audit note: the final baseline audit corrected two missed
   current-facing guidance examples to the `v1.1.8` target: the adapter
   `check_compat` invocation and the change-governance manifest rebuild command.
@@ -35,11 +40,11 @@
   `beffed3` final-closeout references to `c814d95`, verified tracked
   Markdown/TXT relative links, and found no rogue untracked files outside
   expected ignored local/build outputs.
-- Current decision: ZMeta v1.1.9 is the current formal release target for the
-  post-v1.1.8 current-main documentation freshness, governance hygiene,
-  timing/compact follow-up, adapter guidance, and release-process cleanup
-  baseline. It preserves the locked v1.0 schema and does not make v1.1.0
-  concepts valid under `zmeta_version: "1.0"`.
+- Current decision: ZMeta v1.1.10 is the current formal release target for the
+  fielded-safety enforcement baseline (command-altitude denylist completion,
+  recursive STATE laundering enforcement with key normalization, adapter
+  calibration honesty). It preserves the locked v1.0 schema and does not make
+  v1.1.0 concepts valid under `zmeta_version: "1.0"`.
   S1-12C audited the D-012 formal release
   packaging framework and closed D-012. S1-13A audited the stack for semantic
   conformance and stale files, corrected the live compatibility checker and CI
