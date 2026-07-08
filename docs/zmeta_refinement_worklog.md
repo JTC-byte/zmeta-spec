@@ -20,9 +20,27 @@
   signatures remain an optional release-authority step. A post-publication
   alignment pass (2026-07-07) updated current-facing docs, tool examples, the
   CI compatibility target, and the compatibility CLI test to the published
-  `v1.1.10` baseline without touching any published release assets. Optional
-  future work remains S1-11B future-branch roadmap artifact, adapter-harness
-  breadth from real sensor captures, or deployment/container runtime breadth.
+  `v1.1.10` baseline without touching any published release assets.
+- S1-25 (2026-07-07): prepared v1.1.11 (field-driven adoption guidance).
+  Upstream PR #4 — a v1.2.0 proposal from a live at-scale ZMeta deployment
+  (multi-node drones/sensors, fusion engine, custom COP, TAK bridges) — was
+  reviewed against the locked kernel and NOT merged: empirically verified
+  that its v1.2.0 schema arm breaks oneOf dispatch for all v1.1.0 events and
+  drops every locked invariant (command altitude, STATE laundering,
+  confidence placement, UUIDv7, UTC-Z all accepted under a "1.2.0" label);
+  review with evidence posted on the PR. The legitimate fielded needs were
+  re-derived from the kernel outward: three advisory docs (MQTT binding
+  guidance, vocabulary crosswalk, correlation pattern), four
+  extension-registry entries (CORRELATION_HINT proposed,
+  DATA_REF_MEDIA_METADATA proposed, AGGREGATE_STATE_SNAPSHOT reserved,
+  PAYLOAD_SCHEMA_URI rejected), a 7-event runnable correlation example
+  corpus, and two bad-event anti-laundering fixtures (corpus 23). No schema,
+  policy-behavior, or vocabulary change. Remaining is release-authority
+  only: tag `v1.1.11`, publish assets + `SHA256SUMS_v1.1.11.txt`, optional
+  signing. Optional future work remains S1-11B future-branch roadmap
+  artifact (now informed by PR #4's data_ref-enrichment and correlation
+  requirements), adapter-harness breadth from real sensor captures, or
+  deployment/container runtime breadth.
 - Current-main audit note: the final baseline audit corrected two missed
   current-facing guidance examples to the `v1.1.8` target: the adapter
   `check_compat` invocation and the change-governance manifest rebuild command.

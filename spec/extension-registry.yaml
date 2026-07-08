@@ -3,7 +3,7 @@ generated_for_zmeta_versions:
   - "1.0"
   - "1.1.0"
 authority: spec/semantics-contract.md
-last_updated: "2026-06-11"
+last_updated: "2026-07-07"
 status_values:
   - reserved
   - proposed
@@ -749,3 +749,127 @@ entries:
     status: reserved
     semantic_definition: Reserved track lifecycle candidate for retired tracks.
     rationale: Lifecycle names require a versioned fusion/state lifecycle contract.
+
+  - <<: *entry_defaults
+    name: CORRELATION_HINT
+    display_name: Correlation hint payload extension
+    category: fusion_extension
+    status: proposed
+    semantic_definition: >-
+      Optional payload.extensions.correlation_hint object echoing a
+      fusion-assigned identity on subsequent producer events. Carries only
+      non-reserved reference keys (fused_track_ref, fusion_revision,
+      association_ref, assigned_by). It is a reference, not an assertion.
+      Consumers MUST NOT treat the hint as track authority, confidence, or
+      lineage; the authoritative chain remains FUSION_EVENT identity creation
+      plus INFERENCE_EVENT ASSOCIATION bonds and envelope lineage.
+    rationale: >-
+      Field-driven need from a live multi-sensor deployment (upstream PR 4).
+      Sensors want to tag products with the fused identity a fusion engine
+      assigned so consumers can group by entity without re-running
+      association. Solved as a safe-to-ignore namespaced payload extension so
+      no envelope vocabulary is added, and the observation/inference layer
+      denylists (confidence, track_id, classification) keep the hint from
+      laundering authority. The hint points at the authoritative ASSOCIATION
+      event instead of restating its claims.
+    allowed_event_types: ["OBSERVATION_EVENT", "INFERENCE_EVENT", "STATE_EVENT"]
+    payload_scope: ["payload.extensions.correlation_hint"]
+    profile_projection_behavior: optional_omission
+    references:
+      - docs/zmeta_correlation_pattern.md
+      - examples/zmeta-correlation-pattern-examples.jsonl
+      - conformance/bad-events/must-fail.jsonl
+    date_added: "2026-07-07"
+    review_state: draft
+    notes: >-
+      Proposed 2026-07-07 while harvesting upstream PR 4. Usable today as a
+      deployment-local namespaced extension; this entry standardizes the name
+      and projection behavior pending maintainer adoption.
+
+  - <<: *entry_defaults
+    name: DATA_REF_MEDIA_METADATA
+    display_name: Media metadata enrichment for data_ref
+    category: data_evidence
+    status: proposed
+    semantic_definition: >-
+      Future enrichment of the OBSERVATION_EVENT data_ref/data_refs artifact
+      reference with an RFC-6838 media type (content_type), reference expiry
+      (valid_until), and bounded content-specific descriptor metadata, so
+      consumers can route, render, and cache referenced artifacts without
+      fetching them.
+    rationale: >-
+      Field-driven need from a live multi-sensor deployment (upstream PR 4,
+      proposed there as a parallel payload.media mechanism). Two mechanisms
+      for one concept is dialect drift, and raw-artifact pointers remain
+      prohibited on STATE_EVENT payloads (contract 7.7) regardless of key
+      name, so the need lands as a future versioned enrichment of the single
+      existing data_ref mechanism rather than a second convention.
+    allowed_event_types: ["OBSERVATION_EVENT"]
+    payload_scope: ["payload.data_ref", "payload.data_refs"]
+    profile_projection_behavior: future_branch_required
+    references:
+      - spec/semantics-contract.md
+      - docs/zmeta_change_governance.md
+    date_added: "2026-07-07"
+    review_state: draft
+    notes: >-
+      Requires a versioned semantic branch (see the D-003 roadmap) because
+      v1.1.0 data_ref is a closed object. Not valid vocabulary under v1.0 or
+      v1.1.0.
+
+  - <<: *entry_defaults
+    name: AGGREGATE_STATE_SNAPSHOT
+    display_name: Aggregate state snapshot container
+    category: state_extension
+    status: reserved
+    semantic_definition: >-
+      Reserved concept for a container event carrying a wholesale-replacing
+      snapshot of many entities at once (bulk late-join synchronization).
+    rationale: >-
+      Requested by a live deployment (upstream PR 4 payload_cardinality
+      snapshot). Rejected as-proposed because a multi-entity container has no
+      per-entity identity, lineage, TTL, or deduplication and lets a
+      transport retained-slot mutate operational truth. Bulk late-join sync
+      is served today by per-entity retained STATE_EVENTs (one entity, one
+      event). Reserved rather than rejected outright in case a future
+      versioned branch defines an honest aggregate contract with per-entry
+      identity and lineage.
+    allowed_event_types: ["STATE_EVENT", "SYSTEM_EVENT"]
+    profile_projection_behavior: future_branch_required
+    references:
+      - docs/zmeta_mqtt_binding_guidance.md
+      - docs/zmeta_change_governance.md
+    date_added: "2026-07-07"
+    review_state: draft
+    notes: >-
+      Not valid vocabulary in any current version. Emitting snapshot
+      containers today creates a private dialect.
+
+  - <<: *entry_defaults
+    name: PAYLOAD_SCHEMA_URI
+    display_name: External payload schema pointer (rejected)
+    category: adapter_vendor_namespace
+    status: rejected
+    semantic_definition: >-
+      Envelope-level URI naming an external schema (for example a vendor SDK,
+      NIEM, or OGC schema) that the payload conforms to, making the ZMeta
+      payload a carrier for arbitrary external formats.
+    rationale: >-
+      Rejected 2026-07-07 (proposed in upstream PR 4). An envelope pointer to
+      external payload schemas inverts the canonical-model premise. It
+      reintroduces the N-by-N problem by making consumers understand N
+      external payload formats, converts ZMeta from a semantic standard into
+      a transport envelope, and creates a laundering vector for unnormalized
+      vendor content. The underlying need - identifying a vendor shape so it
+      can be translated - is already served at ingress by adapter mapping
+      packs (schema_id vendor:name:vN); external shapes are adapted to
+      canonical events, never carried through.
+    references:
+      - adapters/mapping-packs/README.md
+      - docs/zmeta_change_governance.md
+    date_added: "2026-07-07"
+    review_state: approved
+    notes: >-
+      Recorded so the concept is not re-litigated. Any future payload-typing
+      need must route through mapping packs or a maintainer-approved
+      versioned branch.

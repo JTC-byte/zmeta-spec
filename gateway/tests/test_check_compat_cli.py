@@ -121,7 +121,7 @@ def test_check_compat_accepts_current_release_target():
         path = tmp_path / "event.json"
         path.write_text(json.dumps(event), encoding="utf-8")
 
-        result = _run_check(path, "--target", "v1.1.10")
+        result = _run_check(path, "--target", "v1.1.11")
 
         assert result.returncode == 0
         assert "issues=0" in result.stdout

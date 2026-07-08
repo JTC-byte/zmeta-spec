@@ -20,6 +20,7 @@ EXAMPLE_MAP = [
     ("examples/zmeta-command-examples.jsonl", "L"),
     ("examples/encoding-roundtrip.jsonl", "L"),
     ("examples/zmeta-v1.1-examples.jsonl", "H"),
+    ("examples/zmeta-correlation-pattern-examples.jsonl", "H"),
 ]
 
 

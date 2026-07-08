@@ -11,7 +11,7 @@ import subprocess
 from pathlib import Path
 
 
-VERSION = "v1.1.10"
+VERSION = "v1.1.11"
 
 
 def _release_dir() -> Path:

@@ -55,6 +55,34 @@ Current stack status:
     tools README, professional overview header, `.github/workflows/ci.yml`,
     `gateway/tests/test_check_compat_cli.py`). No published release assets,
     manifests, checksums, tags, or signatures were changed.
+- S1-25 (2026-07-07) prepared the v1.1.11 field-driven adoption-guidance
+  release on current `main`, harvesting upstream PR #4 (a v1.2.0 proposal
+  from a live at-scale deployment; reviewed, found kernel-breaking, and NOT
+  merged — review posted on the PR with empirical evidence).
+  - Advisory docs (Class A): `docs/zmeta_mqtt_binding_guidance.md`,
+    `docs/zmeta_vocabulary_crosswalk.md`, and
+    `docs/zmeta_correlation_pattern.md` re-derive the PR's fielded needs from
+    the locked kernel outward — locked-vocabulary MQTT topic shapes with
+    retain/tombstone honesty rules, a dictionary-to-alphabet concept
+    crosswalk, and cross-sensor correlation expressed entirely in existing
+    v1.0 vocabulary (FUSION identity + INFERENCE/ASSOCIATION bonds with the
+    atomic-split invariant credited to the PR).
+  - Governed baseline (Class B): four extension-registry entries —
+    `CORRELATION_HINT` (proposed), `DATA_REF_MEDIA_METADATA` (proposed,
+    future branch), `AGGREGATE_STATE_SNAPSHOT` (reserved),
+    `PAYLOAD_SCHEMA_URI` (rejected with rationale so the concept is not
+    re-litigated). No new vocabulary becomes valid.
+  - Examples/conformance: `examples/zmeta-correlation-pattern-examples.jsonl`
+    (7 events, Profile H, registered in `tools/validate_examples.py`) and two
+    bad-event fixtures (corpus total 23) proving the correlation hint cannot
+    launder `confidence`/`track_id` into observation payloads.
+  - Intake doctrine applied (standing): external PRs are field telemetry —
+    harvest requirements, re-derive from the kernel outward, never merge
+    dialect surfaces, record rejections in the registry, credit contributors,
+    and compare our implementation against the contributor's revisions.
+  - Remaining is release-authority only: tag `v1.1.11`, publish the GitHub
+    release with built assets and `SHA256SUMS_v1.1.11.txt`, and optionally
+    sign. Published v1.1.10-and-earlier assets/checksums are unchanged.
 - The P1-04 bearing reference-frame integrity pass and P1-04R review fixes are
   adopted on `main` for v1.1.8. Schema 1.1.0 gained the optional
   `bearing.frame` marker; the locked v1.0 schema is untouched.

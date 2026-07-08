@@ -16,12 +16,12 @@ Build release artifacts from the repo root:
 ```powershell
 python tools/build_release_manifest.py --output release/zmeta-release-manifest.yaml
 python tools/validate_release_manifest.py --manifest release/zmeta-release-manifest.yaml
-python release/build_mvp_packages.py --version v1.1.9
-python release/build_release_bundle.py --version 1.1.9
-python tools/build_release_package.py --manifest release/zmeta-release-manifest.yaml --output-dir release/package-v1.1.9 --release-id zmeta-v1.1.9 --release-state formal_release --no-signatures
-python tools/validate_release_package.py --manifest release/zmeta-release-manifest.yaml --package-dir release/package-v1.1.9
-Compress-Archive -Path release\package-v1.1.9\* -DestinationPath release\zmeta-release-package-v1.1.9.zip -Force
-python release/sign_release_artifacts.py --version v1.1.9 --write-checksums --verify-checksums
+python release/build_mvp_packages.py --version v1.1.11
+python release/build_release_bundle.py --version 1.1.11
+python tools/build_release_package.py --manifest release/zmeta-release-manifest.yaml --output-dir release/package-v1.1.11 --release-id zmeta-v1.1.11 --release-state formal_release --no-signatures
+python tools/validate_release_package.py --manifest release/zmeta-release-manifest.yaml --package-dir release/package-v1.1.11
+Compress-Archive -Path release\package-v1.1.11\* -DestinationPath release\zmeta-release-package-v1.1.11.zip -Force
+python release/sign_release_artifacts.py --version v1.1.11 --write-checksums --verify-checksums
 ```
 
 The release package builder defaults to no-signature mode. It does not create a
@@ -32,19 +32,19 @@ Create detached PGP signatures for the checksum manifest and every release
 asset:
 
 ```powershell
-python release/sign_release_artifacts.py --version v1.1.9 --sign --target all --gpg-key-id <fingerprint>
+python release/sign_release_artifacts.py --version v1.1.11 --sign --target all --gpg-key-id <fingerprint>
 ```
 
 Verify before upload:
 
 ```powershell
-python release/sign_release_artifacts.py --version v1.1.9 --verify-checksums --verify-signatures --target all
+python release/sign_release_artifacts.py --version v1.1.11 --verify-checksums --verify-signatures --target all
 ```
 
 Dry-run the signing commands when GPG is not available on the current machine:
 
 ```powershell
-python release/sign_release_artifacts.py --version v1.1.9 --sign --target all --dry-run
+python release/sign_release_artifacts.py --version v1.1.11 --sign --target all --dry-run
 ```
 
 Upload the release zips, `zmeta-release-manifest.yaml`, the release package

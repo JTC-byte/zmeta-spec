@@ -2,7 +2,7 @@ import argparse
 import shutil
 from pathlib import Path
 
-VERSION_TAG = "v1.1.10"
+VERSION_TAG = "v1.1.11"
 IGNORE_NAMES = (
     "__pycache__",
     ".pytest_cache",

@@ -1,4 +1,4 @@
-# ZMeta Specification (v1.0 Locked, current release v1.1.10)
+# ZMeta Specification (v1.0 Locked, current release v1.1.11)
 
 ## Overview
 - ZMeta is a transport-agnostic, event-based metadata standard for resilient ISR.
@@ -7,22 +7,36 @@
 
 ## Current Release
 
-- Current release: `v1.1.10`
-- Release notes and assets: <https://github.com/JTC-byte/zmeta-spec/releases/tag/v1.1.10>
-- Release focus: fielded-safety enforcement — command-altitude denylist
-  completion (contract section 7.8), recursive STATE laundering enforcement
-  with key normalization (contract section 7.7), and adapter calibration
-  honesty — aligning policy and reference enforcement with the
-  already-normative contract while preserving version-dispatched validation
-  and the locked v1.0 kernel.
+- Current release: `v1.1.11`
+- Release notes and assets: <https://github.com/JTC-byte/zmeta-spec/releases/tag/v1.1.11>
+- Release focus: field-driven adoption guidance harvested from a live
+  at-scale deployment — advisory MQTT transport-binding guidance, a
+  deployment-concept-to-canonical-vocabulary crosswalk, the cross-sensor
+  correlation (association bond) pattern with runnable examples, four
+  governance entries in the extension registry, and two new anti-laundering
+  conformance fixtures. No schema, policy-behavior, or event-vocabulary
+  change; the locked v1.0 kernel is unchanged.
 - Normative contract: v1.0 locked semantic contract, canonical version-discriminated
   JSON schema, v1.0 JSON schema, and policy pack.
 - Experimental extension: `schema/zmeta-event-1.1.0.schema.json` is provided for proposed
   compatibility testing only; v1.1.0-only fields are not part of the locked v1.0 contract.
 
-## v1.1.10 Integration Notes
+## v1.1.11 Integration Notes
 
-- Producers that emitted altitude on a `COMMAND_EVENT` under any contract
+- New advisory adoption guidance (non-normative, no validation changes):
+  `docs/zmeta_mqtt_binding_guidance.md` (topic shape, retain/tombstone honesty,
+  command traffic over MQTT), `docs/zmeta_vocabulary_crosswalk.md` (mapping
+  common deployment concepts onto the locked vocabulary), and
+  `docs/zmeta_correlation_pattern.md` (cross-sensor correlation with existing
+  vocabulary — fusion identity, ASSOCIATION bonds, and the proposed
+  `correlation_hint` extension), with runnable examples in
+  `examples/zmeta-correlation-pattern-examples.jsonl`.
+- The extension registry gains `CORRELATION_HINT` (proposed),
+  `DATA_REF_MEDIA_METADATA` (proposed), `AGGREGATE_STATE_SNAPSHOT`
+  (reserved), and `PAYLOAD_SCHEMA_URI` (rejected). Registry entries do not
+  make new vocabulary valid; reserved/proposed/rejected concepts remain
+  invalid under v1.0 and v1.1.0.
+- Carried forward from v1.1.10: producers that emitted altitude on a `COMMAND_EVENT` under any contract
   section 7.8 field name, or that nested raw observation fields
   (`features`, `modality`, `measurement`, `t_start`/`t_end`,
   `data_ref`/`data_refs`, ...) inside a `STATE_EVENT` payload, were already
@@ -175,7 +189,7 @@ python tools/run_gateway.py --profile H
 python tools/udp_receiver.py
 python tools/udp_sender.py --file examples/zmeta-command-examples.jsonl
 python tools/replay.py --file examples/zmeta-command-examples.jsonl --delay-ms 200
-python tools/check_compat.py legacy-events.jsonl --target v1.1.10
+python tools/check_compat.py legacy-events.jsonl --target v1.1.11
 python tools/validate.py --file examples/zmeta-command-examples.jsonl --profile H
 python tools/validate_conformance.py --strict
 python tools/validate_release_manifest.py --manifest release/zmeta-release-manifest.yaml
@@ -239,10 +253,10 @@ Deployment helpers:
 - Config templates: `configs/edge-config.json`, `configs/gateway-config.json`
 - Docker Compose: `deploy/edge/docker-compose.yml`, `deploy/gateway/docker-compose.yml`
 - Bundle builders:
-    - `python release/build_mvp_packages.py --version v1.1.10` produces `zmeta-edge-v1.1.10.zip` and `zmeta-gateway-v1.1.10.zip`
-    - `python release/build_release_bundle.py --version 1.1.10` produces `zmeta-v1.1.10-dist.zip`
-    - `python tools/build_release_package.py --manifest release/zmeta-release-manifest.yaml --output-dir release/package-v1.1.10 --release-id zmeta-v1.1.10 --release-state formal_release --no-signatures` builds formal package metadata without creating signatures.
-    - `python release/sign_release_artifacts.py --version v1.1.10 --write-checksums --sign --target all` signs release assets with detached PGP signatures when an approved signing key is available.
+    - `python release/build_mvp_packages.py --version v1.1.11` produces `zmeta-edge-v1.1.11.zip` and `zmeta-gateway-v1.1.11.zip`
+    - `python release/build_release_bundle.py --version 1.1.11` produces `zmeta-v1.1.11-dist.zip`
+    - `python tools/build_release_package.py --manifest release/zmeta-release-manifest.yaml --output-dir release/package-v1.1.11 --release-id zmeta-v1.1.11 --release-state formal_release --no-signatures` builds formal package metadata without creating signatures.
+    - `python release/sign_release_artifacts.py --version v1.1.11 --write-checksums --sign --target all` signs release assets with detached PGP signatures when an approved signing key is available.
 
 ## Deployment Checklist (Compact)
 

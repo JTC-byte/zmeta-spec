@@ -1,14 +1,45 @@
 # Changelog
 
 ## [Unreleased]
+
+## [1.1.11] - 2026-07-07
+- Field-driven adoption guidance harvested from a live at-scale deployment
+  (upstream PR #4, reviewed and not merged): three new advisory docs —
+  `docs/zmeta_mqtt_binding_guidance.md` (MQTT topic shape using locked
+  vocabulary, retain/tombstone honesty rules, transport-independent command
+  governance), `docs/zmeta_vocabulary_crosswalk.md` (mapping common
+  deployment concepts such as ais_track, geofence_alert, heartbeat, and
+  fleet snapshots onto canonical vocabulary), and
+  `docs/zmeta_correlation_pattern.md` (cross-sensor correlation with
+  existing v1.0 vocabulary: FUSION identity, INFERENCE/ASSOCIATION bond
+  assignment/dissolution with atomic-split semantics, and the
+  `correlation_hint` payload extension). Advisory only; no validation or
+  dispatch changes.
+- Extension registry (governed): added `CORRELATION_HINT` (proposed,
+  fusion_extension, optional_omission projection), `DATA_REF_MEDIA_METADATA`
+  (proposed, data_evidence, future_branch_required),
+  `AGGREGATE_STATE_SNAPSHOT` (reserved, state_extension,
+  future_branch_required), and `PAYLOAD_SCHEMA_URI` (rejected, with
+  rationale: envelope-level external payload schema pointers reintroduce the
+  N-by-N problem; the need is served by adapter mapping packs). Registry
+  entries make no new vocabulary valid.
+- Examples: new `examples/zmeta-correlation-pattern-examples.jsonl` (7
+  events, Profile H, pure locked v1.0 vocabulary) demonstrating the full
+  correlation flow — uncorrelated observations, fusion identity creation,
+  ASSOCIATION BOND_ASSIGNED, an observation carrying
+  `payload.extensions.correlation_hint`, a TRACK_STATE projection, and an
+  atomic-split BOND_DISSOLVED; registered in `tools/validate_examples.py`.
+- Conformance: two new `conformance/bad-events/must-fail.jsonl` fixtures
+  (corpus total 23) proving the correlation hint cannot launder `confidence`
+  or `track_id` into an observation payload at any nesting depth
+  (`OBSERVATION_HAS_IDENTITY`).
 - Aligned post-release current-facing documentation, tool examples, the CI
   compatibility target, and the compatibility CLI test with the published
-  `v1.1.10` release (README, `spec/installation-guide.md`, `tools/README.md`,
-  `docs/zmeta_professional_overview.md`, `.github/workflows/ci.yml`,
-  `gateway/tests/test_check_compat_cli.py`), and recorded the v1.1.10
-  publication (tag, GitHub release, checksums-only status) in the
-  handoff/worklog. Historical `v1.1.10` release records and published
-  checksums remain unchanged.
+  `v1.1.10` release, and recorded the v1.1.10 publication (tag, GitHub
+  release, checksums-only status) in the handoff/worklog. Current-facing
+  surfaces now reference `v1.1.11`; `tools/check_compat.py` gains the
+  `v1.1.11` target. Historical release records and published checksums for
+  prior versions remain unchanged.
 
 ## [1.1.10] - 2026-07-03
 - Command-altitude enforcement hardened: `policy/semantics.yaml`
