@@ -48,11 +48,16 @@
       "additionalProperties": false,
       "dependentSchemas": {
         "events": {
-          "propertyNames": {"const": "events"},
-          "description": "For result 'events', per-index expectations go inside the events list; sibling keys next to 'events' are silently ignored by the harness, so the lint forbids them."
+          "propertyNames": {"enum": ["events", "event_count"]},
+          "description": "For result 'events', per-index expectations go inside the events list; sibling keys next to 'events' are silently ignored by the harness, so the lint forbids them. event_count is the exception: it is a result-level pin the harness checks before per-index dispatch."
         }
       },
       "properties": {
+        "event_count": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Exact number of events the callable must return. Use with result \"events\"; 0 pins a fail-closed refusal the way other expectations pin emission."
+        },
         "event_type": {"$ref": "#/$defs/leaf_expect/properties/event_type"},
         "event_subtype": {"$ref": "#/$defs/leaf_expect/properties/event_subtype"},
         "source_producer": {"$ref": "#/$defs/leaf_expect/properties/source_producer"},

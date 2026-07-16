@@ -189,6 +189,7 @@ early:
 | `source_producer` | Exact `source.producer` match. |
 | `required_paths` / `forbidden_paths` | Dotted paths that must / must not resolve. |
 | `expected_values` | Dotted path -> exact value pins. Numeric tolerance 1e-6; booleans never match non-booleans; a missing path is its own failure. |
+| `event_count` | Exact number of events the callable must return (use with `result: "events"`). `0` pins a fail-closed refusal the way the other keys pin emission — write one refusal fixture per schema-required input field. |
 | `utc_z_paths` | Paths that must be UTC `Z` timestamps (default `["event.ts"]`). |
 | `require_lineage_transform` | Default `true` for non-SYSTEM events; set `false` for original observations that legitimately omit lineage. |
 | `lineage_transform_prefix` | Required prefix for `lineage.transform` (for example `promote:`). |

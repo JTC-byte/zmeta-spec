@@ -1,4 +1,4 @@
-# ZMeta Specification (v1.0 Locked, current release v1.1.12)
+# ZMeta Specification (v1.0 Locked, current release v1.1.13)
 
 ## Overview
 - ZMeta is a transport-agnostic, event-based metadata standard for resilient ISR.
@@ -93,20 +93,47 @@ contribute one.
 
 ## Current Release
 
-- Current release: `v1.1.12`
-- Release notes and assets: <https://github.com/JTC-byte/zmeta-spec/releases/tag/v1.1.12>
-- Release focus: governance and honesty closeout — a promotion evidence bar
-  for extension-registry status transitions, the machine-readable
-  future-branch roadmap (`spec/future-branch-roadmap.yaml`), removal of
-  fabricated `lineage.based_on` from the reference ingress adapters
-  (omit-or-refuse semantics), gateway UDP send-failure containment, and
-  claims-vs-reality documentation for mapping packs and the honesty
-  primitives. No schema or event-vocabulary change; the locked v1.0 kernel
-  is unchanged.
+- Current release: `v1.1.13`
+- Release notes and assets: <https://github.com/JTC-byte/zmeta-spec/releases/tag/v1.1.13>
+- Release focus: onboarding and machine-checked refusal — a consolidated
+  adapter authoring guide (`adapters/AUTHORING.md`) hardened by its first
+  external red-team review, a worked example-vendor exercise adapter, the
+  one-command `tools/check_adapter.py` ladder wrapper, a worked EO
+  full-chain example corpus, structured GitHub intake templates, README
+  first-contact restructure, and adapter-harness refusal fixtures (new
+  `expect.event_count` pin) so fail-closed behavior is machine-pinned the
+  way emission is. No schema or event-vocabulary change; the locked v1.0
+  kernel is unchanged.
 - Normative contract: v1.0 locked semantic contract, canonical version-discriminated
   JSON schema, v1.0 JSON schema, and policy pack.
 - Experimental extension: `schema/zmeta-event-1.1.0.schema.json` is provided for proposed
   compatibility testing only; v1.1.0-only fields are not part of the locked v1.0 contract.
+
+## v1.1.13 Integration Notes
+
+- New adapter-authoring entry point: `adapters/AUTHORING.md` (orientation,
+  input floor, layer choice, the anti-fabrication non-negotiables, the
+  validation command ladder, the fixture-key reference, and review-proven
+  AI-agent failure modes), a worked exercise adapter at
+  `adapters/ingress/example-vendor/`, and `tools/check_adapter.py` — a
+  one-command wrapper for the tool-based ladder steps that fails on empty
+  input instead of passing vacuously.
+- The adapter harness can now pin refusal: `expect.event_count` asserts
+  exactly how many events a fixture callable returns, and `event_count: 0`
+  machine-checks fail-closed behavior. The must-pass corpus grows 11 -> 15
+  with one refusal fixture per schema-required RF input field; new adapters
+  should ship refusal fixtures the same way.
+- New worked EO full chain in `examples/zmeta-eo-chain-examples.jsonl`
+  (strict example corpus 47 -> 51) mirroring the eo-cv reference adapter's
+  dialect (`claim.bbox` corner format, `translate:` lineage transform).
+- Structured intake is live: GitHub issue templates for adapter-authoring
+  friction, semantic ambiguity, and deployment field reports (labeled
+  `adapter-authoring`, `semantic-ambiguity`, `field-telemetry`), plus a PR
+  template carrying the change-class/validation checklist.
+- `tools/check_compat.py` gains the `v1.1.13` target; CI and
+  `tools/check_adapter.py`'s manifest-derived default re-baseline to it.
+- Deployments using release or contract hash gates should update expected
+  hashes from the v1.1.13 release manifest.
 
 ## v1.1.12 Integration Notes
 
@@ -157,7 +184,7 @@ contribute one.
   `calibration_state="CALIBRATED"` (or `"DEGRADED"`) explicitly only when the
   deployment can substantiate it.
 - Deployments using release or contract hash gates should update expected
-  hashes from the v1.1.12 release manifest.
+  hashes from the v1.1.13 release manifest.
 - Downstream clone users should pin to a tagged release and integrate through
   adapters, policy/config, profiles, and namespaced extensions. Local changes to
   core schema, event vocabulary, version dispatch, risk semantics, projection
@@ -271,7 +298,7 @@ python tools/run_gateway.py --profile H
 python tools/udp_receiver.py
 python tools/udp_sender.py --file examples/zmeta-command-examples.jsonl
 python tools/replay.py --file examples/zmeta-command-examples.jsonl --delay-ms 200
-python tools/check_compat.py legacy-events.jsonl --target v1.1.12
+python tools/check_compat.py legacy-events.jsonl --target v1.1.13
 python tools/validate.py --file examples/zmeta-command-examples.jsonl --profile H
 python tools/check_adapter.py --events my-adapter-output.jsonl --fixtures my-fixtures.jsonl
 python tools/validate_conformance.py --strict
@@ -336,10 +363,10 @@ Deployment helpers:
 - Config templates: `configs/edge-config.json`, `configs/gateway-config.json`
 - Docker Compose: `deploy/edge/docker-compose.yml`, `deploy/gateway/docker-compose.yml`
 - Bundle builders:
-    - `python release/build_mvp_packages.py --version v1.1.12` produces `zmeta-edge-v1.1.12.zip` and `zmeta-gateway-v1.1.12.zip`
-    - `python release/build_release_bundle.py --version 1.1.12` produces `zmeta-v1.1.12-dist.zip`
-    - `python tools/build_release_package.py --manifest release/zmeta-release-manifest.yaml --output-dir release/package-v1.1.12 --release-id zmeta-v1.1.12 --release-state formal_release --no-signatures` builds formal package metadata without creating signatures.
-    - `python release/sign_release_artifacts.py --version v1.1.12 --write-checksums --sign --target all` signs release assets with detached PGP signatures when an approved signing key is available.
+    - `python release/build_mvp_packages.py --version v1.1.13` produces `zmeta-edge-v1.1.13.zip` and `zmeta-gateway-v1.1.13.zip`
+    - `python release/build_release_bundle.py --version 1.1.13` produces `zmeta-v1.1.13-dist.zip`
+    - `python tools/build_release_package.py --manifest release/zmeta-release-manifest.yaml --output-dir release/package-v1.1.13 --release-id zmeta-v1.1.13 --release-state formal_release --no-signatures` builds formal package metadata without creating signatures.
+    - `python release/sign_release_artifacts.py --version v1.1.13 --write-checksums --sign --target all` signs release assets with detached PGP signatures when an approved signing key is available.
 
 ## Deployment Checklist (Compact)
 

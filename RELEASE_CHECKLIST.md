@@ -30,11 +30,12 @@ Use this as the template for each release.
 - [ ] Doc-currency pass: current-facing docs re-baselined to the new release
       (README current-release section and integration notes, installation
       guide, tools README examples, CI compatibility target and the
-      compatibility CLI test, and `tools/check_compat.py` `TARGETS` extended
-      with the new release id — `tools/check_adapter.py` derives its default
-      compat target from the regenerated release manifest, so a manifest
-      bump without a matching `TARGETS` entry breaks the wrapper for every
-      adapter author)
+      compatibility CLI test, the release-manifest `release_id`/`release_date` pins in
+      `gateway/tests/test_release_manifest.py`, and `tools/check_compat.py`
+      `TARGETS` extended with the new release id — `tools/check_adapter.py`
+      derives its default compat target from the regenerated release
+      manifest, so a manifest bump without a matching `TARGETS` entry breaks
+      the wrapper for every adapter author)
 - [ ] Retention pass: worklog task sections completed before this release
       archived to `docs/zmeta_refinement_worklog_archive.md`; stale handoff
       content pruned

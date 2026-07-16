@@ -1,6 +1,31 @@
 # Changelog
 
 ## [Unreleased]
+
+## [1.1.13] - 2026-07-16
+- Adapter-harness refusal fixtures (Class B, maintainer-directed — the
+  machine-encoding follow-up from the authoring-guide red-team AAR):
+  - `tools/validate_adapter_conformance.py` gains the `expect.event_count`
+    fixture key — an exact pin on how many events the fixture callable
+    returns. `event_count: 0` with `result: "events"` pins a fail-closed
+    refusal the same way the existing keys pin emission. A non-integer or
+    negative value is a fixture error; a count mismatch is
+    `ADAPTER_EVENT_COUNT_MISMATCH`.
+  - `conformance/adapter-harness/must-pass.jsonl` grows 11 -> 15: an
+    example-vendor emission fixture (pinning the pack's field mapping,
+    the visible `UNSYNCED` degraded-timing fallback, and lineage
+    omit-not-fabricate via `forbidden_paths`) plus one refusal fixture per
+    schema-required RF input field (`bandwidth_hz`, `center_freq_hz`,
+    `power_dbm`) — the worked exercise now demonstrates ladder step 4.
+  - `conformance/adapter-harness/fixture.schema.json` learns `event_count`
+    (result-level, allowed alongside `events`), and a new
+    `gateway/tests/test_fixture_schema_sync.py` pins the lint schema to the
+    harness's actual fixture surface so future harness keys cannot silently
+    turn into false lint failures.
+  - Fixture-key reference updated in `adapters/AUTHORING.md` §6 and the
+    harness README. Release manifest and example claims regenerated for
+    `zmeta-v1.1.13`; `tools/check_compat.py` gains the `v1.1.13` target and
+    CI/compat tests re-baseline to it.
 - Authoring-guide hardening from its first external review (red-team) pass:
   new `adapters/AUTHORING.md` §3 rule that schema minimums are per-subtype
   (requiredness comes from the schema, never from sample inputs) and four

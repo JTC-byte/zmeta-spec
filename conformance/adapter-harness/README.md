@@ -29,3 +29,10 @@ non-boolean (a `true` pin cannot be satisfied by `1`/`1.0` output); a missing
 path is reported as a distinct failure. This is how the corpus proves value-level contracts such as
 the bearing reference-frame rotation (array-relative DOA plus platform heading
 equals canonical true-north `bearing.az_deg`).
+
+A fixture may also pin how many events the callable returns with
+`expect.event_count` (use with `result: "events"`). `event_count: 0` pins a
+fail-closed refusal — the adapter must return nothing for that input — so
+refusal behavior is machine-checked the same way emission is. The
+example-vendor fixtures pin one refusal per schema-required RF input field;
+new adapters should do the same.

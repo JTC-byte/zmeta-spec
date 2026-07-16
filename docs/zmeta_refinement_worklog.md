@@ -11,6 +11,33 @@
   evidence bar; check upstream PR #4 for contributor revisions first.
   Scheduled immediately after the maintainer's demo. See the handoff Next
   Work Queue for scope and expected shape.
+- R1-09 (2026-07-16): **v1.1.13 released** — merged PR #5 then PR #6
+  (fast-forward, no squash, reviewed SHAs preserved), created the three
+  intake labels (`adapter-authoring`, `field-telemetry`,
+  `semantic-ambiguity`), and cut the release per RELEASE_CHECKLIST
+  (maintainer-directed, agent-executed). Release content beyond the merged
+  PRs (Class B, maintainer-directed): the adapter harness gains
+  `expect.event_count` (0 pins fail-closed refusal — the P1-06 AAR's
+  machine-encoding candidate, now implemented); must-pass corpus 11 -> 15
+  (example-vendor emission fixture + one refusal fixture per
+  schema-required RF input field, negative-probed non-vacuous);
+  `fixture.schema.json` learns `event_count` and
+  `gateway/tests/test_fixture_schema_sync.py` pins lint-schema/harness
+  sync. Doc-currency pass run per the new checklist item (README release
+  section + v1.1.13 integration notes, tools README, CI compat target,
+  compat CLI test, check_compat TARGETS + v1.1.13, release-manifest test
+  pins); the checklist item itself was improved mid-pass — it did not name
+  the `gateway/tests/test_release_manifest.py` `release_id`/`release_date`
+  pins, which full pytest caught (checklist-usefulness verdict: the new
+  items work; first exercise found and closed one gap). Validation: full
+  kernel gate green (harness 15), 51/51 strict examples, pytest 483+110
+  zero failures, compat sweep of all nine corpora at v1.1.13 clean,
+  self-tests/e2e/live/packet-size ok, containerized gateway verified
+  (recv/fwd, zero violations), manifest + claims regenerated for
+  zmeta-v1.1.13, checksums written and verified — checksums-only, signing
+  remains the maintainer's external process. Retention pass: P1-05/P1-06
+  resume-note entries retained as current context (most recent sessions);
+  nothing newly archivable ahead of this release.
 - P1-06 AAR (2026-07-16): the maintainer review of PRs #5/#6 doubled as the
   first external red-team pass of the authoring guide, and the findings are
   institutionalized rather than just fixed. Finding: every caught defect's

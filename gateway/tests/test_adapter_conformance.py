@@ -165,3 +165,40 @@ def test_conformance_runner_adapter_harness_flag_exits_success():
     assert result.returncode == 0, result.stdout + result.stderr
     assert "adapter conformance ok" in result.stdout
     assert "conformance ok" in result.stdout
+
+
+def test_event_count_zero_pins_refusal():
+    schema = validate_adapter_conformance.validators.load_schema(
+        ROOT / "schema" / "zmeta-event.schema.json"
+    )
+    policy = validate_adapter_conformance.validators.load_policy(ROOT / "policy")
+    fixture = _fixture("example-vendor-refuses-missing-bandwidth")
+
+    assert validate_adapter_conformance.evaluate_fixture(fixture, schema, policy) == []
+
+
+def test_event_count_mismatch_is_reported():
+    schema = validate_adapter_conformance.validators.load_schema(
+        ROOT / "schema" / "zmeta-event.schema.json"
+    )
+    policy = validate_adapter_conformance.validators.load_policy(ROOT / "policy")
+    fixture = json.loads(json.dumps(_fixture("example-vendor-refuses-missing-bandwidth")))
+    fixture["args"][0]["bandwidth_hz"] = 1000000
+
+    issues = validate_adapter_conformance.evaluate_fixture(fixture, schema, policy)
+
+    assert issues, "emission against an event_count 0 pin must fail"
+    assert issues[0]["code"] == "ADAPTER_EVENT_COUNT_MISMATCH"
+
+
+def test_event_count_invalid_value_is_a_fixture_error():
+    schema = validate_adapter_conformance.validators.load_schema(
+        ROOT / "schema" / "zmeta-event.schema.json"
+    )
+    policy = validate_adapter_conformance.validators.load_policy(ROOT / "policy")
+    fixture = json.loads(json.dumps(_fixture("example-vendor-refuses-missing-bandwidth")))
+    fixture["expect"]["event_count"] = True
+
+    issues = validate_adapter_conformance.evaluate_fixture(fixture, schema, policy)
+
+    assert issues and issues[0]["code"] == "ADAPTER_FIXTURE_INVALID"

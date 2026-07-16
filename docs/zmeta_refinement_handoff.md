@@ -1,6 +1,15 @@
 # ZMeta Refinement Handoff Notes
 
-Status date: 2026-07-15
+Status date: 2026-07-16
+
+Current release: **v1.1.13** (R1-09, 2026-07-16) — PRs #5/#6 merged
+(fast-forward, reviewed SHAs preserved), intake labels created, and the
+release cut per RELEASE_CHECKLIST with the adapter-harness refusal-fixture
+capability (`expect.event_count`; must-pass corpus 11 -> 15) as the
+maintainer-directed Class B addition. Checksums-only; signing remains the
+maintainer's external process. Details in the worklog R1-09 entry and
+`release/RELEASE_NOTES_v1.1.13.md`. The queued v1.1.0 adoption-decision
+session remains the next substantive work item.
 
 This note is the quick resume point for the current ZMeta refinement effort. Recent session records and the deferred issue register are in `docs/zmeta_refinement_worklog.md`; completed task sections S0-01..R1-05 are archived verbatim in `docs/zmeta_refinement_worklog_archive.md`.
 

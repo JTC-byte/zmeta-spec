@@ -276,6 +276,19 @@ def evaluate_fixture(
 
     profile = str(fixture.get("profile") or "H")
     all_issues: list[dict[str, Any]] = []
+
+    expected_count = expect.get("event_count")
+    if expected_count is not None:
+        if not isinstance(expected_count, int) or isinstance(expected_count, bool) or expected_count < 0:
+            return [_issue("ADAPTER_FIXTURE_INVALID", "event_count must be a non-negative integer")]
+        if len(events) != expected_count:
+            all_issues.append(
+                _issue(
+                    "ADAPTER_EVENT_COUNT_MISMATCH",
+                    f"expected {expected_count} event(s), got {len(events)}",
+                    details={"expected": expected_count, "actual": len(events)},
+                )
+            )
     for index, event in enumerate(events):
         indexed_expect = expect
         if isinstance(expect.get("events"), list):

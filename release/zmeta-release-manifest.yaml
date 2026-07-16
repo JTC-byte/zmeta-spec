@@ -1,8 +1,8 @@
 manifest_version: 1
-release_id: zmeta-v1.1.12
-release_name: ZMeta v1.1.12
+release_id: zmeta-v1.1.13
+release_name: ZMeta v1.1.13
 release_status: formal_release
-release_date: '2026-07-08'
+release_date: '2026-07-16'
 zmeta_versions:
   normative:
   - '1.0'
@@ -25,11 +25,11 @@ profile_projection_catalog_hash: sha256:bae61b3a01cc0a3c2aa1f90391f231d404841752
 encoding_negative_suite_hash: sha256:d36e2109e535fde0dd191b92fd3a7dbd07839ce3539b3d9fdf5dd8aed04487b0
 profile_precision_policy_hash: sha256:a2f51cf5f0779c43ae4118b941524fb14783181c739e693befd146f8c44a1139
 bad_event_corpus_hash: sha256:f6dd82fcb4b8f20ad5cd3aea5a87ab45ad7b88bb6a6240002a4666579d0fc78c
-adapter_conformance_hash: sha256:984e1114e5b2ce1ae0d77885265dbecfa502eb926528a341ea4deb45d245b027
+adapter_conformance_hash: sha256:b6c0457a7847792954bbd5555dfb89847497d0a2fd474a6ae0edb81228a0e7b0
 encoding_projection_specs_hash: sha256:70d0db35710e93dcdd8e923ec67864950df1af8be3259233b93df894f8d0f171
 process_governance_hash: sha256:bf4cacd14740bfde51be5b2dff3503ca61ac93396f9295fe18cdadf63d731a0d
-release_bundle_hash: sha256:1dbb87a76d96bb23cca6a51a7878ba845bf6e6004387e75c706964ac4769da0c
-release_manifest_hash: sha256:7038bf78d4e84b5d1190b4bc1cbf275a5da9ab6774b07faa6bb7d41a7f31bba8
+release_bundle_hash: sha256:1ce07e20b81631ca407be1db6b94cbbdbc217d0eb8db84ef14de139632cc9926
+release_manifest_hash: sha256:1ec62d09dc6ff1fcd498fb806d83b0ccb70142ae680c88f9c1394d3f7a4ddd52
 artifact_hashes:
 - path: AGENTS.md
   group: process_governance
@@ -61,7 +61,7 @@ artifact_hashes:
   canonicalization: text_lf
 - path: conformance/adapter-harness/must-pass.jsonl
   group: adapter_conformance
-  hash: sha256:30103a96df7e85155e8640b9495969f75cc2564988acab3b734d85405874315f
+  hash: sha256:b3f76c564ff23fb0c4e30fcfb12c1d10631c10c50354262a52a9902eb41d27d8
   canonicalization: text_lf
 - path: conformance/bad-events/must-fail.jsonl
   group: bad_event_corpus
@@ -69,11 +69,11 @@ artifact_hashes:
   canonicalization: text_lf
 - path: conformance/claims/example-core-producer.yaml
   group: claims
-  hash: sha256:83c14c13e16977dc7c77ce2d2345e9da444049660915a5aa116881153ec5e066
+  hash: sha256:72a980e5587f92f9c292257c8616cf19cd0748eddf51ecfdbcd5ae66bb382249
   canonicalization: text_lf
 - path: conformance/claims/example-reference-gateway.yaml
   group: claims
-  hash: sha256:0bd02067eb216d238815efc5208f8f11f77aefa3f11a92e1b05b3893db721460
+  hash: sha256:2bc2222a34d7e5c6090272a63aefd57bbcc653f1727ea42528283c3bd2fb9166
   canonicalization: text_lf
 - path: conformance/conformance_classes.yaml
   group: conformance_classes
@@ -257,7 +257,7 @@ artifact_hashes:
   canonicalization: text_lf
 - path: tools/validate_adapter_conformance.py
   group: conformance_tools
-  hash: sha256:9267932bd73d266eaa4a73871d5c4a44741b9460aff070488480405120b3331c
+  hash: sha256:127fd84cd24998a7a4e29df82601b8537091617733fe168c369717505575ef00
   canonicalization: text_lf
 - path: tools/validate_bad_events.py
   group: conformance_tools
@@ -394,7 +394,7 @@ artifact_groups:
     description: Shared adapter harness fixtures for representative adapter outputs.
     paths:
     - conformance/adapter-harness/must-pass.jsonl
-    hash: sha256:984e1114e5b2ce1ae0d77885265dbecfa502eb926528a341ea4deb45d245b027
+    hash: sha256:b6c0457a7847792954bbd5555dfb89847497d0a2fd474a6ae0edb81228a0e7b0
   encoding_projection_specs:
     description: Compact CBOR and protobuf projection specifications and codec evidence.
     paths:
@@ -410,7 +410,7 @@ artifact_groups:
     paths:
     - conformance/claims/example-core-producer.yaml
     - conformance/claims/example-reference-gateway.yaml
-    hash: sha256:a7546cc9c261bfc41e29d710b309423f01c1ad1eace11e98c1fe1d517affb86d
+    hash: sha256:d18d7d08f747eb0ece6cfed4063f3c3dedcfc3fe656560f2c4606d8ff5243e26
   release_policy:
     description: Human-readable release hash taxonomy and canonicalization policy.
     paths:
@@ -457,7 +457,7 @@ artifact_groups:
     - tools/validate_future_roadmap.py
     - tools/validate_precision_policy.py
     - tools/validate_projection.py
-    hash: sha256:8e8bd7e3aef1bee73e001857513d94a09ac74367cdfaba6f98d65639c858bb36
+    hash: sha256:15d44c1b22b379bfa264fbe7369fdb4fe8a61677d73252ce15314625fa29076c
 tool_versions:
   python: 3.14.0
   builder: tools/build_release_manifest.py
