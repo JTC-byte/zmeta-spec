@@ -10,6 +10,10 @@ Common files:
 - `zmeta-command-examples.jsonl` (COMMAND_EVENT + TASK_ACK lifecycle)
 - `zmeta-v1.1-examples.jsonl` proposed v1.1.0 extension examples
 - `encoding-roundtrip.jsonl` (golden corpus for CBOR/compact/protobuf round-trip tests)
+- `zmeta-eo-chain-examples.jsonl` worked EO full chain
+  (`OBSERVATION_EVENT -> INFERENCE_EVENT -> FUSION_EVENT -> STATE_EVENT` with
+  genuine chained `lineage.based_on` ids; companion to the RF chain in the
+  core examples — see `adapters/AUTHORING.md`)
 
 Core examples show the intended event flow:
 - RF measurements are `OBSERVATION_EVENT`.

@@ -1,6 +1,6 @@
 # ZMeta Refinement Handoff Notes
 
-Status date: 2026-07-08
+Status date: 2026-07-15
 
 This note is the quick resume point for the current ZMeta refinement effort. The full task history and deferred issue register are in `docs/zmeta_refinement_worklog.md`.
 
@@ -144,6 +144,14 @@ Current stack status:
     alignment moved current-facing docs, the CI compatibility target, and
     the compatibility CLI test to `v1.1.12`, and D-003 was closed by
     maintainer decision — the deferred issue register is now fully closed.
+- P1-05 (2026-07-15) added adapter-author onboarding consolidation on current
+  `main` (Class A; no schema, policy, vocabulary, or validation-behavior
+  change): `adapters/AUTHORING.md` as the single consolidated authoring entry
+  point for humans and AI agents (linked from `adapters/README.md`), plus the
+  worked EO full-chain corpus `examples/zmeta-eo-chain-examples.jsonl`
+  registered in `tools/validate_examples.py` (strict examples corpus is now
+  51 events). Driven by external-adopter demand; details in the worklog
+  Current Resume Note.
 - The P1-04 bearing reference-frame integrity pass and P1-04R review fixes are
   adopted on `main` for v1.1.8. Schema 1.1.0 gained the optional
   `bearing.frame` marker; the locked v1.0 schema is untouched.

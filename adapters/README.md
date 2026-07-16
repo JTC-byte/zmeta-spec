@@ -7,6 +7,9 @@ They are intentionally minimal and may be lossy.
 - Mapping packs: `adapters/mapping-packs/`
 - Egress projections: `adapters/egress/` (CoT, MissionIntent, JREAP)
 
+Building a new adapter? Start with the step-by-step authoring guide:
+`adapters/AUTHORING.md`.
+
 ## Semantic Mapping Rules
 
 Adapters must preserve ZMeta layer separation:

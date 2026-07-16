@@ -2,7 +2,7 @@
 
 ## Current Resume Note
 
-- Last updated: 2026-07-08
+- Last updated: 2026-07-15
 - Quick handoff: `docs/zmeta_refinement_handoff.md`
 - Queued next session (maintainer direction, 2026-07-08): build the
   per-concept evidence worksheet for all fourteen experimental v1.1.0
@@ -11,6 +11,24 @@
   evidence bar; check upstream PR #4 for contributor revisions first.
   Scheduled immediately after the maintainer's demo. See the handoff Next
   Work Queue for scope and expected shape.
+- P1-05 (2026-07-15): adapter-author onboarding consolidation on current
+  `main` (Class A docs + examples; no schema, policy, vocabulary, or
+  validation-behavior change). Driven by external-adopter demand (a
+  multi-sensor drone/COP team onboarding via an AI coding agent): (1) new
+  `adapters/AUTHORING.md` — the single consolidated authoring entry point
+  (orientation, decoded-input floor, layer-choice table with nearest
+  reference per input kind, the anti-fabrication non-negotiables with
+  contract cites, the exact validation command ladder, a formal
+  adapter-harness fixture-key reference, producer-authority and
+  definition-of-done notes, AI-agent guardrails), linked from
+  `adapters/README.md`; (2) new `examples/zmeta-eo-chain-examples.jsonl` — a
+  worked EO full chain (OBSERVATION -> INFERENCE -> FUSION -> STATE, genuine
+  chained lineage, policy-allowed producers `eo-camera`/`eo-cv-adapter`/
+  `fusion-engine`, local mp4 `data_ref` pointer, no raw features on STATE)
+  as the EO companion to the core RF chain, registered in
+  `tools/validate_examples.py` (corpus 47 -> 51) and the examples README.
+  Validation: new corpus 4/4 strict, full strict examples pass, full kernel
+  gate, and full pytest green (results in the handoff).
 - S1-26 (2026-07-08): prepared v1.1.12 (governance and honesty closeout) on
   current `main` per explicit maintainer direction to work the full
   relock-gap list. Delivered: (1) promotion evidence bar in

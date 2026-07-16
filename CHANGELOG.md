@@ -1,6 +1,21 @@
 # Changelog
 
 ## [Unreleased]
+- Adapter authoring guide (docs/advisory): new `adapters/AUTHORING.md` — a
+  single consolidated entry point for humans and AI agents building a new
+  adapter against a pinned release (orientation, input floor, layer choice,
+  the anti-fabrication non-negotiables, the exact validation command ladder,
+  a formal adapter-harness fixture-key reference, producer-authority notes,
+  and definition-of-done). Consolidates guidance previously spread across
+  `adapters/README.md`, the ingress template README, `conformance/README.md`,
+  and `tools/README.md`; adds no new rules and changes no validation
+  behavior. Linked from `adapters/README.md`.
+- Examples: new `examples/zmeta-eo-chain-examples.jsonl` — a worked EO full
+  chain (`OBSERVATION_EVENT -> INFERENCE_EVENT -> FUSION_EVENT ->
+  STATE_EVENT`, genuine chained `lineage.based_on`, policy-allowed producers,
+  local `data_ref` video pointer, no raw features on STATE) as the EO
+  companion to the core RF chain; registered in `tools/validate_examples.py`
+  and the examples README.
 - Recorded the v1.1.12 publication (R1-08: pushed tag/commit `e5a88b1`,
   GitHub release with all eight assets, marked Latest, checksums-only) and
   aligned current-facing docs, the CI compatibility target, and the
