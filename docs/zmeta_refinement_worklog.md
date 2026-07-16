@@ -11,6 +11,11 @@
   evidence bar; check upstream PR #4 for contributor revisions first.
   Scheduled immediately after the maintainer's demo. See the handoff Next
   Work Queue for scope and expected shape.
+- R1-09 publication confirmed (2026-07-16): release commit `1117bc6`,
+  annotated tag `v1.1.13` pushed, GitHub release live with all eight assets
+  and marked Latest, CI green on the release commit (2/2 runs), body
+  includes checksum verification instructions. Checksums-only; signing
+  remains the maintainer's external process.
 - R1-09 (2026-07-16): **v1.1.13 released** — merged PR #5 then PR #6
   (fast-forward, no squash, reviewed SHAs preserved), created the three
   intake labels (`adapter-authoring`, `field-telemetry`,
