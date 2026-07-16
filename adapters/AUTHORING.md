@@ -103,6 +103,13 @@ same pack first if you want a known-good diff.
 9. **Units and geodesy** (contract 6): WGS-84, meters HAE, degrees true
    north, m/s, UTC RFC3339 `Z` timestamps. Canonical geo is all-or-nothing;
    omit missing values — never zero-fill (no `(0,0,0)` sentinels).
+10. **Schema minimums are per-subtype.** The locked schema defines required
+    feature sets per event family and modality (for example, RF observation
+    features require `center_freq_hz`, `bandwidth_hz`, AND `power_dbm`).
+    Read your subtype's schema block before deciding any input field is
+    optional — requiredness comes from the schema, never from what a sample
+    input happens to carry. A reading missing a required field is refused,
+    not emitted schema-invalid.
 
 ## 4. Build
 
@@ -222,3 +229,24 @@ tactical ingress producers additionally carry the per-producer
   those surfaces create a private dialect.
 - Work from the repository root; keep adapters importable as packages; run
   the ladder exactly as written before claiming the adapter is done.
+
+Four failure modes proven by this guide's first external review pass
+(2026-07-16) — each escaped an author whose schema validation was green:
+
+- **Author from primaries, not summaries.** When your artifact mirrors or
+  cites a file (a reference adapter, a schema block), open that file and
+  diff against it. Conventions like a bounding-box coordinate format live in
+  docstrings that secondhand summaries drop, and schema validation cannot
+  catch dialect drift in free-form fields.
+- **Prove fail-closed claims with refusing inputs.** For every field the
+  schema requires, write the test where it is missing and assert refusal —
+  one per required field, not one sampled field. Green-path validation
+  alone let a teaching adapter emit schema-invalid events on the exact rule
+  it taught.
+- **Run this guide as a checklist against your own adapter** before calling
+  it done. An exemplar that violates the rule it teaches fails review.
+- **Record validation evidence exactly.** Name the command and target you
+  actually ran, invoked in a state where it can fail — a diff check is
+  `git diff --check <base>...HEAD`, not a bare clean-worktree check that
+  can never trip. A false validation claim in a commit message is an
+  evidence-integrity defect, not a formatting nit.

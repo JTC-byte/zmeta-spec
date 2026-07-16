@@ -1,6 +1,12 @@
 # Changelog
 
 ## [Unreleased]
+- Authoring-guide hardening from its first external review (red-team) pass:
+  new `adapters/AUTHORING.md` §3 rule that schema minimums are per-subtype
+  (requiredness comes from the schema, never from sample inputs) and four
+  review-proven failure-mode lessons for AI agents in §9
+  (primaries-not-summaries, refusal tests per required field,
+  guide-as-checklist, exact evidence commands); AAR record in the worklog.
 - Onboarding batch (docs/advisory + reference; no schema, policy, vocabulary,
   or validation-behavior change):
   - README restructured for first contact: What Is/Is Not moved above the

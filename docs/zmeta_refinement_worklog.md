@@ -11,6 +11,22 @@
   evidence bar; check upstream PR #4 for contributor revisions first.
   Scheduled immediately after the maintainer's demo. See the handoff Next
   Work Queue for scope and expected shape.
+- P1-06 AAR (2026-07-16): the maintainer review of PRs #5/#6 doubled as the
+  first external red-team pass of the authoring guide, and the findings are
+  institutionalized rather than just fixed. Finding: every caught defect's
+  rule already existed in-repo — the documentation was sufficient, the
+  validators caught every schema-checkable issue instantly, and the escapes
+  were prose-only conventions (bbox dialect) plus author-workflow failures,
+  not doc gaps. Actions: the four review-proven failure modes are now
+  AUTHORING.md §9 agent guidance (primaries-not-summaries; refusal tests per
+  required field; guide-as-checklist against your own exemplar; exact
+  evidence commands), and the one true doc gap is closed as §3 rule 10
+  (schema minimums are per-subtype; requiredness from the schema, never
+  from sample inputs). Candidate machine-encoding follow-up recorded, not
+  implemented: "refusal fixtures" for the adapter harness (callable must
+  return an empty result for a given input) so fail-closed behavior is
+  pinned the way must-pass pins emission — conventions encoded as fixtures
+  get caught, conventions living only in prose escape.
 - P1-06 (2026-07-15): onboarding batch on current `main` (Class A docs +
   Class C reference; no governed-artifact change). Follows P1-05 from the
   same external-adopter thread. (1) README restructured for first contact —
