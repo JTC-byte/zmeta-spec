@@ -88,6 +88,12 @@ promise.
 - Never create tags, push branches, upload releases, generate signatures, or
   rewrite published checksums unless explicitly asked (see `AGENTS.md` release
   limits).
+- **Windows tooling hygiene.** Two failure modes bit during the v1.1.13
+  cycle: never round-trip repo text through Windows PowerShell
+  `Get-Content`/`Set-Content` — it silently mojibakes UTF-8 (edit prose with
+  the file tools or Python) — and pass multi-line commit messages via
+  `git commit -F <file>`, never inline `-m` (embedded quotes get mangled
+  into pathspecs).
 - **Commit attribution is human-only.** Attribute commits and PRs to the human
   maintainer alone. Do **not** add `Co-Authored-By` trailers naming Claude, and
   do not list the agent as a contributor — every contributor in the stack works

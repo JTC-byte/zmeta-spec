@@ -11,6 +11,83 @@
   evidence bar; check upstream PR #4 for contributor revisions first.
   Scheduled immediately after the maintainer's demo. See the handoff Next
   Work Queue for scope and expected shape.
+- R1-09 AAR (2026-07-16), maintainer side — the PR #5/#6 -> v1.1.13
+  exchange as a red-team exercise against the standard's own claims,
+  agent-guidance docs, and workflows. **What happened:** two
+  onboarding PRs from the external-adopter thread (P1-05/P1-06, authored
+  maintainer-side; driver: a multi-sensor drone/COP team onboarding
+  through an AI coding agent — the first adopter cohort onboarding from
+  scratch through the authoring path) were red-teamed maintainer-side,
+  with every finding adversarially verified before posting; the review
+  record, including refuted findings, lives on the PR #5/#6 threads.
+  Surviving findings clustered exactly where the standard predicts risk:
+  the teaching adapter emitted schema-invalid output instead of refusing
+  (bandwidth_hz), the canonical EO example taught a bounding-box dialect
+  contradicting the reference adapter it mirrored, one commit message
+  recorded validation evidence that did not reproduce, and one intake
+  template misparaphrased the governed promotion evidence bar. Rework
+  came back as fix commit (#5) + rebase (#6, because a false validation
+  claim must not become immutable history) + an additive commit
+  institutionalizing the lessons (AUTHORING §3 rule 10, §9 failure
+  modes); the delta re-verification (recorded on the PR #6 thread)
+  confirmed zero drift beyond the approved fix list and that every
+  commit-message validation claim reproduced at review time. Then,
+  maintainer-directed: fast-forward merges preserving
+  the reviewed SHAs, intake labels, the AAR's machine-encoding candidate
+  implemented (harness `event_count` refusal pins, corpus 11 -> 15,
+  lint-schema sync test), and the v1.1.13 cut run strictly per
+  RELEASE_CHECKLIST — which itself got red-teamed by being run: it was
+  missing the release-manifest test pins (found by pytest mid-release,
+  item amended), the package zip had no producing script (now auto-built
+  by `sign_release_artifacts.py`, tested both directions), the signature
+  items were unskippable-yet-always-skipped (now conditional behind an
+  explicit signing-decision line), and `sign_release_artifacts.py`
+  carried a stale VERSION default (bumped; added to doc-currency).
+  **Why:** green-path authoring (schema requiredness lives per-subtype in
+  the schema; the guide didn't say to read it); secondhand summaries
+  instead of primary sources (the example mirrored a description of the
+  eo-cv adapter, not its code); evidence recorded as ritual rather than
+  as commands run where they could fail; checklist items written before
+  ever being exercised. **What held under stress:** every
+  schema/policy-checkable dishonesty was caught mechanically the moment
+  failing input was exercised; everything that escaped lived only in
+  prose — the exact boundary the refusal fixtures now move; dialect
+  drift was caught in the canonical imitation source before external
+  agents could learn it; the manifest-hash gates enforced the
+  governed/advisory boundary mechanically all the way through (nothing
+  hashed moved without maintainer direction, and when directed, the gate
+  forced honest regen); authority order and release limits held — agent
+  execution, human decision at every irreversible gate (merge, publish,
+  cut). Net enforcement growth across the exchange: harness fixtures
+  11 -> 15, strict examples 47 -> 51, pytest 465 -> 485 tests (+110
+  subtests). **Lessons, zmeta side:** (1) teaching artifacts are the
+  highest-leverage defect surface — agents copy them verbatim; red-team
+  them before merge, always. (2) When review catches a prose-only
+  convention violation, the fix is two-part: correct it AND ask what
+  fixture/test would have caught it — that loop is what produced
+  `event_count`; conventions encoded as fixtures get caught, conventions
+  living in prose escape. (3) Validation evidence must be falsifiable:
+  name the exact command, run where it can fail (now practiced by the
+  release commit itself). (4) The release checklist is a living gate:
+  its first honest end-to-end exercise found four gaps — one amended
+  mid-run (the test pins), three reconciled in the immediate post-release
+  follow-up — keep running it literally every release. (5) The
+  cross-session pattern that worked: PR threads for the durable review
+  record, direct session messages for awareness; rebase-vs-fix-commit
+  decided by whether a false claim would become immutable. (6)
+  Maintainer-side tooling (first bite, recorded): two Windows-shell
+  text-processing near-misses in one cycle (a WinPS Get-Content/
+  Set-Content round-trip mojibake'd README UTF-8, caught and reverted
+  before commit; a quote-mangled `git commit -m` that loudly failed) —
+  prose edits belong in file tools or python, commit messages in
+  `git commit -F`; one hygiene bullet added to CLAUDE.md. Nothing in
+  this exchange required touching the locked kernel: the outer rings
+  (docs, examples, fixtures, tooling, policy-adjacent conformance)
+  absorbed all of it, which is the design working as claimed. Meta-note:
+  this AAR entry was itself fact-checked against the repository record
+  before commit; the check found and corrected five inaccuracies in the
+  draft — including an overclaim inside lesson (4), the lesson about
+  falsifiable evidence — which is lesson (3) demonstrating itself.
 - R1-09 follow-up (2026-07-16): intake funnel closed
   (`blank_issues_enabled: false` + a fourth "General question or report"
   template labeled `question`) and the two release-flow friction points
