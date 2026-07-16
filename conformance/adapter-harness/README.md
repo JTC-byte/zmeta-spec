@@ -16,6 +16,11 @@ The harness is fixture-driven. It does not require every adapter to expose the
 same Python API, and it does not make lossy external projections authoritative
 without promotion evidence.
 
+An advisory JSON Schema for fixture lines lives at
+`conformance/adapter-harness/fixture.schema.json`; `tools/check_adapter.py
+--fixtures` lints against it before running the harness to catch key typos.
+The harness itself remains the behavioral authority.
+
 Beyond presence checks (`required_paths`/`forbidden_paths`), a fixture may pin
 exact output values with an optional `expected_values` map of dotted path to
 expected value. Numeric expectations compare with a small absolute tolerance

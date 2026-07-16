@@ -179,6 +179,25 @@ output values pinned by per-fixture `expected_values` maps (numeric values
 compare within a 1e-6 absolute tolerance; a boolean never matches a
 non-boolean, so a `true` pin cannot be satisfied by `1`/`1.0` output).
 
+### Check An Adapter (One Command)
+
+```
+python tools/check_adapter.py --events my-adapter-output.jsonl
+python tools/check_adapter.py --fixtures my-fixtures.jsonl
+python tools/check_adapter.py --events out.jsonl --fixtures f.jsonl --kernel-gate
+```
+
+`check_adapter.py` is an advisory wrapper that runs the tool-based steps of
+the `adapters/AUTHORING.md` validation ladder in one command: fixture lint
+against `conformance/adapter-harness/fixture.schema.json`, `validate.py
+--strict`, `check_compat.py` (target defaulting to the release manifest's
+release id), the adapter harness, and optionally the full kernel gate.
+Colocated adapter pytest (ladder step 1) still runs separately. The governed
+validators it delegates to remain the authority; the built-in fixture lint
+and empty-input guard are strictly additive (they can add failures, never
+mask one). Each underlying command is printed as it runs, and empty events
+or fixture files fail rather than passing vacuously.
+
 ### Measure packet sizes
 
 ```

@@ -38,7 +38,9 @@ or command safety.
 | [SignalHunter](ingress/signalhunter/) | SignalHunter .bin PSD captures | OBSERVATION_EVENT (RF LOB, gradient) | Production |
 | [EO-CV](ingress/eo-cv/) | CV inference service JSON detections | INFERENCE_EVENT (CLASSIFICATION) | Production |
 | [CoT](ingress/cot/) | Cursor-on-Target XML | (template) | Template |
+| [JREAP](ingress/jreap/) | Decoded JREAP/Link-style track dicts | STATE_EVENT (promotion) | Template |
 | [KLV](ingress/klv/) | MISB KLV metadata | (template) | Template |
+| [Example-vendor](ingress/example-vendor/) | `example-vendor-pack` RF JSON | OBSERVATION_EVENT (RF) | Worked exercise |
 
 Each adapter implements the standard `detect()` / `translate()` / `validate()`
 pattern described in `ingress/template/README.md`.

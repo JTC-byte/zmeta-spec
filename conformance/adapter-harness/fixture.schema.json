@@ -1,0 +1,116 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ZMeta adapter-harness fixture line",
+  "description": "Advisory schema for one JSONL fixture line consumed by tools/validate_adapter_conformance.py. It exists to catch fixture typos before a harness run (see tools/check_adapter.py); the harness itself remains the behavioral authority.",
+  "type": "object",
+  "required": ["module", "callable"],
+  "additionalProperties": false,
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Fixture label used in harness output (defaults to line-<n>)."
+    },
+    "adapter": {
+      "type": "string",
+      "description": "Informational adapter slug."
+    },
+    "module": {
+      "type": "string",
+      "description": "Repository-relative path to the adapter module to load."
+    },
+    "callable": {
+      "type": "string",
+      "description": "Function name to call on the loaded module."
+    },
+    "args": {
+      "type": "array",
+      "description": "Positional arguments passed to the callable."
+    },
+    "kwargs": {
+      "type": "object",
+      "description": "Keyword arguments passed to the callable."
+    },
+    "result": {
+      "enum": ["event", "events"],
+      "description": "Whether the callable returns one event dict (default) or a list of event dicts."
+    },
+    "profile": {
+      "enum": ["L", "M", "H"],
+      "description": "Validation profile for schema/policy checks (default H)."
+    },
+    "expect": {
+      "$ref": "#/$defs/expect"
+    }
+  },
+  "$defs": {
+    "expect": {
+      "type": "object",
+      "additionalProperties": false,
+      "dependentSchemas": {
+        "events": {
+          "propertyNames": {"const": "events"},
+          "description": "For result 'events', per-index expectations go inside the events list; sibling keys next to 'events' are silently ignored by the harness, so the lint forbids them."
+        }
+      },
+      "properties": {
+        "event_type": {
+          "type": "string",
+          "description": "Exact event.event_type match."
+        },
+        "event_subtype": {
+          "type": "string",
+          "description": "Exact event.event_subtype match."
+        },
+        "source_producer": {
+          "type": "string",
+          "description": "Exact source.producer match."
+        },
+        "required_paths": {
+          "type": "array",
+          "items": {"type": "string"},
+          "description": "Dotted paths that must resolve on the output event."
+        },
+        "forbidden_paths": {
+          "type": "array",
+          "items": {"type": "string"},
+          "description": "Dotted paths that must NOT resolve on the output event."
+        },
+        "expected_values": {
+          "type": "object",
+          "description": "Dotted path -> exact value pins. Numeric tolerance 1e-6; booleans never match non-booleans; a missing path is its own failure."
+        },
+        "utc_z_paths": {
+          "type": "array",
+          "items": {"type": "string"},
+          "description": "Paths that must be UTC timestamps with trailing Z (default [\"event.ts\"])."
+        },
+        "require_lineage_transform": {
+          "type": "boolean",
+          "description": "Default true for non-SYSTEM events; set false for original observations that legitimately omit lineage."
+        },
+        "lineage_transform_prefix": {
+          "type": "string",
+          "description": "Required prefix for lineage.transform (for example \"promote:\")."
+        },
+        "allow_degraded_timing": {
+          "type": "boolean",
+          "description": "Default false: an UNSYNCED timing fallback fails unless explicitly allowed."
+        },
+        "requires_external_promotion": {
+          "type": "boolean",
+          "description": "Assert payload.extensions.external_promotion is present."
+        },
+        "external_promotion_required_keys": {
+          "type": "array",
+          "items": {"type": "string"},
+          "description": "Keys that must be present inside external_promotion."
+        },
+        "events": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/expect"},
+          "description": "For result \"events\": per-index expectation objects."
+        }
+      }
+    }
+  }
+}

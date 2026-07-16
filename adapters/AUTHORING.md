@@ -65,6 +65,11 @@ Worked full chains to pattern-match against:
 `OBSERVATION_EVENT -> INFERENCE_EVENT -> FUSION_EVENT -> STATE_EVENT` with
 genuine chained `lineage.based_on` ids.
 
+Worked exercise: `adapters/ingress/example-vendor/` is a complete small
+adapter implementing the `adapters/mapping-packs/example-vendor-pack`
+declarative mapping to this guide's requirements — build your own against the
+same pack first if you want a known-good diff.
+
 ## 3. The Non-Negotiables
 
 1. **Never fabricate lineage** (contract 4.8). An original observation with no
@@ -143,10 +148,20 @@ Non-Python adapters: steps 2-3 validate your emitted JSONL regardless of
 implementation language; the harness (step 4) requires a Python-importable
 callable, so wrap or skip it and lean on steps 2-3 plus your own tests.
 
+One-command wrapper: `python tools/check_adapter.py --events <out>.jsonl
+--fixtures <fixtures>.jsonl [--kernel-gate]` runs the tool-based steps 2-4
+for you (and prints each underlying command as it goes). Your colocated
+pytest (step 1) still runs separately, and the kernel gate (step 5) runs
+only with `--kernel-gate`. The governed validators remain the authority.
+
 ## 6. Harness Fixture Format
 
 `tools/validate_adapter_conformance.py` fixtures are JSONL, one object per
-line (worked examples: `conformance/adapter-harness/must-pass.jsonl`):
+line (worked examples: `conformance/adapter-harness/must-pass.jsonl`). An
+advisory JSON Schema for fixture lines lives at
+`conformance/adapter-harness/fixture.schema.json`; `tools/check_adapter.py
+--fixtures` lints against it before running the harness, catching key typos
+early:
 
 | Key | Meaning |
 | --- | --- |
