@@ -1,6 +1,40 @@
 # Changelog
 
 ## [Unreleased]
+- Onboarding batch (docs/advisory + reference; no schema, policy, vocabulary,
+  or validation-behavior change):
+  - README restructured for first contact: What Is/Is Not moved above the
+    release notes, a new "See It Work In Ten Minutes" runnable proof path, a
+    persona-based "Start Here By Role" section, and a new "ZMeta In The
+    Field" section recording that the Production reference adapters are
+    extracted from fielded EO/CV and RF deployments.
+  - New worked exercise `adapters/ingress/example-vendor/`: a complete small
+    ingress adapter implementing the `example-vendor-pack` declarative
+    mapping to the `adapters/AUTHORING.md` requirements — including
+    fail-closed refusal of readings missing the schema's required RF
+    features (`bandwidth_hz` included) and no gateway-owned `profile` stamp
+    — with 12 colocated tests including a structural match against the
+    pack's input/expected fixture pair. Listed in the adapters README table
+    (which also gains the previously missing JREAP row).
+  - New `tools/check_adapter.py`: advisory one-command wrapper for the
+    tool-based steps of the authoring-guide validation ladder (fixture lint,
+    `validate.py --strict`, `check_compat.py`, adapter harness, optional
+    kernel gate); delegates to the governed validators, prints each
+    underlying command, and fails on empty events/fixture input instead of
+    passing vacuously.
+  - New `conformance/adapter-harness/fixture.schema.json`: advisory JSON
+    Schema for harness fixture lines (typo guard; all existing fixtures lint
+    clean).
+  - New GitHub issue templates (adapter authoring friction, semantic
+    ambiguity report, deployment field report) and a PR template carrying
+    the change-class/validation/no-secrets checklist — structured intake for
+    the external-PRs-are-field-telemetry doctrine.
+  - New `docs/README.md` index separating advisory guidance from maintainer
+    process records; completed worklog task sections S0-01 through R1-05
+    archived verbatim to `docs/zmeta_refinement_worklog_archive.md` (active
+    worklog 2.7k -> ~0.5k lines); `RELEASE_CHECKLIST.md` gains standing
+    doc-currency and retention-pass items so current-facing docs re-baseline
+    at every release.
 - Adapter authoring guide (docs/advisory): new `adapters/AUTHORING.md` — a
   single consolidated entry point for humans and AI agents building a new
   adapter against a pinned release (orientation, input floor, layer choice,

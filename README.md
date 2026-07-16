@@ -4,6 +4,92 @@
 - ZMeta is a transport-agnostic, event-based metadata standard for resilient ISR.
 - Designed to survive degraded and denied environments.
 - Separates observation, inference, fusion, state, and command semantics.
+- Adapt a sensor or system to ZMeta once and inherit interoperability with
+  every format ZMeta maps — no N×N point-to-point bridges.
+
+## What ZMeta Is
+- A semantic contract
+- A JSON schema
+- A policy-driven enforcement model
+- A reference gateway and adapters
+
+## What ZMeta Is Not
+- Not a transport
+- Not a C2 system
+- Not a video container
+- Not a replacement for MISB
+
+## See It Work In Ten Minutes
+
+Prereq: Python 3.11+ (no Docker needed for this path).
+
+```
+python -m pip install -r requirements.txt
+
+# terminal 1: reference gateway (schema + policy enforcement)
+python tools/run_gateway.py --profile H
+
+# terminal 2: watch validated output arrive
+python tools/udp_receiver.py --host 127.0.0.1 --port 5556
+
+# terminal 3: replay a real OBSERVATION -> INFERENCE -> FUSION -> STATE chain
+python tools/replay.py --file examples/zmeta-examples-1.0.jsonl --host 127.0.0.1 --port 5555
+```
+
+Then validate events of your own against the locked contract:
+
+```
+python tools/validate.py --file <your-events>.jsonl --profile H --strict
+```
+
+Full walkthrough (Docker gateway, encodings, CoT emission):
+`spec/quickstart.md`.
+
+## Start Here By Role
+
+- **Building an adapter** (your sensor or format -> ZMeta): read
+  `adapters/AUTHORING.md`, then copy the worked exercise in
+  `adapters/ingress/example-vendor/` and the worked chains in
+  `examples/zmeta-examples-1.0.jsonl` (RF) and
+  `examples/zmeta-eo-chain-examples.jsonl` (EO).
+- **Integrating or deploying**: `spec/installation-guide.md` for a
+  step-by-step install, `spec/quickstart.md` for the developer walkthrough,
+  and the Deployment Checklist below for drift-locked production setups.
+- **Evaluating the standard**: `docs/zmeta_professional_overview.md`, then
+  `spec/semantics-contract.md` (normative), `spec/profile-compatibility.md`,
+  and `CONFORMANCE.md`.
+- **Building UIs or consumers**: `spec/field-dictionary.md`; encoding
+  guidance in `spec/compact-binary-mapping.md` and
+  `spec/protobuf-encoding.md`.
+- **Contributing, agents, and maintainers**: `AGENTS.md` and
+  `docs/zmeta_change_governance.md` before changing governed artifacts;
+  `CONTRIBUTING.md` for contribution terms.
+- **Industry reviewers**: `IP_POLICY.md`, `CONFORMANCE.md`, `TRADEMARK.md`,
+  and `docs/zmeta_defensive_publication.md` before relying on compatibility,
+  contribution, or public-sharing claims.
+- **Downstream clone users**: read the downstream clone limits in `AGENTS.md`
+  and `docs/zmeta_change_governance.md` before altering schema, semantics,
+  policy authority, or event vocabulary.
+
+## ZMeta In The Field
+
+The reference stack is extracted from fielded deployments, not designed on
+paper. The ingress adapters marked "Production" in `adapters/README.md` came
+from:
+
+- a hosted EO/CV integration deployment: fixed-camera detections build a full
+  local `OBSERVATION -> INFERENCE -> FUSION -> STATE` chain on the edge,
+  publish only validated `STATE_EVENT`s to a hosted control plane, render on
+  a live operator map, and project to TAK/ATAK as honest CoT through a
+  governed egress path;
+- mobile RF direction-finding deployments: KrakenSDR coherent DoA, Moth
+  RF-over-MAVLink, and SignalHunter PSD-sweep sensors feeding RF
+  `OBSERVATION_EVENT` lines of bearing into downstream fusion.
+
+Deployment reports — what mapped cleanly and what did not — are the
+standard's primary evidence stream (see the promotion evidence bar in
+`spec/extension-registry.md`). Open a deployment field report issue to
+contribute one.
 
 ## Current Release
 
@@ -103,40 +189,11 @@
 - Use `python tools/lint_policy_risk_modes.py` before deployment to catch
   material risk checks configured to `ignore`.
 
-## What ZMeta Is
-- A semantic contract
-- A JSON schema
-- A policy-driven enforcement model
-- A reference gateway and adapters
-
-## What ZMeta Is Not
-- Not a transport
-- Not a C2 system
-- Not a video container
-- Not a replacement for MISB
-
 ## Design Goals
 - Honesty under uncertainty
 - Graceful degradation
 - Operator trust
 - Interoperability across vendors and transports
-
-## Start Here
-- Agents and maintainers: read `AGENTS.md` and
-  `docs/zmeta_change_governance.md` before changing governed artifacts.
-- Downstream integrators using a clone: read the downstream clone limits in
-  `AGENTS.md` and `docs/zmeta_change_governance.md` before altering schema,
-  semantics, policy authority, or event vocabulary.
-- Industry reviewers and contributors: read `IP_POLICY.md`,
-  `CONTRIBUTING.md`, `CONFORMANCE.md`, `TRADEMARK.md`, and
-  `docs/zmeta_defensive_publication.md` before relying on compatibility,
-  contribution, or public-sharing claims.
-- New to ZMeta: read `spec/installation-guide.md` for a full step-by-step install.
-- Developer walkthrough: read `spec/quickstart.md` for runnable examples.
-- Contract and semantics: read `spec/semantics-contract.md`.
-- Profile compatibility matrix: read `spec/profile-compatibility.md`.
-- Field dictionary for UIs: read `spec/field-dictionary.md`.
-- Encoding guidance: read `spec/compact-binary-mapping.md` and `spec/protobuf-encoding.md`.
 
 ## Industry Sharing And IP Posture
 
@@ -161,13 +218,16 @@ governance, not legal advice or a formal standards-body patent policy.
 - `gateway/` Reference gateway implementation and tests.
 - `adapters/` Ingress and egress adapter patterns and templates.
 - `tools/` Utilities for validation and development workflows.
+- `docs/` Advisory guidance plus maintainer process records — see
+  `docs/README.md` for which is which.
 - `AGENTS.md`, `docs/zmeta_change_governance.md` Human and AI agent change
   governance, process limits, documentation requirements, and release workflow.
 
 ## Adapters
 
 Reference adapters show how to translate between ZMeta and external systems.
-See `adapters/README.md` for ingress templates, mapping packs, and egress projections.
+See `adapters/README.md` for ingress templates, mapping packs, and egress
+projections, and `adapters/AUTHORING.md` for the step-by-step authoring guide.
 
 Adapter semantic mapping:
 - Native sensor measurements map to `OBSERVATION_EVENT`.
@@ -193,6 +253,7 @@ need a fixed target:
 
 Runnable examples live in `examples/`:
 - `zmeta-examples-1.0.jsonl`: RF observation, inference, fusion, and state projection.
+- `zmeta-eo-chain-examples.jsonl`: worked EO full chain with genuine chained lineage.
 - `zmeta-profile-L-examples.jsonl`: Profile L state/system/command examples.
 - `zmeta-command-examples.jsonl`: GOTO and TASK_ACK lifecycle.
 - `zmeta-v1.1-examples.jsonl`: SENSOR_STATUS, PLATFORM_STATUS, data_ref/data_refs,
@@ -212,6 +273,7 @@ python tools/udp_sender.py --file examples/zmeta-command-examples.jsonl
 python tools/replay.py --file examples/zmeta-command-examples.jsonl --delay-ms 200
 python tools/check_compat.py legacy-events.jsonl --target v1.1.12
 python tools/validate.py --file examples/zmeta-command-examples.jsonl --profile H
+python tools/check_adapter.py --events my-adapter-output.jsonl --fixtures my-fixtures.jsonl
 python tools/validate_conformance.py --strict
 python tools/validate_release_manifest.py --manifest release/zmeta-release-manifest.yaml
 python tools/validate_release_package.py --manifest release/zmeta-release-manifest.yaml --templates-only

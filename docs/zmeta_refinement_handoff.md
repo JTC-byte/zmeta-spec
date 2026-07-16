@@ -2,7 +2,7 @@
 
 Status date: 2026-07-15
 
-This note is the quick resume point for the current ZMeta refinement effort. The full task history and deferred issue register are in `docs/zmeta_refinement_worklog.md`.
+This note is the quick resume point for the current ZMeta refinement effort. Recent session records and the deferred issue register are in `docs/zmeta_refinement_worklog.md`; completed task sections S0-01..R1-05 are archived verbatim in `docs/zmeta_refinement_worklog_archive.md`.
 
 ## Current Position
 
@@ -144,6 +144,19 @@ Current stack status:
     alignment moved current-facing docs, the CI compatibility target, and
     the compatibility CLI test to `v1.1.12`, and D-003 was closed by
     maintainer decision — the deferred issue register is now fully closed.
+- P1-06 (2026-07-15) added the onboarding batch on current `main` (Class A +
+  Class C reference; no governed-artifact change): README first-contact
+  restructure (ten-minute proof, Start Here By Role, ZMeta In The Field),
+  the `adapters/ingress/example-vendor/` worked exercise, the
+  `tools/check_adapter.py` one-command ladder wrapper plus advisory harness
+  fixture schema, GitHub issue/PR templates, the `docs/README.md`
+  guidance-vs-process index, worklog retention (S0-01..R1-05 archived to
+  `docs/zmeta_refinement_worklog_archive.md`), and standing RELEASE_CHECKLIST
+  doc-currency/retention items. Maintainer decisions deferred: naming the
+  fielded deployments in ZMeta In The Field; the MAVLink template-file
+  rename; RF golden sample pairs (need sanitized field captures); the
+  physical docs/process/ move; a mechanical conformance-claim generator.
+  Details in the worklog Current Resume Note.
 - P1-05 (2026-07-15) added adapter-author onboarding consolidation on current
   `main` (Class A; no schema, policy, vocabulary, or validation-behavior
   change): `adapters/AUTHORING.md` as the single consolidated authoring entry
@@ -297,7 +310,8 @@ Current release target:
 | `release/VALIDATION_REPORT_v1.1.12.md` | Prepared v1.1.12 validation report (publication pending). |
 | `release/SHA256SUMS_v1.1.12.txt` | Prepared v1.1.12 checksum manifest for standard release assets (publication pending). |
 | `tools/lint_policy_risk_modes.py` | Policy lint for unsafe `ignore` settings on material risk. |
-| `docs/zmeta_refinement_worklog.md` | Running worklog, completed work items, pending work items, and deferred issue register. |
+| `docs/zmeta_refinement_worklog.md` | Running worklog: Current Resume Note (recent sessions), pending work items, and the deferred issue register. |
+| `docs/zmeta_refinement_worklog_archive.md` | Completed task sections S0-01..R1-05, archived verbatim per the release-checklist retention pass. |
 
 ## Completed Recently
 
@@ -647,6 +661,24 @@ entries):
    - Track lifecycle extensions.
    - Coalition export and cross-domain guard metadata.
    - Compute status and degraded runtime behavior.
+
+6. **P1-06 deferred maintainer decisions (recorded 2026-07-15; queued so
+   they do not age out of prose)**
+   - Name and link the fielded deployments in the README "ZMeta In The
+     Field" section, or keep it generic (disclosure/positioning call).
+   - RF golden sample pairs: sanitized real captures (Kraken DOA CSV window,
+     Moth serial lines, small SignalHunter PSD `.bin`) plus expected ZMeta
+     output as `samples/` input->expected pairs for the RF adapters —
+     requires maintainer-supplied sanitized field data.
+   - `mavlink_to_zmeta_template.py` rename to match its Production status —
+     Class B follow-up (governed `must-pass.jsonl` + `conformance_classes`
+     references + release-manifest regeneration).
+   - Physical `docs/process/` move for the dated s1_*/r1_* records —
+     optional; blocked-ish on 5 governed references in
+     `conformance/conformance_classes.yaml`; the `docs/README.md` index
+     covers the need for now.
+   - Mechanical conformance-claim generator (`tools/make_claim.py`) —
+     touches claim governance; follow-up if wanted.
 
 ## Guardrails for Next Prompt
 
