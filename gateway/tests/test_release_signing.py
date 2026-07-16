@@ -70,3 +70,32 @@ def test_gpg_dry_run_prints_sign_commands(release_tmp_dir, capsys):
     assert "--yes --armor --detach-sign" in out
     assert "--local-user ABC123" in out
     assert "artifact.zip.asc" in out
+
+
+def test_write_checksums_builds_missing_package_zip(release_tmp_dir):
+    version = "v9.9.9"
+    _write_artifacts(release_tmp_dir, version)
+    package_zip = release_tmp_dir / f"zmeta-release-package-{version}.zip"
+    package_zip.unlink()
+    package_dir = release_tmp_dir / f"package-{version}"
+    package_dir.mkdir()
+    (package_dir / "release-package.json").write_text("{}\n", encoding="utf-8")
+
+    signing.write_checksums(release_tmp_dir, version)
+
+    assert package_zip.is_file()
+    assert signing.verify_checksums(release_tmp_dir, version) == []
+
+
+def test_write_checksums_never_overwrites_existing_package_zip(release_tmp_dir):
+    version = "v9.9.9"
+    _write_artifacts(release_tmp_dir, version)
+    package_zip = release_tmp_dir / f"zmeta-release-package-{version}.zip"
+    original = package_zip.read_bytes()
+    package_dir = release_tmp_dir / f"package-{version}"
+    package_dir.mkdir()
+    (package_dir / "release-package.json").write_text("{}\n", encoding="utf-8")
+
+    signing.write_checksums(release_tmp_dir, version)
+
+    assert package_zip.read_bytes() == original

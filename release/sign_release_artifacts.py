@@ -11,7 +11,7 @@ import subprocess
 from pathlib import Path
 
 
-VERSION = "v1.1.12"
+VERSION = "v1.1.13"
 
 
 def _release_dir() -> Path:
@@ -52,7 +52,25 @@ def _existing_artifacts(release_dir: Path, version: str) -> list[Path]:
     return artifacts
 
 
+def _ensure_package_zip(release_dir: Path, version: str) -> None:
+    """Build zmeta-release-package-<version>.zip from package-<version>/ when absent.
+
+    tools/build_release_package.py (governed) writes the package directory
+    but no archive, while the zip is a required checksum/release asset.
+    Building it here at checksum time closes that gap without touching the
+    governed builder. An existing zip is never overwritten, so a published
+    artifact cannot be silently rebuilt.
+    """
+    zip_path = release_dir / f"zmeta-release-package-{version}.zip"
+    package_dir = release_dir / f"package-{version}"
+    if zip_path.is_file() or not package_dir.is_dir():
+        return
+    shutil.make_archive(str(zip_path.with_suffix("")), "zip", root_dir=package_dir)
+    print(f"built {zip_path.name} from {package_dir.name}/")
+
+
 def write_checksums(release_dir: Path, version: str) -> Path:
+    _ensure_package_zip(release_dir, version)
     artifacts = _existing_artifacts(release_dir, version)
     checksum_path = release_dir / f"SHA256SUMS_{version}.txt"
     lines = [f"{_sha256(path)}  {path.name}" for path in artifacts]

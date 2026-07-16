@@ -1,6 +1,19 @@
 # Changelog
 
 ## [Unreleased]
+- Intake funnel completed (maintainer decision): blank GitHub issues are
+  disabled and a fourth minimal template, "General question or report"
+  (labeled `question`), catches everything the three structured templates
+  don't fit — all intake now arrives labeled.
+- Release-flow reconciliation from the v1.1.13 retrospective:
+  `release/sign_release_artifacts.py --write-checksums` now builds the
+  missing `zmeta-release-package-<version>.zip` from the package directory
+  automatically (never overwriting an existing zip; the governed
+  `tools/build_release_package.py` is untouched), pinned by two new tests;
+  `RELEASE_CHECKLIST.md` documents that behavior, marks the detached-
+  signature items as signed-releases-only with an explicit
+  signing-decision line, and adds the `sign_release_artifacts.py`
+  `VERSION` default to the doc-currency pass.
 
 ## [1.1.13] - 2026-07-16
 - Adapter-harness refusal fixtures (Class B, maintainer-directed — the

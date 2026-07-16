@@ -22,6 +22,11 @@ Use this as the template for each release.
 - [ ] Edge deployment bundle built
 - [ ] Gateway deployment bundle built
 - [ ] Formal release package metadata built in no-signature mode
+      (`tools/build_release_package.py ... --no-signatures --allow-dirty
+      --clean-output` during release prep; the
+      `zmeta-release-package-<version>.zip` asset is built automatically
+      from the package directory by `release/sign_release_artifacts.py
+      --write-checksums` — never by hand)
 - [ ] No private keys, credentials, tokens, or signing secrets are present in release package paths
 - [ ] Release notes updated
 - [ ] Changelog updated
@@ -31,7 +36,8 @@ Use this as the template for each release.
       (README current-release section and integration notes, installation
       guide, tools README examples, CI compatibility target and the
       compatibility CLI test, the release-manifest `release_id`/`release_date` pins in
-      `gateway/tests/test_release_manifest.py`, and `tools/check_compat.py`
+      `gateway/tests/test_release_manifest.py`, the `VERSION` default in
+      `release/sign_release_artifacts.py`, and `tools/check_compat.py`
       `TARGETS` extended with the new release id — `tools/check_adapter.py`
       derives its default compat target from the regenerated release
       manifest, so a manifest bump without a matching `TARGETS` entry breaks
@@ -41,9 +47,13 @@ Use this as the template for each release.
       content pruned
 - [ ] SHA256SUMS generated for release assets
 - [ ] SHA256SUMS verified
-- [ ] Detached signatures generated for SHA256SUMS and release assets
-- [ ] Detached signatures verified
-- [ ] Signing key fingerprint or Sigstore identity documented in release notes
+- [ ] Signing decision recorded: signed release, or checksums-only with the
+      release notes stating that no detached signatures are attached
+- [ ] *(signed releases only)* Detached signatures generated for SHA256SUMS
+      and release assets
+- [ ] *(signed releases only)* Detached signatures verified
+- [ ] *(signed releases only)* Signing key fingerprint or Sigstore identity
+      documented in release notes
 - [ ] Release manifest and release package artifact attached or otherwise published
 - [ ] GitHub Release body includes checksum/signature verification instructions
 - [ ] GitHub CI passes for the release commit

@@ -11,6 +11,14 @@
   evidence bar; check upstream PR #4 for contributor revisions first.
   Scheduled immediately after the maintainer's demo. See the handoff Next
   Work Queue for scope and expected shape.
+- R1-09 follow-up (2026-07-16): intake funnel closed
+  (`blank_issues_enabled: false` + a fourth "General question or report"
+  template labeled `question`) and the two release-flow friction points
+  from the v1.1.13 retrospective reconciled — the package zip is now
+  auto-built at checksum time by `release/sign_release_artifacts.py`
+  (tested both directions: builds when missing, never overwrites), and
+  the checklist marks signature items signed-releases-only with an
+  explicit signing-decision line. Maintainer-directed.
 - R1-09 publication confirmed (2026-07-16): release commit `1117bc6`,
   annotated tag `v1.1.13` pushed, GitHub release live with all eight assets
   and marked Latest, CI green on the release commit (2/2 runs), body
