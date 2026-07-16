@@ -31,11 +31,13 @@ that is otherwise spread across `adapters/README.md`,
 Ingress adapters consume decoded, structured sensor or protocol output:
 detections, DoA solutions, PSD sweeps, decoded telemetry dicts, parsed track
 reports. The DSP, decoder, or inference stage that produces those runs
-upstream of ZMeta. This repository intentionally ships no raw-IQ, SigMF,
-pcap, CoT-XML, MISB 4609, or Link-16 codecs; literal raw IQ support is
-recorded future work. Link raw captures with `payload.data_ref` pointer
-metadata (semantics contract Appendix A) — never carry raw payload data
-in-event.
+upstream of ZMeta. On the ingress side this repository intentionally ships
+no raw-IQ, SigMF, or pcap handling and no CoT-XML, MISB 4609, or Link-16
+decoders — the CoT/KLV/JREAP ingress templates take pre-parsed dicts, and
+literal raw IQ support is recorded future work. (Egress differs:
+`adapters/egress/cot/` is a real CoT v2.0 XML encoder.) Link raw captures
+with `payload.data_ref` pointer metadata (semantics contract Appendix A) —
+never carry raw payload data in-event.
 
 ## 2. Choose The Layer
 

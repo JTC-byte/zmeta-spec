@@ -29,6 +29,13 @@
   `tools/validate_examples.py` (corpus 47 -> 51) and the examples README.
   Validation: new corpus 4/4 strict, full strict examples pass, full kernel
   gate, and full pytest green (results in the handoff).
+  Classification note (maintainer review): the `tools/validate_examples.py`
+  registration edit is a validator change — Class B under the governance
+  taxonomy, not plain Class A — and it grows what CI `--require-all`
+  enforces (47 -> 51). Its Class B requirements (docs, fixture-by-example,
+  full kernel gate, pytest) were met in this same change and the file is not
+  manifest-hashed; future corpus additions should classify as Class B rather
+  than cite this entry as Class A precedent.
 - S1-26 (2026-07-08): prepared v1.1.12 (governance and honesty closeout) on
   current `main` per explicit maintainer direction to work the full
   relock-gap list. Delivered: (1) promotion evidence bar in
