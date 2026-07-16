@@ -53,6 +53,29 @@
         }
       },
       "properties": {
+        "event_type": {"$ref": "#/$defs/leaf_expect/properties/event_type"},
+        "event_subtype": {"$ref": "#/$defs/leaf_expect/properties/event_subtype"},
+        "source_producer": {"$ref": "#/$defs/leaf_expect/properties/source_producer"},
+        "required_paths": {"$ref": "#/$defs/leaf_expect/properties/required_paths"},
+        "forbidden_paths": {"$ref": "#/$defs/leaf_expect/properties/forbidden_paths"},
+        "expected_values": {"$ref": "#/$defs/leaf_expect/properties/expected_values"},
+        "utc_z_paths": {"$ref": "#/$defs/leaf_expect/properties/utc_z_paths"},
+        "require_lineage_transform": {"$ref": "#/$defs/leaf_expect/properties/require_lineage_transform"},
+        "lineage_transform_prefix": {"$ref": "#/$defs/leaf_expect/properties/lineage_transform_prefix"},
+        "allow_degraded_timing": {"$ref": "#/$defs/leaf_expect/properties/allow_degraded_timing"},
+        "requires_external_promotion": {"$ref": "#/$defs/leaf_expect/properties/requires_external_promotion"},
+        "external_promotion_required_keys": {"$ref": "#/$defs/leaf_expect/properties/external_promotion_required_keys"},
+        "events": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/leaf_expect"},
+          "description": "For result \"events\": per-index expectation objects. Items are leaf expectations - a nested 'events' inside an item is silently ignored by the harness, so the lint forbids it."
+        }
+      }
+    },
+    "leaf_expect": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
         "event_type": {
           "type": "string",
           "description": "Exact event.event_type match."
@@ -104,11 +127,6 @@
           "type": "array",
           "items": {"type": "string"},
           "description": "Keys that must be present inside external_promotion."
-        },
-        "events": {
-          "type": "array",
-          "items": {"$ref": "#/$defs/expect"},
-          "description": "For result \"events\": per-index expectation objects."
         }
       }
     }

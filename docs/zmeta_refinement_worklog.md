@@ -2,7 +2,7 @@
 
 ## Current Resume Note
 
-- Last updated: 2026-07-15
+- Last updated: 2026-07-16
 - Quick handoff: `docs/zmeta_refinement_handoff.md`
 - Queued next session (maintainer direction, 2026-07-08): build the
   per-concept evidence worksheet for all fourteen experimental v1.1.0
@@ -14,10 +14,12 @@
 - P1-06 AAR (2026-07-16): the maintainer review of PRs #5/#6 doubled as the
   first external red-team pass of the authoring guide, and the findings are
   institutionalized rather than just fixed. Finding: every caught defect's
-  rule already existed in-repo — the documentation was sufficient, the
-  validators caught every schema-checkable issue instantly, and the escapes
-  were prose-only conventions (bbox dialect) plus author-workflow failures,
-  not doc gaps. Actions: the four review-proven failure modes are now
+  rule already existed in-repo — the in-repo normative docs were sufficient
+  (the guide itself had one gap, closed as the section 3 rule below), the
+  validators flagged every schema-checkable issue instantly once the failing
+  input was exercised, and the escapes were prose-only conventions (bbox
+  dialect) plus author-workflow failures. Actions: the four review-proven
+  failure modes are now
   AUTHORING.md §9 agent guidance (primaries-not-summaries; refusal tests per
   required field; guide-as-checklist against your own exemplar; exact
   evidence commands), and the one true doc gap is closed as §3 rule 10

@@ -8,7 +8,8 @@ Audience: a human developer or an AI coding agent building a NEW adapter
 against a pinned ZMeta release. This page consolidates the operational path
 that is otherwise spread across `adapters/README.md`,
 `adapters/ingress/template/README.md`, `conformance/README.md`, and
-`tools/README.md`. It adds no new rules.
+`tools/README.md`. It adds no new rules; section 9 additionally carries
+review-derived authoring lessons.
 
 ## 0. Orient
 

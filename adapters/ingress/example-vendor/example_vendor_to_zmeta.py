@@ -72,7 +72,10 @@ def translate(input_obj, schema_id, *, based_on=None, timing_quality=None):
     semantic information is missing (fail closed; contract 3.4). The RF
     minimum feature set (contract 7.4) makes ``center_freq_hz``,
     ``bandwidth_hz``, and ``power_dbm`` all required — a reading missing any
-    of them is refused, never emitted schema-invalid.
+    of them is refused, never emitted schema-invalid. Refusal covers missing
+    and null required values; other invalid value types (for example a
+    string frequency) are left to schema validation (ladder step 2) by
+    design.
 
     ``based_on`` is caller-supplied real parent event ids. Lineage is never
     fabricated (contract 4.8): with no parents, ``lineage`` is omitted

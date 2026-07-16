@@ -96,7 +96,11 @@ def run_step(label, cmd):
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Run the adapters/AUTHORING.md validation ladder in one command."
+        description=(
+            "Run the tool-based steps of the adapters/AUTHORING.md validation "
+            "ladder in one command (colocated pytest runs separately; the "
+            "kernel gate is opt-in via --kernel-gate)."
+        )
     )
     parser.add_argument(
         "--events",
