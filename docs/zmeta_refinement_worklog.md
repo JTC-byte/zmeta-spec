@@ -4,13 +4,17 @@
 
 - Last updated: 2026-07-16
 - Quick handoff: `docs/zmeta_refinement_handoff.md`
-- Queued next session (maintainer direction, 2026-07-08): build the
-  per-concept evidence worksheet for all fourteen experimental v1.1.0
-  registry concepts and make the full adopt-vs-stay-experimental decision in
-  that single session, applying the `spec/extension-registry.md` promotion
-  evidence bar; check upstream PR #4 for contributor revisions first.
-  Scheduled immediately after the maintainer's demo. See the handoff Next
-  Work Queue for scope and expected shape.
+- Queued next session (maintainer direction, 2026-07-16): full stack
+  audit/review with the R1-09 red-team exercise in mind (apply the AAR
+  lessons as audit lenses), then reassess and reprioritize the backlog
+  with the maintainer — including the v1.1.0 adoption-decision session
+  (still queued, now item 2), the five deferred P1-06 maintainer
+  decisions, refusal-fixture rollout to the other reference adapters,
+  PR #4 status, and signing. See the handoff Next Work Queue.
+- Previously queued (2026-07-08, now queue item 2): the all-fourteen
+  v1.1.0 adoption-decision session — worksheet plus decisions in one
+  session, promotion evidence bar as the standard, check PR #4 for
+  contributor revisions first.
 - R1-09 AAR (2026-07-16), maintainer side — the PR #5/#6 -> v1.1.13
   exchange as a red-team exercise against the standard's own claims,
   agent-guidance docs, and workflows. **What happened:** two

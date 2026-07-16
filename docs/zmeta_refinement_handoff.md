@@ -583,14 +583,30 @@ entries):
 
 ## Next Work Queue
 
-1. **Queued next session: v1.1.0 adoption decision (all fourteen concepts)**
-   - Maintainer direction (2026-07-08): the very next working session in
-     this repository builds the per-concept evidence worksheet (repo-side
-     evidence for all fourteen experimental v1.1.0 registry concepts,
-     field-side evidence supplied by the maintainer) and makes the
-     adopt-vs-stay-experimental decision for every concept in that same
-     session — no prolonging. Scheduled immediately after the maintainer's
-     demo; until then the stack is intentionally quiet.
+1. **Queued next session: full stack audit/review, then backlog
+   reprioritization (maintainer direction, 2026-07-16)**
+   - Run a full audit/review of the stack with the R1-09 red-team exercise
+     in mind (worklog R1-09 AAR entry): apply its lessons as audit lenses —
+     teaching artifacts as the highest-leverage defect surface, prose-only
+     conventions vs machine-pinned enforcement (where else do load-bearing
+     conventions live only in prose?), validation evidence that could
+     fail, and doc-currency/retention state after the v1.1.13 cycle.
+   - Then reassess the backlog with the maintainer and reprioritize: the
+     v1.1.0 adoption-decision session (item 2 below), the five deferred
+     maintainer decisions recorded in the P1-06 handoff bullet
+     (deployment naming, mavlink template rename, RF golden sample pairs,
+     physical docs/process move, mechanical claim generator), the
+     refusal-fixture rollout to the other reference adapters, PR #4
+     watchful-waiting status, and the signing process (targeted for a
+     future release).
+   - Everything below this item is queued behind that reassessment.
+
+2. **Queued: v1.1.0 adoption decision (all fourteen concepts)**
+   - Maintainer direction (2026-07-08): build the per-concept evidence
+     worksheet (repo-side evidence for all fourteen experimental v1.1.0
+     registry concepts, field-side evidence supplied by the maintainer)
+     and make the adopt-vs-stay-experimental decision for every concept in
+     that same session — no prolonging.
    - Evidence standard: the promotion evidence bar in
      `spec/extension-registry.md` (two or more independent implementations
      demonstrating the need plus a documented semantic-contract Section 2.6
