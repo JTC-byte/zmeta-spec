@@ -131,7 +131,8 @@ def parse_args() -> argparse.Namespace:
         help=(
             "Also compare each claim's contract_hash against the release "
             "manifest's recorded semantic_contract_hash (string equality "
-            "against the stored value; never recomputed). Off by default."
+            "against the stored value; never recomputed). Off by default. "
+            "Requires --claims: verifying zero claims is an error."
         ),
     )
     return parser.parse_args()
@@ -609,6 +610,18 @@ def run(
 
     expected_contract_hash: str | None = None
     if verify_contract_hash:
+        if not claim_files:
+            # Empty-input floor: the flag promises a contract-hash cross-check,
+            # and verifying zero claims proves nothing. Refuse instead of
+            # printing claims=0 and exiting clean. (Manifest-only validation
+            # without the flag remains a legitimate exit-0 path.)
+            issues.append(
+                _issue(
+                    "CONFORMANCE_VERIFY_CONTRACT_HASH_NO_CLAIMS",
+                    "--verify-contract-hash requires claims; pass --claims "
+                    "(zero claims discovered - verifying nothing proves nothing)",
+                )
+            )
         release_manifest = Path(release_manifest_path) if release_manifest_path else DEFAULT_RELEASE_MANIFEST
         expected_contract_hash, hash_issues = _manifest_contract_hash(release_manifest)
         issues.extend(hash_issues)

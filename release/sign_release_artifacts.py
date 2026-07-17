@@ -11,11 +11,25 @@ import subprocess
 from pathlib import Path
 
 
-VERSION = "v1.1.13"
+MANIFEST_PATH = Path(__file__).resolve().parent / "zmeta-release-manifest.yaml"
 
 
 def _release_dir() -> Path:
     return Path(__file__).resolve().parent
+
+
+def default_version_tag():
+    """Read the current release id from the release manifest (zmeta-vX -> vX)."""
+    try:
+        import yaml
+
+        manifest = yaml.safe_load(MANIFEST_PATH.read_text(encoding="utf-8"))
+        release_id = str(manifest.get("release_id", ""))
+    except Exception:
+        return None
+    if release_id.startswith("zmeta-"):
+        release_id = release_id[len("zmeta-"):]
+    return release_id or None
 
 
 def _artifact_names(version: str) -> list[str]:
@@ -211,7 +225,11 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Generate SHA256SUMS and detached PGP signatures for release artifacts."
     )
-    parser.add_argument("--version", default=VERSION, help="Release version tag, e.g. v1.1.9.")
+    parser.add_argument(
+        "--version",
+        default=None,
+        help="Release version tag, e.g. v1.1.9 (default: release_id from release/zmeta-release-manifest.yaml).",
+    )
     parser.add_argument("--release-dir", default=str(_release_dir()), help="Directory containing artifacts.")
     parser.add_argument("--write-checksums", action="store_true", help="Rewrite SHA256SUMS_<version>.txt.")
     parser.add_argument("--verify-checksums", action="store_true", help="Verify SHA256SUMS_<version>.txt.")
@@ -231,7 +249,11 @@ def parse_args() -> argparse.Namespace:
 def main() -> int:
     args = parse_args()
     release_dir = Path(args.release_dir).resolve()
-    version = args.version
+    version = args.version or default_version_tag()
+    if not version:
+        raise SystemExit(
+            "could not derive release version from release/zmeta-release-manifest.yaml; pass --version"
+        )
 
     if args.write_checksums:
         checksum_path = write_checksums(release_dir, version)

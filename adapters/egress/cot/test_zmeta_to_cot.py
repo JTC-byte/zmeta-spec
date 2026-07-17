@@ -337,6 +337,106 @@ def test_zmeta_to_cot_default_path_maps_error_ellipse():
     assert point.attrib["le"] == "17.0"
 
 
+def test_zmeta_to_cot_absent_altitude_emits_unknown_convention():
+    """Bare lat/lon: hae must be the CoT unknown-value convention, never a
+    fabricated 0 m altitude claim."""
+    event = {
+        "event": {
+            "event_type": "STATE_EVENT",
+            "ts": "2025-01-17T14:30:05Z",
+        },
+        "payload": {
+            "track_id": "track-008",
+            "geo": {"lat": 34.0, "lon": -118.0},
+            "valid_for_ms": 5000,
+        },
+    }
+    xml_text = zmeta_to_cot_module.zmeta_to_cot(event, cot_config=_TEST_CONFIG)
+    assert xml_text is not None
+    root = ET.fromstring(xml_text)
+    point = root.find("point")
+    assert point.attrib["hae"] == "9999999.0"
+
+
+def test_zmeta_to_cot_explicit_zero_altitude_stays_zero():
+    """A legitimate alt_m of 0.0 is a real claim and must pass through."""
+    event = {
+        "event": {
+            "event_type": "STATE_EVENT",
+            "ts": "2025-01-17T14:30:05Z",
+        },
+        "payload": {
+            "track_id": "track-009",
+            "geo": {"lat": 34.0, "lon": -118.0, "alt_m": 0.0},
+            "valid_for_ms": 5000,
+        },
+    }
+    xml_text = zmeta_to_cot_module.zmeta_to_cot(event, cot_config=_TEST_CONFIG)
+    assert xml_text is not None
+    root = ET.fromstring(xml_text)
+    point = root.find("point")
+    assert point.attrib["hae"] == "0.0"
+
+
+def test_zmeta_to_cot_real_altitude_maps_through():
+    event = {
+        "event": {
+            "event_type": "STATE_EVENT",
+            "ts": "2025-01-17T14:30:05Z",
+        },
+        "payload": {
+            "track_id": "track-010",
+            "geo": {"lat": 34.0, "lon": -118.0, "alt_m": 1500.5},
+            "valid_for_ms": 5000,
+        },
+    }
+    xml_text = zmeta_to_cot_module.zmeta_to_cot(event, cot_config=_TEST_CONFIG)
+    assert xml_text is not None
+    root = ET.fromstring(xml_text)
+    point = root.find("point")
+    assert point.attrib["hae"] == "1500.5"
+
+
+def test_zmeta_to_cot_missing_ts_refuses_without_wall_clock():
+    """Fail closed: no event.ts and wall-clock mode off must refuse (None),
+    never silently stamp the current time (freshness fabrication)."""
+    event = {
+        "event": {
+            "event_type": "STATE_EVENT",
+            "event_subtype": "TRACK_STATE",
+        },
+        "payload": {
+            "track_id": "track-011",
+            "geo": {"lat": 34.0, "lon": -118.0, "alt_m": 100.0},
+            "valid_for_ms": 5000,
+        },
+    }
+    assert zmeta_to_cot_module.zmeta_to_cot(event) is None
+    assert zmeta_to_cot_module.zmeta_to_cot(event, cot_config=_TEST_CONFIG) is None
+
+
+def test_zmeta_to_cot_missing_ts_allowed_in_wall_clock_mode():
+    """Wall-clock replay mode may stamp now - that is its documented purpose."""
+    event = {
+        "event": {
+            "event_type": "STATE_EVENT",
+            "event_subtype": "TRACK_STATE",
+        },
+        "payload": {
+            "track_id": "track-012",
+            "geo": {"lat": 34.0, "lon": -118.0, "alt_m": 100.0},
+            "valid_for_ms": 5000,
+        },
+    }
+    before = datetime.now(timezone.utc)
+    xml_text = zmeta_to_cot_module.zmeta_to_cot(event, cot_config={"use_wall_clock": True})
+    after = datetime.now(timezone.utc)
+    assert xml_text is not None
+    root = ET.fromstring(xml_text)
+    stamped = datetime.fromisoformat(root.attrib["time"][:-1] + "+00:00")
+    assert before <= stamped <= after
+
+
 def test_zmeta_to_cot_wall_clock_opt_in():
     """use_wall_clock=True is the explicit replay-display mode: CoT time is
     re-stamped to the current wall clock, not the event timestamp."""

@@ -178,6 +178,8 @@ clarifications (C3 §2.1, C7 §5.7 — permitted under §2.1's own clarification
 allowance, Class B handling with manifest regeneration); (5) the doc-currency
 and retention sweep (all items above, plus C5/C6 documentation residues);
 (6) governed-artifact regeneration (release manifest + conformance claims)
-and full-gate revalidation. The v1.1.0 adoption-decision session, the five
-deferred P1-06 maintainer decisions, PR #4 status, and release signing remain
-queued behind the fix pass and the follow-up audit.
+and full-gate revalidation. C2 (track-lifecycle) stands as the documented
+governed deferral (the s1-01 do-not-add decision plus the roadmap promotion
+tripwires) and takes no fix-pass action. The v1.1.0 adoption-decision
+session, the five deferred P1-06 maintainer decisions, PR #4 status, and
+release signing remain queued behind the fix pass and the follow-up audit.

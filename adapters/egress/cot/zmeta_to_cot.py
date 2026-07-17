@@ -6,7 +6,8 @@ Converts ZMeta STATE_EVENT track states into CoT v2.0 XML for TAK
 Supports:
   - CE/LE from geo.error_ellipse_m; when the event carries no uncertainty,
     CoT's documented unknown-value convention (9999999.0) is emitted rather
-    than an invented accuracy figure
+    than an invented accuracy figure. Absent geo.alt_m gets the same
+    treatment for point@hae - never a fabricated 0 m altitude claim
   - Heading/speed track element (directional arrows on TAK map)
   - PrecisionLocation for MIL-STD-2525 elliptical uncertainty
   - ATAK team coloring (__group element) for friendly platforms
@@ -16,7 +17,9 @@ Supports:
   - Custom icon support for drone platforms
   - Event-authoritative timestamps by default; explicit opt-in wall-clock
     replay-display mode (use_wall_clock=True) re-stamps CoT time to now so
-    TAK shows fresh markers during historical replay (contract section 9.5)
+    TAK shows fresh markers during historical replay (contract section 9.5).
+    An event with no ts is refused (returns None) unless wall-clock mode is
+    on - the adapter never fabricates freshness for malformed input
 
 Source: Z-ISR zisr/transport/publisher.py (_builtin_zmeta_to_cot)
 """
@@ -86,10 +89,14 @@ def zmeta_to_cot(event, cot_config=None):
                 markers during replay of historical data. Off by default:
                 event time is authoritative, and replayed data must not
                 render as live unless the operator explicitly selected
-                replay mode (contract section 9.5).
+                replay mode (contract section 9.5). With the mode off, an
+                event missing event.ts is refused (returns None) instead of
+                being silently stamped with the current time.
 
     Returns:
-        CoT XML string, or None if the event cannot be converted.
+        CoT XML string, or None if the event cannot be converted (wrong
+        event type, prohibited raw payload fields, missing geo/track_id, or
+        missing event.ts outside wall-clock mode).
     """
     if event.get("event", {}).get("event_type") != "STATE_EVENT":
         return None
@@ -116,9 +123,13 @@ def zmeta_to_cot(event, cot_config=None):
     else:
         ts = event.get("event", {}).get("ts")
         if not ts:
-            time_obj = datetime.now(timezone.utc)
-        else:
-            time_obj = _parse_utc(ts)
+            # Fail closed: an event with no ts carries no time claim, and
+            # stamping the current wall clock would fabricate freshness for
+            # malformed input (contract section 9.5). The explicit
+            # use_wall_clock replay-display mode is the only sanctioned
+            # now-stamping path.
+            return None
+        time_obj = _parse_utc(ts)
 
     default_valid_for_ms = cot_config.get("default_valid_for_ms", 300000)
     valid_for_ms = payload.get("valid_for_ms", default_valid_for_ms)
@@ -131,7 +142,11 @@ def zmeta_to_cot(event, cot_config=None):
     cot_type = payload.get("class", default_type)
     lat = geo["lat"]
     lon = geo["lon"]
-    hae = geo.get("alt_m", 0)
+    # Absent altitude is emitted as CoT's unknown-value convention (the same
+    # treatment ce/le get below), never rendered as a concrete 0 m claim.
+    # A legitimate alt_m of 0.0 passes through unchanged.
+    alt_m = geo.get("alt_m")
+    hae = COT_UNKNOWN_ACCURACY if alt_m is None else alt_m
 
     # Circular error / linear error resolution:
     # 1. geo.error_ellipse_m semi_major/semi_minor — the only schema-valid

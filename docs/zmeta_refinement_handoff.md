@@ -114,8 +114,8 @@ Current stack status:
     `tools/validate_future_roadmap.py` (registry cross-references, tripwire
     coverage, status-leakage check) with focused tests; new
     `future_branch_roadmap` release-manifest group (groups=19,
-    artifacts=70). D-003's closure condition is met; closure recommended,
-    maintainer decision pending.
+    artifacts=70). D-003's closure condition was met; closure was
+    recommended and the maintainer closed D-003 at the v1.1.12 cut.
   - Lineage honesty (runtime/reference): kraken/moth/signalhunter/klv/
     mavlink/eo-cv no longer fabricate `lineage.based_on` with random
     UUIDv7s. Observation/system outputs omit lineage unless callers pass

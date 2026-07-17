@@ -19,7 +19,7 @@ fields such as `features`, `raw_features`, `modality`, `data_ref`, or
 | Hostile labels | Persistent `<labels_on>` so CE readout is always visible |
 | Callsign fallback | Hostile emitters show "RF Emitter" / "Detection" instead of raw track IDs |
 | Remarks | Source summary, confidence (whenever the event carries one), and error ellipse details |
-| Wall-clock mode | Opt-in replay-display mode (`use_wall_clock: True`) re-stamps CoT timestamps to now; off by default — event time is authoritative |
+| Wall-clock mode | Opt-in replay-display mode (`use_wall_clock: True`) re-stamps CoT timestamps to now; off by default — event time is authoritative, and an event missing `event.ts` is refused (`None`) outside this mode |
 | Custom icons | Quadcopter icon for drone/sensor platforms (`a-f-A-M-F-Q`) |
 
 ### Mapping
@@ -28,7 +28,7 @@ fields such as `features`, `raw_features`, `modality`, `data_ref`, or
 |-------------|-----------|-------|
 | `payload.track_id` | `uid` | |
 | `payload.class` | `type` | Falls back to `a-u-G` |
-| `payload.geo.lat/lon/alt_m` | `point lat/lon/hae` | |
+| `payload.geo.lat/lon/alt_m` | `point lat/lon/hae` | Absent `alt_m` → `hae="9999999.0"` (CoT unknown-value convention — never a fabricated 0 m claim); a real `alt_m` of `0.0` passes through as `0.0` |
 | `payload.geo.error_ellipse_m` | `point ce/le` + `precisionlocation` | `semi_major` → `ce`, `semi_minor` → `le`; absent → `9999999.0` (CoT unknown-value convention) |
 | `payload.valid_for_ms` | `stale` | `time + valid_for_ms` |
 | `payload.heading_deg` | `track course` | Frame-preserving: both are degrees true north (see below) |
@@ -77,10 +77,14 @@ everywhere else.
 
 **Timestamps.** By default CoT `time`/`start` come from the event's `ts` —
 event time is authoritative, and replayed or stale data must not render as
-live (semantics contract section 9.5). `use_wall_clock: True` is an explicit
-replay-display mode for operators who have deliberately selected replay and
-want TAK to show fresh markers; it re-stamps the CoT timestamps to the
-current time. It is off by default.
+live (semantics contract section 9.5). An event with no `event.ts` is
+refused (the adapter returns `None`) rather than silently stamped with the
+current time — fabricating freshness for malformed input would launder it.
+`use_wall_clock: True` is an explicit replay-display mode for operators who
+have deliberately selected replay and want TAK to show fresh markers; it
+re-stamps the CoT timestamps to the current time (including for events with
+no `ts`, since now-stamping is that mode's documented purpose). It is off by
+default.
 
 ### Usage
 

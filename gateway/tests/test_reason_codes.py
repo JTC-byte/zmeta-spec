@@ -69,6 +69,16 @@ class ReasonCodeTest(unittest.TestCase):
         "PLATFORM_STATUS_POWER_MISSING",
     }
 
+    # Codes in policy/violation-codes.yaml that are legitimately NOT
+    # gateway-emittable SCHEMA_VIOLATION diagnostics and are therefore
+    # excluded from the inverse-coverage check below. Currently empty:
+    # every code in the governed diagnostic vocabulary is emitted by the
+    # gateway (build_violation_event / build_warning_event), and
+    # harness/tool-only codes (CONFORMANCE_*, RELEASE_PACKAGE_*, ...) live
+    # in their own tools, not in violation-codes.yaml. Add a code here only
+    # with a comment explaining why the gateway can never emit it.
+    NON_GATEWAY_DIAGNOSTIC_CODES = frozenset()
+
     @classmethod
     def setUpClass(cls):
         cls.validator = validators.load_schema(ROOT / "schema" / "zmeta-event.schema.json")
@@ -109,6 +119,48 @@ class ReasonCodeTest(unittest.TestCase):
 
                 ok, violations = validators.validate_semantics(
                     event, self.policy["semantics"], self.severity_map
+                )
+                self.assertTrue(ok, violations)
+                self.assertEqual([], violations)
+
+    def test_every_governed_violation_code_is_emittable_as_diagnostic(self):
+        """Inverse coverage: policy/violation-codes.yaml -> schemas/semantics.
+
+        The suite above proves every policy-allowed code validates; this test
+        proves the other direction - every code in the governed diagnostic
+        vocabulary (policy/violation-codes.yaml) is present in
+        schema_violation_allowed_reason_codes and validates as a
+        SCHEMA_VIOLATION diagnostic, so no warn/fail code can be added to the
+        vocabulary whose own diagnostic event would be destroyed by outgoing
+        validation (the GEO_ZERO_FILL_SUSPECTED regression class).
+        """
+        governed_codes = set(self.severity_map) - self.NON_GATEWAY_DIAGNOSTIC_CODES
+        self.assertTrue(governed_codes, "governed vocabulary must not be empty")
+        allowed = set(self.schema_violation_codes)
+
+        for code in sorted(governed_codes):
+            with self.subTest(code=code):
+                self.assertIn(
+                    code,
+                    allowed,
+                    f"{code} is in policy/violation-codes.yaml but missing from "
+                    "schema_violation_allowed_reason_codes (policy/semantics.yaml)",
+                )
+
+                event = schema_violation_event(code, version="1.1.0")
+                self.assert_schema_valid(event)
+                ok, violations = validators.validate_semantics(
+                    event, self.policy["semantics"], self.severity_map
+                )
+                self.assertTrue(ok, violations)
+                self.assertEqual([], violations)
+
+                if code in self.V1_1_ONLY_SCHEMA_VIOLATION_CODES:
+                    continue
+                event_v10 = schema_violation_event(code, version="1.0")
+                self.assert_schema_valid(event_v10)
+                ok, violations = validators.validate_semantics(
+                    event_v10, self.policy["semantics"], self.severity_map
                 )
                 self.assertTrue(ok, violations)
                 self.assertEqual([], violations)

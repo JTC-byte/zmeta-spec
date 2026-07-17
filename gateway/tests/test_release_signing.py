@@ -5,6 +5,7 @@ import uuid
 from pathlib import Path
 
 import pytest
+import yaml
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -40,6 +41,30 @@ def release_tmp_dir():
 def _write_artifacts(release_dir, version):
     for name in signing._artifact_names(version):
         (release_dir / name).write_text(f"{name}\n", encoding="utf-8")
+
+
+def test_default_version_tag_derives_from_release_manifest():
+    # No stale hardcoded default: the version tag must come from the release
+    # manifest's release_id (zmeta-vX.Y.Z -> vX.Y.Z), same pattern as
+    # release/build_mvp_packages.py default_version_tag().
+    manifest = yaml.safe_load(
+        (ROOT / "release" / "zmeta-release-manifest.yaml").read_text(encoding="utf-8")
+    )
+    release_id = str(manifest["release_id"])
+    assert release_id.startswith("zmeta-v")
+    assert signing.default_version_tag() == release_id[len("zmeta-"):]
+
+
+def test_default_version_tag_strips_zmeta_prefix(release_tmp_dir, monkeypatch):
+    path = release_tmp_dir / "zmeta-release-manifest.yaml"
+    path.write_text("release_id: zmeta-v9.9.9\n", encoding="utf-8")
+    monkeypatch.setattr(signing, "MANIFEST_PATH", path)
+    assert signing.default_version_tag() == "v9.9.9"
+
+
+def test_default_version_tag_missing_manifest_returns_none(release_tmp_dir, monkeypatch):
+    monkeypatch.setattr(signing, "MANIFEST_PATH", release_tmp_dir / "missing.yaml")
+    assert signing.default_version_tag() is None
 
 
 def test_write_and_verify_checksums(release_tmp_dir):

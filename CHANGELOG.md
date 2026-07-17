@@ -161,12 +161,30 @@
   line is version-neutral so it never needs per-release edits; the
   RELEASE_CHECKLIST doc-currency item names the professional overview and
   the release-currency test.
-- Landing in later commits of this pass (queued, maintainer-directed):
-  contract wording clarifications (Class B — section 2.1's affirmative
-  allowance extended to additive diagnostic-vocabulary widening, C3;
-  section 5.7 holdover `est_error_ms` "must not decrease", C7), then
-  release manifest and conformance-claims regeneration with full-gate
-  revalidation.
+- Contract wording clarifications (Class B, maintainer-directed):
+  section 2.1's affirmative allowance extended to additive
+  diagnostic-vocabulary widening (C3); section 5.7 holdover
+  `est_error_ms` "must not decrease" (C7). Release manifest and
+  conformance-claims regenerated with full-gate revalidation (release
+  identity preserved: zmeta-v1.1.13).
+- Post-fix-pass verification audit (six adversarial slices over the
+  completed pass; every original audit probe re-run at HEAD) and its
+  fixes: `GEO_ZERO_FILL_SUSPECTED` added to both schemas' SYSTEM_EVENT
+  `reason_code` enums and the policy allowed list (Class B — the warn
+  code's diagnostic was itself schema-invalid and the gateway destroyed
+  its own zero-fill warning before egress; proven live, now passing),
+  plus an inverse-coverage test asserting every governed violation code
+  is emittable as a schema-valid diagnostic; CoT egress `point@hae` now
+  uses the 9999999.0 unknown convention when `alt_m` is absent (sibling
+  of the fixed ce/le class) and refuses events missing `event.ts`
+  outside wall-clock mode; `sign_release_artifacts.py` default version
+  is manifest-derived (last of the stale-default class);
+  `--verify-contract-hash` with zero claims now fails instead of
+  verifying nothing. Recorded, maintainer decision pending: the
+  regenerated in-repo manifest diverges from the manifest entry pinned
+  in the published `SHA256SUMS_v1.1.13.txt` (published checksums are
+  immutable; resolution is the next release cut or an explicit
+  accepted-divergence record).
 
 ## [1.1.13] - 2026-07-16
 - Adapter-harness refusal fixtures (Class B, maintainer-directed — the

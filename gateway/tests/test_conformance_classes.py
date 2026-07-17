@@ -117,6 +117,57 @@ def test_validator_cli_exits_success_for_manifest_and_claims():
     assert "conformance classes ok" in result.stdout
 
 
+def test_verify_contract_hash_with_zero_claims_exits_nonzero():
+    # --verify-contract-hash promises a claim cross-check; with zero claims
+    # discovered it must refuse (verifying nothing proves nothing), not print
+    # claims=0 and exit clean.
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(VALIDATOR_PATH),
+            "--manifest",
+            str(MANIFEST_PATH),
+            "--verify-contract-hash",
+        ],
+        cwd=ROOT,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    assert result.returncode != 0
+    assert "CONFORMANCE_VERIFY_CONTRACT_HASH_NO_CLAIMS" in result.stdout
+    assert "--verify-contract-hash requires claims; pass --claims" in result.stdout
+
+
+def test_zero_claims_without_verify_flag_still_exits_success():
+    # Manifest-only validation (no claims, flag off) is a legitimate exit-0
+    # path; the kernel gate depends on it.
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(VALIDATOR_PATH),
+            "--manifest",
+            str(MANIFEST_PATH),
+        ],
+        cwd=ROOT,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    assert result.returncode == 0
+    assert "conformance classes ok" in result.stdout
+    assert "claims=0" in result.stdout
+
+
+def test_verify_contract_hash_zero_claims_run_api_returns_nonzero():
+    rc = validate_conformance_classes.run(
+        MANIFEST_PATH,
+        claims=None,
+        verify_contract_hash=True,
+    )
+    assert rc == 1
+
+
 def test_synthetic_future_class_claim_fails():
     claim = load_yaml(CORE_PRODUCER_CLAIM_PATH)
     claim["classes_claimed"].append("ZMETA-AI-PROVENANCE")
