@@ -96,6 +96,12 @@ def _events_from_result(fixture: dict[str, Any], result: Any) -> tuple[list[dict
     if result_kind == "event":
         if isinstance(result, dict):
             return [result], []
+        if result is None:
+            # Honest-refusal register: a single-event callable that returns
+            # None produced zero events. expect.event_count adjudicates the
+            # outcome (0 pins the refusal as PASS; anything else, including
+            # the implicit single-event promise, fails as a count mismatch).
+            return [], []
         return [], [_issue("ADAPTER_RESULT_INVALID", "adapter did not return an event mapping")]
     if result_kind == "events":
         if isinstance(result, list) and all(isinstance(item, dict) for item in result):
@@ -281,14 +287,46 @@ def evaluate_fixture(
     if expected_count is not None:
         if not isinstance(expected_count, int) or isinstance(expected_count, bool) or expected_count < 0:
             return [_issue("ADAPTER_FIXTURE_INVALID", "event_count must be a non-negative integer")]
-        if len(events) != expected_count:
-            all_issues.append(
+
+    expected_events = expect.get("events")
+    if expected_events is not None:
+        if not isinstance(expected_events, list):
+            return [_issue("ADAPTER_FIXTURE_INVALID", "expect.events must be a list of per-index expectation mappings")]
+        if expected_count is None:
+            return [
                 _issue(
-                    "ADAPTER_EVENT_COUNT_MISMATCH",
-                    f"expected {expected_count} event(s), got {len(events)}",
-                    details={"expected": expected_count, "actual": len(events)},
+                    "ADAPTER_FIXTURE_INVALID",
+                    "expect.events requires expect.event_count: pin the exact event count "
+                    "so per-index expectations beyond the returned events cannot be silently skipped",
                 )
+            ]
+
+    if expected_count is None and fixture.get("result", "event") == "event":
+        # A single-event callable implicitly promises exactly one event. An
+        # honest refusal (None -> zero events) must be pinned with
+        # expect.event_count 0; an unpinned missing event is a failure,
+        # never a vacuous pass.
+        expected_count = 1
+
+    if expected_count is not None and len(events) != expected_count:
+        all_issues.append(
+            _issue(
+                "ADAPTER_EVENT_COUNT_MISMATCH",
+                f"expected {expected_count} event(s), got {len(events)}",
+                details={"expected": expected_count, "actual": len(events)},
             )
+        )
+
+    if expected_events is not None and len(expected_events) > len(events):
+        all_issues.append(
+            _issue(
+                "ADAPTER_EXPECTATION_SURPLUS",
+                f"expect.events pins {len(expected_events)} event(s) but adapter returned {len(events)}; "
+                f"expectations at index >= {len(events)} were never evaluated",
+                details={"expected_events": len(expected_events), "returned_events": len(events)},
+            )
+        )
+
     for index, event in enumerate(events):
         indexed_expect = expect
         if isinstance(expect.get("events"), list):
@@ -318,6 +356,10 @@ def run(*, fixtures_path: Path | str | None = None, quiet: bool = False) -> int:
             passed += 1
             if not quiet:
                 print(f"PASS name={label}")
+
+    if passed + failures == 0:
+        print(f"FAIL {path} contains no fixtures - an empty file proves nothing")
+        return 1
 
     if failures:
         print(f"adapter conformance failed total={passed} failures={failures}")

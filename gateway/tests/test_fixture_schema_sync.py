@@ -56,3 +56,35 @@ def test_leaf_expect_does_not_lag_expect():
     result_level_only = {"events", "event_count"}
     missing = (expect_props - result_level_only) - leaf_props
     assert not missing, f"leaf_expect is missing expect keys: {sorted(missing)}"
+
+
+def test_expect_events_requires_event_count_in_lint_schema():
+    # The harness fails a fixture that carries expect.events without
+    # event_count (surplus per-index expectations would otherwise be silently
+    # skipped). The lint schema must agree, or authors hit the failure only at
+    # harness time instead of at lint time.
+    dependent = SCHEMA["$defs"]["expect"]["dependentSchemas"]["events"]
+    assert "event_count" in dependent.get("required", []), (
+        "fixture.schema.json must require event_count alongside expect.events "
+        "to match the harness's surplus-expectation guard"
+    )
+
+
+def test_lint_rejects_expect_events_without_event_count():
+    import jsonschema
+
+    validator = jsonschema.Draft202012Validator(SCHEMA)
+    fixture = {
+        "module": "adapters/ingress/example-vendor/example_vendor_to_zmeta.py",
+        "callable": "translate",
+        "result": "events",
+        "expect": {"events": [{}]},
+    }
+    assert list(validator.iter_errors(fixture)), (
+        "expect.events without event_count must be lint-invalid"
+    )
+
+    fixture["expect"]["event_count"] = 1
+    assert not list(validator.iter_errors(fixture)), (
+        "expect.events with event_count must lint clean"
+    )

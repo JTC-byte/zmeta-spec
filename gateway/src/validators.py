@@ -1608,6 +1608,70 @@ def validate_semantics(event, semantics_policy, severity_map=None):
     event_type = event_block.get("event_type")
     event_subtype = event_block.get("event_subtype")
 
+    warnings = []
+
+    # Contract 6.4 frame provenance (version-agnostic, all event types).
+    # quality.bearing_frame describes the canonical bearing and permits exactly
+    # TRUE_NORTH; quality.heading_source is a free-form string naming the
+    # heading reference. The v1.0 schema leaves quality free-form and the
+    # locked schema cannot change, so this semantic check is the
+    # lock-compatible enforcement route for v1.0 producers (and backstops
+    # v1.1.0, where the schema also pins the enum).
+    quality = payload.get("quality") if isinstance(payload, dict) else None
+    if isinstance(quality, dict):
+        if "bearing_frame" in quality and quality.get("bearing_frame") != "TRUE_NORTH":
+            return False, [
+                _violation(
+                    "INVALID_QUALITY_BEARING_FRAME",
+                    "quality.bearing_frame permits exactly TRUE_NORTH",
+                    details={
+                        "field": "quality.bearing_frame",
+                        "value": quality.get("bearing_frame"),
+                    },
+                    severity_map=severity_map,
+                )
+            ]
+        if "heading_source" in quality and not isinstance(quality.get("heading_source"), str):
+            return False, [
+                _violation(
+                    "INVALID_QUALITY_HEADING_SOURCE",
+                    "quality.heading_source must be a string",
+                    details={
+                        "field": "quality.heading_source",
+                        "value": quality.get("heading_source"),
+                    },
+                    severity_map=severity_map,
+                )
+            ]
+
+    # Contract 6.8 zero-fill heuristic (warn only, never reject). (0, 0) is a
+    # legitimate coordinate (null island), so lat == 0.0 and lon == 0.0 cannot
+    # be proven to be zero-fill - a hard check is impossible and warn severity
+    # is the documented ceiling. The same ambiguity is handled at ingress by
+    # the MAVLink adapter's refuse-to-fabricate rule
+    # (adapters/ingress/mavlink/README.md).
+    if isinstance(payload, dict):
+        geo_candidates = [("payload.geo", payload.get("geo"))]
+        claim = payload.get("claim")
+        if isinstance(claim, dict):
+            geo_candidates.append(("payload.claim.geo", claim.get("geo")))
+        for geo_path, geo in geo_candidates:
+            if (
+                isinstance(geo, dict)
+                and isinstance(geo.get("lat"), (int, float))
+                and isinstance(geo.get("lon"), (int, float))
+                and float(geo["lat"]) == 0.0
+                and float(geo["lon"]) == 0.0
+            ):
+                warnings.append(
+                    _violation(
+                        "GEO_ZERO_FILL_SUSPECTED",
+                        "geo sits at (0, 0); zero-filled position suspected (contract 6.8)",
+                        details={"path": geo_path},
+                        severity_map=severity_map,
+                    )
+                )
+
     if event_type == "OBSERVATION_EVENT":
         forbidden = semantics_policy.get("observation_event", {}).get("payload_must_not_contain", [])
         forbidden_keys = {_normalize_key(key) for key in forbidden}
@@ -1660,10 +1724,20 @@ def validate_semantics(event, semantics_policy, severity_map=None):
         found = _find_forbidden_key(payload, forbidden_keys)
         if found:
             found_key, path = found
+            # Contract 7.5: payload and payload.claim MUST NOT contain
+            # track_id, members, or estimated_state. track_id keeps its
+            # historical code; the fused-state fields (members,
+            # estimated_state) report INFERENCE_HAS_FUSION_STATE.
+            if _normalize_key(found_key) == "track_id":
+                code = "INFERENCE_HAS_TRACK_ID"
+                message = "inference payload contains track identity"
+            else:
+                code = "INFERENCE_HAS_FUSION_STATE"
+                message = "inference payload contains fused-state fields"
             return False, [
                 _violation(
-                    "INFERENCE_HAS_TRACK_ID",
-                    "inference payload contains track identity",
+                    code,
+                    message,
                     details={"field": found_key, "path": "/".join(path)},
                     severity_map=severity_map,
                 )
@@ -1912,7 +1986,7 @@ def validate_semantics(event, semantics_policy, severity_map=None):
                         )
                     ]
 
-    return True, []
+    return True, warnings
 
 
 def validate_lineage(event, lineage_policy, state=None, profile=None, severity_map=None):

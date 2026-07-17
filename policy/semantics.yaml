@@ -9,8 +9,15 @@ semantics:
       - class_name
       - confidence
   inference_event:
+    # Full contract 7.5 fused-state denylist. An INFERENCE claim is a narrow
+    # analytic assertion, not a fused track: payload and payload.claim MUST NOT
+    # contain track_id, members, or estimated_state. Enforced recursively, so
+    # nesting inside claim sub-objects or free-form payload objects cannot
+    # launder fused identity or fused state into an inference.
     payload_must_not_contain:
       - track_id
+      - members
+      - estimated_state
   state_event:
     # Full contract 7.7 raw-artifact denylist. A STATE projection is a fused
     # summary and MUST NOT re-carry raw observation features, measurements,
@@ -34,6 +41,9 @@ semantics:
     # a command must never carry it (in payload, target_geo, geometry, or
     # extensions - the recursive check covers all nesting). Bare `alt` is kept
     # as a defensive superset of the eight names the contract enumerates.
+    # Residual: altitude re-keyed under an arbitrary non-reserved name (e.g.
+    # `z_m`) still passes this name denylist - documented accepted limitation
+    # (release/RELEASE_NOTES_v1.1.10.md "Known Enforcement Limitation").
     payload_must_not_contain:
       - alt
       - alt_m
@@ -79,8 +89,11 @@ semantics:
       - OBSERVATION_HAS_IDENTITY
       - OBSERVATION_HAS_CLASSIFICATION
       - INFERENCE_HAS_TRACK_ID
+      - INFERENCE_HAS_FUSION_STATE
       - STATE_HAS_RAW_FEATURES
       - INVALID_QUALITY_UNITS
+      - INVALID_QUALITY_BEARING_FRAME
+      - INVALID_QUALITY_HEADING_SOURCE
       - INVALID_MODALITY_FEATURES
       - INVALID_GEO_FIELD
       - INVALID_TIME_FORMAT

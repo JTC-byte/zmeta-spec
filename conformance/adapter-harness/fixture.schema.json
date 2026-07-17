@@ -48,15 +48,16 @@
       "additionalProperties": false,
       "dependentSchemas": {
         "events": {
+          "required": ["event_count"],
           "propertyNames": {"enum": ["events", "event_count"]},
-          "description": "For result 'events', per-index expectations go inside the events list; sibling keys next to 'events' are silently ignored by the harness, so the lint forbids them. event_count is the exception: it is a result-level pin the harness checks before per-index dispatch."
+          "description": "For result 'events', per-index expectations go inside the events list; sibling keys next to 'events' are silently ignored by the harness, so the lint forbids them. event_count is the exception: it is a result-level pin the harness checks before per-index dispatch, and it is REQUIRED alongside 'events' so per-index expectations beyond the returned event count cannot be silently skipped (the harness fails such fixtures too)."
         }
       },
       "properties": {
         "event_count": {
           "type": "integer",
           "minimum": 0,
-          "description": "Exact number of events the callable must return. Use with result \"events\"; 0 pins a fail-closed refusal the way other expectations pin emission."
+          "description": "Exact number of events the callable must return. Required alongside expect.events; also the refusal register for BOTH result kinds: 0 pins a fail-closed refusal the way other expectations pin emission - result \"events\" callables must return [], and result \"event\" (single-event) callables register refusal by returning None, which the harness counts as zero events. A single-event fixture without event_count implicitly expects exactly one event."
         },
         "event_type": {"$ref": "#/$defs/leaf_expect/properties/event_type"},
         "event_subtype": {"$ref": "#/$defs/leaf_expect/properties/event_subtype"},

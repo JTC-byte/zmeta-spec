@@ -202,3 +202,79 @@ def test_event_count_invalid_value_is_a_fixture_error():
     issues = validate_adapter_conformance.evaluate_fixture(fixture, schema, policy)
 
     assert issues and issues[0]["code"] == "ADAPTER_FIXTURE_INVALID"
+
+
+def test_none_refusal_under_event_kind_passes_with_event_count_zero():
+    # A single-event callable that refuses fabricated input returns None; the
+    # harness must count that as zero events so event_count 0 pins the refusal.
+    schema = validate_adapter_conformance.validators.load_schema(
+        ROOT / "schema" / "zmeta-event.schema.json"
+    )
+    policy = validate_adapter_conformance.validators.load_policy(ROOT / "policy")
+    fixture = _fixture("kraken-json-refuses-missing-center-freq")
+    assert fixture["result"] == "event"
+
+    assert validate_adapter_conformance.evaluate_fixture(fixture, schema, policy) == []
+
+
+def test_none_refusal_under_event_kind_fails_event_count_one():
+    schema = validate_adapter_conformance.validators.load_schema(
+        ROOT / "schema" / "zmeta-event.schema.json"
+    )
+    policy = validate_adapter_conformance.validators.load_policy(ROOT / "policy")
+    fixture = json.loads(json.dumps(_fixture("kraken-json-refuses-missing-center-freq")))
+    fixture["expect"]["event_count"] = 1
+
+    issues = validate_adapter_conformance.evaluate_fixture(fixture, schema, policy)
+
+    assert issues, "a None return against event_count 1 must fail"
+    assert issues[0]["code"] == "ADAPTER_EVENT_COUNT_MISMATCH"
+
+
+def test_unpinned_none_refusal_under_event_kind_is_a_count_mismatch():
+    # Without an explicit event_count, a single-event fixture implicitly
+    # promises exactly one event: an adapter refusal (None) must fail rather
+    # than let required_paths etc. pass vacuously against zero events.
+    schema = validate_adapter_conformance.validators.load_schema(
+        ROOT / "schema" / "zmeta-event.schema.json"
+    )
+    policy = validate_adapter_conformance.validators.load_policy(ROOT / "policy")
+    fixture = json.loads(json.dumps(_fixture("kraken-json-refuses-missing-center-freq")))
+    fixture["expect"] = {"required_paths": ["payload.modality"], "utc_z_paths": []}
+
+    issues = validate_adapter_conformance.evaluate_fixture(fixture, schema, policy)
+
+    assert issues, "an unpinned None return must not pass vacuously"
+    assert issues[0]["code"] == "ADAPTER_EVENT_COUNT_MISMATCH"
+
+
+def test_surplus_expect_events_entries_are_reported():
+    # The audit probe: expect.events pins 2 events but the adapter returns 1.
+    # Before the guard, index >= 1 expectations were silently never evaluated.
+    schema = validate_adapter_conformance.validators.load_schema(
+        ROOT / "schema" / "zmeta-event.schema.json"
+    )
+    policy = validate_adapter_conformance.validators.load_policy(ROOT / "policy")
+    fixture = json.loads(json.dumps(_fixture("example-vendor-json-rf-observation")))
+    fixture["expect"]["events"] = fixture["expect"]["events"] + [
+        {"required_paths": ["payload.never_checked_before_this_guard"]}
+    ]
+    assert fixture["expect"]["event_count"] == 1
+
+    issues = validate_adapter_conformance.evaluate_fixture(fixture, schema, policy)
+
+    assert [item["code"] for item in issues] == ["ADAPTER_EXPECTATION_SURPLUS"]
+
+
+def test_expect_events_without_event_count_is_a_fixture_error():
+    schema = validate_adapter_conformance.validators.load_schema(
+        ROOT / "schema" / "zmeta-event.schema.json"
+    )
+    policy = validate_adapter_conformance.validators.load_policy(ROOT / "policy")
+    fixture = json.loads(json.dumps(_fixture("example-vendor-json-rf-observation")))
+    del fixture["expect"]["event_count"]
+
+    issues = validate_adapter_conformance.evaluate_fixture(fixture, schema, policy)
+
+    assert issues and issues[0]["code"] == "ADAPTER_FIXTURE_INVALID"
+    assert "event_count" in issues[0]["message"]

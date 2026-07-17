@@ -798,6 +798,15 @@
           "type": "string",
           "enum": ["AVAILABLE", "UNAVAILABLE", "ESTIMATED", "STALE", "CONFIGURED"],
           "description": "Provenance of the geo position. UNAVAILABLE means no GPS fix. CONFIGURED means position injected from config (GPS-denied). ESTIMATED means derived from dead reckoning or other indirect source."
+        },
+        "bearing_frame": {
+          "type": "string",
+          "enum": ["TRUE_NORTH"],
+          "description": "Frame provenance assertion for the canonical bearing. Describes the canonical bearing only and permits exactly TRUE_NORTH; raw sensor-native angles carry their frame in explicitly named payload-scoped fields instead."
+        },
+        "heading_source": {
+          "type": "string",
+          "description": "Heading reference used for true-north compensation, e.g. AHRS_TRUE, GPS_COURSE, FIXED_MOUNT_SURVEYED."
         }
       }
     },
@@ -1709,8 +1718,11 @@
                       "OBSERVATION_HAS_IDENTITY",
                       "OBSERVATION_HAS_CLASSIFICATION",
                       "INFERENCE_HAS_TRACK_ID",
+                      "INFERENCE_HAS_FUSION_STATE",
                       "STATE_HAS_RAW_FEATURES",
                       "INVALID_QUALITY_UNITS",
+                      "INVALID_QUALITY_BEARING_FRAME",
+                      "INVALID_QUALITY_HEADING_SOURCE",
                       "INVALID_MODALITY_FEATURES",
                       "INVALID_GEO_FIELD",
                       "INVALID_TIME_FORMAT",

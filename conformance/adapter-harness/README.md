@@ -31,8 +31,21 @@ the bearing reference-frame rotation (array-relative DOA plus platform heading
 equals canonical true-north `bearing.az_deg`).
 
 A fixture may also pin how many events the callable returns with
-`expect.event_count` (use with `result: "events"`). `event_count: 0` pins a
-fail-closed refusal — the adapter must return nothing for that input — so
-refusal behavior is machine-checked the same way emission is. The
-example-vendor fixtures pin one refusal per schema-required RF input field;
-new adapters should do the same.
+`expect.event_count`. It applies to both result kinds, and it is **required**
+whenever per-index `expect.events` expectations are present: without the
+count, expectation entries at indexes beyond the returned events would be
+silently skipped, so the harness fails the fixture (and the lint schema
+rejects it) rather than pass vacuously. If `expect.events` is longer than the
+returned event list even with a matching count, the harness reports the
+surplus as its own failure.
+
+`event_count` is also the refusal register — `event_count: 0` pins a
+fail-closed refusal for both result kinds. A `result: "events"` callable must
+return `[]`; a `result: "event"` (single-event) callable registers refusal by
+returning `None`, which the harness counts as zero events. A single-event
+fixture without an explicit `event_count` implicitly expects exactly one
+event, so an unpinned `None` return fails as an event-count mismatch instead
+of passing silently. The example-vendor fixtures pin one refusal per
+schema-required RF input field, and the kraken/moth/eo-cv corpora pin
+refusals for their fabrication-refusing callables; new adapters should do the
+same.

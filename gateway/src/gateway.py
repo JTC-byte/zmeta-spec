@@ -65,6 +65,16 @@ DEFAULT_STRIP_OPTIONAL_FIELDS = [
     "payload.data_refs",
 ]
 DEFAULT_STRIP_OPTIONAL_FIELDS_PROFILES = ["L", "M", "H"]
+# Paths that strip_optional_fields must never remove, in whole or in part.
+# Accepted-risk labels and external-promotion evidence exist so downstream
+# consumers can filter by explicit policy decision; silently deleting them
+# turns degraded/externally-promoted data back into clean-looking data
+# (laundering). docs/zmeta_change_governance.md forbids silently stripping
+# accepted-risk labels, use limits, or external-promotion evidence.
+PROTECTED_STRIP_PATH_PREFIXES = [
+    "payload.extensions.risk_adjudication",
+    "payload.extensions.external_promotion",
+]
 DEFAULT_METRICS_INTERVAL_SEC = 30
 DEFAULT_RATE_LIMIT_PER_SEC = 0
 DEFAULT_RATE_LIMIT_PRODUCER_PER_SEC = 0
@@ -672,6 +682,25 @@ def _normalize_field_list(value, fallback):
     return list(fallback)
 
 
+def _reject_protected_strip_paths(fields):
+    # Fail fast at config load: stripping an accepted-risk label or
+    # external-promotion evidence path (or anything nested under one) would
+    # silently launder degraded data (docs/zmeta_change_governance.md
+    # no-silent-strip rule). Comparison is segment-wise so a protected prefix
+    # matches itself and its children, but not lookalike sibling names.
+    for path in fields:
+        parts = [part for part in str(path).split(".") if part]
+        for prefix in PROTECTED_STRIP_PATH_PREFIXES:
+            prefix_parts = prefix.split(".")
+            if parts[: len(prefix_parts)] == prefix_parts:
+                raise ValueError(
+                    f"strip_optional_fields entry '{path}' is protected: "
+                    f"'{prefix}' carries accepted-risk labels or promotion "
+                    "evidence and must not be silently stripped "
+                    "(docs/zmeta_change_governance.md no-laundering rule)"
+                )
+
+
 def _should_apply(profile, enabled, profiles):
     if not enabled:
         return False
@@ -1167,6 +1196,7 @@ def build_settings(root, args, config):
         raise ValueError("input_encoding must be one of json, cbor, compact, proto, auto")
     if settings["output_encoding"] not in OUTPUT_ENCODING_CHOICES:
         raise ValueError("output_encoding must be one of json, cbor, compact, proto")
+    _reject_protected_strip_paths(settings["strip_optional_fields"])
 
     if settings["input_encoding"] in {"cbor", "compact"} or settings["output_encoding"] in {
         "cbor",

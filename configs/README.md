@@ -51,7 +51,14 @@ Notes:
     leave risk labels on accepted events so operators can filter by explicit
     policy decision rather than infer risk from missing data.
   - `strip_optional_fields` and `strip_optional_fields_profiles` remove optional fields
-    for bandwidth efficiency.
+    for bandwidth efficiency. Two path prefixes are protected and rejected at
+    config load: `payload.extensions.risk_adjudication` and
+    `payload.extensions.external_promotion` (including anything nested under
+    them). Accepted-risk labels and promotion evidence exist so downstream
+    consumers can filter by explicit policy decision; stripping them would
+    silently launder degraded or externally-promoted data into clean-looking
+    data, which `docs/zmeta_change_governance.md` forbids (no silent stripping
+    of accepted-risk labels, use limits, or external-promotion evidence).
   - `strict_validation` treats warnings as failures (no forward).
   - `emit_metrics` and `metrics_interval_sec` control periodic gateway metrics logs.
   - `rate_limit_per_sec` drops packets above the configured receive rate.
