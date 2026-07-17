@@ -15,6 +15,115 @@
   resumes. Queued behind that: the v1.1.0 adoption-decision session,
   the five deferred P1-06 maintainer decisions, PR #4 status, and
   signing. See the handoff Next Work Queue.
+- R1-10 AAR (2026-07-17), maintainer side — the full audit -> fix ->
+  verify -> release cycle as an exercise of the R1-09 AAR's own
+  lessons. **What happened:** the R1-10 stack audit ran the R1-09
+  lessons as lenses (teaching artifacts, prose-only vs machine-pinned,
+  falsifiable evidence, doc currency) plus a 2026-07-01 defect
+  regression check — five independent finder passes, then sixteen
+  adversarial verifiers, one per substantive finding, each instructed
+  to refute with live probes. Verified findings: seven MAJOR, four
+  MODERATE, eight MINOR plus the doc-currency list; three initial
+  HIGHs dissolved to MINOR because the governance record documented
+  the deferral. The maintainer directed fix-every-finding then
+  re-audit. The fix pass ran as six dependency-ordered waves
+  (adapters; harness+validators/policy/schema; tools; contract; docs;
+  governed regen) with disjoint file ownership, committed at wave
+  boundaries. A session usage limit killed the doc-sweep agent
+  mid-pass; the relaunched wave completed, and a six-slice
+  verification audit afterward (interrupted-wave item-by-item, live
+  re-probes of every original audit probe, commit-truth verification
+  of every commit message, findings-coverage critic) confirmed the
+  interruption left zero half-done file state. That verification
+  audit also caught two MAJOR residues the fix pass itself introduced
+  — the GEO_ZERO_FILL_SUSPECTED warn code was omitted from the
+  diagnostic enums, so the gateway destroyed its own zero-fill
+  warning diagnostic before egress (proven live); and the manifest
+  regeneration diverged from the published SHA256SUMS_v1.1.13 pin —
+  plus commit-evidence inaccuracies. Residues were fixed (6f47237),
+  the divergence was resolved by the maintainer-directed v1.1.14 cut
+  (f9241c4), run strictly per RELEASE_CHECKLIST with the full battery
+  green. Eleven commits total, b826445..0cb5407. **Why the defects
+  existed:** the v1.1.13 refusal doctrine was machine-pinned on
+  example-vendor only — the same fabrication class survived in every
+  other reference adapter because fix-plus-fixture ran once, not
+  per-surface; honesty invariants stated in the contract but
+  schema-inexpressible had no policy/validator encoding; the checking
+  tools trusted their inputs (empty-file vacuity); and current-facing
+  doc claims lived only in prose. **What held under stress:** the
+  locked kernel (byte-stable minus sanctioned diagnostic enums, all
+  2026-07-01 fielded-safety fixes re-verified by fresh probes);
+  the governance record — three findings dissolved precisely because
+  deferrals were documented where an auditor would look; the manifest
+  hash gates (every governed drift caught, honest regen forced); the
+  release checklist (run literally, its new currency test made an
+  incomplete doc pass impossible — 26 pinned-surface tests gated the
+  release commit); and wave-boundary commits with disjoint ownership,
+  which is why a hard mid-pass interruption cost nothing. **Lessons:**
+  (1) Machine-pinning one exemplar does not propagate — when a
+  doctrine lands, the fix-plus-fixture loop must run per reference
+  surface, and the harness must be able to EXPRESS the doctrine for
+  every callable shape (the None-refusal register gap blocked refusal
+  fixtures for single-event adapters until fixed). (2) Adversarial
+  verification pays twice: it kills false positives AND calibrates
+  severity — unverified severity did not survive in seven of sixteen
+  findings, every change downward or refuted-as-framed: exactly the
+  false-alarm mass verification exists to remove before a maintainer
+  spends attention on it. (3) The fix pass is itself an audit surface:
+  both post-fix MAJORs were introduced BY the fixes (one by the
+  auditor's own wrong adjudication that warn codes are never cited in
+  diagnostics); fix work gets the same falsifiable-evidence discipline
+  as releases, including an end-to-end probe of each new check's
+  emission path, not just its detection path. (4) Recorded evidence
+  must be counted, not estimated: three commit messages carried
+  numeric claims that do not reproduce ("35 tests" vs 30 collected;
+  "917" vs 916 lines; "21 tests" unreproducible) — corrections
+  recorded here per the falsifiable-evidence rule; commit messages are
+  immutable, so the worklog carries the corrections. (5)
+  Forward-looking status claims in committed docs are interruption
+  hazards — the one cutoff artifact was a "queued, landing in later
+  commits" CHANGELOG bullet the later commits never flipped; write
+  past-tense records, or flip forward references in the commit that
+  lands them. (6) Environment honesty: Windows CRLF materialization
+  made container and local gateway startup hash prints diverge on
+  identical content — the manifest's canonicalized hashes are the
+  authoritative gate; a .gitattributes LF pin would retire the whole
+  class (maintainer decision, flagged below). Net enforcement growth
+  across the cycle: pytest 485 -> 570 (subtests 110 -> 172), harness
+  fixtures 15 -> 27, bad-events 23 -> 27, four governed diagnostic
+  codes, and five new test families (release-currency, input floors,
+  inverse coverage, strip guard, zero-fill warn). Nothing in the
+  cycle touched locked-kernel semantics; every fix landed in the
+  outer rings — the design working as claimed, again.
+- Second-glance register from the R1-10 closeout (recorded so nothing
+  lives only in session context; none are defects, all are candidates
+  for the next audit or maintainer decisions): (a) unencoded
+  SHOULD-level conventions found by the audit's conventions lens but
+  below the findings bar — fusion/state confidence exceeding the
+  weakest material input (contract 8.3) has no warn-check;
+  gateway-backfilled `t_publish` carries no gateway-supplied marker
+  (contract 5.2); `lineage.transform` prefix shape
+  (`translate:`/`promote:`) is harness-checked only when a fixture
+  opts in; published historical `SHA256SUMS_*.txt` immutability has
+  no pytest pin. (b) signalhunter residuals (flagged in the fix-pass
+  entry above). (c) a pre-existing worktree at `.tmp/review-pr-2`
+  (branch `review/pr2-frame-fixes`) — outside the canonical tree,
+  keep-or-prune is a maintainer call. (d) `.gitattributes` LF
+  normalization would retire the CRLF materialization class (container
+  hash prints, historical checksum-entry caveat) — governance-adjacent
+  because it changes working-copy bytes for hashed files; escalated,
+  not applied. (e) the worklog resume note is growing and the archive
+  policy covers completed task sections only — a retention-policy
+  extension for superseded resume-note bullets is a maintainer
+  decision. (f) UxS command-loop fielding roadmap (maintainer
+  discussion, 2026-07-17): display loop fieldable now; GCS-originated
+  tasking needs the command-evidence lineage check (commands citing
+  motivating inference/fusion parents, gateway-checked against
+  upstream `use_limits`) plus a SITL end-to-end gate;
+  platform-to-platform retasking additionally needs authenticated
+  transport (deployment-side) and the track-lifecycle promotion (this
+  deployment is the roadmap tripwire evidence); the v1.1.0 adoption
+  session should take the command-loop evidence as input.
 - R1-10 (2026-07-17): **v1.1.14 released** (maintainer-directed,
   agent-executed) — the audit-driven honesty hardening cut, run
   strictly per RELEASE_CHECKLIST. Content: the seven R1-10 fix-pass

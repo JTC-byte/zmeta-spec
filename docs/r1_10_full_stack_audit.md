@@ -183,3 +183,47 @@ governed deferral (the s1-01 do-not-add decision plus the roadmap promotion
 tripwires) and takes no fix-pass action. The v1.1.0 adoption-decision
 session, the five deferred P1-06 maintainer decisions, PR #4 status, and
 release signing remain queued behind the fix pass and the follow-up audit.
+
+## Cycle outcome (2026-07-17)
+
+The disposition above was executed in full and the cycle is closed:
+
+- **Fix pass** (eight commits): `06a576f` reference-adapter honesty
+  (A1-A4, C4, plus two same-class in-pass finds); `cf4e7da` checking
+  machinery + release currency (B2, B3, C1/C6 residues, doc-currency
+  trio); `e07af84` machine-encoded honesty checks + harness refusal
+  register (A5-A7, B1, B4; three governed diagnostic codes added to
+  both schema `reason_code` enums; fixture corpora 15 -> 27 and
+  23 -> 27); `ef08974` doc currency/retention sweep (all doc items,
+  C5, C6/C8 doc residues); `a1bfa1f` contract 2.1/5.7 clarifications
+  (C3, C7); `0da1a5c`/`08e6e67` governed regeneration and closeout.
+- **Post-fix verification audit** (six adversarial slices; every
+  original finding probe re-run at HEAD; commit-truth verification of
+  every commit message; findings-coverage critic): the pass held and
+  the mid-pass session interruption left no half-done state. Two MAJOR
+  residues introduced by the pass itself were found and fixed in
+  `6f47237`: the `GEO_ZERO_FILL_SUSPECTED` diagnostic-coherence gap
+  (the warn code was absent from the diagnostic enums, so the
+  gateway's own zero-fill warning diagnostic was schema-invalid and
+  destroyed before egress — now enum-complete with an inverse-coverage
+  test), and CoT egress residue siblings (`point@hae` unknown
+  convention; missing-`ts` refusal), plus the last stale-default and a
+  zero-claims verification floor. Commit-evidence corrections are
+  recorded in the worklog R1-10 AAR.
+- **Release**: the maintainer-directed v1.1.14 cut (`f9241c4`, tag
+  pushed, GitHub release with eight assets marked Latest, CI green,
+  checksums-only) ran strictly per RELEASE_CHECKLIST with the full
+  validation battery green; `SHA256SUMS_v1.1.14.txt` pins the
+  regenerated manifest, resolving the recorded v1.1.13 manifest-entry
+  divergence.
+- **Residuals beyond the findings tables** (from the audit's
+  conventions lens, below the findings bar but recorded so the next
+  audit inherits them): the worklog "Second-glance register" entry
+  (2026-07-17) carries them — fusion-confidence ceiling (contract 8.3
+  SHOULD, unencoded), gateway-supplied `t_publish` marker (contract
+  5.2 SHOULD), `lineage.transform` prefix-shape check
+  (fixture-opt-in only), historical checksum-file immutability pin,
+  signalhunter replay/sensor-position observations, and the
+  `.gitattributes` line-ending decision.
+- Full cycle narrative and lessons: worklog R1-10 AAR entry
+  (2026-07-17).
