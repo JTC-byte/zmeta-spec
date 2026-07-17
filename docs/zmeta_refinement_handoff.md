@@ -583,23 +583,24 @@ entries):
 
 ## Next Work Queue
 
-1. **Queued next session: full stack audit/review, then backlog
-   reprioritization (maintainer direction, 2026-07-16)**
-   - Run a full audit/review of the stack with the R1-09 red-team exercise
-     in mind (worklog R1-09 AAR entry): apply its lessons as audit lenses —
-     teaching artifacts as the highest-leverage defect surface, prose-only
-     conventions vs machine-pinned enforcement (where else do load-bearing
-     conventions live only in prose?), validation evidence that could
-     fail, and doc-currency/retention state after the v1.1.13 cycle.
-   - Then reassess the backlog with the maintainer and reprioritize: the
-     v1.1.0 adoption-decision session (item 2 below), the five deferred
-     maintainer decisions recorded in the P1-06 handoff bullet
-     (deployment naming, mavlink template rename, RF golden sample pairs,
-     physical docs/process move, mechanical claim generator), the
-     refusal-fixture rollout to the other reference adapters, PR #4
-     watchful-waiting status, and the signing process (targeted for a
-     future release).
-   - Everything below this item is queued behind that reassessment.
+1. **In progress: R1-10 audit fix pass, then follow-up audit (maintainer
+   direction, 2026-07-16)**
+   - The R1-10 full stack audit is COMPLETE — findings record in
+     `docs/r1_10_full_stack_audit.md`, summary in the worklog R1-10
+     entry. Verdict: kernel and governance apparatus held; defect mass
+     is in the outer rings (reference-adapter fabrication class, latent
+     honesty gaps, checking-machinery vacuities, prose-side doc
+     currency).
+   - Maintainer direction: fix every audit finding, then run a
+     follow-up audit to verify the fixes. Fix-pass order (details in
+     the audit doc's disposition section): reference-adapter honesty
+     pass (supersedes and expands the previously queued refusal-fixture
+     rollout item), CoT egress honest defaults, machine-encoding batch,
+     contract wording clarifications (Class B, manifest regen),
+     doc-currency/retention sweep, governed-artifact regeneration +
+     full-gate revalidation.
+   - Everything below this item is queued behind the fix pass and the
+     follow-up audit.
 
 2. **Queued: v1.1.0 adoption decision (all fourteen concepts)**
    - Maintainer direction (2026-07-08): build the per-concept evidence

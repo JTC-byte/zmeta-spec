@@ -4,13 +4,67 @@
 
 - Last updated: 2026-07-16
 - Quick handoff: `docs/zmeta_refinement_handoff.md`
-- Queued next session (maintainer direction, 2026-07-16): full stack
-  audit/review with the R1-09 red-team exercise in mind (apply the AAR
-  lessons as audit lenses), then reassess and reprioritize the backlog
-  with the maintainer — including the v1.1.0 adoption-decision session
-  (still queued, now item 2), the five deferred P1-06 maintainer
-  decisions, refusal-fixture rollout to the other reference adapters,
-  PR #4 status, and signing. See the handoff Next Work Queue.
+- Current work (maintainer direction, 2026-07-16): the R1-10 stack audit
+  is COMPLETE (entry below; full findings record in
+  `docs/r1_10_full_stack_audit.md`). Direction: record the audit, fix
+  every audit finding, then run a follow-up audit to verify the fixes.
+  The v1.1.0 adoption-decision session, the five deferred P1-06
+  maintainer decisions, PR #4 status, and signing remain queued behind
+  the fix pass and re-audit. The previously queued "refusal-fixture
+  rollout to the other reference adapters" item is superseded by (and
+  expanded within) the fix pass. See the handoff Next Work Queue.
+- R1-10 (2026-07-16): full stack audit executed per the queued
+  direction, applying the R1-09 AAR lessons as audit lenses (teaching
+  artifacts, prose-only vs machine-pinned conventions, falsifiable
+  evidence, doc currency/retention) plus a regression check of the
+  2026-07-01 audit defects and governed-artifact integrity. Method:
+  verified-green baseline first (kernel gate, pytest 485+110 zero
+  failures, diff-check clean at `b826445`), five independent finder
+  passes, then every substantive finding adversarially verified by an
+  independent skeptic pass with live probes — post-verification
+  severities recorded; three findings dissolved to MINOR precisely
+  because the governance record documented the deferral (command-
+  altitude synonym residual per the v1.1.10 Known Enforcement
+  Limitation; track-lifecycle per the s1-01 do-not-add decision and
+  roadmap branch; locked-schema diagnostic enum additions per their
+  Class B record). Audit was read-only; tree untouched. **Verdict: the
+  kernel and governance apparatus held** — 2026-07-01 fielded-safety
+  defects re-verified fixed by fresh probes, manifest tamper detection
+  witnessed, locked v1.0 schema byte-stable since v1.1.10, all
+  machine-pinned release surfaces correct. **The defect mass is in the
+  outer rings, exactly where the AAR predicted:** the reference
+  adapters the authoring guide routes authors to carry unfixed
+  instances of the fabrication class v1.1.13 machine-pinned on
+  example-vendor only (null-identity coercion in the worked exercise;
+  eo-cv fabricated confidence 0.0 / null-confidence crash / alt_m
+  zero-fill; kraken+moth JSON-replay fabricated RF defaults; moth geo
+  alt_m zero-fill — a contract 6.8 MUST violation; CoT egress
+  fabricated ce/le accuracy and wall-clock-fresh timestamps live by
+  default on the gateway --emit-cot path). Latent honesty gaps with no
+  machine check: quality.bearing_frame/heading_source unconstrained in
+  both schemas (the only v1.0 frame-provenance channel),
+  gateway strip config can silently delete risk_adjudication (declared
+  never_mutable; shipped configs clean, so latent), INFERENCE nested
+  estimated_state/members laundering residue (policy denylist never
+  expanded when STATE/COMMAND were), zero-fill geo passes clean.
+  Checking-machinery vacuities: all eight JSONL gate tools pass on
+  empty input (manifest pinning backstops conformance/** in CI; the
+  unprotected surface is examples/*.jsonl — unpinned, unfloored,
+  absent from the local kernel-gate command), harness expect.events
+  overhang silently unevaluated with event_count optional, checksum
+  verification accepts empty/partial files. Doc currency: every defect
+  prose-side, none machine-pinned — installation guide stale at
+  v1.1.12 (a checklist-NAMED surface, the item's second confirmed
+  miss), release/README at v1.1.11 and contradicting the reconciled
+  never-hand-zip rule, professional overview stale, handoff internally
+  inconsistent about the current release with under-executed
+  retention, check_compat CLI default three releases stale, two bundle
+  builders with stale version constants (the sign-script default's
+  unenumerated siblings). Full tiered findings, evidence anchors,
+  refuted items, and positive-assurance record:
+  `docs/r1_10_full_stack_audit.md`. **Maintainer disposition: fix every
+  finding (six-part fix pass recorded in the audit doc's disposition
+  section), then a follow-up audit.**
 - Previously queued (2026-07-08, now queue item 2): the all-fourteen
   v1.1.0 adoption-decision session — worksheet plus decisions in one
   session, promotion evidence bar as the standard, check PR #4 for
