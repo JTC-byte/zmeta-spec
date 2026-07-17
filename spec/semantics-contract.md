@@ -108,7 +108,11 @@ policy packs, gateways, adapters, encodings, examples, and conformance tests
 MUST preserve the invariants in this document.
 
 Patch releases in the v1.0 line MAY clarify wording, fix contradictions, or
-tighten conformance around already-defined semantics. Patch releases MUST NOT:
+tighten conformance around already-defined semantics. Additive widening of the
+governed diagnostic vocabulary (SYSTEM_EVENT `reason_code` enum entries
+mirroring `policy/violation-codes.yaml`) is a governed Class B change, not a
+lock violation: diagnostic codes are not event vocabulary and carry no
+semantic-layer meaning. Patch releases MUST NOT:
 - Remove locked v1.0 invariants.
 - Redefine existing v1.0 fields.
 - Make previously invalid semantic layer collapses valid.
@@ -772,7 +776,8 @@ EO, IR, acoustic, network, radar, or other sensors.
 ### 5.7 Holdover and Drift
 
 Loss of synchronization transitions a node to HOLDOVER. During holdover,
-`est_error_ms` must monotonically increase. Upon re-lock, `sync_state` returns
+`est_error_ms` must not decrease (it is a conservative quantized upper bound;
+consecutive equal values are valid). Upon re-lock, `sync_state` returns
 to LOCKED and the error bound resets.
 
 Monotonic holdover checks are policy/runtime enforcement, because they require
