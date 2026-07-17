@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [1.1.14] - 2026-07-17
 - Intake funnel completed (maintainer decision): blank GitHub issues are
   disabled and a fourth minimal template, "General question or report"
   (labeled `question`), catches everything the three structured templates

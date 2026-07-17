@@ -2,14 +2,16 @@
 
 Status date: 2026-07-17
 
-Current release: **v1.1.13** (R1-09, 2026-07-16) — PRs #5/#6 merged
-(fast-forward, reviewed SHAs preserved), intake labels created, and the
-release cut per RELEASE_CHECKLIST with the adapter-harness refusal-fixture
-capability (`expect.event_count`; must-pass corpus 11 -> 15) as the
-maintainer-directed Class B addition. Checksums-only; signing remains the
-maintainer's external process. Details in the worklog R1-09 entry and
-`release/RELEASE_NOTES_v1.1.13.md`. The queued v1.1.0 adoption-decision
-session remains the next substantive work item.
+Current release: **v1.1.14** (R1-10, 2026-07-17) — the audit-driven
+honesty hardening cut: the R1-10 full stack audit, its
+fix-every-finding pass (reference-adapter fabrication class closed,
+prose-only honesty invariants machine-encoded, checking machinery made
+falsifiable, four governed diagnostic codes added to both schemas'
+reason_code enums as Class B), and the post-fix verification audit,
+released per RELEASE_CHECKLIST. Checksums-only; signing remains the
+maintainer's external process. Details in the worklog R1-10 entries and
+`release/RELEASE_NOTES_v1.1.14.md`. The queued v1.1.0
+adoption-decision session remains the next substantive work item.
 
 This note is the quick resume point for the current ZMeta refinement effort. Recent session records and the deferred issue register are in `docs/zmeta_refinement_worklog.md`; completed task sections S0-01..R1-05 are archived verbatim in `docs/zmeta_refinement_worklog_archive.md`.
 
@@ -181,8 +183,9 @@ Current stack status:
   bearing/heading fields unless callers explicitly assert `TRUE_NORTH`;
   unasserted native values remain auditable under explicitly named
   non-canonical fields.
-- Use tag `v1.1.13` for current formal release assets/checksums. Use tag
-  `v1.1.12` for the previous governance-and-honesty-closeout baseline.
+- Use tag `v1.1.14` for current formal release assets/checksums. Use tag
+  `v1.1.13` for the previous onboarding-and-machine-checked-refusal
+  baseline.
 - Use current `main` for the latest integration baseline with bearing-frame
   integrity, policy-risk linting, projection preservation for risk/promotion
   extensions, stricter extension registry metadata, formal human/AI agent
@@ -226,18 +229,15 @@ Current stack status:
 
 Current release target:
 
-- Release URL: <https://github.com/JTC-byte/zmeta-spec/releases/tag/v1.1.13>
-- Tag: `v1.1.13` (annotated, on release commit `1117bc6`)
-- Release commit: `1117bc6` - `Release v1.1.13: onboarding and
-  machine-checked refusal`.
-- GitHub CI: passed for the pushed v1.1.13 release commit. R1-09 published
-  the release on 2026-07-16 per maintainer direction: all eight assets
-  uploaded including `SHA256SUMS_v1.1.13.txt`, marked Latest.
-- Previous release: `v1.1.12` (tag on `e5a88b1`); its published assets,
+- Release URL: <https://github.com/JTC-byte/zmeta-spec/releases/tag/v1.1.14>
+- Tag: `v1.1.14` (annotated, on the R1-10 release commit; the commit
+  SHA, CI status, and asset list are recorded in the worklog R1-10
+  publication note).
+- Previous release: `v1.1.13` (tag on `1117bc6`); its published assets,
   checksums, and release records are unchanged.
-- Signature status: v1.1.13 is published checksums-only per the
-  maintainer's direction, consistent with v1.1.5 through v1.1.12; signing
-  remains the maintainer's external process. Use
+- Signature status: v1.1.14 is published checksums-only per the
+  maintainer's signing decision, consistent with v1.1.5 through
+  v1.1.13; signing remains the maintainer's external process. Use
   `SHA256SUMS_<version>.txt`, the structured release manifest, and the
   release package checksum file for integrity verification.
 
@@ -333,7 +333,7 @@ Resume Note.
   schema, vocabulary, version-dispatch, projection, risk, or command-authority
   changes are private dialect/fork work unless governed, versioned, documented,
   and backed by conformance evidence.
-- Current formal release is `v1.1.13`; latest integration baseline is
+- Current formal release is `v1.1.14`; latest integration baseline is
   current `main`.
 - v1.0 remains locked.
 - Do not add v1.1.0 or future concepts to v1.0.
@@ -531,26 +531,21 @@ entries):
 
 ## Next Work Queue
 
-1. **Maintainer decisions pending: release cut and next-audit scope
-   (R1-10 audit + fix pass + verification COMPLETE, 2026-07-17)**
-   - The R1-10 full stack audit, the fix-every-finding pass (nine
-     commits, ddd0252..6f47237 plus the closeout), and the post-fix
-     verification audit are all COMPLETE — findings record in
-     `docs/r1_10_full_stack_audit.md`, full closeout record in the
-     worklog R1-10 fix-pass entry. Final validation: full kernel gate
-     green with all flags, examples 51/51, pytest 570+172 zero
-     failures.
-   - Open decisions for the maintainer: (a) cut the release (v1.1.14
-     candidate under the commit=release practice) — a cut also
-     resolves (b) the recorded SHA256SUMS_v1.1.13 manifest-entry
-     divergence (published checksums are immutable; the in-repo
-     manifest was regenerated over the fix pass); (c) whether a fresh
-     full-stack audit beyond the completed fix-verification audit runs
-     before the backlog resumes.
-   - Flagged residuals for the next audit are listed in the worklog
-     fix-pass entry (signalhunter replay-timestamp and
+1. **Maintainer decision pending: next-audit scope (R1-10 audit + fix
+   pass + verification + v1.1.14 release COMPLETE, 2026-07-17)**
+   - The R1-10 full stack audit, the fix-every-finding pass, the
+     post-fix verification audit, and the v1.1.14 release cut are all
+     COMPLETE — findings record in `docs/r1_10_full_stack_audit.md`,
+     closeout and release records in the worklog R1-10 entries. The
+     maintainer-directed cut resolved the previously recorded
+     SHA256SUMS_v1.1.13 manifest-entry divergence
+     (`SHA256SUMS_v1.1.14.txt` pins the regenerated manifest).
+   - Open decision: whether a fresh full-stack audit (beyond the
+     completed fix-verification audit) runs before the backlog
+     resumes. Flagged residuals for that audit are listed in the
+     worklog fix-pass entry (signalhunter replay-timestamp and
      sensor-position observations).
-   - Everything below this item is queued behind those decisions.
+   - Everything below this item is queued behind that decision.
 
 2. **Queued: v1.1.0 adoption decision (all fourteen concepts)**
    - Maintainer direction (2026-07-08): build the per-concept evidence

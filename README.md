@@ -1,4 +1,4 @@
-# ZMeta Specification (v1.0 Locked, current release v1.1.13)
+# ZMeta Specification (v1.0 Locked, current release v1.1.14)
 
 ## Overview
 - ZMeta is a transport-agnostic, event-based metadata standard for resilient ISR.
@@ -93,21 +93,72 @@ contribute one.
 
 ## Current Release
 
-- Current release: `v1.1.13`
-- Release notes and assets: <https://github.com/JTC-byte/zmeta-spec/releases/tag/v1.1.13>
-- Release focus: onboarding and machine-checked refusal — a consolidated
-  adapter authoring guide (`adapters/AUTHORING.md`) hardened by its first
-  external red-team review, a worked example-vendor exercise adapter, the
-  one-command `tools/check_adapter.py` ladder wrapper, a worked EO
-  full-chain example corpus, structured GitHub intake templates, README
-  first-contact restructure, and adapter-harness refusal fixtures (new
-  `expect.event_count` pin) so fail-closed behavior is machine-pinned the
-  way emission is. No schema or event-vocabulary change; the locked v1.0
-  kernel is unchanged.
+- Current release: `v1.1.14`
+- Release notes and assets: <https://github.com/JTC-byte/zmeta-spec/releases/tag/v1.1.14>
+- Release focus: audit-driven honesty hardening — the R1-10 full stack
+  audit (every finding adversarially verified) followed by a
+  fix-every-finding pass: the reference adapters' remaining fabrication
+  paths now refuse or omit instead of inventing values, the CoT egress
+  reference renders unknowns honestly by default, previously prose-only
+  honesty invariants are machine-checked (quality frame provenance,
+  INFERENCE fused-state laundering, zero-fill geo, protected risk-label
+  strip paths), the checking machinery itself fails loudly on empty
+  input, and a release-currency test pins current-facing docs to the
+  release manifest. Diagnostic vocabulary widens by four governed codes
+  in both schemas' SYSTEM_EVENT `reason_code` enums (Class B); no event
+  vocabulary changes; the locked v1.0 kernel's semantics are unchanged.
 - Normative contract: v1.0 locked semantic contract, canonical version-discriminated
   JSON schema, v1.0 JSON schema, and policy pack.
 - Experimental extension: `schema/zmeta-event-1.1.0.schema.json` is provided for proposed
   compatibility testing only; v1.1.0-only fields are not part of the locked v1.0 contract.
+
+## v1.1.14 Integration Notes
+
+- Reference ingress adapters now refuse input they previously translated
+  with invented values: null `platform_id`/`sensor_id` (example-vendor),
+  absent/null/non-numeric confidence (eo-cv), missing
+  `center_freq_hz`/`power_dbm` on the kraken/moth JSON-replay paths.
+  Canonical geo is all-or-nothing per contract 6.8 (missing altitude
+  omits geo entirely — no more `alt_m: 0.0` fill), and optional error
+  bounds are omitted when unmeasured, never defaulted. `bandwidth_hz:
+  0.0` from receiver-class RF sensors is a documented sentinel (kraken,
+  moth, and signalhunter READMEs).
+- CoT egress display defaults changed: unknown accuracy and unknown
+  altitude render as CoT's `9999999.0` unknown convention (previously
+  invented 15 m/10 m and 0 m); event time is authoritative by default
+  (`use_wall_clock` is now an explicit replay-display opt-in); events
+  missing `event.ts` are refused outside wall-clock mode; confidence is
+  appended to remarks whenever present.
+- New governed diagnostic codes in both schemas' SYSTEM_EVENT
+  `reason_code` enums: `INFERENCE_HAS_FUSION_STATE`,
+  `INVALID_QUALITY_BEARING_FRAME`, `INVALID_QUALITY_HEADING_SOURCE`,
+  `GEO_ZERO_FILL_SUSPECTED` (warn). `quality.bearing_frame` /
+  `quality.heading_source` are now enforced at the semantics layer for
+  both versions (and by enum in the v1.1 schema); nested
+  `members`/`estimated_state` in INFERENCE payloads are rejected
+  recursively; canonical geo at (0,0) draws a warn-severity diagnostic.
+- Adapter-harness fixtures are stricter: `expect.events` requires
+  `event_count`, surplus expectations fail
+  (`ADAPTER_EXPECTATION_SURPLUS`), and a `None` return from a
+  `result: "event"` callable registers refusal (`event_count: 0`).
+  Must-pass corpus 15 -> 27; bad-events corpus 23 -> 27. Third-party
+  fixtures pinning per-event expectations without `event_count` must add
+  it.
+- Gateway configs that list `payload.extensions.risk_adjudication` or
+  `payload.extensions.external_promotion` under `strip_optional_fields`
+  are rejected at startup (accepted-risk labels and promotion evidence
+  stay filterable downstream).
+- The validation tools fail on empty input instead of passing vacuously;
+  checksum verification cross-checks coverage against the artifact list;
+  new `SHA256SUMS` files are LF so plain `sha256sum -c` works on Linux.
+- `tools/check_compat.py` gains the `v1.1.14` target; the compat target
+  defaults in `check_adapter.py`, `check_compat.py`, the bundle
+  builders, and `sign_release_artifacts.py` all derive from the release
+  manifest now.
+- Deployments using release or contract hash gates should update expected
+  hashes from the v1.1.14 release manifest (the semantic contract carries
+  two Class B wording clarifications: section 2.1 diagnostic-vocabulary
+  widening; section 5.7 holdover "must not decrease").
 
 ## v1.1.13 Integration Notes
 
@@ -299,7 +350,7 @@ python tools/run_gateway.py --profile H
 python tools/udp_receiver.py
 python tools/udp_sender.py --file examples/zmeta-command-examples.jsonl
 python tools/replay.py --file examples/zmeta-command-examples.jsonl --delay-ms 200
-python tools/check_compat.py legacy-events.jsonl --target v1.1.13
+python tools/check_compat.py legacy-events.jsonl --target v1.1.14
 python tools/validate.py --file examples/zmeta-command-examples.jsonl --profile H
 python tools/check_adapter.py --events my-adapter-output.jsonl --fixtures my-fixtures.jsonl
 python tools/validate_conformance.py --strict
@@ -364,7 +415,7 @@ Deployment helpers:
 - Config templates: `configs/edge-config.json`, `configs/gateway-config.json`
 - Docker Compose: `deploy/edge/docker-compose.yml`, `deploy/gateway/docker-compose.yml`
 - Bundle builders:
-    - `python release/build_mvp_packages.py --version v1.1.13` produces `zmeta-edge-v1.1.13.zip` and `zmeta-gateway-v1.1.13.zip`
+    - `python release/build_mvp_packages.py --version v1.1.14` produces `zmeta-edge-v1.1.14.zip` and `zmeta-gateway-v1.1.14.zip`
     - `python release/build_release_bundle.py --version 1.1.13` produces `zmeta-v1.1.13-dist.zip`
     - `python tools/build_release_package.py --manifest release/zmeta-release-manifest.yaml --output-dir release/package-v1.1.13 --release-id zmeta-v1.1.13 --release-state formal_release --no-signatures` builds formal package metadata without creating signatures.
     - `python release/sign_release_artifacts.py --version v1.1.13 --write-checksums --sign --target all` signs release assets with detached PGP signatures when an approved signing key is available.

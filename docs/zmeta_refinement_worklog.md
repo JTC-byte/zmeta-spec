@@ -5,17 +5,45 @@
 - Last updated: 2026-07-17
 - Quick handoff: `docs/zmeta_refinement_handoff.md`
 - Current state (2026-07-17): the R1-10 stack audit, the maintainer-
-  directed fix-every-finding pass, AND the post-fix verification audit
-  are COMPLETE (entries below; findings record in
-  `docs/r1_10_full_stack_audit.md`). Open maintainer decisions:
-  (a) release cut — the pass is a v1.1.14 candidate under the
-  commit=release practice, and a cut also resolves (b) the recorded
-  SHA256SUMS_v1.1.13 manifest-entry divergence; (c) whether a fresh
-  full-stack audit beyond the completed fix-verification audit is
-  wanted before the queued backlog resumes. Queued behind those: the
-  v1.1.0 adoption-decision session, the five deferred P1-06 maintainer
-  decisions, PR #4 status, and signing. See the handoff Next Work
-  Queue.
+  directed fix-every-finding pass, the post-fix verification audit,
+  AND the v1.1.14 release cut are COMPLETE (entries below; findings
+  record in `docs/r1_10_full_stack_audit.md`). The cut resolved the
+  previously recorded SHA256SUMS_v1.1.13 manifest-entry divergence
+  (`SHA256SUMS_v1.1.14.txt` pins the regenerated manifest). Open
+  maintainer decision: whether a fresh full-stack audit beyond the
+  completed fix-verification audit runs before the queued backlog
+  resumes. Queued behind that: the v1.1.0 adoption-decision session,
+  the five deferred P1-06 maintainer decisions, PR #4 status, and
+  signing. See the handoff Next Work Queue.
+- R1-10 (2026-07-17): **v1.1.14 released** (maintainer-directed,
+  agent-executed) — the audit-driven honesty hardening cut, run
+  strictly per RELEASE_CHECKLIST. Content: the seven R1-10 fix-pass
+  commits plus the verification-audit fixes (see the fix-pass entry
+  below). Validation battery all green: manifest regenerated and
+  validated for zmeta-v1.1.14 (groups=19, artifacts=70; claims synced
+  and verified with --verify-contract-hash), full kernel gate with all
+  flags (bad-events 27, adapter harness 27), strict examples 51/51,
+  policy risk lint, future-roadmap validation, full pytest 570+172
+  zero failures, risk-filter presets, workflow end-to-end (H and M —
+  CoT output now carries event-authoritative time, the honest default
+  visible on the wire), live gateway (JSON and compact-L), three
+  gateway self-tests, compat sweep 9/9 corpora at v1.1.14, packet-size
+  max=150 of 240, bundles + release package built and validated
+  (package zip auto-built at checksum time), containerized gateway
+  verified (build, run, replay received, no violations; the
+  container-vs-Windows startup hash print difference is CRLF
+  materialization — the manifest's canonicalized hashes are the
+  authoritative gate and pass identically), SHA256SUMS_v1.1.14.txt
+  written LF and verified with full coverage, git diff --check clean.
+  Doc-currency pass executed per the checklist (README release section
+  + v1.1.14 integration notes, installation guide, professional
+  overview, tools README, release/README, check_compat TARGETS +
+  v1.1.14, CI compat target, compat CLI test, release-manifest test
+  pins; test_release_currency green against the v1.1.14 manifest).
+  Signing decision: checksums-only, stated in the release notes.
+  Retention: nothing newly archivable (fix-pass records are current
+  context). Publication note: appended below after tag push, GitHub
+  release creation, and CI confirmation.
 - R1-10 fix pass + verification (2026-07-17, maintainer-directed "fix
   every issue found, then re-audit"): every audit finding fixed or
   documented-deferred across nine commits — ddd0252 (audit record),
