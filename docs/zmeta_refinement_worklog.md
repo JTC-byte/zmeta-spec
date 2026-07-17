@@ -2,7 +2,7 @@
 
 ## Current Resume Note
 
-- Last updated: 2026-07-16
+- Last updated: 2026-07-17
 - Quick handoff: `docs/zmeta_refinement_handoff.md`
 - Current work (maintainer direction, 2026-07-16): the R1-10 stack audit
   is COMPLETE (entry below; full findings record in
@@ -316,8 +316,9 @@
   pass: the roadmap artifact + registry + evidence bar now track future
   branch work individually (register entry updated). The deferred issue
   register is now fully closed — D-001 through D-014 all resolved.
-- Current next work item: S1-24 prepared the v1.1.10 fielded-safety enforcement
-  release on current `main` — command-altitude denylist completion to the full
+- S1-24 session record (at the time, the current next work item): S1-24
+  prepared the v1.1.10 fielded-safety enforcement
+  release on then-current `main` — command-altitude denylist completion to the full
   §7.8 set, a recursive STATE laundering check with whitespace/case key
   normalization plus the full §7.7 list, adapter calibration honesty
   (Kraken/Moth stop hardcoding `CALIBRATED`; default conservative
@@ -371,7 +372,8 @@
   `beffed3` final-closeout references to `c814d95`, verified tracked
   Markdown/TXT relative links, and found no rogue untracked files outside
   expected ignored local/build outputs.
-- Current decision: ZMeta v1.1.10 is the current formal release target for the
+- Decision of record at the time of S1-24: ZMeta v1.1.10 was the then-current
+  formal release target for the
   fielded-safety enforcement baseline (command-altitude denylist completion,
   recursive STATE laundering enforcement with key normalization, adapter
   calibration honesty). It preserves the locked v1.0 schema and does not make

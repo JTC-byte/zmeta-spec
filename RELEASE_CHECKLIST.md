@@ -35,14 +35,20 @@ Use this as the template for each release.
 - [ ] `docs/zmeta_refinement_handoff.md` updated
 - [ ] Doc-currency pass: current-facing docs re-baselined to the new release
       (README current-release section and integration notes, installation
-      guide, tools README examples, CI compatibility target and the
+      guide, `docs/zmeta_professional_overview.md` release-context line,
+      tools README examples, CI compatibility target and the
       compatibility CLI test, the release-manifest `release_id`/`release_date` pins in
       `gateway/tests/test_release_manifest.py`, the `VERSION` default in
       `release/sign_release_artifacts.py`, and `tools/check_compat.py`
       `TARGETS` extended with the new release id — `tools/check_adapter.py`
       derives its default compat target from the regenerated release
       manifest, so a manifest bump without a matching `TARGETS` entry breaks
-      the wrapper for every adapter author)
+      the wrapper for every adapter author).
+      `gateway/tests/test_release_currency.py` machine-checks the enumerated
+      current-facing surfaces (README, installation guide, professional
+      overview, `release/README.md`, CHANGELOG first versioned heading,
+      `check_compat` `TARGETS`) against the manifest `release_id` and fails
+      pytest when any is stale — run it (or full pytest) after this pass
 - [ ] Retention pass: worklog task sections completed before this release
       archived to `docs/zmeta_refinement_worklog_archive.md`; stale handoff
       content pruned

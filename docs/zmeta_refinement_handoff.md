@@ -1,6 +1,6 @@
 # ZMeta Refinement Handoff Notes
 
-Status date: 2026-07-16
+Status date: 2026-07-17
 
 Current release: **v1.1.13** (R1-09, 2026-07-16) — PRs #5/#6 merged
 (fast-forward, reviewed SHAs preserved), intake labels created, and the
@@ -181,8 +181,8 @@ Current stack status:
   bearing/heading fields unless callers explicitly assert `TRUE_NORTH`;
   unasserted native values remain auditable under explicitly named
   non-canonical fields.
-- Use tag `v1.1.12` for current formal release assets/checksums. Use tag
-  `v1.1.11` for the previous field-driven adoption-guidance baseline.
+- Use tag `v1.1.13` for current formal release assets/checksums. Use tag
+  `v1.1.12` for the previous governance-and-honesty-closeout baseline.
 - Use current `main` for the latest integration baseline with bearing-frame
   integrity, policy-risk linting, projection preservation for risk/promotion
   extensions, stricter extension registry metadata, formal human/AI agent
@@ -226,20 +226,20 @@ Current stack status:
 
 Current release target:
 
-- Release URL: <https://github.com/JTC-byte/zmeta-spec/releases/tag/v1.1.12>
-- Tag: `v1.1.12` (annotated, on release commit `e5a88b1`)
-- Release commit: `e5a88b1` - `Release v1.1.12: governance and honesty
-  closeout`.
-- GitHub CI: passed for the pushed v1.1.12 release commit. R1-08 published
-  the release on 2026-07-08 with explicit release-authority direction: all
-  eight assets uploaded including `SHA256SUMS_v1.1.12.txt`, marked Latest.
-- Previous release: `v1.1.11` (tag on `922f0ca`); its published assets,
+- Release URL: <https://github.com/JTC-byte/zmeta-spec/releases/tag/v1.1.13>
+- Tag: `v1.1.13` (annotated, on release commit `1117bc6`)
+- Release commit: `1117bc6` - `Release v1.1.13: onboarding and
+  machine-checked refusal`.
+- GitHub CI: passed for the pushed v1.1.13 release commit. R1-09 published
+  the release on 2026-07-16 per maintainer direction: all eight assets
+  uploaded including `SHA256SUMS_v1.1.13.txt`, marked Latest.
+- Previous release: `v1.1.12` (tag on `e5a88b1`); its published assets,
   checksums, and release records are unchanged.
-- Signature status: v1.1.12 is published checksums-only per the
-  maintainer's direction, consistent with v1.1.5 through v1.1.11. The
-  maintainer is standing up the release-signing process for the next
-  release. Use `SHA256SUMS_<version>.txt`, the structured release manifest,
-  and the release package checksum file for integrity verification.
+- Signature status: v1.1.13 is published checksums-only per the
+  maintainer's direction, consistent with v1.1.5 through v1.1.12; signing
+  remains the maintainer's external process. Use
+  `SHA256SUMS_<version>.txt`, the structured release manifest, and the
+  release package checksum file for integrity verification.
 
 ## Key Docs
 
@@ -306,77 +306,23 @@ Current release target:
 | `conformance/adapter-harness/` | Shared fixture-driven adapter output harness for schema/policy validity, layer separation, lineage, timing, and external promotion. |
 | `spec/release-signing-attestation.md` | S1-12B release signing, attestation, no-secret, and verification framework. |
 | `release/RELEASE_PACKAGE_README.md` | S1-12B release package template guidance. |
-| `release/RELEASE_NOTES_v1.1.7.md` | Published v1.1.7 release notes. |
-| `release/VALIDATION_REPORT_v1.1.7.md` | Published v1.1.7 validation report. |
-| `release/SHA256SUMS_v1.1.7.txt` | Published v1.1.7 checksum manifest for standard release assets. |
-| `release/RELEASE_NOTES_v1.1.8.md` | Published v1.1.8 release notes. |
-| `release/VALIDATION_REPORT_v1.1.8.md` | Published v1.1.8 validation report. |
-| `release/SHA256SUMS_v1.1.8.txt` | Published v1.1.8 checksum manifest for standard release assets. |
-| `release/RELEASE_NOTES_v1.1.9.md` | Published v1.1.9 release notes. |
-| `release/VALIDATION_REPORT_v1.1.9.md` | Published v1.1.9 validation report. |
-| `release/SHA256SUMS_v1.1.9.txt` | Published v1.1.9 checksum manifest for standard release assets. |
-| `release/RELEASE_NOTES_v1.1.12.md` | Prepared v1.1.12 release notes (publication pending). |
-| `release/VALIDATION_REPORT_v1.1.12.md` | Prepared v1.1.12 validation report (publication pending). |
-| `release/SHA256SUMS_v1.1.12.txt` | Prepared v1.1.12 checksum manifest for standard release assets (publication pending). |
+| `release/RELEASE_NOTES_v<version>.md` | Published release notes, one file per formal release (v1.1.7 onward; the "Current release target" section above names the current version). |
+| `release/VALIDATION_REPORT_v<version>.md` | Published validation report, one file per formal release. |
+| `release/SHA256SUMS_v<version>.txt` | Published checksum manifest for each formal release's standard assets. |
 | `tools/lint_policy_risk_modes.py` | Policy lint for unsafe `ignore` settings on material risk. |
 | `docs/zmeta_refinement_worklog.md` | Running worklog: Current Resume Note (recent sessions), pending work items, and the deferred issue register. |
 | `docs/zmeta_refinement_worklog_archive.md` | Completed task sections S0-01..R1-05, archived verbatim per the release-checklist retention pass. |
 
 ## Completed Recently
 
-| Work Item | Status | Output |
-| --- | --- | --- |
-| S0-01 Semantic Contract Lockdown Audit | COMPLETE | `docs/zmeta_semantic_contract_lockdown_audit.md` |
-| S0-02 Semantic Contract Rewrite and Hardening | COMPLETE | `spec/semantics-contract.md` |
-| S0-03 Contract-to-Stack Crosswalk | COMPLETE | `docs/zmeta_contract_to_stack_crosswalk.md` |
-| S1-01A v1.0 Baseline Verification | COMPLETE | `docs/s1_01_v1_baseline_verification_plan.md` |
-| S1-02A Profile Projection Preservation Plan | COMPLETE | `docs/s1_02_profile_projection_preservation_plan.md` |
-| S1-02B Profile Projection Preservation Implementation | COMPLETE | `conformance/profile_projection_field_catalog.yaml`, `tools/validate_projection.py`, `conformance/profile-projection/` |
-| S1-02C Profile Projection Preservation Audit | COMPLETE | `docs/s1_02c_projection_preservation_audit.md` |
-| S1-03A Extension Registry Plan Only | COMPLETE | `docs/s1_03_extension_registry_plan.md` |
-| S1-03B Extension Registry Implementation | COMPLETE | `spec/extension-registry.md`, `spec/extension-registry.yaml`, `tools/validate_extension_registry.py` |
-| S1-03C Extension Registry Audit | COMPLETE | `docs/s1_03c_extension_registry_audit.md` |
-| S1-04A Conformance Class Manifest Plan Only | COMPLETE | `docs/s1_04_conformance_class_manifest_plan.md` |
-| S1-04B Conformance Class Manifest Implementation | COMPLETE | `spec/conformance-classes.md`, `conformance/conformance_classes.yaml`, `tools/validate_conformance_classes.py` |
-| S1-04C Conformance Class Manifest Audit | COMPLETE | `docs/s1_04c_conformance_class_manifest_audit.md` |
-| S1-05A Encoding Negative Validation Plan Only | COMPLETE | `docs/s1_05_encoding_negative_validation_plan.md` |
-| S1-05B Encoding Negative Validation Implementation | COMPLETE | `conformance/encoding-negative/`, `tools/validate_encoding_negative.py`, focused encoding-negative tests |
-| S1-05C Encoding Negative Validation Audit | COMPLETE | `docs/s1_05c_encoding_negative_validation_audit.md` |
-| S1-06A Profile Precision / Quantization Policy Floors Plan Only | COMPLETE | `docs/s1_06_profile_precision_quantization_policy_plan.md` |
-| S1-06B Profile Precision / Quantization Policy Floors Implementation | COMPLETE | `spec/profile-precision-policy.md`, `policy/profile-precision.yaml`, `conformance/profile-precision/`, `tools/validate_precision_policy.py` |
-| S1-06C Profile Precision / Quantization Policy Floors Audit | COMPLETE | `docs/s1_06c_profile_precision_quantization_policy_audit.md` |
-| S1-07A Crosswalk TAKEOFF Mention Cleanup | COMPLETE | `docs/s1_07a_takeoff_crosswalk_cleanup.md` |
-| S1-08A MAVLink Adapter README State Payload Drift Cleanup | COMPLETE | `docs/s1_08a_mavlink_state_payload_drift_cleanup.md` |
-| S1-09A Contract Hash / Release Hash Follow-Up Plan Only | COMPLETE | `docs/s1_09_contract_release_hash_plan.md` |
-| S1-09B Contract Hash / Release Hash Implementation | COMPLETE | `spec/release-hash-policy.md`, `release/zmeta-release-manifest.yaml`, `tools/build_release_manifest.py`, `tools/validate_release_manifest.py` |
-| S1-09C Contract Hash / Release Hash Audit | COMPLETE | `docs/s1_09c_contract_release_hash_audit.md` |
-| S1-10A Out-of-Scope Artifact Roadmap Plan Only | SUPERSEDED / CANCELLED | deleted during S1-10P |
-| S1-10P Purge FORGE-Derived Scope Contamination | COMPLETE | `docs/s1_10p_forge_scope_purge.md` |
-| S1-11A Future Versioned Semantic Branch Roadmap Plan Only | COMPLETE | `docs/s1_11_future_versioned_semantic_branch_roadmap_plan.md` |
-| S1-12A Formal Release Tag / Signature / Attestation Plan Only | COMPLETE | `docs/s1_12_formal_release_tag_signature_attestation_plan.md` |
-| S1-12B Formal Release Tag / Signature / Attestation Packaging Implementation | COMPLETE | `spec/release-signing-attestation.md`, `tools/build_release_package.py`, `tools/validate_release_package.py` |
-| S1-12C Formal Release Tag / Signature / Attestation Packaging Audit | COMPLETE | `docs/s1_12c_formal_release_packaging_audit.md` |
-| R1-01 v1.1.5 Release Publication | COMPLETE | <https://github.com/JTC-byte/zmeta-spec/releases/tag/v1.1.5> |
-| S1-13A Stack Conformance And Stale File Audit | COMPLETE | `docs/s1_13a_stack_conformance_and_stale_file_audit.md` |
-| S1-14 External Projection Promotion Contract | COMPLETE | `docs/s1_14_external_projection_promotion_contract.md`, `policy/producer-authority.yaml`, `gateway/src/validators.py` |
-| S1-15B Risk Adjudication Stack Conformance Pass | COMPLETE | `docs/s1_15b_risk_adjudication_stack_conformance_audit.md`, `gateway/src/validators.py`, `gateway/src/gateway.py`, `policy/*.yaml`, `conformance/must-pass.jsonl` |
-| S1-15C Semantic Contract Feedback Cleanup | COMPLETE | `docs/s1_15c_semantic_contract_feedback_cleanup.md`, `spec/semantics-contract.md`, `conformance/conformance_classes.yaml` |
-| S1-16A Bad-Event Corpus And Adapter Harness | COMPLETE | `docs/s1_16a_bad_event_adapter_harness.md`, `conformance/bad-events/`, `conformance/adapter-harness/`, `tools/validate_bad_events.py`, `tools/validate_adapter_conformance.py` |
-| S1-16B Kernel Protection Contract Alignment | COMPLETE | `docs/s1_16b_kernel_protection_contract_alignment.md`, `spec/semantics-contract.md`, `spec/conformance-classes.md`, `conformance/conformance_classes.yaml` |
-| S1-17A Kernel Protection Stack Audit | COMPLETE | `docs/s1_17a_kernel_protection_stack_audit.md`, `.github/workflows/ci.yml`, `Makefile`, `policy/README.md`, `configs/policy-variants/README.md` |
-| S1-18A Operator Risk Filter Tooling | COMPLETE | `docs/s1_18a_operator_risk_filter_tooling.md`, `tools/filter_risk.py`, `gateway/tests/test_risk_filter_cli.py` |
-| S1-18B End-to-End Stack and Runtime Audit | COMPLETE | `docs/s1_18b_end_to_end_stack_runtime_audit.md`, `adapters/egress/cot/zmeta_to_cot.py`, `.gitignore` |
-| R1-02 v1.1.6 Release Publication | COMPLETE | <https://github.com/JTC-byte/zmeta-spec/releases/tag/v1.1.6> |
-| P1-01 Post-v1.1.6 Partner Feedback Cleanup | COMPLETE | `README.md`, `tools/lint_policy_risk_modes.py`, `gateway/tests/test_policy_risk_mode_lint.py` |
-| P1-02 Post-v1.1.6 Projection And Registry Hardening | COMPLETE | `conformance/profile_projection_field_catalog.yaml`, `conformance/profile-projection/`, `tools/validate_projection.py`, `spec/extension-registry.yaml`, `tools/validate_extension_registry.py` |
-| P1-03 Human And AI Agent Change Governance | COMPLETE | `AGENTS.md`, `docs/zmeta_change_governance.md`, `tools/build_release_manifest.py`, `tools/validate_release_manifest.py`, downstream clone compatibility guidance |
-| R1-03 v1.1.7 Stack Audit And Release | COMPLETE | `docs/r1_03_v1_1_7_stack_audit_release.md`, `release/RELEASE_NOTES_v1.1.7.md`, `release/VALIDATION_REPORT_v1.1.7.md`, `release/SHA256SUMS_v1.1.7.txt` |
-| P1-04 Bearing Reference-Frame Integrity Pass | COMPLETE (adopted on `main`) | `spec/semantics-contract.md` 6.4, `schema/zmeta-event-1.1.0.schema.json`, `spec/extension-registry.yaml`, `conformance/bad-events/`, `conformance/adapter-harness/`, `tools/validate_adapter_conformance.py`, kraken/moth/signalhunter/mavlink adapters, `gateway/src/gateway.py` |
-| R1-04 v1.1.8 Bearing-Frame Integrity Release | COMPLETE | `docs/r1_04_v1_1_8_bearing_frame_release.md`, `release/RELEASE_NOTES_v1.1.8.md`, `release/VALIDATION_REPORT_v1.1.8.md`, `release/SHA256SUMS_v1.1.8.txt` |
-| R1-04A v1.1.8 Post-Release Reference Cleanup | COMPLETE | `README.md`, `.github/workflows/ci.yml`, `tools/README.md`, `docs/zmeta_professional_overview.md`, `gateway/tests/test_check_compat_cli.py`, current handoff/worklog notes |
-| S1-22 Final Baseline Audit And Closeout Notes | COMPLETE | `CHANGELOG.md`, `docs/zmeta_refinement_worklog.md`, `docs/zmeta_refinement_handoff.md`, local `LOCAL_NOTES.md`; final audit closeout commit `c814d95` |
-| S1-23 README-Linked Documentation Freshness Audit | COMPLETE | `spec/installation-guide.md`, `CHANGELOG.md`, `docs/zmeta_refinement_worklog.md`, `docs/zmeta_refinement_handoff.md`, local `LOCAL_NOTES.md` |
-| R1-05 v1.1.9 Documentation Freshness Release | COMPLETE | `release/RELEASE_NOTES_v1.1.9.md`, `release/VALIDATION_REPORT_v1.1.9.md`, `release/SHA256SUMS_v1.1.9.txt`, `release/zmeta-release-manifest.yaml` |
+Completed work items S0-01 through R1-05 (contract lockdown, projection
+preservation, registry, conformance classes, encoding-negative, precision
+policy, release hashing/packaging, risk adjudication, bad-event corpus and
+adapter harness, bearing-frame integrity, and the v1.1.5-v1.1.9 releases)
+are recorded verbatim, one section each, in
+`docs/zmeta_refinement_worklog_archive.md`. Later sessions (S1-24 onward)
+are summarized in "Current stack status" above and in the worklog Current
+Resume Note.
 
 ## Current Decisions
 
@@ -387,7 +333,7 @@ Current release target:
   schema, vocabulary, version-dispatch, projection, risk, or command-authority
   changes are private dialect/fork work unless governed, versioned, documented,
   and backed by conformance evidence.
-- Current formal release is `v1.1.12`; latest integration baseline is
+- Current formal release is `v1.1.13`; latest integration baseline is
   current `main`.
 - v1.0 remains locked.
 - Do not add v1.1.0 or future concepts to v1.0.
@@ -568,13 +514,15 @@ Current release target:
 Follow-up notes (candidates for future hardening decisions, not register
 entries):
 
-- Outgoing UDP payloads larger than roughly 65507 bytes raise an unhandled
-  `OSError` in the gateway main loop (crash risk). The `warn_datagram_bytes`
-  guard added in P1-04 is observability only and does not change send
-  behavior; whether to catch/drop/truncate is a future hardening decision.
-- Several ingress adapters fabricate `lineage.based_on` with a fresh random
-  UUIDv7 (pre-existing behavior, out of scope for P1-04); candidate for a
-  future lineage-policy pass.
+- RESOLVED in v1.1.12 (S1-26 gateway containment): oversize outgoing UDP
+  payloads (roughly 65507+ bytes) no longer raise an unhandled `OSError` in
+  the gateway main loop — `_send_datagram` catches OSError, drops the
+  datagram with explicit `send_failure` metrics/diagnostics, and counts
+  forwarded/CoT only on actual sends.
+- RESOLVED in v1.1.12 (S1-26 lineage honesty): ingress adapters no longer
+  fabricate `lineage.based_on` with fresh random UUIDv7s — observation and
+  system outputs omit lineage unless callers pass real parents, and
+  mandatory-lineage events refuse to emit without them.
 - Bearing frame provenance is still producer/configuration asserted. The
   `TRUE_NORTH` marker and `quality.heading_source` make the assertion auditable
   and reject unsupported labels, but they do not prove calibration,
@@ -624,7 +572,7 @@ entries):
      real sensor data, an evidence-bar tripwire, or release-authority
      signing inputs.
 
-2. **Standing defaults (recorded 2026-07-08 by maintainer direction)**
+3. **Standing defaults (recorded 2026-07-08 by maintainer direction)**
    The former open-ended "human decisions for future hardening" list is
    resolved to standing defaults: the shipped reference behavior stands
    unless field evidence or a promotion-evidence-bar tripwire
@@ -651,7 +599,7 @@ entries):
    - S1-11B is implemented (`spec/future-branch-roadmap.yaml` +
      `tools/validate_future_roadmap.py`); that decision is closed.
 
-3. **Genuinely open maintainer decisions**
+4. **Genuinely open maintainer decisions**
    - Release signing: releases since v1.1.5 are checksums-only. The release
      authority is standing up a signature (in progress 2026-07-08); whether
      future formal releases publish detached signatures and post-release
@@ -660,7 +608,7 @@ entries):
    - Whether v1.1.0 remains permanently `experimental` or is adopted as a
      baseline (open question from the future-branch roadmap, Section N).
 
-4. **Deferred issue cleanup**
+5. **Deferred issue cleanup**
    - D-001 MAVLink Adapter README State Payload Drift is closed.
    - D-002 Contract Hash / Release Hash Follow-Up is closed.
    - D-003 Future Semantics Require Versioned Implementation Branches is
@@ -679,7 +627,7 @@ entries):
    - D-013 Timing-Freshness Negative-Age Clamp is closed.
    - D-014 Compact Codec Unknown Integer Payload Keys is closed.
 
-5. **Later versioned semantic branches**
+6. **Later versioned semantic branches**
    - Markings/releasability.
    - Integrity, signing, anti-replay, mesh trust, and quarantine.
    - MODEL_STATUS / assurance and drift monitoring.
@@ -688,7 +636,7 @@ entries):
    - Coalition export and cross-domain guard metadata.
    - Compute status and degraded runtime behavior.
 
-6. **P1-06 deferred maintainer decisions (recorded 2026-07-15; queued so
+7. **P1-06 deferred maintainer decisions (recorded 2026-07-15; queued so
    they do not age out of prose)**
    - Name and link the fielded deployments in the README "ZMeta In The
      Field" section, or keep it generic (disclosure/positioning call).
@@ -720,8 +668,15 @@ entries):
 
 ## Verification State
 
-Most recent validation for the S1-26 v1.1.12 release preparation on `main`
-(2026-07-08, Windows, Python):
+Most recent validation: the v1.1.13 (R1-09) release validation record lives
+in `release/VALIDATION_REPORT_v1.1.13.md` and the worklog R1-09 entry
+(`docs/zmeta_refinement_worklog.md`). The single block below is retained as
+the most recent full command inventory recorded in this handoff; older
+validation generations were pruned from this rolling brief and live in git
+history.
+
+Validation for the S1-26 v1.1.12 release preparation on `main` (2026-07-08,
+Windows, Python — historical; superseded by the v1.1.13 record above):
 
 ```powershell
 python tools\build_release_manifest.py --release-id zmeta-v1.1.12 --release-name "ZMeta v1.1.12" --release-status formal_release --release-date 2026-07-08 --branch main --update-claims
@@ -770,147 +725,3 @@ Packet-size result: compact Profile L `min=98 avg=116.0 max=150` under the
 Checksum result: `checksums ok: SHA256SUMS_v1.1.12.txt`.
 Docker Compose config rendering was not re-exercised this session (deploy
 YAML unchanged since the last validated baseline).
-
-Earlier validation for the final current-main baseline audit on `main`
-(2026-06-12, Windows, Python, final pushed audit commit `c814d95`; validation
-was originally performed across the `beffed3` guidance cleanup and the
-subsequent `c814d95` closeout-note commit):
-
-```powershell
-python tools\validate_conformance.py --strict --profile-projection --extension-registry --conformance-classes --encoding-negative --precision-policy --release-manifest --release-package --bad-events --adapter-harness
-python tools\validate_examples.py --strict --require-all
-python tools\validate_release_manifest.py --manifest release\zmeta-release-manifest.yaml
-python tools\validate_release_package.py --manifest release\zmeta-release-manifest.yaml --templates-only
-python tools\lint_policy_risk_modes.py
-python tools\check_compat.py examples\zmeta-v1.1-examples.jsonl --target v1.1.8
-python tools\measure_packet_size.py --file examples\zmeta-profile-L-examples.jsonl --encodings compact --max-bytes 240 --summary-only
-python -m pytest -q
-python tools\test_workflow_end_to_end.py
-python tools\test_workflow_end_to_end.py --profile M
-python tools\test_workflow_end_to_end.py --profile L --listen-port 5655 --forward-port 5656 --cot-port 5657
-python tools\test_workflow_end_to_end.py --profile M --expect COMMAND_EVENT,SYSTEM_EVENT --listen-port 5665 --forward-port 5666 --cot-port 5667
-python tools\test_gateway_live.py --listen-port 5675 --forward-port 5676 --cot-port 5677
-python tools\test_gateway_live.py --profile L --encoding cbor --input-encoding cbor --listen-port 5685 --forward-port 5686 --cot-port 5687
-python tools\test_gateway_live.py --profile L --encoding compact --input-encoding compact --listen-port 5695 --forward-port 5696 --cot-port 5697
-python tools\test_gateway_live.py --profile H --encoding proto --input-encoding proto --no-cot --listen-port 5705 --forward-port 5706 --cot-port 5707
-python tools\build_release_package.py --manifest release\zmeta-release-manifest.yaml --output-dir .tmp\audit-package-v1.1.8-20260612 --release-id zmeta-v1.1.8 --release-state current-main-audit --no-signatures --allow-dirty
-python tools\validate_release_package.py --manifest release\zmeta-release-manifest.yaml --package-dir .tmp\audit-package-v1.1.8-20260612
-python release\build_release_bundle.py --version 1.1.8
-python release\build_mvp_packages.py --version v1.1.8
-python tools\compute_contract_hash.py
-python tools\validate_projection.py --catalog conformance\profile_projection_field_catalog.yaml --must-pass conformance\profile-projection\must-pass.jsonl --must-fail conformance\profile-projection\must-fail.jsonl --quiet
-python tools\validate_extension_registry.py --registry spec\extension-registry.yaml
-python tools\validate_conformance_classes.py --manifest conformance\conformance_classes.yaml --claims conformance\claims\example-reference-gateway.yaml conformance\claims\example-core-producer.yaml
-python tools\validate_bad_events.py --must-fail conformance\bad-events\must-fail.jsonl
-python tools\validate_adapter_conformance.py --fixtures conformance\adapter-harness\must-pass.jsonl
-python tools\validate_encoding_negative.py --fixtures conformance\encoding-negative
-python tools\validate_precision_policy.py --policy policy\profile-precision.yaml --must-pass conformance\profile-precision\must-pass.jsonl --must-fail conformance\profile-precision\must-fail.jsonl
-python tools\validate.py --file examples\zmeta-command-examples.jsonl --profile L --strict
-docker compose -f deploy\gateway\docker-compose.yml config
-docker compose -f deploy\edge\docker-compose.yml config
-docker compose -f gateway\docker-compose.yml config
-gh pr list --repo JTC-byte/zmeta-spec --state open --limit 20
-gh issue list --repo JTC-byte/zmeta-spec --state open --limit 20
-git diff --check
-```
-
-Full kernel conformance result: `projection conformance ok total=37`,
-`extension registry ok entries=57`, `conformance classes ok classes=34
-claims=2`, `encoding negative ok total=50`, `profile precision policy ok
-total=32`, `bad-event corpus ok total=10`, `adapter conformance ok total=10`,
-`conformance ok`.
-Examples result: `overall total=40 passed=40 failed=0 warnings=0`.
-Release manifest result: `release manifest ok groups=18 artifacts=67`.
-Release package result: `release package ok mode=templates` and
-`release package ok mode=package` for the throwaway `.tmp` audit package.
-Policy lint result: `policy risk mode lint ok`.
-Compatibility result: `issues=0 failed=0 warnings=0` for the v1.1 example
-stream against target `v1.1.8`.
-Packet-size result: compact Profile L `max=150` under the 240-byte check.
-Full pytest result: `442 passed, 110 subtests passed`.
-End-to-end and live gateway results: Profile H/M/L, command/system, JSON, CBOR,
-compact, and proto paths passed. One attempted parallel workflow run failed
-only because multiple tests bound the same localhost UDP ports; sequential
-reruns on unique ports passed. Docker Compose rendered all three configs
-successfully with local `C:\Users\User\.docker\config.json` access warnings
-only. GitHub PR and issue list checks returned no open items. GitHub CI passed
-for pushed commit `c814d95` as run `27447655568`. Final local status was clean
-against `origin/main`.
-
-Earlier validation for the P1-04R review fixes on branch
-`review/pr2-frame-fixes` (2026-06-12, Windows, Python):
-
-```powershell
-python -m pytest -q adapters\ingress\moth\test_moth_ingress.py adapters\ingress\mavlink\test_mavlink_ingress.py
-python tools\validate_adapter_conformance.py --quiet
-python tools\build_release_manifest.py --release-id zmeta-v1.1.7 --release-name "ZMeta v1.1.7" --release-status formal_release --release-date 2026-06-10 --branch main --update-claims
-python tools\validate_release_manifest.py --manifest release\zmeta-release-manifest.yaml
-python tools\validate_release_package.py --manifest release\zmeta-release-manifest.yaml --templates-only
-python tools\validate_conformance.py --strict --profile-projection --extension-registry --conformance-classes --encoding-negative --precision-policy --release-manifest --release-package --bad-events --adapter-harness
-python -m pytest -q
-git diff --check
-```
-
-Focused adapter pytest result: `29 passed`.
-Adapter harness result: `adapter conformance ok total=10`.
-Release manifest result: `release manifest ok groups=18 artifacts=62`.
-Release package template result: `release package ok mode=templates`.
-Full kernel conformance result: `projection conformance ok total=37`,
-`extension registry ok entries=57`, `conformance classes ok classes=34
-claims=2`, `encoding negative ok total=49`, `profile precision policy ok
-total=32`, `bad-event corpus ok total=10`, `adapter conformance ok total=10`,
-`conformance ok`.
-Full pytest result: `435 passed, 108 subtests passed`.
-Whitespace check result: clean with normal Windows LF-to-CRLF working-copy
-warnings.
-
-Earlier validation for the P1-04 bearing reference-frame pass on branch
-`worktree-bearing-frame-fixes` (2026-06-11, macOS, Python 3.12):
-
-```bash
-python3.12 tools/build_release_manifest.py --release-id zmeta-v1.1.7 --release-name "ZMeta v1.1.7" --release-status formal_release --release-date 2026-06-10 --branch main --update-claims
-python3.12 tools/validate_release_manifest.py --manifest release/zmeta-release-manifest.yaml
-python3.12 tools/validate_release_package.py --manifest release/zmeta-release-manifest.yaml --templates-only
-python3.12 tools/validate_conformance.py --strict --profile-projection --extension-registry --conformance-classes --encoding-negative --precision-policy --release-manifest --release-package --bad-events --adapter-harness
-python3.12 -m pytest -q
-git diff --check
-```
-
-Release manifest result: `release manifest ok groups=18 artifacts=62`.
-Release package template result: `release package ok mode=templates`.
-Full kernel conformance result: `projection conformance ok total=37`,
-`extension registry ok entries=57`, `conformance classes ok classes=34
-claims=2`, `encoding negative ok total=49`, `profile precision policy ok
-total=32`, `bad-event corpus ok total=10`, `adapter conformance ok total=9`,
-`conformance ok`.
-Full pytest result: `430 passed, 108 subtests passed`.
-Whitespace check result: passed.
-
-Earlier validation for the v1.1.7 stack audit and release:
-
-```powershell
-python tools\validate_release_manifest.py --manifest release\zmeta-release-manifest.yaml
-python tools\validate_release_package.py --manifest release\zmeta-release-manifest.yaml --templates-only
-python tools\validate_examples.py --strict --require-all
-python tools\validate_conformance.py --strict --profile-projection --extension-registry --conformance-classes --encoding-negative --precision-policy --release-manifest --release-package --bad-events --adapter-harness
-python -m pytest -q
-python tools\validate_release_package.py --manifest release\zmeta-release-manifest.yaml --package-dir release\package-v1.1.7
-python release\sign_release_artifacts.py --version v1.1.7 --write-checksums --verify-checksums
-git diff --check
-```
-
-Release manifest result: `release manifest ok groups=18 artifacts=62`.
-Release package template result: `release package ok mode=templates`.
-Examples result: `overall total=40 passed=40 failed=0 warnings=0`.
-Full kernel conformance result: `projection conformance ok total=37`,
-`extension registry ok entries=56`, `conformance classes ok classes=34
-claims=2`, `encoding negative ok total=49`, `profile precision policy ok
-total=32`, `bad-event corpus ok total=9`, `adapter conformance ok total=8`,
-`conformance ok`.
-Full pytest result: `375 passed, 108 subtests passed`.
-Release package output result: `release package ok mode=package`.
-Release checksum result: `checksums ok: SHA256SUMS_v1.1.7.txt`.
-Runtime workflow, live gateway, packet-size, compatibility, focused validator,
-policy-risk lint, and Docker Compose config checks are recorded in
-`release/VALIDATION_REPORT_v1.1.7.md`.
-Whitespace check result: passed with normal Windows CRLF conversion warnings.

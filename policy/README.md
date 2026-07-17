@@ -37,6 +37,13 @@ Notes:
   hard-coding local IDs into the JSON Schema.
 - `routing.yaml` producer rules support `allowed_event_types` and `allowed_event_subtypes`
   for fine-grained gating, plus `forbidden_event_types` for hard blocks.
+- `routing.yaml`'s `command_event` keys (`required_origin`,
+  `must_pass_through`, `allowed_producers`) express the intended command
+  topology, but v1.0 enforcement flattens all three into a single
+  origin-name allowlist (`gateway/src/validators.py::_is_comms_producer`).
+  Per-event transit-path verification is not possible in v1.0 — events carry
+  no route metadata — so the machine check is origin gating, not path
+  verification.
 - `semantics.yaml` enforces TASK_ACK lifecycle rules (required metrics, allowed states,
   and reason_code requirements), LINK_STATUS health metrics, and SCHEMA_VIOLATION
   reason_code requirements.

@@ -24,8 +24,12 @@ Use a stable, vendor-scoped identifier:
 vendor:acme_rf:v1
 ```
 
-Store `schema_id` in `pack.json`. Directory names should be filesystem-safe
-slugs such as `vendor__acme_rf__v1`.
+Store `schema_id` in `pack.json`. The directory name is the `pack_slug`: a
+filesystem-safe, lowercase, hyphenated slug — the shipped exemplar
+`example-vendor-pack` (`schema_id: vendor:example_rf:v1`,
+`pack_slug: example-vendor-pack`) is the pattern to copy. Keep slugs to
+lowercase letters, digits, and hyphens; the colon-separated `schema_id` is
+an identifier, not a directory name, and never appears on the filesystem.
 
 ### Pack contents
 

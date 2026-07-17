@@ -66,6 +66,18 @@ Worked full chains to pattern-match against:
 `OBSERVATION_EVENT -> INFERENCE_EVENT -> FUSION_EVENT -> STATE_EVENT` with
 genuine chained `lineage.based_on` ids.
 
+Which lineage pattern to copy: `lineage.transform` stamps a translation or
+promotion step — an adapter converting a native message records
+`translate:<schema_id>@<adapter_version>`, external-state promotion records
+`promote:*`. Native ZMeta producers emitting original observations perform
+no such step and carry no transform (an original reading with no ZMeta
+parent omits `lineage` entirely) — that is why the RF chain's events carry
+only genuine `based_on` links while the EO chain's INFERENCE event, produced
+by the eo-cv translator from a native detection, carries `transform` too.
+The harness defaults `require_lineage_transform: true` because adapter
+output normally IS a translation step; a fixture legitimately sets it
+`false` only for original observations that omit lineage.
+
 Worked exercise: `adapters/ingress/example-vendor/` is a complete small
 adapter implementing the `adapters/mapping-packs/example-vendor-pack`
 declarative mapping to this guide's requirements — build your own against the
@@ -111,6 +123,16 @@ same pack first if you want a known-good diff.
     optional — requiredness comes from the schema, never from what a sample
     input happens to carry. A reading missing a required field is refused,
     not emitted schema-invalid.
+
+One declared-sentinel convention to keep distinct from fabrication:
+receiver-class RF sensors that physically cannot measure emitter bandwidth
+satisfy the schema-required RF feature set with the documented
+`bandwidth_hz: 0.0` sentinel (the kraken, moth, and signalhunter READMEs
+document it). That is a DECLARED sentinel — a fixed, documented,
+consumer-visible convention — not an invented measurement, and any adapter
+using it must document it in its own README. Inventing measurement values
+(default bearings, error bounds, power levels, positions) remains prohibited
+by rules 3, 9, and 10.
 
 ## 4. Build
 
@@ -179,7 +201,7 @@ early:
 | `args` / `kwargs` | Arguments passed to the callable. |
 | `result` | `"event"` (default, one dict) or `"events"` (list of dicts). |
 | `profile` | Validation profile (default `"H"`). |
-| `expect` | Expectation object (below). For `result: "events"`, an `expect.events` list applies per-index expectations. |
+| `expect` | Expectation object (below). For `result: "events"`, an `expect.events` list applies per-index expectations; `expect.events` requires `event_count`, and surplus entries beyond the returned events fail (`ADAPTER_EXPECTATION_SURPLUS`). |
 
 `expect` keys:
 
@@ -189,7 +211,7 @@ early:
 | `source_producer` | Exact `source.producer` match. |
 | `required_paths` / `forbidden_paths` | Dotted paths that must / must not resolve. |
 | `expected_values` | Dotted path -> exact value pins. Numeric tolerance 1e-6; booleans never match non-booleans; a missing path is its own failure. |
-| `event_count` | Exact number of events the callable must return (use with `result: "events"`). `0` pins a fail-closed refusal the way the other keys pin emission — write one refusal fixture per schema-required input field. |
+| `event_count` | Exact number of events the callable must return. REQUIRED alongside `expect.events`; applies to both result kinds. `0` pins a fail-closed refusal the way the other keys pin emission — a `result: "events"` callable must return `[]`, and a single-event callable registers refusal by returning `None` (counted as zero events). A `result: "event"` fixture without `event_count` implicitly expects exactly one event. Write one refusal fixture per schema-required input field. |
 | `utc_z_paths` | Paths that must be UTC `Z` timestamps (default `["event.ts"]`). |
 | `require_lineage_transform` | Default `true` for non-SYSTEM events; set `false` for original observations that legitimately omit lineage. |
 | `lineage_transform_prefix` | Required prefix for `lineage.transform` (for example `promote:`). |

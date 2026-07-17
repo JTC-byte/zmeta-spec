@@ -3,6 +3,13 @@ routing:
     require_allowlist_for_event_types:
       - COMMAND_EVENT
   command_event:
+    # Enforcement note (v1.0): required_origin, must_pass_through, and
+    # allowed_producers are all flattened by the reference validator
+    # (gateway/src/validators.py::_is_comms_producer) into a single
+    # origin-name allowlist checked against the event's producer. Per-event
+    # transit-path verification is not possible in v1.0 — events carry no
+    # route metadata — so these keys express the intended command topology
+    # while the machine check is origin gating only.
     required_origin: sensorops
     must_pass_through: sensorops
     allowed_producers:

@@ -37,9 +37,9 @@ or command safety.
 | [Moth](ingress/moth/) | Moth serial CSV/JSON, MAVLink TUNNEL, custom dialect | OBSERVATION_EVENT (RF LOB) | Production |
 | [SignalHunter](ingress/signalhunter/) | SignalHunter .bin PSD captures | OBSERVATION_EVENT (RF LOB, gradient) | Production |
 | [EO-CV](ingress/eo-cv/) | CV inference service JSON detections | INFERENCE_EVENT (CLASSIFICATION) | Production |
-| [CoT](ingress/cot/) | Cursor-on-Target XML | (template) | Template |
+| [CoT](ingress/cot/) | Cursor-on-Target XML | STATE_EVENT (promotion) | Template |
 | [JREAP](ingress/jreap/) | Decoded JREAP/Link-style track dicts | STATE_EVENT (promotion) | Template |
-| [KLV](ingress/klv/) | MISB KLV metadata | (template) | Template |
+| [KLV](ingress/klv/) | MISB KLV metadata | OBSERVATION_EVENT (EO) | Template |
 | [Example-vendor](ingress/example-vendor/) | `example-vendor-pack` RF JSON | OBSERVATION_EVENT (RF) | Worked exercise |
 
 Each adapter implements the standard `detect()` / `translate()` / `validate()`

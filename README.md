@@ -184,7 +184,8 @@ contribute one.
   `calibration_state="CALIBRATED"` (or `"DEGRADED"`) explicitly only when the
   deployment can substantiate it.
 - Deployments using release or contract hash gates should update expected
-  hashes from the v1.1.13 release manifest.
+  hashes from the current release manifest
+  (`release/zmeta-release-manifest.yaml` at the pinned tag).
 - Downstream clone users should pin to a tagged release and integrate through
   adapters, policy/config, profiles, and namespaced extensions. Local changes to
   core schema, event vocabulary, version dispatch, risk semantics, projection
