@@ -135,9 +135,12 @@ def main():
     policy = validators.load_policy(policy_dir)
 
     failures = 0
+    pass_total = 0
+    fail_total = 0
 
     pass_state = validators.ValidationState()
     for line_no, item in _iter_jsonl(args.pass_file):
+        pass_total += 1
         profile = item.get("profile", "H")
         event = item.get("event")
         if not event:
@@ -153,7 +156,12 @@ def main():
         else:
             pass_state.record(event)
 
+    if pass_total == 0:
+        failures += 1
+        print(f"FAIL pass file {args.pass_file} contains no fixtures - an empty file proves nothing")
+
     for line_no, item in _iter_jsonl(args.fail_file):
+        fail_total += 1
         profile = item.get("profile", "H")
         event = item.get("event")
         expected = item.get("expect_code")
@@ -173,6 +181,10 @@ def main():
             print(
                 f"FAIL fail line={line_no} profile={profile} expected={expected} got={code_str}"
             )
+
+    if fail_total == 0:
+        failures += 1
+        print(f"FAIL fail file {args.fail_file} contains no fixtures - an empty file proves nothing")
 
     if failures:
         raise SystemExit(1)
@@ -316,7 +328,7 @@ def main():
         if result:
             raise SystemExit(result)
 
-    print("conformance ok")
+    print(f"conformance ok pass={pass_total} fail={fail_total}")
 
 
 if __name__ == "__main__":

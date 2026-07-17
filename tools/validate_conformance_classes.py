@@ -1,3 +1,18 @@
+"""Validate the ZMeta conformance class manifest and example claims.
+
+Checks the class manifest shape (required fields, statuses, dependency graph,
+referenced repo paths, extension-registry dependencies) and each claim file
+against it (required fields, claimable statuses, dependency closure, required
+test commands and their recorded results, hash/version bookkeeping fields).
+
+Optional cross-check: pass --verify-contract-hash to also compare each claim's
+recorded contract_hash against the semantic_contract_hash recorded in the
+release manifest (string equality against the manifest's stored value; the
+hash is never recomputed from the contract source). Off by default because the
+manifest hash only moves when a release is cut, while claims may be authored
+against an in-flight tree.
+"""
+
 import argparse
 from pathlib import Path
 from typing import Any
@@ -84,7 +99,7 @@ PATH_FIELDS = {
 
 NON_CLAIMABLE_DEFAULT = {"future", "reserved", "planned"}
 IMPLEMENTED_LIKE = {"implemented", "partially_implemented"}
-PLACEHOLDER_HASHES = {"pending_D-002", "pending_d002", "pending", "example_pending_checkpoint_commit"}
+DEFAULT_RELEASE_MANIFEST = ROOT / "release" / "zmeta-release-manifest.yaml"
 
 
 def parse_args() -> argparse.Namespace:
@@ -104,6 +119,20 @@ def parse_args() -> argparse.Namespace:
         "--extension-registry",
         default=str(ROOT / "spec" / "extension-registry.yaml"),
         help="Path to extension registry YAML used for dependency checks.",
+    )
+    parser.add_argument(
+        "--release-manifest",
+        default=str(DEFAULT_RELEASE_MANIFEST),
+        help="Release manifest supplying semantic_contract_hash for --verify-contract-hash.",
+    )
+    parser.add_argument(
+        "--verify-contract-hash",
+        action="store_true",
+        help=(
+            "Also compare each claim's contract_hash against the release "
+            "manifest's recorded semantic_contract_hash (string equality "
+            "against the stored value; never recomputed). Off by default."
+        ),
     )
     return parser.parse_args()
 
@@ -369,6 +398,8 @@ def _result_map(claim: dict[str, Any]) -> dict[str, str]:
 def validate_claim(
     claim_path: Path | str,
     manifest: dict[str, Any],
+    *,
+    expected_contract_hash: str | None = None,
 ) -> list[dict[str, str]]:
     path = Path(claim_path)
     claim, issues = _load_claim(path)
@@ -485,7 +516,13 @@ def validate_claim(
     if not claim.get("commit_hash"):
         issues.append(_issue("CONFORMANCE_CLAIM_HASH_MISSING", "commit_hash is required", item=item_name))
     if not claim.get("contract_hash"):
-        issues.append(_issue("CONFORMANCE_CLAIM_HASH_MISSING", "contract_hash is required or must use pending_D-002", item=item_name))
+        issues.append(
+            _issue(
+                "CONFORMANCE_CLAIM_HASH_MISSING",
+                "contract_hash is required: record the release manifest semantic_contract_hash the claim was validated against",
+                item=item_name,
+            )
+        )
 
     if claim.get("contract_hash") in {None, ""}:
         issues.append(_issue("CONFORMANCE_CLAIM_HASH_MISSING", "contract_hash cannot be empty", item=item_name))
@@ -497,19 +534,64 @@ def validate_claim(
         if value in (None, "", []):
             issues.append(_issue("CONFORMANCE_CLAIM_VERSION_FIELD_MISSING", f"{field} must be recorded or explicitly placeholdered", item=item_name))
 
+    if expected_contract_hash is not None:
+        recorded = str(claim.get("contract_hash") or "")
+        if recorded != expected_contract_hash:
+            issues.append(
+                _issue(
+                    "CONFORMANCE_CLAIM_CONTRACT_HASH_MISMATCH",
+                    f"contract_hash expected {expected_contract_hash} (release manifest semantic_contract_hash), got {recorded or 'none'}",
+                    item=item_name,
+                )
+            )
+
     return issues
 
 
 def validate_claims(
     claim_paths: list[Path | str],
     manifest_path: Path | str,
+    *,
+    expected_contract_hash: str | None = None,
 ) -> list[dict[str, str]]:
     manifest, issues = _load_manifest(Path(manifest_path))
     if manifest is None:
         return issues
     for path in claim_paths:
-        issues.extend(validate_claim(Path(path), manifest))
+        issues.extend(
+            validate_claim(Path(path), manifest, expected_contract_hash=expected_contract_hash)
+        )
     return issues
+
+
+def _manifest_contract_hash(release_manifest_path: Path) -> tuple[str | None, list[dict[str, str]]]:
+    """Read the recorded semantic_contract_hash from the release manifest."""
+    if not release_manifest_path.is_file():
+        return None, [
+            _issue(
+                "CONFORMANCE_RELEASE_MANIFEST_MISSING",
+                f"release manifest not found: {release_manifest_path}",
+            )
+        ]
+    try:
+        manifest = load_yaml(release_manifest_path)
+    except Exception as exc:
+        return None, [
+            _issue(
+                "CONFORMANCE_RELEASE_MANIFEST_INVALID",
+                f"failed to load release manifest YAML: {exc}",
+            )
+        ]
+    value = manifest.get("semantic_contract_hash") if isinstance(manifest, dict) else None
+    if not value:
+        return None, [
+            _issue(
+                "CONFORMANCE_RELEASE_MANIFEST_INVALID",
+                "release manifest has no semantic_contract_hash",
+                item=str(release_manifest_path),
+            )
+        ]
+    return str(value), []
 
 
 def run(
@@ -517,14 +599,28 @@ def run(
     claims: list[str] | None = None,
     extension_registry_path: Path | str | None = None,
     *,
+    verify_contract_hash: bool = False,
+    release_manifest_path: Path | str | None = None,
     quiet: bool = False,
 ) -> int:
     manifest_file = Path(manifest_path)
     issues = validate_manifest(manifest_file, extension_registry_path)
     claim_files = _claim_paths(claims)
 
+    expected_contract_hash: str | None = None
+    if verify_contract_hash:
+        release_manifest = Path(release_manifest_path) if release_manifest_path else DEFAULT_RELEASE_MANIFEST
+        expected_contract_hash, hash_issues = _manifest_contract_hash(release_manifest)
+        issues.extend(hash_issues)
+
     if not issues and claim_files:
-        issues.extend(validate_claims(claim_files, manifest_file))
+        issues.extend(
+            validate_claims(
+                claim_files,
+                manifest_file,
+                expected_contract_hash=expected_contract_hash,
+            )
+        )
 
     if issues:
         for issue in issues:
@@ -545,6 +641,8 @@ def main() -> None:
             args.manifest,
             claims=args.claims,
             extension_registry_path=args.extension_registry,
+            verify_contract_hash=args.verify_contract_hash,
+            release_manifest_path=args.release_manifest,
         )
     )
 

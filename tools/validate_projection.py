@@ -79,13 +79,20 @@ STATE_PROHIBITED_PAYLOAD_FIELDS = {
     "data_ref",
     "data_refs",
 }
+# Full contract 7.8 enumerated altitude set (matching the
+# policy/semantics.yaml command_event denylist); "altitude"-substring keys
+# such as target_altitude are caught by the substring check below. Bare
+# "msl_m" is kept as a defensive superset.
 COMMAND_ALTITUDE_KEYS = {
     "alt",
     "alt_m",
     "altitude",
     "altitude_m",
+    "alt_hae_m",
+    "alt_msl_m",
     "agl_m",
     "msl_m",
+    "target_alt_m",
 }
 
 REQUIRED_ALWAYS = (
@@ -607,7 +614,11 @@ def _check_prohibited_fields(projected: dict[str, Any]) -> list[dict[str, Any]]:
                 )
     if event_type == "COMMAND_EVENT":
         for path, key, _value in _walk(payload, "payload"):
-            key_lc = key.lower()
+            # strip()+casefold parity with the runtime semantic check
+            # (gateway/src/validators.py _normalize_key), so padded or
+            # case-varied copies of a denylisted name cannot slip past this
+            # redundant defense-in-depth check either.
+            key_lc = str(key).strip().casefold()
             if key_lc in COMMAND_ALTITUDE_KEYS or "altitude" in key_lc:
                 out.append(
                     _violation(
@@ -1132,8 +1143,11 @@ def run_suite(
     failures = 0
     passed = 0
     expected_failures = 0
+    must_pass_total = 0
+    must_fail_total = 0
 
     for line_no, item in iter_jsonl(must_pass_path) or []:
+        must_pass_total += 1
         label = _case_label(item, line_no)
         violations = compare_projection(item, catalog, policy, schema_validator)
         if violations:
@@ -1148,6 +1162,7 @@ def run_suite(
                 print(f"PASS must-pass name={label}")
 
     for line_no, item in iter_jsonl(must_fail_path) or []:
+        must_fail_total += 1
         label = _case_label(item, line_no)
         expected = item.get("expect_code")
         violations = compare_projection(item, catalog, policy, schema_validator)
@@ -1165,6 +1180,13 @@ def run_suite(
             expected_failures += 1
             if not quiet:
                 print(f"PASS must-fail name={label} expected={expected}")
+
+    if must_pass_total == 0:
+        failures += 1
+        print(f"FAIL must-pass file {must_pass_path} contains no fixtures - an empty file proves nothing")
+    if must_fail_total == 0:
+        failures += 1
+        print(f"FAIL must-fail file {must_fail_path} contains no fixtures - an empty file proves nothing")
 
     total = passed + expected_failures
     if failures:

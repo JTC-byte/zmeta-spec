@@ -135,8 +135,9 @@ def validate_file(path: Path, profile: str, validator, policy, severity_map, str
     return {"total": total, "passed": passed, "failed": failed, "warnings": warnings}
 
 
-def main():
-    args = parse_args()
+def run(*, strict=False, require_all=False, root=None, example_map=None):
+    root = Path(root) if root else ROOT
+    example_map = example_map if example_map is not None else EXAMPLE_MAP
     schema_path = ROOT / "schema" / "zmeta-event.schema.json"
     policy_dir = ROOT / "policy"
 
@@ -145,15 +146,22 @@ def main():
     severity_map = policy.get("violation_severities", {})
 
     missing = []
+    empty = []
     overall = {"total": 0, "passed": 0, "failed": 0, "warnings": 0}
 
-    for rel_path, profile in EXAMPLE_MAP:
-        path = ROOT / rel_path
+    for rel_path, profile in example_map:
+        path = root / rel_path
         if not path.exists():
             missing.append(rel_path)
             print(f"WARN missing file {rel_path}")
             continue
-        stats = validate_file(path, profile, validator, policy, severity_map, args.strict)
+        stats = validate_file(path, profile, validator, policy, severity_map, strict)
+        if stats["total"] == 0:
+            # A registered corpus file that exists but holds zero events must
+            # not pass silently - an empty file proves nothing.
+            empty.append(rel_path)
+            label = "FAIL" if (strict or require_all) else "WARN"
+            print(f"{label} empty corpus {rel_path} contains no events - an empty file proves nothing")
         overall["total"] += stats["total"]
         overall["passed"] += stats["passed"]
         overall["failed"] += stats["failed"]
@@ -163,16 +171,22 @@ def main():
             f"passed={stats['passed']} failed={stats['failed']} warnings={stats['warnings']}"
         )
 
-    if missing and args.require_all:
+    if missing and require_all:
         overall["failed"] += len(missing)
+    if empty and (strict or require_all):
+        overall["failed"] += len(empty)
 
     print(
         f"overall total={overall['total']} passed={overall['passed']} "
         f"failed={overall['failed']} warnings={overall['warnings']}"
     )
 
-    if overall["failed"]:
-        raise SystemExit(1)
+    return 1 if overall["failed"] else 0
+
+
+def main():
+    args = parse_args()
+    raise SystemExit(run(strict=args.strict, require_all=args.require_all))
 
 
 if __name__ == "__main__":

@@ -12,6 +12,8 @@ spec = importlib.util.spec_from_file_location("zmeta_validators", VALIDATORS_PAT
 validators = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(validators)
 
+MANIFEST_PATH = ROOT / "release" / "zmeta-release-manifest.yaml"
+
 TARGETS = (
     "v1.1.1",
     "v1.1.2",
@@ -83,6 +85,20 @@ TIMING_REQUIRED_EVENT_TYPES = {
 }
 
 
+def default_target():
+    """Read the current release id from the release manifest (zmeta-vX -> vX)."""
+    try:
+        import yaml
+
+        manifest = yaml.safe_load(MANIFEST_PATH.read_text(encoding="utf-8"))
+        release_id = str(manifest.get("release_id", ""))
+    except Exception:
+        return None
+    if release_id.startswith("zmeta-"):
+        return release_id[len("zmeta-"):]
+    return release_id or None
+
+
 def parse_args():
     parser = argparse.ArgumentParser(
         description="Report migration-oriented ZMeta compatibility issues."
@@ -90,9 +106,12 @@ def parse_args():
     parser.add_argument("file", help="ZMeta JSON or JSONL file to check.")
     parser.add_argument(
         "--target",
-        default="v1.1.10",
+        default=None,
         choices=TARGETS,
-        help="Release target to check against. v1.1.x keeps zmeta_version 1.0 and 1.1.0.",
+        help=(
+            "Release target to check against (default: release_id from "
+            "release/zmeta-release-manifest.yaml). v1.1.x keeps zmeta_version 1.0 and 1.1.0."
+        ),
     )
     parser.add_argument(
         "--profile",
@@ -526,6 +545,8 @@ def print_text(path, issues, strict):
 
 def main():
     args = parse_args()
+    if args.target is None:
+        args.target = default_target() or TARGETS[-1]
     schema = validators.load_schema(args.schema)
     policy = validators.load_policy(args.policy_dir)
     state = validators.ValidationState()
@@ -559,6 +580,17 @@ def main():
         check_policy(instance, line, issues, policy, state, profile)
         check_schema(instance, line, issues, schema, policy)
         state.record(instance)
+
+    if parsed_events == 0 and not issues:
+        add_issue(
+            issues,
+            "empty_input",
+            "fail",
+            0,
+            "UNKNOWN",
+            "$",
+            f"{args.file} contains no events - an empty file proves nothing",
+        )
 
     failed = sum(1 for issue in issues if issue["severity"] == "fail")
     warnings = sum(1 for issue in issues if issue["severity"] == "warn")

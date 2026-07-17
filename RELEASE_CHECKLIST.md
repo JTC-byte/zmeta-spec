@@ -10,7 +10,8 @@ Use this as the template for each release.
 - [ ] Release package templates or generated package output validated
 - [ ] Schema validates against examples
 - [ ] Policy pack validation run locally
-- [ ] Examples and conformance corpus validate locally
+- [ ] Examples and conformance corpus validate locally:
+      `python tools/validate_examples.py --strict --require-all`
 - [ ] Full kernel-protection conformance passes:
       `python tools/validate_conformance.py --strict --profile-projection --extension-registry --conformance-classes --encoding-negative --precision-policy --release-manifest --release-package --bad-events --adapter-harness`
 - [ ] Consumer risk-filter presets verified:

@@ -140,6 +140,10 @@ def run(*, must_fail_path: Path | str | None = None, quiet: bool = False) -> int
             failures += 1
             print(f"FAIL name={label}: {result['message']}")
 
+    if passed + failures == 0:
+        print(f"FAIL {path} contains no fixtures - an empty file proves nothing")
+        return 1
+
     if failures:
         print(f"bad-event corpus failed total={passed} failures={failures}")
         return 1

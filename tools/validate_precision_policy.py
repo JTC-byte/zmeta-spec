@@ -848,6 +848,8 @@ def run_suite(
     failures = 0
     passed = 0
     expected_failures = 0
+    must_pass_total = 0
+    must_fail_total = 0
 
     if shape_issues:
         for issue in shape_issues:
@@ -855,6 +857,7 @@ def run_suite(
         return 1
 
     for line_no, item in iter_jsonl(must_pass_path):
+        must_pass_total += 1
         label = _case_label(item, line_no)
         issues = compare_precision(item, precision_policy, catalog, base_policy, schema_validator)
         if issues:
@@ -869,6 +872,7 @@ def run_suite(
                 print(f"PASS must-pass name={label}")
 
     for line_no, item in iter_jsonl(must_fail_path):
+        must_fail_total += 1
         label = _case_label(item, line_no)
         expected = item.get("expect_code")
         if expected not in FAILURE_CODES:
@@ -892,6 +896,13 @@ def run_suite(
             expected_failures += 1
             if not quiet:
                 print(f"PASS must-fail name={label} expected={expected}")
+
+    if must_pass_total == 0:
+        failures += 1
+        print(f"FAIL must-pass file {must_pass_path} contains no fixtures - an empty file proves nothing")
+    if must_fail_total == 0:
+        failures += 1
+        print(f"FAIL must-fail file {must_fail_path} contains no fixtures - an empty file proves nothing")
 
     total = passed + expected_failures
     if failures:

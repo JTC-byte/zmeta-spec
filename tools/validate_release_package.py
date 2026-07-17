@@ -213,10 +213,32 @@ def _validate_attestation(path: Path, manifest: dict[str, Any]) -> list[dict[str
     return issues
 
 
-def _validate_checksums(path: Path, package_dir: Path) -> list[dict[str, str]]:
+def _package_artifact_list(metadata_path: Path) -> list[str]:
+    """Read package_artifacts from the package metadata for coverage checks."""
+    if not metadata_path.is_file():
+        return []
+    try:
+        data = load_yaml(metadata_path)
+    except Exception:
+        return []
+    if not isinstance(data, dict):
+        return []
+    artifacts = data.get("package_artifacts", [])
+    if not isinstance(artifacts, list):
+        return []
+    return [str(item) for item in artifacts]
+
+
+def _validate_checksums(
+    path: Path,
+    package_dir: Path,
+    expected_artifacts: list[str] | None = None,
+) -> list[dict[str, str]]:
     issues: list[dict[str, str]] = []
     if not path.is_file():
         return [_issue("RELEASE_PACKAGE_CHECKSUMS_MISSING", f"checksum file not found: {path}", item=str(path))]
+    listed: set[str] = set()
+    valid_lines = 0
     for line_no, raw in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
         line = raw.strip()
         if not line:
@@ -226,6 +248,8 @@ def _validate_checksums(path: Path, package_dir: Path) -> list[dict[str, str]]:
             issues.append(_issue("RELEASE_PACKAGE_CHECKSUM_MALFORMED", f"line {line_no} is malformed", item=str(path)))
             continue
         expected, rel = parts
+        valid_lines += 1
+        listed.add(rel)
         artifact = package_dir / rel
         if not artifact.is_file():
             issues.append(_issue("RELEASE_PACKAGE_ARTIFACT_MISSING", f"checksum target missing: {rel}", item=rel))
@@ -236,6 +260,29 @@ def _validate_checksums(path: Path, package_dir: Path) -> list[dict[str, str]]:
                 _issue(
                     "RELEASE_PACKAGE_CHECKSUM_MISMATCH",
                     f"{rel} expected {expected}, got {actual}",
+                    item=rel,
+                )
+            )
+
+    if valid_lines == 0:
+        issues.append(
+            _issue(
+                "RELEASE_PACKAGE_CHECKSUMS_EMPTY",
+                f"{path.name} has no valid checksum lines - an empty checksum file proves nothing",
+                item=str(path),
+            )
+        )
+
+    # Coverage cross-check: every package artifact that exists on disk must be
+    # listed (the checksum file cannot contain its own hash, so it is exempt).
+    for rel in expected_artifacts or []:
+        if rel == path.name:
+            continue
+        if (package_dir / rel).is_file() and rel not in listed:
+            issues.append(
+                _issue(
+                    "RELEASE_PACKAGE_CHECKSUM_COVERAGE_MISSING",
+                    f"package artifact not covered by {path.name}: {rel}",
                     item=rel,
                 )
             )
@@ -284,9 +331,16 @@ def validate_release_package(
         issues.append(_issue("RELEASE_PACKAGE_DIR_MISSING", f"package directory not found: {package_dir}", item=str(package_dir)))
         return issues
     issues.extend(scan_no_secrets([package_dir]))
-    issues.extend(_validate_metadata(package_dir / "zmeta-release-package.yaml", manifest, package_dir))
+    metadata_path = package_dir / "zmeta-release-package.yaml"
+    issues.extend(_validate_metadata(metadata_path, manifest, package_dir))
     issues.extend(_validate_attestation(package_dir / "ATTESTATION.yaml", manifest))
-    issues.extend(_validate_checksums(package_dir / "SHA256SUMS.txt", package_dir))
+    issues.extend(
+        _validate_checksums(
+            package_dir / "SHA256SUMS.txt",
+            package_dir,
+            _package_artifact_list(metadata_path),
+        )
+    )
     return issues
 
 

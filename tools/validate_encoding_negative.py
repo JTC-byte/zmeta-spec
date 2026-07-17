@@ -726,7 +726,9 @@ def run(
     failures = 0
     passed = 0
     for path in paths:
+        file_total = 0
         for line_no, fixture in iter_jsonl(path):
+            file_total += 1
             label = _case_label(fixture, line_no)
             expected_stage = fixture.get("expected_stage")
             expected_code = fixture.get("expect_code")
@@ -742,6 +744,9 @@ def run(
                 passed += 1
                 if not quiet:
                     print(f"PASS name={label} expected={expected_stage}/{expected_code}")
+        if file_total == 0:
+            failures += 1
+            print(f"FAIL {path} contains no fixtures - an empty file proves nothing")
 
     if failures:
         print(f"encoding negative failed total={passed} failures={failures}")

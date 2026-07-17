@@ -2,7 +2,7 @@ import argparse
 import shutil
 from pathlib import Path
 
-VERSION_TAG = "v1.1.12"
+MANIFEST_PATH = Path(__file__).resolve().parent / "zmeta-release-manifest.yaml"
 IGNORE_NAMES = (
     "__pycache__",
     ".pytest_cache",
@@ -70,9 +70,27 @@ def make_zip(root: Path, bundle_dir: Path, archive_name: str) -> Path:
     return archive_path
 
 
+def default_version_tag():
+    """Read the current release id from the release manifest (zmeta-vX -> vX)."""
+    try:
+        import yaml
+
+        manifest = yaml.safe_load(MANIFEST_PATH.read_text(encoding="utf-8"))
+        release_id = str(manifest.get("release_id", ""))
+    except Exception:
+        return None
+    if release_id.startswith("zmeta-"):
+        release_id = release_id[len("zmeta-"):]
+    return release_id or None
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Build edge and gateway ZMeta release packages.")
-    parser.add_argument("--version", default=VERSION_TAG, help="Release tag, e.g. v1.1.9.")
+    parser.add_argument(
+        "--version",
+        default=None,
+        help="Release tag, e.g. v1.1.9 (default: release_id from release/zmeta-release-manifest.yaml).",
+    )
     return parser.parse_args()
 
 
@@ -104,7 +122,12 @@ COMMON_PATHS = [
 
 def main() -> None:
     args = parse_args()
-    version_tag = args.version if args.version.startswith("v") else f"v{args.version}"
+    version = args.version or default_version_tag()
+    if not version:
+        raise SystemExit(
+            "could not derive release version from release/zmeta-release-manifest.yaml; pass --version"
+        )
+    version_tag = version if version.startswith("v") else f"v{version}"
     root = Path(__file__).resolve().parents[1]
     bundle_root = root / "release" / "bundles"
     bundle_root.mkdir(parents=True, exist_ok=True)

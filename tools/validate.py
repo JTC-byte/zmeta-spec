@@ -142,6 +142,10 @@ def main():
 
         passed += 1
 
+    if total == 0:
+        failed += 1
+        print(f"FAIL EMPTY_INPUT file={args.file} contains no events - an empty file proves nothing")
+
     if args.strict and warnings:
         failed += warnings
         warnings = 0

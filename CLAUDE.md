@@ -84,6 +84,7 @@ promise.
   The canonical stack is the top-level tree.
 - Before proposing governed changes as done, run the kernel gates:
   `python tools/validate_conformance.py --strict --profile-projection --extension-registry --conformance-classes --encoding-negative --precision-policy --release-manifest --release-package --bad-events --adapter-harness`
+  and `python tools/validate_examples.py --strict --require-all`,
   then `python -m pytest -q` (full invocation in `AGENTS.md`).
 - Never create tags, push branches, upload releases, generate signatures, or
   rewrite published checksums unless explicitly asked (see `AGENTS.md` release

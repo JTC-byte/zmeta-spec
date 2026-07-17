@@ -74,7 +74,10 @@ def write_checksums(release_dir: Path, version: str) -> Path:
     artifacts = _existing_artifacts(release_dir, version)
     checksum_path = release_dir / f"SHA256SUMS_{version}.txt"
     lines = [f"{_sha256(path)}  {path.name}" for path in artifacts]
-    checksum_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    # LF line endings so plain `sha256sum -c` works on Linux. Applies only to
+    # newly written checksum files; published SHA256SUMS_*.txt are immutable.
+    with checksum_path.open("w", encoding="utf-8", newline="\n") as handle:
+        handle.write("\n".join(lines) + "\n")
     return checksum_path
 
 
@@ -84,6 +87,8 @@ def verify_checksums(release_dir: Path, version: str) -> list[str]:
         raise FileNotFoundError(f"missing checksum file: {checksum_path}")
 
     failures = []
+    listed_names: set[str] = set()
+    valid_lines = 0
     for line_no, raw in enumerate(checksum_path.read_text(encoding="utf-8").splitlines(), start=1):
         line = raw.strip()
         if not line:
@@ -93,6 +98,8 @@ def verify_checksums(release_dir: Path, version: str) -> list[str]:
             failures.append(f"line {line_no}: malformed checksum entry")
             continue
         expected, name = parts
+        valid_lines += 1
+        listed_names.add(name)
         path = release_dir / name
         if not path.is_file():
             failures.append(f"{name}: missing")
@@ -100,6 +107,19 @@ def verify_checksums(release_dir: Path, version: str) -> list[str]:
         actual = _sha256(path)
         if actual != expected:
             failures.append(f"{name}: expected {expected}, got {actual}")
+
+    # Parity with GNU `sha256sum -c`, which errors when no properly formatted
+    # checksum lines are found - an empty checksum file proves nothing.
+    if valid_lines == 0:
+        failures.append(
+            f"{checksum_path.name}: no valid checksum lines found - an empty checksum file proves nothing"
+        )
+
+    # Coverage cross-check: every expected release artifact that exists on
+    # disk must be listed, so a truncated checksum file cannot verify clean.
+    for name in _artifact_names(version):
+        if (release_dir / name).is_file() and name not in listed_names:
+            failures.append(f"{name}: present on disk but not listed in {checksum_path.name}")
     return failures
 
 

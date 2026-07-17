@@ -2,7 +2,21 @@ import argparse
 import shutil
 from pathlib import Path
 
-VERSION = "1.1.12"
+MANIFEST_PATH = Path(__file__).resolve().parent / "zmeta-release-manifest.yaml"
+
+
+def default_version():
+    """Read the current release id from the release manifest (zmeta-vX -> X, no leading v)."""
+    try:
+        import yaml
+
+        manifest = yaml.safe_load(MANIFEST_PATH.read_text(encoding="utf-8"))
+        release_id = str(manifest.get("release_id", ""))
+    except Exception:
+        return None
+    if release_id.startswith("zmeta-"):
+        release_id = release_id[len("zmeta-"):]
+    return release_id.lstrip("v") or None
 
 
 def collect_sources(root, version):
@@ -75,13 +89,24 @@ def copy_tree(src, dest):
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Build the full ZMeta release bundle.")
-    parser.add_argument("--version", default=VERSION, help="Release version without leading v.")
+    parser.add_argument(
+        "--version",
+        default=None,
+        help=(
+            "Release version without leading v "
+            "(default: release_id from release/zmeta-release-manifest.yaml)."
+        ),
+    )
     return parser.parse_args()
 
 
 def main():
     args = parse_args()
-    version = args.version.lstrip("v")
+    version = args.version.lstrip("v") if args.version else default_version()
+    if not version:
+        raise SystemExit(
+            "could not derive release version from release/zmeta-release-manifest.yaml; pass --version"
+        )
     root = Path(__file__).resolve().parents[1]
     dist = root / "release" / "dist"
 
