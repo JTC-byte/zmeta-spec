@@ -42,8 +42,13 @@
   pins; test_release_currency green against the v1.1.14 manifest).
   Signing decision: checksums-only, stated in the release notes.
   Retention: nothing newly archivable (fix-pass records are current
-  context). Publication note: appended below after tag push, GitHub
-  release creation, and CI confirmation.
+  context). Publication confirmed (2026-07-17): release commit
+  `f9241c4`, annotated tag `v1.1.14` pushed, GitHub release live with
+  all eight assets and marked Latest
+  (<https://github.com/JTC-byte/zmeta-spec/releases/tag/v1.1.14>),
+  GitHub CI passed for the release commit, body carries the release
+  notes including checksum verification instructions. Checksums-only;
+  signing remains the maintainer's external process.
 - R1-10 fix pass + verification (2026-07-17, maintainer-directed "fix
   every issue found, then re-audit"): every audit finding fixed or
   documented-deferred across nine commits — ddd0252 (audit record),
