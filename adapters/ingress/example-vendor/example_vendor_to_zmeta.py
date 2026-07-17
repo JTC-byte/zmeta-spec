@@ -73,8 +73,11 @@ def translate(input_obj, schema_id, *, based_on=None, timing_quality=None):
     minimum feature set (contract 7.4) makes ``center_freq_hz``,
     ``bandwidth_hz``, and ``power_dbm`` all required — a reading missing any
     of them is refused, never emitted schema-invalid. Refusal covers missing
-    and null required values; other invalid value types (for example a
-    string frequency) are left to schema validation (ladder step 2) by
+    and null values uniformly across the required keys — a null
+    ``platform_id`` or ``sensor_id`` is refused, never coerced into a
+    fabricated identity string. Identity and feature values pass through
+    uncoerced; wrong value types (for example a string frequency or a
+    numeric ``sensor_id``) are left to schema validation (ladder step 2) by
     design.
 
     ``based_on`` is caller-supplied real parent event ids. Lineage is never
@@ -87,10 +90,9 @@ def translate(input_obj, schema_id, *, based_on=None, timing_quality=None):
         return []
     if not _SIGNATURE_KEYS.issubset(input_obj):
         return []
-    if any(
-        input_obj.get(key) is None
-        for key in ("center_freq_hz", "bandwidth_hz", "power_dbm")
-    ):
+    # A null under any required key is refused like a missing key: coercing a
+    # null platform_id or sensor_id to text would fabricate identity.
+    if any(input_obj.get(key) is None for key in _SIGNATURE_KEYS):
         return []
     ts = normalize_utc_z(input_obj.get("ts"))
     if ts is None:
@@ -126,10 +128,10 @@ def translate(input_obj, schema_id, *, based_on=None, timing_quality=None):
             "ts": ts,
         },
         "source": {
-            "platform_id": str(input_obj["platform_id"]),
+            "platform_id": input_obj["platform_id"],
             "node_role": "EDGE",
             "producer": "example-vendor",
-            "sensor_id": str(input_obj["sensor_id"]),
+            "sensor_id": input_obj["sensor_id"],
         },
         "payload": payload,
     }

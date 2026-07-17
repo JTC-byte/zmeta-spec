@@ -127,6 +127,61 @@ def test_json_angular_error_preserved_in_both_paths():
         assert event["payload"]["quality"]["measurement_error"]["value"] == pytest.approx(7.5)
 
 
+def test_json_refuses_missing_center_freq():
+    # center_freq_hz is measured by the sensor: absence means broken input,
+    # so the adapter refuses instead of fabricating a value.
+    raw = dict(JSON_RAW)
+    del raw["center_freq_hz"]
+
+    assert translate_json(raw, platform_id="rf-node-1") is None
+
+
+def test_json_refuses_missing_power():
+    raw = dict(JSON_RAW)
+    del raw["power_dbm"]
+
+    assert translate_json(raw, platform_id="rf-node-1") is None
+
+
+def test_json_missing_bearing_error_omits_error_fields():
+    # angular_error_deg and quality.measurement_error are schema-optional:
+    # when the input carries no bearing_error_deg they are omitted entirely,
+    # never fabricated (earlier versions invented 15.0 deg / 1_SIGMA).
+    raw = dict(JSON_RAW)
+    del raw["bearing_error_deg"]
+    event = translate_json(raw, platform_id="rf-node-1")
+
+    assert event is not None
+    assert "angular_error_deg" not in event["payload"]["features"]
+    assert "measurement_error" not in event["payload"]["quality"]
+    VALIDATOR.validate(event)
+
+
+def test_json_missing_bandwidth_keeps_documented_zero_sentinel():
+    # bandwidth is the one physically-unmeasurable field (KrakenSDR reports
+    # receiver bandwidth, not emitter), so it keeps the documented 0.0
+    # sentinel used by the CSV path instead of refusing.
+    assert "bandwidth_hz" not in JSON_RAW
+    event = _json_event()
+
+    assert event["payload"]["features"]["bandwidth_hz"] == 0.0
+
+
+def test_json_fully_populated_input_unchanged():
+    raw = dict(JSON_RAW)
+    raw["bandwidth_hz"] = 12500.0
+    event = translate_json(raw, platform_id="rf-node-1", platform_heading_deg=90.0)
+
+    features = event["payload"]["features"]
+    assert features["center_freq_hz"] == pytest.approx(433000000.0)
+    assert features["bandwidth_hz"] == pytest.approx(12500.0)
+    assert features["power_dbm"] == pytest.approx(-55.0)
+    assert features["angular_error_deg"] == pytest.approx(7.5)
+    error = event["payload"]["quality"]["measurement_error"]
+    assert error == {"value": 7.5, "unit": "deg", "metric": "1_SIGMA"}
+    VALIDATOR.validate(event)
+
+
 def test_http_body_passes_heading_params_through():
     body = ",".join(CSV_FIELDS)
     events = translate_http_body(

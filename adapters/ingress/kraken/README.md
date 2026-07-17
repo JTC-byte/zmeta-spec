@@ -44,14 +44,32 @@ controlled by keyword-only parameters:
 |-------------|-------------|-------|
 | DOA azimuth | `features.doa_array_relative_deg` | Array-relative, always present |
 | DOA azimuth (heading-compensated) | `bearing.az_deg` | Degrees true north; only when `platform_heading_deg` is supplied |
-| confidence (0-99) | `features.kraken_confidence_0_99` | Also mapped to explicit `quality.measurement_error` (`unit: deg`, `metric: 1_SIGMA`) via `_confidence_to_error_deg()` |
-| RSSI | `features.power_dbm` | |
-| centre frequency | `features.center_freq_hz` | |
-| (derived) | `features.bandwidth_hz` | Set to 0 -- KrakenSDR reports receiver bandwidth, not emitter |
+| confidence (0-99) | `features.kraken_confidence_0_99` | Also mapped to explicit `quality.measurement_error` (`unit: deg`, `metric: 1_SIGMA`) via `_confidence_to_error_deg()` (CSV path) |
+| bearing error (JSON `bearing_error_deg`) | `features.angular_error_deg` + `quality.measurement_error` | Omitted entirely when the input lacks it -- an error bound is never invented |
+| RSSI | `features.power_dbm` | Measured; missing JSON input is refused |
+| centre frequency | `features.center_freq_hz` | Measured; missing JSON input is refused |
+| (derived) | `features.bandwidth_hz` | Set to 0 on both paths -- KrakenSDR reports receiver bandwidth, not emitter; a missing JSON `bandwidth_hz` takes the same 0.0 sentinel |
 
 `quality.snr_db` is only emitted on the JSON path when the input provides
 `snr_db`. The CSV path carries no noise floor, so SNR is omitted there (earlier
 adapter versions fabricated it from RSSI; that is removed as of 1.1.0).
+
+### Missing-input behavior (JSON path)
+
+The CSV path refuses (returns `None`) any row it cannot parse. The JSON path
+applies the same honesty rule per field class rather than defaulting:
+
+- **`center_freq_hz` or `power_dbm` missing: refused** -- `translate_json`
+  returns `None`. The KrakenSDR measures both, so an absent value means broken
+  input, not an unmeasurable quantity (earlier adapter versions fabricated
+  `0.0` Hz / `-80.0` dBm; that is removed as of 1.3.0).
+- **`bandwidth_hz` missing: `0.0` sentinel**, same convention as the CSV
+  path -- the sensor physically cannot measure emitter bandwidth, so 0 is the
+  documented "not measured" marker, not a fabricated measurement.
+- **`bearing_error_deg` missing: omitted** -- `features.angular_error_deg` and
+  `quality.measurement_error` are both schema-optional and are left out
+  entirely (earlier adapter versions fabricated a `15.0` deg `1_SIGMA` bound;
+  that is removed as of 1.3.0).
 
 ### Usage
 

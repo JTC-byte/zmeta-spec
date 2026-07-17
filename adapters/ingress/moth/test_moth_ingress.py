@@ -191,6 +191,78 @@ def test_json_replay_without_bearing_omits_bearing_and_error():
     assert event["payload"]["features"]["power_dbm"] == pytest.approx(-45.2)
 
 
+def test_json_replay_true_north_missing_bearing_error_omits_error_fields():
+    # A missing bearing_error_deg omits features.angular_error_deg and
+    # quality.measurement_error entirely -- an error bound is never
+    # invented (AUTHORING non-negotiable 3).
+    replay = dict(REPLAY_WITH_BEARING)
+    del replay["bearing_error_deg"]
+    event = translate_json_replay(
+        replay, platform_id="uav-01", bearing_frame="TRUE_NORTH"
+    )
+
+    assert event["payload"]["bearing"]["az_deg"] == pytest.approx(123.4)
+    assert "angular_error_deg" not in event["payload"]["features"]
+    assert "measurement_error" not in event["payload"]["quality"]
+    assert event["payload"]["quality"]["bearing_frame"] == "TRUE_NORTH"
+    VALIDATOR.validate(event)
+
+
+def test_json_replay_missing_center_freq_refused():
+    replay = {
+        "timestamp_ms": TS_MS,
+        "frequency": {"bandwidth_hz": 1000000.0},
+        "power": {"rssi_dbm": -45.2},
+    }
+
+    assert translate_json_replay(replay, platform_id="uav-01") is None
+
+
+def test_json_replay_missing_power_refused():
+    replay = {
+        "timestamp_ms": TS_MS,
+        "frequency": {"center_hz": 2437000000.0},
+    }
+
+    assert translate_json_replay(replay, platform_id="uav-01") is None
+
+
+def test_json_replay_missing_bandwidth_keeps_documented_sentinel():
+    # REPLAY_WITHOUT_BEARING carries no frequency.bandwidth_hz; 0.0 is the
+    # documented "no emitter bandwidth measured" sentinel (see README).
+    event = translate_json_replay(dict(REPLAY_WITHOUT_BEARING), platform_id="uav-01")
+
+    assert event["payload"]["features"]["bandwidth_hz"] == 0.0
+    assert event["payload"]["features"]["center_freq_hz"] == pytest.approx(2437000000.0)
+    assert event["payload"]["features"]["power_dbm"] == pytest.approx(-45.2)
+
+
+def test_json_replay_partial_sensor_position_omits_geo():
+    # Canonical geo is all-or-nothing (semantics contract section 6.8):
+    # any missing component omits geo entirely -- never zero-filled.
+    for sensor_position in (
+        {"lat": 34.0, "lon": -118.0},   # missing alt_m
+        {"lat": 34.0, "alt_m": 120.0},  # missing lon
+        {},                             # empty
+    ):
+        replay = dict(REPLAY_WITHOUT_BEARING)
+        replay["sensor_position"] = sensor_position
+        event = translate_json_replay(replay, platform_id="uav-01")
+
+        assert "geo" not in event["payload"]
+        assert event["payload"]["quality"]["geo_status"] == "UNAVAILABLE"
+        VALIDATOR.validate(event)
+
+
+def test_json_replay_full_sensor_position_maps_geo_unchanged():
+    replay = dict(REPLAY_WITHOUT_BEARING)
+    replay["sensor_position"] = {"lat": 34.0, "lon": -118.0, "alt_m": 120.0}
+    event = translate_json_replay(replay, platform_id="uav-01")
+
+    assert event["payload"]["geo"] == {"lat": 34.0, "lon": -118.0, "alt_m": 120.0}
+    assert event["payload"]["quality"]["geo_status"] == "AVAILABLE"
+
+
 def test_events_validate_against_v1_0_schema():
     for event in (
         _serial_event(sensor_geo=GEO),

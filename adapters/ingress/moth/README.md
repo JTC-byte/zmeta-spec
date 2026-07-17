@@ -38,6 +38,33 @@ with UAS heading during yaw scans.
 - All events include `features.sensor_hw = "moth"` and `features.source_format`
   to indicate the input transport.
 
+### Bandwidth sentinel
+
+`features.bandwidth_hz` is set to 0.0 on the serial and custom MAVLink paths
+-- the Moth reports peak frequency and power, not emitter bandwidth, so 0.0
+is the documented "no emitter bandwidth measured" sentinel (the same
+convention as the KrakenSDR adapter, whose receiver likewise cannot measure
+emitter bandwidth). The TUNNEL path passes the ICD `bw_hz` field through
+unchanged; a 0.0 there carries the same sentinel meaning. On the JSON replay
+path, a missing `frequency.bandwidth_hz` defaults to the 0.0 sentinel.
+
+### JSON replay refusal matrix and geo (all-or-nothing)
+
+`translate_json_replay()` never fabricates schema-required RF measurements:
+
+| Missing input field | Behavior |
+|---------------------|----------|
+| `frequency.center_hz` | Refused -- returns `None` |
+| `power.rssi_dbm` | Refused -- returns `None` |
+| `frequency.bandwidth_hz` | Emitted with the documented 0.0 sentinel (above) |
+| `bearing_error_deg` (in `bearing_frame="TRUE_NORTH"` mode) | Emitted without `features.angular_error_deg` and `quality.measurement_error` -- an error bound is never invented |
+
+Canonical `geo` is all-or-nothing (semantics contract section 6.8):
+`sensor_position` maps to `payload.geo` only when `lat`, `lon`, and `alt_m`
+are all present. If any of the three is missing, `geo` is omitted entirely
+and `quality.geo_status` is `UNAVAILABLE` -- missing values are never
+zero-filled.
+
 ### Bearing frame
 
 Canonical `bearing.az_deg` is contractually degrees true north (semantics

@@ -239,3 +239,124 @@ def test_zmeta_to_cot_confidence_only():
     remarks = root.find(".//remarks")
     assert remarks is not None
     assert "confidence=0.85" in remarks.text
+
+
+def test_zmeta_to_cot_confidence_with_source_summary():
+    """Confidence must appear in remarks even when source_summary is present."""
+    event = {
+        "event": {
+            "event_type": "STATE_EVENT",
+            "ts": "2025-01-17T14:30:05Z",
+        },
+        "payload": {
+            "track_id": "track-003",
+            "geo": {"lat": 34.0, "lon": -118.0, "alt_m": 0},
+            "valid_for_ms": 5000,
+            "source_summary": ["rf", "acoustic"],
+        },
+        "confidence": 0.64,
+    }
+    xml_text = zmeta_to_cot_module.zmeta_to_cot(event, cot_config=_TEST_CONFIG)
+    assert xml_text is not None
+    root = ET.fromstring(xml_text)
+    remarks = root.find(".//remarks")
+    assert remarks is not None
+    assert "rf" in remarks.text
+    assert "acoustic" in remarks.text
+    assert "confidence=0.64" in remarks.text
+
+
+def test_zmeta_to_cot_default_path_uses_event_time():
+    """No config: event time is authoritative, not wall clock (contract 9.5)."""
+    event = {
+        "event": {
+            "event_type": "STATE_EVENT",
+            "ts": "2025-01-17T14:30:05Z",
+        },
+        "payload": {
+            "track_id": "track-004",
+            "geo": {"lat": 34.0, "lon": -118.0, "alt_m": 0},
+            "valid_for_ms": 5000,
+        },
+    }
+    xml_text = zmeta_to_cot_module.zmeta_to_cot(event)
+    assert xml_text is not None
+    root = ET.fromstring(xml_text)
+    assert root.attrib["time"] == "2025-01-17T14:30:05.000000Z"
+    assert root.attrib["start"] == "2025-01-17T14:30:05.000000Z"
+    assert root.attrib["stale"] == _expected_stale("2025-01-17T14:30:05Z", 5000)
+
+
+def test_zmeta_to_cot_default_path_unknown_accuracy():
+    """No config + no uncertainty: CoT unknown convention 9999999.0, never
+    an invented accuracy figure."""
+    event = {
+        "event": {
+            "event_type": "STATE_EVENT",
+            "ts": "2025-01-17T14:30:05Z",
+        },
+        "payload": {
+            "track_id": "track-005",
+            "geo": {"lat": 34.0, "lon": -118.0, "alt_m": 0},
+            "valid_for_ms": 5000,
+        },
+    }
+    xml_text = zmeta_to_cot_module.zmeta_to_cot(event)
+    assert xml_text is not None
+    root = ET.fromstring(xml_text)
+    point = root.find("point")
+    assert point.attrib["ce"] == "9999999.0"
+    assert point.attrib["le"] == "9999999.0"
+
+
+def test_zmeta_to_cot_default_path_maps_error_ellipse():
+    """No config: real error_ellipse_m still maps to CE/LE."""
+    event = {
+        "event": {
+            "event_type": "STATE_EVENT",
+            "ts": "2025-01-17T14:30:05Z",
+        },
+        "payload": {
+            "track_id": "track-006",
+            "geo": {
+                "lat": 34.0, "lon": -118.0, "alt_m": 0,
+                "error_ellipse_m": {
+                    "semi_major": 42.0,
+                    "semi_minor": 17.0,
+                    "orientation_deg": 90.0,
+                },
+            },
+            "valid_for_ms": 5000,
+        },
+    }
+    xml_text = zmeta_to_cot_module.zmeta_to_cot(event)
+    assert xml_text is not None
+    root = ET.fromstring(xml_text)
+    point = root.find("point")
+    assert point.attrib["ce"] == "42.0"
+    assert point.attrib["le"] == "17.0"
+
+
+def test_zmeta_to_cot_wall_clock_opt_in():
+    """use_wall_clock=True is the explicit replay-display mode: CoT time is
+    re-stamped to the current wall clock, not the event timestamp."""
+    event = {
+        "event": {
+            "event_type": "STATE_EVENT",
+            "ts": "2025-01-17T14:30:05Z",
+        },
+        "payload": {
+            "track_id": "track-007",
+            "geo": {"lat": 34.0, "lon": -118.0, "alt_m": 0},
+            "valid_for_ms": 5000,
+        },
+    }
+    before = datetime.now(timezone.utc)
+    xml_text = zmeta_to_cot_module.zmeta_to_cot(event, cot_config={"use_wall_clock": True})
+    after = datetime.now(timezone.utc)
+    assert xml_text is not None
+    root = ET.fromstring(xml_text)
+    time_attr = root.attrib["time"]
+    stamped = datetime.fromisoformat(time_attr[:-1] + "+00:00")
+    assert before <= stamped <= after
+    assert time_attr != "2025-01-17T14:30:05.000000Z"

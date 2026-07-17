@@ -14,7 +14,7 @@ Source: Z-ISR edge/edge/sensors/kraken_rf.py
 from adapters.ingress.time_utils import coerce_timing_quality, epoch_ms_to_utc_z, utc_now_z
 from zmeta_uuid import uuid7
 
-ADAPTER_VERSION = "1.2.0"
+ADAPTER_VERSION = "1.3.0"
 SCHEMA_ID = "krakensdr-doa"
 DEFAULT_SENSOR_ID = "krakensdr_rf"
 
@@ -222,16 +222,27 @@ def translate_json(
             are never fabricated.
 
     Returns:
-        ZMeta event dict.
+        ZMeta event dict, or None if the input is missing a measured RF
+        field (``center_freq_hz`` or ``power_dbm``). The KrakenSDR measures
+        both, so their absence means broken input -- the adapter refuses
+        rather than fabricating a value. ``bandwidth_hz`` is different: the
+        sensor physically cannot measure emitter bandwidth, so a missing
+        value takes the same documented 0.0 sentinel as the CSV path. A
+        missing ``bearing_error_deg`` omits ``features.angular_error_deg``
+        and ``quality.measurement_error`` entirely (both are schema-optional;
+        an error bound is never invented).
     """
     import time
 
     ts_ms = int(raw.get("timestamp_ms", int(time.time() * 1000)))
     doa_deg = float(raw["bearing_deg"]) % 360.0
-    err = float(raw.get("bearing_error_deg", 15.0))
-    power = float(raw.get("power_dbm", -80.0))
-    freq_hz = float(raw.get("center_freq_hz", 0.0))
+    if raw.get("center_freq_hz") is None or raw.get("power_dbm") is None:
+        return None
+    freq_hz = float(raw["center_freq_hz"])
+    power = float(raw["power_dbm"])
     bw_hz = float(raw.get("bandwidth_hz", 0.0))
+    err_raw = raw.get("bearing_error_deg")
+    err = None if err_raw is None else float(err_raw)
     snr = raw.get("snr_db")
     conf = raw.get("bearing_confidence")
     meta = raw.get("metadata", {})
@@ -245,22 +256,24 @@ def translate_json(
         "center_freq_hz": freq_hz,
         "bandwidth_hz": bw_hz,
         "power_dbm": power,
-        "angular_error_deg": err,
         "sensor_hw": "krakensdr",
     }
+    if err is not None:
+        features["angular_error_deg"] = err
     if meta.get("kraken_confidence_0_99") is not None:
         features["kraken_confidence_0_99"] = meta["kraken_confidence_0_99"]
     if meta.get("hardware_model"):
         features["hardware_model"] = meta["hardware_model"]
 
     quality = {
-        "measurement_error": {
+        "calibration_state": calibration_state,
+    }
+    if err is not None:
+        quality["measurement_error"] = {
             "value": err,
             "unit": "deg",
             "metric": "1_SIGMA",
-        },
-        "calibration_state": calibration_state,
-    }
+        }
     if snr is not None:
         quality["snr_db"] = snr
     if conf is not None:

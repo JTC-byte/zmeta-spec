@@ -25,7 +25,7 @@ import struct
 from adapters.ingress.time_utils import coerce_timing_quality, epoch_ms_to_utc_z, utc_now_z
 from zmeta_uuid import uuid7
 
-ADAPTER_VERSION = "1.2.0"
+ADAPTER_VERSION = "1.3.0"
 SCHEMA_ID_SERIAL = "moth-serial"
 SCHEMA_ID_MAVLINK = "moth-mavlink"
 SCHEMA_ID_TUNNEL = "moth-tunnel"
@@ -171,6 +171,8 @@ def translate_serial_line(line, *, platform_id, sensor_geo=None, sensor_id=None,
             "modality": "RF",
             "features": {
                 "center_freq_hz": peak_freq_mhz * 1e6,
+                # 0.0 is the documented sentinel: the Moth reports no
+                # emitter bandwidth (see README, "Bandwidth sentinel").
                 "bandwidth_hz": 0.0,
                 "power_dbm": peak_dbm,
                 "sensor_hw": "moth",
@@ -355,6 +357,8 @@ def translate_custom_mavlink(frame_bytes, *, platform_id, sensor_geo=None,
             "modality": "RF",
             "features": {
                 "center_freq_hz": freq_mhz * 1e6,
+                # 0.0 is the documented sentinel: the Moth reports no
+                # emitter bandwidth (see README, "Bandwidth sentinel").
                 "bandwidth_hz": 0.0,
                 "power_dbm": float(power_dbm),
                 "sensor_hw": "moth",
@@ -390,12 +394,27 @@ def translate_json_replay(raw, *, platform_id, sensor_geo=None, sensor_id=None,
     to carry degrees true north; otherwise the canonical ``bearing`` block is
     omitted.
 
+    Schema-required RF measurements are never fabricated: a replay record
+    missing ``frequency.center_hz`` or ``power.rssi_dbm`` is refused.
+    ``frequency.bandwidth_hz`` alone may be absent -- it defaults to the
+    documented 0.0 "no emitter bandwidth measured" sentinel (see README).
+    In TRUE_NORTH mode a missing ``bearing_error_deg`` omits
+    ``features.angular_error_deg`` and ``quality.measurement_error``
+    entirely (both are schema-optional; an error bound is never invented).
+
+    Canonical ``geo`` is all-or-nothing (semantics contract section 6.8):
+    ``sensor_position`` maps to ``payload.geo`` only when ``lat``, ``lon``,
+    and ``alt_m`` are all present; otherwise ``geo`` is omitted entirely
+    and ``quality.geo_status`` is ``UNAVAILABLE``. Missing values are never
+    zero-filled.
+
     Args:
         raw: Dict with keys like bearing.az_deg, frequency.center_hz,
             power.rssi_dbm, etc.
 
     Returns:
-        ZMeta event dict.
+        ZMeta event dict, or None if a schema-required RF measurement
+        (frequency.center_hz or power.rssi_dbm) is missing.
     """
     import time
 
@@ -404,23 +423,35 @@ def translate_json_replay(raw, *, platform_id, sensor_geo=None, sensor_id=None,
     freq_obj = raw.get("frequency", {})
     power_obj = raw.get("power", {})
     sensor_pos = raw.get("sensor_position", {})
+
+    center_freq_hz = freq_obj.get("center_hz")
+    power_dbm = power_obj.get("rssi_dbm")
+    if center_freq_hz is None or power_dbm is None:
+        return None
+
     ts_ms = raw.get("timestamp_ms", int(time.time() * 1000))
 
     ts_iso = epoch_ms_to_utc_z(ts_ms)
 
-    geo = sensor_geo or (
-        {"lat": sensor_pos["lat"], "lon": sensor_pos["lon"],
-         "alt_m": sensor_pos.get("alt_m", 0.0)}
-        if sensor_pos.get("lat") is not None
-        else None
-    )
+    # Canonical geo is all-or-nothing (semantics contract section 6.8):
+    # use sensor_position only when lat, lon, AND alt_m are all present;
+    # never zero-fill missing values.
+    if sensor_geo:
+        geo = dict(sensor_geo)
+    elif all(sensor_pos.get(key) is not None for key in ("lat", "lon", "alt_m")):
+        geo = {"lat": sensor_pos["lat"], "lon": sensor_pos["lon"],
+               "alt_m": sensor_pos["alt_m"]}
+    else:
+        geo = None
 
     sid = sensor_id or DEFAULT_SENSOR_ID
 
     features = {
-        "center_freq_hz": freq_obj.get("center_hz", 0.0),
+        "center_freq_hz": center_freq_hz,
+        # 0.0 is the documented sentinel: the Moth reports no emitter
+        # bandwidth (see README, "Bandwidth sentinel").
         "bandwidth_hz": freq_obj.get("bandwidth_hz", 0.0),
-        "power_dbm": power_obj.get("rssi_dbm", -100.0),
+        "power_dbm": power_dbm,
         "sensor_hw": "moth",
         "source_format": "json_replay",
     }
@@ -433,13 +464,14 @@ def translate_json_replay(raw, *, platform_id, sensor_geo=None, sensor_id=None,
         bearing = {"az_deg": bearing_obj["az_deg"]}
         if bearing_obj.get("el_deg") is not None:
             bearing["el_deg"] = bearing_obj["el_deg"]
-        err = raw.get("bearing_error_deg", 10.0)
-        features["angular_error_deg"] = err
-        quality["measurement_error"] = {
-            "value": err,
-            "unit": "deg",
-            "metric": "1_SIGMA",
-        }
+        err = raw.get("bearing_error_deg")
+        if err is not None:
+            features["angular_error_deg"] = err
+            quality["measurement_error"] = {
+                "value": err,
+                "unit": "deg",
+                "metric": "1_SIGMA",
+            }
         quality["bearing_frame"] = "TRUE_NORTH"
     elif bearing_obj.get("az_deg") is not None:
         _record_unknown_frame_bearing(

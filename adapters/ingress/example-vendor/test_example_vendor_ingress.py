@@ -92,6 +92,20 @@ def test_translate_refuses_missing_bandwidth():
     assert example_vendor.translate(reading, example_vendor.SCHEMA_ID) == []
 
 
+def test_translate_refuses_null_platform_id():
+    # Identity is required semantics: a null platform_id must be refused,
+    # never coerced into the fabricated string "None".
+    reading = dict(PACK_INPUT)
+    reading["platform_id"] = None
+    assert example_vendor.translate(reading, example_vendor.SCHEMA_ID) == []
+
+
+def test_translate_refuses_null_sensor_id():
+    reading = dict(PACK_INPUT)
+    reading["sensor_id"] = None
+    assert example_vendor.translate(reading, example_vendor.SCHEMA_ID) == []
+
+
 def test_translate_refuses_unparseable_timestamp():
     reading = dict(PACK_INPUT)
     reading["ts"] = "yesterday-ish"

@@ -23,7 +23,10 @@ def detect(input_bytes):
 def translate(input_obj, schema_id):
     """
     Translate a parsed input object into a list of ZMeta events.
-    Must set lineage.transform = f\"translate:{schema_id}@{ADAPTER_VERSION}\".
+    Emit lineage only when real parent ZMeta event ids exist: set
+    lineage.based_on to those ids and
+    lineage.transform = f"translate:{schema_id}@{ADAPTER_VERSION}".
+    Otherwise omit the lineage block entirely; never fabricate based_on.
     """
     raise NotImplementedError("translate() must be implemented per source format")
 

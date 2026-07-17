@@ -11,11 +11,16 @@ Input format:
 
   Required detection fields:
     - class_name (str): detected object class
-    - confidence (float): detection confidence 0.0-1.0
+    - confidence (float): detection confidence 0.0-1.0. INFERENCE_EVENT
+      schema-requires top-level confidence and quality metrics are never
+      fabricated, so a detection with confidence absent, null, or
+      non-numeric is refused rather than emitted with a defaulted value.
 
   Optional detection fields:
     - gps ([lat, lon]): detection position array
-    - altitude (float): altitude in metres
+    - altitude (float): altitude in metres. Canonical geo is
+      all-or-nothing (contract 6.8), so a detection position without an
+      altitude yields no ``claim.geo`` — never a zero-filled ``alt_m``.
     - bbox ([x1, y1, x2, y2]): bounding box in image coordinates
     - track_id (str|int): object tracker ID
     - stream_id (str): camera/stream identifier
@@ -43,6 +48,7 @@ _UUID7_RE = re.compile(
 )
 
 _GEO_MAX_SENSOR_DELTA_M = 10000.0
+_GEO_KEYS = ("lat", "lon", "alt_m")
 
 
 def _utc_now():
@@ -100,7 +106,12 @@ def translate(
          (e.g. from flight controller).
       3. If detection GPS is implausibly far from sensor_geo (>10km),
          fall back to sensor_geo.
-      4. If neither is available, omit geo and set geo_status="UNAVAILABLE".
+      4. If neither is available, omit geo and set geo_source="unavailable".
+
+    Canonical geo is all-or-nothing (contract 6.8): a resolved position
+    missing any of lat, lon, or alt_m — for example a detection GPS with
+    no altitude — is never zero-filled; ``claim.geo`` is omitted entirely
+    and geo_source is set to "unavailable".
 
     Args:
         detection: Raw detection dict. Supports both wrapped envelope
@@ -116,11 +127,21 @@ def translate(
             is a schema-valid UUIDv7.
 
     Returns:
-        ZMeta event dict, or None if detection is invalid, below threshold,
-        or carries no schema-valid parent event id. INFERENCE_EVENT lineage
-        must reference the real input observations (semantic contract 4.8
-        and 11.3); a parent id is never fabricated, so a detection without
-        one is refused rather than emitted with invented lineage.
+        ZMeta event dict, or None when the detection is refused (fail
+        closed). Refusal covers:
+          - missing class_name;
+          - confidence absent, null, or non-numeric — INFERENCE_EVENT
+            schema-requires confidence and a quality metric is never
+            fabricated to satisfy it, so the confidence_floor filter
+            applies only to real numeric values;
+          - confidence below confidence_floor;
+          - no schema-valid parent event id: INFERENCE_EVENT lineage must
+            reference the real input observations (semantic contract 4.8
+            and 11.3); a parent id is never fabricated, so a detection
+            without one is refused rather than emitted with invented
+            lineage.
+        Other invalid value types (for example a string altitude) are left
+        to schema validation (ladder step 2) by design.
     """
     # Unwrap envelope if present
     msg_type = detection.get("type", "")
@@ -132,7 +153,13 @@ def translate(
     if "class_name" not in payload:
         return None
 
-    confidence = payload.get("confidence", 0.0)
+    # INFERENCE_EVENT schema-requires top-level confidence, and a quality
+    # metric is never fabricated to satisfy it: refuse when confidence is
+    # absent, null, or non-numeric rather than defaulting. The floor filter
+    # below adjudicates real numeric values only.
+    confidence = payload.get("confidence")
+    if not isinstance(confidence, (int, float)) or isinstance(confidence, bool):
+        return None
     if confidence < confidence_floor:
         return None
 
@@ -144,7 +171,7 @@ def translate(
 
     # Resolve geo position with fallback logic
     gps = payload.get("gps")
-    altitude = payload.get("altitude", 0.0)
+    altitude = payload.get("altitude")
     geo: Dict[str, Any]
     geo_source = "detection"
 
@@ -158,7 +185,7 @@ def translate(
                 geo = {}
                 geo_source = "unavailable"
         else:
-            detection_geo = {"lat": lat, "lon": lon, "alt_m": altitude or 0.0}
+            detection_geo = {"lat": lat, "lon": lon, "alt_m": altitude}
             if (
                 sensor_geo
                 and _geo_distance_m(detection_geo, sensor_geo) > _GEO_MAX_SENSOR_DELTA_M
@@ -171,6 +198,12 @@ def translate(
         geo = dict(sensor_geo)
         geo_source = "fc_fallback"
     else:
+        geo = {}
+        geo_source = "unavailable"
+
+    # Canonical geo is all-or-nothing (contract 6.8): if any of lat, lon,
+    # or alt_m is missing, omit geo entirely — never zero-fill.
+    if geo and any(geo.get(key) is None for key in _GEO_KEYS):
         geo = {}
         geo_source = "unavailable"
 

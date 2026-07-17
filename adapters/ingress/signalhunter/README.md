@@ -35,6 +35,13 @@ Binary `.bin` capture files with:
 
 `OBSERVATION_EVENT` with `event_subtype: RF`, `modality: RF`.
 
+`features.bandwidth_hz` is set to `0.0` — a declared sentinel meaning
+"emitter bandwidth not measured", not a zero-hertz measurement. The
+SignalHunter is a receiver-class sensor: peak detection localizes a single
+PSD bin, and the device reports receiver sweep bandwidth, not emitter
+bandwidth (the same convention as the KrakenSDR adapter's
+`features.bandwidth_hz`).
+
 ### Key features
 
 | Feature | Details |

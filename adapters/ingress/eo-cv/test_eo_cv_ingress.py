@@ -92,3 +92,73 @@ def test_below_confidence_floor_still_refused():
     )
 
     assert event is None
+
+
+def test_refuses_detection_without_confidence():
+    # INFERENCE_EVENT schema-requires confidence; a quality metric is never
+    # fabricated to satisfy it, so a detection missing confidence is
+    # refused even with the default confidence_floor of 0.0.
+    detection = _detection()
+    detection.pop("confidence")
+
+    assert eo_cv.translate(detection, platform_id="camera-node-1") is None
+
+
+def test_refuses_null_confidence():
+    event = eo_cv.translate(
+        _detection(confidence=None),
+        platform_id="camera-node-1",
+    )
+
+    assert event is None
+
+
+def test_refuses_non_numeric_confidence():
+    event = eo_cv.translate(
+        _detection(confidence="0.82"),
+        platform_id="camera-node-1",
+    )
+
+    assert event is None
+
+
+def test_numeric_confidence_passes_through_unchanged():
+    event = eo_cv.translate(_detection(confidence=0.9), platform_id="camera-node-1")
+
+    assert event["confidence"] == 0.9
+    VALIDATOR.validate(event)
+
+
+def test_missing_altitude_omits_geo_entirely():
+    # Canonical geo is all-or-nothing (contract 6.8): no altitude means no
+    # claim.geo — the alt_m is never zero-filled.
+    detection = _detection()
+    detection.pop("altitude")
+
+    event = eo_cv.translate(detection, platform_id="camera-node-1")
+
+    assert "geo" not in event["payload"]["claim"]
+    assert event["payload"]["claim"]["geo_source"] == "unavailable"
+    VALIDATOR.validate(event)
+
+
+def test_null_altitude_omits_geo_entirely():
+    event = eo_cv.translate(
+        _detection(altitude=None),
+        platform_id="camera-node-1",
+    )
+
+    assert "geo" not in event["payload"]["claim"]
+    assert event["payload"]["claim"]["geo_source"] == "unavailable"
+    VALIDATOR.validate(event)
+
+
+def test_zero_altitude_is_legitimate_not_falsy():
+    event = eo_cv.translate(
+        _detection(altitude=0.0),
+        platform_id="camera-node-1",
+    )
+
+    assert event["payload"]["claim"]["geo"]["alt_m"] == 0.0
+    assert event["payload"]["claim"]["geo_source"] == "detection"
+    VALIDATOR.validate(event)

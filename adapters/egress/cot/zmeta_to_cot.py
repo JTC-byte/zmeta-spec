@@ -4,16 +4,19 @@ Converts ZMeta STATE_EVENT track states into CoT v2.0 XML for TAK
 (ATAK, WinTAK, TAK Server) interoperability.
 
 Supports:
-  - Configurable CE/LE from error_ellipse_m or defaults
-  - Fusion-engine ce_display_m for probability-scaled uncertainty
+  - CE/LE from geo.error_ellipse_m; when the event carries no uncertainty,
+    CoT's documented unknown-value convention (9999999.0) is emitted rather
+    than an invented accuracy figure
   - Heading/speed track element (directional arrows on TAK map)
   - PrecisionLocation for MIL-STD-2525 elliptical uncertainty
   - ATAK team coloring (__group element) for friendly platforms
   - Hostile emitter callsign fallback logic
   - Persistent labels for hostile tracks
-  - Source summary and error ellipse details in remarks
+  - Source summary, confidence, and error ellipse details in remarks
   - Custom icon support for drone platforms
-  - Wall-clock timestamps so TAK shows fresh markers during replay
+  - Event-authoritative timestamps by default; explicit opt-in wall-clock
+    replay-display mode (use_wall_clock=True) re-stamps CoT time to now so
+    TAK shows fresh markers during historical replay (contract section 9.5)
 
 Source: Z-ISR zisr/transport/publisher.py (_builtin_zmeta_to_cot)
 """
@@ -22,6 +25,11 @@ from datetime import datetime, timedelta, timezone
 
 
 DEFAULT_COT_TYPE = "a-u-G"
+
+# CoT's documented unknown-value convention for point@ce / point@le.
+# Emitted when the event carries no uncertainty so absent accuracy is
+# never rendered as invented precision (contract sections 4.7 / 12.2).
+COT_UNKNOWN_ACCURACY = 9999999.0
 STATE_PROHIBITED_PAYLOAD_FIELDS = {
     "features",
     "raw_features",
@@ -65,13 +73,20 @@ def zmeta_to_cot(event, cot_config=None):
         cot_config: Optional dict with configuration overrides:
             - default_type (str): Default CoT type (default "a-u-G")
             - default_valid_for_ms (int): Stale interval (default 300000)
-            - default_ce (float): Default circular error metres (default 15.0)
-            - default_le (float): Default linear error metres (default 10.0)
+            - default_ce (float): Circular error metres when the event
+                carries no uncertainty (default 9999999.0, CoT's
+                unknown-value convention; override only when the
+                deployment has a real error model)
+            - default_le (float): Linear error metres when the event
+                carries no uncertainty (default 9999999.0, as above)
             - friendly_team_name (str): ATAK team name (default "Cyan")
             - friendly_team_role (str): ATAK team role (default "Team Member")
-            - use_wall_clock (bool): Use current time for CoT timestamps
-                so TAK always shows fresh markers, even during replay
-                of historical data (default True)
+            - use_wall_clock (bool): Explicit replay-display mode — re-stamp
+                CoT timestamps to the current time so TAK shows fresh
+                markers during replay of historical data. Off by default:
+                event time is authoritative, and replayed data must not
+                render as live unless the operator explicitly selected
+                replay mode (contract section 9.5).
 
     Returns:
         CoT XML string, or None if the event cannot be converted.
@@ -92,9 +107,10 @@ def zmeta_to_cot(event, cot_config=None):
     if not track_id:
         return None
 
-    # Timestamps: wall-clock mode (default) keeps TAK markers fresh during
-    # replay; event-time mode uses the original event timestamp.
-    use_wall_clock = cot_config.get("use_wall_clock", True)
+    # Timestamps: event-authoritative by default (contract section 9.5 —
+    # replay must not be indistinguishable from live). use_wall_clock=True
+    # is an explicit replay-display opt-in that re-stamps CoT time to now.
+    use_wall_clock = cot_config.get("use_wall_clock", False)
     if use_wall_clock:
         time_obj = datetime.now(timezone.utc)
     else:
@@ -118,24 +134,20 @@ def zmeta_to_cot(event, cot_config=None):
     hae = geo.get("alt_m", 0)
 
     # Circular error / linear error resolution:
-    # 1. ce_display_m from fusion engine (probability-scaled + smoothed)
-    # 2. error_ellipse_m semi_major/semi_minor
-    # 3. Legacy ce/le fields on geo
-    # 4. Config defaults
-    default_ce = cot_config.get("default_ce", 15.0)
-    default_le = cot_config.get("default_le", 10.0)
-    ce_display = geo.get("ce_display_m")
+    # 1. geo.error_ellipse_m semi_major/semi_minor — the only schema-valid
+    #    uncertainty source on geo (v1.1.0 $defs/geo; v1.0 geo carries none)
+    # 2. Config defaults — 9999999.0, CoT's unknown-value convention, unless
+    #    the deployment overrides with a real error model
+    default_ce = cot_config.get("default_ce", COT_UNKNOWN_ACCURACY)
+    default_le = cot_config.get("default_le", COT_UNKNOWN_ACCURACY)
     error_ellipse = geo.get("error_ellipse_m")
 
-    if ce_display:
-        ce = float(ce_display)
-        le = error_ellipse.get("semi_minor", default_le) if error_ellipse else default_le
-    elif error_ellipse and isinstance(error_ellipse, dict):
+    if error_ellipse and isinstance(error_ellipse, dict):
         ce = error_ellipse.get("semi_major", default_ce)
         le = error_ellipse.get("semi_minor", default_le)
     else:
-        ce = geo.get("ce", default_ce)
-        le = geo.get("le", default_le)
+        ce = default_ce
+        le = default_le
 
     # Callsign with hostile emitter fallback: never show raw track IDs
     # on TAK for hostile markers. Use "RF Emitter" or "Detection" instead.
@@ -149,7 +161,9 @@ def zmeta_to_cot(event, cot_config=None):
         ):
             callsign = "RF Emitter"
 
-    # Remarks from source_summary + error ellipse details
+    # Remarks: source_summary, then confidence (whenever the event carries
+    # one — never dropped because other remarks are present), then error
+    # ellipse details.
     source_summary = payload.get("source_summary", [])
     if isinstance(source_summary, list):
         remarks_text = "; ".join(str(s) for s in source_summary)
@@ -157,18 +171,15 @@ def zmeta_to_cot(event, cot_config=None):
         remarks_text = str(source_summary) if source_summary else ""
 
     confidence = event.get("confidence")
-    if confidence is not None and not remarks_text:
-        remarks_text = f"confidence={confidence}"
+    if confidence is not None:
+        confidence_str = f"confidence={confidence}"
+        remarks_text = f"{remarks_text}; {confidence_str}" if remarks_text else confidence_str
 
     if error_ellipse and isinstance(error_ellipse, dict):
         semi_maj = error_ellipse.get("semi_major", 0)
         semi_min = error_ellipse.get("semi_minor", 0)
         orient = error_ellipse.get("orientation_deg", 0)
-        parts = []
-        if ce_display:
-            parts.append(f"CE90: <{int(ce_display)}m")
-        parts.append(f"Error ellipse: {semi_maj:.0f}m x {semi_min:.0f}m @ {orient:.0f}deg")
-        ellipse_str = "; ".join(parts)
+        ellipse_str = f"Error ellipse: {semi_maj:.0f}m x {semi_min:.0f}m @ {orient:.0f}deg"
         if remarks_text:
             remarks_text += f"; {ellipse_str}"
         else:
