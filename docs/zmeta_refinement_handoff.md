@@ -531,24 +531,26 @@ entries):
 
 ## Next Work Queue
 
-1. **In progress: R1-10 audit fix pass, then follow-up audit (maintainer
-   direction, 2026-07-16)**
-   - The R1-10 full stack audit is COMPLETE — findings record in
-     `docs/r1_10_full_stack_audit.md`, summary in the worklog R1-10
-     entry. Verdict: kernel and governance apparatus held; defect mass
-     is in the outer rings (reference-adapter fabrication class, latent
-     honesty gaps, checking-machinery vacuities, prose-side doc
-     currency).
-   - Maintainer direction: fix every audit finding, then run a
-     follow-up audit to verify the fixes. Fix-pass order (details in
-     the audit doc's disposition section): reference-adapter honesty
-     pass (supersedes and expands the previously queued refusal-fixture
-     rollout item), CoT egress honest defaults, machine-encoding batch,
-     contract wording clarifications (Class B, manifest regen),
-     doc-currency/retention sweep, governed-artifact regeneration +
-     full-gate revalidation.
-   - Everything below this item is queued behind the fix pass and the
-     follow-up audit.
+1. **Maintainer decisions pending: release cut and next-audit scope
+   (R1-10 audit + fix pass + verification COMPLETE, 2026-07-17)**
+   - The R1-10 full stack audit, the fix-every-finding pass (nine
+     commits, ddd0252..6f47237 plus the closeout), and the post-fix
+     verification audit are all COMPLETE — findings record in
+     `docs/r1_10_full_stack_audit.md`, full closeout record in the
+     worklog R1-10 fix-pass entry. Final validation: full kernel gate
+     green with all flags, examples 51/51, pytest 570+172 zero
+     failures.
+   - Open decisions for the maintainer: (a) cut the release (v1.1.14
+     candidate under the commit=release practice) — a cut also
+     resolves (b) the recorded SHA256SUMS_v1.1.13 manifest-entry
+     divergence (published checksums are immutable; the in-repo
+     manifest was regenerated over the fix pass); (c) whether a fresh
+     full-stack audit beyond the completed fix-verification audit runs
+     before the backlog resumes.
+   - Flagged residuals for the next audit are listed in the worklog
+     fix-pass entry (signalhunter replay-timestamp and
+     sensor-position observations).
+   - Everything below this item is queued behind those decisions.
 
 2. **Queued: v1.1.0 adoption decision (all fourteen concepts)**
    - Maintainer direction (2026-07-08): build the per-concept evidence

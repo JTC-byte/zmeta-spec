@@ -4,15 +4,75 @@
 
 - Last updated: 2026-07-17
 - Quick handoff: `docs/zmeta_refinement_handoff.md`
-- Current work (maintainer direction, 2026-07-16): the R1-10 stack audit
-  is COMPLETE (entry below; full findings record in
-  `docs/r1_10_full_stack_audit.md`). Direction: record the audit, fix
-  every audit finding, then run a follow-up audit to verify the fixes.
-  The v1.1.0 adoption-decision session, the five deferred P1-06
-  maintainer decisions, PR #4 status, and signing remain queued behind
-  the fix pass and re-audit. The previously queued "refusal-fixture
-  rollout to the other reference adapters" item is superseded by (and
-  expanded within) the fix pass. See the handoff Next Work Queue.
+- Current state (2026-07-17): the R1-10 stack audit, the maintainer-
+  directed fix-every-finding pass, AND the post-fix verification audit
+  are COMPLETE (entries below; findings record in
+  `docs/r1_10_full_stack_audit.md`). Open maintainer decisions:
+  (a) release cut — the pass is a v1.1.14 candidate under the
+  commit=release practice, and a cut also resolves (b) the recorded
+  SHA256SUMS_v1.1.13 manifest-entry divergence; (c) whether a fresh
+  full-stack audit beyond the completed fix-verification audit is
+  wanted before the queued backlog resumes. Queued behind those: the
+  v1.1.0 adoption-decision session, the five deferred P1-06 maintainer
+  decisions, PR #4 status, and signing. See the handoff Next Work
+  Queue.
+- R1-10 fix pass + verification (2026-07-17, maintainer-directed "fix
+  every issue found, then re-audit"): every audit finding fixed or
+  documented-deferred across nine commits — ddd0252 (audit record),
+  06a576f (reference-adapter honesty pass: null-identity refusal,
+  eo-cv confidence/geo fixes, kraken+moth JSON-replay refusal matrices
+  including the contract 6.8 moth alt_m fix, CoT honest defaults,
+  template lineage docstring, plus two same-class in-pass finds),
+  cf4e7da (checking machinery: empty-input floors in all eight gate
+  tools, checksum coverage cross-check + LF endings, manifest-derived
+  defaults, release-currency test, claims-validator residues,
+  kernel-gate examples wiring), e07af84 (machine-encoded honesty:
+  v1.1 quality bearing_frame/heading_source constraints with
+  version-agnostic checks, INFERENCE fused-state denylist completion,
+  zero-fill warn heuristic, protected strip paths, harness refusal
+  register + surplus-expectation guard, refusal-fixture rollout
+  15 -> 27, bad-events 23 -> 27, three governed diagnostic codes added
+  to both schema enums per the D-013 pattern), ef08974 (doc
+  currency/retention sweep, ten items), a1bfa1f (contract 2.1/5.7
+  clarifications, Class B), 0da1a5c and the closeout commit (manifest
+  + claims regenerated, release identity preserved), 6f47237
+  (verification-audit fixes). The session-limit interruption mid-pass
+  left no half-done file state (verified hunk-by-hunk). Post-fix
+  verification audit (six adversarial slices: interrupted-wave
+  item-by-item, live re-probes of every original audit probe at HEAD,
+  commit-truth verification of all messages, findings-coverage
+  critic): the pass held; residues found were fixed in 6f47237 —
+  GEO_ZERO_FILL_SUSPECTED diagnostic coherence (the gateway's own
+  zero-fill warning diagnostic was schema-invalid and destroyed before
+  egress; now in both enums + allowed list with an inverse-coverage
+  test), CoT point@hae unknown-convention on absent alt_m and
+  missing-ts refusal outside wall-clock mode, sign-script
+  manifest-derived default, and a --verify-contract-hash zero-claims
+  floor. Commit-evidence corrections recorded per the
+  falsifiable-evidence rule (messages are immutable history; the
+  record is corrected here): cf4e7da says "35 tests added" — 30
+  collect; ef08974 says handoff "917 -> 727 lines" — the before-count
+  is 916; e07af84 says "reason-code sync suite 21 tests, 116
+  subtests" — the file collects 5 tests, 116 subtests (the 21 does
+  not reproduce). Recorded, maintainer decision pending: the
+  regenerated in-repo manifest diverges from the manifest entry pinned
+  in the published SHA256SUMS_v1.1.13.txt (published checksums are
+  immutable; resolution is the next release cut or an explicit
+  accepted-divergence record). Flagged residuals for the next audit
+  (in-pass observations, deliberately not fixed this pass):
+  signalhunter .bin replay stamps wall-clock ts at translation time
+  (honestly labeled UNSYNCED, but an A4 sibling class); signalhunter
+  GPS no-lock (0,0) passes into quality.sensor_position_2d unguarded
+  (the new zero-fill warn covers canonical geo, not
+  sensor_position_2d); signalhunter's internal GPS-frame dict carries
+  a dead alt_m 0.0. Final validation: full kernel gate green with all
+  flags (bad-events 27, adapter harness 27, claims=2 including
+  --verify-contract-hash), strict examples 51/51, full pytest 570
+  passed + 172 subtests with zero failures, diff-check clean. Net
+  enforcement growth across the pass: pytest 485 -> 570 tests
+  (subtests 110 -> 172), harness fixtures 15 -> 27, bad-events
+  23 -> 27, plus the release-currency, input-floor, inverse-coverage,
+  strip-guard, and zero-fill test families.
 - R1-10 (2026-07-16): full stack audit executed per the queued
   direction, applying the R1-09 AAR lessons as audit lenses (teaching
   artifacts, prose-only vs machine-pinned conventions, falsifiable
