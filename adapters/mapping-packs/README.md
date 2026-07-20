@@ -59,3 +59,11 @@ Copy the pack folder into `adapters/mapping-packs/<pack_slug>`, or use:
 ```
 python tools/install_mapping_pack.py --pack <path>
 ```
+
+### Real edge-comms corpus
+
+`edge-comms-bladerf/` ships two real bladeRF / ROS2 EW `rf_detection`
+inputs from a flight blackbox with schema-valid RF `OBSERVATION_EVENT`
+expected outputs. Use it when validating a new RF adapter against governed
+shape and honesty rules. See that pack's README for provenance and
+validation commands.

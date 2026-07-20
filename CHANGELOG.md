@@ -1,5 +1,10 @@
 # Changelog
 
+## [Unreleased]
+- Added `adapters/mapping-packs/edge-comms-bladerf/`, a small real-capture
+  corpus with two bladeRF edge-comms `rf_detection` inputs and schema-valid
+  ZMeta RF `OBSERVATION_EVENT` expected outputs for adapter authors.
+
 ## [1.1.14] - 2026-07-17
 - Intake funnel completed (maintainer decision): blank GitHub issues are
   disabled and a fourth minimal template, "General question or report"

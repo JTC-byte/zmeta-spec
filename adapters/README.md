@@ -42,6 +42,9 @@ or command safety.
 | [KLV](ingress/klv/) | MISB KLV metadata | OBSERVATION_EVENT (EO) | Template |
 | [Example-vendor](ingress/example-vendor/) | `example-vendor-pack` RF JSON | OBSERVATION_EVENT (RF) | Worked exercise |
 
+Real raw→ZMeta corpus for adapter authors (bladeRF edge-comms detections):
+[`mapping-packs/edge-comms-bladerf/`](mapping-packs/edge-comms-bladerf/).
+
 Each adapter implements the standard `detect()` / `translate()` / `validate()`
 pattern described in `ingress/template/README.md`.
 

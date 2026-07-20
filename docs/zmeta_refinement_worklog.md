@@ -2,8 +2,14 @@
 
 ## Current Resume Note
 
-- Last updated: 2026-07-17
+- Last updated: 2026-07-20
 - Quick handoff: `docs/zmeta_refinement_handoff.md`
+- Docs/runtime (2026-07-20): added mapping pack
+  `adapters/mapping-packs/edge-comms-bladerf/` with two real bladeRF
+  edge-comms `rf_detection` inputs and schema-valid RF
+  `OBSERVATION_EVENT` expected outputs for adapter authors. No schema,
+  policy, or harness changes. Expected events validate under
+  `tools/validate.py --profile H --strict`.
 - Current state (2026-07-17): the R1-10 stack audit, the maintainer-
   directed fix-every-finding pass, the post-fix verification audit,
   AND the v1.1.14 release cut are COMPLETE (entries below; findings

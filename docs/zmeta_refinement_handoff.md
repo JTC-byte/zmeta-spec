@@ -1,6 +1,6 @@
 # ZMeta Refinement Handoff Notes
 
-Status date: 2026-07-17
+Status date: 2026-07-20
 
 Current release: **v1.1.14** (R1-10, 2026-07-17) — the audit-driven
 honesty hardening cut: the R1-10 full stack audit, its
@@ -12,6 +12,11 @@ released per RELEASE_CHECKLIST. Checksums-only; signing remains the
 maintainer's external process. Details in the worklog R1-10 entries and
 `release/RELEASE_NOTES_v1.1.14.md`. The queued v1.1.0
 adoption-decision session remains the next substantive work item.
+
+Recent docs/runtime addition (2026-07-20): mapping pack
+`adapters/mapping-packs/edge-comms-bladerf/` provides two real bladeRF
+edge-comms `rf_detection` → schema-valid ZMeta RF observation pairs for
+adapter authors. No schema or policy change.
 
 This note is the quick resume point for the current ZMeta refinement effort. Recent session records and the deferred issue register are in `docs/zmeta_refinement_worklog.md`; completed task sections S0-01..R1-05 are archived verbatim in `docs/zmeta_refinement_worklog_archive.md`.
 
