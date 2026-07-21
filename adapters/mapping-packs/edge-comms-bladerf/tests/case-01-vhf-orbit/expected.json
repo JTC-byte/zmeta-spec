@@ -1,0 +1,45 @@
+{
+  "zmeta_version": "1.0",
+  "event": {
+    "event_id": "019e26d5-0010-7000-8000-000000000001",
+    "event_type": "OBSERVATION_EVENT",
+    "event_subtype": "RF",
+    "ts": "2026-05-14T14:12:33.876Z"
+  },
+  "source": {
+    "platform_id": "uav-believer-01-bladerf",
+    "node_role": "EDGE",
+    "producer": "rf-sensor-bladerf",
+    "sensor_id": "bladerf_ew"
+  },
+  "payload": {
+    "modality": "RF",
+    "features": {
+      "center_freq_hz": 138200000.0,
+      "bandwidth_hz": 12500.0,
+      "power_dbm": -30.2976131439209,
+      "snr_db": 22.92434310913086,
+      "noise_floor_dbm": -53.22195625305176,
+      "detection_id": "ros2-orbit-spectrum-1778767953876-138200000",
+      "sensor_hw": "bladerf",
+      "source": "ros2_ew",
+      "source_topic": "sdr/orbit_spectrum",
+      "bearing_source": "none",
+      "uas_heading_deg": 56.23737681439173,
+      "orbit_spectrum_bin": 32,
+      "orbit_spectrum_bins": 2910,
+      "native_bearing_deg": 56.23737681439173
+    },
+    "quality": {
+      "snr_db": 22.92434310913086,
+      "geo_status": "UNAVAILABLE",
+      "calibration_state": "UNCALIBRATED"
+    },
+    "timing_quality": {
+      "time_source": "UNKNOWN",
+      "sync_state": "UNSYNCED",
+      "est_error_ms": 60000,
+      "last_sync_ts": "2026-05-14T14:12:33.876Z"
+    }
+  }
+}

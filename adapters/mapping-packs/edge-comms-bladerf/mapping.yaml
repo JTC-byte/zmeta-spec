@@ -1,0 +1,55 @@
+schema_id: vendor:edge_comms_bladerf:v1
+zmeta_event_type: OBSERVATION_EVENT
+zmeta_event_subtype: RF
+
+# Deployment-supplied identity (not present on the native detection).
+source:
+  platform_id: deployment.platform_id
+  node_role: EDGE
+  producer: rf-sensor-bladerf
+  sensor_id: input.metadata.zmeta_sensor_id
+
+event:
+  ts: input.timestamp_ms  # normalize to UTC-Z
+
+payload:
+  modality: RF
+  # Canonical geo is all-or-nothing (contract 6.8). Omit when sensor_lat/lon
+  # are null or null-island (0,0); do not invent coordinates.
+  geo.lat: input.sensor_lat
+  geo.lon: input.sensor_lon
+  geo.alt_m: input.sensor_alt_m
+  # Canonical bearing only when the source asserts a LOB estimate
+  # (e.g. bearing_source heading_at_peak). When bearing_source is none,
+  # omit payload.bearing and keep native fields under features.
+  bearing.az_deg: input.bearing_deg
+  features.center_freq_hz: input.center_freq_hz
+  features.bandwidth_hz: input.bandwidth_hz
+  features.power_dbm: input.power_dbm
+  features.angular_error_deg: input.bearing_error_deg
+  features.snr_db: input.snr_db
+  features.noise_floor_dbm: input.noise_floor_dbm
+  features.detection_id: input.detection_id
+  features.sensor_hw: input.metadata.sensor_hw
+  features.source: input.metadata.source
+  features.source_topic: input.metadata.source_topic
+  features.bearing_source: input.metadata.bearing_source
+  features.uas_heading_deg: input.metadata.uas_heading_deg
+  features.fft_bin: input.metadata.fft_bin
+  features.fft_size: input.metadata.fft_size
+  features.sample_rate_hz: input.metadata.sample_rate_hz
+  features.fft_center_freq_hz: input.metadata.fft_center_freq_hz
+  features.orbit_spectrum_bin: input.metadata.orbit_spectrum_bin
+  features.orbit_spectrum_bins: input.metadata.orbit_spectrum_bins
+  quality.snr_db: input.snr_db
+  quality.geo_status: UNAVAILABLE  # when geo omitted
+  quality.calibration_state: UNCALIBRATED
+  quality.measurement_error.value: input.bearing_error_deg
+  quality.measurement_error.unit: deg
+  quality.measurement_error.metric: 1_SIGMA
+  timing_quality: degraded_fallback  # UNKNOWN / UNSYNCED unless source PTP/GPS
+
+# Original sensor observations omit lineage (contract 4.8). When an adapter
+# translates with real parent event ids, stamp:
+#   lineage.transform: translate:vendor:edge_comms_bladerf:v1@1.0.0
+#   lineage.based_on: <caller-supplied UUIDv7 parents>

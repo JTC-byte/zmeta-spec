@@ -43,6 +43,9 @@ or command safety.
 | [SAPIENT](ingress/sapient/) | BSI Flex 335 v2.0 SapientMessage dicts (protobuf-JSON) | OBSERVATION_EVENT, INFERENCE_EVENT, STATE_EVENT (promotion), SYSTEM_EVENT | Reference |
 | [Example-vendor](ingress/example-vendor/) | `example-vendor-pack` RF JSON | OBSERVATION_EVENT (RF) | Worked exercise |
 
+Real raw→ZMeta corpus for adapter authors (bladeRF edge-comms detections):
+[`mapping-packs/edge-comms-bladerf/`](mapping-packs/edge-comms-bladerf/).
+
 Each adapter implements the standard `detect()` / `translate()` / `validate()`
 pattern described in `ingress/template/README.md`.
 

@@ -1,0 +1,6 @@
+{
+  "schema_id": "vendor:edge_comms_bladerf:v1",
+  "pack_slug": "edge-comms-bladerf",
+  "version": "1.0.0",
+  "description": "Real bladeRF / ROS2 EW rf_detection samples from edge-comms flight blackbox with schema-valid ZMeta RF observation expected outputs."
+}
