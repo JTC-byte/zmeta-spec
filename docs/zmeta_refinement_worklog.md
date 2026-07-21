@@ -4,13 +4,17 @@
 
 - Last updated: 2026-07-21
 - Quick handoff: `docs/zmeta_refinement_handoff.md`
-- Current state (2026-07-21, second closeout): P1-08 (PR #7
-  edge-comms-bladerf external corpus, reviewed + merged with
-  maintainer fixes) is complete and cut as **v1.1.16** (entry below;
-  full battery green, checksums-only). R1-11 remains the next work
-  item, its inputs updated with the P1-08 surface and the
-  bearing_frame presence-gap candidate (handoff item 1). Prior
-  closeout state follows.
+- Current state (2026-07-21, third closeout): the **R1-11 full stack
+  audit is COMPLETE** — findings record
+  `docs/r1_11_full_stack_audit.md` (1 MAJOR / 11 MODERATE / 4 MINOR /
+  3 DOC / 6 second-glance items; every substantive finding
+  adversarially verified, zero refuted; all R1-10 and 2026-07-01
+  fixes re-verified holding; release + commit-truth for the whole
+  v1.1.15/v1.1.16 stretch verified down to published asset digests).
+  **Maintainer disposition PENDING** — the fix-pass decision is the
+  next input (R1-11 entry below). P1-08 (PR #7 edge-comms-bladerf
+  external corpus) was previously completed and cut as **v1.1.16**;
+  prior closeout state follows.
 - Previous state (2026-07-21, first closeout): the SAPIENT lane is
   FULLY CLOSED — P1-07 mapping pack + reference adapters, the end-to-end
   wire validation against official Dstl tooling (PASSED; ULID findings
@@ -38,6 +42,53 @@
   session-limit interruption recovery (resume with verify-and-complete
   prompts + a dedicated interruption-integrity review) left zero
   half-done state, twice validated as a working pattern.
+- R1-11 (2026-07-21): **FULL STACK AUDIT COMPLETE — findings record
+  `docs/r1_11_full_stack_audit.md`, maintainer disposition PENDING.**
+  Audited tree `09118b3`, strictly read-only. Method: green baseline
+  (kernel gate all flags, examples 51/51, pytest 687+172 zero
+  failures), then seven independent finder lenses (SAPIENT pack
+  honesty; bladerf/external-fixture discipline + harness
+  expressiveness; staged residuals/second-glance status; R1-10 +
+  2026-07-01 regression; release/commit-truth 2a1e9ce..09118b3; doc
+  currency/teaching; fresh-eyes core sweep), dedup, one adversarial
+  verifier per substantive finding (sixteen), a DOC/OBSERVATION batch
+  check, and a completeness critic whose two real gaps were closed by
+  direct probes (B3 regression HOLDS via the 12-test checksum-floor
+  family; R11-01 witnessed at live gateway process level, three
+  legs). Verification changed severity in only 2 of 16 findings
+  (R11-14 upgraded MINOR->MODERATE — the stale "D-003 OPEN" claim
+  ships in manifests AND package attestations/release notes; R11-12
+  reclassified same-severity), zero refuted — vs 7 of 16 changed in
+  R1-10; refutation-first finder prompts removed the false-alarm mass
+  before verification. Headline: **R11-01 (MAJOR) — the compact codec
+  silently relabels v1.1.0 events as locked-v1.0 and destroys
+  geo.error_ellipse_m; live-witnessed as a laundering bypass of the
+  default gateway's own schema gate (honest JSON 1.1.0 event refused
+  SCHEMA_VIOLATION; the identical event compact-encoded accepted,
+  laundered, forwarded clean with zero diagnostics).** Remaining
+  mass: R1-10 defect classes surviving as siblings where the fix
+  pinned one exemplar (TaskAck 'None' coercion R11-03; loop_status
+  self-assert in THREE templates R11-07; harness events-kind vacuity
+  R11-08 + unlinted shipped corpus R11-09; one-line doc-currency pins
+  R11-11/15/17/18), enforcement arriving after new governed surfaces
+  (sapient policy block zero negative coverage R11-05; NaN confidence
+  vacuity R11-04; fail-open egress risk set R11-02), signalhunter
+  no-lock exposure worse than recorded (R11-06 — fabricated
+  TRUE_NORTH bearing from null island), and formal-release manifests
+  carrying placeholder provenance vs the hash-policy MUST (R11-10).
+  Positive assurance: ALL R1-10 fixes and ALL 2026-07-01
+  fielded-safety fixes hold (54+36+8 probe families, full refusal
+  matrices); v1.1.15/v1.1.16 published assets verified to
+  cryptographic digests with SHA256SUMS never modified post-release;
+  every numeric claim in all ten commits of the stretch reproduces
+  (the commit-truth discipline working); proto/CBOR codecs faithful
+  on their claimed surfaces; SAPIENT honesty spine held under 20+
+  adversarial probes; diagnostic emission set enum-complete in all
+  four registries. Maintainer attention flags: R11-24 (bladerf pack
+  public-disclosure inventory — already in git history and published
+  assets, scrubbing main would not retract publication) and the
+  R11-01 fix-priority call. Disposition and any fix pass to be
+  recorded here when directed.
 - P1-09 (2026-07-21): **PR #4 RESOLVED — closed unmerged with credit;
   harvest confirmed complete** (maintainer direction: stop waiting for
   contributor revisions; "review it and merge it... if we haven't
