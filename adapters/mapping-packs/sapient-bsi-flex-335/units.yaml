@@ -1,0 +1,85 @@
+# Registration-declared-units doctrine for SAPIENT (BSI Flex 335 v2.0).
+#
+# SAPIENT carries units in two different places, and the pack never blurs
+# them (contract 6.7: unit inference is forbidden):
+#
+#   1. Self-describing inline — Location and RangeBearing carry
+#      coordinate_system + datum on the wire; conversion is deterministic
+#      per message with no registration join.
+#   2. Registration-declared — signal[] and enu_velocity carry bare
+#      numbers whose units live only in the node's Registration
+#      (detection_definition detection_report units / velocity_type).
+#      Without a captured Registration those blocks have NO canonical
+#      mapping: they are preserved verbatim under
+#      payload.extensions."vendor.sapient" and the canonical features are
+#      omitted — never guessed.
+#
+# Location/RangeBearing *_error values are metres/degrees on the wire; the
+# Registration GeometricError block governs their statistical meaning.
+# quality.measurement_error is populated only when GeometricError.type
+# clearly declares a standard-deviation metric; otherwise raw errors ride
+# in the vendor extension unlabeled.
+
+canonical_units:
+  # ZMeta canonical targets (contract 6): every mapped value arrives in
+  # these units or is not mapped at all.
+  geo.lat: degrees
+  geo.lon: degrees
+  geo.alt_m: meters_hae
+  bearing.az_deg: degrees_true_north
+  bearing.el_deg: degrees
+  features.range_m: meters
+  features.center_freq_hz: hz
+  features.bandwidth_hz: hz
+  features.power_dbm: dbm
+  features.velocity_enu_mps: meters_per_second
+
+signal_units:
+  # Resolved per node from Registration detection_definition
+  # detection_report entries (category SIGNAL, free-string units). Factors
+  # convert to Hz; matching is case-insensitive on exactly these tokens.
+  # Any other declaration — including kHz and free text — is unresolved:
+  # the whole signal block goes to the vendor extension.
+  frequency_to_hz:
+    Hz: 1.0
+    MHz: 1.0e+6
+    GHz: 1.0e+9
+  amplitude:
+    dBm: 1.0
+    # Non-dBm or undeclared amplitude is NEVER mapped to power_dbm.
+
+velocity_units:
+  # Registration velocity_type ENUVelocityUnits (SpeedUnits) -> factor to
+  # m/s. Unknown/unspecified factor => enu_velocity is extension-only.
+  SPEED_UNITS_MS: 1.0
+  SPEED_UNITS_KPH: 0.2777777777777778   # 1/3.6
+  SPEED_UNITS_UNSPECIFIED: null
+
+location_units:
+  # Self-describing inline (Location.coordinate_system).
+  LOCATION_COORDINATE_SYSTEM_LAT_LNG_DEG_M: {angle: degrees, altitude: meters}
+  LOCATION_COORDINATE_SYSTEM_LAT_LNG_RAD_M: {angle: radians_to_degrees, altitude: meters}
+  LOCATION_COORDINATE_SYSTEM_UTM_M: unsupported   # extension-only; README out-of-scope list
+
+range_bearing_units:
+  # Self-describing inline (RangeBearing.coordinate_system).
+  RANGE_BEARING_COORDINATE_SYSTEM_DEGREES_M: {angle: degrees, range: meters}
+  RANGE_BEARING_COORDINATE_SYSTEM_RADIANS_M: {angle: radians_to_degrees, range: meters}
+  RANGE_BEARING_COORDINATE_SYSTEM_DEGREES_KM: {angle: degrees, range: kilometers_to_meters}
+  RANGE_BEARING_COORDINATE_SYSTEM_RADIANS_KM: {angle: radians_to_degrees, range: kilometers_to_meters}
+
+conversions:
+  radians_to_degrees: 57.29577951308232   # 180/pi
+  kilometers_to_meters: 1000.0
+
+duration_to_ms:
+  # Registration Duration {units, value} -> milliseconds (mode
+  # maximum_latency / settle_time). Unknown units are never guessed.
+  TIME_UNITS_NANOSECONDS: 1.0e-6
+  TIME_UNITS_MICROSECONDS: 1.0e-3
+  TIME_UNITS_MILLISECONDS: 1.0
+  TIME_UNITS_SECONDS: 1000.0
+  TIME_UNITS_MINUTES: 60000.0
+  TIME_UNITS_HOURS: 3600000.0
+  TIME_UNITS_DAYS: 86400000.0
+  TIME_UNITS_UNSPECIFIED: null

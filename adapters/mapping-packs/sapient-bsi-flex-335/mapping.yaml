@@ -1,0 +1,235 @@
+schema_id: vendor:sapient_bsi335:v2
+
+# Declarative field map for SAPIENT (BSI Flex 335 v2.0) <-> ZMeta v1.x.
+# No runtime engine executes this file (adapters/mapping-packs/README.md):
+# adapters/ingress/sapient and adapters/egress/sapient implement it and
+# tests/ carries the conformance evidence. Source paths are snake_case
+# protobuf-JSON; lowerCamelCase input keys are normalized to snake_case
+# before mapping. REFUSE means fail closed (no event, or entry skipped) —
+# never a fabricated value. EXTENSION means preserved verbatim under
+# 'payload.extensions."vendor.sapient"' with no canonical mapping.
+
+envelope:
+  # SapientMessage fields shared by every emitted event.
+  event.event_id: fresh uuid7() per emission
+  event.ts: message.timestamp                # RFC3339 or protobuf Timestamp; missing/unparseable => REFUSE all events
+  source.platform_id: message.node_id        # null/missing => REFUSE all events (identity is never fabricated)
+  source.sensor_id: message.node_id
+  source.node_role: EDGE                     # GATEWAY only on the fusion-node promotion path
+  source.producer: sapient-ingress
+  payload.timing_quality: caller timing_quality via coerce_timing_quality(); est_error_ms widened by registration maximum_latency (README timing doctrine)
+  lineage: caller based_on only, transform "translate:vendor:sapient_bsi335:v2@1.0.0"; omitted entirely without real parents
+
+registration:
+  events: none                               # feeds the RegistrationStore only: model identity, mode latencies, declared units, taxonomy evidence
+
+registration_ack:
+  events: none
+
+alert_ack:
+  events: none                               # ack loop terminates at the adapter (README out-of-scope list)
+
+task:
+  events: none                               # SAPIENT Task ingress is out of scope v1 (command safety; README)
+
+detection_report:
+  observation_event:                         # 0..1 per report; zmeta_version "1.0"
+    event.event_type: OBSERVATION_EVENT
+    event.event_subtype: RF when signal[] units resolve, else per node-type table (enums.yaml); no eligible modality => no observation
+    payload.modality: same value as event_subtype
+    # Canonical geo is all-or-nothing (contract 6.8) and requires the full
+    # eligibility matrix in README (DEG/RAD lat-lng, WGS84_E, explicit z,
+    # not (0,0)); ineligible locations ride in the vendor extension with an
+    # omitted_reason tag.
+    payload.geo.lat: detection_report.location.y    # radians converted to degrees for LAT_LNG_RAD_M
+    payload.geo.lon: detection_report.location.x
+    payload.geo.alt_m: detection_report.location.z
+    # Canonical bearing only from RANGE_BEARING_DATUM_TRUE (contract 6.4).
+    payload.bearing.az_deg: detection_report.range_bearing.azimuth
+    payload.bearing.el_deg: detection_report.range_bearing.elevation
+    payload.quality.bearing_frame: TRUE_NORTH       # asserted only on the datum-TRUE path
+    payload.features.bearing_native_deg: range_bearing.azimuth for MAGNETIC/GRID/PLATFORM datums (explicitly non-canonical)
+    payload.features.bearing_native_el_deg: range_bearing.elevation on the same non-TRUE path
+    payload.features.bearing_native_datum: range_bearing.datum on the same non-TRUE path
+    payload.features.range_m: detection_report.range_bearing.range  # km -> m x1000 for *_KM coordinate systems (units.yaml)
+    # RF features only when registration-declared signal units resolve
+    # (units.yaml); unresolved units put the whole signal block in the
+    # vendor extension and contribute NO canonical features. Canonical
+    # features map from signal[0] ONLY; signal[1..] (additional emitters)
+    # ride the vendor extension as signal_additional, never dropped.
+    payload.features.center_freq_hz: signal[0].centre_frequency
+    payload.features.bandwidth_hz: signal[0].stop_frequency - signal[0].start_frequency  # omitted unless both present
+    payload.features.power_dbm: signal[0].amplitude  # dBm-declared only; other amplitude units NEVER map to power_dbm
+    payload.features.velocity_enu_mps: enu_velocity x registration velocity factor (units.yaml); unknown factor => EXTENSION
+    payload.features.colour: detection_report.colour  # EO/IR observations only; otherwise EXTENSION
+    payload.quality.geo_status: AVAILABLE when canonical geo is emitted, else UNAVAILABLE (quality vocabulary, contract 21.1)
+    payload.quality.measurement_error: location x/y/z_error only when registration GeometricError declares a std-dev metric; else EXTENSION
+    'payload.extensions."vendor.sapient"':
+      report_id: detection_report.report_id
+      object_id: detection_report.object_id  # sensor-local correlation hint, NON-authoritative; never track_id
+      task_id: detection_report.task_id
+      state: detection_report.state          # free-text lifecycle residue (README branch-evidence item 2)
+      detection_confidence: detection_report.detection_confidence
+      id: detection_report.id                # reported identity (e.g. tail number) is not an observation fact
+      prediction_location: detection_report.prediction_location
+      associated_detection: detection_report.associated_detection
+      derived_detection: detection_report.derived_detection
+      associated_file: detection_report.associated_file
+      track_info: detection_report.track_info
+      object_info: detection_report.object_info
+      location: ineligible location/range_bearing oneof verbatim + omitted_reason tag (README geo matrix)
+      signal: unresolved-units signal[] verbatim
+      signal_additional: signal[1..] verbatim when canonical RF features were mapped from signal[0]
+      enu_velocity: unresolved-factor velocity verbatim
+      native_classification: classification[] verbatim when present; the literal key "classification" is schema-denylisted on observations, and without model identity this is the only carrier (no inference emitted)
+      native_behaviour: behaviour[] verbatim when present, same rule
+  inference_events:                          # 0..n; zmeta_version "1.0"; REFUSE all when registration model identity is unknown (contract 7.5)
+    event.event_type: INFERENCE_EVENT
+    event.event_subtype: CLASSIFICATION per classification[] entry, BEHAVIOR per behaviour[] entry, CLASSIFICATION object-present claim from detection_confidence
+    payload.inference_type: same value as event_subtype
+    payload.claim.type: classification[n].type or behaviour[n].type
+    payload.claim.sub_class: classification[n].sub_class    # full nested sub-class path, verbatim taxonomy strings
+    payload.model.name: registration "<manufacturer> <model>"
+    payload.model.version: registration software_version
+    payload.based_on: observation event_id from the same translate() call
+    confidence: classification[n].confidence  # entry without confidence => REFUSE that entry (contract 8.1)
+    lineage.based_on: observation event_id from the same translate() call
+    lineage.transform: translate:vendor:sapient_bsi335:v2@1.0.0
+    'payload.extensions."vendor.sapient"':
+      report_id: detection_report.report_id
+      object_id: detection_report.object_id
+      task_id: detection_report.task_id
+      state: detection_report.state
+      detection_confidence: detection_report.detection_confidence
+    # detection_confidence additionally yields one INFERENCE_EVENT with
+    # claim {"claim_type": "object_present"} and confidence =
+    # detection_confidence, only when model identity is known AND an
+    # observation was emitted in the same call.
+  fusion_node_promotion:                     # replaces observation+inference when the node is a fusion node; zmeta_version "1.0"
+    # Mirrors adapters/ingress/cot/cot_to_zmeta_template.py. REFUSE without
+    # caller-supplied promotion evidence (contract 4.5.1) — a fusion-node
+    # detection is never silently downgraded to an observation. REFUSE
+    # without caller-supplied promotion.loop_status (the reflection check
+    # is a verification the adapter never performs; its verdict is never
+    # self-asserted). REFUSE without detection_confidence (STATE_EVENT
+    # requires confidence; never invented, never increased). REFUSE without
+    # eligible geo (TrackStatePayload requires geo).
+    event.event_type: STATE_EVENT
+    event.event_subtype: TRACK_STATE
+    source.node_role: GATEWAY
+    payload.track_id: detection_report.object_id  # external track id is permitted in promoted external state
+    payload.geo: same eligibility matrix as observation_event
+    payload.class: best classification[] type (highest entry confidence)
+    payload.valid_for_ms: caller kwarg (cot template default)
+    payload.extensions.external_promotion: caller promotion dict; policy reference PROMOTE-SAPIENT-STATE-V1
+    confidence: detection_report.detection_confidence  # as-is, never increased (contract 4.5.1)
+    lineage.transform: promote:* prefix per cot template convention
+
+status_report:
+  sensor_status:                             # zmeta_version "1.1.0"
+    event.event_type: SYSTEM_EVENT
+    event.event_subtype: SENSOR_STATUS
+    payload.system_type: SENSOR_STATUS
+    payload.state: system via enums.yaml system_to_sensor_status_state; fault-class status[] entries force DEGRADED (enums.yaml)
+    payload.metrics.sensor_id: message.node_id
+    payload.metrics.mode: status_report.mode
+    payload.metrics.fov_deg: field_of_view horizontal_extent only for a range_bearing cone with datum TRUE; else omitted (no fabrication)
+    'payload.extensions."vendor.sapient"':
+      report_id: status_report.report_id
+      active_task_id: status_report.active_task_id
+      info: status_report.info
+      status: status_report.status[] verbatim
+      node_location: status_report.node_location  # no kernel home
+      coverage: status_report.coverage
+      obscuration: status_report.obscuration
+  platform_status:                           # emitted only when power is present; zmeta_version "1.1.0"
+    event.event_type: SYSTEM_EVENT
+    event.event_subtype: PLATFORM_STATUS
+    payload.system_type: PLATFORM_STATUS
+    payload.state: power.status via enums.yaml power_status_to_platform_state
+    payload.metrics.battery_pct: power.level  # int 0-100
+    payload.metrics.power_state: power.source via enums.yaml power_source_to_power_state; unmapped sources omit power_state
+    'payload.extensions."vendor.sapient"':
+      report_id: status_report.report_id
+      power: status_report.power verbatim
+
+alert:
+  anomaly_inference:                         # zmeta_version "1.0"
+    # REFUSE without registration model identity (contract 7.5), without
+    # alert confidence (contract 8.1), or without caller based_on — the
+    # locked InferencePayload requires based_on with at least one real
+    # parent id and SAPIENT associated_detection references are
+    # object-scoped, so parent lineage is caller-resolved or refused.
+    event.event_type: INFERENCE_EVENT
+    event.event_subtype: ANOMALY
+    payload.inference_type: ANOMALY
+    payload.claim.alert_type: alert.alert_type    # native strings inside the claim
+    payload.claim.description: alert.description
+    payload.claim.region_id: alert.region_id
+    payload.claim.geo: alert location oneof via the observation geo eligibility matrix; ineligible => omitted + EXTENSION
+    payload.model.name: registration "<manufacturer> <model>"
+    payload.model.version: registration software_version
+    payload.based_on: caller based_on
+    confidence: alert.confidence
+    lineage.based_on: caller based_on
+    lineage.transform: translate:vendor:sapient_bsi335:v2@1.0.0
+    'payload.extensions."vendor.sapient"':
+      alert_id: alert.alert_id
+      status: alert.status
+      priority: alert.priority
+      ranking: alert.ranking
+      associated_file: alert.associated_file
+      associated_detection: alert.associated_detection
+
+task_ack:
+  task_ack_event:                            # zmeta_version "1.0"
+    event.event_type: SYSTEM_EVENT
+    event.event_subtype: TASK_ACK
+    payload.system_type: TASK_ACK
+    payload.state: task_status via enums.yaml task_status_to_task_ack_state; UNSPECIFIED => REFUSE
+    payload.metrics.task_id: task_ack.task_id
+    payload.metrics.original_event_id: caller task_index[task_id]; unresolvable => REFUSE (correlation is never fabricated)
+    payload.metrics.reason_code: TASK_REJECTED on REJECTED, TASK_FAILED on FAILED
+    payload.metrics.error: task_ack.reason[] joined free text
+    'payload.extensions."vendor.sapient"':
+      task_id: task_ack.task_id
+      associated_file: task_ack.associated_file
+
+error:
+  schema_violation_event:                    # zmeta_version "1.0"
+    # SAPIENT Error carries the offending packet, not a ZMeta event id;
+    # adapter-synthesized correlation is forbidden, so original_event_id
+    # uses the gateway's documented "UNKNOWN" sentinel
+    # (gateway/src/gateway.py precedent).
+    event.event_type: SYSTEM_EVENT
+    event.event_subtype: SCHEMA_VIOLATION
+    payload.system_type: SCHEMA_VIOLATION
+    payload.state: REJECTED                  # adapter-template precedent
+    payload.metrics.reason_code: SCHEMA_INVALID
+    payload.metrics.original_event_id: UNKNOWN sentinel (declared, never a synthesized id)
+    payload.metrics.error: error.error_message[] joined free text
+    'payload.extensions."vendor.sapient"':
+      packet: error.packet                   # opaque echoed bytes, verbatim
+
+egress:
+  # Both functions return plain proto3-JSON-shaped SapientMessage dicts;
+  # wire protobuf encoding is out of scope (README). Envelope timestamp is
+  # the ZMeta event.ts — translate-time wall clock is forbidden.
+  command_to_task:                           # zmeta_command_to_sapient_task (adapters/egress/sapient)
+    accepts: COMMAND_EVENT with requires_deconfliction true only; else None
+    task.task_id: payload.task_id
+    task.control: CONTROL_START
+    task.task_end_time: event.ts + payload.valid_for_ms
+    task.command.move_to: GOTO target_geo as one Location (x=lon, y=lat, LAT_LNG_DEG_M, WGS84_E, NO z ever — contract 7.8)
+    task.command.follow.follow_object_id: TRACK_TARGET via caller track_to_object map; unmapped => None
+    task.command.mode_change: CHANGE_SENSOR_MODE sensor_mode
+    unmapped_task_types: ORBIT/HOLD/SEARCH_BOX/LOITER/SCAN_RF/RETURN_TO_BASE/LAND => None (no honest SAPIENT verb; documented residue)
+    dropped: payload.priority (SAPIENT Task has no priority field — never smuggled)
+  state_to_detection:                        # zmeta_state_to_sapient_detection (adapters/egress/sapient)
+    accepts: STATE_EVENT/TRACK_STATE only; quarantine or prohibited_uses covering the export path => None
+    detection_report.object_id: payload.track_id
+    detection_report.report_id: fresh uuid7-derived report id
+    detection_report.location: payload.geo (x=lon, y=lat, z=alt_m, LAT_LNG_DEG_M, WGS84_E)
+    detection_report.classification: payload.class + event confidence when present
+    detection_report.enu_velocity: east/north from payload.heading_deg + speed_mps; up omitted (never fabricated)
+    detection_report.object_info: zmeta.risk / zmeta.timing_quality self-labels on degraded events (label-don't-launder; stock DMMs ignore them)

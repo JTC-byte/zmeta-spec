@@ -2,19 +2,91 @@
 
 ## Current Resume Note
 
-- Last updated: 2026-07-17
+- Last updated: 2026-07-20
 - Quick handoff: `docs/zmeta_refinement_handoff.md`
-- Current state (2026-07-17): the R1-10 stack audit, the maintainer-
-  directed fix-every-finding pass, the post-fix verification audit,
-  AND the v1.1.14 release cut are COMPLETE (entries below; findings
-  record in `docs/r1_10_full_stack_audit.md`). The cut resolved the
-  previously recorded SHA256SUMS_v1.1.13 manifest-entry divergence
-  (`SHA256SUMS_v1.1.14.txt` pins the regenerated manifest). Open
-  maintainer decision: whether a fresh full-stack audit beyond the
-  completed fix-verification audit runs before the queued backlog
-  resumes. Queued behind that: the v1.1.0 adoption-decision session,
-  the five deferred P1-06 maintainer decisions, PR #4 status, and
-  signing. See the handoff Next Work Queue.
+- Current state (2026-07-20): P1-07 (SAPIENT/BSI Flex 335 mapping pack +
+  reference adapters, maintainer-directed) is COMPLETE and validated on
+  the working tree (entry below): full kernel gate green all flags,
+  examples 51/51, pytest 680 passed + 172 subtests zero failures,
+  release manifest regenerated under the v1.1.14 identity. Awaiting the
+  maintainer's release-cut decision for the P1-07 content. The
+  2026-07-17 open maintainer decision (whether a fresh full-stack audit
+  runs before the queued backlog resumes) REMAINS OPEN — the maintainer
+  directed the SAPIENT comparison/mapping-pack lane on 2026-07-20
+  without closing it. Queued behind: the v1.1.0 adoption-decision
+  session (now holding both fielded command-loop evidence context and
+  the SAPIENT evidence legs), the five deferred P1-06 maintainer
+  decisions, PR #4 status, and signing. See the handoff Next Work
+  Queue.
+- P1-07 (2026-07-20): **SAPIENT / BSI Flex 335 v2.0 mapping pack +
+  reference adapters** (maintainer-directed after a verified spec-level
+  comparison and ecosystem review of SAPIENT — the UK MOD C-sUAS
+  standard, NATO C-UAS standard per STANREC 4869/AEDP-4869, and the
+  compliance baseline in NATO ACT's 2025 C-UAS RFI; analysis records
+  held maintainer-side, outside the repo). What landed (Class A/C
+  reference surface + two sanctioned governed touches):
+  `adapters/mapping-packs/sapient-bsi-flex-335/` (declarative pack,
+  schema_id `vendor:sapient_bsi335:v2`),
+  `adapters/ingress/sapient/` (SapientMessage protobuf-JSON ingress:
+  DetectionReport -> OBSERVATION + per-claim INFERENCE with
+  registration-derived model identity; fusion-node -> STATE promotion
+  gated on caller promotion metadata incl. caller-owned loop_status;
+  StatusReport -> SENSOR_STATUS/PLATFORM_STATUS on the 1.1.0 branch;
+  TaskAck -> TASK_ACK; Error -> SCHEMA_VIOLATION; RegistrationStore as
+  the units-and-error codex), `adapters/egress/sapient/`
+  (COMMAND_EVENT->Task for GOTO/TRACK_TARGET/CHANGE_SENSOR_MODE only,
+  altitude structurally excluded; STATE->DetectionReport with
+  zmeta.risk/zmeta.timing_quality self-labels and quarantine/
+  prohibited-use export refusal), 12 adapter-harness fixtures
+  (27 -> 39), the `sapient-ingress` producer-authority block (governed
+  policy touch, mirrors cot-ingress), adapters/README rows, release
+  manifest regen (governed; v1.1.14 identity kept). SAPIENT Task
+  ingress (external DMM tasking ZMeta platforms) deliberately OUT of
+  v1 — command-safety escalation avoided by scope.
+  **Session-limit interruption + integrity audit:** a usage limit killed
+  the wire/verify agents mid-pass (after the policy/README edits, before
+  any lint). On resume, a dedicated interruption-integrity review passed
+  all nine checks (sanctioned surfaces only; byte-level append-only
+  proof for harness fixtures; hunk-by-hunk truncation hunt on the two
+  interrupted files; claimed-vs-on-disk file reconciliation; no stray
+  artifacts; locked kernel untouched; style/pack/policy conventions
+  faithful; no CRLF/mojibake; clean pytest collection). The
+  adversarial honesty review then found four real defects, all fixed
+  with tests: (1) unknown active_mode silently dropped the
+  maximum_latency est_error_ms widen -> conservative cross-mode
+  fallback; (2) signal[] entries past the first vanished -> preserved
+  as vendor.sapient.signal_additional; (3) the promotion path
+  self-asserted loop_status CHECKED_NOT_REFLECTION -> now refused
+  unless caller-supplied (deliberate divergence from the CoT template,
+  which can receive it message-carried); (4) out-of-range protobuf
+  Timestamp raised out of translate() -> fail-closed refusal.
+  **Accepted deviations (adjudicated at closeout):** unregistered-node
+  detections refuse entirely (the build-spec's obs-still-emitted
+  variant would have required fabricating a modality — refusal over
+  fabrication ratified); four registration-dependent harness fixtures
+  are structurally inexpressible (the harness passes JSON-only kwargs
+  and cannot construct a RegistrationStore) — coverage lives in the 110
+  colocated pytest tests; ingress ships without __init__.py per the
+  klv-pair precedent.
+  **Second-glance register additions:** (a) cot_to_zmeta_template still
+  defaults promotion loop_status to CHECKED_NOT_REFLECTION — same
+  pattern the SAPIENT fix removed; should sync with the paused CoT
+  egress findings cluster. (b) Harness gap: fixtures cannot construct
+  non-JSON objects; a module-level entry point taking registration
+  message dicts (e.g. translate_with_registration_msgs) would make the
+  four missing fixtures one-liners — candidate, not built. (c) SAPIENT
+  branch-evidence items recorded, not implemented: RADAR-family
+  modality feature contracts (roadmap-queued; radar/lidar/seismic
+  ingress currently degrades to inference/promotion paths),
+  track-lifecycle vocabulary (SAPIENT evidence thin: free-text state
+  only), tasking verbs (LOOK_AT, multi-waypoint patrol, task-cancel).
+  (d) Egress detection projection emits full proto enum names
+  (proto3-JSON wire form) — protobuf wire encoding itself remains
+  out-of-scope, documented.
+  **Validation:** full kernel gate green all flags, examples 51/51,
+  full pytest 680 passed + 172 subtests zero failures (570 -> 680),
+  adapter harness 39/39, policy lint ok, manifest regenerated +
+  validated (groups=19 artifacts=70), git diff --check clean.
 - R1-10 AAR (2026-07-17), maintainer side — the full audit -> fix ->
   verify -> release cycle as an exercise of the R1-09 AAR's own
   lessons. **What happened:** the R1-10 stack audit ran the R1-09

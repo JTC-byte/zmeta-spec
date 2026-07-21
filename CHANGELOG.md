@@ -1,5 +1,45 @@
 # Changelog
 
+## [Unreleased]
+- SAPIENT (BSI Flex 335 v2.0) mapping pack and reference adapters — the
+  first mapping pack targeting a nationally standardized external format
+  (UK MOD C-sUAS standard; NATO C-UAS standard per STANREC 4869):
+  - `adapters/mapping-packs/sapient-bsi-flex-335/` (schema_id
+    `vendor:sapient_bsi335:v2`): declarative field maps, enum tables,
+    the registration-declared-units doctrine, canonical-geo eligibility
+    matrix, refusal matrix, and documented out-of-scope surface (SAPIENT
+    Task ingress/command-safety, effector arming, AlertAck loop, protobuf
+    wire encoding, UTM conversion).
+  - `adapters/ingress/sapient/`: SapientMessage (protobuf-JSON dict)
+    ingress. DetectionReport splits into OBSERVATION_EVENT plus
+    per-claim INFERENCE_EVENTs with registration-derived model identity
+    (layer separation demonstrated on a format that fuses fact and
+    opinion in one message); fusion-node reports promote to STATE_EVENT
+    only under caller-supplied `external_promotion` metadata including a
+    caller-owned `loop_status` (never self-asserted); StatusReport maps
+    to SENSOR_STATUS/PLATFORM_STATUS (1.1.0 branch); TaskAck maps to
+    TASK_ACK with refusal when the issued-command correlation is
+    unresolvable; Error maps to SCHEMA_VIOLATION. Registration is the
+    units-and-error codex: signal/velocity values reach canonical fields
+    only via registration-resolved units; unregistered nodes refuse
+    detection translation outright (refusal over fabricated modality).
+    Send-time timestamps widen `est_error_ms` by the registration's
+    declared per-mode `maximum_latency` (conservative cross-mode maximum
+    when the active mode is unknown).
+  - `adapters/egress/sapient/`: COMMAND_EVENT→Task projection
+    (GOTO/TRACK_TARGET/CHANGE_SENSOR_MODE only; altitude structurally
+    excluded; everything else refuses) and STATE_EVENT→DetectionReport
+    projection with `zmeta.risk`/`zmeta.timing_quality` object_info
+    self-labels (label-not-launder), quarantine/rejected/prohibited-use
+    export refusal per contract 3.3.
+  - 12 adapter-harness fixtures (promotion happy path + refusal register:
+    missing lineage, zero-fill geo, unregistered node, missing envelope
+    timestamp, null node identity, unresolvable task correlation,
+    model-less alert), `sapient-ingress` producer-authority policy block
+    mirroring the cot-ingress promotion constraints, and 110 colocated
+    adapter tests. Release manifest regenerated (policy_bundle and
+    adapter_conformance categories) under the v1.1.14 release identity.
+
 ## [1.1.14] - 2026-07-17
 - Intake funnel completed (maintainer decision): blank GitHub issues are
   disabled and a fourth minimal template, "General question or report"

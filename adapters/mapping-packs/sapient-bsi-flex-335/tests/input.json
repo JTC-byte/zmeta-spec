@@ -1,0 +1,68 @@
+{
+  "registration": {
+    "timestamp": "2026-03-01T11:58:00Z",
+    "node_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+    "registration": {
+      "node_definition": [
+        {"node_type": "NODE_TYPE_PASSIVE_RF"}
+      ],
+      "icd_version": "BSI Flex 335 v2.0",
+      "name": "Acme RF-Watch",
+      "config_data": [
+        {
+          "manufacturer": "Acme Sensors",
+          "model": "RF-Watch 200",
+          "software_version": "3.1.4"
+        }
+      ],
+      "mode_definition": [
+        {
+          "mode_name": "default",
+          "mode_type": "MODE_TYPE_DEFAULT",
+          "settle_time": {"units": "TIME_UNITS_SECONDS", "value": 1.0},
+          "maximum_latency": {"units": "TIME_UNITS_SECONDS", "value": 0.5},
+          "detection_definition": [
+            {
+              "location_type": {
+                "location_units": "LOCATION_COORDINATE_SYSTEM_LAT_LNG_DEG_M",
+                "location_datum": "LOCATION_DATUM_WGS84_E"
+              },
+              "detection_report": [
+                {"category": "DETECTION_REPORT_CATEGORY_SIGNAL", "type": "centre_frequency", "units": "MHz"},
+                {"category": "DETECTION_REPORT_CATEGORY_SIGNAL", "type": "start_frequency", "units": "MHz"},
+                {"category": "DETECTION_REPORT_CATEGORY_SIGNAL", "type": "stop_frequency", "units": "MHz"},
+                {"category": "DETECTION_REPORT_CATEGORY_SIGNAL", "type": "amplitude", "units": "dBm"}
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "detection": {
+    "timestamp": "2026-03-01T12:00:00Z",
+    "node_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+    "detection_report": {
+      "report_id": "01HZY3T5S8B7GJNZ2C4D6E8F9G",
+      "object_id": "01HZY3T5S8B7GJNZ2C4D6E8F9H",
+      "location": {
+        "x": -0.1278,
+        "y": 51.5074,
+        "z": 30.0,
+        "coordinate_system": "LOCATION_COORDINATE_SYSTEM_LAT_LNG_DEG_M",
+        "datum": "LOCATION_DATUM_WGS84_E"
+      },
+      "signal": [
+        {
+          "amplitude": -57.5,
+          "start_frequency": 2400.0,
+          "centre_frequency": 2437.0,
+          "stop_frequency": 2483.5
+        }
+      ],
+      "classification": [
+        {"type": "Human", "confidence": 0.82}
+      ]
+    }
+  }
+}

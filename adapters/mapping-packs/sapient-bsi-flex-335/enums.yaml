@@ -1,0 +1,156 @@
+# SAPIENT (BSI Flex 335 v2.0) enum -> ZMeta vocabulary tables.
+# REFUSE means fail closed: no event is emitted for that value. OMIT means
+# the target field is left out (the source value is preserved in the
+# vendor extension). NO_OBSERVATION means no OBSERVATION_EVENT exists for
+# that input (documented degradation, not an error). No table here ever
+# asserts a cleaner value than the source did.
+
+enums:
+  system_to_sensor_status_state:
+    # StatusReport.System -> SYSTEM_EVENT/SENSOR_STATUS payload.state (v1.1.0).
+    SYSTEM_OK: ACTIVE
+    SYSTEM_WARNING: DEGRADED
+    SYSTEM_ERROR: DEGRADED
+    SYSTEM_GOODBYE: OFFLINE
+    SYSTEM_UNSPECIFIED: REFUSE            # mandatory field unset => malformed report
+
+  status_type_forces_degraded:
+    # StatusReport.Status.status_type entries that force payload.state to
+    # DEGRADED regardless of System; every status[] entry is preserved
+    # verbatim in the vendor extension.
+    - STATUS_TYPE_INTERNAL_FAULT
+    - STATUS_TYPE_EXTERNAL_FAULT
+    - STATUS_TYPE_NOT_DETECTING
+
+  power_source_to_power_state:
+    # StatusReport.PowerSource -> SYSTEM_EVENT/PLATFORM_STATUS
+    # metrics.power_state (v1.1.0). OMIT: no honest v1.1.0 power_state
+    # value exists for that source.
+    POWERSOURCE_MAINS: EXTERNAL_POWER
+    POWERSOURCE_INTERNAL_BATTERY: BATTERY
+    POWERSOURCE_EXTERNAL_BATTERY: BATTERY
+    POWERSOURCE_OTHER: OMIT
+    POWERSOURCE_GENERATOR: OMIT
+    POWERSOURCE_SOLAR_PV: OMIT
+    POWERSOURCE_WIND_TURBINE: OMIT
+    POWERSOURCE_FUEL_CELL: OMIT
+    POWERSOURCE_UNSPECIFIED: OMIT
+
+  power_status_to_platform_state:
+    # StatusReport.PowerStatus -> SYSTEM_EVENT/PLATFORM_STATUS payload.state.
+    POWERSTATUS_OK: NOMINAL
+    POWERSTATUS_FAULT: WARNING
+    POWERSTATUS_UNSPECIFIED: UNKNOWN      # honest unset label; never NOMINAL by default
+
+  task_status_to_task_ack_state:
+    # TaskAck.TaskStatus -> SYSTEM_EVENT/TASK_ACK payload.state (v1.0).
+    # SAPIENT's four usable states are an exact subset of ZMeta's nine.
+    TASK_STATUS_ACCEPTED: ACCEPTED
+    TASK_STATUS_REJECTED: REJECTED        # metrics.reason_code TASK_REJECTED
+    TASK_STATUS_COMPLETED: COMPLETED
+    TASK_STATUS_FAILED: FAILED            # metrics.reason_code TASK_FAILED
+    TASK_STATUS_UNSPECIFIED: REFUSE
+
+  node_type_to_observation_modality:
+    # Registration NodeType -> OBSERVATION_EVENT subtype when the report
+    # carries no resolvable signal[] block. A signal[] block whose
+    # registration-declared units resolve makes the observation RF
+    # regardless of node type. NO_OBSERVATION rows still emit inference
+    # events (model identity permitting) — see README branch-evidence
+    # item 1 for the queued RADAR-family modality contracts.
+    NODE_TYPE_CAMERA: EO
+    NODE_TYPE_ACOUSTIC: ACOUSTIC
+    NODE_TYPE_PASSIVE_RF: RF
+    NODE_TYPE_CYBER: NETWORK
+    NODE_TYPE_RADAR: NO_OBSERVATION
+    NODE_TYPE_LIDAR: NO_OBSERVATION
+    NODE_TYPE_SEISMIC: NO_OBSERVATION
+    NODE_TYPE_PROXIMITY_SENSOR: NO_OBSERVATION
+    NODE_TYPE_HUMAN: NO_OBSERVATION
+    NODE_TYPE_CHEMICAL: NO_OBSERVATION
+    NODE_TYPE_BIOLOGICAL: NO_OBSERVATION
+    NODE_TYPE_RADIATION: NO_OBSERVATION
+    NODE_TYPE_KINETIC: NO_OBSERVATION
+    NODE_TYPE_JAMMER: NO_OBSERVATION
+    NODE_TYPE_LDEW: NO_OBSERVATION
+    NODE_TYPE_RFDEW: NO_OBSERVATION
+    NODE_TYPE_MOBILE_NODE: NO_OBSERVATION
+    NODE_TYPE_POINTABLE_NODE: NO_OBSERVATION
+    NODE_TYPE_OTHER: NO_OBSERVATION
+    NODE_TYPE_UNSPECIFIED: NO_OBSERVATION
+    NODE_TYPE_FUSION_NODE: PROMOTION_PATH  # detections route to the STATE promotion path, never to observation
+
+  location_coordinate_system:
+    # Location.coordinate_system disposition (self-describing inline).
+    LOCATION_COORDINATE_SYSTEM_LAT_LNG_DEG_M: CANONICAL
+    LOCATION_COORDINATE_SYSTEM_LAT_LNG_RAD_M: CANONICAL_CONVERT   # radians -> degrees
+    LOCATION_COORDINATE_SYSTEM_UTM_M: EXTENSION_ONLY              # UTM conversion out of scope; omitted_reason UTM_UNSUPPORTED
+    LOCATION_COORDINATE_SYSTEM_UNSPECIFIED: EXTENSION_ONLY        # omitted_reason COORDINATE_SYSTEM_UNSPECIFIED
+
+  location_datum:
+    # Location.datum disposition. ZMeta altitude is WGS-84 HAE only.
+    LOCATION_DATUM_WGS84_E: CANONICAL
+    LOCATION_DATUM_WGS84_G: EXTENSION_ONLY       # geoid altitude is not HAE; omitted_reason GEOID_DATUM
+    LOCATION_DATUM_UNSPECIFIED: EXTENSION_ONLY   # omitted_reason DATUM_UNSPECIFIED
+
+  range_bearing_coordinate_system:
+    # RangeBearing.coordinate_system disposition (self-describing inline).
+    RANGE_BEARING_COORDINATE_SYSTEM_DEGREES_M: CANONICAL
+    RANGE_BEARING_COORDINATE_SYSTEM_RADIANS_M: CANONICAL_CONVERT  # radians -> degrees
+    RANGE_BEARING_COORDINATE_SYSTEM_DEGREES_KM: CANONICAL_CONVERT # km -> m x1000
+    RANGE_BEARING_COORDINATE_SYSTEM_RADIANS_KM: CANONICAL_CONVERT # both conversions
+    RANGE_BEARING_COORDINATE_SYSTEM_UNSPECIFIED: EXTENSION_ONLY
+
+  range_bearing_datum:
+    # RangeBearing.datum -> bearing frame disposition (contract 6.4).
+    # CANONICAL: payload.bearing + quality.bearing_frame TRUE_NORTH.
+    # NATIVE_FEATURES: features.bearing_native_* only, never canonical.
+    RANGE_BEARING_DATUM_TRUE: CANONICAL
+    RANGE_BEARING_DATUM_MAGNETIC: NATIVE_FEATURES
+    RANGE_BEARING_DATUM_GRID: NATIVE_FEATURES    # SAPIENT's recommended default — the conversion debt is the common case
+    RANGE_BEARING_DATUM_PLATFORM: NATIVE_FEATURES
+    RANGE_BEARING_DATUM_UNSPECIFIED: EXTENSION_ONLY
+
+appendix_a_taxonomy:
+  # Evidence capture only: the SAPIENT object/behaviour taxonomy as
+  # published in the SAPIENT ICD (DSTL/PUB145591) Appendix A and carried
+  # into BSI Flex 335 (v2.0 adds namespaced TaxonomyDockDefinition docking
+  # points for extensions). Classification and behaviour strings pass
+  # through verbatim into inference claims; nothing here is enforced at
+  # runtime or remapped onto a ZMeta vocabulary. "Unknown" is an asserted
+  # class ("certain this is an unknown class"), not a missing value.
+  object_classes:
+    Unknown: {}
+    Human: [Male, Female]
+    Animal: [Bird, Horse, Other]
+    Fixed Object: [Building, Fixed Tower/mast, Road, Bridge, Dam, Street Furniture, Natural feature, Other]
+    EM Transmitter: [Wifi AP, Broadcast, UAS Control Station, UAV Transmitter, Radar, RF Jammer, Laser/Lidar, RF DEW/EM Pulse, Other]
+    Equipment:
+      Weapon: [Gun, Missile Launcher, Missile, Bomb, IED/mine, Grenade, Other]
+      Passive Sensor: [Camera, Acoustic, Other]
+      Other: []
+    Land Vehicle:
+      Tracked: [Commercial, Military]
+      ">2 wheels - Heavy": [Commercial, Military]
+      ">2 wheels - Medium": [Commercial, Military]
+      ">2 wheels - Light": [Commercial, Military]
+      2 wheels: [Motorbike, Bicycle]
+    Sea Vessel:
+      Large Ship: [Commercial, Military]
+      Small boat: [Commercial, Military]
+      Submarine: [Commercial, Military]
+    Air Vehicle:
+      Manned Rotary Wing: [Commercial, Military]
+      Manned Fixed Wing: [Commercial, Military]
+      UAV Rotary Wing: [Commercial, Military]
+      UAV Fixed Wing: [Commercial, Military]
+  behaviours:
+    - Walking
+    - Running
+    - Crawling
+    - Climbing
+    - Digging
+    - Throwing
+    - Loitering
+    - Active
+    - Passive

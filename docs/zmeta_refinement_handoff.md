@@ -545,6 +545,14 @@ entries):
      resumes. Flagged residuals for that audit are listed in the
      worklog fix-pass entry (signalhunter replay-timestamp and
      sensor-position observations).
+   - 2026-07-20 update: the maintainer directed the SAPIENT lane
+     (comparison + P1-07 mapping pack, complete — worklog P1-07 entry)
+     without closing this decision; it remains open. P1-07 added
+     follow-up candidates to the queue: the CoT-template loop_status
+     default sync (second-glance item a), the harness
+     registration-object entry point (item b), and the SAPIENT
+     branch-evidence items (item c) which feed the v1.1.0 adoption
+     session and the future-branch roadmap rather than immediate work.
    - Everything below this item is queued behind that decision.
 
 2. **Queued: v1.1.0 adoption decision (all fourteen concepts)**

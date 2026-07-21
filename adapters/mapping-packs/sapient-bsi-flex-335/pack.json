@@ -1,0 +1,6 @@
+{
+  "schema_id": "vendor:sapient_bsi335:v2",
+  "pack_slug": "sapient-bsi-flex-335",
+  "version": "1.0.0",
+  "description": "Mapping pack for SAPIENT (BSI Flex 335 v2.0) protobuf-JSON messages: DetectionReport, StatusReport, Alert, TaskAck, and Error ingress, plus Task and DetectionReport egress projections."
+}

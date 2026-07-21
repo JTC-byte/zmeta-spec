@@ -1,0 +1,79 @@
+[
+  {
+    "zmeta_version": "1.0",
+    "event": {
+      "event_id": "019c4a10-0000-7000-8000-000000000001",
+      "event_type": "OBSERVATION_EVENT",
+      "event_subtype": "RF",
+      "ts": "2026-03-01T12:00:00Z"
+    },
+    "source": {
+      "platform_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+      "node_role": "EDGE",
+      "producer": "sapient-ingress",
+      "sensor_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+    },
+    "payload": {
+      "modality": "RF",
+      "geo": {
+        "lat": 51.5074,
+        "lon": -0.1278,
+        "alt_m": 30.0
+      },
+      "features": {
+        "center_freq_hz": 2437000000.0,
+        "bandwidth_hz": 83500000.0,
+        "power_dbm": -57.5
+      },
+      "quality": {
+        "geo_status": "AVAILABLE"
+      },
+      "extensions": {
+        "vendor.sapient": {
+          "report_id": "01HZY3T5S8B7GJNZ2C4D6E8F9G",
+          "object_id": "01HZY3T5S8B7GJNZ2C4D6E8F9H",
+          "native_classification": [
+            {"type": "Human", "confidence": 0.82}
+          ]
+        }
+      }
+    }
+  },
+  {
+    "zmeta_version": "1.0",
+    "event": {
+      "event_id": "019c4a10-0000-7000-8000-000000000002",
+      "event_type": "INFERENCE_EVENT",
+      "event_subtype": "CLASSIFICATION",
+      "ts": "2026-03-01T12:00:00Z"
+    },
+    "source": {
+      "platform_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+      "node_role": "EDGE",
+      "producer": "sapient-ingress",
+      "sensor_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+    },
+    "payload": {
+      "inference_type": "CLASSIFICATION",
+      "claim": {
+        "type": "Human"
+      },
+      "model": {
+        "name": "Acme Sensors RF-Watch 200",
+        "version": "3.1.4"
+      },
+      "based_on": ["019c4a10-0000-7000-8000-000000000001"],
+      "extensions": {
+        "vendor.sapient": {
+          "report_id": "01HZY3T5S8B7GJNZ2C4D6E8F9G",
+          "object_id": "01HZY3T5S8B7GJNZ2C4D6E8F9H"
+        }
+      }
+    },
+    "confidence": 0.82,
+    "lineage": {
+      "based_on": ["019c4a10-0000-7000-8000-000000000001"],
+      "transform": "translate:vendor:sapient_bsi335:v2@1.0.0"
+    }
+  }
+]

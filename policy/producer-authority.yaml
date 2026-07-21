@@ -294,6 +294,21 @@ producer_authority:
           - mavlink
         allowed_confidence_basis:
           - GPS_FIX_CONFIDENCE
+    sapient-ingress:
+      allowed_event_types:
+        - OBSERVATION_EVENT
+        - INFERENCE_EVENT
+        - STATE_EVENT
+        - SYSTEM_EVENT
+      external_state_promotion:
+        required: true
+        approved_policy_ids:
+          - PROMOTE-SAPIENT-STATE-V1
+        allowed_projection_ids:
+          - sapient
+        allowed_confidence_basis:
+          - EXPLICIT_EXTERNAL_CONFIDENCE
+          - FUSION_BACKED_CONFIDENCE
 
     comms-deconfliction-*:
       allowed_event_types:

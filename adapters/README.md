@@ -5,7 +5,7 @@ They are intentionally minimal and may be lossy.
 
 - Ingress adapters: `adapters/ingress/`
 - Mapping packs: `adapters/mapping-packs/`
-- Egress projections: `adapters/egress/` (CoT, MissionIntent, JREAP)
+- Egress projections: `adapters/egress/` (CoT, MissionIntent, JREAP, KLV, SAPIENT)
 
 Building a new adapter? Start with the step-by-step authoring guide:
 `adapters/AUTHORING.md`.
@@ -40,6 +40,7 @@ or command safety.
 | [CoT](ingress/cot/) | Cursor-on-Target XML | STATE_EVENT (promotion) | Template |
 | [JREAP](ingress/jreap/) | Decoded JREAP/Link-style track dicts | STATE_EVENT (promotion) | Template |
 | [KLV](ingress/klv/) | MISB KLV metadata | OBSERVATION_EVENT (EO) | Template |
+| [SAPIENT](ingress/sapient/) | BSI Flex 335 v2.0 SapientMessage dicts (protobuf-JSON) | OBSERVATION_EVENT, INFERENCE_EVENT, STATE_EVENT (promotion), SYSTEM_EVENT | Reference |
 | [Example-vendor](ingress/example-vendor/) | `example-vendor-pack` RF JSON | OBSERVATION_EVENT (RF) | Worked exercise |
 
 Each adapter implements the standard `detect()` / `translate()` / `validate()`
@@ -88,11 +89,11 @@ producer or adapter configuration. They are not signatures, credentials,
 calibration proofs, or independent verification that a true-north assertion is
 correct. Treat them as inputs to trust and deployment policy, not as proof.
 
-External tactical track ingress is also an authority boundary. CoT, JREAP, and
-MAVLink state templates emit policy-scoped
-`payload.extensions.external_promotion` metadata and `promote:*` lineage
-transforms so reference producer-authority policy can distinguish promoted
-external reports from native ZMeta state. Schema validity alone is not
+External tactical track ingress is also an authority boundary. The CoT, JREAP,
+and MAVLink state templates and the SAPIENT fusion-node ingress emit
+policy-scoped `payload.extensions.external_promotion` metadata and `promote:*`
+lineage transforms so reference producer-authority policy can distinguish
+promoted external reports from native ZMeta state. Schema validity alone is not
 promotion authority. The `trust_ref` value is an asserted policy reference for
 promotion adjudication, not a signature, credential, or standalone proof of
 authenticity.
