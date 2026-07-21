@@ -19,6 +19,21 @@
   context and the SAPIENT evidence legs), the five deferred P1-06
   maintainer decisions, PR #4 status, and signing. See the handoff
   Next Work Queue.
+- P1-07 (2026-07-21): **v1.1.15 PUBLISHED** (maintainer-directed "once
+  the end to end validation is good, cut the release per the
+  documentation"; agent-executed per RELEASE_CHECKLIST). Release
+  commit `bbd4c89`, annotated tag `v1.1.15` pushed, GitHub release
+  live with all eight assets and marked Latest, CI green for the
+  release commit (run 29802675100), checksums-only (signing decision
+  recorded in the release notes; signing remains the maintainer's
+  external process). Doc-currency pass covered README, installation
+  guide (5 pins — caught by test_release_currency, which is the
+  machine check working as designed), professional overview, tools
+  README, release README, check_compat TARGETS, CI compat target, and
+  the release-manifest test pins. Retention pass: no worklog archival
+  this cut (the archive last ran at P1-06; the resume-note retention
+  extension remains an open maintainer decision). Full battery
+  results in `release/VALIDATION_REPORT_v1.1.15.md`.
 - P1-07 e2e follow-up (2026-07-21, maintainer-directed "run the follow
   up first then once the end to end validation is good, cut the
   release"): **end-to-end wire validation against official Dstl tooling
