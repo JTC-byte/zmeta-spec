@@ -38,6 +38,15 @@
   session-limit interruption recovery (resume with verify-and-complete
   prompts + a dedicated interruption-integrity review) left zero
   half-done state, twice validated as a working pattern.
+- P1-08 (2026-07-21): **v1.1.16 PUBLISHED** — release commit `f8951ee`,
+  annotated tag pushed, GitHub release live with all eight assets
+  marked Latest, CI green (run 29805064763), checksums-only (signing
+  decision in the release notes). Contributor notified on PR #7 with
+  the full fix rationale and an invitation to restore the canonical
+  bearing with a producer frame assertion. Battery results in
+  `release/VALIDATION_REPORT_v1.1.16.md`, including the verified-benign
+  CRLF policy-hash print observation (canonicalized
+  `policy_bundle_hash` byte-identical across v1.1.15/v1.1.16).
 - P1-08 (2026-07-21): **PR #7 (edge-comms-bladerf real-capture pack)
   reviewed and MERGED with maintainer fixes** (maintainer-directed
   "run a full review on it and if it is all good, merge it"). Review
