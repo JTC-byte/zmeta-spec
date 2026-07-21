@@ -117,11 +117,18 @@ defaulted into validity.
 | Egress: COMMAND_EVENT without `requires_deconfliction: true` | return None |
 | Egress: COMMAND task type with no honest SAPIENT verb (ORBIT/HOLD/SEARCH_BOX/LOITER/SCAN_RF/RETURN_TO_BASE/LAND) | return None (documented residue) |
 | Egress: TRACK_TARGET without a `track_to_object` mapping | return None |
+| Egress: Task `task_id` not a ULID | return None (the idempotency key is minted by the SAPIENT-bridged command producer; the adapter never rewrites it — a derived id would break idempotent re-issue and TaskAck correlation) |
+| Egress: STATE `track_id` not a ULID and not resolved by the caller's `object_map` to a valid ULID | return None (`object_id` is caller-owned identity continuity — deployment state; the adapter never mints a fresh identity per report) |
 | Egress: STATE quarantined, or `prohibited_uses` covering the export path | return None; exportable warn/degrade events are labeled via `object_info` self-labels instead (label-don't-launder) |
 
 Altitude never crosses into SAPIENT Task locations (contract 7.8), and
 egress envelope timestamps are always the ZMeta `event.ts` — a
-translate-time wall clock would be a fabricated timestamp.
+translate-time wall clock would be a fabricated timestamp. Egress
+SapientMessage ids are ULIDs (proto `is_ulid`; Apex `strictIdFormat`,
+on by default, rejects violations — verified live against Apex v4.2.0):
+`report_id` is adapter-derived with its 48-bit timestamp component
+sourced from `event.ts` (never the wall clock); `object_id` and
+`task_id` are caller-owned per the refusal rows above.
 
 One declared sentinel is not a refusal: SAPIENT `Error` echoes the
 offending packet, not a ZMeta event id, so the emitted
@@ -193,7 +200,27 @@ python -m pytest adapters/ingress/sapient adapters/egress/sapient -q
 python tools/validate_adapter_conformance.py --fixtures conformance/adapter-harness/must-pass.jsonl
 ```
 
-then the full ladder in `adapters/AUTHORING.md` section 5. Future
-end-to-end targets, recorded but not claimed: the official SAPIENT Apex
-middleware and the BSI Flex 335 test harness as integration
-counterparties for a live SAPIENT enclave.
+then the full ladder in `adapters/AUTHORING.md` section 5.
+
+End-to-end wire validation against the official Dstl tooling was run on
+2026-07-21 (Apex-SAPIENT-Middleware v4.2.0, commit 0c8591a, its shipped
+BSI Flex 335 v2.0 `*_pb2` modules and validator, stock strict
+configuration, Python 3.11 + protobuf 4.25.1):
+
+- Egress: every produced Task and DetectionReport dict parses strictly
+  (`ParseDict`, unknown fields disallowed) into the official
+  `SapientMessage` classes, byte round-trips exactly, and passes the
+  Apex validator clean, including ULID id checks and the
+  `zmeta.risk`/`zmeta.timing_quality` object_info self-labels.
+- Ingress: Registration, DetectionReport, StatusReport, TaskAck, and
+  Error messages built via the official pb2 classes (Apex-validator
+  clean, both camelCase and proto-field-name JSON spellings) translate
+  to schema-valid ZMeta events with correct units, layer splits,
+  timing widen, and refusal behavior. Zero findings.
+- Live loop: a local Apex v4.2.0 instance accepted Registration
+  (acknowledged) and egress DetectionReports as-is — stored with no
+  error records and no SAPIENT Error replies.
+
+Not exercised, recorded honestly: the C# BSI Flex 335 v2 test harness
+(no .NET SDK on the validation host) and multi-node Apex routing. Those
+remain open integration targets for a live SAPIENT enclave.

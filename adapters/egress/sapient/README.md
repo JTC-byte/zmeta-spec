@@ -11,12 +11,28 @@ envelope `timestamp` from the event's own `event.ts`, never the wall clock.
 - `zmeta_command_to_sapient_task.py`: COMMAND_EVENT -> Task
 - `zmeta_state_to_sapient_detection.py`: STATE_EVENT/TRACK_STATE -> DetectionReport
 
+### ULID discipline
+
+Stock SAPIENT middleware validates SapientMessage ids as ULIDs (proto
+`is_ulid`; Apex `strictIdFormat`, on by default, rejects violations —
+verified live against Apex v4.2.0). Shared helpers live in
+`ulid_util.py`; ULID timestamp components always come from the event's
+own time, never a wall-clock read.
+
+| Id | Contract |
+| --- | --- |
+| `report_id` | Adapter-derived: fresh ULID per report, 48-bit timestamp component = the event's own `event.ts` (ms). |
+| `object_id` | Caller-owned identity. A ULID `track_id` passes through unchanged; otherwise the caller's `object_map` (track_id -> SAPIENT ULID) must resolve it or the event is refused. A mapped value that is not itself a ULID is refused. The adapter never mints a fresh identity per report — object identity continuity is deployment state. |
+| `task_id` | Caller-owned idempotency key: must already be a ULID or the event is refused. SAPIENT-bridged command producers mint ULID task_ids; the adapter never rewrites the key — a derived id would break idempotent re-issue across the bridge and TaskAck correlation. |
+
 ### Command projection (COMMAND_EVENT -> Task)
 
 Command safety rules (semantics contract 7.8) dominate this projection:
 
 - Only deconflicted commands cross: `requires_deconfliction: true` or the
   event is refused (returns None).
+- `task_id` must be a ULID (ULID discipline above) or the event is
+  refused.
 - Only three task types have an honest SAPIENT `Task.Command` verb:
 
   | ZMeta task_type | SAPIENT command | Notes |
@@ -54,6 +70,8 @@ Command lossiness:
 Refusals (returns None):
 
 - Wrong event type/subtype, missing `event.ts`, missing `track_id`.
+- `track_id` not a ULID and not resolved by the caller's `object_map` to
+  a valid SAPIENT object ULID (ULID discipline above).
 - Partial geo: `lat`, `lon`, and `alt_m` must all be present — SAPIENT `z`
   is an explicit claim and the location oneof is mandatory, so a partial
   position cannot cross without inventing an axis (contract 6.8).
@@ -113,7 +131,7 @@ from adapters.egress.sapient.zmeta_state_to_sapient_detection import zmeta_state
 command = {
   "event": {"event_type": "COMMAND_EVENT", "event_subtype": "GOTO", "ts": "2026-07-17T12:00:00Z"},
   "payload": {
-    "task_id": "task-1",
+    "task_id": "01ARZ3NDEKTSV4RRFFQ69G5FAV",
     "task_type": "GOTO",
     "target_geo": {"lat": 34.0, "lon": -118.0},
     "valid_for_ms": 600000,
@@ -129,7 +147,7 @@ print(zmeta_command_to_sapient_task(
 state = {
   "event": {"event_type": "STATE_EVENT", "event_subtype": "TRACK_STATE", "ts": "2026-07-17T12:00:00Z"},
   "payload": {
-    "track_id": "trk-9",
+    "track_id": "01BX5ZZKBKACTAV9WEVGEMMVRZ",
     "geo": {"lat": 34.0, "lon": -118.0, "alt_m": 120.0},
     "class": "UAV",
     "valid_for_ms": 5000

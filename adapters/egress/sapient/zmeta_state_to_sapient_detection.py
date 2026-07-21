@@ -25,7 +25,7 @@ import json
 import math
 from datetime import datetime, timezone
 
-from zmeta_uuid import uuid7
+from adapters.egress.sapient.ulid_util import is_ulid, ulid_from_ts_ms
 
 # Policy decisions that bound an event to a restricted consumer set; a
 # coalition SAPIENT export is outside every such set (semantics contract
@@ -142,8 +142,18 @@ def _risk_label_entry(record):
     return entry
 
 
-def zmeta_state_to_sapient_detection(event, *, node_id, use_labels=None, export_use="COALITION_EXPORT"):
+def zmeta_state_to_sapient_detection(event, *, node_id, use_labels=None, export_use="COALITION_EXPORT", object_map=None):
     """Convert a ZMeta STATE_EVENT/TRACK_STATE into a SAPIENT DetectionReport dict.
+
+    Id discipline (SAPIENT proto is_ulid; Apex strictIdFormat rejects
+    violations): `report_id` is adapter-derived — a fresh ULID whose
+    48-bit timestamp component is the event's own `event.ts`, never the
+    wall clock. `object_id` is caller-owned identity: a ULID `track_id`
+    passes through unchanged; a non-ULID `track_id` must resolve through
+    `object_map` to a caller-owned SAPIENT ULID or the event is refused.
+    Object identity continuity is deployment state — the adapter never
+    mints a fresh identity per report, which would shred track continuity
+    on the SAPIENT side.
 
     Args:
         event: ZMeta event dict. Must have event_type=STATE_EVENT and
@@ -159,12 +169,17 @@ def zmeta_state_to_sapient_detection(event, *, node_id, use_labels=None, export_
             "COALITION_EXPORT", semantics contract 3.3 vocabulary). An
             event whose labels prohibit — or whose grant list omits — this
             use is refused.
+        object_map: Optional dict mapping ZMeta track_id to the
+            caller-owned SAPIENT object_id ULID for that track. Consulted
+            only when `track_id` is not itself a ULID; a mapped value that
+            is not a valid ULID is refused, never passed through.
 
     Returns:
         Proto3-JSON-shaped SapientMessage dict carrying a DetectionReport,
         or None if the event cannot be honestly projected (wrong
-        type/subtype, missing ts/track_id, partial geo, quarantined or
-        rejected by policy, or export-path use prohibited).
+        type/subtype, missing ts/track_id, no ULID object identity,
+        partial geo, quarantined or rejected by policy, or export-path
+        use prohibited).
     """
     if event.get("event", {}).get("event_type") != "STATE_EVENT":
         return None
@@ -185,6 +200,16 @@ def zmeta_state_to_sapient_detection(event, *, node_id, use_labels=None, export_
     track_id = payload.get("track_id")
     if not track_id:
         return None
+
+    # object_id is caller-owned identity (see docstring): ULID track_ids
+    # pass through; anything else must resolve through object_map to a
+    # valid ULID or the event is refused — never a freshly minted id.
+    if is_ulid(track_id):
+        object_id = track_id
+    else:
+        object_id = (object_map or {}).get(track_id)
+        if not is_ulid(object_id):
+            return None
 
     # All-or-nothing geo: DetectionReport's location oneof is mandatory and
     # SAPIENT z is an explicit claim — a partial position cannot be
@@ -207,9 +232,13 @@ def zmeta_state_to_sapient_detection(event, *, node_id, use_labels=None, export_
         if _blocks_export(record, str(export_use).strip().upper()):
             return None
 
+    # report_id timestamp component is the event's own ts (never wall
+    # clock — same honesty rule as the envelope timestamp below).
+    time_dt = _parse_utc(ts)
+
     detection = {
-        "report_id": str(uuid7()),
-        "object_id": track_id,
+        "report_id": ulid_from_ts_ms(round(time_dt.timestamp() * 1000)),
+        "object_id": object_id,
         "location": {
             "x": lon,
             "y": lat,
@@ -274,7 +303,7 @@ def zmeta_state_to_sapient_detection(event, *, node_id, use_labels=None, export_
         detection["object_info"] = object_info
 
     return {
-        "timestamp": _utc_z(_parse_utc(ts)),
+        "timestamp": _utc_z(time_dt),
         "node_id": node_id,
         "detection_report": detection,
     }

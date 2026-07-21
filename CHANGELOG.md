@@ -1,6 +1,25 @@
 # Changelog
 
-## [Unreleased]
+## [1.1.15] - 2026-07-21
+- End-to-end wire validation against official Dstl tooling
+  (Apex-SAPIENT-Middleware v4.2.0, shipped BSI Flex 335 v2.0 pb2 modules
+  and validator, stock strict configuration): egress dicts parse
+  strictly into the official protobuf classes and pass the Apex
+  validator clean; official-built ingress messages translate to
+  schema-valid ZMeta events with zero findings; a live Apex instance
+  accepted Registration and egress DetectionReports with no error
+  records and no Error replies. The C# BSI Flex 335 v2 test harness and
+  multi-node routing were not exercised (recorded in the pack README).
+- SAPIENT egress ULID discipline (found by that validation, fixed
+  pre-release): DetectionReport `report_id` is now a canonical ULID
+  whose 48-bit timestamp is the event's own `event.ts` (never
+  translate-time wall clock; new stdlib-only
+  `adapters/egress/sapient/ulid_util.py`); `object_id` passes through
+  only valid ULID `track_id` values or resolves via the caller-owned
+  `object_map` (else refuses); Task `task_id` must be a valid ULID
+  (else refuses) — SAPIENT-bridged command producers mint ULID task
+  ids, preserving idempotent re-issue and TaskAck correlation across
+  the bridge. Nothing id-invalid reaches the wire.
 - SAPIENT (BSI Flex 335 v2.0) mapping pack and reference adapters — the
   first mapping pack targeting a nationally standardized external format
   (UK MOD C-sUAS standard; NATO C-UAS standard per STANREC 4869):

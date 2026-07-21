@@ -183,9 +183,8 @@ Current stack status:
   bearing/heading fields unless callers explicitly assert `TRUE_NORTH`;
   unasserted native values remain auditable under explicitly named
   non-canonical fields.
-- Use tag `v1.1.14` for current formal release assets/checksums. Use tag
-  `v1.1.13` for the previous onboarding-and-machine-checked-refusal
-  baseline.
+- Use tag `v1.1.15` for current formal release assets/checksums. Use tag
+  `v1.1.14` for the previous audit-driven honesty-hardening baseline.
 - Use current `main` for the latest integration baseline with bearing-frame
   integrity, policy-risk linting, projection preservation for risk/promotion
   extensions, stricter extension registry metadata, formal human/AI agent

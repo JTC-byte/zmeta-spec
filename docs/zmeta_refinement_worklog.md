@@ -2,22 +2,45 @@
 
 ## Current Resume Note
 
-- Last updated: 2026-07-20
+- Last updated: 2026-07-21
 - Quick handoff: `docs/zmeta_refinement_handoff.md`
-- Current state (2026-07-20): P1-07 (SAPIENT/BSI Flex 335 mapping pack +
-  reference adapters, maintainer-directed) is COMPLETE and validated on
-  the working tree (entry below): full kernel gate green all flags,
-  examples 51/51, pytest 680 passed + 172 subtests zero failures,
-  release manifest regenerated under the v1.1.14 identity. Awaiting the
-  maintainer's release-cut decision for the P1-07 content. The
-  2026-07-17 open maintainer decision (whether a fresh full-stack audit
-  runs before the queued backlog resumes) REMAINS OPEN — the maintainer
-  directed the SAPIENT comparison/mapping-pack lane on 2026-07-20
-  without closing it. Queued behind: the v1.1.0 adoption-decision
-  session (now holding both fielded command-loop evidence context and
-  the SAPIENT evidence legs), the five deferred P1-06 maintainer
-  decisions, PR #4 status, and signing. See the handoff Next Work
-  Queue.
+- Current state (2026-07-21): P1-07 (SAPIENT/BSI Flex 335 mapping pack
+  + reference adapters), its maintainer-directed end-to-end wire
+  validation against official Dstl tooling (PASSED; the ULID findings
+  fixed pre-release), and the **v1.1.15 release cut** are COMPLETE —
+  release prepared per RELEASE_CHECKLIST with the full battery green
+  (kernel gate all flags, examples 51/51, pytest 687+172 zero
+  failures, harness 39/39, compat sweep 9/9, packet-size 150/240,
+  workflow/live/self-test/Docker checks, checksums verified,
+  checksums-only signing decision recorded). The 2026-07-17 open
+  maintainer decision (whether a fresh full-stack audit runs before
+  the queued backlog resumes) REMAINS OPEN. Queued behind: the v1.1.0
+  adoption-decision session (now holding fielded command-loop evidence
+  context and the SAPIENT evidence legs), the five deferred P1-06
+  maintainer decisions, PR #4 status, and signing. See the handoff
+  Next Work Queue.
+- P1-07 e2e follow-up (2026-07-21, maintainer-directed "run the follow
+  up first then once the end to end validation is good, cut the
+  release"): **end-to-end wire validation against official Dstl tooling
+  PASSED** — Apex-SAPIENT-Middleware v4.2.0 (commit 0c8591a), its
+  shipped BSI Flex 335 v2.0 pb2 modules + validator, stock strict
+  config, Python 3.11/protobuf 4.25.1 per Apex pins. Egress: strict
+  ParseDict + byte round-trip + validator clean for all mapped Task
+  types and DetectionReport projections incl. the zmeta.risk/
+  zmeta.timing_quality self-labels; live Apex accepted Registration
+  (acked) and egress detections as-is, zero error records, zero Error
+  replies. Ingress: official-pb2-built messages (validator-clean, both
+  JSON spellings) → schema-valid ZMeta events, zero findings. The
+  validation's first pass found a MAJOR + two MODERATEs, all fixed
+  pre-release and re-verified clean: egress report_id was UUIDv7 where
+  the proto demands ULID (now ULID minted from the event's own ts —
+  new ulid_util.py, no wall clock); object_id/task_id pass-throughs
+  now validate-or-refuse with a caller-owned object_map escape hatch
+  (idempotency keys are never rewritten). Honest skip record: C# BSI
+  Flex 335 v2 test harness (no .NET SDK on host) and multi-node Apex
+  routing not exercised — open integration targets, recorded in the
+  pack README Validation section. Egress tests 41→48; adapters suite
+  243.
 - P1-07 (2026-07-20): **SAPIENT / BSI Flex 335 v2.0 mapping pack +
   reference adapters** (maintainer-directed after a verified spec-level
   comparison and ecosystem review of SAPIENT — the UK MOD C-sUAS

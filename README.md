@@ -1,4 +1,4 @@
-# ZMeta Specification (v1.0 Locked, current release v1.1.14)
+# ZMeta Specification (v1.0 Locked, current release v1.1.15)
 
 ## Overview
 - ZMeta is a transport-agnostic, event-based metadata standard for resilient ISR.
@@ -93,24 +93,51 @@ contribute one.
 
 ## Current Release
 
-- Current release: `v1.1.14`
-- Release notes and assets: <https://github.com/JTC-byte/zmeta-spec/releases/tag/v1.1.14>
-- Release focus: audit-driven honesty hardening — the R1-10 full stack
-  audit (every finding adversarially verified) followed by a
-  fix-every-finding pass: the reference adapters' remaining fabrication
-  paths now refuse or omit instead of inventing values, the CoT egress
-  reference renders unknowns honestly by default, previously prose-only
-  honesty invariants are machine-checked (quality frame provenance,
-  INFERENCE fused-state laundering, zero-fill geo, protected risk-label
-  strip paths), the checking machinery itself fails loudly on empty
-  input, and a release-currency test pins current-facing docs to the
-  release manifest. Diagnostic vocabulary widens by four governed codes
-  in both schemas' SYSTEM_EVENT `reason_code` enums (Class B); no event
-  vocabulary changes; the locked v1.0 kernel's semantics are unchanged.
+- Current release: `v1.1.15`
+- Release notes and assets: <https://github.com/JTC-byte/zmeta-spec/releases/tag/v1.1.15>
+- Release focus: the SAPIENT bridge — a mapping pack and reference
+  ingress/egress adapters for BSI Flex 335 v2.0 (SAPIENT, the UK MOD
+  C-sUAS standard and NATO C-UAS standard per STANREC 4869), the first
+  pack targeting a nationally standardized external format. Wire
+  compatibility was validated end-to-end against Dstl's official
+  Apex-SAPIENT-Middleware (v4.2.0) in both directions, including a live
+  middleware loop; the validation's findings (SAPIENT ULID id
+  discipline on egress) were fixed pre-release. No schema, policy
+  vocabulary, or event-vocabulary changes beyond one additive
+  producer-authority policy block; the locked v1.0 kernel's semantics
+  are unchanged.
 - Normative contract: v1.0 locked semantic contract, canonical version-discriminated
   JSON schema, v1.0 JSON schema, and policy pack.
 - Experimental extension: `schema/zmeta-event-1.1.0.schema.json` is provided for proposed
   compatibility testing only; v1.1.0-only fields are not part of the locked v1.0 contract.
+
+## v1.1.15 Integration Notes
+
+- New mapping pack `adapters/mapping-packs/sapient-bsi-flex-335/`
+  (schema_id `vendor:sapient_bsi335:v2`) plus reference adapters:
+  `adapters/ingress/sapient/` translates SapientMessage protobuf-JSON
+  dicts (DetectionReport → OBSERVATION + per-claim INFERENCE with
+  registration-derived model identity; fusion-node reports → STATE
+  promotion under caller-owned `external_promotion` metadata;
+  StatusReport → SENSOR_STATUS/PLATFORM_STATUS on the 1.1.0 branch;
+  TaskAck → TASK_ACK; Error → SCHEMA_VIOLATION), and
+  `adapters/egress/sapient/` projects COMMAND_EVENT → Task
+  (GOTO/TRACK_TARGET/CHANGE_SENSOR_MODE only; altitude structurally
+  excluded) and STATE_EVENT → DetectionReport with
+  `zmeta.risk`/`zmeta.timing_quality` self-labels.
+- Registration capture is the units-and-error codex: signal and
+  velocity values reach canonical fields only through
+  registration-resolved units; unregistered nodes refuse detection
+  translation. Send-time timestamps widen `est_error_ms` by the
+  registered per-mode `maximum_latency`.
+- SAPIENT id discipline on egress: DetectionReport `report_id` is a
+  ULID minted from the event's own timestamp; `object_id` and Task
+  `task_id` are validated ULIDs (caller-owned `object_map` for native
+  track ids; SAPIENT-bridged command producers mint ULID task ids).
+- SAPIENT Task ingress (external DMMs tasking ZMeta platforms) is
+  deliberately out of scope for this release (command-safety boundary).
+- `tools/check_compat.py` gains the `v1.1.15` target; the compat target
+  and current-facing docs re-baseline to the v1.1.15 release manifest.
 
 ## v1.1.14 Integration Notes
 
@@ -350,7 +377,7 @@ python tools/run_gateway.py --profile H
 python tools/udp_receiver.py
 python tools/udp_sender.py --file examples/zmeta-command-examples.jsonl
 python tools/replay.py --file examples/zmeta-command-examples.jsonl --delay-ms 200
-python tools/check_compat.py legacy-events.jsonl --target v1.1.14
+python tools/check_compat.py legacy-events.jsonl --target v1.1.15
 python tools/validate.py --file examples/zmeta-command-examples.jsonl --profile H
 python tools/check_adapter.py --events my-adapter-output.jsonl --fixtures my-fixtures.jsonl
 python tools/validate_conformance.py --strict
@@ -415,7 +442,7 @@ Deployment helpers:
 - Config templates: `configs/edge-config.json`, `configs/gateway-config.json`
 - Docker Compose: `deploy/edge/docker-compose.yml`, `deploy/gateway/docker-compose.yml`
 - Bundle builders:
-    - `python release/build_mvp_packages.py --version v1.1.14` produces `zmeta-edge-v1.1.14.zip` and `zmeta-gateway-v1.1.14.zip`
+    - `python release/build_mvp_packages.py --version v1.1.15` produces `zmeta-edge-v1.1.15.zip` and `zmeta-gateway-v1.1.15.zip`
     - `python release/build_release_bundle.py --version 1.1.13` produces `zmeta-v1.1.13-dist.zip`
     - `python tools/build_release_package.py --manifest release/zmeta-release-manifest.yaml --output-dir release/package-v1.1.13 --release-id zmeta-v1.1.13 --release-state formal_release --no-signatures` builds formal package metadata without creating signatures.
     - `python release/sign_release_artifacts.py --version v1.1.13 --write-checksums --sign --target all` signs release assets with detached PGP signatures when an approved signing key is available.

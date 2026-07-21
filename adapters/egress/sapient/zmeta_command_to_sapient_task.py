@@ -25,6 +25,8 @@ free-text would make free-text load-bearing.
 
 from datetime import datetime, timedelta, timezone
 
+from adapters.egress.sapient.ulid_util import is_ulid
+
 # Canonical altitude field names a COMMAND_EVENT must never carry (semantics
 # contract 7.8). COMMAND_EVENT SHALL NOT specify altitude - the receiving
 # autonomy/sensor node deconflicts vertical internally. This egress guard
@@ -70,6 +72,13 @@ def _utc_z(dt):
 def zmeta_command_to_sapient_task(event, *, node_id, destination_id, track_to_object=None):
     """Convert a ZMeta COMMAND_EVENT into a SAPIENT Task message dict.
 
+    Id discipline (SAPIENT proto is_ulid; Apex strictIdFormat rejects
+    violations): `payload.task_id` must already be a valid ULID or the
+    event is refused. The caller contract is that SAPIENT-bridged command
+    producers mint ULID task_ids; the adapter never rewrites the
+    idempotency key — a derived id would break idempotent re-issue across
+    the bridge and TaskAck correlation.
+
     Args:
         event: ZMeta event dict. Must have event_type=COMMAND_EVENT with
             requires_deconfliction true.
@@ -84,8 +93,8 @@ def zmeta_command_to_sapient_task(event, *, node_id, destination_id, track_to_ob
     Returns:
         Proto3-JSON-shaped SapientMessage dict carrying a Task, or None if
         the event cannot be honestly projected (wrong event type, not
-        deconflicted, missing required fields, or a task type with no
-        SAPIENT verb).
+        deconflicted, missing required fields, non-ULID task_id, or a
+        task type with no SAPIENT verb).
 
     Raises:
         ValueError: if target_geo carries an altitude field (semantics
@@ -102,6 +111,11 @@ def zmeta_command_to_sapient_task(event, *, node_id, destination_id, track_to_ob
     requires_deconfliction = payload.get("requires_deconfliction")
 
     if not task_id or not task_type or valid_for_ms is None or requires_deconfliction is None:
+        return None
+
+    # task_id is the idempotency key minted by the SAPIENT-bridged command
+    # producer (see docstring); a non-ULID id is refused, never rewritten.
+    if not is_ulid(task_id):
         return None
 
     if requires_deconfliction is not True:

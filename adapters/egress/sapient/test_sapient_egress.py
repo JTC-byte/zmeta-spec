@@ -1,8 +1,9 @@
 import json
-import uuid
+from datetime import datetime, timezone
 
 import pytest
 
+from adapters.egress.sapient.ulid_util import is_ulid
 from adapters.egress.sapient.zmeta_command_to_sapient_task import zmeta_command_to_sapient_task
 from adapters.egress.sapient.zmeta_state_to_sapient_detection import (
     SAPIENT_EGRESS_LOSS_NOTES,
@@ -12,10 +13,25 @@ from adapters.egress.sapient.zmeta_state_to_sapient_detection import (
 NODE_ID = "0f2c8b4e-9f1d-4e6a-8a3b-1c5d7e9f0a2b"
 DEST_ID = "7a1b3c5d-2e4f-4a6b-8c0d-9e1f3a5b7c9d"
 
+# Canonical ULIDs (SAPIENT proto is_ulid discipline; Apex strictIdFormat).
+TASK_ULID = "01ARZ3NDEKTSV4RRFFQ69G5FAV"
+TRACK_ULID = "01BX5ZZKBKACTAV9WEVGEMMVRZ"
+OBJECT_ULID = "01HQRS7M4VXW2YZDNEKTAVB3CF"
+
+_CROCKFORD = "0123456789ABCDEFGHJKMNPQRSTVWXYZ"
+
+
+def _ulid_ts_ms(ulid_value):
+    # Decode the 48-bit timestamp component (first 10 base32 chars).
+    value = 0
+    for ch in ulid_value[:10]:
+        value = (value << 5) | _CROCKFORD.index(ch)
+    return value
+
 
 def _command_event(task_type="GOTO", **payload_overrides):
     payload = {
-        "task_id": "task-1",
+        "task_id": TASK_ULID,
         "task_type": task_type,
         "valid_for_ms": 600000,
         "requires_deconfliction": True,
@@ -35,7 +51,7 @@ def _command_event(task_type="GOTO", **payload_overrides):
 
 def _state_event(**payload_overrides):
     payload = {
-        "track_id": "trk-9",
+        "track_id": TRACK_ULID,
         "geo": {"lat": 34.0, "lon": -118.0, "alt_m": 120.0},
         "class": "UAV",
         "valid_for_ms": 5000,
@@ -74,7 +90,7 @@ def test_goto_maps_move_to():
     assert message["destination_id"] == DEST_ID
 
     task = message["task"]
-    assert task["task_id"] == "task-1"
+    assert task["task_id"] == TASK_ULID
     assert task["control"] == "CONTROL_START"
     assert task["task_end_time"] == "2026-07-17T12:10:00Z"
 
@@ -90,10 +106,10 @@ def test_goto_maps_move_to():
 
 def test_track_target_maps_follow():
     event = _command_event("TRACK_TARGET", target_track_id="trk-9")
-    message = _task(event, track_to_object={"trk-9": "01HSAPIENTOBJECT0000000000"})
+    message = _task(event, track_to_object={"trk-9": OBJECT_ULID})
 
     command = message["task"]["command"]
-    assert command == {"follow": {"follow_object_id": "01HSAPIENTOBJECT0000000000"}}
+    assert command == {"follow": {"follow_object_id": OBJECT_ULID}}
 
 
 def test_change_sensor_mode_maps_mode_change():
@@ -137,6 +153,13 @@ def test_missing_required_command_fields_refuse():
         event = _command_event()
         del event["payload"][field]
         assert _task(event) is None
+
+
+def test_non_ulid_task_id_refuses():
+    # The idempotency key is minted by the SAPIENT-bridged command
+    # producer; the adapter refuses rather than rewriting it.
+    for bad_id in ("task-1", TASK_ULID[:-1], TASK_ULID + "0", "01ARZ3NDEKTSV4RRFFQ69G5FIL"):
+        assert _task(_command_event(task_id=bad_id)) is None
 
 
 def test_missing_ts_refuses():
@@ -203,8 +226,8 @@ def test_state_maps_detection_report():
     assert message["node_id"] == NODE_ID
 
     detection = message["detection_report"]
-    assert detection["object_id"] == "trk-9"
-    assert uuid.UUID(detection["report_id"]).version == 7
+    assert detection["object_id"] == TRACK_ULID
+    assert is_ulid(detection["report_id"])
 
     location = detection["location"]
     assert location["x"] == -118.0
@@ -338,6 +361,51 @@ def test_export_use_parameter_scopes_the_refusal():
     assert message is not None
     info = message["detection_report"]["object_info"]
     assert info[0]["type"] == "zmeta.risk"
+
+
+# --- state egress: id discipline --------------------------------------------
+
+
+def test_report_id_is_ulid_stamped_with_event_time():
+    report_id = _detection(_state_event())["detection_report"]["report_id"]
+
+    assert is_ulid(report_id)
+    event_ts_ms = int(datetime(2026, 7, 17, 12, 0, 0, tzinfo=timezone.utc).timestamp() * 1000)
+    # The embedded 48-bit timestamp is the event's own ts, never the
+    # translate-time wall clock.
+    assert _ulid_ts_ms(report_id) == event_ts_ms
+
+
+def test_report_ids_are_fresh_per_report():
+    event = _state_event()
+    first = _detection(event)["detection_report"]["report_id"]
+    second = _detection(event)["detection_report"]["report_id"]
+
+    assert first != second
+
+
+def test_non_ulid_track_id_without_object_map_refuses():
+    assert _detection(_state_event(track_id="trk-9")) is None
+
+
+def test_object_map_resolves_non_ulid_track_id():
+    message = _detection(_state_event(track_id="trk-9"), object_map={"trk-9": OBJECT_ULID})
+
+    assert message["detection_report"]["object_id"] == OBJECT_ULID
+
+
+def test_non_ulid_object_map_entry_refuses():
+    # A mapped identity that is not itself a ULID is refused, never
+    # passed through to the wire.
+    assert _detection(_state_event(track_id="trk-9"), object_map={"trk-9": "obj-9"}) is None
+
+
+def test_ulid_track_id_passes_through_unmapped():
+    message = _detection(_state_event(), object_map={TRACK_ULID: OBJECT_ULID})
+
+    # A track_id that is already a ULID is caller-owned identity; the
+    # map is not consulted and the id crosses unchanged.
+    assert message["detection_report"]["object_id"] == TRACK_ULID
 
 
 # --- state egress: self-labels ---------------------------------------------
