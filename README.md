@@ -1,4 +1,4 @@
-# ZMeta Specification (v1.0 Locked, current release v1.1.15)
+# ZMeta Specification (v1.0 Locked, current release v1.1.16)
 
 ## Overview
 - ZMeta is a transport-agnostic, event-based metadata standard for resilient ISR.
@@ -93,23 +93,40 @@ contribute one.
 
 ## Current Release
 
-- Current release: `v1.1.15`
-- Release notes and assets: <https://github.com/JTC-byte/zmeta-spec/releases/tag/v1.1.15>
-- Release focus: the SAPIENT bridge — a mapping pack and reference
-  ingress/egress adapters for BSI Flex 335 v2.0 (SAPIENT, the UK MOD
-  C-sUAS standard and NATO C-UAS standard per STANREC 4869), the first
-  pack targeting a nationally standardized external format. Wire
-  compatibility was validated end-to-end against Dstl's official
-  Apex-SAPIENT-Middleware (v4.2.0) in both directions, including a live
-  middleware loop; the validation's findings (SAPIENT ULID id
-  discipline on egress) were fixed pre-release. No schema, policy
-  vocabulary, or event-vocabulary changes beyond one additive
-  producer-authority policy block; the locked v1.0 kernel's semantics
-  are unchanged.
+- Current release: `v1.1.16`
+- Release notes and assets: <https://github.com/JTC-byte/zmeta-spec/releases/tag/v1.1.16>
+- Release focus: the first external real-capture corpus —
+  `adapters/mapping-packs/edge-comms-bladerf/` (PR #7), two real
+  bladeRF / ROS2 EW `rf_detection` flight captures paired with
+  schema-valid RF `OBSERVATION_EVENT` expected outputs, merged after
+  adversarial review with maintainer honesty fixes (a frame-unlabeled
+  heading-derived bearing demoted to explicitly named native features
+  per contract 6.4; an unasserted statistical metric dropped;
+  timestamp-source provenance preserved; pack mapping reconciled with
+  its fixtures). No schema, policy, or event-vocabulary changes; the
+  locked v1.0 kernel's semantics are unchanged.
 - Normative contract: v1.0 locked semantic contract, canonical version-discriminated
   JSON schema, v1.0 JSON schema, and policy pack.
 - Experimental extension: `schema/zmeta-event-1.1.0.schema.json` is provided for proposed
   compatibility testing only; v1.1.0-only fields are not part of the locked v1.0 contract.
+
+## v1.1.16 Integration Notes
+
+- New corpus for RF adapter authors:
+  `adapters/mapping-packs/edge-comms-bladerf/` pairs two real bladeRF
+  detections with expected ZMeta output, demonstrating the refusal
+  doctrine on real data — geo omitted for null and zero-island sensor
+  positions (`geo_status: UNAVAILABLE`), canonical bearing omitted in
+  both cases because the native bearing is heading-derived with no
+  producer frame assertion (values travel as
+  `features.native_bearing_deg`/`native_bearing_error_deg`), degraded
+  timing fallback carried explicitly, no fabricated lineage.
+- The pack README documents the frame-provenance route
+  (`quality.bearing_frame: TRUE_NORTH` + `quality.heading_source`) for
+  deployments that can assert their heading reference, mirroring the
+  kraken reference adapter.
+- `tools/check_compat.py` gains the `v1.1.16` target; current-facing
+  docs re-baseline to the v1.1.16 release manifest.
 
 ## v1.1.15 Integration Notes
 
@@ -377,7 +394,7 @@ python tools/run_gateway.py --profile H
 python tools/udp_receiver.py
 python tools/udp_sender.py --file examples/zmeta-command-examples.jsonl
 python tools/replay.py --file examples/zmeta-command-examples.jsonl --delay-ms 200
-python tools/check_compat.py legacy-events.jsonl --target v1.1.15
+python tools/check_compat.py legacy-events.jsonl --target v1.1.16
 python tools/validate.py --file examples/zmeta-command-examples.jsonl --profile H
 python tools/check_adapter.py --events my-adapter-output.jsonl --fixtures my-fixtures.jsonl
 python tools/validate_conformance.py --strict
@@ -442,7 +459,7 @@ Deployment helpers:
 - Config templates: `configs/edge-config.json`, `configs/gateway-config.json`
 - Docker Compose: `deploy/edge/docker-compose.yml`, `deploy/gateway/docker-compose.yml`
 - Bundle builders:
-    - `python release/build_mvp_packages.py --version v1.1.15` produces `zmeta-edge-v1.1.15.zip` and `zmeta-gateway-v1.1.15.zip`
+    - `python release/build_mvp_packages.py --version v1.1.16` produces `zmeta-edge-v1.1.16.zip` and `zmeta-gateway-v1.1.16.zip`
     - `python release/build_release_bundle.py --version 1.1.13` produces `zmeta-v1.1.13-dist.zip`
     - `python tools/build_release_package.py --manifest release/zmeta-release-manifest.yaml --output-dir release/package-v1.1.13 --release-id zmeta-v1.1.13 --release-state formal_release --no-signatures` builds formal package metadata without creating signatures.
     - `python release/sign_release_artifacts.py --version v1.1.13 --write-checksums --sign --target all` signs release assets with detached PGP signatures when an approved signing key is available.

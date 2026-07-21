@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [1.1.16] - 2026-07-21
 - External contribution (PR #7, bkershner-torch): mapping pack
   `adapters/mapping-packs/edge-comms-bladerf/` — two real bladeRF /
   ROS2 EW `rf_detection` captures from the 2026-05-14 edge-comms

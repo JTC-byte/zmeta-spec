@@ -4,8 +4,15 @@
 
 - Last updated: 2026-07-21
 - Quick handoff: `docs/zmeta_refinement_handoff.md`
-- Current state (2026-07-21, closeout): the SAPIENT lane is FULLY
-  CLOSED — P1-07 mapping pack + reference adapters, the end-to-end
+- Current state (2026-07-21, second closeout): P1-08 (PR #7
+  edge-comms-bladerf external corpus, reviewed + merged with
+  maintainer fixes) is complete and cut as **v1.1.16** (entry below;
+  full battery green, checksums-only). R1-11 remains the next work
+  item, its inputs updated with the P1-08 surface and the
+  bearing_frame presence-gap candidate (handoff item 1). Prior
+  closeout state follows.
+- Previous state (2026-07-21, first closeout): the SAPIENT lane is
+  FULLY CLOSED — P1-07 mapping pack + reference adapters, the end-to-end
   wire validation against official Dstl tooling (PASSED; ULID findings
   fixed pre-release), and **v1.1.15 PUBLISHED** (release commit
   `bbd4c89`, publication record `f1c249a`, tag pushed, GitHub release
