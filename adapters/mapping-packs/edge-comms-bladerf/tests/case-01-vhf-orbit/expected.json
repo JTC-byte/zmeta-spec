@@ -26,9 +26,12 @@
       "source_topic": "sdr/orbit_spectrum",
       "bearing_source": "none",
       "uas_heading_deg": 56.23737681439173,
+      "heading_source_native": "interpolated",
+      "timestamp_source": "adapter_receive_time_no_embedded_telemetry",
       "orbit_spectrum_bin": 32,
       "orbit_spectrum_bins": 2910,
-      "native_bearing_deg": 56.23737681439173
+      "native_bearing_deg": 56.23737681439173,
+      "native_bearing_error_deg": 10.0
     },
     "quality": {
       "snr_db": 22.92434310913086,

@@ -14,14 +14,10 @@
   },
   "payload": {
     "modality": "RF",
-    "bearing": {
-      "az_deg": 112.24180619206848
-    },
     "features": {
       "center_freq_hz": 5247500000.0,
       "bandwidth_hz": 7500.0,
       "power_dbm": -33.368812561035156,
-      "angular_error_deg": 30.0,
       "snr_db": 34.44423294067383,
       "noise_floor_dbm": -67.81304550170898,
       "detection_id": "ros2-fft-1778767954404-5247500000",
@@ -29,7 +25,11 @@
       "source": "ros2_ew",
       "source_topic": "spectrum_fft",
       "bearing_source": "heading_at_peak",
+      "native_bearing_deg": 112.24180619206848,
+      "native_bearing_error_deg": 30.0,
       "uas_heading_deg": 56.24180619206849,
+      "heading_source_native": "interpolated",
+      "timestamp_source": "spectrum_fft_embedded_telemetry",
       "fft_bin": 3496,
       "fft_size": 8192,
       "bin_width_hz": 7500.0,
@@ -39,12 +39,7 @@
     "quality": {
       "snr_db": 34.44423294067383,
       "geo_status": "UNAVAILABLE",
-      "calibration_state": "UNCALIBRATED",
-      "measurement_error": {
-        "value": 30.0,
-        "unit": "deg",
-        "metric": "1_SIGMA"
-      }
+      "calibration_state": "UNCALIBRATED"
     },
     "timing_quality": {
       "time_source": "UNKNOWN",

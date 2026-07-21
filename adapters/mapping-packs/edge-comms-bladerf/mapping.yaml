@@ -19,24 +19,34 @@ payload:
   geo.lat: input.sensor_lat
   geo.lon: input.sensor_lon
   geo.alt_m: input.sensor_alt_m
-  # Canonical bearing only when the source asserts a LOB estimate
-  # (e.g. bearing_source heading_at_peak). When bearing_source is none,
-  # omit payload.bearing and keep native fields under features.
-  bearing.az_deg: input.bearing_deg
+  # Canonical bearing is NOT emitted by this pack. The native bearing is
+  # heading-derived (uas heading + fixed antenna offset) and the source
+  # asserts no reference frame (metadata.heading_source "interpolated"
+  # names a sampling method, not a frame). Per contract 6.4 and
+  # adapters/AUTHORING.md rule 2, without a producer frame assertion the
+  # native values stay under explicitly named non-canonical features and
+  # payload.bearing is omitted — in BOTH cases. A deployment that can
+  # assert TRUE_NORTH for its heading source may emit bearing.az_deg with
+  # quality.bearing_frame TRUE_NORTH + quality.heading_source, mirroring
+  # the kraken reference.
+  features.native_bearing_deg: input.bearing_deg
+  features.native_bearing_error_deg: input.bearing_error_deg
+  features.bearing_source: input.metadata.bearing_source
+  features.heading_source_native: input.metadata.heading_source
+  features.uas_heading_deg: input.metadata.uas_heading_deg
   features.center_freq_hz: input.center_freq_hz
   features.bandwidth_hz: input.bandwidth_hz
   features.power_dbm: input.power_dbm
-  features.angular_error_deg: input.bearing_error_deg
   features.snr_db: input.snr_db
   features.noise_floor_dbm: input.noise_floor_dbm
   features.detection_id: input.detection_id
   features.sensor_hw: input.metadata.sensor_hw
   features.source: input.metadata.source
   features.source_topic: input.metadata.source_topic
-  features.bearing_source: input.metadata.bearing_source
-  features.uas_heading_deg: input.metadata.uas_heading_deg
+  features.timestamp_source: input.metadata.timestamp_source
   features.fft_bin: input.metadata.fft_bin
   features.fft_size: input.metadata.fft_size
+  features.bin_width_hz: input.metadata.bin_width_hz
   features.sample_rate_hz: input.metadata.sample_rate_hz
   features.fft_center_freq_hz: input.metadata.fft_center_freq_hz
   features.orbit_spectrum_bin: input.metadata.orbit_spectrum_bin
@@ -44,9 +54,9 @@ payload:
   quality.snr_db: input.snr_db
   quality.geo_status: UNAVAILABLE  # when geo omitted
   quality.calibration_state: UNCALIBRATED
-  quality.measurement_error.value: input.bearing_error_deg
-  quality.measurement_error.unit: deg
-  quality.measurement_error.metric: 1_SIGMA
+  # quality.measurement_error is not emitted: the native bearing_error_deg
+  # declares no statistical metric, and no canonical bearing is emitted to
+  # qualify. The raw bound travels as features.native_bearing_error_deg.
   timing_quality: degraded_fallback  # UNKNOWN / UNSYNCED unless source PTP/GPS
 
 # Original sensor observations omit lineage (contract 4.8). When an adapter

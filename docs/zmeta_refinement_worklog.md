@@ -31,6 +31,44 @@
   session-limit interruption recovery (resume with verify-and-complete
   prompts + a dedicated interruption-integrity review) left zero
   half-done state, twice validated as a working pattern.
+- P1-08 (2026-07-21): **PR #7 (edge-comms-bladerf real-capture pack)
+  reviewed and MERGED with maintainer fixes** (maintainer-directed
+  "run a full review on it and if it is all good, merge it"). Review
+  method: close maintainer read + independent adversarial review
+  attempting refutation against contract/validator/reference-adapter
+  precedent, with every fixture field walked back to an input field or
+  documented convention. Verdict: mergeable-with-maintainer-fixes —
+  the contribution's honesty handling was strong as submitted (geo
+  refusal incl. zero-island, case-01 bearing omission, repo-exact
+  timing fallback, lineage omission, calibration default, producer
+  matches the committed `rf-sensor-*` pattern; both fixtures pass
+  strict H validation), and it is the first EXTERNAL real-capture
+  corpus (second independent RF telemetry source — promotion-evidence
+  relevant). Findings fixed on merge: (MAJOR) case-02 emitted a
+  frame-unlabeled canonical bearing that is provably heading-derived
+  (az == uas_heading + 56.0 exactly) with `heading_source:
+  "interpolated"` naming a sampling method, not a frame — the machine
+  gates pass it because the bearing_frame check is value-when-present
+  (contract 6.4 tolerates legacy-unlabeled v1.0 bearings), so this was
+  review-caught, not machine-caught; demoted to
+  features.native_bearing_deg per AUTHORING rule 2 (we cannot mint a
+  TRUE_NORTH assertion the producer did not make), with the
+  frame-provenance route documented for deployments that can assert
+  it. (MODERATE) undocumented 1_SIGMA metric dropped — raw bound kept
+  as features.native_bearing_error_deg; timestamp_source provenance
+  preserved (receive-time vs embedded-telemetry); mapping.yaml
+  reconciled with fixtures (unconditional bearing row removed,
+  conditional rules + missing entries added). (MINOR) FFT-bin-width
+  bandwidth convention documented. Governance-record hunks
+  (CHANGELOG/worklog/handoff, written against pre-v1.1.15 main) were
+  NOT merged — re-derived maintainer-side per the intake doctrine.
+  Disclosure note for the maintainer: the pack README publishes
+  internal flight-artifact names, the platform identity, and detection
+  frequencies with precise timestamps — retained as provenance
+  evidence on the contributor's own initiative; flag if any of it
+  should be scrubbed. Second-glance addition: the bearing_frame
+  presence gap (canonical bearing without frame provenance passes all
+  machine gates) is a candidate warn-check for R1-11.
 - P1-07 (2026-07-21): **v1.1.15 PUBLISHED** (maintainer-directed "once
   the end to end validation is good, cut the release per the
   documentation"; agent-executed per RELEASE_CHECKLIST). Release

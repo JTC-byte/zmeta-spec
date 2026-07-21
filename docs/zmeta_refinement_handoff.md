@@ -554,7 +554,13 @@ entries):
      registration-object entry-point gap); and the new-since-R1-10
      surface (the whole SAPIENT pack/adapters/fixtures/policy block,
      v1.1.15 release artifacts) — already build-verified and
-     Apex-validated, but not yet covered by a full-stack audit pass.
+     Apex-validated, but not yet covered by a full-stack audit pass —
+     and the P1-08 merge (PR #7 edge-comms-bladerf pack + maintainer
+     review fixes) including its second-glance candidate: canonical
+     bearing without frame provenance passes every machine gate
+     (bearing_frame is value-when-present; contract 6.4 tolerates
+     legacy-unlabeled v1.0 bearings) — a presence-when-bearing-emitted
+     warn-check is an R1-11 candidate.
    - Method precedent: R1-10 (finder lenses from prior AAR lessons,
      one adversarial verifier per substantive finding, live probes,
      falsifiable evidence, commit-truth checks) —

@@ -1,5 +1,29 @@
 # Changelog
 
+## [Unreleased]
+- External contribution (PR #7, bkershner-torch): mapping pack
+  `adapters/mapping-packs/edge-comms-bladerf/` — two real bladeRF /
+  ROS2 EW `rf_detection` captures from the 2026-05-14 edge-comms
+  flight blackbox paired with schema-valid ZMeta v1.0 RF
+  `OBSERVATION_EVENT` expected outputs: the first external real-capture
+  corpus, and a second independent RF telemetry source alongside the
+  maintainer deployments. The contribution's honesty handling was
+  strong as submitted (null/zero-island geo omitted with
+  `geo_status: UNAVAILABLE`, no-DOA case omits canonical bearing,
+  repo-exact degraded timing fallback, no fabricated lineage).
+- Maintainer review fixes applied on merge (adversarial review, PR #7):
+  case-02's heading-derived bearing (uas heading + fixed antenna
+  offset, no frame assertion in the capture) is demoted from canonical
+  `payload.bearing` to `features.native_bearing_deg` per contract 6.4
+  and AUTHORING rule 2 — the pack now documents the frame-provenance
+  route (`quality.bearing_frame`/`heading_source`) for deployments that
+  can assert it; the undocumented `1_SIGMA` measurement-error claim is
+  dropped (raw bound kept as `features.native_bearing_error_deg`);
+  `features.timestamp_source` preserves receive-time vs
+  embedded-telemetry timestamp provenance; `mapping.yaml` is reconciled
+  with the fixtures (conditional bearing rules, missing entries); the
+  FFT-bin-width `bandwidth_hz` convention is documented.
+
 ## [1.1.15] - 2026-07-21
 - End-to-end wire validation against official Dstl tooling
   (Apex-SAPIENT-Middleware v4.2.0, shipped BSI Flex 335 v2.0 pb2 modules
