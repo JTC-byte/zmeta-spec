@@ -19,7 +19,7 @@ hash_canonicalization:
 semantic_contract_hash: sha256:7ac34540670af869d86c514c061c8326cc712be9b7b40a482005cc3721ef180a
 schema_bundle_hash: sha256:16e5e764423c651070e05810bd6aed3a3d358a1959e3dd95a517fe7f4ba8a29d
 policy_bundle_hash: sha256:6cb5918c3f4ba18dd7b731bf4d8990c28221382f81af0bef4ad5d2b1a5f634ee
-extension_registry_hash: sha256:50c9f56df59df310821b43a0f6e90846a604cc553ee07868ec5c9bc955407076
+extension_registry_hash: sha256:f3b40f1e94cd39eb9d7df113c7d2c5dbc73544672e499dfde4e456f8d3836e6d
 conformance_class_manifest_hash: sha256:6a3a9d930cc06d5228cb2d1ad8b42a91048425ff1e500bf7bfee3528bf2b4524
 profile_projection_catalog_hash: sha256:bae61b3a01cc0a3c2aa1f90391f231d40484175280bce9dbb43371eb0ea04341
 encoding_negative_suite_hash: sha256:d36e2109e535fde0dd191b92fd3a7dbd07839ce3539b3d9fdf5dd8aed04487b0
@@ -28,8 +28,8 @@ bad_event_corpus_hash: sha256:0bcbb68a1c3cae16b6d62ec95180b7d7250952a089468d6ebb
 adapter_conformance_hash: sha256:e5eb534f3cfa43dcca89d405de0be5698916f9e736ae7118949e43afb1485489
 encoding_projection_specs_hash: sha256:70d0db35710e93dcdd8e923ec67864950df1af8be3259233b93df894f8d0f171
 process_governance_hash: sha256:e5490de6b485ed49b886d9f3272f3c4f39d04d9de951fbd2ca13c86e6bf4b24c
-release_bundle_hash: sha256:c417c57fe6b84482b867645e3b7a994829a63cdb3919f32d8d8fa053e0a45a9c
-release_manifest_hash: sha256:b2a1950a18296fa0c20a81bd4f507cc70ab1db48af07c5a39703cd63fcbc3c91
+release_bundle_hash: sha256:e2f3aacba6a1097d284cd1844a0603c168d4efa4109ba4664cddda840ef8d0e6
+release_manifest_hash: sha256:ba09485367990ebe2101dfab4c97bdf59a73339c58c6fd0d9933ccc53ff7eb73
 artifact_hashes:
 - path: AGENTS.md
   group: process_governance
@@ -69,11 +69,11 @@ artifact_hashes:
   canonicalization: text_lf
 - path: conformance/claims/example-core-producer.yaml
   group: claims
-  hash: sha256:b5706d6b0e092c4936bf4341be46627b2e01fd3144d9766baedfa16aec052ade
+  hash: sha256:467c562da6c1e2a40a0350ac2c4dc5f3e19bf7679bb3d0fc6d0aaf494584d098
   canonicalization: text_lf
 - path: conformance/claims/example-reference-gateway.yaml
   group: claims
-  hash: sha256:3e8b5a482a005453f5a25ae26d2fda252d8d43131cf60eb4e92d9bfcdf31c8de
+  hash: sha256:9ff5ddb570864b0f8ec09ed5d387deb3e0af523a9ad097b4a69021506f1c98ff
   canonicalization: text_lf
 - path: conformance/conformance_classes.yaml
   group: conformance_classes
@@ -213,7 +213,7 @@ artifact_hashes:
   canonicalization: text_lf
 - path: spec/extension-registry.yaml
   group: extension_registry
-  hash: sha256:da6c6e3e82d503542e79b4ce78fd032512f7d67ca4b5f004923edceae5f8ac4c
+  hash: sha256:6cddf891edcafd86998a3f508c115fa41b5c2dde28c7897f78a62cedde751e62
   canonicalization: text_lf
 - path: spec/future-branch-roadmap.md
   group: future_branch_roadmap
@@ -221,7 +221,7 @@ artifact_hashes:
   canonicalization: text_lf
 - path: spec/future-branch-roadmap.yaml
   group: future_branch_roadmap
-  hash: sha256:8ee7cfd0546ffcc88c8f31df75344a372e76d2abfb1eeb1d0710dffcb2c481e5
+  hash: sha256:237d30dbe197ee229df866226ad06066928eaa1e98651258720cf6c5d131954b
   canonicalization: text_lf
 - path: spec/protobuf-encoding.md
   group: encoding_projection_specs
@@ -343,13 +343,13 @@ artifact_groups:
     description: Machine-readable extension and reserved-vocabulary registry.
     paths:
     - spec/extension-registry.yaml
-    hash: sha256:50c9f56df59df310821b43a0f6e90846a604cc553ee07868ec5c9bc955407076
+    hash: sha256:f3b40f1e94cd39eb9d7df113c7d2c5dbc73544672e499dfde4e456f8d3836e6d
   future_branch_roadmap:
     description: Machine-readable future versioned-branch roadmap with promotion evidence and tripwires.
     paths:
     - spec/future-branch-roadmap.md
     - spec/future-branch-roadmap.yaml
-    hash: sha256:a216154b42f1ef8cbd7d566771c5f0f8ef0f74d992088439ab7a6bb07b2c8641
+    hash: sha256:fa013951d582f084b353b958686af933a6d7d4ea461d6cf563737069c406a332
   conformance_classes:
     description: Machine-readable conformance class manifest.
     paths:
@@ -410,7 +410,7 @@ artifact_groups:
     paths:
     - conformance/claims/example-core-producer.yaml
     - conformance/claims/example-reference-gateway.yaml
-    hash: sha256:10f48ba7fdfaf20b23e4cd3d6aef4d14ecdfd545f13bc68001ac1dd2d64168fd
+    hash: sha256:6f09ca3d80d5a9650b3a7d49e9217df7063a84e8b51ab738fb3272885b82a4db
   release_policy:
     description: Human-readable release hash taxonomy and canonicalization policy.
     paths:

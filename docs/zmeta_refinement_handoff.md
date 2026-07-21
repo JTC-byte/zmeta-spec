@@ -567,6 +567,26 @@ entries):
      `docs/r1_10_full_stack_audit.md` is the findings-record template.
    - Everything below this item is queued behind the R1-11 audit.
 
+1a. **Queued (maintainer direction 2026-07-21): two adapter work
+   items behind R1-11**
+   - **bladeRF ingress adapter** implementing the merged
+     `edge-comms-bladerf` mapping pack (PR #7): detect/translate/
+     validate per `adapters/AUTHORING.md`, the pack's two real-capture
+     fixture pairs as acceptance evidence, harness fixtures + colocated
+     tests per the kraken/moth precedent. If the PR #7 contributor
+     supplies a producer frame assertion for the heading-derived
+     bearing, the adapter gains the canonical-bearing path
+     (quality.bearing_frame TRUE_NORTH + heading_source).
+   - **SAPIENT follow-ups** (the ingress/egress adapters themselves
+     shipped in v1.1.15): the deliberately-deferred SAPIENT Task
+     ingress (external DMMs tasking ZMeta platforms — command-safety
+     escalation required before any work), live-enclave validation
+     against the official C# BSI Flex 335 v2 test harness and
+     multi-node Apex routing (recorded as not-exercised in the pack
+     README), and the harness registration-object entry point (P1-07
+     second-glance item b) that would make the four inexpressible
+     registration-dependent harness fixtures one-liners.
+
 2. **Queued: v1.1.0 adoption decision (all fourteen concepts)**
    - Maintainer direction (2026-07-08): build the per-concept evidence
      worksheet (repo-side evidence for all fourteen experimental v1.1.0
@@ -577,8 +597,13 @@ entries):
      `spec/extension-registry.md` (two or more independent implementations
      demonstrating the need plus a documented semantic-contract Section 2.6
      failure condition). Candidate telemetry: the maintainer's fielded
-     deployment plus the upstream PR #4 deployment; check PR #4 for
-     contributor revisions before deciding.
+     deployment plus the upstream PR #4 deployment. RESOLVED 2026-07-21
+     (P1-09): PR #4 closed unmerged with credit — no contributor
+     revisions ever arrived; its telemetry stands as recorded n=1
+     evidence on the registry/roadmap candidates, and the adoption
+     session should treat those records (not the PR) as the evidence
+     source. The PR #7 edge-comms deployment (P1-08) is a potential
+     second evidence leg where its telemetry overlaps.
    - Expected shape for concepts that clear the bar: registry status
      changes (`experimental` -> `adopted`), conformance-class and doc
      updates, one release; no schema file changes. Expanded command-task

@@ -264,9 +264,11 @@ QoS affects delivery probability and duplication, never meaning.
 ## Legacy and Non-ZMeta Topic Paths
 
 Brokers in real deployments also carry non-ZMeta traffic: vendor telemetry,
-CoT-over-MQTT bridges, autopilot streams, legacy `tracks/...`-style
-hierarchies. Treat every such path as a **separate ingress adapter boundary**,
-never as an alternate ZMeta dialect:
+CoT-over-MQTT bridges, autopilot streams, and legacy flat hierarchies —
+fielded deployments report `tracks/`, `sensors/`, `commands/`, `tasks/`, and
+`status/` trees (upstream PR #4 telemetry). Treat every such path as a
+**separate ingress adapter boundary**, never as an alternate ZMeta dialect,
+and do not mint new ZMeta traffic under those legacy roots:
 
 - An adapter consumes the legacy topic, normalizes timestamps and units,
   generates ZMeta event identity, records its `lineage.transform`, rejects

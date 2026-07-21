@@ -381,7 +381,13 @@ candidates:
       Watchful wait. The correlation pattern doc proves the need is
       composable from locked vocabulary today; promotion without new evidence
       would violate the alphabet-not-dictionary gate.
-    notes: See docs/zmeta_correlation_pattern.md and the CORRELATION_HINT registry entry.
+    notes: >
+      See docs/zmeta_correlation_pattern.md and the CORRELATION_HINT registry
+      entry. If this branch ever opens, the encoding projections are a Class D
+      required surface (docs/zmeta_change_governance.md): a wire-level
+      correlation-identity field (e.g. a protobuf field-number allocation for
+      broker/edge filtering, requested in upstream PR #4) rides the branch,
+      never lands ahead of it.
 
   - id: data-ref-media-metadata
     display_name: data_ref media metadata enrichment

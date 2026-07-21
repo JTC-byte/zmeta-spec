@@ -815,7 +815,12 @@ entries:
     notes: >-
       Requires a versioned semantic branch (see the D-003 roadmap) because
       v1.1.0 data_ref is a closed object. Not valid vocabulary under v1.0 or
-      v1.1.0.
+      v1.1.0. Scope note (2026-07-21): the upstream proposal also carried an
+      inline preview thumbnail (base64 data URI, <=4 KB); that fragment is
+      deliberately excluded from this entry's scope — embedding raw artifact
+      bytes in an event contradicts the data_ref no-embedding rationale
+      (contract 9.3) — and is recorded here so the exclusion is a decision,
+      not an omission.
 
   - <<: *entry_defaults
     name: AGGREGATE_STATE_SNAPSHOT

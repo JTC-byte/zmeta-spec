@@ -38,6 +38,38 @@
   session-limit interruption recovery (resume with verify-and-complete
   prompts + a dedicated interruption-integrity review) left zero
   half-done state, twice validated as a working pattern.
+- P1-09 (2026-07-21): **PR #4 RESOLVED — closed unmerged with credit;
+  harvest confirmed complete** (maintainer direction: stop waiting for
+  contributor revisions; "review it and merge it... if we haven't
+  already done so" — the review established we already had). Full
+  re-review of the PR against main at v1.1.16: every component is
+  HARVESTED (correlation pattern doc + 7-event corpus + crosswalk +
+  corrected MQTT guidance, all crediting PR #4), REJECTED-RECORDED
+  (payload_schema_uri "not re-litigated"; snapshot container;
+  1.2.0 dispatcher — empirically breaks 13/40 v1.1.0 events), or a
+  recorded evidence-gated candidate carrying the contributor's
+  deployment as n=1 evidence (data-ref-media-metadata,
+  correlation-identity, aggregate-state-snapshot). No contributor
+  revisions ever arrived after the 2026-07-08 review (single commit,
+  2026-07-01) — the v1.1.0 adoption session's "check PR #4 for
+  revisions" input resolves to: none. Mechanical finding worth the
+  record: the branch merges TEXTUALLY CLEAN into v1.1.16 (zero
+  conflicts; 8 of 11 files new, the governed files it edits untouched
+  since its branch point) and would be semantically catastrophic — the
+  1.2.0 oneOf arm double-matches every v1.1.0 event and the 1.2.0
+  stamp exempts producers from every locked invariant. A clean merge
+  with no conflicts to force human review is the most dangerous
+  dialect shape; recorded as an R1-11 lens. Residue implemented (the
+  entire unharvested remainder of 1,053 lines): legacy-topic
+  enumeration in the MQTT guidance legacy-paths section; a
+  preview-thumbnail exclusion scope note on DATA_REF_MEDIA_METADATA
+  (the exclusion is now a decision, not an omission); a Class D
+  encoding-surface consequence note on the correlation-identity
+  roadmap candidate. Manifest regenerated (v1.1.16 identity kept),
+  full battery green (687+172, gate all flags, examples 51/51,
+  roadmap candidates=18). PR closed with a credit comment pointing
+  the contributor at the four registry entries and roadmap tripwires
+  their telemetry seeded.
 - P1-08 (2026-07-21): **v1.1.16 PUBLISHED** — release commit `f8951ee`,
   annotated tag pushed, GitHub release live with all eight assets
   marked Latest, CI green (run 29805064763), checksums-only (signing
