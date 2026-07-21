@@ -530,29 +530,36 @@ entries):
 
 ## Next Work Queue
 
-1. **Maintainer decision pending: next-audit scope (R1-10 audit + fix
-   pass + verification + v1.1.14 release COMPLETE, 2026-07-17)**
-   - The R1-10 full stack audit, the fix-every-finding pass, the
-     post-fix verification audit, and the v1.1.14 release cut are all
-     COMPLETE — findings record in `docs/r1_10_full_stack_audit.md`,
-     closeout and release records in the worklog R1-10 entries. The
-     maintainer-directed cut resolved the previously recorded
-     SHA256SUMS_v1.1.13 manifest-entry divergence
-     (`SHA256SUMS_v1.1.14.txt` pins the regenerated manifest).
-   - Open decision: whether a fresh full-stack audit (beyond the
-     completed fix-verification audit) runs before the backlog
-     resumes. Flagged residuals for that audit are listed in the
-     worklog fix-pass entry (signalhunter replay-timestamp and
-     sensor-position observations).
-   - 2026-07-20 update: the maintainer directed the SAPIENT lane
-     (comparison + P1-07 mapping pack, complete — worklog P1-07 entry)
-     without closing this decision; it remains open. P1-07 added
-     follow-up candidates to the queue: the CoT-template loop_status
-     default sync (second-glance item a), the harness
-     registration-object entry point (item b), and the SAPIENT
-     branch-evidence items (item c) which feed the v1.1.0 adoption
-     session and the future-branch roadmap rather than immediate work.
-   - Everything below this item is queued behind that decision.
+1. **R1-11 full-stack audit — NEXT WORK ITEM (maintainer decision
+   2026-07-21: run a full audit, not a scoped one, as the next thing;
+   decision CLOSED)**
+   - History: the R1-10 cycle (audit + fix pass + verification audit +
+     v1.1.14) completed 2026-07-17 and left open whether a fresh
+     full-stack audit runs before the backlog resumes. The maintainer
+     then directed the SAPIENT lane (P1-07 mapping pack + official
+     Apex end-to-end validation + **v1.1.15 released 2026-07-21**,
+     worklog P1-07 entries), and on 2026-07-21 closed the decision:
+     a full audit, run safely in a fresh session, precedes the
+     backlog.
+   - R1-11 inputs (gather at audit start): the R1-10 flagged residuals
+     (signalhunter replay wall-clock ts; GPS no-lock (0,0)
+     sensor_position_2d; dead internal alt_m 0.0 dict); the
+     second-glance register (worklog R1-10 closeout entry: unencoded
+     SHOULD-level checks — fusion-confidence ceiling warn,
+     gateway-backfilled t_publish marker, lineage.transform prefix
+     opt-in scope, published-SHA256SUMS immutability pin;
+     .gitattributes decision; .tmp/review-pr-2 worktree; resume-note
+     retention) plus the P1-07 additions (CoT-template loop_status
+     default sync with the paused CoT egress cluster; harness
+     registration-object entry-point gap); and the new-since-R1-10
+     surface (the whole SAPIENT pack/adapters/fixtures/policy block,
+     v1.1.15 release artifacts) — already build-verified and
+     Apex-validated, but not yet covered by a full-stack audit pass.
+   - Method precedent: R1-10 (finder lenses from prior AAR lessons,
+     one adversarial verifier per substantive finding, live probes,
+     falsifiable evidence, commit-truth checks) —
+     `docs/r1_10_full_stack_audit.md` is the findings-record template.
+   - Everything below this item is queued behind the R1-11 audit.
 
 2. **Queued: v1.1.0 adoption decision (all fourteen concepts)**
    - Maintainer direction (2026-07-08): build the per-concept evidence

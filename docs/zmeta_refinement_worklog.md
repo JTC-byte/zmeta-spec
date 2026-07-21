@@ -4,21 +4,33 @@
 
 - Last updated: 2026-07-21
 - Quick handoff: `docs/zmeta_refinement_handoff.md`
-- Current state (2026-07-21): P1-07 (SAPIENT/BSI Flex 335 mapping pack
-  + reference adapters), its maintainer-directed end-to-end wire
-  validation against official Dstl tooling (PASSED; the ULID findings
-  fixed pre-release), and the **v1.1.15 release cut** are COMPLETE —
-  release prepared per RELEASE_CHECKLIST with the full battery green
-  (kernel gate all flags, examples 51/51, pytest 687+172 zero
-  failures, harness 39/39, compat sweep 9/9, packet-size 150/240,
-  workflow/live/self-test/Docker checks, checksums verified,
-  checksums-only signing decision recorded). The 2026-07-17 open
-  maintainer decision (whether a fresh full-stack audit runs before
-  the queued backlog resumes) REMAINS OPEN. Queued behind: the v1.1.0
-  adoption-decision session (now holding fielded command-loop evidence
+- Current state (2026-07-21, closeout): the SAPIENT lane is FULLY
+  CLOSED — P1-07 mapping pack + reference adapters, the end-to-end
+  wire validation against official Dstl tooling (PASSED; ULID findings
+  fixed pre-release), and **v1.1.15 PUBLISHED** (release commit
+  `bbd4c89`, publication record `f1c249a`, tag pushed, GitHub release
+  live with eight assets marked Latest, CI green, checksums-only).
+  Tree clean and in sync with origin at closeout.
+  **Maintainer decision 2026-07-21 (closes the 2026-07-17 open item):
+  a FULL fresh stack audit — not a scoped one — is the NEXT WORK ITEM
+  (R1-11), to be run safely in a fresh session before any queued
+  backlog resumes.** Inputs and method precedent are recorded in the
+  handoff Next Work Queue item 1. Queued behind R1-11: the v1.1.0
+  adoption-decision session (holding fielded command-loop evidence
   context and the SAPIENT evidence legs), the five deferred P1-06
-  maintainer decisions, PR #4 status, and signing. See the handoff
-  Next Work Queue.
+  maintainer decisions, PR #4 status, and signing.
+  Lane lessons worth carrying into R1-11 (recorded here so the audit
+  can use them as lenses, per the R1-09/R1-10 pattern): (1)
+  counterparty-official end-to-end validation catches a defect class
+  that colocated tests AND adversarial code review both missed —
+  wire-level id-format discipline (the ULID findings) surfaced only
+  against Dstl's own validator; prefer official-tooling validation
+  for every future mapping pack. (2) The release-currency machine
+  check caught stale installation-guide pins mid-cut — the
+  R1-10-built checking machinery is earning its keep. (3) The
+  session-limit interruption recovery (resume with verify-and-complete
+  prompts + a dedicated interruption-integrity review) left zero
+  half-done state, twice validated as a working pattern.
 - P1-07 (2026-07-21): **v1.1.15 PUBLISHED** (maintainer-directed "once
   the end to end validation is good, cut the release per the
   documentation"; agent-executed per RELEASE_CHECKLIST). Release
