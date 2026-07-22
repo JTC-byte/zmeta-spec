@@ -308,6 +308,18 @@ def evaluate_fixture(
         # never a vacuous pass.
         expected_count = 1
 
+    if expected_count is None and fixture.get("result") == "events":
+        # The events-kind sibling of the rule above: without a count pin
+        # (or expect.events, which requires one), an adapter that refuses
+        # and returns [] satisfies every top-level expectation vacuously.
+        return [
+            _issue(
+                "ADAPTER_FIXTURE_INVALID",
+                'result "events" requires expect.event_count: without a count pin, '
+                "zero returned events satisfy every expectation vacuously",
+            )
+        ]
+
     if expected_count is not None and len(events) != expected_count:
         all_issues.append(
             _issue(
@@ -337,16 +349,41 @@ def evaluate_fixture(
     return all_issues
 
 
+def _load_fixture_lint():
+    import jsonschema
+
+    schema = json.loads(
+        (ROOT / "conformance" / "adapter-harness" / "fixture.schema.json").read_text(encoding="utf-8")
+    )
+    return jsonschema.Draft202012Validator(schema)
+
+
 def run(*, fixtures_path: Path | str | None = None, quiet: bool = False) -> int:
     path = Path(fixtures_path) if fixtures_path else ROOT / "conformance" / "adapter-harness" / "must-pass.jsonl"
     schema_validator = validators.load_schema(ROOT / "schema" / "zmeta-event.schema.json")
     policy = validators.load_policy(ROOT / "policy")
+    # Every fixture line is linted against fixture.schema.json before it
+    # runs: the harness reads expectation keys with dict .get(), so an
+    # unlinted typo (e.g. forbidden_path) would be a silent no-op that
+    # passes the kernel gate while its author believes the check runs.
+    fixture_lint = _load_fixture_lint()
 
     failures = 0
     passed = 0
     for line_no, fixture in iter_jsonl(path):
         label = str(fixture.get("name") or f"line-{line_no}")
-        issues = evaluate_fixture(fixture, schema_validator, policy)
+        lint_errors = sorted(fixture_lint.iter_errors(fixture), key=lambda e: list(e.absolute_path))
+        if lint_errors:
+            first = lint_errors[0]
+            location = "/".join(str(part) for part in first.absolute_path) or "<root>"
+            issues = [
+                _issue(
+                    "ADAPTER_FIXTURE_INVALID",
+                    f"fixture fails fixture.schema.json lint at {location}: {first.message}",
+                )
+            ]
+        else:
+            issues = evaluate_fixture(fixture, schema_validator, policy)
         if issues:
             failures += 1
             first = issues[0]

@@ -1269,6 +1269,109 @@ def lint_policy_risk_modes(policy):
     return issues
 
 
+# Producer-authority structural vocabulary. validate_producer_authority
+# reads these blocks with .get() defaults, so a typoed key or a deleted
+# promotion sub-block silently disables enforcement while every gate stays
+# green (R1-11 R11-05) — structural drift must fail the lint instead.
+_PRODUCER_AUTHORITY_TOP_KEYS = frozenset(
+    {"enabled", "producers", "require_match_for_event_types", "external_state_promotion"}
+)
+_PRODUCER_ENTRY_KEYS = frozenset(
+    {"allowed_event_types", "forbidden_event_types", "external_state_promotion"}
+)
+# Producer promotion rules may carry the producer-specific gates plus
+# overrides of any global promotion key the enforcement reads per-rule.
+_PROMOTION_RULE_KEYS = frozenset(
+    {
+        "required",
+        "approved_policy_ids",
+        "allowed_projection_ids",
+        "allowed_confidence_basis",
+        "mode",
+        "mode_by_profile",
+        "always_reject_loop_risk",
+        "allowed_loop_statuses",
+        "loop_risk_statuses",
+        "allowed_origin_kinds",
+        "allowed_lineage_status_by_profile",
+        "required_fields_by_profile",
+        "required_state_category",
+        "required_trust_ref_prefixes",
+        "required_lineage_transform_prefixes",
+        "source_event_uid_required_statuses",
+        "max_freshness_ms_by_profile",
+        "metadata_path",
+        "degrade",
+        "quarantine",
+        "confidence_cap",
+        "confidence_reduction_factor",
+        "valid_for_ms_cap",
+        "valid_for_ms_reduction_factor",
+        "enabled",
+    }
+)
+
+
+def lint_producer_authority_structure(policy):
+    """Return lint issues for structurally mangled producer-authority policy."""
+    issues = []
+    if not isinstance(policy, dict):
+        return issues
+    authority = policy.get("producer_authority")
+    if not isinstance(authority, dict):
+        return issues
+
+    def _issue(path, message):
+        issues.append(
+            {
+                "code": "POLICY_PRODUCER_AUTHORITY_STRUCTURE",
+                "path": path,
+                "risk_dimension": "external_promotion",
+                "reason_codes": ["PRODUCER_NOT_ALLOWED"],
+                "message": message,
+            }
+        )
+
+    for key in sorted(set(authority) - _PRODUCER_AUTHORITY_TOP_KEYS):
+        _issue(
+            f"producer_authority.{key}",
+            "unknown producer-authority key: a typo here silently disables enforcement",
+        )
+    producers = authority.get("producers")
+    if not isinstance(producers, dict):
+        _issue("producer_authority.producers", "producers must be a mapping")
+        return issues
+    for name in sorted(producers):
+        cfg = producers[name]
+        base = f"producer_authority.producers.{name}"
+        if not isinstance(cfg, dict):
+            _issue(base, "producer entry must be a mapping")
+            continue
+        for key in sorted(set(cfg) - _PRODUCER_ENTRY_KEYS):
+            _issue(
+                f"{base}.{key}",
+                "unknown producer entry key: a typo here silently disables enforcement",
+            )
+        promotion = cfg.get("external_state_promotion")
+        if promotion is None:
+            continue
+        if not isinstance(promotion, dict):
+            _issue(f"{base}.external_state_promotion", "external_state_promotion must be a mapping")
+            continue
+        for key in sorted(set(promotion) - _PROMOTION_RULE_KEYS):
+            _issue(
+                f"{base}.external_state_promotion.{key}",
+                "unknown promotion-rule key: a typo here silently disables enforcement",
+            )
+        if not isinstance(promotion.get("required"), bool):
+            _issue(
+                f"{base}.external_state_promotion.required",
+                "required must be an explicit boolean: absent or non-bool values "
+                "silently disable promotion enforcement (cfg.get default)",
+            )
+    return issues
+
+
 def _ids_from_list(value):
     if not isinstance(value, list):
         return []

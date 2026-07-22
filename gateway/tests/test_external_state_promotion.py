@@ -289,5 +289,85 @@ class ExternalStatePromotionTest(unittest.TestCase):
         self.assertEqual("WARN_ACCEPT", violations[0]["details"]["policy_decision"])
 
 
+def sapient_promotion_metadata(**overrides):
+    metadata = promotion_metadata(
+        projection_id="sapient",
+        promotion_policy_id="PROMOTE-SAPIENT-STATE-V1",
+        trust_ref="producer-authority:sapient-ingress",
+        source_event_uid="01J00000000000000000000002",
+    )
+    metadata.update(overrides)
+    return metadata
+
+
+def sapient_state_event(profile="H", metadata=None):
+    event = state_event(
+        profile=profile,
+        metadata=metadata,
+        transform="promote:sapient@1.0.0:PROMOTE-SAPIENT-STATE-V1",
+    )
+    event["source"] = {
+        "platform_id": "sapient-gateway-01",
+        "node_role": "GATEWAY",
+        "producer": "sapient-ingress",
+    }
+    return event
+
+
+class SapientExternalStatePromotionTest(unittest.TestCase):
+    """R1-11 R11-05: the sapient-ingress promotion block gets its own
+    negative coverage — every prior promotion pin exercised cot-ingress
+    only, so mangling the new governed block was invisible to pytest."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.policy = validators.load_policy(ROOT / "policy")
+        cls.severity_map = cls.policy["violation_severities"]
+        cls.authority = cls.policy["producer_authority"]
+
+    def validate_with(self, event, authority):
+        return validators.validate_producer_authority(event, authority, self.severity_map)
+
+    def test_sapient_external_state_requires_promotion_metadata(self):
+        ok, violations = self.validate_with(sapient_state_event(metadata=None), self.authority)
+
+        self.assertFalse(ok)
+        self.assertEqual("PRODUCER_NOT_ALLOWED", violations[0]["code"])
+
+    def test_sapient_promotion_with_evidence_passes(self):
+        event = sapient_state_event(metadata=sapient_promotion_metadata())
+        ok, violations = self.validate_with(event, self.authority)
+
+        self.assertTrue(ok, violations)
+
+    def test_sapient_loop_risk_stays_rejected(self):
+        event = sapient_state_event(
+            metadata=sapient_promotion_metadata(loop_status="REFLECTION_DETECTED")
+        )
+        ok, violations = self.validate_with(event, self.authority)
+
+        self.assertFalse(ok)
+        self.assertEqual("PRODUCER_NOT_ALLOWED", violations[0]["code"])
+
+    def test_subblock_deletion_silently_disables_and_the_corpus_is_the_tripwire(self):
+        # Deleting external_state_promotion is lint-legal (producers
+        # without promotion enforcement are legitimate) and the validator
+        # default is not-required — so the missing-evidence event passes
+        # clean in that world. Both facts are pinned here because the
+        # sapient bad-events pair (conformance/bad-events must-fail
+        # sapient-external-state-*) exists precisely to fail the kernel
+        # gate when this silent-disable shape ships.
+        event = sapient_state_event(metadata=None)
+
+        ok_shipped, violations = self.validate_with(event, self.authority)
+        self.assertFalse(ok_shipped)
+        self.assertEqual("PRODUCER_NOT_ALLOWED", violations[0]["code"])
+
+        mangled = copy.deepcopy(self.authority)
+        del mangled["producers"]["sapient-ingress"]["external_state_promotion"]
+        ok_mangled, _ = self.validate_with(event, mangled)
+        self.assertTrue(ok_mangled)
+
+
 if __name__ == "__main__":
     unittest.main()

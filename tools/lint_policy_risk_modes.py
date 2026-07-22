@@ -32,6 +32,7 @@ def parse_args() -> argparse.Namespace:
 def run(*, policy_dir: Path | str | None = None, quiet: bool = False) -> int:
     policy = validators.load_policy(Path(policy_dir) if policy_dir else ROOT / "policy")
     issues = validators.lint_policy_risk_modes(policy)
+    issues = issues + validators.lint_producer_authority_structure(policy)
     for issue in issues:
         reasons = ",".join(issue.get("reason_codes", []))
         print(

@@ -1,10 +1,19 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "ZMeta adapter-harness fixture line",
-  "description": "Advisory schema for one JSONL fixture line consumed by tools/validate_adapter_conformance.py. It exists to catch fixture typos before a harness run (see tools/check_adapter.py); the harness itself remains the behavioral authority.",
+  "description": "Schema for one JSONL fixture line consumed by tools/validate_adapter_conformance.py. The harness lints every fixture line against this schema before execution, so an unknown expectation key is a caught typo, not a silent no-op; tools/check_adapter.py runs the same lint at author time. The harness remains the behavioral authority.",
   "type": "object",
   "required": ["module", "callable"],
   "additionalProperties": false,
+  "if": {"required": ["result"], "properties": {"result": {"const": "events"}}},
+  "then": {
+    "properties": {
+      "expect": {
+        "required": ["event_count"],
+        "description": "result 'events' requires an event_count pin: without one, a refusing adapter returning [] satisfies every top-level expectation vacuously."
+      }
+    }
+  },
   "properties": {
     "name": {
       "type": "string",

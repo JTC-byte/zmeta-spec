@@ -84,5 +84,74 @@ class PolicyRiskModeLintTest(unittest.TestCase):
         self.assertEqual("external_promotion", issues[0]["risk_dimension"])
 
 
+class ProducerAuthorityStructureLintTest(unittest.TestCase):
+    """R1-11 R11-05: validate_producer_authority reads policy blocks with
+    .get() defaults, so structural mangling (typoed keys, non-bool
+    required) silently disables enforcement. The structural lint must
+    catch those shapes; sub-block DELETION stays lint-legal (producers
+    without promotion enforcement are legitimate) and is covered by the
+    sapient bad-events corpus pair instead."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.policy = validators.load_policy(ROOT / "policy")
+
+    def lint(self, policy):
+        return validators.lint_producer_authority_structure(policy)
+
+    def test_shipped_policy_is_structurally_clean(self):
+        self.assertEqual([], self.lint(self.policy))
+
+    def test_typoed_promotion_subblock_key_fails_lint(self):
+        policy = copy.deepcopy(self.policy)
+        entry = policy["producer_authority"]["producers"]["sapient-ingress"]
+        entry["extenal_state_promotion"] = entry.pop("external_state_promotion")
+
+        issues = self.lint(policy)
+
+        self.assertTrue(issues)
+        self.assertEqual("POLICY_PRODUCER_AUTHORITY_STRUCTURE", issues[0]["code"])
+        self.assertIn("extenal_state_promotion", issues[0]["path"])
+
+    def test_unknown_promotion_rule_key_fails_lint(self):
+        policy = copy.deepcopy(self.policy)
+        promotion = policy["producer_authority"]["producers"]["sapient-ingress"][
+            "external_state_promotion"
+        ]
+        promotion["aproved_policy_ids"] = promotion.pop("approved_policy_ids")
+
+        issues = self.lint(policy)
+
+        self.assertTrue(any("aproved_policy_ids" in issue["path"] for issue in issues))
+
+    def test_non_bool_required_fails_lint(self):
+        policy = copy.deepcopy(self.policy)
+        policy["producer_authority"]["producers"]["sapient-ingress"][
+            "external_state_promotion"
+        ]["required"] = "true"
+
+        issues = self.lint(policy)
+
+        self.assertTrue(any(issue["path"].endswith(".required") for issue in issues))
+
+    def test_unknown_top_level_authority_key_fails_lint(self):
+        policy = copy.deepcopy(self.policy)
+        policy["producer_authority"]["producres"] = {}
+
+        issues = self.lint(policy)
+
+        self.assertTrue(any("producres" in issue["path"] for issue in issues))
+
+    def test_legitimate_mode_override_stays_clean(self):
+        # test_producer_rule_can_override_global_promotion_mode relies on a
+        # producer-level mode override; the structural lint must not flag it.
+        policy = copy.deepcopy(self.policy)
+        policy["producer_authority"]["producers"]["sapient-ingress"][
+            "external_state_promotion"
+        ]["mode"] = "warn"
+
+        self.assertEqual([], self.lint(policy))
+
+
 if __name__ == "__main__":
     unittest.main()
