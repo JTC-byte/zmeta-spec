@@ -791,7 +791,27 @@ It should specifically attack:
 5. **Counts and claims in the records.** The CHANGELOG, worklog,
    handoff, and this record were all edited during resumed sessions;
    their stated numbers, commit hashes, and finding IDs should be
-   re-verified against reality.
+   re-verified against reality. This item has already caught four real
+   errors in this closeout — two stale commit counts, a wrong MAJOR
+   tally, and a pass-2 summary left over from before the second sweep —
+   so treat it as high-yield, not bookkeeping. Ground truth as measured
+   at freeze, for checking against:
+
+   | | MAJOR | MODERATE | MINOR | Total |
+   | --- | --- | --- | --- | --- |
+   | Pass 1 (`V1-*`) | 1 | 2 | 0 | **3** |
+   | Pass 2 (`V2-*`) | 2 | 7 | 5 | **14** |
+   | | | | | **17** |
+
+   Cycle-level MAJORs are **four**: `R11-01` (honesty, from the original
+   audit), `V1-01` and `V2-01` (the two crash classes), `V2-09`
+   (cross-backend laundering). Note `V2-02` is a *third* crash class at
+   MODERATE — a claim of "two MAJOR crash classes" is about severity,
+   not about how many crash classes exist. Regenerate any of these with:
+
+   ```bash
+   grep -oE "^- \*\*V[12]-[0-9]+ \((MAJOR|MODERATE|MINOR)" docs/r1_11_full_stack_audit.md
+   ```
 6. **Scope creep in the doc-currency sweep.** Several stale literals
    were re-baselined and one (`adapters/README.md` "For v1.1.8 and
    later") was deliberately left as a correct historical boundary. That
