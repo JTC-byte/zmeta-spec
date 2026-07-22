@@ -585,12 +585,20 @@ that audit.
 
 | | |
 | --- | --- |
-| Head | `6ea9888` (R1-11 verification pass 2) |
-| Unpushed commits | **11**, `118f0b9`..`6ea9888` — the entire R1-11 cycle |
+| Held range | `118f0b9`..`HEAD` — every commit of the R1-11 cycle, none pushed |
+| Last code commit | `6ea9888` (verification pass 2); commits after it are records only |
 | Working tree | clean; `git diff --check` clean |
 | Remote | `origin/main` unchanged; nothing pushed, tagged, or signed |
 | Battery at freeze | kernel gate all flags (bad-events 29, harness 40), examples 51/51 strict, policy risk-mode lint ok, compact packet max=150/240 unchanged, pytest **785 + 316 subtests** |
 | Release decision | OPEN — maintainer's call (v1.1.17 recommended) |
+
+Verify the held set live rather than trusting a number frozen into prose
+(a hardcoded count goes stale the moment another record commit lands —
+the very defect class item 5 of the audit checklist targets):
+
+```bash
+git log --oneline origin/main..HEAD
+```
 
 Nothing in this cycle has reached a consumer. The published v1.1.16
 assets and their `SHA256SUMS` are untouched and remain the only thing
@@ -611,6 +619,12 @@ downstream verifiers see.
 | `07921e6` | 22:23 | Fix pass closeout (CHANGELOG, worklog, cycle outcome) |
 | `d955cd0` | 22:55 | Verification pass 1 (V1-01..V1-03) |
 | `6ea9888` | 07-22 01:09 | Verification pass 2 (V2-01..V2-14) |
+
+`6ea9888` is the last commit that changes code. Anything after it in
+`origin/main..HEAD` is records only — this closeout and any subsequent
+correction to it. Those are deliberately not listed by hash: a ledger row
+naming its own commit cannot be written correctly, and the live
+`git log` is the honest source for them.
 
 ## Execution continuity — interruptions and recovery
 

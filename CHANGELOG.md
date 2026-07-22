@@ -3,10 +3,10 @@
 ## [Unreleased]
 
 > **HOLD (2026-07-22).** The R1-11 cycle below is complete and frozen
-> pending a fresh full-stack audit; the release decision is open. Eleven
-> commits (`118f0b9`..`6ea9888`) are local and unpushed — nothing here has
-> reached a consumer, and the published v1.1.16 assets remain the only
-> downstream truth. The cycle ran across four usage-limit-interrupted
+> pending a fresh full-stack audit; the release decision is open. The whole
+> cycle (`118f0b9`..`HEAD`, last code commit `6ea9888`) is local and
+> unpushed — nothing here has reached a consumer, and the published v1.1.16
+> assets remain the only downstream truth. The cycle ran across four usage-limit-interrupted
 > sessions; the interruption ledger, the residue checks already run, and a
 > targeted checklist for the audit are in `docs/r1_11_full_stack_audit.md`
 > ("HOLD state" and "Execution continuity").

@@ -16,10 +16,12 @@ verification passes** (worklog R1-11 entries; findings record
 `docs/r1_11_full_stack_audit.md`).
 
 **HOLD (2026-07-22). The R1-11 cycle is COMPLETE and FROZEN pending a
-fresh full-stack audit.** Head `6ea9888`; **11 unpushed commits**
-(`118f0b9`..`6ea9888` — the entire cycle); tree clean; nothing pushed,
-tagged, or signed, so no consumer has seen any of it and the published
-v1.1.16 assets remain the only downstream truth. **NEXT: the fresh
+fresh full-stack audit.** Held range `118f0b9`..`HEAD` — the entire
+cycle, none of it pushed; run `git log --oneline origin/main..HEAD` for
+the live set (last code commit `6ea9888`; anything after it is records
+only). Tree clean; nothing pushed, tagged, or signed, so no consumer has
+seen any of it and the published v1.1.16 assets remain the only
+downstream truth. **NEXT: the fresh
 audit, then the maintainer release-cut decision** (v1.1.17 recommended
 — the cycle includes a MAJOR honesty fix, two MAJOR crash classes, a
 MAJOR cross-backend laundering/interop hole, and two Class B vocabulary

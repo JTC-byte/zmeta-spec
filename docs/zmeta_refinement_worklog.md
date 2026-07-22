@@ -5,10 +5,12 @@
 - Last updated: 2026-07-22
 - Quick handoff: `docs/zmeta_refinement_handoff.md`
 - **HOLD (2026-07-22): the R1-11 cycle is COMPLETE and FROZEN pending a
-  fresh full-stack audit.** Head `6ea9888`; **11 unpushed commits**
-  (`118f0b9`..`6ea9888`, the entire cycle); tree clean; nothing pushed,
-  tagged, or signed, so no consumer has seen any of it and the published
-  v1.1.16 assets remain the only downstream truth. The maintainer's
+  fresh full-stack audit.** Held range `118f0b9`..`HEAD` — the entire
+  cycle, none of it pushed (`git log --oneline origin/main..HEAD` gives
+  the live set; last code commit `6ea9888`, anything after it is records
+  only). Tree clean; nothing pushed, tagged, or signed, so no consumer
+  has seen any of it and the published v1.1.16 assets remain the only
+  downstream truth. The maintainer's
   release decision stays OPEN behind that audit. **The cycle was
   executed across four sessions broken by usage limits, plus a model
   switch and a full chat reset — the interruption ledger, the residue
@@ -104,10 +106,10 @@
   finding list re-derived from audit output rather than memory,
   counts re-measured, UTF-8/mojibake scan on every edited doc (clean,
   no BOM), manifest regenerated and re-validated after every code
-  change. **HOLD: 11 unpushed commits `118f0b9`..`6ea9888`, tree
-  clean, nothing pushed/tagged/signed — a fresh full-stack audit runs
-  before any release decision, with a targeted checklist in
-  `docs/r1_11_full_stack_audit.md`.** This is the third validation of
+  change. **HOLD: held range `118f0b9`..`HEAD` (entire cycle, last code
+  commit `6ea9888`), tree clean, nothing pushed/tagged/signed — a fresh
+  full-stack audit runs before any release decision, with a targeted
+  checklist in `docs/r1_11_full_stack_audit.md`.** This is the third validation of
   the interruption-recovery pattern (R1-09, R1-10, now R1-11), and the
   first under a full context reset — the pattern held, but only
   because state was reconstructed from artifacts rather than narrative.
