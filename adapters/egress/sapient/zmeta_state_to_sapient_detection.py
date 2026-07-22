@@ -105,6 +105,10 @@ SAPIENT_EGRESS_LOSS_NOTES = {
 
 
 def _parse_utc(ts):
+    if not isinstance(ts, str):
+        # TypeError so the caller's documented None-refusal path handles a
+        # non-string ts; bare .endswith would raise AttributeError past it.
+        raise TypeError(f"ts must be a string, got {type(ts).__name__}")
     if ts.endswith("Z"):
         ts = ts[:-1] + "+00:00"
     return datetime.fromisoformat(ts).astimezone(timezone.utc)

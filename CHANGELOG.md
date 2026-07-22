@@ -7,12 +7,19 @@
   verified, zero refuted) and its maintainer-directed fix pass, executed
   in seven waves:
   - Compact encoding fails closed (R11-01 MAJOR): `zmeta_compact.dumps`
-    refuses any event it cannot round-trip byte-identically (previously
-    it silently relabeled v1.1.0 events as locked-v1.0 and destroyed
-    `geo.error_ellipse_m` — a live-witnessed laundering bypass of the
-    default gateway schema gate); the gateway replaces an
+    refuses any event it cannot round-trip without changing meaning
+    (previously it silently relabeled v1.1.0 events as locked-v1.0 and
+    destroyed `geo.error_ellipse_m` — a live-witnessed laundering bypass
+    of the default gateway schema gate); the gateway replaces an
     unrepresentable outgoing event with an in-band `ENCODING_UNSUPPORTED`
     diagnostic; the compact spec gains the fail-closed Scope section.
+    The equivalence is value-identity, not byte-identity: the mapping
+    declares exactly two representation normalizations (UUID hex case,
+    since UUIDs travel as 16 raw bytes and RFC 4122 is case-insensitive;
+    and timestamp formatting at the declared millisecond resolution).
+    Refusing those is itself a failure mode — see the verification passes
+    below, where a byte-wise check was found rejecting this repo's own
+    real-capture fixtures.
   - SAPIENT adapter honesty (R11-02/-03/-04/-12/-20): state egress fails
     closed on unknown/local `policy_decision` labels (filter_risk
     parity) and keeps use restrictions visible on accepted records;
@@ -53,6 +60,162 @@
   - Corpora and enforcement growth: bad-events 27 -> 29, adapter
     harness 39 -> 40 (all fixtures now schema-linted in the gate),
     pytest 687 -> 742 (+237 subtests).
+- R1-11 post-fix verification, pass 1 (`d955cd0`) — the fix pass is
+  itself an audit surface (the R1-10 lesson), and this one found three
+  defects the wave-1 fix had introduced or caused:
+  - (MAJOR, crash) The wave-1 recovery path guarded only the first
+    encode; the re-encode of the `ENCODING_UNSUPPORTED` diagnostic was
+    unguarded, and because the diagnostic copies the original's
+    `event_id` into `original_event_id`, an event whose `event_id` was
+    the unrepresentable part poisoned its own diagnostic. `main()`
+    caught only `KeyboardInterrupt`, so one packet could terminate a
+    compact-output gateway for every producer behind it. Replaced with
+    a fallback ladder ending at the documented `UNKNOWN` correlation
+    sentinel, then a recorded drop.
+  - (MODERATE, laundering) `verify_representable` compared an in-memory
+    key remap, which preserves object identity; Python container
+    equality short-circuits on identity, so NaN — not equal to itself —
+    passed verification and reached the wire with no canonical JSON
+    form (RFC 8259). Verification now runs through the real
+    serialization boundary, and non-finite floats refuse by name.
+  - (MODERATE, over-refusal) The byte-wise comparison rejected
+    schema-valid events: the `uuid` pattern admits uppercase hex and
+    `utcDateTime` admits fractional seconds, so both
+    `edge-comms-bladeRF` real-capture fixtures — this repo's own
+    v1.1.16 corpus — were refused by compact egress over pure
+    formatting. The comparison now recognizes exactly the two
+    normalizations the mapping declares and nothing more; genuine loss
+    (truncated sub-millisecond instants, non-finite floats, dropped
+    fields, version relabeling, bool-vs-numeric) stays refused and
+    pinned.
+- R1-11 post-fix verification, pass 2 — a full seven-slice audit over
+  the fixed stack, adversarially verified, closing a further crash
+  class and five honesty/enforcement gaps:
+  - (MAJOR, crash) The recovery ladder handled only
+    `CompactUnrepresentableError`, but the codec itself could raise
+    `OverflowError` (an integer >= 2**64), `ValueError` (extension
+    nesting past the CBOR decode depth a conforming consumer could
+    read), or `OSError`/`RecursionError` on schema-valid input — each
+    escaping the ladder and terminating the process. The codec now
+    surfaces its own serialization failures as
+    `CompactUnrepresentableError`, so they become honest
+    `ENCODING_UNSUPPORTED` diagnostics; and the gateway receive loop
+    gained a last-resort per-datagram backstop that records a drop and
+    keeps serving. The backstop is deliberately scoped: `recvfrom`
+    stays outside it, so a dead listener still terminates rather than
+    hot-looping, and `except Exception` never catches the `SystemExit`
+    that reports an unusable configuration.
+  - (MODERATE, crash) `_find_forbidden_key` recursed, tying the process
+    stack to sender-controlled nesting depth: a deeply nested but
+    schema-valid payload killed the gateway at ingress, before egress,
+    on any encoding. The denylist walk is now an iterative
+    breadth-first traversal.
+  - (MODERATE, laundering) The R11-04 non-finite drop ran on only one
+    of five SAPIENT ingress paths, so NaN still rode a verbatim vendor
+    block onto a non-RFC-8259 wire from status, alert, task_ack, and
+    error. Applied on every path — and a structural pin written to stop
+    the guard drifting then showed that "five paths" was undercounted:
+    there are six vendor-block sinks. The PLATFORM_STATUS event passes
+    the raw SAPIENT `power` block through verbatim, so a non-finite
+    field inside it reached the wire even though the `battery_pct`
+    derived from the same block was guarded. All six now apply the
+    guard at the point of use rather than once earlier in the function,
+    an invariant the pin enforces. Fixing this surfaced a second hole in
+    the same helper: dropping a bare non-finite *list element* silently
+    re-indexed positional numeric arrays, so `[1.0, NaN, 3.0]` would
+    arrive as a clean two-element array that no consumer could
+    distinguish from a genuine one. A non-finite element now drops the
+    containing key instead — an absent key is honestly absent, a
+    silently shortened array is not. Lists of objects are unaffected.
+  - (MODERATE, enforcement) The R11-05 structural lint covered only
+    per-producer promotion rules, not the global
+    `external_state_promotion` block where most enforcement keys
+    actually live — a typo there silently reverted that gate to its
+    `.get()` default while both lints stayed green. The lint now covers
+    the global block and its `degrade`/`quarantine`/`use_limits`
+    sub-blocks, and additionally flags per-producer overrides of
+    global-only keys as the silent no-ops they are (an operator writing
+    `always_reject_loop_risk: false` on a producer was changing
+    nothing). Stress-testing the new lint then caught it committing the
+    same sin — it skipped present-but-mistyped `degrade`/`quarantine`/
+    `use_limits` sub-blocks, which are read with `.get()` and silently
+    revert to built-in defaults; those now fail the lint, while absence
+    stays legal.
+  - (MINOR, over-refusal) Compact epoch-ms conversion routed through
+    float seconds, so `int(dt.timestamp() * 1000)` landed one
+    millisecond off for a date-banded fraction of schema-valid
+    timestamps and the round-trip check refused them; out-of-range
+    instants raised `OSError` on Windows instead of refusing. Now exact
+    `timedelta` integer arithmetic.
+  - (MINOR, honesty) A non-string `ts` raised `AttributeError` past the
+    documented `None`-refusal contract in both SAPIENT egress
+    adapters; and the compact-egress drop reason was the only
+    lowercase entry in an otherwise `SCREAMING_SNAKE` `drop_reasons`
+    vocabulary, hiding that bucket from an operator's filter. Both
+    fixed and pinned.
+  - (MINOR, checking machinery) The overview currency guard matched one
+    literal phrasing (`currently vX.Y.Z`), so equally stale rewordings
+    passed clean — a guard shaped around the sentence the last
+    regression happened to use. Replaced with a phrasing-independent
+    rule: the overview body may name the current release and the
+    semantic branches, never a superseded published release. The first
+    cut of the replacement was itself wrong (its lookahead rejected any
+    version ending a sentence — the very shape it targeted), so the
+    matcher now carries a both-directions self-test.
+  - Release machinery: `release/RELEASE_NOTES_TEMPLATE.md` still
+    shipped the retired "D-003 remains roadmap-planned" line into
+    every packaged release note, four releases after the maintainers
+    closed D-003. R11-14 had fixed the validator that machine-enforced
+    the claim but not the template that emitted it; the section now
+    instructs authors to read the register instead of carrying a
+    previous release's list forward.
+  - (MAJOR, laundering/interop) Compact representability depended on
+    which CBOR library happened to be installed. The mapping's integer
+    limit was left to the backend, and the backends disagree:
+    `zmeta_cbor` refuses an integer outside `[-(2**64), 2**64-1]`
+    (correct — CBOR major types 0/1 cannot carry it and this mapping
+    defines no bignum tag), while `cbor2` silently encodes it as a
+    bignum tag that a `zmeta_cbor` consumer then decodes as raw BYTES.
+    Two conforming nodes would disagree about what the same event means
+    based on a local install detail. The round-trip self-check could not
+    catch it because it is backend-symmetric — the same library encodes
+    and decodes, so the corruption appears only on the receiving node.
+    The codec now enforces the range itself, identically on every
+    backend, with the boundary pinned exactly and both regression tests
+    run against both backends.
+  - (MODERATE, honesty) `_same_instant` compared two values already
+    truncated identically at microseconds, so it could not see loss
+    below that: a 100-nanosecond instant compared equal to its
+    millisecond round-trip while the codec claimed to refuse truncation.
+    The original's resolution is now checked directly.
+  - (MINOR, crash) `_format_ts` is reached from the public decode path
+    on a sender-controlled epoch-ms value, outside the encode-side
+    guard, so a hostile wire value crashed the consumer with a raw
+    `OverflowError`. Decode now fails closed.
+  - (MODERATE, checking machinery) Four docs carry the identical
+    machine-pinned "Current release context" header but only the
+    overview was guarded, so the other three sat five releases stale.
+    All four are pinned now, plus a test asserting the pinned list still
+    names every doc carrying the header.
+  - (MODERATE, release machinery) `build_release_package.py` copied the
+    notes template verbatim into each package as its `RELEASE_NOTES.md`,
+    and nothing read that file's content — so the published v1.1.16
+    package ships notes titled "ZMeta Release Notes Template" with
+    placeholder provenance beside metadata declaring `formal_release`,
+    while the real notes never entered the package. The builder gained
+    `--release-notes`, the validator gained
+    `RELEASE_PACKAGE_NOTES_PLACEHOLDER` (formal releases only — a
+    candidate may still carry the template), and the checklist gained
+    the step. Published checksums untouched; effective at the next cut.
+  - (MODERATE, doc currency) `spec/release-signing-attestation.md` — a
+    manifest-hash-pinned artifact validated on every release — still
+    asserted "D-003 remains the roadmap" for a register item closed at
+    the v1.1.12 cut. Also re-baselined: the change-governance worked
+    command, TRADEMARK naming examples, the signing help example, and
+    the compat CLI test's "current release target", the last now derived
+    from the manifest so it cannot go stale again.
+  - Enforcement growth across both verification passes: pytest
+    742 (+237 subtests) -> 785 (+316 subtests).
 
 ## [1.1.16] - 2026-07-21
 - External contribution (PR #7, bkershner-torch): mapping pack

@@ -325,6 +325,55 @@ def _validate_metadata(path: Path, manifest: dict[str, Any], package_dir: Path) 
     return issues
 
 
+# Markers that identify the unpopulated release-notes TEMPLATE. A formal
+# release package must ship the release's real notes: copying the template
+# verbatim produced a package titled "ZMeta Release Notes Template", with every
+# provenance field left as the literal placeholder and a closing "This template
+# is an example", sitting beside metadata declaring release_state:
+# formal_release (R1-11 verification pass 2 — the R11-10
+# self-describes-as-non-formal shape, one artifact over).
+_NOTES_TEMPLATE_MARKERS = (
+    "explicit_release_input_required",
+    "This template is an example",
+    "# ZMeta Release Notes Template",
+)
+
+
+def _validate_release_notes(path: Path, metadata_path: Path) -> list[dict[str, str]]:
+    """A formal_release package must not ship the notes template as its notes."""
+    if not path.is_file():
+        return [
+            _issue(
+                "RELEASE_PACKAGE_NOTES_MISSING",
+                f"release notes not found: {path}",
+                item=str(path),
+            )
+        ]
+    if not metadata_path.is_file():
+        return []
+    try:
+        metadata = load_yaml(metadata_path)
+    except Exception:
+        return []
+    if not isinstance(metadata, dict):
+        return []
+    if str(metadata.get("release_state", "")).strip() != "formal_release":
+        return []
+    text = path.read_text(encoding="utf-8")
+    found = [marker for marker in _NOTES_TEMPLATE_MARKERS if marker in text]
+    if not found:
+        return []
+    return [
+        _issue(
+            "RELEASE_PACKAGE_NOTES_PLACEHOLDER",
+            "formal_release package ships the unpopulated release-notes "
+            f"template as RELEASE_NOTES.md (found {found[0]!r}); pass the "
+            "release's real notes via build_release_package.py --release-notes",
+            item=str(path),
+        )
+    ]
+
+
 def validate_release_package(
     *,
     manifest_path: Path,
@@ -343,6 +392,7 @@ def validate_release_package(
     issues.extend(scan_no_secrets([package_dir]))
     metadata_path = package_dir / "zmeta-release-package.yaml"
     issues.extend(_validate_metadata(metadata_path, manifest, package_dir))
+    issues.extend(_validate_release_notes(package_dir / "RELEASE_NOTES.md", metadata_path))
     issues.extend(_validate_attestation(package_dir / "ATTESTATION.yaml", manifest))
     issues.extend(
         _validate_checksums(

@@ -1847,144 +1847,171 @@ def main():
                     metrics.maybe_log()
                 continue
             rate_count += 1
-        out_events = process_message(
-            data,
-            validator,
-            policy,
-            settings["profile"],
-            dedupe_cache,
-            settings["input_encoding"],
-            event_dedupe_cache=event_dedupe_cache,
-            task_ack_dedupe_cache=task_ack_dedupe_cache,
-            timing_state=validation_state,
-            strict_validation=settings["strict_validation"],
-            metrics=metrics,
-            rate_limiter=producer_rate_limiter,
-            contract_hashes=contract_hashes,
-            stamp_contract_hash=settings["stamp_contract_hash"],
-        )
-        for outgoing in out_events:
-            should_stamp_timing = _should_apply(
-                settings["profile"], settings["stamp_timing"], settings["stamp_timing_profiles"]
-            )
-            if should_stamp_timing:
-                event_block = outgoing.get("event")
-                if isinstance(event_block, dict):
-                    receive_ts = event_block.get("t_receive")
-                    if not receive_ts:
-                        receive_ts = utc_now()
-                        event_block["t_receive"] = receive_ts
-                    if not event_block.get("t_publish"):
-                        event_block["t_publish"] = receive_ts
-
-            should_stamp_profile = _should_apply(
-                settings["profile"], settings["stamp_profile"], settings["stamp_profile_profiles"]
-            )
-            if should_stamp_profile:
-                outgoing["profile"] = settings["profile"]
-
-            should_strip = _should_apply(
+        # Receive-loop backstop: translation and egress recovery each fail
+        # closed on the failures they can foresee, but no datagram -
+        # however malformed or hostile - may terminate the gateway for
+        # every producer behind it. Anything that escapes the inner guards
+        # is recorded as an honest drop on metrics and stderr, never
+        # silently swallowed and never allowed to kill the process.
+        #
+        # Deliberately scoped: recvfrom stays OUTSIDE this guard, so a dead
+        # listener socket still terminates instead of hot-looping, and
+        # `except Exception` does not catch BaseException - operator
+        # interrupts (KeyboardInterrupt) and configuration failures that
+        # raise SystemExit (_require_cbor/_require_compact/_require_proto)
+        # still stop the process rather than becoming per-datagram drops.
+        try:
+            out_events = process_message(
+                data,
+                validator,
+                policy,
                 settings["profile"],
-                bool(settings["strip_optional_fields"]),
-                settings["strip_optional_fields_profiles"],
+                dedupe_cache,
+                settings["input_encoding"],
+                event_dedupe_cache=event_dedupe_cache,
+                task_ack_dedupe_cache=task_ack_dedupe_cache,
+                timing_state=validation_state,
+                strict_validation=settings["strict_validation"],
+                metrics=metrics,
+                rate_limiter=producer_rate_limiter,
+                contract_hashes=contract_hashes,
+                stamp_contract_hash=settings["stamp_contract_hash"],
             )
-            if should_strip:
-                _strip_optional_fields(outgoing, settings["strip_optional_fields"])
-            _apply_failure_mode_degradation(
-                outgoing,
-                settings["failure_modes"],
-                validation_state,
-                policy.get("timing_freshness", {}),
-            )
-            violations = validate_outgoing_event(outgoing, validator, policy, settings["profile"])
-            if violations:
-                violation = violations[0]
-                if metrics:
-                    event_block = outgoing.get("event", {}) if isinstance(outgoing, dict) else {}
-                    source = outgoing.get("source", {}) if isinstance(outgoing, dict) else {}
-                    metrics.record_violation(
-                        violation["code"],
-                        event_id=event_block.get("event_id"),
-                        producer=source.get("producer") if isinstance(source, dict) else None,
-                    )
-                outgoing = build_violation_event(
-                    violation["code"],
-                    original=outgoing,
-                    details=violation.get("details"),
-                    contract_hashes=contract_hashes,
-                    stamp_contract_hash=settings["stamp_contract_hash"],
+            for outgoing in out_events:
+                should_stamp_timing = _should_apply(
+                    settings["profile"], settings["stamp_timing"], settings["stamp_timing_profiles"]
+                )
+                if should_stamp_timing:
+                    event_block = outgoing.get("event")
+                    if isinstance(event_block, dict):
+                        receive_ts = event_block.get("t_receive")
+                        if not receive_ts:
+                            receive_ts = utc_now()
+                            event_block["t_receive"] = receive_ts
+                        if not event_block.get("t_publish"):
+                            event_block["t_publish"] = receive_ts
+
+                should_stamp_profile = _should_apply(
+                    settings["profile"], settings["stamp_profile"], settings["stamp_profile_profiles"]
                 )
                 if should_stamp_profile:
                     outgoing["profile"] = settings["profile"]
-            payload, outgoing = _encode_outgoing_or_diagnostic(
-                outgoing,
-                settings,
-                contract_hashes=contract_hashes,
-                should_stamp_profile=should_stamp_profile,
-                metrics=metrics,
-            )
-            if payload is None:
-                # Nothing honest can be said about this event on this wire.
-                # Drop the datagram rather than terminate the receive loop.
-                if metrics:
-                    metrics.record_drop("encoding_unsupported")
-                continue
-            event_block = outgoing.get("event", {}) if isinstance(outgoing, dict) else {}
-            source_block = outgoing.get("source", {}) if isinstance(outgoing, dict) else {}
-            _check_datagram_size(
-                metrics,
-                len(payload),
-                settings["warn_datagram_bytes"],
-                "forward",
-                event_id=event_block.get("event_id") if isinstance(event_block, dict) else None,
-                producer=source_block.get("producer") if isinstance(source_block, dict) else None,
-            )
-            sent = _send_datagram(
-                sock_out,
-                payload,
-                forward_addr,
-                metrics=metrics,
-                kind="forward",
-                event_id=event_block.get("event_id") if isinstance(event_block, dict) else None,
-                producer=source_block.get("producer") if isinstance(source_block, dict) else None,
-            )
-            if sent and metrics:
-                metrics.record_forwarded()
-            if settings["emit_cot"]:
-                cot_xml = zmeta_to_cot(outgoing)
-                if cot_xml:
-                    cot_payload = cot_xml.encode("utf-8")
-                    _check_datagram_size(
-                        metrics,
-                        len(cot_payload),
-                        settings["warn_datagram_bytes"],
-                        "cot",
-                        event_id=event_block.get("event_id") if isinstance(event_block, dict) else None,
-                        producer=source_block.get("producer") if isinstance(source_block, dict) else None,
-                    )
-                    cot_sent = _send_datagram(
-                        sock_out,
-                        cot_payload,
-                        cot_addr,
-                        metrics=metrics,
-                        kind="cot",
-                        event_id=event_block.get("event_id") if isinstance(event_block, dict) else None,
-                        producer=source_block.get("producer") if isinstance(source_block, dict) else None,
-                    )
-                    if cot_sent and metrics:
-                        metrics.record_cot()
-                elif metrics:
-                    reason = _cot_skip_reason(outgoing)
-                    if reason:
+
+                should_strip = _should_apply(
+                    settings["profile"],
+                    bool(settings["strip_optional_fields"]),
+                    settings["strip_optional_fields_profiles"],
+                )
+                if should_strip:
+                    _strip_optional_fields(outgoing, settings["strip_optional_fields"])
+                _apply_failure_mode_degradation(
+                    outgoing,
+                    settings["failure_modes"],
+                    validation_state,
+                    policy.get("timing_freshness", {}),
+                )
+                violations = validate_outgoing_event(outgoing, validator, policy, settings["profile"])
+                if violations:
+                    violation = violations[0]
+                    if metrics:
                         event_block = outgoing.get("event", {}) if isinstance(outgoing, dict) else {}
                         source = outgoing.get("source", {}) if isinstance(outgoing, dict) else {}
-                        metrics.record_cot_skipped(
-                            reason,
+                        metrics.record_violation(
+                            violation["code"],
                             event_id=event_block.get("event_id"),
                             producer=source.get("producer") if isinstance(source, dict) else None,
                         )
-        if metrics:
-            metrics.maybe_log()
+                    outgoing = build_violation_event(
+                        violation["code"],
+                        original=outgoing,
+                        details=violation.get("details"),
+                        contract_hashes=contract_hashes,
+                        stamp_contract_hash=settings["stamp_contract_hash"],
+                    )
+                    if should_stamp_profile:
+                        outgoing["profile"] = settings["profile"]
+                payload, outgoing = _encode_outgoing_or_diagnostic(
+                    outgoing,
+                    settings,
+                    contract_hashes=contract_hashes,
+                    should_stamp_profile=should_stamp_profile,
+                    metrics=metrics,
+                )
+                if payload is None:
+                    # Nothing honest can be said about this event on this wire.
+                    # Drop the datagram rather than terminate the receive loop.
+                    # Reason spelling matches the governed diagnostic code and
+                    # the other drop reasons: drop_reasons keys are what an
+                    # operator filters on, so one lowercase outlier hides that
+                    # bucket from a SCREAMING_SNAKE filter.
+                    if metrics:
+                        metrics.record_drop("ENCODING_UNSUPPORTED")
+                    continue
+                event_block = outgoing.get("event", {}) if isinstance(outgoing, dict) else {}
+                source_block = outgoing.get("source", {}) if isinstance(outgoing, dict) else {}
+                _check_datagram_size(
+                    metrics,
+                    len(payload),
+                    settings["warn_datagram_bytes"],
+                    "forward",
+                    event_id=event_block.get("event_id") if isinstance(event_block, dict) else None,
+                    producer=source_block.get("producer") if isinstance(source_block, dict) else None,
+                )
+                sent = _send_datagram(
+                    sock_out,
+                    payload,
+                    forward_addr,
+                    metrics=metrics,
+                    kind="forward",
+                    event_id=event_block.get("event_id") if isinstance(event_block, dict) else None,
+                    producer=source_block.get("producer") if isinstance(source_block, dict) else None,
+                )
+                if sent and metrics:
+                    metrics.record_forwarded()
+                if settings["emit_cot"]:
+                    cot_xml = zmeta_to_cot(outgoing)
+                    if cot_xml:
+                        cot_payload = cot_xml.encode("utf-8")
+                        _check_datagram_size(
+                            metrics,
+                            len(cot_payload),
+                            settings["warn_datagram_bytes"],
+                            "cot",
+                            event_id=event_block.get("event_id") if isinstance(event_block, dict) else None,
+                            producer=source_block.get("producer") if isinstance(source_block, dict) else None,
+                        )
+                        cot_sent = _send_datagram(
+                            sock_out,
+                            cot_payload,
+                            cot_addr,
+                            metrics=metrics,
+                            kind="cot",
+                            event_id=event_block.get("event_id") if isinstance(event_block, dict) else None,
+                            producer=source_block.get("producer") if isinstance(source_block, dict) else None,
+                        )
+                        if cot_sent and metrics:
+                            metrics.record_cot()
+                    elif metrics:
+                        reason = _cot_skip_reason(outgoing)
+                        if reason:
+                            event_block = outgoing.get("event", {}) if isinstance(outgoing, dict) else {}
+                            source = outgoing.get("source", {}) if isinstance(outgoing, dict) else {}
+                            metrics.record_cot_skipped(
+                                reason,
+                                event_id=event_block.get("event_id"),
+                                producer=source.get("producer") if isinstance(source, dict) else None,
+                            )
+            if metrics:
+                metrics.maybe_log()
+        except Exception as exc:  # noqa: BLE001 - last-resort per-datagram guard
+            if metrics:
+                metrics.record_drop("INTERNAL_ERROR")
+                metrics.maybe_log()
+            print(
+                "WARNING: datagram dropped after unexpected "
+                f"{type(exc).__name__}: {exc}",
+                file=sys.stderr,
+            )
 
 
 if __name__ == "__main__":

@@ -154,6 +154,65 @@ def test_attestation_hash_mismatch_fails(release_tmp_dir):
     assert "RELEASE_PACKAGE_ATTESTATION_HASH_MISMATCH" in _issue_codes(issues)
 
 
+def test_formal_release_shipping_the_notes_template_fails(release_tmp_dir):
+    # R1-11 verification pass 2: the builder copied RELEASE_NOTES_TEMPLATE.md
+    # verbatim, so every formal package shipped notes titled "ZMeta Release
+    # Notes Template" with placeholder provenance and a closing "This template
+    # is an example" - beside metadata declaring release_state: formal_release.
+    # Nothing read the file's content, so four releases shipped that way.
+    package_dir = _build_temp_package(release_tmp_dir)
+    metadata_path = package_dir / "zmeta-release-package.yaml"
+    metadata = yaml.safe_load(metadata_path.read_text(encoding="utf-8"))
+    metadata["release_state"] = "formal_release"
+    metadata_path.write_text(yaml.safe_dump(metadata, sort_keys=False), encoding="utf-8")
+    _refresh_checksums(package_dir)
+
+    issues = validator.validate_release_package(
+        manifest_path=ROOT / "release" / "zmeta-release-manifest.yaml",
+        package_dir=package_dir,
+    )
+
+    assert "RELEASE_PACKAGE_NOTES_PLACEHOLDER" in _issue_codes(issues)
+
+
+def test_formal_release_with_real_notes_passes(release_tmp_dir):
+    # The other direction: real notes in a formal package must be accepted,
+    # and a release_candidate may legitimately still carry the template.
+    package_dir = _build_temp_package(release_tmp_dir)
+    metadata_path = package_dir / "zmeta-release-package.yaml"
+    metadata = yaml.safe_load(metadata_path.read_text(encoding="utf-8"))
+    metadata["release_state"] = "formal_release"
+    metadata_path.write_text(yaml.safe_dump(metadata, sort_keys=False), encoding="utf-8")
+    (package_dir / "RELEASE_NOTES.md").write_text(
+        "# ZMeta v1.1.16\n\nReal release notes for this cut.\n", encoding="utf-8"
+    )
+    _refresh_checksums(package_dir)
+
+    issues = validator.validate_release_package(
+        manifest_path=ROOT / "release" / "zmeta-release-manifest.yaml",
+        package_dir=package_dir,
+    )
+
+    assert "RELEASE_PACKAGE_NOTES_PLACEHOLDER" not in _issue_codes(issues)
+
+
+def test_builder_release_notes_option_ships_real_notes(release_tmp_dir):
+    real_notes = release_tmp_dir / "REAL_NOTES.md"
+    real_notes.write_text("# ZMeta v1.1.16\n\nReal notes.\n", encoding="utf-8")
+    output_dir = release_tmp_dir / "package-real"
+    builder.build_package(
+        manifest_path=ROOT / "release" / "zmeta-release-manifest.yaml",
+        output_dir=output_dir,
+        release_notes=real_notes,
+        no_signatures=True,
+        allow_dirty=True,
+    )
+
+    shipped = (output_dir / "RELEASE_NOTES.md").read_text(encoding="utf-8")
+    assert "Real notes." in shipped
+    assert "explicit_release_input_required" not in shipped
+
+
 def test_missing_package_artifact_fails(release_tmp_dir):
     package_dir = _build_temp_package(release_tmp_dir)
     (package_dir / "RELEASE_NOTES.md").unlink()

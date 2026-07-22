@@ -28,6 +28,13 @@ Use this as the template for each release.
       `zmeta-release-package-<version>.zip` asset is built automatically
       from the package directory by `release/sign_release_artifacts.py
       --write-checksums` — never by hand)
+- [ ] Package ships the REAL release notes, not the template: pass
+      `--release-notes release/RELEASE_NOTES_v<version>.md` to
+      `tools/build_release_package.py`. Without it the template is copied
+      verbatim and the package's `RELEASE_NOTES.md` reads "ZMeta Release
+      Notes Template" with placeholder provenance beside metadata claiming
+      `formal_release` — `validate_release_package` now fails this with
+      `RELEASE_PACKAGE_NOTES_PLACEHOLDER`.
 - [ ] No private keys, credentials, tokens, or signing secrets are present in release package paths
 - [ ] Release notes updated
 - [ ] Changelog updated

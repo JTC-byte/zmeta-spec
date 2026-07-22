@@ -2,24 +2,31 @@
 
 ## Current Resume Note
 
-- Last updated: 2026-07-21
+- Last updated: 2026-07-22
 - Quick handoff: `docs/zmeta_refinement_handoff.md`
-- Current state (2026-07-21, fourth closeout): the **R1-11 cycle fix
-  pass is COMPLETE** — maintainer directed "fix them and work down
-  that list" (R11-24 bladerf disclosure cleared as-is); all seven
-  waves executed and committed (fix-pass entry below; findings record
-  `docs/r1_11_full_stack_audit.md` carries the disposition + cycle
-  outcome). Full battery green at every wave boundary; final: kernel
-  gate all flags (bad-events 29, harness 40), examples 51/51, pytest
-  742+237 zero failures. **Post-release divergence record (per the
-  new AGENTS.md rule): the fix-pass commits regenerate the manifest
-  and package under the v1.1.16 identity, so current main diverges
-  from the published v1.1.16 SHA256SUMS manifest/package pins;
-  published checksums stay immutable; resolution is the next release
-  cut.** NEXT: the post-fix verification audit (R1-10 precedent),
-  then the maintainer release-cut decision (v1.1.17 recommended —
-  the pass includes a MAJOR honesty fix and two Class B vocabulary
-  batches). Prior closeout state follows.
+- Current state (2026-07-22, fifth closeout): the **R1-11 cycle is
+  COMPLETE through both post-fix verification passes.** The fix pass
+  (seven waves) and verification pass 1 (`d955cd0`) were followed by
+  verification pass 2, which closed a further MAJOR crash class and
+  five honesty/enforcement gaps; the findings record
+  `docs/r1_11_full_stack_audit.md` now carries the disposition, the
+  cycle outcome, and both verification passes. Final battery: kernel
+  gate all flags (bad-events 29, harness 40), examples 51/51 strict,
+  packet size compact max=150 of 240 (unchanged), pytest **785+316**
+  zero failures, `git diff --check` clean. **Post-release divergence
+  record (per the AGENTS.md rule): the fix-pass and verification-pass
+  commits regenerate the manifest and claims under the v1.1.16
+  identity, so current main diverges from the published v1.1.16
+  SHA256SUMS manifest/package pins; published checksums stay
+  immutable; resolution is the next release cut.** NEXT: the
+  maintainer release-cut decision (v1.1.17 recommended — the cycle
+  includes a MAJOR honesty fix, two MAJOR crash classes, and two
+  Class B vocabulary batches). **Carry-forward lesson: a fix has
+  introduced or exposed the next defect five times across R1-10, the
+  R1-11 fix pass, and both verification passes — the verification
+  pass produced roughly half this cycle's real findings and should
+  stay mandatory after any pass touching honesty-critical paths.**
+  Prior closeout state follows.
 - Previous state (2026-07-21, first closeout): the SAPIENT lane is
   FULLY CLOSED — P1-07 mapping pack + reference adapters, the end-to-end
   wire validation against official Dstl tooling (PASSED; ULID findings
@@ -47,6 +54,131 @@
   session-limit interruption recovery (resume with verify-and-complete
   prompts + a dedicated interruption-integrity review) left zero
   half-done state, twice validated as a working pattern.
+- R1-11 post-fix verification passes (2026-07-21/22): **BOTH COMPLETE.**
+  The R1-10 lesson — the fix pass is itself an audit surface — paid out
+  twice more. Pass 1 (`d955cd0`) found three defects wave 1 had
+  introduced or caused: (V1-01 MAJOR crash) the recovery path guarded
+  only the FIRST encode, and because the diagnostic inherits the
+  original's `event_id` as `original_event_id`, an event whose
+  `event_id` was the unrepresentable part poisoned its own diagnostic —
+  with `main()` catching only `KeyboardInterrupt`, one packet could kill
+  a compact-output gateway for every producer; fixed with a fallback
+  ladder ending at the `UNKNOWN` sentinel. (V1-02 MODERATE laundering)
+  `verify_representable` compared an in-memory key remap that PRESERVES
+  OBJECT IDENTITY, and Python container equality short-circuits on
+  identity, so NaN — not equal to itself — passed verification and
+  reached the wire with no RFC-8259 form; verification now runs through
+  the real serialization boundary. (V1-03 MODERATE over-refusal) the
+  byte-wise check refused SCHEMA-VALID events — **both bladeRF
+  real-capture fixtures, this repo's own v1.1.16 corpus, were refused by
+  compact egress over `.876Z` vs `.876000Z`, the same instant.** Wave
+  1's tests used only whole-second timestamps. The check now recognizes
+  exactly the two declared normalizations (UUID hex case; timestamp
+  formatting at ms resolution); the `.000Z` refusal pin deliberately
+  flipped to a normalization, with the sub-millisecond case replacing it
+  as the honest refusal pin.
+  Pass 2 (seven slices, 24 agents, every finding adversarially refuted
+  before acceptance; 2 refuted) closed a further crash class and five
+  gaps: (V2-01 MAJOR crash) the ladder catches only
+  `CompactUnrepresentableError`, but the codec itself raises
+  `OverflowError` (int ≥ 2**64), `ValueError` (nesting past CBOR decode
+  depth — pass 1's real-serialization decode ADDED this path), and
+  `OSError`/`RecursionError` on schema-valid input, each escaping and
+  killing the process; fixed at two layers (codec converts its own
+  failures; receive loop gained a per-datagram backstop) with the
+  backstop's scope pinned by test — `recvfrom` stays OUTSIDE it so a
+  dead listener still terminates, and `except Exception` never catches
+  the `SystemExit` that reports an unusable config, so resilience never
+  becomes concealment. (V2-02 MODERATE crash) `_find_forbidden_key`
+  recursed, so deeply nested schema-valid JSON killed the gateway at
+  INGRESS before egress on any encoding; now iterative breadth-first.
+  (V2-03 MODERATE laundering) the R11-04 non-finite drop ran on 1 of 5
+  SAPIENT ingress paths; a structural pin written to stop the guard
+  drifting then showed **"five paths" was itself undercounted — there
+  are SIX vendor-block sinks**, the missed one being the PLATFORM_STATUS
+  event's verbatim `power` block (a non-finite `voltage` reached the
+  wire even though `battery_pct` derived from that same block was
+  guarded); all six now guard at the POINT OF USE, not once earlier in
+  the function (the detection path dropped first and then assigned
+  `vendor_ext["colour"]`, safe only by string-guard accident), with the
+  invariant pinned by a source-level test. **Fixing this surfaced a
+  second hole in the same helper — three cycles deep on this one class
+  now** — dropping a bare non-finite LIST ELEMENT silently re-indexed
+  positional numeric arrays (`[1.0, NaN, 3.0]` arriving as a clean
+  two-element array); a non-finite element now drops the containing key. (V2-04 MODERATE
+  enforcement) the R11-05 lint covered only per-producer rules, not the
+  GLOBAL promotion block where most enforcement keys live — the same
+  failure mode one block over — and additionally blessed per-producer
+  overrides of global-only keys that enforcement never reads
+  (`always_reject_loop_risk: false` on a producer changed nothing);
+  **stress-testing the new lint caught it committing the same sin** —
+  present-but-mistyped `degrade`/`quarantine`/`use_limits` sub-blocks
+  were skipped, and a non-mapping there reverts the action to its
+  built-in default, so they now fail (absence stays legal).
+  (V2-05 MINOR over-refusal) compact epoch-ms routed through float
+  seconds, landing 1 ms off for a date-banded fraction of schema-valid
+  timestamps (480 of 8000 swept) and raising `OSError` on Windows for
+  out-of-range instants; now exact `timedelta` integer arithmetic.
+  (V2-06 MINOR honesty) non-string `ts` raised `AttributeError` past the
+  documented None-refusal in both SAPIENT egress adapters, and the
+  compact drop reason was the lone lowercase entry in a
+  `SCREAMING_SNAKE` `drop_reasons` vocabulary that operators filter on.
+  (V2-07 MINOR checking machinery) the overview currency guard matched
+  one literal phrasing (`currently vX.Y.Z`) — shaped around the sentence
+  the last regression happened to use — so `as of today, v1.1.9` / `pin
+  to release v1.1.14` passed clean; replaced with a phrasing-independent
+  superseded-release check, and **the first cut of the replacement was
+  itself wrong** (lookahead rejected any version ending a sentence, the
+  exact target shape), so the matcher now self-tests both directions.
+  (V2-08 MINOR release machinery) `RELEASE_NOTES_TEMPLATE.md` still
+  shipped the retired "D-003 remains roadmap-planned" line into every
+  packaged note four releases after closure — R11-14 fixed the
+  *validator* enforcing the claim but not the *template* emitting it;
+  the same claim had two producers.
+  A second nine-lens sweep over the RESULTING FIXES (85 agents, 29
+  findings surviving adversarial refutation of 75 judged) added six
+  more, headlined by **the most serious finding of the cycle: (V2-09
+  MAJOR laundering/interop) compact representability depended on WHICH
+  CBOR LIBRARY WAS INSTALLED.** The mapping's integer limit was left to
+  the backend; `zmeta_cbor` correctly refuses an integer outside
+  `[-(2**64), 2**64-1]`, but `cbor2` silently emits a bignum tag that a
+  `zmeta_cbor` consumer decodes as raw BYTES — two conforming nodes
+  disagreeing about the same event's meaning over a local install
+  detail. **The round-trip self-check is structurally blind to this**:
+  it encodes and decodes with the same library, so the corruption only
+  appears on the receiving node. The codec now enforces the range
+  itself on every backend, boundary pinned exactly, both regression
+  tests run against both backends. Also: (V2-10) `_same_instant`
+  compared two values already truncated identically at microseconds, so
+  a 100-nanosecond instant compared equal to its ms round-trip while
+  the codec claimed to refuse truncation; (V2-11) `_format_ts` crashed
+  the PUBLIC decode path on a hostile epoch-ms value, outside the
+  encode-side guard; (V2-12) four docs carry the identical pinned
+  "Current release context" header but only the overview was guarded,
+  so **three sat five releases stale** — the family is pinned now, plus
+  a test that the pinned list still names every carrier; (V2-13) the
+  package builder copied the notes TEMPLATE verbatim as each package's
+  `RELEASE_NOTES.md` and nothing read its content, so the published
+  v1.1.16 package ships "ZMeta Release Notes Template" with placeholder
+  provenance beside `release_state: formal_release` while the real
+  notes never entered the package (builder `--release-notes` +
+  validator `RELEASE_PACKAGE_NOTES_PLACEHOLDER` + checklist step;
+  published checksums untouched, effective next cut); (V2-14)
+  `spec/release-signing-attestation.md`, a manifest-hash-pinned artifact
+  validated every release, still asserted "D-003 remains the roadmap"
+  for an item closed at v1.1.12, plus assorted stale literals — the
+  compat CLI test's "current release target" now derives from the
+  manifest rather than a pin.
+  Live re-probe at close: the gateway survives every poison class
+  (2**64 int, 300-deep nesting, 20k-deep raw JSON) with honest
+  `ENCODING_UNSUPPORTED`/`SCHEMA_INVALID` diagnostics on the wire, the
+  uppercase-UUID + millisecond-ts event forwards normally, and normal
+  traffic still flows afterward — process alive throughout. Validation:
+  kernel gate all flags (bad-events 29, harness 40), examples 51/51
+  strict, packet size compact max=150 of 240 unchanged, pytest
+  **742+237 → 785+316** zero failures, `git diff --check` clean.
+  Governed regeneration: manifest + claims under the v1.1.16 identity
+  (divergence record above continues to apply).
 - R1-11 fix pass (2026-07-21): **ALL SEVEN WAVES COMPLETE** under the
   maintainer directive "give me a list... then lets work down that
   list" (R11-24 bladerf disclosure inventory cleared: "the bladerf

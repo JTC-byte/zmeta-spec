@@ -19,9 +19,9 @@ name to be used around conformance and compatibility claims.
 
 Acceptable examples:
 
-- "implements ZMeta v1.1.8";
+- "implements ZMeta v1.1.16";
 - "ZMeta-compatible adapter";
-- "validated against the ZMeta v1.1.8 conformance corpus";
+- "validated against the ZMeta v1.1.16 conformance corpus";
 - "uses the ZMeta schema and policy pack";
 - "private ZMeta-derived dialect, not upstream-compatible."
 

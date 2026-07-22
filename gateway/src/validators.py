@@ -1,5 +1,6 @@
 import json
 import math
+from collections import deque
 from fnmatch import fnmatchcase
 from datetime import datetime, timezone
 from pathlib import Path
@@ -302,21 +303,23 @@ def _normalize_key(value):
 
 
 def _find_forbidden_key(value, forbidden_keys):
-    if isinstance(value, dict):
-        for key, item in value.items():
-            key_str = str(key)
-            if _normalize_key(key_str) in forbidden_keys:
-                return key_str, [key_str]
-            found = _find_forbidden_key(item, forbidden_keys)
-            if found:
-                found_key, path = found
-                return found_key, [key_str] + path
-    elif isinstance(value, list):
-        for idx, item in enumerate(value):
-            found = _find_forbidden_key(item, forbidden_keys)
-            if found:
-                found_key, path = found
-                return found_key, [str(idx)] + path
+    # Iterative breadth-first traversal: recursing here would tie the process
+    # stack to sender-controlled nesting depth, so a deeply nested but
+    # schema-valid payload could kill the gateway with RecursionError at
+    # ingress before any egress guard runs. An explicit queue makes depth a
+    # memory cost, never a crash; the shallowest forbidden key is found first.
+    queue = deque([(value, [])])
+    while queue:
+        current, path = queue.popleft()
+        if isinstance(current, dict):
+            for key, item in current.items():
+                key_str = str(key)
+                if _normalize_key(key_str) in forbidden_keys:
+                    return key_str, path + [key_str]
+                queue.append((item, path + [key_str]))
+        elif isinstance(current, list):
+            for idx, item in enumerate(current):
+                queue.append((item, path + [str(idx)]))
     return None
 
 
@@ -1280,37 +1283,54 @@ _PRODUCER_AUTHORITY_TOP_KEYS = frozenset(
 _PRODUCER_ENTRY_KEYS = frozenset(
     {"allowed_event_types", "forbidden_event_types", "external_state_promotion"}
 )
-# Producer promotion rules may carry the producer-specific gates plus
-# overrides of any global promotion key the enforcement reads per-rule.
+# Keys the enforcement actually reads PER RULE (_external_promotion_rules,
+# _promotion_mode, _union_rule_values). Nothing else has per-producer effect:
+# every other promotion key is read only from the GLOBAL
+# producer_authority.external_state_promotion block, so a per-producer copy is
+# a silent no-op the lint must flag, not bless (R1-11 verification pass 2).
 _PROMOTION_RULE_KEYS = frozenset(
     {
         "required",
+        "mode",
+        "mode_by_profile",
         "approved_policy_ids",
         "allowed_projection_ids",
         "allowed_confidence_basis",
-        "mode",
-        "mode_by_profile",
-        "always_reject_loop_risk",
-        "allowed_loop_statuses",
-        "loop_risk_statuses",
-        "allowed_origin_kinds",
-        "allowed_lineage_status_by_profile",
-        "required_fields_by_profile",
-        "required_state_category",
-        "required_trust_ref_prefixes",
-        "required_lineage_transform_prefixes",
-        "source_event_uid_required_statuses",
-        "max_freshness_ms_by_profile",
-        "metadata_path",
-        "degrade",
-        "quarantine",
-        "confidence_cap",
-        "confidence_reduction_factor",
-        "valid_for_ms_cap",
-        "valid_for_ms_reduction_factor",
-        "enabled",
     }
 )
+# Keys the enforcement reads from the GLOBAL external_state_promotion block
+# (_validate_external_state_promotion, apply_external_promotion_policy_action,
+# _promotion_mode, _risk_use_limits). A typo here silently reverts that gate
+# to its .get() default while every lint stayed green — the exact R11-05
+# failure mode, one block over.
+_GLOBAL_PROMOTION_KEYS = frozenset(
+    {
+        "enabled",
+        "mode",
+        "mode_by_profile",
+        "metadata_path",
+        "required_fields_by_profile",
+        "required_state_category",
+        "allowed_origin_kinds",
+        "allowed_lineage_status_by_profile",
+        "source_event_uid_required_statuses",
+        "required_trust_ref_prefixes",
+        "loop_risk_statuses",
+        "always_reject_loop_risk",
+        "allowed_loop_statuses",
+        "required_lineage_transform_prefixes",
+        "max_freshness_ms_by_profile",
+        "degrade",
+        "quarantine",
+        "use_limits",
+    }
+)
+_PROMOTION_DEGRADE_KEYS = frozenset(
+    {"confidence_reduction_factor", "valid_for_ms_reduction_factor"}
+)
+_PROMOTION_QUARANTINE_KEYS = frozenset({"confidence_cap", "valid_for_ms_cap"})
+_PROMOTION_USE_LIMIT_MODES = frozenset({"warn", "degrade", "quarantine", "reject"})
+_PROMOTION_USE_LIMIT_KEYS = frozenset({"allowed_uses", "prohibited_uses"})
 
 
 def lint_producer_authority_structure(policy):
@@ -1338,6 +1358,75 @@ def lint_producer_authority_structure(policy):
             f"producer_authority.{key}",
             "unknown producer-authority key: a typo here silently disables enforcement",
         )
+
+    global_promotion = authority.get("external_state_promotion")
+    if global_promotion is not None and not isinstance(global_promotion, dict):
+        _issue(
+            "producer_authority.external_state_promotion",
+            "external_state_promotion must be a mapping",
+        )
+    elif isinstance(global_promotion, dict):
+        base = "producer_authority.external_state_promotion"
+        for key in sorted(set(global_promotion) - _GLOBAL_PROMOTION_KEYS):
+            _issue(
+                f"{base}.{key}",
+                "unknown global promotion key: a typo here silently reverts the "
+                "gate to its default while every check stays green",
+            )
+        # A sub-block of the wrong TYPE is the same failure as a typo: the
+        # enforcement reads it with .get() and falls back to its built-in
+        # default, so it must fail the lint rather than be skipped over.
+        for sub, allowed in (
+            ("degrade", _PROMOTION_DEGRADE_KEYS),
+            ("quarantine", _PROMOTION_QUARANTINE_KEYS),
+        ):
+            block = global_promotion.get(sub)
+            if block is None:
+                continue
+            if not isinstance(block, dict):
+                _issue(
+                    f"{base}.{sub}",
+                    f"{sub} must be a mapping: a non-mapping here silently "
+                    "reverts the action to its built-in default",
+                )
+                continue
+            for key in sorted(set(block) - allowed):
+                _issue(
+                    f"{base}.{sub}.{key}",
+                    f"unknown {sub} key: a typo here silently reverts the "
+                    "action to its built-in default",
+                )
+        use_limits = global_promotion.get("use_limits")
+        if use_limits is not None and not isinstance(use_limits, dict):
+            _issue(
+                f"{base}.use_limits",
+                "use_limits must be a mapping: a non-mapping here silently "
+                "drops the allowed/prohibited-use labels from every "
+                "promotion diagnostic",
+            )
+        elif isinstance(use_limits, dict):
+            for mode in sorted(set(use_limits) - _PROMOTION_USE_LIMIT_MODES):
+                _issue(
+                    f"{base}.use_limits.{mode}",
+                    "unknown use_limits mode: a typo here silently drops the "
+                    "allowed/prohibited-use labels from that mode's diagnostics",
+                )
+            for mode in sorted(set(use_limits) & _PROMOTION_USE_LIMIT_MODES):
+                limits = use_limits[mode]
+                if not isinstance(limits, dict):
+                    _issue(
+                        f"{base}.use_limits.{mode}",
+                        "use-limit entry must be a mapping: a non-mapping here "
+                        "silently drops the label from promotion diagnostics",
+                    )
+                    continue
+                for key in sorted(set(limits) - _PROMOTION_USE_LIMIT_KEYS):
+                    _issue(
+                        f"{base}.use_limits.{mode}.{key}",
+                        "unknown use-limit key: a typo here silently drops the "
+                        "label from promotion diagnostics",
+                    )
+
     producers = authority.get("producers")
     if not isinstance(producers, dict):
         _issue("producer_authority.producers", "producers must be a mapping")
@@ -1360,10 +1449,18 @@ def lint_producer_authority_structure(policy):
             _issue(f"{base}.external_state_promotion", "external_state_promotion must be a mapping")
             continue
         for key in sorted(set(promotion) - _PROMOTION_RULE_KEYS):
-            _issue(
-                f"{base}.external_state_promotion.{key}",
-                "unknown promotion-rule key: a typo here silently disables enforcement",
-            )
+            if key in _GLOBAL_PROMOTION_KEYS:
+                _issue(
+                    f"{base}.external_state_promotion.{key}",
+                    "global-only promotion key: enforcement reads this key only "
+                    "from producer_authority.external_state_promotion, so a "
+                    "per-producer override here is a silent no-op",
+                )
+            else:
+                _issue(
+                    f"{base}.external_state_promotion.{key}",
+                    "unknown promotion-rule key: a typo here silently disables enforcement",
+                )
         if not isinstance(promotion.get("required"), bool):
             _issue(
                 f"{base}.external_state_promotion.required",

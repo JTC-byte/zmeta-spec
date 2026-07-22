@@ -161,12 +161,13 @@ release package contamination.
 Private release keys, signing tokens, certificates with private material, CI
 secrets, and credentials must remain outside this repository.
 
-## Relationship To D-003
+## Relationship To The Future-Branch Roadmap
 
-D-003 remains the roadmap for future versioned semantic branches. A signed
-release cannot make future branch candidates valid. Versioned semantic adoption
-still requires schema, policy, adapter/gateway, encoding, conformance, release,
-and audit coverage.
+`spec/future-branch-roadmap.yaml` is the machine-readable roadmap for future
+versioned semantic branches; D-003 was closed once that artifact existed. A
+signed release cannot make future branch candidates valid. Versioned semantic
+adoption still requires schema, policy, adapter/gateway, encoding, conformance,
+release, and audit coverage.
 
 ## Relationship To D-004
 

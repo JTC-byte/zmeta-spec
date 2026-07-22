@@ -4,7 +4,8 @@ The compact wire has no zmeta_version key and enumerated field tables, so a
 lossy encode silently relabels events as locked-v1.0 and destroys fields
 (witnessed live: geo.error_ellipse_m). The honesty rule is refusal over
 reduction: dumps()/verify_representable must reject any event that does not
-round-trip byte-identically, the gateway compact egress must replace the
+round-trip to a value-identical event (exact except for the two declared
+representation normalizations), the gateway compact egress must replace the
 event with an ENCODING_UNSUPPORTED diagnostic instead of reducing it, and
 that diagnostic must itself be compact-representable and schema/semantics
 valid (the GEO_ZERO_FILL_SUSPECTED destroyed-diagnostic lesson).
@@ -381,6 +382,136 @@ class CompactFailClosedTest(unittest.TestCase):
         # Default TASK_ACK selection for commands is unchanged for task codes.
         acked = gateway.build_violation_event("TASK_REJECTED", original=command)
         self.assertEqual(acked["event"]["event_subtype"], "TASK_ACK")
+
+    # --- crash class: codec-internal failures must refuse, never raise raw --
+    # (R1-11 verification pass 2.) The recovery ladder handles exactly
+    # CompactUnrepresentableError; a raw OverflowError / ValueError /
+    # RecursionError escaping the codec on schema-valid input terminated the
+    # gateway process for every producer behind it.
+
+    def _both_cbor_backends(self):
+        """Run a check once per supported CBOR backend.
+
+        Representability must be a property of the MAPPING, not of the local
+        install: zmeta_cbor and cbor2 disagree about out-of-range integers
+        (cbor2 emits a bignum tag that a zmeta_cbor consumer decodes as raw
+        BYTES), so any guarantee asserted here has to hold on both.
+        """
+        yield "zmeta_cbor"
+        original = zmeta_compact.zmeta_cbor
+        if original is None:
+            return
+        zmeta_compact.zmeta_cbor = None
+        try:
+            yield "cbor2"
+        finally:
+            zmeta_compact.zmeta_cbor = original
+
+    def test_oversized_int_refuses_on_every_backend(self):
+        for backend in self._both_cbor_backends():
+            for value in (2**64, -(2**64) - 1, 2**70):
+                with self.subTest(backend=backend, value=value):
+                    event = self._v1_0_state()
+                    event.setdefault("payload", {}).setdefault("extensions", {})[
+                        "vendor"
+                    ] = {"sample_count": value}
+                    with self.assertRaises(
+                        zmeta_compact.CompactUnrepresentableError
+                    ) as ctx:
+                        zmeta_compact.dumps(event)
+                    self.assertIn("CBOR 64-bit range", str(ctx.exception))
+
+    def test_cbor_range_boundary_is_representable_on_every_backend(self):
+        # The refusal must be exactly at the CBOR major-type 0/1 boundary,
+        # not a conservative guess that also rejects honest events.
+        for backend in self._both_cbor_backends():
+            for value in (2**64 - 1, -(2**64), 0, -1):
+                with self.subTest(backend=backend, value=value):
+                    event = self._v1_0_state()
+                    event.setdefault("payload", {}).setdefault("extensions", {})[
+                        "vendor"
+                    ] = {"sample_count": value}
+                    restored = zmeta_compact.loads(zmeta_compact.dumps(event))
+                    self.assertEqual(
+                        restored["payload"]["extensions"]["vendor"]["sample_count"],
+                        value,
+                    )
+
+    def test_nesting_beyond_decode_depth_refuses_instead_of_raising(self):
+        deep = current = {}
+        for _ in range(300):
+            child = {}
+            current["d"] = child
+            current = child
+        event = self._v1_0_state()
+        event.setdefault("payload", {}).setdefault("extensions", {})["vendor"] = deep
+        with self.assertRaises(zmeta_compact.CompactUnrepresentableError):
+            zmeta_compact.dumps(event)
+
+    def test_sub_microsecond_truncation_is_refused(self):
+        # datetime.fromisoformat truncates at microseconds, so BOTH sides of a
+        # parsed-value comparison lose the same digits and cannot see the
+        # loss. The original's resolution must be checked directly.
+        for ts in (
+            "2025-02-01T12:00:00.8760001Z",
+            "2025-02-01T12:00:00.876000000001Z",
+        ):
+            with self.subTest(ts=ts):
+                event = self._v1_0_state(ts=ts)
+                with self.assertRaises(zmeta_compact.CompactUnrepresentableError):
+                    zmeta_compact.verify_representable(event)
+
+    def test_trailing_zero_millisecond_timestamps_stay_representable(self):
+        # Guard the other direction: '.876000Z' is millisecond resolution
+        # written long-hand, not sub-millisecond precision.
+        for ts in ("2025-02-01T12:00:00.876000Z", "2025-02-01T12:00:00.8760Z"):
+            with self.subTest(ts=ts):
+                zmeta_compact.verify_representable(self._v1_0_state(ts=ts))
+
+    def test_decode_refuses_out_of_range_epoch_ms_instead_of_crashing(self):
+        # loads() is public API on the INGRESS side, outside the encode-path
+        # guard: a hostile epoch-ms value must fail closed, not crash the
+        # consumer with a raw OverflowError.
+        for wire_ms in (2**63, -(2**63), 10**18):
+            with self.subTest(wire_ms=wire_ms):
+                with self.assertRaises(zmeta_compact.CompactUnrepresentableError):
+                    zmeta_compact._format_ts(wire_ms)
+
+    # --- epoch-ms arithmetic must be exact, never float-mediated -----------
+    # int(dt.timestamp() * 1000) was off by one for a date-banded fraction of
+    # schema-valid millisecond timestamps (6% in the sweep below), so the
+    # round-trip check refused honest events from conforming producers.
+
+    def test_epoch_ms_round_trip_is_exact_across_sweep(self):
+        bands = (-86400000, 1076707800000, 1753142400000, 4102444800000)
+        for base in bands:
+            for ms in range(base, base + 500):
+                if zmeta_compact._parse_ts(zmeta_compact._format_ts(ms)) != ms:
+                    self.fail(f"epoch-ms round trip corrupted {ms}")
+
+    def test_float_banded_millisecond_timestamp_is_representable(self):
+        # 1076707800001 ms: a concrete value the float path parsed one ms
+        # early, refusing the schema-valid event that carried it.
+        event = self._v1_0_state(ts="2004-02-13T21:30:00.001Z")
+        self.assertEqual(list(self.validator.iter_errors(event)), [])
+        restored = zmeta_compact.loads(zmeta_compact.dumps(event))
+        self.assertEqual(
+            zmeta_compact._instant(restored["event"]["ts"]),
+            zmeta_compact._instant("2004-02-13T21:30:00.001Z"),
+        )
+
+    def test_out_of_platform_epoch_range_timestamps_round_trip(self):
+        # datetime.timestamp()/fromtimestamp() raise OSError on Windows for
+        # instants outside the platform epoch range; exact timedelta
+        # arithmetic makes these honest round-trips instead of crashes.
+        for ts in ("1969-12-31T23:59:59.500Z", "9999-12-31T23:59:59.999Z"):
+            with self.subTest(ts=ts):
+                event = self._v1_0_state(ts=ts)
+                restored = zmeta_compact.loads(zmeta_compact.dumps(event))
+                self.assertEqual(
+                    zmeta_compact._instant(restored["event"]["ts"]),
+                    zmeta_compact._instant(ts),
+                )
 
     def test_convert_encoding_cli_refuses_v1_1_to_compact(self):
         tmp = ROOT / "pytest-work" / f"compact-refuse-{uuid.uuid4().hex}"

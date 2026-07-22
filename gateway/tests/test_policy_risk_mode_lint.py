@@ -152,6 +152,103 @@ class ProducerAuthorityStructureLintTest(unittest.TestCase):
 
         self.assertEqual([], self.lint(policy))
 
+    # --- global promotion block coverage (R1-11 verification pass 2) -------
+    # Most enforcement keys are read only from the GLOBAL
+    # external_state_promotion block, which the lint did not cover: a typo
+    # there silently reverted the gate to its default while both lints
+    # stayed green.
+
+    def test_typoed_global_promotion_key_fails_lint(self):
+        policy = copy.deepcopy(self.policy)
+        promotion = policy["producer_authority"]["external_state_promotion"]
+        promotion["always_reject_loop_rsk"] = promotion.pop("always_reject_loop_risk")
+
+        issues = self.lint(policy)
+
+        self.assertTrue(
+            any("always_reject_loop_rsk" in issue["path"] for issue in issues)
+        )
+
+    def test_typoed_degrade_and_quarantine_keys_fail_lint(self):
+        policy = copy.deepcopy(self.policy)
+        promotion = policy["producer_authority"]["external_state_promotion"]
+        promotion["degrade"]["confidence_reducton_factor"] = promotion["degrade"].pop(
+            "confidence_reduction_factor"
+        )
+        promotion["quarantine"]["confidance_cap"] = promotion["quarantine"].pop(
+            "confidence_cap"
+        )
+
+        issues = self.lint(policy)
+
+        paths = [issue["path"] for issue in issues]
+        self.assertTrue(any("confidence_reducton_factor" in path for path in paths))
+        self.assertTrue(any("confidance_cap" in path for path in paths))
+
+    def test_typoed_use_limits_mode_fails_lint(self):
+        policy = copy.deepcopy(self.policy)
+        use_limits = policy["producer_authority"]["external_state_promotion"][
+            "use_limits"
+        ]
+        use_limits["quarentine"] = use_limits.pop("quarantine")
+
+        issues = self.lint(policy)
+
+        self.assertTrue(any("quarentine" in issue["path"] for issue in issues))
+
+    def test_mistyped_promotion_subblocks_fail_lint(self):
+        # A sub-block of the wrong TYPE is the same failure mode as a typo:
+        # enforcement reads it with .get() and silently falls back to its
+        # built-in default, so skipping non-mappings would reproduce the very
+        # R11-05 blind spot this lint exists to close.
+        cases = {
+            "degrade": "oops",
+            "quarantine": [1],
+            "use_limits": "x",
+        }
+        for key, bad in cases.items():
+            with self.subTest(key=key):
+                policy = copy.deepcopy(self.policy)
+                policy["producer_authority"]["external_state_promotion"][key] = bad
+                issues = self.lint(policy)
+                self.assertTrue(
+                    any(issue["path"].endswith(f".{key}") for issue in issues),
+                    f"non-mapping {key} passed the lint",
+                )
+
+        policy = copy.deepcopy(self.policy)
+        policy["producer_authority"]["external_state_promotion"]["use_limits"][
+            "warn"
+        ] = ["a"]
+        issues = self.lint(policy)
+        self.assertTrue(any(issue["path"].endswith(".use_limits.warn") for issue in issues))
+
+    def test_absent_optional_promotion_subblock_stays_clean(self):
+        # Absence is legal — only a present-but-malformed block is a defect.
+        policy = copy.deepcopy(self.policy)
+        policy["producer_authority"]["external_state_promotion"].pop("degrade")
+        self.assertEqual([], self.lint(policy))
+
+    def test_global_only_key_in_producer_rule_flagged_as_noop(self):
+        # An operator writing always_reject_loop_risk: false on a producer
+        # believes they disabled the loop guard for that producer; enforcement
+        # reads the key only globally, so the override is a silent no-op the
+        # lint previously blessed.
+        policy = copy.deepcopy(self.policy)
+        policy["producer_authority"]["producers"]["sapient-ingress"][
+            "external_state_promotion"
+        ]["always_reject_loop_risk"] = False
+
+        issues = self.lint(policy)
+
+        matching = [
+            issue
+            for issue in issues
+            if issue["path"].endswith(".always_reject_loop_risk")
+        ]
+        self.assertTrue(matching)
+        self.assertIn("no-op", matching[0]["message"])
+
 
 if __name__ == "__main__":
     unittest.main()

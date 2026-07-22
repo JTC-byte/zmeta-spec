@@ -1,6 +1,6 @@
 # ZMeta Refinement Handoff Notes
 
-Status date: 2026-07-21
+Status date: 2026-07-22
 
 Current release: **v1.1.16** (P1-08, 2026-07-21) — the
 edge-comms-bladerf external real-capture corpus cut (PR #7 merged with
@@ -11,9 +11,17 @@ wire-validated against official Dstl tooling) and **v1.1.14**
 checksums-only; signing remains the maintainer's external process.
 Details in the worklog P1-08/P1-07/R1-10 entries and the release notes
 per version. Current main additionally carries the R1-11 full-stack
-audit findings record and its fix-pass waves (worklog R1-11 entries);
-the audit disposition and the queued v1.1.0 adoption-decision session
-are the next substantive work items.
+audit findings record, its seven fix-pass waves, and **both post-fix
+verification passes** (worklog R1-11 entries; findings record
+`docs/r1_11_full_stack_audit.md`). The R1-11 cycle is complete: the
+maintainer release-cut decision (v1.1.17 recommended — the cycle
+includes a MAJOR honesty fix, two MAJOR crash classes, and two Class B
+vocabulary batches) and the queued v1.1.0 adoption-decision session are
+the next substantive work items. Note that current main diverges from
+the published v1.1.16 SHA256SUMS manifest/package pins because the
+fix-pass and verification-pass commits regenerate the manifest under
+the v1.1.16 identity; published checksums stay immutable and the next
+release cut resolves the divergence.
 
 This note is the quick resume point for the current ZMeta refinement effort. Recent session records and the deferred issue register are in `docs/zmeta_refinement_worklog.md`; completed task sections S0-01..R1-05 are archived verbatim in `docs/zmeta_refinement_worklog_archive.md`.
 

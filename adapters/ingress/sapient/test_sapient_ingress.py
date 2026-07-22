@@ -1021,6 +1021,125 @@ def test_nan_confidence_refuses_promotion_and_never_emits():
         _assert_valid(emitted)
 
 
+def test_non_finite_vendor_values_dropped_on_every_translation_path():
+    # R11-04 applied _drop_non_finite to the detection path only; NaN riding
+    # a verbatim vendor block through status/alert/task_ack/error produced
+    # events with no RFC-8259 wire form (R1-11 verification pass 2). Every
+    # emitted event must serialize with allow_nan=False.
+    nan = float("nan")
+    status_events = translate(
+        _status_msg(
+            info=None,
+            coverage={"snr_db": nan, "range_m": 1200.0},
+            status=[
+                {
+                    "status_level": "STATUS_LEVEL_INFORMATION_STATUS",
+                    "status_type": "STATUS_TYPE_WEATHER",
+                    "status_value": "Raining",
+                    "reading": nan,
+                }
+            ],
+        ),
+        SCHEMA_ID,
+    )
+    assert status_events
+    alert_events = translate(
+        _alert_msg(ranking=nan, additional_information={"score": nan, "kept": 1.0}),
+        SCHEMA_ID,
+        registration=_store(_rf_registration_msg()),
+        based_on=[_PARENT_ID],
+    )
+    assert alert_events
+    ack_events = translate(
+        _task_ack_msg(associated_file=[{"url": "file://x", "size": nan}]),
+        SCHEMA_ID,
+        task_index={"01J00000000000000000000006": str(uuid7())},
+    )
+    assert ack_events
+    error_events = translate(
+        {
+            "timestamp": TS,
+            "node_id": NODE,
+            "error": {"packet": {"weird": nan}, "error_message": ["bad"]},
+        },
+        SCHEMA_ID,
+    )
+    assert error_events
+
+    # The PLATFORM_STATUS event passes the raw `power` block through
+    # verbatim — a sixth NaN sink the "five ingress paths" framing missed.
+    platform_events = translate(
+        _status_msg(
+            power={
+                "level": 87,
+                "source": "POWERSOURCE_INTERNAL_BATTERY",
+                "status": "POWERSTATUS_OK",
+                "voltage": nan,
+            }
+        ),
+        SCHEMA_ID,
+    )
+    platform = [
+        e for e in platform_events
+        if e["payload"].get("system_type") == "PLATFORM_STATUS"
+    ]
+    assert platform, "PLATFORM_STATUS event must still be emitted"
+    assert "voltage" not in platform[0]["payload"]["extensions"]["vendor.sapient"]["power"]
+
+    for events in (
+        status_events,
+        alert_events,
+        ack_events,
+        error_events,
+        platform_events,
+    ):
+        for emitted in events:
+            json.dumps(emitted, allow_nan=False)
+
+    # The dropped key is gone, not zeroed: no fabricated measurement.
+    vendor = alert_events[0]["payload"]["extensions"]["vendor.sapient"]
+    assert "ranking" not in vendor
+    assert vendor["additional_information"] == {"kept": 1.0}
+
+
+def test_every_vendor_block_is_dropped_at_point_of_use():
+    # The guard must sit at each point of use, not once earlier in the
+    # function: the detection path used to drop first and then assign
+    # vendor_ext["colour"], so any later mutation could silently bypass it.
+    # Every VENDOR_EXTENSION_KEY assignment must wrap in _drop_non_finite.
+    import re
+    from pathlib import Path
+
+    source = Path(
+        Path(__file__).resolve().parent / "sapient_to_zmeta.py"
+    ).read_text(encoding="utf-8")
+    uses = re.findall(r"VENDOR_EXTENSION_KEY:\s*([^,\n}]+)", source)
+    assert len(uses) >= 6, "vendor-extension assignment sites vanished"
+    unguarded = [u.strip() for u in uses if "_drop_non_finite(" not in u]
+    assert not unguarded, f"vendor block used without the guard: {unguarded}"
+
+
+def test_non_finite_in_positional_array_drops_the_whole_array():
+    # Position carries meaning in a bare numeric array, so removing one
+    # element would silently re-index the rest and the consumer could never
+    # tell [1.0, NaN, 3.0] from a genuine two-element array. An absent key is
+    # honestly absent; a silently shortened array is laundering.
+    from adapters.ingress.sapient import sapient_to_zmeta as s2z
+
+    nan = float("nan")
+    assert s2z._drop_non_finite({"coords": [1.0, nan, 3.0], "keep": 2.0}) == {
+        "keep": 2.0
+    }
+    # A list of objects has no positional coupling: every element survives,
+    # cleaned in place, so no index moves.
+    assert s2z._drop_non_finite({"sig": [{"a": nan, "b": 1.0}, {"c": 2.0}]}) == {
+        "sig": [{"b": 1.0}, {"c": 2.0}]
+    }
+    # Clean structures are returned untouched.
+    clean = {"a": [1.0, 2.0], "b": {"c": 3.0}}
+    assert s2z._drop_non_finite(clean) == clean
+
+
 def test_promotion_kwarg_reaches_promotion_path_without_registration():
     # A DMM feed the caller vouches for (promotion kwarg) promotes even
     # when its Registration was never captured.

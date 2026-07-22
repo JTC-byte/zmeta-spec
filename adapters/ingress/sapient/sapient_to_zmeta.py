@@ -121,6 +121,9 @@ def _is_number(value):
     )
 
 
+_DROP_CONTAINER = object()
+
+
 def _drop_non_finite(value):
     """Strip non-finite floats from a native pass-through structure.
 
@@ -128,19 +131,42 @@ def _drop_non_finite(value):
     _is_number instead. Dropping the key is the honest shape: a NaN/inf
     carries no measurement information, and keeping it would make the
     whole event unserializable to strict RFC-8259 JSON.
+
+    A bare non-finite element inside a LIST drops the whole list instead,
+    because position carries meaning in a numeric array: removing one
+    element silently re-indexes the rest, so [1.0, NaN, 3.0] would arrive
+    as a clean two-element array and the consumer could never tell. An
+    absent key is honestly absent; a silently shortened array is not.
+    Lists of objects are unaffected — every element is preserved and
+    cleaned in place, so no index moves.
     """
+    cleaned = _drop_non_finite_inner(value)
+    if cleaned is _DROP_CONTAINER:
+        return [] if isinstance(value, list) else {}
+    return cleaned
+
+
+def _drop_non_finite_inner(value):
     if isinstance(value, dict):
-        return {
-            key: _drop_non_finite(item)
-            for key, item in value.items()
-            if not (isinstance(item, float) and not math.isfinite(item))
-        }
+        out = {}
+        for key, item in value.items():
+            if isinstance(item, float) and not math.isfinite(item):
+                continue
+            child = _drop_non_finite_inner(item)
+            if child is _DROP_CONTAINER:
+                continue
+            out[key] = child
+        return out
     if isinstance(value, list):
-        return [
-            _drop_non_finite(item)
-            for item in value
-            if not (isinstance(item, float) and not math.isfinite(item))
-        ]
+        out = []
+        for item in value:
+            if isinstance(item, float) and not math.isfinite(item):
+                return _DROP_CONTAINER
+            child = _drop_non_finite_inner(item)
+            if child is _DROP_CONTAINER:
+                return _DROP_CONTAINER
+            out.append(child)
+        return out
     return value
 
 
@@ -491,7 +517,7 @@ def _inference_event(
         "model": dict(model),
         "based_on": list(parents),
         "timing_quality": dict(timing),
-        "extensions": {VENDOR_EXTENSION_KEY: vendor_ext},
+        "extensions": {VENDOR_EXTENSION_KEY: _drop_non_finite(vendor_ext)},
     }
     event["confidence"] = confidence
     event["lineage"] = {
@@ -580,7 +606,8 @@ def _translate_detection(
     # proto3 JSON permits "NaN"/"Infinity" float values; a bare NaN in the
     # verbatim native block poisons RFC-8259 serialization of the whole
     # event downstream. A non-finite number is a non-claim — omit the key.
-    vendor_ext = _drop_non_finite(vendor_ext)
+    # Applied at each point of use below (not once here), so a later
+    # mutation of vendor_ext cannot silently bypass the guard.
 
     events = []
     observation_id = None
@@ -610,7 +637,7 @@ def _translate_detection(
             "features": features,
             "quality": quality,
             "timing_quality": dict(timing),
-            "extensions": {VENDOR_EXTENSION_KEY: vendor_ext},
+            "extensions": {VENDOR_EXTENSION_KEY: _drop_non_finite(vendor_ext)},
         }
         if geo is not None:
             payload["geo"] = geo
@@ -797,7 +824,7 @@ def _promote_fusion_detection(
         "timing_quality": _timing(timing_quality, ts, registration, node_id, active_mode),
         "extensions": {
             "external_promotion": promotion_meta,
-            VENDOR_EXTENSION_KEY: vendor_ext,
+            VENDOR_EXTENSION_KEY: _drop_non_finite(vendor_ext),
         },
     }
     if best_class is not None:
@@ -870,7 +897,7 @@ def _translate_status(body, node_id, ts, *, registration, active_mode):
         "system_type": "SENSOR_STATUS",
         "state": state,
         "metrics": metrics,
-        "extensions": {VENDOR_EXTENSION_KEY: vendor_ext},
+        "extensions": {VENDOR_EXTENSION_KEY: _drop_non_finite(vendor_ext)},
     }
     events = [sensor_event]
 
@@ -895,7 +922,9 @@ def _translate_status(body, node_id, ts, *, registration, active_mode):
                 "system_type": "PLATFORM_STATUS",
                 "state": platform_state,
                 "metrics": platform_metrics,
-                "extensions": {VENDOR_EXTENSION_KEY: {"power": power}},
+                "extensions": {
+                    VENDOR_EXTENSION_KEY: _drop_non_finite({"power": power})
+                },
             }
             events.append(platform_event)
     return events
@@ -1008,7 +1037,7 @@ def _translate_task_ack(body, node_id, ts, *, task_index, based_on):
         "system_type": "TASK_ACK",
         "state": state,
         "metrics": metrics,
-        "extensions": {VENDOR_EXTENSION_KEY: vendor_ext},
+        "extensions": {VENDOR_EXTENSION_KEY: _drop_non_finite(vendor_ext)},
     }
     if based_on:
         event["lineage"] = _translate_lineage(based_on)
@@ -1041,7 +1070,9 @@ def _translate_error(body, node_id, ts):
         "metrics": metrics,
     }
     if vendor_ext:
-        event["payload"]["extensions"] = {VENDOR_EXTENSION_KEY: vendor_ext}
+        event["payload"]["extensions"] = {
+            VENDOR_EXTENSION_KEY: _drop_non_finite(vendor_ext)
+        }
     return [event]
 
 

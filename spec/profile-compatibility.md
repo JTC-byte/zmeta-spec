@@ -34,11 +34,18 @@ wire encodings, and reference producer allowlists. The authoritative rules live 
 | `compact` | Profile L reference encoding | CBOR integer-key mapping for constrained links. |
 | `proto` | Experimental encoding | Typed envelope projection for services, queues, and gRPC-style integration. |
 
-All encodings must decode to the same ZMeta JSON event and pass the same schema
-and policy validation. Encoding choice does not change event semantics. Where
-an encoding cannot represent an event losslessly (the compact mapping encodes
-locked-v1.0 events only), the encoder MUST refuse rather than reduce — see
-`spec/compact-binary-mapping.md` Scope.
+All encodings must decode to a value-identical ZMeta JSON event and pass the
+same schema and policy validation. Encoding choice does not change event
+semantics. "Value-identical" is not "byte-identical": an encoding may declare
+representation normalizations that change how a value is written without
+changing what it means — the compact mapping declares exactly two (UUID hex
+case, since UUIDs travel as 16 raw bytes and RFC 4122 is case-insensitive, and
+timestamp formatting at its declared millisecond resolution). Those are
+enumerated in `spec/compact-binary-mapping.md` Scope; an encoding MUST NOT
+normalize anything it has not declared, and refusing a declared normalization
+is itself a defect. Where an encoding cannot represent an event losslessly
+(the compact mapping encodes locked-v1.0 events only), the encoder MUST refuse
+rather than reduce — same Scope section.
 
 ## Projection Preservation
 

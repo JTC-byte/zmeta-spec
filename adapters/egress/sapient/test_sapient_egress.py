@@ -541,6 +541,19 @@ def test_state_malformed_ts_refuses_not_raises():
     assert _detection(event) is None
 
 
+def test_non_string_ts_refuses_not_raises():
+    # R11-20 completion (R1-11 verification pass 2): a non-string ts hit
+    # .endswith and escaped as AttributeError past the (ValueError,
+    # TypeError) guard, instead of taking the documented None refusal.
+    for bad_ts in (1752969600000, None, {"seconds": 1752969600}):
+        state = _state_event()
+        state["event"]["ts"] = bad_ts
+        assert _detection(state) is None
+        command = _command_event()
+        command["event"]["ts"] = bad_ts
+        assert _task(command) is None
+
+
 def test_state_non_numeric_heading_refuses_not_raises():
     event = _state_event(heading_deg="90", speed_mps=12.0)
     assert _detection(event) is None

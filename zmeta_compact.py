@@ -12,7 +12,17 @@ decode's "1.0" stamp is honest for every packet this encoder can produce.
 normalizations the mapping itself declares (spec/compact-binary-mapping.md):
 UUID hex case (UUIDs travel as 16 raw bytes; RFC 4122 is case-insensitive)
 and timestamp formatting at the declared millisecond resolution. A
-truncated sub-millisecond instant is a different instant and is refused.
+truncated sub-millisecond instant is a different instant and is refused —
+including below microsecond resolution, where a parsed-value comparison
+cannot see the loss because both sides truncate identically.
+
+Representability is a property of the MAPPING, not of the local install.
+Limits the mapping imposes (notably the CBOR 64-bit integer range) are
+enforced here rather than delegated to whichever CBOR backend is present,
+because the supported backends disagree: an out-of-range integer that
+zmeta_cbor refuses, cbor2 silently encodes as a bignum tag that a
+zmeta_cbor consumer then decodes as raw bytes. Two conforming nodes must
+never disagree about what an event means.
 """
 
 from __future__ import annotations
@@ -20,7 +30,7 @@ from __future__ import annotations
 import math
 import re
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, Tuple
 
 try:
@@ -337,14 +347,33 @@ def _instant(value: Any):
         return None
 
 
+def _is_millisecond_resolution(value: str) -> bool:
+    """True when a UTC-Z timestamp carries no precision finer than 1 ms."""
+    match = _UTC_TS_RE.match(value)
+    if match is None:
+        return False
+    fraction = (match.group(1) or ".")[1:]
+    return fraction[3:].strip("0") == ""
+
+
 def _same_instant(left: str, right: str) -> bool:
     """True when both timestamps denote exactly the same instant.
 
     Sub-millisecond precision is genuinely lost by the epoch-ms mapping, so
     a truncated timestamp denotes a DIFFERENT instant and is not equivalent.
+
+    The resolution of the ORIGINAL is checked directly rather than inferred
+    from the parsed values: datetime.fromisoformat truncates at microseconds,
+    so both sides of a comparison lose sub-microsecond digits identically and
+    a parsed-value check cannot see that loss. Without this, a
+    100-nanosecond instant (".8760001Z") compared equal to its millisecond
+    round-trip and the codec silently dropped precision while claiming to
+    refuse truncation.
     """
     parsed = _instant(left)
-    return parsed is not None and parsed == _instant(right)
+    if parsed is None or parsed != _instant(right):
+        return False
+    return _is_millisecond_resolution(left)
 
 
 def _semantic_difference(original: Any, restored: Any, path: str = "$"):
@@ -391,6 +420,43 @@ def _semantic_difference(original: Any, restored: Any, path: str = "$"):
     return f"{path} ({original!r} != {restored!r})"
 
 
+# CBOR major types 0 and 1 carry integers in [-(2**64), 2**64 - 1]. Anything
+# outside needs a bignum tag, which this mapping does not define — so an
+# out-of-range integer is not representable in compact, full stop.
+#
+# This must be enforced by the CODEC, not left to the backend, because the
+# two supported backends disagree: zmeta_cbor raises OverflowError (correct),
+# while cbor2 silently emits tag 2/3 — and a zmeta_cbor consumer decodes that
+# tag as raw BYTES, not an integer. Left to the backend, the same event would
+# mean different things on two conforming ZMeta nodes depending on which CBOR
+# library each happened to install, which is precisely the interoperability
+# failure this format exists to prevent. Representability is a property of the
+# mapping, never of the local install.
+_CBOR_INT_MIN = -(2**64)
+_CBOR_INT_MAX = 2**64 - 1
+
+
+def _find_unencodable_int(value: Any, path: str = "$"):
+    """First integer outside the CBOR 64-bit range, or None."""
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, int):
+        if not _CBOR_INT_MIN <= value <= _CBOR_INT_MAX:
+            return f"{path} (integer {value} is outside the CBOR 64-bit range)"
+        return None
+    if isinstance(value, dict):
+        for key, item in value.items():
+            found = _find_unencodable_int(item, f"{path}.{key}")
+            if found is not None:
+                return found
+    elif isinstance(value, list):
+        for index, item in enumerate(value):
+            found = _find_unencodable_int(item, f"{path}[{index}]")
+            if found is not None:
+                return found
+    return None
+
+
 def _encode_compact_bytes(compact: Dict[int, Any]) -> bytes:
     _require_cbor()
     if zmeta_cbor is not None:
@@ -406,6 +472,21 @@ def _verified_compact_bytes(event: Dict[str, Any]) -> bytes:
     preserves object identity, and Python's container equality
     short-circuits on identity, so values that are not equal to
     themselves (NaN) would otherwise pass verification and reach the wire.
+
+    Any event the codec cannot serialize honestly is an unrepresentable
+    event, so the codec's own encode/decode failures are surfaced as
+    CompactUnrepresentableError (the single exception egress callers and
+    the gateway ladder handle) rather than escaping as a raw
+    OverflowError / ValueError / OSError / RecursionError / TypeError
+    and, in the gateway, terminating the receive loop. Examples that reach
+    here on SCHEMA-VALID input: extension nesting beyond the CBOR decode
+    depth limit (a conforming compact CONSUMER could not decode it
+    either) and an epoch-ms value outside the representable datetime
+    range.
+
+    Mapping-level limits are checked HERE rather than left to whichever
+    CBOR backend is installed, so an event is representable or not by the
+    same rule everywhere (see _find_unencodable_int).
     """
     version = event.get("zmeta_version") if isinstance(event, dict) else None
     if version != "1.0":
@@ -413,8 +494,23 @@ def _verified_compact_bytes(event: Dict[str, Any]) -> bytes:
             f"compact encodes zmeta_version '1.0' events only, got {version!r}; "
             "use a version-preserving encoding (json/cbor/proto)"
         )
-    payload = _encode_compact_bytes(encode_event(event))
-    restored = decode_event(_decode_cbor(payload))
+    oversized = _find_unencodable_int(event)
+    if oversized is not None:
+        raise CompactUnrepresentableError(
+            f"compact cannot encode {oversized}; CBOR major types 0/1 carry "
+            "only [-(2**64), 2**64-1] and this mapping defines no bignum tag; "
+            "use a version-preserving encoding (json/cbor/proto)"
+        )
+    try:
+        payload = _encode_compact_bytes(encode_event(event))
+        restored = decode_event(_decode_cbor(payload))
+    except CompactUnrepresentableError:
+        raise
+    except (OverflowError, ValueError, OSError, RecursionError, TypeError) as exc:
+        raise CompactUnrepresentableError(
+            f"compact cannot serialize this event ({type(exc).__name__}: {exc}); "
+            "use a version-preserving encoding (json/cbor/proto)"
+        ) from exc
     difference = _semantic_difference(event, restored)
     if difference is not None:
         raise CompactUnrepresentableError(
@@ -971,6 +1067,16 @@ def _uuid_from_bytes(value: Any) -> Any:
     return value
 
 
+# Exact epoch-ms conversion. datetime.timestamp() and fromtimestamp() route
+# through float seconds, and most millisecond instants have no exact float
+# representation - int(dt.timestamp() * 1000) lands one ms off for a
+# date-banded fraction of schema-valid timestamps, so the round-trip check
+# refused honest events (and on Windows, out-of-range instants raised OSError
+# instead of refusing). timedelta arithmetic keeps the whole path in integers.
+_EPOCH = datetime(1970, 1, 1, tzinfo=timezone.utc)
+_ONE_MS = timedelta(milliseconds=1)
+
+
 def _parse_ts(value: Any) -> Any:
     if isinstance(value, (int, float)):
         return int(value)
@@ -984,12 +1090,23 @@ def _parse_ts(value: Any) -> Any:
             return value
         if dt.tzinfo is None:
             dt = dt.replace(tzinfo=timezone.utc)
-        return int(dt.timestamp() * 1000)
+        return (dt - _EPOCH) // _ONE_MS
     return value
 
 
 def _format_ts(value: Any) -> Any:
     if isinstance(value, (int, float)):
-        dt = datetime.fromtimestamp(value / 1000.0, tz=timezone.utc)
+        # Reached from the PUBLIC decode path (loads/decode_event) on a
+        # sender-controlled epoch-ms value, which is outside the encode-side
+        # try/except. A wire value far enough out of range makes timedelta
+        # raise, so refuse it here: decode fails closed like every other
+        # invalid compact input, instead of crashing the consumer.
+        try:
+            dt = _EPOCH + timedelta(milliseconds=value)
+        except (OverflowError, OSError, ValueError) as exc:
+            raise CompactUnrepresentableError(
+                f"compact epoch-ms value {value!r} is outside the representable "
+                "date range; refusing to decode"
+            ) from exc
         return dt.isoformat().replace("+00:00", "Z")
     return value

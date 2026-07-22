@@ -1,7 +1,7 @@
 # ZMeta Over MQTT - Advisory Transport Binding Guidance
 
 Status: advisory transport-binding guidance (Docs/advisory change class).
-Current release context: ZMeta v1.1.11.
+Current release context: ZMeta v1.1.16.
 
 This document is **non-normative**. It defines no new event vocabulary, changes
 no schema, no validation rule, no policy default, and no version dispatch

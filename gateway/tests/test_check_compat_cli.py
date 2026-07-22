@@ -114,6 +114,21 @@ def test_check_compat_warns_on_explicit_unknown_unsynced_timing():
         _cleanup_workdir(tmp_path)
 
 
+def _current_release_target() -> str:
+    """The manifest's release_id, so this test cannot pin a stale version.
+
+    R1-11 verification pass 2: the target was hardcoded to v1.1.14 while the
+    manifest read v1.1.16, so a test named "accepts current release target"
+    quietly stopped exercising the current release.
+    """
+    import yaml
+
+    manifest = yaml.safe_load(
+        (ROOT / "release" / "zmeta-release-manifest.yaml").read_text(encoding="utf-8")
+    )
+    return str(manifest["release_id"]).replace("zmeta-", "")
+
+
 def test_check_compat_accepts_current_release_target():
     tmp_path = _workdir()
     try:
@@ -121,7 +136,7 @@ def test_check_compat_accepts_current_release_target():
         path = tmp_path / "event.json"
         path.write_text(json.dumps(event), encoding="utf-8")
 
-        result = _run_check(path, "--target", "v1.1.14")
+        result = _run_check(path, "--target", _current_release_target())
 
         assert result.returncode == 0
         assert "issues=0" in result.stdout

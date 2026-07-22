@@ -97,6 +97,56 @@ def test_installation_guide_baseline_matches_manifest():
     )
 
 
+# Every doc carrying the 'Current release context' header, not just the
+# overview. R1-11 verification pass 2: only the overview was machine-pinned,
+# so three siblings with the identical header sat five releases stale
+# (v1.1.11 at a v1.1.16 baseline). A guard that covers one member of a family
+# does not protect the family.
+RELEASE_CONTEXT_DOCS = (
+    "docs/zmeta_professional_overview.md",
+    "docs/zmeta_correlation_pattern.md",
+    "docs/zmeta_mqtt_binding_guidance.md",
+    "docs/zmeta_vocabulary_crosswalk.md",
+)
+
+
+def test_every_release_context_line_matches_manifest():
+    version = manifest_release_version()
+    stale = [
+        path
+        for path in RELEASE_CONTEXT_DOCS
+        if not overview_has_release_context(_read(path), version)
+    ]
+    assert stale == [], (
+        f"release-context lines do not name {version} in {stale}; "
+        f"expected 'Current release context: ZMeta {version}.' in each"
+    )
+
+
+def _carries_release_context_header(path: Path) -> bool:
+    """True when a doc opens with the pinned release-context header.
+
+    Header position, not mere mention: audit records and worklogs discuss the
+    pattern in prose and are not themselves carriers.
+    """
+    head = path.read_text(encoding="utf-8").splitlines()[:10]
+    return any(line.startswith("Current release context: ZMeta") for line in head)
+
+
+def test_release_context_doc_list_is_complete():
+    # The list above is only protective if it names every doc that carries the
+    # header — a new doc with the same line must not silently escape the pin.
+    carriers = sorted(
+        path.relative_to(ROOT).as_posix()
+        for path in ROOT.glob("docs/*.md")
+        if _carries_release_context_header(path)
+    )
+    assert carriers == sorted(RELEASE_CONTEXT_DOCS), (
+        "docs carrying a 'Current release context' line have drifted from the "
+        f"pinned list; found {carriers}, pinned {sorted(RELEASE_CONTEXT_DOCS)}"
+    )
+
+
 def test_professional_overview_release_context_matches_manifest():
     version = manifest_release_version()
     assert overview_has_release_context(_read("docs/zmeta_professional_overview.md"), version), (
@@ -181,6 +231,86 @@ def test_overview_body_carries_no_stale_currently_claims():
         f"docs/zmeta_professional_overview.md body carries present-tense version "
         f"claims {stale_claims}; keep body guidance version-agnostic (the header "
         f"release-context line is the pinned current-version statement)"
+    )
+
+
+# The zmeta_version identifiers are semantic-branch names, not release pins.
+# v1.1.0 is unfortunately BOTH a published release tag and the experimental
+# schema branch, so it is excluded here — otherwise every legitimate mention
+# of the experimental branch would trip the guard.
+_SEMANTIC_BRANCH_LITERALS = {"v1.1.0"}
+
+# Guard against matching a prefix of a longer version (v1.1.1 inside v1.1.16)
+# WITHOUT losing a version that ends a sentence ("...currently v1.1.9.") — the
+# exact shape of the R11-11 regression this check exists to catch. So: reject
+# only a following digit, or a dot that is itself followed by a digit.
+_NOT_LONGER_VERSION = r"(?!\.?\d)"
+
+
+def superseded_release_versions(current: str) -> list[str]:
+    """Published release versions other than the current one."""
+    published = {
+        match.group(1)
+        for path in (ROOT / "release").glob("RELEASE_NOTES_v*.md")
+        if (match := re.search(r"RELEASE_NOTES_(v[\d.]+)\.md", path.name))
+    }
+    return sorted(published - {current} - _SEMANTIC_BRANCH_LITERALS)
+
+
+def test_superseded_release_matcher_is_phrasing_independent():
+    # The guard below is only as good as this matcher, and the first cut of
+    # it silently failed on a version ending a sentence ('...v1.1.9.') - the
+    # exact regression shape it was written to catch. Pin both directions.
+    version = manifest_release_version()
+    superseded = superseded_release_versions(version)
+    assert superseded, "no superseded releases found; matcher would be vacuous"
+
+    def names_superseded(text: str) -> bool:
+        return any(
+            re.search(re.escape(item) + _NOT_LONGER_VERSION, text)
+            for item in superseded
+        )
+
+    must_catch = [
+        "Pin to a release, currently v1.1.9.",
+        "Pin to a release — as of today, v1.1.9.",
+        "Pin to release v1.1.14 for production.",
+        "We are on v1.1.15 at time of writing.",
+    ]
+    for text in must_catch:
+        assert names_superseded(text), f"stale claim slipped through: {text!r}"
+
+    must_not_catch = [
+        # zmeta_version semantic branches, not release pins
+        "A v1.1.0 event validates on the experimental branch.",
+        "validated as v1.0.",
+        "schema/zmeta-event-1.1.0.schema.json",
+        # the current release, in any phrasing
+        f"Current release context: ZMeta {version}.",
+        f"ZMeta {version} is current",
+    ]
+    for text in must_not_catch:
+        assert not names_superseded(text), f"false positive on: {text!r}"
+
+
+def test_overview_body_names_no_superseded_release():
+    # R1-11 verification pass 2: the guard above matches one exact phrasing
+    # ('currently vX.Y.Z'), so a reworded but equally stale claim - 'as of
+    # today, v1.1.9', 'pin to release v1.1.9' - passed it clean. This check
+    # is phrasing-independent: the overview body may name the current
+    # release (the pinned header line) and the semantic branches, never a
+    # superseded release.
+    version = manifest_release_version()
+    text = _read("docs/zmeta_professional_overview.md")
+    stale = {
+        superseded: len(re.findall(re.escape(superseded) + _NOT_LONGER_VERSION, text))
+        for superseded in superseded_release_versions(version)
+    }
+    stale = {name: count for name, count in stale.items() if count}
+    assert stale == {}, (
+        f"docs/zmeta_professional_overview.md names superseded releases {stale}; "
+        f"keep body guidance version-agnostic — the header release-context line "
+        f"is the single pinned current-version statement (now {version})"
     )
 
 

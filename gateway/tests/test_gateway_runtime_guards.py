@@ -206,5 +206,99 @@ class SendFailureGuardTest(unittest.TestCase):
         self.assertFalse(sent)
 
 
+class ReceiveLoopBackstopScopeTest(unittest.TestCase):
+    """The last-resort per-datagram guard must be scoped so that resilience
+    never becomes concealment (R1-11 verification pass 2): a hostile datagram
+    is survivable, but a dead listener or a configuration failure must still
+    stop the process instead of becoming an infinite drop loop."""
+
+    def _loop_source(self):
+        import inspect
+        import textwrap
+
+        return textwrap.dedent(inspect.getsource(gateway.main))
+
+    def test_recvfrom_is_outside_the_backstop(self):
+        source = self._loop_source()
+        recv_at = source.index("sock_in.recvfrom")
+        try_at = source.index("try:", source.index("# Receive-loop backstop"))
+        self.assertLess(
+            recv_at,
+            try_at,
+            "recvfrom moved inside the backstop: a dead listener socket would "
+            "hot-loop forever instead of terminating",
+        )
+
+    def test_backstop_catches_exception_not_baseexception(self):
+        source = self._loop_source()
+        tail = source[source.index("# Receive-loop backstop"):]
+        self.assertIn("except Exception as exc:", tail)
+        self.assertNotIn("except BaseException", tail)
+
+    def test_interrupts_and_config_failures_still_propagate(self):
+        # SystemExit is how _require_cbor/_require_compact/_require_proto
+        # report an unusable configuration; it must not be swallowed.
+        for exc in (KeyboardInterrupt, SystemExit):
+            with self.subTest(exc=exc.__name__):
+                with self.assertRaises(exc):
+                    try:
+                        raise exc("propagates")
+                    except Exception:  # noqa: BLE001 - mirrors the backstop
+                        self.fail(f"{exc.__name__} was swallowed by the backstop")
+
+
+class DropReasonVocabularyTest(unittest.TestCase):
+    """drop_reasons keys are the operator-facing filter surface, so they must
+    share one spelling convention. A lone lowercase reason hides that bucket
+    from a SCREAMING_SNAKE filter (R1-11 verification pass 2)."""
+
+    def test_every_record_drop_reason_is_screaming_snake(self):
+        import re
+
+        source = (ROOT / "gateway" / "src" / "gateway.py").read_text(encoding="utf-8")
+        reasons = re.findall(r'record_drop\(\s*"([^"]+)"', source)
+        self.assertGreaterEqual(len(reasons), 4, "record_drop call sites vanished")
+        for reason in reasons:
+            with self.subTest(reason=reason):
+                self.assertRegex(reason, r"^[A-Z][A-Z0-9_]*$")
+
+
+VALIDATORS_PATH = ROOT / "gateway" / "src" / "validators.py"
+spec_val = importlib.util.spec_from_file_location("zmeta_validators_guards", VALIDATORS_PATH)
+validators = importlib.util.module_from_spec(spec_val)
+spec_val.loader.exec_module(validators)
+
+
+class ForbiddenKeyTraversalGuardTest(unittest.TestCase):
+    """The denylist walk must not tie the process stack to sender-controlled
+    nesting depth: a deeply nested but schema-valid payload killed the gateway
+    with RecursionError at ingress (R1-11 verification pass 2)."""
+
+    def test_traversal_survives_hostile_nesting_depth(self):
+        deep = current = {}
+        for _ in range(100_000):
+            child = {}
+            current["d"] = child
+            current = child
+        # No forbidden key anywhere: the full structure must be walked.
+        self.assertIsNone(validators._find_forbidden_key(deep, {"features"}))
+        # A forbidden key at the bottom of the hostile structure is found.
+        current["features"] = 1
+        found = validators._find_forbidden_key(deep, {"features"})
+        self.assertIsNotNone(found)
+        self.assertEqual("features", found[0])
+
+    def test_traversal_reports_shallowest_match_with_path(self):
+        value = {
+            "a": {"b": [{"raw_features": 1}]},
+            "features": 2,
+        }
+        found = validators._find_forbidden_key(value, {"features", "raw_features"})
+        self.assertEqual(("features", ["features"]), found)
+        nested_only = {"a": {"b": [{"raw_features": 1}]}}
+        found = validators._find_forbidden_key(nested_only, {"features", "raw_features"})
+        self.assertEqual(("raw_features", ["a", "b", "0", "raw_features"]), found)
+
+
 if __name__ == "__main__":
     unittest.main()

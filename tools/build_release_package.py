@@ -178,6 +178,7 @@ def build_package(
     release_id: str | None = None,
     release_state: str = "release_candidate",
     release_notes_template: Path = DEFAULT_RELEASE_NOTES_TEMPLATE,
+    release_notes: Path | None = None,
     attestation_template: Path = DEFAULT_ATTESTATION_TEMPLATE,
     checksum_file: str = DEFAULT_CHECKSUM_FILE,
     attestation_output: str = DEFAULT_ATTESTATION_FILE,
@@ -244,7 +245,15 @@ def build_package(
     checksum_path = output_dir / checksum_file
 
     _write_yaml(metadata_path, metadata)
-    notes_path.write_text(release_notes_template.read_text(encoding="utf-8"), encoding="utf-8")
+    # Prefer the release's REAL notes. Copying the template verbatim shipped a
+    # file titled "ZMeta Release Notes Template", with every provenance field
+    # left as the literal placeholder and a closing "This template is an
+    # example", inside packages whose own metadata declared
+    # release_state: formal_release (R1-11 verification pass 2 — the R11-10
+    # self-describes-as-non-formal shape). validate_release_package refuses
+    # that combination now, so a formal cut must pass --release-notes.
+    notes_source = release_notes if release_notes is not None else release_notes_template
+    notes_path.write_text(notes_source.read_text(encoding="utf-8"), encoding="utf-8")
     _write_yaml(attestation_path, attestation)
 
     checksum_targets = [metadata_path, notes_path, attestation_path]
@@ -264,6 +273,14 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--release-id", help="Explicit release ID for package metadata.")
     parser.add_argument("--release-state", default="release_candidate", help="Release package state.")
     parser.add_argument("--release-notes-template", default=str(DEFAULT_RELEASE_NOTES_TEMPLATE))
+    parser.add_argument(
+        "--release-notes",
+        help=(
+            "Path to the release's real notes (e.g. release/RELEASE_NOTES_v1.1.16.md). "
+            "Required for a formal_release package: without it the template ships as "
+            "the package's RELEASE_NOTES.md and the package validator refuses."
+        ),
+    )
     parser.add_argument("--attestation-template", default=str(DEFAULT_ATTESTATION_TEMPLATE))
     parser.add_argument("--dry-run", action="store_true", help="Print planned package metadata without writing files.")
     parser.add_argument("--clean-output", action="store_true", help="Remove the output directory before writing.")
@@ -283,6 +300,7 @@ def main() -> int:
         release_id=args.release_id,
         release_state=args.release_state,
         release_notes_template=Path(args.release_notes_template),
+        release_notes=Path(args.release_notes) if args.release_notes else None,
         attestation_template=Path(args.attestation_template),
         checksum_file=args.checksum_file,
         attestation_output=args.attestation_output,
