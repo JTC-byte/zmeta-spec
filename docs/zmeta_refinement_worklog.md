@@ -21,7 +21,11 @@
   layer applied, gateway backstop layer missing) that looked complete
   and was caught only because the resuming session read the working diff
   instead of trusting the narrative — **resume from the tree, never from
-  the transcript.**
+  the transcript.** **The audit's FIRST deliverable is "Step 0" in that
+  record: a finding → code → test map, 17 rows (`V1-01`..`V1-03`,
+  `V2-01`..`V2-14`), derived from the code rather than copied from the
+  record — it does not exist yet, every later check depends on it, and a
+  row that cannot be filled is a live finding.**
 - Current state (2026-07-22, fifth closeout): the **R1-11 cycle is
   COMPLETE through both post-fix verification passes.** The fix pass
   (seven waves) and verification pass 1 (`d955cd0`) were followed by

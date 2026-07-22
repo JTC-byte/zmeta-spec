@@ -36,6 +36,12 @@ from that record: one interruption left a **half-applied two-layer
 fix** that looked complete and was caught only by reading the working
 diff — *resume from the tree, never from the transcript.*
 
+**The audit's first deliverable is "Step 0" in that record: a finding →
+code → test map, 17 rows (`V1-01`..`V1-03`, `V2-01`..`V2-14`).** It does
+not exist yet, it must be derived from the code rather than copied from
+the record, and every later check depends on it — a row that cannot be
+filled is a live finding, not a documentation gap.
+
 Note that current main diverges from the published v1.1.16 SHA256SUMS
 manifest/package pins because the fix-pass and verification-pass
 commits regenerate the manifest under the v1.1.16 identity; published

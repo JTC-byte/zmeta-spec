@@ -718,6 +718,49 @@ An auditor should therefore re-derive the findings from the code rather
 than confirm them from this document — treat the V1/V2 sections as
 claims to be tested, not as findings already established.
 
+### Step 0 (do this FIRST): build the finding → code → test map
+
+**This does not exist and should be the audit's first deliverable.** The
+V1/V2 sections describe each fix in prose but never name the code
+location that implements it or the test that pins it. Every other item
+below is slower and less trustworthy without that map, and item 1 is
+close to unanswerable without it — which matters because item 1 covers
+the risk the interruptions actually created.
+
+Build one row per finding, **17 rows: `V1-01`..`V1-03` and
+`V2-01`..`V2-14`** (contiguous — a gap means a finding was lost between
+sessions, which is itself the item-1 defect):
+
+| Finding | Claimed fix | Code location(s) | Pinning test(s) | Verified |
+| --- | --- | --- | --- | --- |
+
+Rules that make the map worth building:
+
+- **Derive it from the code, not from this record.** Read the finding,
+  then go find the implementation yourself. A row copied out of the
+  prose above proves only that the prose is self-consistent — and per
+  "What is NOT recoverable", this record is the sole surviving evidence
+  and shares an author with the fixes.
+- **Multi-layer fixes get one row per layer.** These are where an
+  interruption can leave half a fix looking whole: **V2-01** (codec
+  conversion *and* gateway receive-loop backstop), **V2-03** (all six
+  vendor-block sinks *and* the point-of-use invariant *and* the
+  positional-array rule), **V2-04** (global block *and* per-producer
+  no-op detection *and* mistyped sub-blocks), **V2-12** (all four
+  release-context docs *and* the completeness check), **V2-13**
+  (builder option *and* validator diagnostic *and* checklist step).
+  A row is complete only when every layer is located.
+- **An empty "pinning test" cell is a finding.** It means the fix is
+  real but unguarded, and the next interruption or refactor can silently
+  undo it. Record it rather than filling the cell with the nearest
+  plausible test.
+- **A row you cannot fill at all is the item-1 defect**, not a
+  documentation gap — treat it as a live finding and reproduce the
+  original defect to confirm.
+
+Once the map exists, items 1–6 become checks against it rather than
+open-ended reading.
+
 ### Targeted checklist for the fresh audit
 
 Given the above, the re-audit should not merely repeat the R1-11 method.
@@ -725,8 +768,10 @@ It should specifically attack:
 
 1. **Partial-application residue.** Every fix claimed in `V1-*`/`V2-*`
    should be verified present *in the code*, not just in the record —
-   with particular attention to multi-layer fixes (V2-01 codec +
-   gateway; V2-03 six vendor sinks; V2-04 global + per-producer lint).
+   with particular attention to the multi-layer fixes enumerated in
+   Step 0, where an interruption can leave half a fix looking whole
+   (this is exactly what interruption 2 did). Work from the Step 0 map;
+   any row that cannot be filled is a finding.
 2. **Commit-truth across the interrupted boundaries.** Every commit in
    `origin/main..HEAD` should reproduce its message's claims, especially
    `d955cd0` and `6ea9888`, which were authored on either side of the
