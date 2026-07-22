@@ -219,7 +219,7 @@ local verification:
 
 ```text
 python release/build_mvp_packages.py --version v1.1.16
-python release/build_release_bundle.py --version 1.1.11
+python release/build_release_bundle.py --version 1.1.16
 python tools/build_release_package.py --manifest release/zmeta-release-manifest.yaml --output-dir release/package-v1.1.16 --release-id zmeta-v1.1.16 --release-state formal_release --no-signatures
 python tools/validate_release_package.py --manifest release/zmeta-release-manifest.yaml --package-dir release/package-v1.1.16
 ```

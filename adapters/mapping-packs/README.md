@@ -35,7 +35,8 @@ an identifier, not a directory name, and never appears on the filesystem.
 
 - `mapping.yaml` field-level map from vendor input to ZMeta
 - `enums.yaml` enum translations (optional)
-- `units.yaml` unit conversions and expectations
+- `units.yaml` unit conversions and expectations (optional when the format
+  declares units elsewhere, e.g. a registration codex or fixed-unit wire)
 - `pack.json` manifest with `schema_id`, `pack_slug`, and version (recommended)
 - `tests/` input samples + expected ZMeta output
 
@@ -67,3 +68,12 @@ inputs from a flight blackbox with schema-valid RF `OBSERVATION_EVENT`
 expected outputs. Use it when validating a new RF adapter against governed
 shape and honesty rules. See that pack's README for provenance and
 validation commands.
+
+### SAPIENT / BSI Flex 335 pack
+
+`sapient-bsi-flex-335/` (`vendor:sapient_bsi335:v2`) maps SapientMessage
+protobuf-JSON to ZMeta both directions, with reference adapters under
+`adapters/ingress/sapient/` and `adapters/egress/sapient/`. It is the
+worked example for registration-declared formats (units/error codex from
+Registration, refuse-when-unregistered) and for split fact/opinion
+reports. See that pack's README for the wire-validation record.

@@ -725,7 +725,12 @@ Minimum required TIME_STATUS fields:
 - `time_source`: `GPS_PPS`, `GPS_NMEA`, `NTP`, `PTP`, `MANUAL`, or `UNKNOWN`
 - `sync_state`: `LOCKED`, `HOLDOVER`, or `UNSYNCED`
 - `est_error_ms`: worst-case absolute timestamp error upper bound
-- `last_sync_ts`: last known synchronization time in UTC-Z
+- `last_sync_ts`: last known synchronization time in UTC-Z. For a clock that
+  was never synchronized no such time exists; the reference convention
+  fills the schema-required field with the event timestamp. `last_sync_ts`
+  is therefore meaningful as a synchronization claim only when
+  `sync_state` is not `UNSYNCED` — consumers MUST read it together with
+  `sync_state`, never as standalone evidence of a recent sync.
 
 `est_error_ms` MUST NOT be omitted for RF and time-correlated fusion use cases.
 Consumers MUST NOT treat periodic TIME_STATUS as valid indefinitely. If no

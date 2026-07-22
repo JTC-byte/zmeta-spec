@@ -1,17 +1,19 @@
 # ZMeta Refinement Handoff Notes
 
-Status date: 2026-07-17
+Status date: 2026-07-21
 
-Current release: **v1.1.14** (R1-10, 2026-07-17) — the audit-driven
-honesty hardening cut: the R1-10 full stack audit, its
-fix-every-finding pass (reference-adapter fabrication class closed,
-prose-only honesty invariants machine-encoded, checking machinery made
-falsifiable, four governed diagnostic codes added to both schemas'
-reason_code enums as Class B), and the post-fix verification audit,
-released per RELEASE_CHECKLIST. Checksums-only; signing remains the
-maintainer's external process. Details in the worklog R1-10 entries and
-`release/RELEASE_NOTES_v1.1.14.md`. The queued v1.1.0
-adoption-decision session remains the next substantive work item.
+Current release: **v1.1.16** (P1-08, 2026-07-21) — the
+edge-comms-bladerf external real-capture corpus cut (PR #7 merged with
+maintainer review fixes), following **v1.1.15** (P1-07, 2026-07-21;
+the SAPIENT/BSI Flex 335 mapping pack and reference adapters,
+wire-validated against official Dstl tooling) and **v1.1.14**
+(R1-10, 2026-07-17; the audit-driven honesty hardening cut). All
+checksums-only; signing remains the maintainer's external process.
+Details in the worklog P1-08/P1-07/R1-10 entries and the release notes
+per version. Current main additionally carries the R1-11 full-stack
+audit findings record and its fix-pass waves (worklog R1-11 entries);
+the audit disposition and the queued v1.1.0 adoption-decision session
+are the next substantive work items.
 
 This note is the quick resume point for the current ZMeta refinement effort. Recent session records and the deferred issue register are in `docs/zmeta_refinement_worklog.md`; completed task sections S0-01..R1-05 are archived verbatim in `docs/zmeta_refinement_worklog_archive.md`.
 
@@ -183,8 +185,9 @@ Current stack status:
   bearing/heading fields unless callers explicitly assert `TRUE_NORTH`;
   unasserted native values remain auditable under explicitly named
   non-canonical fields.
-- Use tag `v1.1.15` for current formal release assets/checksums. Use tag
-  `v1.1.14` for the previous audit-driven honesty-hardening baseline.
+- Use tag `v1.1.16` for current formal release assets/checksums. Use tag
+  `v1.1.15` for the SAPIENT-bridge baseline and `v1.1.14` for the
+  audit-driven honesty-hardening baseline.
 - Use current `main` for the latest integration baseline with bearing-frame
   integrity, policy-risk linting, projection preservation for risk/promotion
   extensions, stricter extension registry metadata, formal human/AI agent
@@ -228,17 +231,23 @@ Current stack status:
 
 Current release target:
 
-- Release URL: <https://github.com/JTC-byte/zmeta-spec/releases/tag/v1.1.14>
-- Tag: `v1.1.14` (annotated, on the R1-10 release commit; the commit
-  SHA, CI status, and asset list are recorded in the worklog R1-10
+- Release URL: <https://github.com/JTC-byte/zmeta-spec/releases/tag/v1.1.16>
+- Tag: `v1.1.16` (annotated, on the P1-08 release commit; the commit
+  SHA, CI status, and asset list are recorded in the worklog P1-08
   publication note).
-- Previous release: `v1.1.13` (tag on `1117bc6`); its published assets,
-  checksums, and release records are unchanged.
-- Signature status: v1.1.14 is published checksums-only per the
+- Previous releases: `v1.1.15` (SAPIENT bridge) and `v1.1.14` (R1-10
+  hardening); their published assets, checksums, and release records
+  are unchanged.
+- Signature status: v1.1.16 is published checksums-only per the
   maintainer's signing decision, consistent with v1.1.5 through
-  v1.1.13; signing remains the maintainer's external process. Use
+  v1.1.15; signing remains the maintainer's external process. Use
   `SHA256SUMS_<version>.txt`, the structured release manifest, and the
   release package checksum file for integrity verification.
+- Post-release main note: the R1-11 fix-pass commits regenerate the
+  in-repo manifest and package under the v1.1.16 identity, so current
+  main diverges from the published v1.1.16 SHA256SUMS manifest/package
+  pins (published checksums are immutable; resolution is the next
+  release cut — see AGENTS.md Release Limits).
 
 ## Key Docs
 
@@ -332,7 +341,7 @@ Resume Note.
   schema, vocabulary, version-dispatch, projection, risk, or command-authority
   changes are private dialect/fork work unless governed, versioned, documented,
   and backed by conformance evidence.
-- Current formal release is `v1.1.14`; latest integration baseline is
+- Current formal release is `v1.1.16`; latest integration baseline is
   current `main`.
 - v1.0 remains locked.
 - Do not add v1.1.0 or future concepts to v1.0.
@@ -710,15 +719,17 @@ entries):
 
 ## Verification State
 
-Most recent validation: the v1.1.13 (R1-09) release validation record lives
-in `release/VALIDATION_REPORT_v1.1.13.md` and the worklog R1-09 entry
-(`docs/zmeta_refinement_worklog.md`). The single block below is retained as
-the most recent full command inventory recorded in this handoff; older
-validation generations were pruned from this rolling brief and live in git
-history.
+Most recent validation: the v1.1.16 (P1-08) release validation record lives
+in `release/VALIDATION_REPORT_v1.1.16.md` and the worklog P1-08 entry
+(`docs/zmeta_refinement_worklog.md`); the v1.1.15 and v1.1.14 records live
+in their respective `release/VALIDATION_REPORT_*.md` files and worklog
+entries. The single block below is retained as the most recent full command
+inventory recorded in this handoff; older validation generations were
+pruned from this rolling brief and live in git history.
 
-Validation for the S1-26 v1.1.12 release preparation on `main` (2026-07-08,
-Windows, Python — historical; superseded by the v1.1.13 record above):
+Validation command inventory (run per release; version literals track the
+release being cut — shown as recorded for the v1.1.12 preparation and
+unchanged in shape since):
 
 ```powershell
 python tools\build_release_manifest.py --release-id zmeta-v1.1.12 --release-name "ZMeta v1.1.12" --release-status formal_release --release-date 2026-07-08 --branch main --update-claims

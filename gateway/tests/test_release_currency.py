@@ -6,18 +6,23 @@ with it, so a release bump cannot leave stale current-facing text behind
 (the stale-defaults failure class from the R1-10 audit).
 
 Covered surfaces (enumerated, current-facing only):
-- README.md current-release line
-- spec/installation-guide.md baseline line
-- docs/zmeta_professional_overview.md release-context line
+- README.md current-release line AND the bundle-builders worked commands
+- spec/installation-guide.md baseline line AND the worked release commands
+- docs/zmeta_professional_overview.md release-context line, plus a body
+  guard against present-tense "currently vX.Y.Z" claims (the R1-11 R11-11
+  class: body text steering adopters onto a stale baseline while only the
+  header was machine-pinned)
 - release/README.md "Current formal release" line
 - CHANGELOG.md first versioned heading
 - tools/check_compat.py TARGETS list
+- docs/zmeta_refinement_handoff.md "Use tag" current-release pointer (the
+  one forward-looking line in an otherwise-excluded rolling record)
 
-Deliberately EXCLUDED: the rolling session records
-(docs/zmeta_refinement_worklog.md, docs/zmeta_refinement_handoff.md, and the
-worklog archive). Those are rolling internal records whose entries narrate
-past sessions, so historical version text in them is legitimate and pinning
-them would force rewriting history on every release.
+Deliberately EXCLUDED: the rolling narrative content of the session records
+(docs/zmeta_refinement_worklog.md, docs/zmeta_refinement_handoff.md body,
+and the worklog archive). Those entries narrate past sessions, so
+historical version text in them is legitimate and pinning it would force
+rewriting history on every release.
 
 Each check helper takes the file text as an argument so the assertion logic
 can be exercised against doctored copies without touching the real files.
@@ -125,4 +130,69 @@ def test_check_compat_targets_include_current_release():
     assert version in targets, (
         f"tools/check_compat.py TARGETS does not include the current release {version}; "
         f"extend TARGETS when the release manifest is regenerated"
+    )
+
+
+def _stale_version_literals(text: str, version: str) -> list[str]:
+    """Version literals in a worked-command block that disagree with current."""
+    bare = version.lstrip("v")
+    found = re.findall(r"v?(\d+\.\d+\.\d+)", text)
+    return [item for item in found if item != bare]
+
+
+def test_readme_bundle_builder_commands_match_manifest():
+    # R1-11 R11-18: the bundle-builders list sat three releases stale while
+    # the adjacent sibling line was bumped every cycle - the block is now
+    # machine-pinned as a whole.
+    version = manifest_release_version()
+    text = _read("README.md")
+    match = re.search(r"- Bundle builders:\n(( {4,}- .+\n)+)", text)
+    assert match, "README.md bundle-builders block not found"
+    stale = _stale_version_literals(match.group(1), version)
+    assert stale == [], (
+        f"README.md bundle-builders commands carry stale version literals {stale}; "
+        f"re-baseline them to {version}"
+    )
+
+
+def test_installation_guide_worked_commands_match_manifest():
+    # R1-11 R11-17: line-level history showed one worked command surviving
+    # three doc-currency passes because only the baseline line was pinned.
+    version = manifest_release_version()
+    text = _read("spec/installation-guide.md")
+    blocks = re.findall(r"```text\n(.*?)```", text, re.DOTALL)
+    release_blocks = [b for b in blocks if "build_release_bundle.py" in b]
+    assert release_blocks, "installation-guide worked release-command block not found"
+    stale = []
+    for block in release_blocks:
+        stale.extend(_stale_version_literals(block, version))
+    assert stale == [], (
+        f"spec/installation-guide.md worked commands carry stale version literals {stale}; "
+        f"re-baseline them to {version}"
+    )
+
+
+def test_overview_body_carries_no_stale_currently_claims():
+    # R1-11 R11-11: 'Pin to a release, currently v1.1.9' survived four
+    # release passes because only the header line was machine-pinned.
+    text = _read("docs/zmeta_professional_overview.md")
+    stale_claims = re.findall(r"currently v\d+\.\d+\.\d+", text)
+    assert stale_claims == [], (
+        f"docs/zmeta_professional_overview.md body carries present-tense version "
+        f"claims {stale_claims}; keep body guidance version-agnostic (the header "
+        f"release-context line is the pinned current-version statement)"
+    )
+
+
+def test_handoff_use_tag_pointer_matches_manifest():
+    # R1-1 exclusion refined (R11-15): the handoff's 'Use tag' line is the
+    # one forward-looking current-release pointer in the rolling record and
+    # is now pinned; narrative history remains excluded.
+    version = manifest_release_version()
+    text = _read("docs/zmeta_refinement_handoff.md")
+    match = re.search(r"Use tag `(v\d+\.\d+\.\d+)`", text)
+    assert match, "handoff 'Use tag' current-release pointer not found"
+    assert match.group(1) == version, (
+        f"docs/zmeta_refinement_handoff.md 'Use tag' points at {match.group(1)}, "
+        f"expected {version}"
     )

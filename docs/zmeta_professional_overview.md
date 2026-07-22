@@ -908,7 +908,8 @@ governed capability.
 
 A practical adoption path is:
 
-1. Pin to a release, currently v1.1.9 for the formal baseline.
+1. Pin to the current formal release (the release context at the top of
+   this document; also `release/zmeta-release-manifest.yaml` `release_id`).
 2. Validate existing examples and conformance locally.
 3. Add one ingress adapter for the first sensor or data source.
 4. Run schema and policy validation at the gateway boundary.
@@ -940,7 +941,7 @@ A practical adoption path is:
 
 ## Current Limits And Future Work
 
-ZMeta v1.1.9 intentionally does not claim everything.
+ZMeta intentionally does not claim everything.
 
 Current limits include:
 

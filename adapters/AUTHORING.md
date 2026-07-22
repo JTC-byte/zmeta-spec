@@ -53,12 +53,23 @@ Emit at the layer of what your input IS, never the layer you wish it were
 | PSD sweep captures | `OBSERVATION_EVENT` (RF) | `ingress/signalhunter/` |
 | Decoded EO/IR metadata | `OBSERVATION_EVENT` (EO) | `ingress/klv/` |
 | Classifier/detector claims | `INFERENCE_EVENT` | `ingress/eo-cv/` |
+| Multi-layer vendor reports (fact + opinion in one message) | split: `OBSERVATION_EVENT` + per-claim `INFERENCE_EVENT` | `ingress/sapient/` |
+| Registration/capability-declared formats (units codex, node types) | per node type; refuse unregistered nodes rather than fabricate a modality | `ingress/sapient/` (RegistrationStore) |
 | Track association you compute | `FUSION_EVENT` | `examples/` chains |
 | Platform telemetry (own asset) | `STATE_EVENT` + promotion | `ingress/mavlink/` |
 | External tactical tracks | `STATE_EVENT` + promotion | `ingress/cot/`, `ingress/jreap/` |
-| Mission cueing (egress) | `COMMAND_EVENT` -> intent | `egress/mavlink/` |
+| Mission cueing (egress) | `COMMAND_EVENT` -> intent | `egress/mavlink/`, `egress/sapient/` |
 | Operator display (egress) | `STATE_EVENT` -> format | `egress/cot/` |
+| Coalition/enclave export (egress) | `STATE_EVENT` -> external standard, risk-labeled, fail-closed | `egress/sapient/` |
 | Health / timing / acks | `SYSTEM_EVENT` | `ingress/mavlink/` |
+
+External-promotion metadata is caller-owned end-to-end: `loop_status` (the
+reflection-check verdict) must arrive message-carried or caller-supplied and
+is NEVER defaulted by an adapter — the check is a verification the adapter
+does not perform, so stamping its verdict would fabricate evidence (contract
+4.5.1; ratified in the SAPIENT pack and enforced by every promotion
+template). Promotion dicts are allowlisted to the enumerated promotion
+vocabulary; raw measurements or unenumerated keys refuse the promotion.
 
 Worked full chains to pattern-match against:
 `examples/zmeta-examples-1.0.jsonl` (RF) and
@@ -124,15 +135,22 @@ same pack first if you want a known-good diff.
     input happens to carry. A reading missing a required field is refused,
     not emitted schema-invalid.
 
-One declared-sentinel convention to keep distinct from fabrication:
+Two declared-sentinel conventions to keep distinct from fabrication:
 receiver-class RF sensors that physically cannot measure emitter bandwidth
 satisfy the schema-required RF feature set with the documented
 `bandwidth_hz: 0.0` sentinel (the kraken, moth, and signalhunter READMEs
-document it). That is a DECLARED sentinel — a fixed, documented,
-consumer-visible convention — not an invented measurement, and any adapter
-using it must document it in its own README. Inventing measurement values
-(default bearings, error bounds, power levels, positions) remains prohibited
-by rules 3, 9, and 10.
+document it), and FFT-derived detections that measure an analysis window
+rather than emitter bandwidth may report the documented FFT-bin-width
+convention (the edge-comms-bladerf pack documents it). Both are DECLARED
+sentinels — fixed, documented, consumer-visible conventions — not invented
+measurements, and any adapter using one must document it in its own README.
+A frame-unlabeled native bearing is the mirror case: never promote it to
+canonical `payload.bearing` with a minted `TRUE_NORTH` assertion the
+producer did not make — keep it in explicitly named
+`features.native_bearing_*` fields until a producer frame assertion exists
+(the edge-comms-bladerf pack models this demotion). Inventing measurement
+values (default bearings, error bounds, power levels, positions) remains
+prohibited by rules 3, 9, and 10.
 
 ## 4. Build
 
@@ -187,11 +205,17 @@ only with `--kernel-gate`. The governed validators remain the authority.
 ## 6. Harness Fixture Format
 
 `tools/validate_adapter_conformance.py` fixtures are JSONL, one object per
-line (worked examples: `conformance/adapter-harness/must-pass.jsonl`). An
-advisory JSON Schema for fixture lines lives at
-`conformance/adapter-harness/fixture.schema.json`; `tools/check_adapter.py
---fixtures` lints against it before running the harness, catching key typos
-early:
+line (worked examples: `conformance/adapter-harness/must-pass.jsonl`). The
+JSON Schema for fixture lines lives at
+`conformance/adapter-harness/fixture.schema.json`; the harness lints every
+fixture line against it before execution (an unknown expectation key is a
+caught typo, not a silent no-op), and `tools/check_adapter.py --fixtures`
+runs the same lint at author time. `result: "events"` fixtures require an
+`event_count` pin — without one, a refusing adapter returning `[]` would
+satisfy every expectation vacuously. Fixture `args`/`kwargs` are JSON only:
+adapters whose entry points take constructed objects (e.g. the SAPIENT
+`RegistrationStore`) cannot exercise those paths through the harness —
+cover them in colocated pytest instead and say so in the pack README:
 
 | Key | Meaning |
 | --- | --- |

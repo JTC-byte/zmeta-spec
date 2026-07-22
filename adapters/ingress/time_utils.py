@@ -47,7 +47,13 @@ def normalize_utc_z(value, *, default=None, timespec: str = "auto"):
 
 
 def coerce_timing_quality(value=None, *, event_ts=None) -> dict:
-    """Return schema-valid timing quality, preserving supplied fields when present."""
+    """Return schema-valid timing quality, preserving supplied fields when present.
+
+    The schema requires last_sync_ts even for never-synced clocks; the
+    reference convention fills it with the event timestamp. Per contract
+    5.3, last_sync_ts is a synchronization claim only when sync_state is
+    not UNSYNCED - consumers must read the pair together.
+    """
     timing = dict(value) if isinstance(value, dict) else {}
     timing.setdefault("time_source", "UNKNOWN")
     timing.setdefault("sync_state", "UNSYNCED")

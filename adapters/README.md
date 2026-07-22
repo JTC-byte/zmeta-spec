@@ -43,6 +43,13 @@ or command safety.
 | [SAPIENT](ingress/sapient/) | BSI Flex 335 v2.0 SapientMessage dicts (protobuf-JSON) | OBSERVATION_EVENT, INFERENCE_EVENT, STATE_EVENT (promotion), SYSTEM_EVENT | Reference |
 | [Example-vendor](ingress/example-vendor/) | `example-vendor-pack` RF JSON | OBSERVATION_EVENT (RF) | Worked exercise |
 
+Status legend: **Production** — exercised against real sensor data;
+**Template** — copy-me starting point, structurally complete;
+**Reference** — complete implementation validated against the external
+standard's official tooling, not yet fielded against live hardware;
+**Worked exercise** — teaching implementation paired with the authoring
+guide.
+
 Real raw→ZMeta corpus for adapter authors (bladeRF edge-comms detections):
 [`mapping-packs/edge-comms-bladerf/`](mapping-packs/edge-comms-bladerf/).
 
@@ -111,7 +118,7 @@ Supported invocation patterns:
 
 ```
 python -m pytest adapters
-python tools/check_compat.py examples/zmeta-v1.1-examples.jsonl --target v1.1.8
+python tools/check_compat.py examples/zmeta-v1.1-examples.jsonl --target v1.1.16
 PYTHONPATH=. python adapters/ingress/<adapter>/<script>.py
 ```
 
