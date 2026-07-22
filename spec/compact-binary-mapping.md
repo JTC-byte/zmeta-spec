@@ -9,7 +9,7 @@ and downstream translation (e.g., CoT/TAK).
 The compact wire has **no `zmeta_version` key** and enumerated field tables;
 decoding always yields a `zmeta_version: "1.0"` envelope. That stamp is honest
 only because encoding is **fail closed**: encoders MUST refuse any event that
-is not `zmeta_version "1.0"` or that would not expand back to a byte-identical
+is not `zmeta_version "1.0"` or that would not expand back to a value-identical
 canonical envelope (reference: `zmeta_compact.verify_representable`, raising
 `CompactUnrepresentableError`). Silently dropping fields or relabeling a
 versioned event to "1.0" is prohibited — it would launder experimental-branch
@@ -18,6 +18,38 @@ vocabulary into the locked namespace and destroy uncertainty labels (e.g.
 on a version-preserving encoding (`json`, `cbor`, `proto`); the reference
 gateway replaces an unrepresentable outgoing event with an
 `ENCODING_UNSUPPORTED` SCHEMA_VIOLATION diagnostic rather than reducing it.
+
+Verification MUST run through the real serialization boundary (encode to
+bytes, decode, compare). An in-memory comparison of the key-remap alone is
+not sufficient: it preserves object identity, and container equality
+short-circuits on identity, so a value that is not equal to itself (`NaN`)
+would pass verification and reach the wire.
+
+### Declared representation normalizations
+
+Two differences between the input envelope and the decoded envelope are
+**declared by this mapping** and are therefore not loss — they change the
+representation of a value, never the value:
+
+| Normalization | Why it is not loss |
+| --- | --- |
+| UUID hex case (`019C2B5C-…` decodes as `019c2b5c-…`) | UUIDs travel as 16 raw bytes, so hex case is not carried; RFC 4122 defines UUIDs as case-insensitive and specifies the lowercase output form. Same UUID. |
+| Timestamp formatting at millisecond resolution (`…:05.876Z` decodes as `…:05.876000Z`, `…:05.000Z` as `…:05Z`) | Timestamps travel as epoch milliseconds, so the decoded string is that same instant re-formatted. Same instant. |
+
+Everything else is loss and MUST be refused, including:
+
+- a **truncated sub-millisecond instant** (`…:05.1234Z` is not the same
+  instant as `…:05.123Z`) — the epoch-ms mapping genuinely loses that
+  precision, so such an event MUST travel on another encoding;
+- **non-finite floats** (`NaN`, `Infinity`), which CBOR can carry but
+  canonical JSON (RFC 8259) cannot represent, so they could never decode
+  back to a valid canonical envelope;
+- any dropped, added, or altered field.
+
+Refusing the declared normalizations would be its own failure: it would
+reject schema-valid events from conforming producers (the `uuid` pattern
+admits uppercase hex, and `utcDateTime` admits fractional seconds) and
+replace them with diagnostics.
 
 ## Purpose
 

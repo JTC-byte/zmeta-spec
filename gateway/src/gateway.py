@@ -827,6 +827,54 @@ def _encode_message(event, output_encoding):
     raise ValueError(f"unsupported output encoding: {output_encoding}")
 
 
+def _encode_outgoing_or_diagnostic(
+    outgoing, settings, *, contract_hashes, should_stamp_profile, metrics
+):
+    """Encode an outgoing event, degrading to a diagnostic instead of raising.
+
+    An encoding that cannot carry an event honestly (compact refuses lossy
+    encodes) is replaced with an ENCODING_UNSUPPORTED diagnostic. The
+    diagnostic can inherit the very value that was unrepresentable - it
+    copies the original's event_id into metrics.original_event_id - so the
+    fallback ladder ends with the documented UNKNOWN correlation sentinel,
+    which carries no caller-controlled content. The receive loop must never
+    terminate because one event is unrepresentable on the output encoding.
+
+    Returns (payload, event); payload is None only when even the minimal
+    diagnostic cannot be encoded, and the caller drops the datagram.
+    """
+    try:
+        return _encode_message(outgoing, settings["output_encoding"]), outgoing
+    except _COMPACT_UNREPRESENTABLE as exc:
+        error = str(exc)
+
+    if metrics:
+        event_block = outgoing.get("event", {}) if isinstance(outgoing, dict) else {}
+        source = outgoing.get("source", {}) if isinstance(outgoing, dict) else {}
+        metrics.record_violation(
+            "ENCODING_UNSUPPORTED",
+            event_id=event_block.get("event_id"),
+            producer=source.get("producer") if isinstance(source, dict) else None,
+        )
+
+    for original in (outgoing, None):
+        diagnostic = build_violation_event(
+            "ENCODING_UNSUPPORTED",
+            original=original,
+            details={"error": error},
+            contract_hashes=contract_hashes,
+            stamp_contract_hash=settings["stamp_contract_hash"],
+            force_schema_violation=True,
+        )
+        if should_stamp_profile:
+            diagnostic["profile"] = settings["profile"]
+        try:
+            return _encode_message(diagnostic, settings["output_encoding"]), diagnostic
+        except _COMPACT_UNREPRESENTABLE:
+            continue
+    return None, outgoing
+
+
 def _strip_optional_fields(event, fields):
     if not fields:
         return
@@ -1868,28 +1916,19 @@ def main():
                 )
                 if should_stamp_profile:
                     outgoing["profile"] = settings["profile"]
-            try:
-                payload = _encode_message(outgoing, settings["output_encoding"])
-            except _COMPACT_UNREPRESENTABLE as exc:
+            payload, outgoing = _encode_outgoing_or_diagnostic(
+                outgoing,
+                settings,
+                contract_hashes=contract_hashes,
+                should_stamp_profile=should_stamp_profile,
+                metrics=metrics,
+            )
+            if payload is None:
+                # Nothing honest can be said about this event on this wire.
+                # Drop the datagram rather than terminate the receive loop.
                 if metrics:
-                    event_block = outgoing.get("event", {}) if isinstance(outgoing, dict) else {}
-                    source = outgoing.get("source", {}) if isinstance(outgoing, dict) else {}
-                    metrics.record_violation(
-                        "ENCODING_UNSUPPORTED",
-                        event_id=event_block.get("event_id"),
-                        producer=source.get("producer") if isinstance(source, dict) else None,
-                    )
-                outgoing = build_violation_event(
-                    "ENCODING_UNSUPPORTED",
-                    original=outgoing,
-                    details={"error": str(exc)},
-                    contract_hashes=contract_hashes,
-                    stamp_contract_hash=settings["stamp_contract_hash"],
-                    force_schema_violation=True,
-                )
-                if should_stamp_profile:
-                    outgoing["profile"] = settings["profile"]
-                payload = _encode_message(outgoing, settings["output_encoding"])
+                    metrics.record_drop("encoding_unsupported")
+                continue
             event_block = outgoing.get("event", {}) if isinstance(outgoing, dict) else {}
             source_block = outgoing.get("source", {}) if isinstance(outgoing, dict) else {}
             _check_datagram_size(

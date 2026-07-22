@@ -3,14 +3,22 @@ Compact binary mapping for ZMeta (CBOR + integer keys).
 
 This module provides a fail-closed compact wire format intended for Profile L
 links. It encodes only zmeta_version "1.0" events, and only those it can
-expand back to a byte-identical canonical JSON envelope; anything else is
+expand back to a value-identical canonical JSON envelope; anything else is
 refused with CompactUnrepresentableError rather than silently reduced. The
 compact wire therefore carries locked-v1.0 semantics by definition, and
 decode's "1.0" stamp is honest for every packet this encoder can produce.
+
+"Value-identical" is exact except for the two representation
+normalizations the mapping itself declares (spec/compact-binary-mapping.md):
+UUID hex case (UUIDs travel as 16 raw bytes; RFC 4122 is case-insensitive)
+and timestamp formatting at the declared millisecond resolution. A
+truncated sub-millisecond instant is a different instant and is refused.
 """
 
 from __future__ import annotations
 
+import math
+import re
 import uuid
 from datetime import datetime, timezone
 from typing import Any, Dict, Tuple
@@ -297,7 +305,55 @@ class CompactUnrepresentableError(ValueError):
     """Raised when an event cannot be encoded to compact without loss."""
 
 
-def _first_difference(original: Any, restored: Any, path: str = "$") -> str:
+# Declared representation normalizations (spec/compact-binary-mapping.md):
+# UUIDs travel as 16 raw bytes, so hex case is not carried and decode emits
+# the RFC 4122 canonical lowercase form; timestamps travel as epoch
+# milliseconds, so the decoded string is that instant re-formatted. Neither
+# changes the VALUE, so neither is loss. Anything else - a dropped field, a
+# relabeled version, a truncated sub-millisecond instant - is loss and is
+# refused.
+_CANONICAL_UUID_RE = re.compile(
+    r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+)
+_UTC_TS_RE = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z$")
+
+
+def _same_uuid(left: str, right: str) -> bool:
+    """True when both are the same UUID differing only in hex case."""
+    return (
+        _CANONICAL_UUID_RE.match(left) is not None
+        and _CANONICAL_UUID_RE.match(right) is not None
+        and left.lower() == right.lower()
+    )
+
+
+def _instant(value: Any):
+    """Parse a UTC-Z timestamp, or None when it is not one."""
+    if not isinstance(value, str) or _UTC_TS_RE.match(value) is None:
+        return None
+    try:
+        return datetime.fromisoformat(value[:-1] + "+00:00")
+    except ValueError:
+        return None
+
+
+def _same_instant(left: str, right: str) -> bool:
+    """True when both timestamps denote exactly the same instant.
+
+    Sub-millisecond precision is genuinely lost by the epoch-ms mapping, so
+    a truncated timestamp denotes a DIFFERENT instant and is not equivalent.
+    """
+    parsed = _instant(left)
+    return parsed is not None and parsed == _instant(right)
+
+
+def _semantic_difference(original: Any, restored: Any, path: str = "$"):
+    """First value-changing difference, or None when only normalized.
+
+    Returns a human-readable path/reason string for the first difference
+    that changes meaning, treating the codec's declared representation
+    normalizations (above) as equivalent.
+    """
     if isinstance(original, dict) and isinstance(restored, dict):
         for key in original:
             if key not in restored:
@@ -306,26 +362,50 @@ def _first_difference(original: Any, restored: Any, path: str = "$") -> str:
             if key not in original:
                 return f"{path}.{key} (introduced by compact decoding)"
         for key in original:
-            if original[key] != restored[key]:
-                return _first_difference(original[key], restored[key], f"{path}.{key}")
-        return path
+            difference = _semantic_difference(original[key], restored[key], f"{path}.{key}")
+            if difference is not None:
+                return difference
+        return None
     if isinstance(original, list) and isinstance(restored, list):
         if len(original) != len(restored):
             return f"{path} (length {len(original)} != {len(restored)})"
-        for idx, (a, b) in enumerate(zip(original, restored)):
-            if a != b:
-                return _first_difference(a, b, f"{path}[{idx}]")
-        return path
+        for idx, (left, right) in enumerate(zip(original, restored)):
+            difference = _semantic_difference(left, right, f"{path}[{idx}]")
+            if difference is not None:
+                return difference
+        return None
+    # Non-finite floats have no canonical JSON form (RFC 8259), so they can
+    # never survive the wire honestly even when CBOR carries them.
+    if isinstance(original, float) and not math.isfinite(original):
+        return f"{path} (non-finite float {original!r} has no canonical JSON form)"
+    if isinstance(restored, float) and not math.isfinite(restored):
+        return f"{path} (decoded to non-finite float {restored!r})"
+    # bool is an int subclass; True must never compare equal to 1 here.
+    if isinstance(original, bool) != isinstance(restored, bool):
+        return f"{path} ({original!r} != {restored!r})"
+    if original == restored:
+        return None
+    if isinstance(original, str) and isinstance(restored, str):
+        if _same_uuid(original, restored) or _same_instant(original, restored):
+            return None
     return f"{path} ({original!r} != {restored!r})"
 
 
-def verify_representable(event: Dict[str, Any]) -> None:
-    """Refuse any event the compact mapping cannot round-trip losslessly.
+def _encode_compact_bytes(compact: Dict[int, Any]) -> bytes:
+    _require_cbor()
+    if zmeta_cbor is not None:
+        return zmeta_cbor.dumps(compact)
+    return cbor2.dumps(compact, canonical=True)
 
-    The compact wire has no zmeta_version key and enumerated field tables, so
-    encoding is only honest when decode reproduces the event exactly. Callers
-    on egress paths MUST invoke this (dumps() does) so unrepresentable
-    content is refused instead of silently reduced and relabeled "1.0".
+
+def _verified_compact_bytes(event: Dict[str, Any]) -> bytes:
+    """Encode to compact bytes, refusing anything not representable.
+
+    Verification runs through the REAL serialization boundary
+    (bytes -> decode) rather than an in-memory key remap: the remap
+    preserves object identity, and Python's container equality
+    short-circuits on identity, so values that are not equal to
+    themselves (NaN) would otherwise pass verification and reach the wire.
     """
     version = event.get("zmeta_version") if isinstance(event, dict) else None
     if version != "1.0":
@@ -333,21 +413,31 @@ def verify_representable(event: Dict[str, Any]) -> None:
             f"compact encodes zmeta_version '1.0' events only, got {version!r}; "
             "use a version-preserving encoding (json/cbor/proto)"
         )
-    restored = decode_event(encode_event(event))
-    if restored != event:
+    payload = _encode_compact_bytes(encode_event(event))
+    restored = decode_event(_decode_cbor(payload))
+    difference = _semantic_difference(event, restored)
+    if difference is not None:
         raise CompactUnrepresentableError(
-            "compact encoding would lose or alter content at "
-            f"{_first_difference(event, restored)}; refusing lossy encode"
+            f"compact encoding would lose or alter content at {difference}; "
+            "refusing lossy encode"
         )
+    return payload
+
+
+def verify_representable(event: Dict[str, Any]) -> None:
+    """Refuse any event the compact mapping cannot round-trip losslessly.
+
+    The compact wire has no zmeta_version key and enumerated field tables, so
+    encoding is only honest when decode reproduces the event's meaning
+    exactly. Callers on egress paths MUST invoke this (dumps() does) so
+    unrepresentable content is refused instead of silently reduced and
+    relabeled "1.0".
+    """
+    _verified_compact_bytes(event)
 
 
 def dumps(event: Dict[str, Any]) -> bytes:
-    verify_representable(event)
-    compact = encode_event(event)
-    _require_cbor()
-    if zmeta_cbor is not None:
-        return zmeta_cbor.dumps(compact)
-    return cbor2.dumps(compact, canonical=True)
+    return _verified_compact_bytes(event)
 
 
 def loads(data: bytes, **decode_limits) -> Dict[str, Any]:

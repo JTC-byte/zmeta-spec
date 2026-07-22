@@ -17,6 +17,7 @@ import sys
 import unittest
 import uuid
 from pathlib import Path
+from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
@@ -114,14 +115,13 @@ class CompactFailClosedTest(unittest.TestCase):
         self.assertIn("error_ellipse_m", str(ctx.exception))
         self.assertIn("dropped", str(ctx.exception))
 
-        # A ts whose canonical epoch-ms formatting differs byte-wise (".000Z")
-        # is likewise refused with the exact path named: the wire stores epoch
-        # milliseconds and cannot reproduce the original string.
-        millis = json.loads(json.dumps(lossy))
-        del millis["payload"]["geo"]["error_ellipse_m"]
-        millis["event"]["ts"] = "2025-01-17T14:31:05.000Z"
+        # A truncated sub-millisecond instant IS loss (the epoch-ms mapping
+        # cannot carry it) and is refused with the exact path named.
+        sub_ms = json.loads(json.dumps(lossy))
+        del sub_ms["payload"]["geo"]["error_ellipse_m"]
+        sub_ms["event"]["ts"] = "2025-01-17T14:31:05.1234Z"
         with self.assertRaises(zmeta_compact.CompactUnrepresentableError) as ctx:
-            zmeta_compact.verify_representable(millis)
+            zmeta_compact.verify_representable(sub_ms)
         self.assertIn("$.event.ts", str(ctx.exception))
 
     def test_gateway_encode_message_compact_refuses_v1_1(self):
@@ -162,6 +162,200 @@ class CompactFailClosedTest(unittest.TestCase):
         )
         self.assertTrue(ok, violations)
         self.assertEqual([], violations)
+
+    # --- declared representation normalizations (post-fix verification) ----
+    # The wave-1 check compared byte-wise, which refused schema-valid events
+    # from conforming producers: the uuid pattern admits uppercase hex and
+    # utcDateTime admits fractional seconds. Both bladeRF real-capture
+    # fixtures (millisecond timestamps) were refused by their own repo.
+
+    def _v1_0_state(self, **event_overrides):
+        event = json.loads(
+            (ROOT / "examples" / "encoding-roundtrip.jsonl")
+            .read_text(encoding="utf-8")
+            .splitlines()[0]
+        )
+        self.assertEqual(event["zmeta_version"], "1.0")
+        event["event"].update(event_overrides)
+        return event
+
+    def test_uppercase_uuid_is_representable_and_decodes_canonical(self):
+        event = self._v1_0_state()
+        lower = event["event"]["event_id"]
+        upper = self._v1_0_state(event_id=lower.upper())
+        self.assertEqual(list(self.validator.iter_errors(upper)), [])
+
+        restored = zmeta_compact.loads(zmeta_compact.dumps(upper))
+        # Same UUID, RFC 4122 canonical lowercase form on the wire.
+        self.assertEqual(restored["event"]["event_id"], lower)
+        self.assertEqual(list(self.validator.iter_errors(restored)), [])
+
+    def test_millisecond_timestamps_are_representable(self):
+        for ts in ("2025-02-01T12:00:00.000Z", "2025-02-01T12:00:00.876Z"):
+            with self.subTest(ts=ts):
+                event = self._v1_0_state(ts=ts)
+                self.assertEqual(list(self.validator.iter_errors(event)), [])
+                restored = zmeta_compact.loads(zmeta_compact.dumps(event))
+                # Same instant, re-formatted at the declared resolution.
+                self.assertEqual(
+                    zmeta_compact._instant(restored["event"]["ts"]),
+                    zmeta_compact._instant(ts),
+                )
+
+    def test_shipped_mapping_pack_expected_events_are_representable(self):
+        packs = sorted((ROOT / "adapters" / "mapping-packs").glob("*/tests/*/expected.json"))
+        packs += sorted((ROOT / "adapters" / "mapping-packs").glob("*/tests/expected.json"))
+        checked = 0
+        for path in packs:
+            payload = json.loads(path.read_text(encoding="utf-8"))
+            for event in payload if isinstance(payload, list) else [payload]:
+                if not isinstance(event, dict) or event.get("zmeta_version") != "1.0":
+                    continue
+                with self.subTest(pack=path.relative_to(ROOT).as_posix()):
+                    zmeta_compact.verify_representable(event)
+                checked += 1
+        self.assertGreaterEqual(checked, 3, "mapping-pack expected-event corpus shrank")
+
+    def test_sub_millisecond_precision_is_still_refused(self):
+        event = self._v1_0_state(ts="2025-02-01T12:00:00.1234Z")
+        with self.assertRaises(zmeta_compact.CompactUnrepresentableError) as ctx:
+            zmeta_compact.verify_representable(event)
+        self.assertIn("$.event.ts", str(ctx.exception))
+
+    def test_non_finite_floats_are_refused_through_real_serialization(self):
+        # Verification runs through encode->bytes->decode; an in-memory
+        # comparison would pass NaN because container equality
+        # short-circuits on object identity.
+        for bad in (float("nan"), float("inf")):
+            with self.subTest(value=repr(bad)):
+                event = self._v1_0_state()
+                event.setdefault("payload", {}).setdefault("extensions", {})[
+                    "vendor"
+                ] = {"snr_db": bad}
+                with self.assertRaises(zmeta_compact.CompactUnrepresentableError) as ctx:
+                    zmeta_compact.verify_representable(event)
+                self.assertIn("$.payload.extensions.vendor.snr_db", str(ctx.exception))
+
+    def test_wire_output_is_always_canonical_json_serializable(self):
+        for name, event in _all_v1_0_example_events():
+            with self.subTest(corpus=name):
+                decoded = zmeta_compact.loads(zmeta_compact.dumps(event))
+                json.dumps(decoded, allow_nan=False)
+
+    def test_bool_never_matches_numeric_equivalent(self):
+        self.assertIsNotNone(zmeta_compact._semantic_difference(True, 1))
+        self.assertIsNotNone(zmeta_compact._semantic_difference(0, False))
+        self.assertIsNone(zmeta_compact._semantic_difference(True, True))
+
+    # --- gateway recovery ladder must never raise --------------------------
+
+    def test_gateway_recovery_never_raises_when_diagnostic_inherits_defect(self):
+        # The diagnostic copies the original's event_id into
+        # metrics.original_event_id, so a value that made the original
+        # unrepresentable can make the diagnostic unrepresentable too. The
+        # ladder must fall back to the UNKNOWN sentinel, never propagate.
+        settings = {
+            "output_encoding": "compact",
+            "stamp_contract_hash": False,
+            "profile": "H",
+        }
+        poisoned = self._v1_0_state(ts="2025-02-01T12:00:00.1234Z")
+
+        payload, emitted = gateway._encode_outgoing_or_diagnostic(
+            poisoned,
+            settings,
+            contract_hashes=None,
+            should_stamp_profile=False,
+            metrics=None,
+        )
+
+        self.assertIsNotNone(payload, "recovery ladder produced no payload")
+        self.assertEqual(emitted["event"]["event_subtype"], "SCHEMA_VIOLATION")
+        self.assertEqual(
+            emitted["payload"]["metrics"]["reason_code"], "ENCODING_UNSUPPORTED"
+        )
+        decoded = zmeta_compact.loads(payload)
+        self.assertEqual(decoded["payload"]["metrics"]["reason_code"], "ENCODING_UNSUPPORTED")
+        self.assertEqual(list(self.validator.iter_errors(emitted)), [])
+
+    def test_gateway_recovery_falls_back_to_unknown_sentinel_rung(self):
+        # Force the first diagnostic rung to fail so the terminal rung (no
+        # original -> UNKNOWN correlation sentinel, zero caller-controlled
+        # content) is proven to work rather than assumed.
+        settings = {
+            "output_encoding": "compact",
+            "stamp_contract_hash": False,
+            "profile": "H",
+        }
+        real_encode = gateway._encode_message
+        calls = []
+
+        def flaky_encode(event, encoding):
+            calls.append(event)
+            metrics = event.get("payload", {}).get("metrics", {})
+            # Only the terminal rung (UNKNOWN sentinel) is allowed to encode:
+            # the original and the diagnostic that inherits its event_id both
+            # fail, exactly as an inherited unrepresentable value behaves.
+            if metrics.get("original_event_id") == "UNKNOWN":
+                return real_encode(event, encoding)
+            raise zmeta_compact.CompactUnrepresentableError("forced: inherited defect")
+
+        with mock.patch.object(gateway, "_encode_message", flaky_encode):
+            payload, emitted = gateway._encode_outgoing_or_diagnostic(
+                self._v1_0_state(),
+                settings,
+                contract_hashes=None,
+                should_stamp_profile=False,
+                metrics=None,
+            )
+
+        self.assertIsNotNone(payload, "terminal fallback rung failed to encode")
+        self.assertEqual(emitted["payload"]["metrics"]["original_event_id"], "UNKNOWN")
+        self.assertEqual(
+            emitted["payload"]["metrics"]["reason_code"], "ENCODING_UNSUPPORTED"
+        )
+        self.assertEqual(list(self.validator.iter_errors(emitted)), [])
+        self.assertGreaterEqual(len(calls), 3, "ladder did not exhaust both rungs")
+
+    def test_gateway_recovery_returns_none_instead_of_raising_when_all_rungs_fail(self):
+        settings = {
+            "output_encoding": "compact",
+            "stamp_contract_hash": False,
+            "profile": "H",
+        }
+
+        def always_fails(event, encoding):
+            raise zmeta_compact.CompactUnrepresentableError("forced: nothing encodable")
+
+        with mock.patch.object(gateway, "_encode_message", always_fails):
+            payload, emitted = gateway._encode_outgoing_or_diagnostic(
+                self._v1_0_state(),
+                settings,
+                contract_hashes=None,
+                should_stamp_profile=False,
+                metrics=None,
+            )
+
+        # The receive loop drops the datagram; it must never terminate.
+        self.assertIsNone(payload)
+        self.assertIsNotNone(emitted)
+
+    def test_gateway_recovery_passes_through_representable_events(self):
+        settings = {
+            "output_encoding": "compact",
+            "stamp_contract_hash": False,
+            "profile": "H",
+        }
+        event = self._v1_0_state()
+        payload, emitted = gateway._encode_outgoing_or_diagnostic(
+            event,
+            settings,
+            contract_hashes=None,
+            should_stamp_profile=False,
+            metrics=None,
+        )
+        self.assertIsNotNone(payload)
+        self.assertEqual(emitted, event)
 
     def test_command_original_stays_schema_violation_when_forced(self):
         command = {
