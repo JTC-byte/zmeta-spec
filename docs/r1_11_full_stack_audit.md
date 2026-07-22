@@ -275,3 +275,32 @@ confidence check — second Class B code batch); (6) release machinery
 verification audit, release-cut decision. R11-22 stands as the governed
 deferral (registration entry point stays queued, handoff item 1a). The
 worklog fix-pass entries record execution.
+
+## Cycle outcome (2026-07-21)
+
+The disposition was executed in full: seven dependency-ordered waves,
+committed at wave boundaries with the full kernel gate, strict examples,
+and full pytest green at every boundary (`74d92e1` compact fail-closed;
+`88b527e` SAPIENT honesty; `e3203ad` signalhunter/templates; `545fe0b`
+checking machinery; `c1eb9d0` semantics + Class B warn batch; `33230af`
+release machinery; `05ad9a8` doc currency/teaching). Findings closed:
+R11-01 through R11-21 and R11-23/R11-25 (R11-22 governed deferral;
+R11-24 cleared by the maintainer). Three discoveries made DURING the fix
+pass, each pinned by test: the audit's NaN probes had not reached the
+`native_classification` verbatim block (the wave-2 test caught NaN
+surviving there and poisoning RFC-8259 serialization of the whole event);
+`validate_release_package` machine-enforced the stale "D-003 OPEN" claim
+("known_open_issues must include D-003"), the root cause of R11-14's
+four-release survival; and the compact self-check surfaced the honest
+`.000Z` timestamp-normalization refusal case. Enforcement growth across
+the cycle: pytest 687+172 → 742+237, bad-events 27 → 29, adapter harness
+39 → 40 (now self-linted in the gate), four governed diagnostic codes
+(ENCODING_UNSUPPORTED, BEARING_FRAME_UNLABELED, NON_FINITE_CONFIDENCE,
+POLICY_PRODUCER_AUTHORITY_STRUCTURE — the last policy-lint-side only),
+two validator formal-status codes, and currency pins over the body/
+worked-command surfaces that had escaped one-line pins. Per the AGENTS.md
+divergence rule this pass added: the fix-pass regens leave current main
+diverged from the published v1.1.16 SHA256SUMS manifest/package pins
+(published checksums immutable; resolution is the next release cut). The
+post-fix verification audit and the release-cut decision follow; its
+outcome is recorded in the worklog.

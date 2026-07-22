@@ -1,5 +1,59 @@
 # Changelog
 
+## [Unreleased]
+- R1-11 full stack audit (findings record
+  `docs/r1_11_full_stack_audit.md`: 1 MAJOR, 11 MODERATE, 4 MINOR,
+  3 DOC, 6 second-glance items; every substantive finding adversarially
+  verified, zero refuted) and its maintainer-directed fix pass, executed
+  in seven waves:
+  - Compact encoding fails closed (R11-01 MAJOR): `zmeta_compact.dumps`
+    refuses any event it cannot round-trip byte-identically (previously
+    it silently relabeled v1.1.0 events as locked-v1.0 and destroyed
+    `geo.error_ellipse_m` — a live-witnessed laundering bypass of the
+    default gateway schema gate); the gateway replaces an
+    unrepresentable outgoing event with an in-band `ENCODING_UNSUPPORTED`
+    diagnostic; the compact spec gains the fail-closed Scope section.
+  - SAPIENT adapter honesty (R11-02/-03/-04/-12/-20): state egress fails
+    closed on unknown/local `policy_decision` labels (filter_risk
+    parity) and keeps use restrictions visible on accepted records;
+    TaskAck refuses null correlations instead of fabricating "None";
+    non-finite numbers refuse at every canonical guard and are dropped
+    from native pass-through blocks; fusion promotion allowlists caller
+    keys; egress projections honor their documented None-refusal.
+  - signalhunter GPS no-lock (R11-06): a (0, 0) header never seeds the
+    gradient tracker (previously produced a null-island geodesic
+    asserted TRUE_NORTH passing strict-H clean); fabricated dead
+    `alt_m: 0.0` removed from GPS-fill frames.
+  - Promotion verdict honesty (R11-07): the self-asserted `loop_status`
+    default is removed from the cot/jreap/mavlink templates — the
+    reflection verdict must arrive message-carried (contract 4.5.1).
+  - Checking machinery (R11-05/-08/-09): the harness lints its own
+    corpus (typo'd expectation keys fail instead of no-op), events-kind
+    fixtures require a count pin, and the sapient-ingress promotion
+    policy block gains bad-events, pytest, and structural-lint negative
+    coverage; published-checksum immutability gains a pytest pin.
+  - Governed diagnostic vocabulary (Class B, both schema `reason_code`
+    enums + policy): `ENCODING_UNSUPPORTED` (fail),
+    `BEARING_FRAME_UNLABELED` (warn — the recorded R1-11 candidate:
+    canonical bearings without frame provenance are now
+    machine-visible), `NON_FINITE_CONFIDENCE` (fail).
+  - Release machinery honesty (R11-10/-14/-16): formal manifests no
+    longer self-describe as non-formal and must carry a real branch
+    (validator-enforced); the stale hardcoded "D-003 OPEN" register
+    claim is retired everywhere it was produced INCLUDING the package
+    validator that machine-enforced it; release-hash-policy states the
+    achievable commit-provenance rule; AGENTS.md records the
+    post-release manifest-divergence rule.
+  - Doc currency + teaching (R11-11/-15/-17/-18/-19/-23/-25): stale
+    version claims fixed and machine-pinned (overview body, handoff,
+    worked commands); AUTHORING.md teaches the sapient/bladerf pack
+    patterns; contract 5.3 states the `last_sync_ts`/`sync_state`
+    honest-reading rule; the two teaching examples with unlabeled
+    bearings now model both frame-provenance channels.
+  - Corpora and enforcement growth: bad-events 27 -> 29, adapter
+    harness 39 -> 40 (all fixtures now schema-linted in the gate),
+    pytest 687 -> 742 (+237 subtests).
+
 ## [1.1.16] - 2026-07-21
 - External contribution (PR #7, bkershner-torch): mapping pack
   `adapters/mapping-packs/edge-comms-bladerf/` — two real bladeRF /

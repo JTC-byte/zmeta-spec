@@ -4,17 +4,22 @@
 
 - Last updated: 2026-07-21
 - Quick handoff: `docs/zmeta_refinement_handoff.md`
-- Current state (2026-07-21, third closeout): the **R1-11 full stack
-  audit is COMPLETE** — findings record
-  `docs/r1_11_full_stack_audit.md` (1 MAJOR / 11 MODERATE / 4 MINOR /
-  3 DOC / 6 second-glance items; every substantive finding
-  adversarially verified, zero refuted; all R1-10 and 2026-07-01
-  fixes re-verified holding; release + commit-truth for the whole
-  v1.1.15/v1.1.16 stretch verified down to published asset digests).
-  **Maintainer disposition PENDING** — the fix-pass decision is the
-  next input (R1-11 entry below). P1-08 (PR #7 edge-comms-bladerf
-  external corpus) was previously completed and cut as **v1.1.16**;
-  prior closeout state follows.
+- Current state (2026-07-21, fourth closeout): the **R1-11 cycle fix
+  pass is COMPLETE** — maintainer directed "fix them and work down
+  that list" (R11-24 bladerf disclosure cleared as-is); all seven
+  waves executed and committed (fix-pass entry below; findings record
+  `docs/r1_11_full_stack_audit.md` carries the disposition + cycle
+  outcome). Full battery green at every wave boundary; final: kernel
+  gate all flags (bad-events 29, harness 40), examples 51/51, pytest
+  742+237 zero failures. **Post-release divergence record (per the
+  new AGENTS.md rule): the fix-pass commits regenerate the manifest
+  and package under the v1.1.16 identity, so current main diverges
+  from the published v1.1.16 SHA256SUMS manifest/package pins;
+  published checksums stay immutable; resolution is the next release
+  cut.** NEXT: the post-fix verification audit (R1-10 precedent),
+  then the maintainer release-cut decision (v1.1.17 recommended —
+  the pass includes a MAJOR honesty fix and two Class B vocabulary
+  batches). Prior closeout state follows.
 - Previous state (2026-07-21, first closeout): the SAPIENT lane is
   FULLY CLOSED — P1-07 mapping pack + reference adapters, the end-to-end
   wire validation against official Dstl tooling (PASSED; ULID findings
@@ -42,8 +47,51 @@
   session-limit interruption recovery (resume with verify-and-complete
   prompts + a dedicated interruption-integrity review) left zero
   half-done state, twice validated as a working pattern.
+- R1-11 fix pass (2026-07-21): **ALL SEVEN WAVES COMPLETE** under the
+  maintainer directive "give me a list... then lets work down that
+  list" (R11-24 bladerf disclosure inventory cleared: "the bladerf
+  stuff is good"). Wave -> commit map: (1) `74d92e1` compact
+  fail-closed (R11-01 MAJOR; verify_representable self-check, gateway
+  ENCODING_UNSUPPORTED in-band diagnostic, spec Scope section, CLI
+  refusal; live UDP re-probe shows the diagnostic on the wire where
+  the laundered STATE used to be); (2) `88b527e` SAPIENT adapter
+  honesty (R11-02/-03/-04/-12/-20; sapient suites 117 -> 133 — the
+  new NaN test caught a residual the audit probes missed:
+  native_classification carried NaN verbatim, poisoning RFC-8259
+  serialization; fixed with _drop_non_finite on native blocks);
+  (3) `e3203ad` signalhunter no-lock + three-template loop_status
+  (R11-06/-07; harness fixtures now pin the message-carried verdict
+  VALUE); (4) `545fe0b` checking machinery (R11-05/-08/-09 + the
+  SHA256SUMS immutability pytest pin; bad-events 27 -> 29, harness
+  self-lints its corpus); (5) `c1eb9d0` machine-encoded semantics
+  (R11-13/-21 + R11-04 validator side; Class B batch
+  BEARING_FRAME_UNLABELED warn + NON_FINITE_CONFIDENCE fail, both
+  enums, sanctioned); (6) `33230af` release machinery
+  (R11-10/-14/-16; root-cause find during the fix:
+  validate_release_package MACHINE-ENFORCED the stale "D-003 OPEN"
+  claim — "known_open_issues must include D-003" — which is why it
+  survived four releases; replaced with an attestation-mirrors-
+  manifest check); (7) `05ad9a8` doc currency + teaching
+  (R11-11/-15/-17/-18/-19/-23/-25; currency test extended to the
+  body/worked-command surfaces that escaped one-line pins; contract
+  5.3 last_sync_ts reading rule, Class B). Wave 1 additionally
+  recorded the ENCODING_UNSUPPORTED Class B addition; wave 1's
+  strict round-trip equality also surfaced the honest ".000Z"
+  ts-normalization refusal case (pinned in tests). Not fixed by
+  design: R11-22 (governed deviation, registration entry point stays
+  queued in handoff 1a); R11-24 (cleared). **Divergence record (per
+  the AGENTS.md rule this pass added): waves 1/3/4/5/6/7 regenerate
+  the manifest/claims (and waves 6/7 the release package) under the
+  v1.1.16 identity — current main diverges from the published
+  v1.1.16 SHA256SUMS manifest/package pins; published checksums are
+  immutable; resolution is the next release cut.** Validation at
+  every wave boundary and final: kernel gate all flags green,
+  examples 51/51 strict, pytest 687+172 -> 742+237 zero failures,
+  git diff --check clean. Post-fix verification audit and the
+  release-cut decision follow.
 - R1-11 (2026-07-21): **FULL STACK AUDIT COMPLETE — findings record
-  `docs/r1_11_full_stack_audit.md`, maintainer disposition PENDING.**
+  `docs/r1_11_full_stack_audit.md`, maintainer disposition RECORDED
+  (fix pass directed and executed; see the fix-pass entry above).**
   Audited tree `09118b3`, strictly read-only. Method: green baseline
   (kernel gate all flags, examples 51/51, pytest 687+172 zero
   failures), then seven independent finder lenses (SAPIENT pack
