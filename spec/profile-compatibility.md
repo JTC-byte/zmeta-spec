@@ -35,7 +35,10 @@ wire encodings, and reference producer allowlists. The authoritative rules live 
 | `proto` | Experimental encoding | Typed envelope projection for services, queues, and gRPC-style integration. |
 
 All encodings must decode to the same ZMeta JSON event and pass the same schema
-and policy validation. Encoding choice does not change event semantics.
+and policy validation. Encoding choice does not change event semantics. Where
+an encoding cannot represent an event losslessly (the compact mapping encodes
+locked-v1.0 events only), the encoder MUST refuse rather than reduce — see
+`spec/compact-binary-mapping.md` Scope.
 
 ## Projection Preservation
 

@@ -719,6 +719,13 @@ def _require_compact():
         raise SystemExit("Compact encoding requires zmeta_compact.")
 
 
+# Exception tuple for except-clauses that must not reference zmeta_compact
+# when the optional module is absent (an empty tuple matches nothing).
+_COMPACT_UNREPRESENTABLE = (
+    (zmeta_compact.CompactUnrepresentableError,) if zmeta_compact is not None else ()
+)
+
+
 def _require_proto():
     if zmeta_proto is None:
         raise SystemExit("Protobuf encoding requires zmeta_proto.")
@@ -811,6 +818,7 @@ def _encode_message(event, output_encoding):
         return _encode_cbor(event)
     if output_encoding == "compact":
         _require_compact()
+        zmeta_compact.verify_representable(event)
         compact_obj = zmeta_compact.encode_event(event)
         return _encode_cbor(compact_obj)
     if output_encoding == "proto":
@@ -1244,12 +1252,15 @@ def _attach_contract_hash(metrics, contract_hashes=None, stamp_contract_hash=Fal
         metrics["semantics_hash"] = contract_hashes.get("semantics_hash")
 
 
-def build_violation_event(reason_code, original=None, details=None, contract_hashes=None, stamp_contract_hash=False):
+def build_violation_event(reason_code, original=None, details=None, contract_hashes=None, stamp_contract_hash=False, force_schema_violation=False):
     original_event = original.get("event", {}) if isinstance(original, dict) else {}
     original_source = original.get("source", {}) if isinstance(original, dict) else {}
     original_payload = original.get("payload", {}) if isinstance(original, dict) else {}
 
-    is_command = original_event.get("event_type") == "COMMAND_EVENT"
+    # force_schema_violation keeps wire-level diagnostics (e.g.
+    # ENCODING_UNSUPPORTED) out of the TASK_ACK shape, whose reason_code
+    # vocabulary is deliberately task-limited.
+    is_command = (not force_schema_violation) and original_event.get("event_type") == "COMMAND_EVENT"
     event_subtype = "TASK_ACK" if is_command else "SCHEMA_VIOLATION"
     system_type = "TASK_ACK" if is_command else "SCHEMA_VIOLATION"
 
@@ -1857,7 +1868,28 @@ def main():
                 )
                 if should_stamp_profile:
                     outgoing["profile"] = settings["profile"]
-            payload = _encode_message(outgoing, settings["output_encoding"])
+            try:
+                payload = _encode_message(outgoing, settings["output_encoding"])
+            except _COMPACT_UNREPRESENTABLE as exc:
+                if metrics:
+                    event_block = outgoing.get("event", {}) if isinstance(outgoing, dict) else {}
+                    source = outgoing.get("source", {}) if isinstance(outgoing, dict) else {}
+                    metrics.record_violation(
+                        "ENCODING_UNSUPPORTED",
+                        event_id=event_block.get("event_id"),
+                        producer=source.get("producer") if isinstance(source, dict) else None,
+                    )
+                outgoing = build_violation_event(
+                    "ENCODING_UNSUPPORTED",
+                    original=outgoing,
+                    details={"error": str(exc)},
+                    contract_hashes=contract_hashes,
+                    stamp_contract_hash=settings["stamp_contract_hash"],
+                    force_schema_violation=True,
+                )
+                if should_stamp_profile:
+                    outgoing["profile"] = settings["profile"]
+                payload = _encode_message(outgoing, settings["output_encoding"])
             event_block = outgoing.get("event", {}) if isinstance(outgoing, dict) else {}
             source_block = outgoing.get("source", {}) if isinstance(outgoing, dict) else {}
             _check_datagram_size(

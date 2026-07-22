@@ -256,6 +256,22 @@ time, so the false-alarm mass was removed before verification.
 - Zero pytest skip/xfail markers in gateway/tests; working tree byte-clean
   after every lens pass (read-only compliance verified).
 
-## Maintainer disposition
+## Maintainer disposition (2026-07-21)
 
-Pending — recorded in the worklog R1-11 entry when directed.
+Recorded direction: **fix the findings and work down the list.** The R11-24
+bladerf disclosure inventory is cleared as-is ("the bladerf stuff is good" —
+no scrubbing). The fix pass runs in dependency-ordered waves with disjoint
+file ownership and a full-gate commit at each boundary (the R1-10 pattern):
+(1) R11-01 compact fail-closed (encoder refusal + gateway ENCODING_UNSUPPORTED
+diagnostic + spec scope, incl. the sanctioned Class B diagnostic-code
+addition to both schema enums); (2) SAPIENT adapter honesty (R11-02, -03,
+-04, -12, -20); (3) signalhunter no-lock + the three-template loop_status
+defaults (R11-06, -07); (4) checking machinery (R11-05, -08, -09 + the
+SHA256SUMS immutability pytest pin); (5) machine-encoded semantics (R11-13
+example fixes, then the R11-21 bearing-frame warn-check + non-finite
+confidence check — second Class B code batch); (6) release machinery
+(R11-10, -14, -16); (7) doc currency + teaching surfaces (R11-11, -15, -17,
+-18, -19, -23 advisory, -25); (8) governed regeneration, post-fix
+verification audit, release-cut decision. R11-22 stands as the governed
+deferral (registration entry point stays queued, handoff item 1a). The
+worklog fix-pass entries record execution.

@@ -1726,6 +1726,7 @@
                       "INVALID_MODALITY_FEATURES",
                       "INVALID_GEO_FIELD",
                       "GEO_ZERO_FILL_SUSPECTED",
+                      "ENCODING_UNSUPPORTED",
                       "INVALID_TIME_FORMAT",
                       "RF_WINDOW_PAIRING_INVALID",
                       "RF_WINDOW_MIDPOINT_INVALID",

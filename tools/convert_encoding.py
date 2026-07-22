@@ -158,7 +158,10 @@ def main() -> None:
     args = parse_args()
     data = read_input(args.input, args.source_encoding)
     event = decode_event(data, args.source_encoding, args.allow_jsonl_first)
-    out = encode_event(event, args.target_encoding, args.pretty)
+    try:
+        out = encode_event(event, args.target_encoding, args.pretty)
+    except zmeta_compact.CompactUnrepresentableError as exc:
+        raise SystemExit(f"conversion refused: {exc}")
     write_output(args.output, out, args.target_encoding)
 
 

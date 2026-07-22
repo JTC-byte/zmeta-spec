@@ -4,6 +4,21 @@ This document defines an optional **compact wire encoding** for Profile L links.
 It preserves ZMeta semantics by expanding to the canonical JSON envelope before validation
 and downstream translation (e.g., CoT/TAK).
 
+## Scope: locked v1.0 events only, fail closed
+
+The compact wire has **no `zmeta_version` key** and enumerated field tables;
+decoding always yields a `zmeta_version: "1.0"` envelope. That stamp is honest
+only because encoding is **fail closed**: encoders MUST refuse any event that
+is not `zmeta_version "1.0"` or that would not expand back to a byte-identical
+canonical envelope (reference: `zmeta_compact.verify_representable`, raising
+`CompactUnrepresentableError`). Silently dropping fields or relabeling a
+versioned event to "1.0" is prohibited — it would launder experimental-branch
+vocabulary into the locked namespace and destroy uncertainty labels (e.g.
+`geo.error_ellipse_m`). Events outside compact's representable set MUST travel
+on a version-preserving encoding (`json`, `cbor`, `proto`); the reference
+gateway replaces an unrepresentable outgoing event with an
+`ENCODING_UNSUPPORTED` SCHEMA_VIOLATION diagnostic rather than reducing it.
+
 ## Purpose
 
 Profile L links are bandwidth-constrained. The compact mapping reduces overhead by:
@@ -198,7 +213,9 @@ intentionally sent the string key `"99"`.
 
 - The compact mapping is **wire-level only**.
 - Gateways must expand compact packets into the canonical JSON schema before validation.
-- Semantics are unchanged; only field names and primitive representations are compacted.
+- Semantics are unchanged; only field names and primitive representations are
+  compacted. This holds because encoding is fail closed (see Scope above):
+  an event the mapping cannot represent losslessly is refused, never reduced.
 - Profile projection preservation tests round-trip selected Profile L projected
   events through compact CBOR and compare the decoded JSON against the
   source/projected conformance fixture. Compact CBOR remains an encoding

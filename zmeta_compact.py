@@ -1,8 +1,12 @@
 """
 Compact binary mapping for ZMeta (CBOR + integer keys).
 
-This module provides a lossless compact wire format intended for Profile L links.
-It preserves semantics by expanding back to the canonical JSON envelope.
+This module provides a fail-closed compact wire format intended for Profile L
+links. It encodes only zmeta_version "1.0" events, and only those it can
+expand back to a byte-identical canonical JSON envelope; anything else is
+refused with CompactUnrepresentableError rather than silently reduced. The
+compact wire therefore carries locked-v1.0 semantics by definition, and
+decode's "1.0" stamp is honest for every packet this encoder can produce.
 """
 
 from __future__ import annotations
@@ -289,7 +293,56 @@ def _require_cbor():
         raise SystemExit("CBOR support requires cbor2 or zmeta_cbor.")
 
 
+class CompactUnrepresentableError(ValueError):
+    """Raised when an event cannot be encoded to compact without loss."""
+
+
+def _first_difference(original: Any, restored: Any, path: str = "$") -> str:
+    if isinstance(original, dict) and isinstance(restored, dict):
+        for key in original:
+            if key not in restored:
+                return f"{path}.{key} (dropped by compact encoding)"
+        for key in restored:
+            if key not in original:
+                return f"{path}.{key} (introduced by compact decoding)"
+        for key in original:
+            if original[key] != restored[key]:
+                return _first_difference(original[key], restored[key], f"{path}.{key}")
+        return path
+    if isinstance(original, list) and isinstance(restored, list):
+        if len(original) != len(restored):
+            return f"{path} (length {len(original)} != {len(restored)})"
+        for idx, (a, b) in enumerate(zip(original, restored)):
+            if a != b:
+                return _first_difference(a, b, f"{path}[{idx}]")
+        return path
+    return f"{path} ({original!r} != {restored!r})"
+
+
+def verify_representable(event: Dict[str, Any]) -> None:
+    """Refuse any event the compact mapping cannot round-trip losslessly.
+
+    The compact wire has no zmeta_version key and enumerated field tables, so
+    encoding is only honest when decode reproduces the event exactly. Callers
+    on egress paths MUST invoke this (dumps() does) so unrepresentable
+    content is refused instead of silently reduced and relabeled "1.0".
+    """
+    version = event.get("zmeta_version") if isinstance(event, dict) else None
+    if version != "1.0":
+        raise CompactUnrepresentableError(
+            f"compact encodes zmeta_version '1.0' events only, got {version!r}; "
+            "use a version-preserving encoding (json/cbor/proto)"
+        )
+    restored = decode_event(encode_event(event))
+    if restored != event:
+        raise CompactUnrepresentableError(
+            "compact encoding would lose or alter content at "
+            f"{_first_difference(event, restored)}; refusing lossy encode"
+        )
+
+
 def dumps(event: Dict[str, Any]) -> bytes:
+    verify_representable(event)
     compact = encode_event(event)
     _require_cbor()
     if zmeta_cbor is not None:
