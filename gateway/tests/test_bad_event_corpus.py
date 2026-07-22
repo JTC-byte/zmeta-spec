@@ -79,15 +79,20 @@ def test_bad_event_bearing_frame_fixture_fails_for_frame_label_only():
     assert frame_errors, "expected a violation at payload.bearing.frame"
     assert any("TRUE_NORTH" in sub.message for sub in frame_errors)
 
-    # The same event with the mislabeled frame corrected (or removed) is clean,
-    # proving the frame label is the only cause of rejection.
+    # The same event with the mislabeled frame corrected (or removed) is
+    # not rejected, proving the frame label is the only cause of rejection.
     state = validate_bad_events.validators.ValidationState()
     event["payload"]["bearing"]["frame"] = "TRUE_NORTH"
     assert validate_bad_events._run_checks(event, "H", policy, schema, state) == []
 
     state = validate_bad_events.validators.ValidationState()
     del event["payload"]["bearing"]["frame"]
-    assert validate_bad_events._run_checks(event, "H", policy, schema, state) == []
+    issues = validate_bad_events._run_checks(event, "H", policy, schema, state)
+    # Removing the label clears the rejection; the only residue is the
+    # R1-11 frame-provenance WARN (contract 6.4 tolerates legacy-unlabeled
+    # bearings, so the event stays accepted with the gap made visible).
+    assert [issue for issue in issues if issue["severity"] != "warn"] == []
+    assert [issue["code"] for issue in issues] == ["BEARING_FRAME_UNLABELED"]
 
 
 def test_conformance_runner_bad_events_flag_exits_success():

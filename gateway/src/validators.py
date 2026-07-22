@@ -1,4 +1,5 @@
 import json
+import math
 from fnmatch import fnmatchcase
 from datetime import datetime, timezone
 from pathlib import Path
@@ -1774,6 +1775,53 @@ def validate_semantics(event, semantics_policy, severity_map=None):
                         severity_map=severity_map,
                     )
                 )
+
+    # Contract 6.4 frame-provenance heuristic (warn only, never reject): a
+    # canonical bearing with no frame provenance in either channel
+    # (bearing.frame or quality.bearing_frame) passes every hard gate, yet
+    # a mislabeled magnetic bearing consumed as true north is silent
+    # geolocation corruption. v1.0 tolerates legacy-unlabeled bearings, so
+    # warn is the ceiling - this makes the assertively-labeled vs
+    # legacy-unlabeled distinction machine-visible (R1-11 R11-21).
+    if isinstance(payload, dict):
+        bearing = payload.get("bearing")
+        if isinstance(bearing, dict) and bearing.get("az_deg") is not None:
+            quality_block = payload.get("quality")
+            if not isinstance(quality_block, dict):
+                quality_block = {}
+            if "frame" not in bearing and "bearing_frame" not in quality_block:
+                warnings.append(
+                    _violation(
+                        "BEARING_FRAME_UNLABELED",
+                        "canonical bearing carries no frame provenance "
+                        "(bearing.frame or quality.bearing_frame) - contract 6.4 "
+                        "frame assertion missing",
+                        details={"path": "payload.bearing"},
+                        severity_map=severity_map,
+                    )
+                )
+
+    # Contract 8.1 confidence honesty: jsonschema min/max comparisons are
+    # vacuous against NaN, so a non-finite confidence validates clean at
+    # the schema layer while carrying no claim at all - fail it here
+    # (R1-11 R11-04, validator side).
+    confidence_candidates = [("confidence", event.get("confidence"))]
+    if isinstance(payload, dict):
+        claim_block = payload.get("claim")
+        if isinstance(claim_block, dict):
+            confidence_candidates.append(
+                ("payload.claim.confidence", claim_block.get("confidence"))
+            )
+    for conf_path, conf_value in confidence_candidates:
+        if isinstance(conf_value, float) and not math.isfinite(conf_value):
+            return False, [
+                _violation(
+                    "NON_FINITE_CONFIDENCE",
+                    "confidence must be a finite number in [0, 1]; NaN/inf is not an honest claim",
+                    details={"field": conf_path},
+                    severity_map=severity_map,
+                )
+            ]
 
     if event_type == "OBSERVATION_EVENT":
         forbidden = semantics_policy.get("observation_event", {}).get("payload_must_not_contain", [])
