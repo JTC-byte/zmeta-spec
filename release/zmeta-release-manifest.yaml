@@ -26,10 +26,10 @@ encoding_negative_suite_hash: sha256:d36e2109e535fde0dd191b92fd3a7dbd07839ce3539
 profile_precision_policy_hash: sha256:a2f51cf5f0779c43ae4118b941524fb14783181c739e693befd146f8c44a1139
 bad_event_corpus_hash: sha256:67fc7035c82c8bbd96c17670e52f09599216595b9a50033d5494ae658732fd1c
 adapter_conformance_hash: sha256:1f6982e138d4b86843afa7220b249cf5fd80f0ca66cd7d8461ce3c7e9edaa4ce
-encoding_projection_specs_hash: sha256:b21c86f100fd15ae9ba6fe5bbfca57fd20efb6048fdf8d77a80a3f2cc79098c4
+encoding_projection_specs_hash: sha256:1ee2a27513ffc50e0fb4a6acc6f4a734de4d59c9ddb68e32d6a128c5afcc273b
 process_governance_hash: sha256:8e1776cf2f6278fe9f7fd2f101774c1f0939de238b3daecff88755e584fb55b5
-release_bundle_hash: sha256:79b7f18c31c0315ca46a8531bdde37245cb1c87452b55b52183a0bb1b4345d1b
-release_manifest_hash: sha256:246b28ddeab787e7c373e9facf75c35100f70f2fb0c540d6fbb3fbf3c1142f10
+release_bundle_hash: sha256:4424a9b3dcc26dee7ed7576d6ed6cfe8e4dcf6d6422ce58325cc423eb5fc990e
+release_manifest_hash: sha256:4f62209b5338412ebce8a47a70f0c15f0d39463b46dcfb6e440bfddce71a21ec
 artifact_hashes:
 - path: AGENTS.md
   group: process_governance
@@ -69,11 +69,11 @@ artifact_hashes:
   canonicalization: text_lf
 - path: conformance/claims/example-core-producer.yaml
   group: claims
-  hash: sha256:a1dcb731e56f950706909a933385257ba71ef95b46d8615c686a4cde6143b370
+  hash: sha256:92dcd6731f017c286f716095f7e1fcc59965f92c15511d0183be974434650cb4
   canonicalization: text_lf
 - path: conformance/claims/example-reference-gateway.yaml
   group: claims
-  hash: sha256:30d40deac153e7156791189d0a90db308c447e2bf6be96f5051af012017a7d58
+  hash: sha256:6f8233aba54c2350702f54bef1cdd8b08783e68fc9923cb1db05f518a32784a3
   canonicalization: text_lf
 - path: conformance/conformance_classes.yaml
   group: conformance_classes
@@ -305,7 +305,7 @@ artifact_hashes:
   canonicalization: text_lf
 - path: zmeta_compact.py
   group: encoding_projection_specs
-  hash: sha256:700ac0b29466e0dda89ac82f6f6383b863aba6abff319ee2eb663c4380f238bd
+  hash: sha256:6b06471709fcee5975bc1b204c40a8094c0a9e9eb4dc041962203a9e119561ba
   canonicalization: text_lf
 - path: zmeta_proto.py
   group: encoding_projection_specs
@@ -404,13 +404,13 @@ artifact_groups:
     - zmeta_cbor.py
     - zmeta_compact.py
     - zmeta_proto.py
-    hash: sha256:b21c86f100fd15ae9ba6fe5bbfca57fd20efb6048fdf8d77a80a3f2cc79098c4
+    hash: sha256:1ee2a27513ffc50e0fb4a6acc6f4a734de4d59c9ddb68e32d6a128c5afcc273b
   claims:
     description: Example implementation claim files for release-baseline references.
     paths:
     - conformance/claims/example-core-producer.yaml
     - conformance/claims/example-reference-gateway.yaml
-    hash: sha256:f8987e5ffd6ad4fea74ed4befbfd52e6e222d25de1159bf31d45a6baeeb4de31
+    hash: sha256:f22150fd172df89e65a596b1325aed1b3b84d24a245c79f5d36621ebe5c385b8
   release_policy:
     description: Human-readable release hash taxonomy and canonicalization policy.
     paths:

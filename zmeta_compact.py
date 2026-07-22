@@ -436,24 +436,113 @@ _CBOR_INT_MIN = -(2**64)
 _CBOR_INT_MAX = 2**64 - 1
 
 
+# Traversal modes for the explicit-stack walk below: _LEAVE marks the point
+# where a container's whole subtree has been popped, so it can come back off
+# the "currently on this path" set.
+_ENTER = object()
+_LEAVE = object()
+
+
+def _joined_path(link) -> str:
+    """Materialize a parent-linked path chain into its "$.a[0].b" form."""
+    parts = []
+    while link is not None:
+        text, link = link
+        parts.append(text)
+    parts.reverse()
+    return "".join(parts)
+
+
 def _find_unencodable_int(value: Any, path: str = "$"):
-    """First integer outside the CBOR 64-bit range, or None."""
-    if isinstance(value, bool):
-        return None
-    if isinstance(value, int):
-        if not _CBOR_INT_MIN <= value <= _CBOR_INT_MAX:
-            return f"{path} (integer {value} is outside the CBOR 64-bit range)"
-        return None
-    if isinstance(value, dict):
-        for key, item in value.items():
-            found = _find_unencodable_int(item, f"{path}.{key}")
-            if found is not None:
-                return found
-    elif isinstance(value, list):
-        for index, item in enumerate(value):
-            found = _find_unencodable_int(item, f"{path}[{index}]")
-            if found is not None:
-                return found
+    """First integer outside the CBOR 64-bit range, or None.
+
+    Raises CompactUnrepresentableError if the structure is self-referential
+    (see the last paragraph) -- that is not an integer-range finding and does
+    not travel back through the return value.
+
+    Iterative depth-first traversal, for the same reason as
+    validators._find_forbidden_key: recursing here tied the process stack to
+    sender-controlled nesting depth, and this scan runs on the encode path
+    where the fail-closed guard lives. A deeply nested but schema-valid
+    payload therefore raised a raw RecursionError out of the public API from
+    IN FRONT of the try/except in _verified_compact_bytes whose whole job is
+    to turn that into a CompactUnrepresentableError refusal. An explicit
+    stack removes the interpreter-limit dependency instead of catching it.
+
+    Traversal order is unchanged (same pre-order walk, same first offender
+    reported). Path chains are parent-linked rather than concatenated at
+    every level, so hostile depth costs linear memory rather than quadratic
+    string building -- trading a crash for a hang is not a refusal.
+
+    The walk also has to TERMINATE. The first iterative version had neither a
+    visited set nor a bound, so a self-referential structure spun forever with
+    the heap rising -- exactly the crash-for-hang trade the paragraph above
+    forbids, made worse because the old recursive version had at least ended
+    in a RecursionError the guard converts into a refusal (R1-11 residual
+    against the A-04 wave). This is the textbook three-colour DFS:
+
+      on_path  containers on the current root->node chain (grey). A container
+               reached again while still on that chain IS a cycle.
+      scanned  containers already walked to completion (black). Re-walking one
+               cannot reveal a first offender the first walk missed -- the
+               scan returns on the first hit, so "finished without returning"
+               means the subtree is clean -- and skipping it is what keeps a
+               SHARED (acyclic) subtree from costing exponential time. CBOR
+               value-sharing tags let a few hundred wire bytes expand into a
+               structure with exponentially many paths.
+
+    A bound was the alternative and is rejected: any node budget refuses some
+    large-but-honest event, and discarding good data is not a safe default.
+    Skipping only what is provably redundant refuses nothing that is
+    representable.
+
+    A reference cycle has no finite CBOR encoding, so it is unrepresentable
+    and is refused HERE, by the mapping. Left to the backend the caller gets
+    two different reasons for one event -- zmeta_cbor raises RecursionError
+    ("nesting too deep", which names the wrong cause) and cbor2 raises
+    CBOREncodeValueError -- and which one an operator sees would depend on the
+    local install. Raising is safe: the sole production caller invokes this
+    from inside the guard's try, whose first handler re-raises
+    CompactUnrepresentableError unchanged.
+    """
+    stack = [(_ENTER, value, (path, None))]
+    on_path = set()
+    scanned = set()
+    while stack:
+        mode, current, link = stack.pop()
+        if mode is _LEAVE:
+            on_path.discard(id(current))
+            continue
+        if isinstance(current, bool):
+            continue
+        if isinstance(current, int):
+            if not _CBOR_INT_MIN <= current <= _CBOR_INT_MAX:
+                return (
+                    f"{_joined_path(link)} (integer {current} is outside the "
+                    "CBOR 64-bit range)"
+                )
+            continue
+        if not isinstance(current, (dict, list)):
+            continue
+        marker = id(current)
+        if marker in on_path:
+            raise CompactUnrepresentableError(
+                f"compact cannot encode {_joined_path(link)}: the structure "
+                "refers back to itself, and a reference cycle has no finite "
+                "CBOR encoding; use a version-preserving encoding "
+                "(json/cbor/proto)"
+            )
+        if marker in scanned:
+            continue
+        on_path.add(marker)
+        scanned.add(marker)
+        stack.append((_LEAVE, current, link))
+        if isinstance(current, dict):
+            for key, item in reversed(list(current.items())):
+                stack.append((_ENTER, item, (f".{key}", link)))
+        else:
+            for index in range(len(current) - 1, -1, -1):
+                stack.append((_ENTER, current[index], (f"[{index}]", link)))
     return None
 
 
@@ -462,6 +551,26 @@ def _encode_compact_bytes(compact: Dict[int, Any]) -> bytes:
     if zmeta_cbor is not None:
         return zmeta_cbor.dumps(compact)
     return cbor2.dumps(compact, canonical=True)
+
+
+# Every codec failure must leave _verified_compact_bytes as a refusal, and the
+# two supported backends do not agree on base classes: zmeta_cbor raises
+# built-ins, while cbor2's CBOREncodeError / CBORDecodeError descend from
+# CBORError -> Exception and are NOT ValueError subclasses. Naming only the
+# built-ins let a cbor2 install raise a raw CBORDecodeError ("maximum
+# container nesting depth (400) exceeded") straight out of the public API,
+# past the guard, for the same deep-nesting input class the guard names.
+# Representability must not depend on which CBOR library is installed.
+_CODEC_FAILURES: Tuple[type, ...] = (
+    OverflowError,
+    ValueError,
+    OSError,
+    RecursionError,
+    TypeError,
+)
+_CBOR2_ERROR = getattr(cbor2, "CBORError", None) if cbor2 is not None else None
+if _CBOR2_ERROR is not None:
+    _CODEC_FAILURES = _CODEC_FAILURES + (_CBOR2_ERROR,)
 
 
 def _verified_compact_bytes(event: Dict[str, Any]) -> bytes:
@@ -487,6 +596,14 @@ def _verified_compact_bytes(event: Dict[str, Any]) -> bytes:
     Mapping-level limits are checked HERE rather than left to whichever
     CBOR backend is installed, so an event is representable or not by the
     same rule everywhere (see _find_unencodable_int).
+
+    EVERY traversal of caller-supplied structure runs INSIDE the guard. The
+    pre-checks used to sit in front of it, so the one failure mode the guard
+    names by name -- RecursionError on hostile nesting -- escaped it
+    (R1-11 fresh-audit A-04). _find_unencodable_int is now iterative and
+    cannot raise it at all; _semantic_difference is still recursive, so its
+    call belongs under the same try rather than after it. Nothing that walks
+    the event may be moved back out.
     """
     version = event.get("zmeta_version") if isinstance(event, dict) else None
     if version != "1.0":
@@ -494,24 +611,24 @@ def _verified_compact_bytes(event: Dict[str, Any]) -> bytes:
             f"compact encodes zmeta_version '1.0' events only, got {version!r}; "
             "use a version-preserving encoding (json/cbor/proto)"
         )
-    oversized = _find_unencodable_int(event)
-    if oversized is not None:
-        raise CompactUnrepresentableError(
-            f"compact cannot encode {oversized}; CBOR major types 0/1 carry "
-            "only [-(2**64), 2**64-1] and this mapping defines no bignum tag; "
-            "use a version-preserving encoding (json/cbor/proto)"
-        )
     try:
+        oversized = _find_unencodable_int(event)
+        if oversized is not None:
+            raise CompactUnrepresentableError(
+                f"compact cannot encode {oversized}; CBOR major types 0/1 carry "
+                "only [-(2**64), 2**64-1] and this mapping defines no bignum tag; "
+                "use a version-preserving encoding (json/cbor/proto)"
+            )
         payload = _encode_compact_bytes(encode_event(event))
         restored = decode_event(_decode_cbor(payload))
+        difference = _semantic_difference(event, restored)
     except CompactUnrepresentableError:
         raise
-    except (OverflowError, ValueError, OSError, RecursionError, TypeError) as exc:
+    except _CODEC_FAILURES as exc:
         raise CompactUnrepresentableError(
             f"compact cannot serialize this event ({type(exc).__name__}: {exc}); "
             "use a version-preserving encoding (json/cbor/proto)"
         ) from exc
-    difference = _semantic_difference(event, restored)
     if difference is not None:
         raise CompactUnrepresentableError(
             f"compact encoding would lose or alter content at {difference}; "

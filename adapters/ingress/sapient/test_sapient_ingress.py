@@ -1106,17 +1106,49 @@ def test_every_vendor_block_is_dropped_at_point_of_use():
     # The guard must sit at each point of use, not once earlier in the
     # function: the detection path used to drop first and then assign
     # vendor_ext["colour"], so any later mutation could silently bypass it.
-    # Every VENDOR_EXTENSION_KEY assignment must wrap in _drop_non_finite.
-    import re
+    #
+    # This used to regex `VENDOR_EXTENSION_KEY:\s*`, which sees ONLY the
+    # dict-literal form — R1-11 A-02 showed that blindness is not
+    # theoretical: it is also why the check never covered the canonical
+    # claim sink at all. The scan is now AST-based, so `d[KEY] = ...`,
+    # `d.update({KEY: ...})` and a dict literal are all seen. A structural
+    # scan is still form-scoped by nature; the form-INDEPENDENT pin is
+    # test_non_finite_never_survives_translate_on_any_path below, which
+    # drives the public API and cannot miss a site however it is written.
+    import ast
     from pathlib import Path
 
     source = Path(
         Path(__file__).resolve().parent / "sapient_to_zmeta.py"
     ).read_text(encoding="utf-8")
-    uses = re.findall(r"VENDOR_EXTENSION_KEY:\s*([^,\n}]+)", source)
+    tree = ast.parse(source)
+
+    def _is_key(node):
+        return isinstance(node, ast.Name) and node.id == "VENDOR_EXTENSION_KEY"
+
+    def _guarded(node):
+        return (
+            isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Name)
+            and node.func.id == "_drop_non_finite"
+        )
+
+    uses = []
+    for node in ast.walk(tree):
+        # {VENDOR_EXTENSION_KEY: <value>}
+        if isinstance(node, ast.Dict):
+            for key, value in zip(node.keys, node.values):
+                if _is_key(key):
+                    uses.append((node.lineno, value))
+        # target[VENDOR_EXTENSION_KEY] = <value>
+        elif isinstance(node, ast.Assign):
+            for target in node.targets:
+                if isinstance(target, ast.Subscript) and _is_key(target.slice):
+                    uses.append((node.lineno, node.value))
+
     assert len(uses) >= 6, "vendor-extension assignment sites vanished"
-    unguarded = [u.strip() for u in uses if "_drop_non_finite(" not in u]
-    assert not unguarded, f"vendor block used without the guard: {unguarded}"
+    unguarded = [line for line, value in uses if not _guarded(value)]
+    assert not unguarded, f"vendor block used without the guard at lines: {unguarded}"
 
 
 def test_non_finite_in_positional_array_drops_the_whole_array():
@@ -1504,6 +1536,796 @@ def test_error_becomes_schema_violation_with_unknown_original_id():
 # ---------------------------------------------------------------------------
 # Version-aware validate()
 # ---------------------------------------------------------------------------
+
+
+# ---------------------------------------------------------------------------
+# R1-11 A-02: non-finite PRODUCTS and verbatim vendor->canonical copies
+# ---------------------------------------------------------------------------
+
+_BIG = 1e308
+
+
+def _find_non_finite(value):
+    """Independent NaN/inf finder, written for the test.
+
+    Deliberately does NOT call the adapter's ``_has_non_finite``/``_finite``:
+    a self-check that runs the same code on both sides is blind by
+    construction. Every assertion below is additionally backed by
+    ``json.dumps(allow_nan=False)``, a third, C-level oracle.
+    """
+    import math as _math
+
+    hits = []
+    stack = [(value, "$")]
+    while stack:
+        item, where = stack.pop()
+        if isinstance(item, float):
+            if not _math.isfinite(item):
+                hits.append(where)
+        elif isinstance(item, dict):
+            for key, child in item.items():
+                if isinstance(key, float) and not _math.isfinite(key):
+                    hits.append(f"{where}.<non-finite key>")
+                stack.append((child, f"{where}.{key}"))
+        elif isinstance(item, (list, tuple)):
+            for index, child in enumerate(item):
+                stack.append((child, f"{where}[{index}]"))
+    return hits
+
+
+def _assert_clean(events, label):
+    """Assert every emitted event is clean — and that some were emitted.
+
+    The empty-list guard is the whole point. Without it this helper is
+    ``for event in []: ...``, which asserts NOTHING: reverting a per-field
+    guard does not make poison escape, it makes the emit-boundary backstop
+    refuse the whole event, so the list goes empty and a cleanliness-only
+    oracle passes. That is the same mis-scoping as the defect this file
+    pins — guarding the product instead of the disposition. Callers that
+    genuinely expect a refusal assert ``== []`` themselves; nothing here
+    may be satisfied by absence.
+    """
+    assert events, f"{label}: nothing was emitted, so nothing was checked"
+    for event in events:
+        assert not _find_non_finite(event), (
+            f"{label}: non-finite survived at {_find_non_finite(event)}"
+        )
+        json.dumps(event, allow_nan=False)
+        assert validate(event)[0] == "pass", f"{label}: {validate(event)[1]}"
+
+
+def _hz_registration_msg():
+    # Same node, band edges declared in Hz: two FINITE edges whose
+    # difference still overflows (1e308 - -1e308), which no operand guard
+    # can see.
+    msg = _rf_registration_msg()
+    for report in msg["registration"]["mode_definition"][0]["detection_definition"][0][
+        "detection_report"
+    ]:
+        if report["type"] != "amplitude":
+            report["units"] = "Hz"
+    return msg
+
+
+def _camera_signal_registration_msg():
+    """CAMERA node type, WITH the signal units codex declared.
+
+    Needed to reach the frequency arithmetic at all. ``_rf_registration_msg``
+    declares the units but its PASSIVE_RF node type has no
+    ``_node_modality``, so once the canonical RF features refuse there is no
+    observation left to inspect; ``_camera_registration_msg`` supplies the
+    modality but declares no signal units, so ``_canonical_rf_features``
+    returns on its FIRST line and ``_freq_hz`` — and therefore the guard
+    under test — is never called. Only the combination puts an emitted
+    observation and an executed frequency conversion in the same event.
+    """
+    msg = _rf_registration_msg()
+    msg["registration"]["node_definition"] = [{"node_type": "NODE_TYPE_CAMERA"}]
+    return msg
+
+
+def _latency_registration_msg(value, units="TIME_UNITS_SECONDS"):
+    msg = _rf_registration_msg()
+    msg["registration"]["mode_definition"][0]["maximum_latency"] = {
+        "units": units,
+        "value": value,
+    }
+    return msg
+
+
+_NON_FINITE_CASES = [
+    # (label, message, translate kwargs, expected event count) -- every
+    # operand below passes the adapter's own _is_number; it is the PRODUCT
+    # that leaves float64.
+    #
+    # The count is load-bearing, not decoration. Cleanliness alone is
+    # satisfied by an empty list, and reverting a per-field guard empties
+    # the list rather than leaking poison: the emit-boundary backstop
+    # refuses the whole event instead. Pinning the DISPOSITION -- how many
+    # events survive, not merely that survivors are clean -- is what makes
+    # each case fail when the guard it names is removed. Measured collapses
+    # under revert: rows 2-5 go 4/1/1/1 -> 0 with `_finite` reverted to
+    # identity, rows 6-7 go 4 -> 0 with the registration duration guard
+    # reverted. Both were fully invisible to the previous oracle.
+    (
+        "centre_frequency MHz scaling overflows",
+        _detection_msg(
+            signal=[{"amplitude": -57.0, "centre_frequency": _BIG,
+                     "start_frequency": 1.0, "stop_frequency": 2.0}]
+        ),
+        # CAMERA + declared signal units on purpose: with the PASSIVE_RF
+        # registration a refused centre frequency also removes the node's
+        # only modality, so the whole observation vanishes for an unrelated
+        # reason and the case cannot see its own guard revert.
+        {"registration": _store(_camera_signal_registration_msg())},
+        4,
+    ),
+    (
+        "band-edge difference overflows between two finite edges",
+        _detection_msg(
+            signal=[{"amplitude": -57.0, "centre_frequency": 433.0,
+                     "start_frequency": -_BIG, "stop_frequency": _BIG}]
+        ),
+        {"registration": _store(_hz_registration_msg())},
+        4,
+    ),
+    (
+        "TRUE-datum azimuth radians->degrees overflows, then % 360 is NaN",
+        _detection_msg(
+            signal=None,
+            range_bearing={
+                "azimuth": _BIG,
+                "elevation": 0.0,
+                "coordinate_system": "RANGE_BEARING_COORDINATE_SYSTEM_RADIANS_M",
+                "datum": "RANGE_BEARING_DATUM_TRUE",
+            },
+        ),
+        {"registration": _store(_camera_registration_msg())},
+        1,
+    ),
+    (
+        "MAGNETIC-datum native azimuth/elevation overflow",
+        _detection_msg(
+            signal=None,
+            range_bearing={
+                "azimuth": _BIG,
+                "elevation": _BIG,
+                "coordinate_system": "RANGE_BEARING_COORDINATE_SYSTEM_RADIANS_M",
+                "datum": "RANGE_BEARING_DATUM_MAGNETIC",
+            },
+        ),
+        {"registration": _store(_camera_registration_msg())},
+        1,
+    ),
+    (
+        "range km->m scaling overflows",
+        _detection_msg(
+            signal=None,
+            range_bearing={
+                "range": _BIG,
+                "azimuth": 10.0,
+                "coordinate_system": "RANGE_BEARING_COORDINATE_SYSTEM_DEGREES_KM",
+                "datum": "RANGE_BEARING_DATUM_TRUE",
+            },
+        ),
+        {"registration": _store(_camera_registration_msg())},
+        1,
+    ),
+    (
+        "declared maximum_latency overflows the est_error_ms widen",
+        _detection_msg(),
+        {"registration": _store(_latency_registration_msg(_BIG))},
+        4,
+    ),
+    (
+        "declared maximum_latency is NaN",
+        _detection_msg(),
+        {"registration": _store(_latency_registration_msg(float("nan")))},
+        4,
+    ),
+    (
+        "verbatim vendor sub_class copied into the canonical claim",
+        _detection_msg(
+            classification=[
+                {"type": "UAV", "confidence": 0.9,
+                 "sub_class": [{"type": "quadcopter", "confidence": float("nan")}]}
+            ]
+        ),
+        {"registration": _store(_rf_registration_msg())},
+        3,
+    ),
+    (
+        "non-finite nested deep inside the canonical claim taxonomy",
+        _detection_msg(
+            classification=[
+                {"type": "UAV", "confidence": 0.9,
+                 "sub_class": [{"type": "quad",
+                                "sub_class": [{"type": "fpv", "score": float("inf")}]}]}
+            ]
+        ),
+        {"registration": _store(_rf_registration_msg())},
+        3,
+    ),
+    (
+        "promotion metadata carries a non-finite freshness bound",
+        _detection_msg(),
+        {
+            "registration": _store(_fusion_registration_msg()),
+            "based_on": [_PARENT_ID],
+            "promotion": {"loop_status": "NOT_REFLECTED",
+                          "freshness_ms": float("inf")},
+        },
+        0,
+    ),
+    (
+        "caller-supplied est_error_ms is already non-finite",
+        _detection_msg(),
+        {
+            "registration": _store(_rf_registration_msg()),
+            "timing_quality": {"time_source": "GPS", "sync_state": "SYNCED",
+                               "est_error_ms": float("inf")},
+        },
+        0,
+    ),
+    (
+        "status report power level and fov are non-finite",
+        _status_msg(
+            power={"level": float("nan"), "source": "POWERSOURCE_MAINS",
+                   "status": "POWERSTATUS_OK"},
+            field_of_view={"range_bearing": {
+                "horizontal_extent": float("inf"),
+                "coordinate_system": "RANGE_BEARING_COORDINATE_SYSTEM_DEGREES_M",
+                "datum": "RANGE_BEARING_DATUM_TRUE",
+            }},
+        ),
+        {"registration": _store(_rf_registration_msg())},
+        2,
+    ),
+    (
+        "alert location and ranking are non-finite",
+        _alert_msg(ranking=float("nan"), location=_location(z=float("inf"))),
+        {"registration": _store(_rf_registration_msg()), "based_on": [_PARENT_ID]},
+        1,
+    ),
+]
+
+
+@pytest.mark.parametrize(
+    "label,msg,kwargs,expected_events",
+    _NON_FINITE_CASES,
+    ids=[case[0] for case in _NON_FINITE_CASES],
+)
+def test_non_finite_never_survives_translate_on_any_path(
+    label, msg, kwargs, expected_events
+):
+    # Form-independent pin for R1-11 A-02: the check drives the PUBLIC API,
+    # so it sees a site however that site is written -- unlike the
+    # VENDOR_EXTENSION_KEY structural scan, which by construction could
+    # only ever see one syntactic shape and therefore could not see the
+    # canonical `claim` sink or any arithmetic product at all.
+    #
+    # Two-sided by construction. The count catches a guard that stopped
+    # refusing at the FIELD and let the backstop refuse the EVENT instead
+    # (survivors drop to zero and a cleanliness-only oracle never notices);
+    # the cleanliness check catches poison that actually escaped. Neither
+    # half is sufficient alone -- that asymmetry is what made this pin
+    # vacuous for 7 of these rows.
+    events = translate(msg, SCHEMA_ID, **kwargs)
+    assert len(events) == expected_events, (
+        f"{label}: disposition changed -- expected {expected_events} event(s), "
+        f"got {len(events)}: "
+        f"{[e['event']['event_subtype'] for e in events]}"
+    )
+    if expected_events:
+        _assert_clean(events, label)
+
+
+def test_non_finite_bearing_product_never_stamps_true_north():
+    # The sharp end of A-02: az_deg = inf % 360.0 = NaN was written into
+    # payload.bearing while quality.bearing_frame = "TRUE_NORTH" was still
+    # stamped beside it -- a geolocation claim that validated clean. The
+    # canonical carrier must be absent, and so must the frame assertion.
+    events = translate(
+        _detection_msg(
+            signal=None,
+            range_bearing={
+                "azimuth": _BIG,
+                "coordinate_system": "RANGE_BEARING_COORDINATE_SYSTEM_RADIANS_M",
+                "datum": "RANGE_BEARING_DATUM_TRUE",
+            },
+        ),
+        SCHEMA_ID,
+        registration=_store(_camera_registration_msg()),
+    )
+    assert events, "the observation itself must still be emitted"
+    payload = events[0]["payload"]
+    assert "bearing" not in payload
+    assert "bearing_frame" not in payload["quality"]
+    # The raw block is preserved as provenance -- refusal, not deletion.
+    assert "range_bearing" in payload["extensions"]["vendor.sapient"]
+    _assert_clean(events, "bearing product")
+
+
+def test_non_finite_rf_product_leaves_the_signal_block_as_provenance():
+    # A refused canonical frequency must not silently vanish: the signal
+    # block falls back to verbatim vendor provenance, the same disposition
+    # as unresolvable units.
+    #
+    # The registration MUST declare signal units. This pin previously used
+    # _camera_registration_msg(), which declares none, so
+    # _canonical_rf_features returned on its first line and _freq_hz --
+    # the `float(value) * factor` overflow this test exists to pin -- was
+    # never called even once. Both assertions passed for unrelated reasons:
+    # features was the empty dict, and the signal block reached the vendor
+    # extension because the UNITS were unresolved, not because the guard
+    # fired. The first assertion below fails without the units, which is
+    # what keeps that regression from returning silently.
+    registration = _store(_camera_signal_registration_msg())
+    assert registration.signal_units(NODE)["centre_frequency"] == "MHz", (
+        "the frequency arithmetic is unreachable without declared units"
+    )
+    events = translate(
+        _detection_msg(
+            signal=[{"amplitude": -57.0, "centre_frequency": _BIG}],
+            range_bearing={
+                "azimuth": 10.0,
+                "coordinate_system": "RANGE_BEARING_COORDINATE_SYSTEM_DEGREES_M",
+                "datum": "RANGE_BEARING_DATUM_TRUE",
+            },
+        ),
+        SCHEMA_ID,
+        registration=registration,
+    )
+    assert events
+    payload = events[0]["payload"]
+    # The units resolved, the amplitude is dBm, the bearing is a clean
+    # TRUE-datum azimuth -- so every reason for an absent center_freq_hz
+    # OTHER than the overflow guard is excluded here.
+    assert payload["bearing"]["az_deg"] == 10.0
+    assert "center_freq_hz" not in payload["features"]
+    assert "power_dbm" not in payload["features"]
+    assert payload["extensions"]["vendor.sapient"]["signal"][0]["centre_frequency"] == _BIG
+    _assert_clean(events, "rf product")
+
+
+def test_the_cleanliness_oracle_is_not_satisfied_by_an_empty_list():
+    # Meta-pin. _assert_clean was `for event in events: assert ...`, which
+    # checks nothing at all when translate() refuses everything -- and
+    # reverting a per-field guard is precisely what empties the list. Seven
+    # of the thirteen parametrized cases above passed with the fix they
+    # name reverted because of this one line. The oracle itself has to be
+    # unable to pass on absence.
+    with pytest.raises(AssertionError):
+        _assert_clean([], "empty")
+
+
+def test_freq_guard_is_actually_reached_and_is_the_only_thing_refusing():
+    # Companion to the pin above, and the reason it can be trusted: with a
+    # centre frequency that does NOT overflow, the identical registration
+    # and message shape produce the canonical RF triple. So the absence of
+    # center_freq_hz above is attributable to the overflow and to nothing
+    # else in the fixture.
+    events = translate(
+        _detection_msg(
+            signal=[{"amplitude": -57.0, "centre_frequency": 433.0}],
+            range_bearing={
+                "azimuth": 10.0,
+                "coordinate_system": "RANGE_BEARING_COORDINATE_SYSTEM_DEGREES_M",
+                "datum": "RANGE_BEARING_DATUM_TRUE",
+            },
+        ),
+        SCHEMA_ID,
+        registration=_store(_camera_signal_registration_msg()),
+    )
+    features = events[0]["payload"]["features"]
+    assert features["center_freq_hz"] == 433.0 * 1e6
+    assert features["power_dbm"] == -57.0
+    assert "signal" not in events[0]["payload"]["extensions"]["vendor.sapient"]
+    _assert_clean(events, "rf control")
+
+
+def test_non_finite_claim_refuses_only_that_inference():
+    # Refusing the poisoned classification must not take the honest
+    # siblings with it (the behaviour inference and the detection-existence
+    # claim are unaffected), and the raw entry stays visible as provenance.
+    events = translate(
+        _detection_msg(
+            classification=[
+                {"type": "UAV", "confidence": 0.9,
+                 "sub_class": [{"type": "quadcopter", "confidence": float("nan")}]},
+                {"type": "BIRD", "confidence": 0.2,
+                 "sub_class": [{"type": "gull", "confidence": 0.4}]},
+            ]
+        ),
+        SCHEMA_ID,
+        registration=_store(_rf_registration_msg()),
+    )
+    claims = [
+        event["payload"]["claim"]
+        for event in events
+        if event["event"]["event_type"] == "INFERENCE_EVENT"
+    ]
+    assert {"type": "BIRD", "sub_class": [{"type": "gull", "confidence": 0.4}]} in claims
+    assert not any(claim.get("type") == "UAV" for claim in claims)
+    assert any(claim.get("type") == "loitering" for claim in claims)
+    native = events[0]["payload"]["extensions"]["vendor.sapient"]["native_classification"]
+    assert [entry["type"] for entry in native] == ["UAV", "BIRD"]
+    _assert_clean(events, "claim sub_class")
+
+
+def test_validate_reports_a_non_finite_jsonschema_cannot_see():
+    # jsonschema min/max comparisons against NaN are all vacuously False,
+    # so validate() used to return ("pass", []) for an event with no
+    # RFC-8259 wire form. Built by hand, NOT through translate(), so this
+    # exercises validate() independently of the emit-boundary guard.
+    event = translate(
+        _detection_msg(), SCHEMA_ID, registration=_store(_rf_registration_msg())
+    )[0]
+    assert validate(event) == ("pass", [])
+    for path, value in (
+        (("payload", "geo", "lat"), float("nan")),
+        (("payload", "features", "center_freq_hz"), float("inf")),
+        (("payload", "timing_quality", "est_error_ms"), float("-inf")),
+    ):
+        poisoned = json.loads(json.dumps(event))
+        target = poisoned
+        for part in path[:-1]:
+            target = target[part]
+        target[path[-1]] = value
+        status, violations = validate(poisoned)
+        assert status == "fail", f"{path} validated clean"
+        assert any("non-finite" in violation for violation in violations)
+
+
+def test_refusing_a_parent_refuses_its_dependents_too(monkeypatch):
+    # Found by attacking the A-02 guard itself: refusing the observation
+    # for a non-finite left the inference events citing it as `based_on`,
+    # i.e. asserting lineage to an event that was never emitted. A
+    # fabricated parent is exactly what contract 4.8 forbids, so the
+    # refusal has to cascade.
+    #
+    # The poison has to land on the OBSERVATION ONLY, or the cascade is
+    # never exercised. This used to use a non-finite vendor dict KEY, which
+    # only worked because _drop_non_finite had a hole there -- and that
+    # hole was itself a defect (one weird provenance key destroyed four
+    # good events). With the hole closed there is no wire-reachable input
+    # that poisons the observation and spares its inferences, so the
+    # injection is what the backstop exists for in the first place: a
+    # canonical site with no per-field guard. Reverting `_finite` to
+    # identity simulates exactly that, and the bearing product
+    # (inf % 360.0 = NaN) then lands in payload.bearing of the observation
+    # while the inferences stay clean.
+    from adapters.ingress.sapient import sapient_to_zmeta as s2z
+
+    monkeypatch.setattr(s2z, "_finite", lambda value: value)
+    msg = _detection_msg(
+        signal=None,
+        range_bearing={
+            "azimuth": _BIG,
+            "coordinate_system": "RANGE_BEARING_COORDINATE_SYSTEM_RADIANS_M",
+            "datum": "RANGE_BEARING_DATUM_TRUE",
+        },
+    )
+    events = translate(msg, SCHEMA_ID, registration=_store(_camera_signal_registration_msg()))
+
+    emitted = {event["event"]["event_id"] for event in events}
+    for event in events:
+        cited = set(event.get("lineage", {}).get("based_on") or ())
+        cited |= set(event["payload"].get("based_on") or ())
+        assert not cited - emitted, f"dangling parent: {cited - emitted}"
+    # The observation carried the poison, so nothing in this call survives.
+    assert events == []
+
+    # And prove the dependents really were at stake: without the cascade
+    # the three inferences survive citing an observation that was refused.
+    monkeypatch.setattr(s2z, "_refuse_non_finite", lambda events: events)
+    orphaned = translate(msg, SCHEMA_ID, registration=_store(_camera_signal_registration_msg()))
+    assert len(orphaned) == 4
+    survivors = {event["event"]["event_id"] for event in orphaned[1:]}
+    assert orphaned[0]["event"]["event_id"] not in survivors
+
+
+def test_cascade_control_emits_the_full_set_with_intact_lineage():
+    # Control for the cascade above: the same detection with no poison at
+    # all emits the full set, so the cascade is not simply refusing
+    # everything it touches.
+    clean_msg = _detection_msg()
+    clean_msg["detection_report"]["track_info"] = [{"ok": 1.0}]
+    clean_events = translate(
+        clean_msg, SCHEMA_ID, registration=_store(_rf_registration_msg())
+    )
+    assert len(clean_events) == 4
+    emitted = {event["event"]["event_id"] for event in clean_events}
+    for event in clean_events:
+        cited = set(event.get("lineage", {}).get("based_on") or ())
+        cited |= set(event["payload"].get("based_on") or ())
+        assert not cited - emitted
+    _assert_clean(clean_events, "cascade control")
+
+
+# ---------------------------------------------------------------------------
+# R1-11 A-02 residuals: an unresolvable declaration must never read cleaner
+# than a resolvable one, wire data must never crash, and a defect confined
+# to a provenance blob must not destroy canonical data
+# ---------------------------------------------------------------------------
+
+
+_SANE_TIMING = {"time_source": "GPS_PPS", "sync_state": "LOCKED", "est_error_ms": 5.0}
+
+
+@pytest.mark.parametrize(
+    "label,latency_kwargs",
+    [
+        ("value overflows the ms scale", {"value": _BIG}),
+        ("value is NaN", {"value": float("nan")}),
+        ("value is Infinity", {"value": float("inf")}),
+        ("value has no float64 form", {"value": 10 ** 400}),
+        ("units are undeclarable", {"value": 2.0, "units": "TIME_UNITS_FORTNIGHTS"}),
+    ],
+)
+def test_unresolvable_declared_latency_never_narrows_est_error_ms(label, latency_kwargs):
+    # THE laundering this closes: `duration_ms` returned None for an
+    # unusable declaration, `max_latency_ms` therefore returned None, and
+    # `_timing` skipped the widen -- shipping the caller's un-widened bound
+    # with no marker anywhere. Measured before the fix, caller timing held
+    # constant at est_error_ms 5.0: a sane 0.5 s declaration produced 505.0
+    # and a NaN declaration produced 5.0. The worse the node's input, the
+    # TIGHTER the uncertainty it published, which is the one thing an
+    # uncertainty field must never do.
+    sane = translate(
+        _detection_msg(),
+        SCHEMA_ID,
+        registration=_store(_latency_registration_msg(0.5)),
+        timing_quality=dict(_SANE_TIMING),
+    )[0]["payload"]["timing_quality"]
+    assert sane["est_error_ms"] == 505.0
+    assert sane["sync_state"] == "LOCKED"
+
+    broken = translate(
+        _detection_msg(),
+        SCHEMA_ID,
+        registration=_store(_latency_registration_msg(**latency_kwargs)),
+        timing_quality=dict(_SANE_TIMING),
+    )
+    assert len(broken) == 4, f"{label}: the detection itself must still be carried"
+    timing = broken[0]["payload"]["timing_quality"]
+    # Never narrower than the resolvable case ...
+    assert timing["est_error_ms"] >= sane["est_error_ms"], label
+    # ... and never narrower than the caller's own bound.
+    assert timing["est_error_ms"] >= _SANE_TIMING["est_error_ms"], label
+    # ... and the degradation is stated in the canonical, filterable field,
+    # not left implicit: a consumer gating on sync_state drops this event.
+    assert timing["sync_state"] == "UNSYNCED", label
+    assert timing["time_source"] == "UNKNOWN", label
+    _assert_clean(broken, label)
+
+
+def test_declared_latency_states_are_not_collapsed_by_the_store():
+    # The store-level half of the same class. `max_latency_ms` returns None
+    # for BOTH "never declared" and "declared, unusable"; a caller reading
+    # only that cannot tell the quiet node from the broken one.
+    never = _store(_camera_registration_msg())
+    assert never.max_latency_ms(NODE) is None
+    assert never.latency_unresolved(NODE) is False
+
+    broken = _store(_latency_registration_msg(float("nan")))
+    assert broken.max_latency_ms(NODE) is None
+    assert broken.latency_unresolved(NODE) is True
+
+    sane = _store(_latency_registration_msg(0.5))
+    assert sane.max_latency_ms(NODE) == 500.0
+    assert sane.latency_unresolved(NODE) is False
+
+
+def test_a_resolvable_active_mode_is_not_degraded_by_another_broken_mode():
+    # Scoping mirrors max_latency_ms exactly: when the ACTIVE mode carries
+    # a usable bound that IS the bound, so a different mode's broken
+    # declaration must not degrade it. Without this the guard would be a
+    # blunt node-wide kill switch and would itself overstate uncertainty.
+    msg = _latency_registration_msg(0.5)
+    msg["registration"]["mode_definition"].append(
+        {"mode_name": "sweep",
+         "maximum_latency": {"units": "TIME_UNITS_SECONDS", "value": float("nan")}}
+    )
+    store = _store(msg)
+    assert store.latency_unresolved(NODE, mode="scan") is False
+    # No active mode named: the cross-mode maximum applies, and a broken
+    # mode makes that maximum not a maximum.
+    assert store.latency_unresolved(NODE) is True
+
+    scoped = translate(
+        _detection_msg(), SCHEMA_ID, registration=store,
+        timing_quality=dict(_SANE_TIMING), active_mode="scan",
+    )[0]["payload"]["timing_quality"]
+    assert scoped["est_error_ms"] == 505.0
+    assert scoped["sync_state"] == "LOCKED"
+
+
+def test_degradation_never_substitutes_a_clean_value_for_a_poisoned_one():
+    # The trap on the other side of this fix: the degradation must not
+    # "repair" a caller bound that is already non-finite. Replacing it with
+    # the honest-unknown default would trade one laundering for a quieter
+    # one -- the event would validate clean while the caller's timing was
+    # meaningless. It stays non-finite and the emit boundary refuses.
+    events = translate(
+        _detection_msg(),
+        SCHEMA_ID,
+        registration=_store(_latency_registration_msg(float("nan"))),
+        timing_quality={"time_source": "GPS_PPS", "sync_state": "LOCKED",
+                        "est_error_ms": float("inf")},
+    )
+    assert events == []
+    # A caller bound WIDER than the unknown-clock default is kept, never
+    # narrowed down to it.
+    wide = translate(
+        _detection_msg(),
+        SCHEMA_ID,
+        registration=_store(_latency_registration_msg(float("nan"))),
+        timing_quality={"time_source": "GPS_PPS", "sync_state": "LOCKED",
+                        "est_error_ms": 100_000.0},
+    )[0]["payload"]["timing_quality"]
+    assert wide["est_error_ms"] == 100_000.0
+
+
+def _leaf_paths(node, path=()):
+    if isinstance(node, dict):
+        for key, child in node.items():
+            yield from _leaf_paths(child, path + (key,))
+    elif isinstance(node, list):
+        for index, child in enumerate(node):
+            yield from _leaf_paths(child, path + (index,))
+    else:
+        yield path
+
+
+@pytest.mark.parametrize("huge", [10 ** 400, -(10 ** 400)])
+@pytest.mark.parametrize(
+    "content,kwargs",
+    [
+        ("detection", {}),
+        ("status", {}),
+        ("alert", {"based_on": [_PARENT_ID]}),
+        ("task_ack", {"task_index": {"01J00000000000000000000006": _PARENT_ID}}),
+    ],
+)
+def test_an_integer_with_no_float64_form_refuses_instead_of_crashing(
+    huge, content, kwargs
+):
+    # `math.isfinite` RAISES OverflowError on a Python int outside the
+    # float64 range, and json.loads builds exactly such an int from a plain
+    # integer literal -- so a 400-digit number anywhere in a DetectionReport
+    # aborted translate() rather than refusing. Wire data must never crash
+    # the ingest loop (fail closed).
+    #
+    # The sweep covers EVERY leaf of EVERY content branch, not one
+    # hand-picked field: the arm the original overflow sweep never injected
+    # was missed precisely because it enumerated float shapes (proto3 JSON
+    # "NaN"/"Infinity") and never a bare integer literal.
+    base = {
+        "detection": _detection_msg(),
+        "status": _status_msg(),
+        "alert": _alert_msg(),
+        "task_ack": _task_ack_msg(),
+    }[content]
+
+    paths = list(_leaf_paths(base))
+    assert len(paths) >= 4, "the sweep must actually cover the message"
+    for path in paths:
+        msg = json.loads(json.dumps(base))
+        target = msg
+        for part in path[:-1]:
+            target = target[part]
+        target[path[-1]] = huge
+        # No try/except on purpose: a raise here IS the failure.
+        events = translate(
+            msg, SCHEMA_ID, registration=_store(_rf_registration_msg()), **kwargs
+        )
+        if events:
+            _assert_clean(events, f"huge int at {path}")
+
+
+@pytest.mark.parametrize("huge", [10 ** 400, -(10 ** 400)])
+def test_a_registration_with_an_unscalable_duration_does_not_take_the_node_down(huge):
+    # The same shape sits on the line duration_ms scales, inside
+    # RegistrationStore.ingest -- so one malformed Registration aborted the
+    # capture for the WHOLE node, losing units, model identity and taxonomy
+    # that parsed perfectly well.
+    store = _store(_latency_registration_msg(huge))
+    assert store.max_latency_ms(NODE) is None
+    assert store.latency_unresolved(NODE) is True
+    # Everything else in that same registration survived.
+    assert store.model_identity(NODE) == {"name": "Acme RFSense-9", "version": "4.2.1"}
+    assert store.signal_units(NODE)["centre_frequency"] == "MHz"
+    assert store.velocity_factor_mps(NODE) == 1.0
+
+
+def test_a_non_finite_vendor_key_drops_its_entry_and_keeps_the_detection():
+    # A defect confined to a verbatim provenance blob must be cleaned where
+    # the pass-through doctrine lives, not escalated into total loss. Before
+    # this, one non-finite KEY in a vendor block turned four good events
+    # into zero -- silently discarding geo, bearing, RF features and the
+    # classification the adapter had resolved correctly.
+    msg = _detection_msg()
+    # Three placements at once: a key inside a list-of-dicts, a key at the
+    # top of a vendor block, and a key nested two levels down -- so the fix
+    # cannot be a special case for the one shape that was reported.
+    msg["detection_report"]["track_info"] = [
+        {float("nan"): "dropped", "ok": 1.0},
+        {"kept": 2.0},
+    ]
+    msg["detection_report"]["object_info"] = {
+        float("inf"): "dropped",
+        "nested": {float("-inf"): "dropped", "deep": {float("nan"): "dropped",
+                                                      "leaf": 3.0}},
+    }
+    events = translate(msg, SCHEMA_ID, registration=_store(_rf_registration_msg()))
+
+    assert len(events) == 4, "canonical data survives a bad provenance key"
+    payload = events[0]["payload"]
+    assert payload["geo"]["lat"] == 43.49
+    assert payload["features"]["center_freq_hz"] == 433.0 * 1e6
+    # The entry is gone; its siblings and its list position are not.
+    vendor = payload["extensions"]["vendor.sapient"]
+    assert vendor["track_info"] == [{"ok": 1.0}, {"kept": 2.0}]
+    assert vendor["object_info"] == {"nested": {"deep": {"leaf": 3.0}}}
+    _assert_clean(events, "vendor key")
+
+
+def test_a_non_finite_vendor_value_still_drops_and_a_list_still_drops_whole():
+    # Guard the pre-existing half of the doctrine while changing it: adding
+    # the KEY rule must not disturb the VALUE rule, nor the deliberate
+    # asymmetry that a bare non-finite inside a numeric array drops the
+    # whole array (removing one element silently re-indexes the rest).
+    from adapters.ingress.sapient import sapient_to_zmeta as s2z
+
+    assert s2z._drop_non_finite({"a": float("nan"), "b": 1.0}) == {"b": 1.0}
+    assert s2z._drop_non_finite({"s": [1.0, float("nan"), 3.0]}) == {}
+    assert s2z._drop_non_finite({"s": [{"v": float("nan")}, {"v": 2.0}]}) == {
+        "s": [{}, {"v": 2.0}]
+    }
+    assert s2z._drop_non_finite([1.0, float("inf")]) == []
+
+
+def test_the_emit_boundary_backstop_is_still_behind_the_vendor_cleaner():
+    # Closing the vendor-key gap must not weaken the module-wide backstop:
+    # it is what covers canonical sites the per-field guards do not reach.
+    from adapters.ingress.sapient import sapient_to_zmeta as s2z
+
+    clean = _envelope_stub("a")
+    poisoned = _envelope_stub("b")
+    poisoned["payload"]["metrics"] = {"x": float("nan")}
+    assert s2z._refuse_non_finite([clean, poisoned]) == [clean]
+    # A non-finite dict KEY at a canonical site is caught too -- the
+    # cleaner only runs on vendor blocks.
+    keyed = _envelope_stub("c")
+    keyed["payload"]["metrics"] = {float("inf"): 1.0}
+    assert s2z._refuse_non_finite([keyed]) == []
+
+
+def _envelope_stub(event_id):
+    return {
+        "zmeta_version": "1.0",
+        "event": {"event_id": event_id, "event_type": "SYSTEM_EVENT",
+                  "event_subtype": "SENSOR_STATUS", "ts": TS},
+        "payload": {},
+    }
+
+
+def test_non_finite_scan_is_iterative_not_recursive():
+    # The scan walks wire-shaped structures whose nesting depth is
+    # producer-controlled. A recursive walk would only trade a laundered
+    # value for a RecursionError (the R1-11 A-04 shape), so depth well past
+    # sys.getrecursionlimit() must still return an answer.
+    from adapters.ingress.sapient import sapient_to_zmeta as s2z
+
+    deep = {"leaf": float("nan")}
+    for _ in range(50_000):
+        deep = {"vendor": deep}
+    assert s2z._has_non_finite(deep) is True
+    clean = {"leaf": 1.0}
+    for _ in range(50_000):
+        clean = {"vendor": clean}
+    assert s2z._has_non_finite(clean) is False
 
 
 def test_validate_selects_schema_per_zmeta_version():

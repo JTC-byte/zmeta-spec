@@ -141,6 +141,35 @@ command basis, autonomy, or export.
 If `metrics_log_path` is set, the gateway writes JSONL metrics/violation/drop records
 and rotates logs based on `metrics_log_max_bytes` and `metrics_log_backups`.
 
+The metrics sinks are observability, not translation. If the log file or the
+console becomes unwritable (full disk, read-only remount, removed directory,
+closed pipe), the gateway keeps translating: the failure is reported once on
+stderr - once, because a per-datagram warning storm is its own outage - and
+writes keep being attempted so the sink recovers on its own. Nothing about an
+event changes, and the in-memory counters stay accurate, so the drop and
+violation buckets an operator filters on remain honest while the file is gone.
+A failing sink must never terminate the gateway for every producer behind it.
+
+Degraded observability is quantified rather than merely announced, on three
+surfaces, so a consumer can see loss instead of inferring it:
+
+- The one stderr warning is emitted when it is DELIVERED, not when it is
+  attempted. Full disk and closed pipe usually take stderr down together with
+  the sink, so a latch spent on an undelivered line meant zero warnings for the
+  whole run; the warning is retried until one lands, then never again.
+- The periodic summary prints `metrics sink_degraded console_failures=...
+  write_failures=... console_failures_total=... write_failures_total=...`
+  whenever either sink has lost anything (per-window counts plus run totals),
+  and the same four counts appear in the JSONL `metrics` record. The two sinks
+  report each other, so whichever channel survives still carries the number.
+- When the log sink recovers, a `metrics_sink_gap` record is appended ahead of
+  the next record, carrying `lost_records`, `first_error`, and `path`. Records
+  lost to a dead sink are not recoverable, but the discontinuity is in band: a
+  consumer reads the gap instead of seeing two records that look contiguous.
+
+If the sink never recovers, the marker never lands - a file cannot report its
+own end - which is why the stderr warning and the console counters exist.
+
 ### Strict validation
 
 When `strict_validation` is enabled, warnings are treated as failures and the original

@@ -1,4 +1,23 @@
+import math
 from datetime import datetime, timedelta, timezone
+
+
+def _has_non_finite(value):
+    # Value scoped, not field scoped: NaN/inf anywhere in the projected track
+    # is a number that is not a number, and a per-field list only closes the
+    # fields someone thought of (R1-11 A-01). Iterative so sender-controlled
+    # nesting is a memory cost, never a RecursionError.
+    stack = [value]
+    while stack:
+        current = stack.pop()
+        if isinstance(current, float) and not math.isfinite(current):
+            return True
+        if isinstance(current, dict):
+            stack.extend(current.keys())
+            stack.extend(current.values())
+        elif isinstance(current, (list, tuple)):
+            stack.extend(current)
+    return False
 
 
 def _parse_utc(ts):
@@ -41,5 +60,13 @@ def zmeta_state_to_jreap_track_json(event):
 
     if event.get("confidence") is not None:
         track["confidence"] = event.get("confidence")
+
+    # Refuse rather than project a track position, altitude or confidence that
+    # is NaN/inf: the consumer would plot a symbol at a non-position, and the
+    # JSON it is handed is not RFC 8259 so a non-Python decoder rejects the
+    # whole message instead. Checked on the built output so no field can be
+    # added later without inheriting the guard.
+    if _has_non_finite(track):
+        return None
 
     return track

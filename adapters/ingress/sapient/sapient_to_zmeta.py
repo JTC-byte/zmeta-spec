@@ -47,7 +47,11 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from adapters.ingress.sapient.registration_state import enum_tail, snake_keys
-from adapters.ingress.time_utils import coerce_timing_quality, normalize_utc_z
+from adapters.ingress.time_utils import (
+    DEFAULT_UNSYNCED_ERROR_MS,
+    coerce_timing_quality,
+    normalize_utc_z,
+)
 from zmeta_uuid import uuid7
 
 ADAPTER_VERSION = "1.0.0"
@@ -114,11 +118,39 @@ def _is_number(value):
     # numeric guard and vacuously pass jsonschema range checks (min/max
     # comparisons against NaN are all False) — a meaningless confidence
     # or measurement must refuse, not validate clean.
-    return (
-        isinstance(value, (int, float))
-        and not isinstance(value, bool)
-        and math.isfinite(value)
-    )
+    if not isinstance(value, (int, float)) or isinstance(value, bool):
+        return False
+    try:
+        return math.isfinite(value)
+    except OverflowError:
+        # ``math.isfinite`` RAISES on a Python int outside the float64
+        # range, and ``json.loads`` builds exactly such an int from a
+        # plain integer literal — so a 400-digit number anywhere in a
+        # DetectionReport would abort translate() instead of refusing.
+        # Wire data must never crash the ingest loop (fail closed, the
+        # same rule _envelope_ts states for out-of-range epochs). A value
+        # with no float64 form is not a measurement any canonical field
+        # can carry; it refuses here and stays verbatim in the vendor
+        # provenance block like every other unmappable value.
+        return False
+
+
+def _finite(value):
+    """Return a computed value only when the PRODUCT is finite, else None.
+
+    ``_is_number`` guards the OPERAND read off the wire; this guards the
+    RESULT at the point it enters canonical structure. Every operand can
+    pass ``_is_number`` and the arithmetic still leave the float64 range:
+    a unit factor (``value * 1e6``) or a radians->degrees conversion
+    overflows to inf near the ceiling, a difference of opposite-signed
+    extremes overflows the same way, ``inf - inf`` is NaN, and
+    ``inf % 360.0`` is NaN. A non-finite result is not a measurement —
+    the canonical field refuses it (the raw value stays in the vendor
+    provenance block) rather than emitting a bearing, frequency or
+    velocity that no consumer can act on and that has no RFC-8259 wire
+    form.
+    """
+    return value if _is_number(value) else None
 
 
 _DROP_CONTAINER = object()
@@ -131,6 +163,14 @@ def _drop_non_finite(value):
     _is_number instead. Dropping the key is the honest shape: a NaN/inf
     carries no measurement information, and keeping it would make the
     whole event unserializable to strict RFC-8259 JSON.
+
+    A non-finite dict KEY drops its entry on the same rule. That gap used
+    to be left to the emit-boundary backstop, which refuses the whole
+    event — so one weird key in a provenance blob destroyed the geo,
+    bearing, RF features and classification the adapter had resolved
+    correctly, and the dependent inferences with them. A defect confined
+    to a pass-through blob is cleaned where the pass-through doctrine
+    lives; the backstop stays behind it for the sites this cannot reach.
 
     A bare non-finite element inside a LIST drops the whole list instead,
     because position carries meaning in a numeric array: removing one
@@ -150,6 +190,14 @@ def _drop_non_finite_inner(value):
     if isinstance(value, dict):
         out = {}
         for key, item in value.items():
+            if isinstance(key, float) and not math.isfinite(key):
+                # A non-finite KEY takes its entry with it. Same rule as a
+                # non-finite value, for the same reason: the key is what
+                # names the value, so a NaN key names nothing a consumer
+                # could read, and json.dumps(allow_nan=False) rejects it
+                # exactly as it rejects a non-finite value. Unlike a list
+                # element, dropping a dict entry re-indexes nothing.
+                continue
             if isinstance(item, float) and not math.isfinite(item):
                 continue
             child = _drop_non_finite_inner(item)
@@ -168,6 +216,76 @@ def _drop_non_finite_inner(value):
             out.append(child)
         return out
     return value
+
+
+def _has_non_finite(value):
+    """True when a NaN/inf hides anywhere in this structure.
+
+    Iterative, not recursive: the structures this walks are copied
+    verbatim from the wire, so their nesting depth is producer-controlled
+    and a recursive walk would only trade a laundered value for a
+    RecursionError. Dict KEYS are inspected as well as values, because
+    ``json.dumps(allow_nan=False)`` rejects a non-finite key too — the
+    "nothing leaves this adapter without an RFC-8259 wire form" invariant
+    would be false without it.
+    """
+    stack = [value]
+    while stack:
+        item = stack.pop()
+        if isinstance(item, float):
+            if not math.isfinite(item):
+                return True
+        elif isinstance(item, dict):
+            stack.extend(item.keys())
+            stack.extend(item.values())
+        elif isinstance(item, (list, tuple)):
+            stack.extend(item)
+    return False
+
+
+def _refuse_non_finite(events):
+    """Emit boundary: an event carrying a non-finite anywhere is refused.
+
+    The per-field guards give each canonical field its own honest
+    disposition (the raw value stays in the vendor provenance block and
+    the block is marked not fully carried). This is the module-wide
+    backstop behind them: whatever site produced it — an arithmetic
+    product, a verbatim vendor->canonical copy, or a site added later —
+    no event leaves this adapter asserting a measurement no consumer can
+    act on, and none leaves without an RFC-8259 wire form. Refusal by
+    omission is this module's documented per-event disposition:
+    ``translate()`` returns the subset that can be honestly emitted.
+
+    Refusal CASCADES to dependents. One call emits an observation and the
+    inferences that cite it as their parent, so refusing the observation
+    alone would leave those inferences asserting lineage to an event that
+    was never emitted — a fabricated parent (contract 4.8), which is the
+    very thing the parents/`based_on` handling above refuses to do. A
+    dangling reference is not a cheaper honest outcome than one more
+    refusal.
+    """
+    kept = []
+    refused_ids = set()
+    for event in events:
+        if _has_non_finite(event):
+            refused_ids.add(event.get("event", {}).get("event_id"))
+        else:
+            kept.append(event)
+    while refused_ids:
+        survivors = []
+        newly_refused = set()
+        for event in kept:
+            parents = set(event.get("lineage", {}).get("based_on") or ())
+            parents.update(event.get("payload", {}).get("based_on") or ())
+            if parents & refused_ids:
+                newly_refused.add(event.get("event", {}).get("event_id"))
+            else:
+                survivors.append(event)
+        kept = survivors
+        if not newly_refused:
+            break
+        refused_ids = newly_refused
+    return kept
 
 
 def _envelope_ts(value):
@@ -230,11 +348,55 @@ def _timing(timing_quality, ts, registration, node_id, active_mode):
     The widen applies to caller-supplied timing too: the envelope timestamp
     is send time, so the declared capture->send latency bound is additional
     absolute timestamp error regardless of clock quality.
+
+    A node that DECLARED a maximum_latency this adapter cannot resolve gets
+    the module's documented degraded timing instead of the widen. Skipping
+    the widen and shipping the caller's bound unchanged is not the neutral
+    option it looks like: it makes the broken declaration produce a
+    NARROWER est_error_ms than a sane one (measured: 0.5 s declared ->
+    505.0, NaN declared -> 5.0), so the worse the node's input the cleaner
+    the event — laundering, and precisely the understatement the widen
+    comment below forbids.
     """
     timing = coerce_timing_quality(timing_quality, event_ts=ts)
     if registration is not None:
+        if registration.latency_unresolved(node_id, mode=active_mode):
+            # The capture->send gap is unbounded as far as this adapter can
+            # tell, so no finite number is an honest upper bound and the
+            # clock claim cannot be carried through it. Fall back to the
+            # module's own degraded UNKNOWN/UNSYNCED disposition (contract
+            # 5.3: consumers read est_error_ms together with sync_state,
+            # never as a standalone bound) and take the WIDER of the two
+            # bounds, never the tighter. UNSYNCED is loud and filterable —
+            # every timing-gated consumer drops or degrades it — where a
+            # silently un-widened LOCKED bound is neither.
+            #
+            # Refusing the event instead would be disproportionate and
+            # permanent: one malformed mode declaration would zero every
+            # event from that node forever, discarding geo, bearing and RF
+            # the adapter resolved correctly.
+            caller_error = timing["est_error_ms"]
+            timing["time_source"] = "UNKNOWN"
+            timing["sync_state"] = "UNSYNCED"
+            if _is_number(caller_error):
+                timing["est_error_ms"] = max(
+                    float(caller_error), float(DEFAULT_UNSYNCED_ERROR_MS)
+                )
+            # A caller bound that is ALREADY non-finite is left alone on
+            # purpose: the emit boundary refuses it whole. Substituting a
+            # clean default here would trade one laundering for another.
+            return timing
         latency_ms = registration.max_latency_ms(node_id, mode=active_mode)
         if latency_ms is not None:
+            # The widened bound is a PRODUCT. If it leaves the float64
+            # range the timestamp error is unbounded, and falling back to
+            # the un-widened value would UNDERSTATE it — the one thing an
+            # uncertainty field must never do. A non-finite est_error_ms is
+            # refused whole by _refuse_non_finite at the emit boundary; do
+            # not "fix" this by narrowing it. An unresolvable DECLARED
+            # latency never reaches here — it took the degraded branch
+            # above — so this is reachable only from a caller-supplied
+            # est_error_ms near the ceiling.
             timing["est_error_ms"] = float(timing["est_error_ms"]) + float(latency_ms)
     return timing
 
@@ -332,8 +494,9 @@ def _range_bearing_map(range_bearing):
     fully_carried = True
     rng = range_bearing.get("range")
     if _is_number(rng):
-        if range_factor is not None:
-            features["range_m"] = float(rng) * range_factor
+        range_m = _finite(float(rng) * range_factor) if range_factor is not None else None
+        if range_m is not None:
+            features["range_m"] = range_m
         else:
             fully_carried = False
 
@@ -344,13 +507,22 @@ def _range_bearing_map(range_bearing):
         if not angle_known:
             fully_carried = False
         else:
-            az_deg = math.degrees(float(azimuth)) if angle_in_radians else float(azimuth)
+            # The angles are PRODUCTS: math.degrees() on a wire value near
+            # the float64 ceiling overflows to inf, and inf % 360.0 is NaN.
+            # A non-finite angle is not a bearing, so no canonical carrier
+            # is written and the raw block is preserved instead — never a
+            # NaN az_deg beside the caller's quality.bearing_frame stamp.
+            az_deg = _finite(math.degrees(float(azimuth)) if angle_in_radians else float(azimuth))
             el_deg = None
             if _is_number(elevation):
-                el_deg = (
+                el_deg = _finite(
                     math.degrees(float(elevation)) if angle_in_radians else float(elevation)
                 )
-            if datum == "TRUE":
+                if el_deg is None:
+                    fully_carried = False
+            if az_deg is None:
+                fully_carried = False
+            elif datum == "TRUE":
                 bearing = {"az_deg": az_deg % 360.0}
                 if el_deg is not None and -90.0 <= el_deg <= 90.0:
                     bearing["el_deg"] = el_deg
@@ -394,7 +566,11 @@ def _canonical_rf_features(signals, signal_units):
         factor = _FREQ_FACTOR_HZ.get(units.strip().lower())
         if factor is None:
             return None
-        return float(value) * factor
+        # The scaled value is a PRODUCT: a wire value near the float64
+        # ceiling in MHz/GHz overflows to inf. An unresolvable frequency
+        # is treated exactly like unresolvable units — no canonical
+        # carrier, signal stays extension-only.
+        return _finite(float(value) * factor)
 
     center_hz = _freq_hz("centre_frequency")
     if center_hz is None:
@@ -411,10 +587,16 @@ def _canonical_rf_features(signals, signal_units):
     features = {"center_freq_hz": center_hz, "power_dbm": float(amplitude)}
     start_hz = _freq_hz("start_frequency")
     stop_hz = _freq_hz("stop_frequency")
+    bandwidth_hz = None
     if start_hz is not None and stop_hz is not None and stop_hz >= start_hz:
-        features["bandwidth_hz"] = stop_hz - start_hz
-    else:
-        features["bandwidth_hz"] = BANDWIDTH_SENTINEL_HZ
+        # The difference is a PRODUCT: opposite-signed extremes overflow to
+        # inf even though both edges are finite. An unrepresentable span is
+        # not a measured bandwidth, so it takes the same declared
+        # "not measured" sentinel as a missing band edge.
+        bandwidth_hz = _finite(stop_hz - start_hz)
+    features["bandwidth_hz"] = (
+        bandwidth_hz if bandwidth_hz is not None else BANDWIDTH_SENTINEL_HZ
+    )
     return features
 
 
@@ -445,7 +627,13 @@ def _velocity_enu_mps(enu_velocity, registration, node_id):
     north = enu_velocity.get("north_rate")
     if factor is None or not _is_number(east) or not _is_number(north):
         return None, False
-    velocity = {"east": float(east) * factor, "north": float(north) * factor}
+    # The scaled rates are PRODUCTS: guarding the operand is not enough,
+    # the unit conversion itself can leave the float64 range.
+    east_mps = _finite(float(east) * factor)
+    north_mps = _finite(float(north) * factor)
+    if east_mps is None or north_mps is None:
+        return None, False
+    velocity = {"east": east_mps, "north": north_mps}
     fully_carried = not any(
         _is_number(enu_velocity.get(key))
         for key in ("east_rate_error", "north_rate_error", "up_rate_error")
@@ -453,8 +641,9 @@ def _velocity_enu_mps(enu_velocity, registration, node_id):
     up = enu_velocity.get("up_rate")
     if _is_number(up):
         up_factor = registration.velocity_factor_mps(node_id, axis="up")
-        if up_factor is not None:
-            velocity["up"] = float(up) * up_factor
+        up_mps = _finite(float(up) * up_factor) if up_factor is not None else None
+        if up_mps is not None:
+            velocity["up"] = up_mps
         else:
             fully_carried = False
     return velocity, fully_carried
@@ -673,9 +862,20 @@ def _translate_detection(
             # entry without one is refused, never defaulted.
             if not isinstance(entry_type, str) or not entry_type or not _is_number(confidence):
                 continue
+            # sub_class is a vendor structure copied into the CANONICAL
+            # field payload.claim.sub_class — not a vendor extension block,
+            # so the _drop_non_finite pass-through rule does not apply. A
+            # canonical claim refuses (contract 8.1, same disposition as the
+            # non-finite confidence just above): a NaN anywhere inside the
+            # taxonomy makes this a non-claim presented as adjudicable
+            # evidence, and the raw entry is still preserved verbatim in the
+            # observation's native_classification provenance block.
+            sub_class = entry.get("sub_class")
+            if sub_class and _has_non_finite(sub_class):
+                continue
             claim = {"type": entry_type}
-            if entry.get("sub_class"):
-                claim["sub_class"] = entry["sub_class"]
+            if sub_class:
+                claim["sub_class"] = sub_class
             events.append(
                 _inference_event(
                     node_id=node_id,
@@ -1154,7 +1354,7 @@ def translate(
     if key in _NO_EVENT_CONTENT:
         return []
     if key == "detection_report":
-        return _translate_detection(
+        events = _translate_detection(
             body,
             node_id,
             ts,
@@ -1165,12 +1365,12 @@ def translate(
             active_mode=active_mode,
             valid_for_ms=valid_for_ms,
         )
-    if key == "status_report":
-        return _translate_status(
+    elif key == "status_report":
+        events = _translate_status(
             body, node_id, ts, registration=registration, active_mode=active_mode
         )
-    if key == "alert":
-        return _translate_alert(
+    elif key == "alert":
+        events = _translate_alert(
             body,
             node_id,
             ts,
@@ -1179,11 +1379,14 @@ def translate(
             timing_quality=timing_quality,
             active_mode=active_mode,
         )
-    if key == "task_ack":
-        return _translate_task_ack(body, node_id, ts, task_index=task_index, based_on=based_on)
-    if key == "error":
-        return _translate_error(body, node_id, ts)
-    return []
+    elif key == "task_ack":
+        events = _translate_task_ack(body, node_id, ts, task_index=task_index, based_on=based_on)
+    elif key == "error":
+        events = _translate_error(body, node_id, ts)
+    else:
+        return []
+    # Single emit boundary for every content branch (see _refuse_non_finite).
+    return _refuse_non_finite(events)
 
 
 def validate(zmeta_event):
@@ -1192,6 +1395,13 @@ def validate(zmeta_event):
     Version-aware: selects the locked v1.0 or the v1.1.0 extension schema
     per the event's ``zmeta_version`` (both loaded lazily). Returns
     ("pass", []) or ("fail", [violation strings]).
+
+    Non-finite floats are reported here as well as by the emit boundary in
+    ``translate()``. jsonschema cannot see them — every ``minimum``/
+    ``maximum`` comparison against NaN is vacuously False — so an event
+    carrying one used to return ("pass", []) while having no RFC-8259 wire
+    form at all. This is a plain violation string, not a governed
+    reason_code.
     """
     import jsonschema
 
@@ -1208,4 +1418,10 @@ def validate(zmeta_event):
         f"{'/'.join(str(part) for part in error.absolute_path)}: {error.message}"
         for error in validator.iter_errors(zmeta_event)
     ]
+    if _has_non_finite(zmeta_event):
+        violations.append(
+            "event: non-finite float (NaN/Infinity) present; "
+            "jsonschema range checks are vacuous against it and the event "
+            "has no RFC-8259 wire form"
+        )
     return ("pass", []) if not violations else ("fail", violations)

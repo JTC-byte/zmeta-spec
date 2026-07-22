@@ -147,6 +147,13 @@ The reference policy only allows `ignore` for the Profile L unresolved-parent
 case, where profile thinning may intentionally leave parent events unavailable
 on the link.
 
+It also runs the structural checks on the authorization policy: key names and
+value types across `producer_authority` and the whole `routing` block, the
+blocks themselves, the entries of every event-type list against the vocabulary
+derived from `schema/*.schema.json`, and each document's top-level wrapper key
+(which `load_policy` would otherwise unwrap into a permissive default). See
+`policy/README.md` for what each check catches and what stays legal.
+
 ### Validate All Examples
 
 ```

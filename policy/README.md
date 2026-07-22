@@ -88,8 +88,50 @@ Notes:
   trust, or safety risk; the reference policy only allows `ignore` for the
   Profile L unresolved-parent case where profile thinning can make parent
   references unavailable by design.
+  The same lint also checks the STRUCTURE of `producer_authority` and of the
+  whole `routing` block (`producers`, `producer_enforcement`,
+  `command_event`): unknown key names, and the value TYPE of every key the
+  enforcement reads (including the entries inside a by-profile map). Omitting
+  a key is legal and means "no constraint"; a key that is present must carry
+  its declared shape, because a wrong-typed value is read as "no constraint"
+  and silently stops that check from refusing. A key written with no value
+  under it (`require_match_for_event_types:` with the items deleted) is a
+  wrong-typed value, not an empty list.
+  Three further structural checks close the same defect at the levels a
+  key-by-key check cannot reach:
+  - the BLOCK itself. `producer_authority:` or `routing:` with nothing under
+    it is reported, not skipped over — the container that holds the keys is
+    subject to the same mangle as the keys.
+  - the ENTRIES of every event-type list
+    (`require_match_for_event_types`, `require_allowlist_for_event_types`,
+    `allowed_event_types`, `forbidden_event_types`). An entry that is a
+    well-formed string but not an event type the schema declares —
+    `STATE_EVEN`, `state_event` — can never match, so it drops silently out
+    of the gate exactly like a non-string entry. The event-type vocabulary is
+    read from `schema/*.schema.json`, never restated in the validator.
+    `allowed_event_subtypes` entries are deliberately not checked this way:
+    the subtype vocabulary is open through the extension registry.
+  - the DOCUMENT's top-level wrapper key. `load_policy` unwraps each file with
+    `.get("<wrapper>", <default>)`, so `routng:` loads as the permissive
+    default and no in-memory check can tell it apart from an empty block.
+    `routing.yaml` and `producer-authority.yaml` are checked for their
+    wrapper key directly.
 - `routing.producer_enforcement.require_allowlist_for_event_types` is reserved
-  for routing-layer allowlists such as COMMAND_EVENT origin gates.
+  for routing-layer allowlists such as COMMAND_EVENT origin gates. It and
+  `producer_authority.require_match_for_event_types` fail CLOSED at runtime if
+  their value is malformed: an unmatched producer is refused with
+  `PRODUCER_NOT_ALLOWED` and a `policy_error` detail naming the defect, rather
+  than the gate quietly admitting everything.
+- An operator who never runs the lint is still covered at runtime, for the
+  same reason. A `routing`, `producer_authority`, `producers`, or per-producer
+  rule block that is present but not a mapping, and a producer rule whose
+  event-type list has collapsed to "no constraint", are refused with a
+  `policy_error` detail naming the file and key — never read as "no policy" and
+  never raised as an `AttributeError` the receive loop reports as
+  `INTERNAL_ERROR`. A refusal caused by broken policy always says so. A bare
+  scalar (`allowed_event_types: FUSION_EVENT`) is read as a one-item list and
+  loses nothing, so it keeps working at runtime; the lint still reports its
+  shape.
 
 Default reference allowlist:
 - `torch`: INFERENCE_EVENT + FUSION_EVENT + STATE_EVENT analytics/fusion examples.

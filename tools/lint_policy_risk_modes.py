@@ -30,9 +30,14 @@ def parse_args() -> argparse.Namespace:
 
 
 def run(*, policy_dir: Path | str | None = None, quiet: bool = False) -> int:
-    policy = validators.load_policy(Path(policy_dir) if policy_dir else ROOT / "policy")
+    resolved_dir = Path(policy_dir) if policy_dir else ROOT / "policy"
+    policy = validators.load_policy(resolved_dir)
     issues = validators.lint_policy_risk_modes(policy)
     issues = issues + validators.lint_producer_authority_structure(policy)
+    issues = issues + validators.lint_routing_producer_enforcement_structure(policy)
+    # Document-level: a misspelled top-level wrapper key is unwrapped into the
+    # loader's permissive default, so the in-memory lints above cannot see it.
+    issues = issues + validators.lint_policy_document_structure(resolved_dir)
     for issue in issues:
         reasons = ",".join(issue.get("reason_codes", []))
         print(

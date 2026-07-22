@@ -1,6 +1,7 @@
 import argparse
 import hashlib
 import json
+import math
 import socket
 import subprocess
 import sys
@@ -36,6 +37,7 @@ except ImportError:  # pragma: no cover - optional dependency
 
 from validators import (
     ValidationState,
+    _is_non_finite_number,
     apply_external_promotion_policy_action,
     apply_timing_freshness_degradation,
     load_policy,
@@ -207,6 +209,58 @@ class TaskAckDedupeCache:
         return False
 
 
+def _exc_detail(exc):
+    """Describe an exception without trusting its __str__ to succeed.
+
+    Every caller builds this string inside a degradation handler that is not
+    itself inside a try. A raising __str__ there would escape by the same route
+    the metrics sink used to: out of the handler and into the receive loop.
+    The fallback still names the type, so the report degrades rather than
+    disappearing.
+    """
+    try:
+        return f"{type(exc).__name__}: {exc}"
+    except Exception:  # noqa: BLE001 - describing a failure must not become one
+        return type(exc).__name__
+
+
+def _warn_stderr(message):
+    """Emit one operator warning on stderr; return whether it was DELIVERED.
+
+    Every caller is on the datagram path, where the whole point of the warning
+    is that something already degraded. If stderr itself is gone there is
+    nowhere left to say anything, and killing translation to report that a
+    report could not be printed is the failure this guard exists to prevent.
+    Callers therefore keep their own in-memory accounting, which is what stays
+    honest when this returns having printed nothing.
+
+    The return value is load-bearing: callers latch their one-shot warning on
+    it, so it must be True only when the bytes actually reached stderr. Two
+    ways it used to lie:
+
+    - `print(..., file=sys.stderr)` falls back to sys.stdout when sys.stderr is
+      None (an embedded/pythonw/detached process, or a caller that nulled it).
+      stdout is the machine-readable metrics channel here; injecting a
+      human warning into it corrupts the machine channel to report a failure on
+      the human one, which is the wrong direction. No stderr means undelivered.
+    - print() buffers, so a full disk or a closed pipe can surface at flush
+      rather than at write. Flushing here is what turns "queued" into
+      "delivered"; without it the caller latches on an ENOSPC that has not been
+      raised yet.
+    """
+    stream = sys.stderr
+    if stream is None:
+        return False
+    try:
+        print(message, file=stream)
+        flush = getattr(stream, "flush", None)
+        if callable(flush):
+            flush()
+        return True
+    except Exception:  # noqa: BLE001 - a broken stderr must not kill translation
+        return False
+
+
 class GatewayMetrics:
     def __init__(self, interval_sec=DEFAULT_METRICS_INTERVAL_SEC, emit=True, logger=None, contract_hash=None):
         self.emit = bool(emit)
@@ -222,6 +276,11 @@ class GatewayMetrics:
         self.contract_hash = contract_hash
         self.total = self._new_window()
         self.window = self._new_window()
+        self.console_failures = 0
+        self._console_warned = False
+        # Last log-sink failure total already attributed to a window, so the
+        # per-window delta is a real delta and not a running total restated.
+        self._log_failures_seen = 0
 
     @staticmethod
     def _new_window():
@@ -239,6 +298,12 @@ class GatewayMetrics:
             "warnings": 0,
             "oversize_datagrams": 0,
             "send_failures": 0,
+            # Observability-sink losses for THIS window. Both sinks report the
+            # other's failures, so whichever channel survives still carries the
+            # count: a dead log file is named on the console summary, a dead
+            # console is named in the log record.
+            "console_failures": 0,
+            "log_write_failures": 0,
             "drop_reasons": {},
             "cot_skip_reasons": {},
             "timing_quality_modes": {},
@@ -289,6 +354,36 @@ class GatewayMetrics:
         if producer:
             payload["producer"] = producer
         self._log_event("timing_quality", payload)
+
+    def _print(self, line):
+        """Print one metrics summary line; a broken stdout degrades, not raises.
+
+        The periodic summary is the second I/O sink on the datagram path (the
+        metrics log file is the first). stdout can fail the same way - a closed
+        pipe when the gateway is piped into a consumer that exited, a full
+        disk when it is redirected to a file - and an OSError from here reached
+        the receive loop, including from the rate-limit drop path that sits
+        OUTSIDE the backstop. Announced once, for the same reason the log sink
+        is: a per-window warning storm is its own outage.
+
+        The latch is set on DELIVERY, not on attempt (see MetricsLogger.write
+        for the full argument): a closed pipe on stdout is frequently the same
+        closed pipe on stderr, so latching on the attempt spent the one warning
+        on a line nobody received.
+        """
+        try:
+            print(line)
+        except Exception as exc:  # noqa: BLE001 - observability must not kill translation
+            self.console_failures += 1
+            self._bump("console_failures", 1)
+            if not self._console_warned:
+                self._console_warned = _warn_stderr(
+                    f"WARNING: metrics console sink unavailable: "
+                    f"{_exc_detail(exc)}; periodic metrics summaries are "
+                    "degraded for the rest of this run and further console "
+                    "failures are not repeated (see console_failures on the "
+                    "periodic summary and in the metrics log record)"
+                )
 
     def _log_event(self, kind, payload):
         if not self.logger:
@@ -353,6 +448,29 @@ class GatewayMetrics:
             payload["task_id"] = task_id
         self._log_event("duplicate", payload)
 
+    def _log_sink_failures(self):
+        """Read the log sink's failure total and attribute the new losses.
+
+        MetricsLogger counts cumulatively; the periodic summary is windowed.
+        Returning (window_delta, total) lets both stay honest without either
+        one restating the other. A logger that does not expose the counter (an
+        operator-supplied sink, a test double) reports zero rather than
+        guessing - the console channel then says nothing it cannot support.
+        """
+        try:
+            total = int(getattr(self.logger, "write_failures", 0) or 0)
+        except Exception:  # noqa: BLE001 - reading a counter must not kill translation
+            # The logger can be operator-supplied, so `write_failures` may be a
+            # property that raises. maybe_log sits on the datagram path (the
+            # backstop's own handler calls it), and this whole subsystem exists
+            # because an observability read must never become an outage.
+            return 0, 0
+        if total < 0:
+            return 0, 0
+        delta = max(0, total - self._log_failures_seen)
+        self._log_failures_seen = total
+        return delta, total
+
     def maybe_log(self):
         if not self.emit:
             return
@@ -360,7 +478,14 @@ class GatewayMetrics:
         if now - self.last_log < self.interval_sec:
             return
         window = self.window
-        print(
+        # Read once, before any I/O below, and used for both surfaces so they
+        # cannot disagree. A failure of THIS summary's own log write therefore
+        # lands in the next window rather than this one - a one-interval lag,
+        # not a loss. When emit is off there is no periodic summary at all and
+        # the in-band metrics_sink_gap record is the surface that still works.
+        log_delta, log_total = self._log_sink_failures()
+        window["log_write_failures"] += log_delta
+        self._print(
             "metrics "
             f"interval={self.interval_sec}s recv={window['received']} "
             f"bytes={window['bytes']} fwd={window['forwarded']} cot={window['cot']} "
@@ -372,33 +497,33 @@ class GatewayMetrics:
         )
         if window["drop_reasons"]:
             reasons = ", ".join(f"{key}:{value}" for key, value in sorted(window["drop_reasons"].items()))
-            print(f"metrics drop_reasons={reasons}")
+            self._print(f"metrics drop_reasons={reasons}")
         if window["cot_skip_reasons"]:
             reasons = ", ".join(
                 f"{key}:{value}" for key, value in sorted(window["cot_skip_reasons"].items())
             )
-            print(f"metrics cot_skip_reasons={reasons}")
+            self._print(f"metrics cot_skip_reasons={reasons}")
         if window["timing_quality_modes"]:
             reasons = ", ".join(
                 f"{key}:{value}" for key, value in sorted(window["timing_quality_modes"].items())
             )
-            print(f"metrics timing_quality_modes={reasons}")
+            self._print(f"metrics timing_quality_modes={reasons}")
         if window["violation_codes"]:
             reasons = ", ".join(
                 f"{key}:{value}" for key, value in sorted(window["violation_codes"].items())
             )
-            print(f"metrics violation_codes={reasons}")
+            self._print(f"metrics violation_codes={reasons}")
         if window["warning_codes"]:
             reasons = ", ".join(
                 f"{key}:{value}" for key, value in sorted(window["warning_codes"].items())
             )
-            print(f"metrics warning_codes={reasons}")
+            self._print(f"metrics warning_codes={reasons}")
         if window["oversize_datagrams"]:
             kinds = ", ".join(
                 f"{key}:{value}"
                 for key, value in sorted(window["oversize_datagram_kinds"].items())
             )
-            print(
+            self._print(
                 f"metrics oversize_datagrams={window['oversize_datagrams']} kinds={kinds}"
             )
         if window["send_failures"]:
@@ -406,7 +531,21 @@ class GatewayMetrics:
                 f"{key}:{value}"
                 for key, value in sorted(window["send_failure_kinds"].items())
             )
-            print(f"metrics send_failures={window['send_failures']} kinds={kinds}")
+            self._print(f"metrics send_failures={window['send_failures']} kinds={kinds}")
+        # Printed LAST of the console lines so it accounts for failures of the
+        # lines above it, and printed at all only when something was lost - the
+        # one-shot stderr warning tells the operator to consult these counters,
+        # so they have to appear somewhere an operator actually reads. Window
+        # and cumulative are both stated because "3 lost this interval" and
+        # "3 lost since startup" are different operational facts.
+        console_delta = window["console_failures"]
+        if console_delta or log_delta or self.console_failures or log_total:
+            self._print(
+                "metrics sink_degraded "
+                f"console_failures={console_delta} write_failures={log_delta} "
+                f"console_failures_total={self.console_failures} "
+                f"write_failures_total={log_total}"
+            )
         self._log_event(
             "metrics",
             {
@@ -424,6 +563,14 @@ class GatewayMetrics:
                 "duplicates": window["duplicates"],
                 "oversize_datagrams": window["oversize_datagrams"],
                 "send_failures": window["send_failures"],
+                # Window-scoped like every other count in this record; the
+                # cumulative pair is stated separately so neither reading is
+                # inferred. console_failures is read at record-build time, so
+                # it includes a failure of the summary line that reports it.
+                "console_failures": window["console_failures"],
+                "write_failures": window["log_write_failures"],
+                "console_failures_total": self.console_failures,
+                "write_failures_total": log_total,
                 "drop_reasons": window["drop_reasons"],
                 "cot_skip_reasons": window["cot_skip_reasons"],
                 "timing_quality_modes": window["timing_quality_modes"],
@@ -442,6 +589,14 @@ class MetricsLogger:
         self.path = Path(path)
         self.max_bytes = max(0, int(max_bytes)) if max_bytes is not None else 0
         self.backups = max(0, int(backups)) if backups is not None else 0
+        self.write_failures = 0
+        self._warned = False
+        # Records lost since the last successful append, and the first error of
+        # that run. Emitted as an in-band gap marker when the sink recovers so
+        # a consumer READS the discontinuity instead of inferring it from a
+        # hole it has no way to see.
+        self._pending_gap = 0
+        self._gap_error = None
 
     def _rotate_if_needed(self):
         if not self.path.exists():
@@ -461,11 +616,87 @@ class MetricsLogger:
         first = self.path.with_suffix(self.path.suffix + ".1")
         self.path.replace(first)
 
-    def write(self, record):
+    def _write(self, record):
         self.path.parent.mkdir(parents=True, exist_ok=True)
         self._rotate_if_needed()
         with self.path.open("a", encoding="utf-8") as handle:
             handle.write(json.dumps(record, ensure_ascii=True) + "\n")
+
+    def write(self, record):
+        """Append one record; a sink failure degrades, it never raises.
+
+        Every metrics call sits on the datagram path, including the
+        receive-loop backstop's own handler. An unguarded raise here re-entered
+        that handler with the identical exception and nothing caught it, so a
+        single datagram terminated the gateway for every producer behind it -
+        the exact outcome the backstop exists to prevent - and it did so
+        precisely when an edge node is already under stress (disk full,
+        read-only remount, log directory removed, permissions changed).
+
+        This sink is observability, not translation. When it fails, the
+        datagram is still translated, the in-memory counters are still honest,
+        and no event is altered or laundered: nothing about the data changes,
+        only whether a copy of the diagnostic reaches the file.
+
+        The failure is announced ONCE on stderr, because a per-datagram warning
+        storm on a full disk is its own outage, and counted in write_failures
+        so the degradation is visible rather than silent. Writes keep being
+        attempted, so the sink recovers on its own when the disk frees up or
+        the directory comes back.
+
+        Two things make "announced once" honest rather than merely quiet:
+
+        - The latch is set on DELIVERY. Setting it on the attempt spent the one
+          warning on a line that was never printed, and the coincidence is the
+          CORRELATED case, not an exotic one: full disk and closed pipe are the
+          documented primary causes here and they take stderr down with the log
+          file. The result was zero warnings for the entire run even after
+          stderr recovered. Re-attempting costs one failed print per failed
+          write - the same per-record retry the sink itself already does - and
+          can never storm, because a stderr that delivers latches immediately.
+        - The loss is marked IN BAND. When the sink recovers, the gap marker
+          below is appended ahead of the next record, so a consumer reading the
+          file sees `metrics_sink_gap` with the count and cause instead of two
+          records that look contiguous. The counters that the stderr warning
+          names also appear on the periodic summary and in the metrics record
+          (GatewayMetrics.maybe_log), so neither channel points at a number
+          with no output surface.
+
+        What is still lost: if the sink never recovers, the marker never lands -
+        a file cannot report its own end. That case is covered by the other
+        channel (stderr warning plus write_failures on the console summary),
+        which is why both sinks report each other.
+        """
+        try:
+            if self._pending_gap:
+                # Ahead of the record it precedes, so the marker is impossible
+                # to read as belonging to the data that follows it.
+                self._write(
+                    {
+                        "type": "metrics_sink_gap",
+                        "ts": utc_now(),
+                        "path": str(self.path),
+                        "lost_records": self._pending_gap,
+                        "first_error": self._gap_error,
+                    }
+                )
+                self._pending_gap = 0
+                self._gap_error = None
+            self._write(record)
+        except Exception as exc:  # noqa: BLE001 - observability must not kill translation
+            self.write_failures += 1
+            self._pending_gap += 1
+            if self._gap_error is None:
+                self._gap_error = _exc_detail(exc)
+            if not self._warned:
+                self._warned = _warn_stderr(
+                    f"WARNING: metrics log sink unavailable ({self.path}): "
+                    f"{_exc_detail(exc)}; metrics logging is degraded "
+                    "for the rest of this run and further sink failures are not "
+                    "repeated (see write_failures on the periodic metrics "
+                    "summary, and the metrics_sink_gap record written to the "
+                    "log when the sink recovers)"
+                )
 
 
 class ProducerRateLimiter:
@@ -531,11 +762,44 @@ def _send_datagram(sock, payload, addr, *, metrics=None, kind="forward", event_i
                 kind, str(exc), len(payload), event_id=event_id, producer=producer
             )
         else:
-            print(
-                f"send failure kind={kind} bytes={len(payload)} error={exc}",
-                file=sys.stderr,
+            _warn_stderr(
+                f"send failure kind={kind} bytes={len(payload)} error={exc}"
             )
         return False
+
+
+def _record_backstop_drop(metrics, exc):
+    """Account and announce one backstop drop along a path that cannot raise.
+
+    The receive-loop backstop's handler used to call straight back into the
+    metrics sink. When the sink was what failed inside the try, the identical
+    exception was raised from inside the except, nothing caught it (__main__
+    catches only KeyboardInterrupt), and one datagram terminated the gateway
+    for every producer behind it - the single guarantee the backstop exists to
+    provide.
+
+    Order is deliberate and each step is honest:
+      1. record_drop bumps the in-memory INTERNAL_ERROR counters BEFORE any
+         I/O, so the operator-facing drop bucket stays correct even when every
+         sink is gone.
+      2. MetricsLogger.write and GatewayMetrics._print degrade in place, so the
+         shipped sinks cannot raise here at all. The except below is for a sink
+         that does not degrade - an operator-supplied logger, a test double -
+         and it is not a silent swallow: the stderr warning below still names
+         the original datagram failure.
+      3. The warning goes through _warn_stderr last, so a degraded metrics sink
+         can never suppress the one line an operator reads.
+    """
+    if metrics:
+        try:
+            metrics.record_drop("INTERNAL_ERROR")
+            metrics.maybe_log()
+        except Exception as sink_exc:  # noqa: BLE001 - the handler itself must not raise
+            _warn_stderr(
+                "WARNING: metrics sink raised while recording a dropped "
+                f"datagram: {_exc_detail(sink_exc)}"
+            )
+    _warn_stderr(f"WARNING: datagram dropped after unexpected {_exc_detail(exc)}")
 
 
 def ttl_ms_from_payload(payload):
@@ -980,6 +1244,14 @@ def _apply_failure_mode_degradation(
     confidence = event.get("confidence")
     if isinstance(confidence, bool) or not isinstance(confidence, (int, float)):
         return False
+    if _is_non_finite_number(confidence):
+        # Same clamp, same defect as validators.apply_timing_freshness_
+        # degradation: `min(1.0, nan)` is 1.0, so degrading a NaN confidence
+        # would publish MAXIMUM confidence. This runs on the outgoing event
+        # ahead of validate_outgoing_event, so the value is left intact for
+        # that gate to refuse rather than overwritten with a clean-looking
+        # one (R1-11 residual against A-01).
+        return False
 
     event["confidence"] = max(0.0, min(1.0, confidence / factor))
     limits = _timing_use_limits(timing_freshness_policy, "degrade")
@@ -1300,6 +1572,101 @@ def _attach_contract_hash(metrics, contract_hashes=None, stamp_contract_hash=Fal
         metrics["semantics_hash"] = contract_hashes.get("semantics_hash")
 
 
+_NON_FINITE_DETAIL_MARKERS = {
+    "nan": "<non-finite:nan>",
+    "inf": "<non-finite:+inf>",
+    "-inf": "<non-finite:-inf>",
+}
+
+
+def _non_finite_marker(value):
+    if isinstance(value, float):
+        if math.isnan(value):
+            return _NON_FINITE_DETAIL_MARKERS["nan"]
+        return _NON_FINITE_DETAIL_MARKERS["inf" if value > 0 else "-inf"]
+    # Decimal('NaN') / Decimal('Infinity') reach here from CBOR tag 5.
+    text = str(value).lower()
+    if "nan" in text:
+        return _NON_FINITE_DETAIL_MARKERS["nan"]
+    return _NON_FINITE_DETAIL_MARKERS["-inf" if text.startswith("-") else "inf"]
+
+
+def _wire_safe_details(details):
+    """Replace non-finite numbers in violation details with a marked token.
+
+    Violation `details` are merged verbatim into `payload.metrics` of the
+    gateway's own SYSTEM_EVENT, so any semantic check that echoes an
+    event-derived number puts that number back on the wire inside the
+    refusal. Several do. `validate_timing_quality` runs at the timing stage,
+    ahead of the value-honesty gate in validate_semantics, and its
+    HOLDOVER-monotonic check copies `float(metrics['est_error_ms'])` into
+    `current_est_error_ms` - so the gateway's own refusal shipped a raw NaN
+    and was itself not RFC 8259. A refusal that the consumer it is warning
+    cannot parse is not a refusal (R1-11 residual against A-01).
+
+    This is the boundary where details become wire content, so it closes the
+    class for every validator, present and future, rather than for the one
+    check that was caught echoing.
+
+    The substitution is deliberately a STRING, and one that names which
+    non-finite it was. Dropping the key would delete the diagnostic; coercing
+    to a number would invent one. `"<non-finite:nan>"` cannot be read as a
+    measurement by any consumer, and NaN vs +inf vs -inf are different sensor
+    faults, so the distinction is kept.
+
+    The walk is iterative and memoised by the identity of the ORIGINAL
+    container for the same reason the kernel traversals carry a seen-set:
+    details nest (policy blobs, `effects`), and a recursive or unbounded walk
+    here would trade a laundering defect for a crash or a hang. Memoising the
+    copies instead of the originals is not equivalent - a self-referential
+    blob then copies forever - and it is what the first draft of this
+    function did, caught by its own cycle pin.
+
+    It builds a copy rather than editing in place: the same violation dict is
+    also handed to the metrics recorder, and quietly rewriting the caller's
+    values would be a second, invisible mutation.
+    """
+    if not isinstance(details, dict):
+        return details
+
+    memo = {}
+    pending = []
+    originals = []
+
+    def _shell(value):
+        marker = id(value)
+        existing = memo.get(marker)
+        if existing is not None:
+            return existing
+        copied = {} if isinstance(value, dict) else []
+        memo[marker] = copied
+        originals.append(value)  # keep alive so id() cannot be recycled
+        pending.append((value, copied))
+        return copied
+
+    def _convert(value):
+        if _is_non_finite_number(value):
+            return _non_finite_marker(value)
+        if isinstance(value, (dict, list, tuple, set, frozenset)):
+            # set/frozenset are here because the cbor2 backend decodes CBOR
+            # tag 258 into one, so a detail copied from an event can be one.
+            # They become lists: JSON has no set, and a diagnostic the
+            # consumer cannot decode is not a diagnostic.
+            return _shell(value)
+        return value
+
+    root = _shell(details)
+    while pending:
+        original, target = pending.pop()
+        if isinstance(original, dict):
+            for key, value in original.items():
+                target[key] = _convert(value)
+        else:
+            for value in original:
+                target.append(_convert(value))
+    return root
+
+
 def build_violation_event(reason_code, original=None, details=None, contract_hashes=None, stamp_contract_hash=False, force_schema_violation=False):
     original_event = original.get("event", {}) if isinstance(original, dict) else {}
     original_source = original.get("source", {}) if isinstance(original, dict) else {}
@@ -1325,7 +1692,7 @@ def build_violation_event(reason_code, original=None, details=None, contract_has
     if original_source.get("producer"):
         metrics["source_producer"] = original_source.get("producer")
     if details:
-        metrics.update(details)
+        metrics.update(_wire_safe_details(details))
     _attach_contract_hash(metrics, contract_hashes, stamp_contract_hash)
 
     return {
@@ -1359,7 +1726,9 @@ def build_warning_event(reason_code, original=None, details=None, contract_hashe
     if original_source.get("producer"):
         metrics["source_producer"] = original_source.get("producer")
     if details:
-        metrics.update(details)
+        # Same boundary, same reason as build_violation_event: a warning event
+        # that carries a raw NaN is a warning the consumer cannot parse.
+        metrics.update(_wire_safe_details(details))
     _attach_contract_hash(metrics, contract_hashes, stamp_contract_hash)
 
     return {
@@ -2004,14 +2373,11 @@ def main():
             if metrics:
                 metrics.maybe_log()
         except Exception as exc:  # noqa: BLE001 - last-resort per-datagram guard
-            if metrics:
-                metrics.record_drop("INTERNAL_ERROR")
-                metrics.maybe_log()
-            print(
-                "WARNING: datagram dropped after unexpected "
-                f"{type(exc).__name__}: {exc}",
-                file=sys.stderr,
-            )
+            # The handler must not re-enter anything that can raise: when the
+            # failure inside the try WAS the metrics sink, a bare call back
+            # into it raised the identical exception from inside the except
+            # and killed the gateway. See _record_backstop_drop.
+            _record_backstop_drop(metrics, exc)
 
 
 if __name__ == "__main__":

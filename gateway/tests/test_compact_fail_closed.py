@@ -11,6 +11,7 @@ that diagnostic must itself be compact-representable and schema/semantics
 valid (the GEO_ZERO_FILL_SUSPECTED destroyed-diagnostic lesson).
 """
 
+import ast
 import importlib.util
 import json
 import subprocess
@@ -46,6 +47,93 @@ def _load_jsonl(path):
 
 def _v1_1_examples():
     return _load_jsonl(ROOT / "examples" / "zmeta-v1.1-examples.jsonl")
+
+
+def _hostile_depth():
+    """A nesting depth the interpreter cannot recurse to.
+
+    Derived from the live limit rather than hard-coded, so raising
+    sys.setrecursionlimit() in a runner cannot quietly drop the pin back
+    below the threshold it exists to cross.
+    """
+    return max(100_000, sys.getrecursionlimit() * 10)
+
+
+def _deep_chain(depth, leaf=None):
+    """A `depth`-deep dict chain, optionally with `leaf` at the bottom."""
+    root = current = {}
+    for _ in range(depth):
+        child = {}
+        current["d"] = child
+        current = child
+    if leaf is not None:
+        current["leaf"] = leaf
+    return root
+
+
+class ExpansionBudgetExceeded(Exception):
+    """A walk expanded more containers than the structure contains."""
+
+
+class _Budget:
+    """Turns non-termination into a bounded, deterministic failure.
+
+    A walk that never terminates cannot be pinned with a plain assertion --
+    the test would hang instead of failing, which is why the residual that
+    found this defect had to use a watchdog thread. Instead the FIXTURE
+    counts: every expansion of one of these containers spends budget, and a
+    walk that revisits a container without limit blows the budget in
+    milliseconds. A terminating walk expands each container once and never
+    comes near it. No threads, no timeouts, no runaway heap in CI.
+    """
+
+    def __init__(self, limit):
+        self.limit = limit
+        self.used = 0
+
+    def spend(self):
+        self.used += 1
+        if self.used > self.limit:
+            raise ExpansionBudgetExceeded(
+                f"walk expanded containers {self.used} times against a budget "
+                f"of {self.limit}: it is not terminating"
+            )
+
+
+class _CountedDict(dict):
+    def __init__(self, budget, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._budget = budget
+
+    def items(self):
+        self._budget.spend()
+        return super().items()
+
+
+class _CountedList(list):
+    def __init__(self, budget, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._budget = budget
+
+    def __iter__(self):
+        self._budget.spend()
+        return super().__iter__()
+
+    def __len__(self):
+        self._budget.spend()
+        return super().__len__()
+
+
+def _self_referential_dict(budget):
+    node = _CountedDict(budget)
+    node["self"] = node
+    return node
+
+
+def _self_referential_list(budget):
+    node = _CountedList(budget)
+    node.append(node)
+    return node
 
 
 def _all_v1_0_example_events():
@@ -438,15 +526,357 @@ class CompactFailClosedTest(unittest.TestCase):
                     )
 
     def test_nesting_beyond_decode_depth_refuses_instead_of_raising(self):
-        deep = current = {}
-        for _ in range(300):
-            child = {}
-            current["d"] = child
+        # Depth must exceed the interpreter's recursion limit, on EVERY
+        # backend. The original pin used 300 -- above zmeta_cbor's max_depth
+        # of 64 but far below sys.getrecursionlimit(), so it never reached
+        # the recursive pre-scan that sat in front of the guard, and it never
+        # reached cbor2's own 400-item nesting ceiling either. Both escapes
+        # were live at that depth and the pin could not see them (R1-11
+        # fresh-audit A-04).
+        depth = _hostile_depth()
+        self.assertGreater(depth, sys.getrecursionlimit())
+        for backend in self._both_cbor_backends():
+            for value in (None, 2**70):
+                # Deep alone, and deep carrying an unencodable int at the
+                # bottom: the second proves the traversal still reaches the
+                # floor of a structure it can no longer recurse into.
+                with self.subTest(backend=backend, leaf=value):
+                    event = self._v1_0_state()
+                    event.setdefault("payload", {}).setdefault("extensions", {})[
+                        "vendor"
+                    ] = _deep_chain(depth, leaf=value)
+                    with self.assertRaises(
+                        zmeta_compact.CompactUnrepresentableError
+                    ):
+                        zmeta_compact.dumps(event)
+
+    def test_backend_native_codec_errors_become_refusals(self):
+        # The guard names built-in exceptions, but cbor2's CBOREncodeError /
+        # CBORDecodeError descend from CBORError -> Exception and are NOT
+        # ValueError subclasses. Depth 500 is the window where that is the
+        # SOLE failure: past cbor2's own 400-item nesting ceiling, below the
+        # interpreter's recursion limit. Whether an event refuses honestly
+        # must not depend on which CBOR library happens to be installed.
+        if zmeta_compact.cbor2 is None:  # pragma: no cover - optional dep
+            self.skipTest("cbor2 not installed")
+        self.assertLess(500, sys.getrecursionlimit())
+        original = zmeta_compact.zmeta_cbor
+        zmeta_compact.zmeta_cbor = None
+        try:
+            event = self._v1_0_state()
+            event.setdefault("payload", {}).setdefault("extensions", {})[
+                "vendor"
+            ] = _deep_chain(500)
+            with self.assertRaises(zmeta_compact.CompactUnrepresentableError):
+                zmeta_compact.dumps(event)
+        finally:
+            zmeta_compact.zmeta_cbor = original
+
+    def test_unencodable_int_scan_survives_hostile_nesting_depth(self):
+        # The mapping-limit scan runs on the encode path, in front of nothing
+        # that can rescue it: it must not tie the process stack to
+        # sender-controlled nesting depth (same rule as
+        # validators._find_forbidden_key).
+        depth = _hostile_depth()
+        self.assertGreater(depth, sys.getrecursionlimit())
+        clean = _deep_chain(depth)
+        self.assertIsNone(zmeta_compact._find_unencodable_int(clean))
+        found = zmeta_compact._find_unencodable_int(_deep_chain(depth, leaf=2**70))
+        self.assertIsNotNone(found)
+        self.assertIn("CBOR 64-bit range", found)
+        # Lists are the other container the walk descends; depth is
+        # sender-controlled through either one.
+        deep_list = current = []
+        for _ in range(depth):
+            child = []
+            current.append(child)
             current = child
+        self.assertIsNone(zmeta_compact._find_unencodable_int(deep_list))
+        current.append(2**70)
+        self.assertIn(
+            "CBOR 64-bit range", zmeta_compact._find_unencodable_int(deep_list)
+        )
+
+    def test_unencodable_int_scan_terminates_on_self_referential_structure(self):
+        # The iterative rewrite removed the RecursionError but added no
+        # visited set and no bound, so a structure that refers back to itself
+        # spun forever with the heap rising: a bounded crash traded for an
+        # unbounded hang, which is worse -- the crash was already being
+        # converted into a governed refusal by the guard this scan now sits
+        # inside (R1-11 residual against the A-04 wave).
+        #
+        # Reachability is not theoretical. json.loads cannot build a cycle,
+        # but CBOR ingress can: cbor2 honours the value-sharing tags
+        # (28 shareable / 29 sharedref) by default, so a ~600 byte datagram
+        # decodes into a self-referential dict on a cbor2-only install -- a
+        # configuration both zmeta_compact's backend selection and
+        # gateway._decode_cbor explicitly support. See
+        # CborValueSharingReachabilityTest below.
+        for label, factory in (
+            ("dict", _self_referential_dict),
+            ("list", _self_referential_list),
+        ):
+            with self.subTest(container=label):
+                budget = _Budget(64)
+                value = factory(budget)
+                # A cycle has no finite CBOR encoding, so the refusal belongs
+                # to the MAPPING and must not be left to whichever backend is
+                # installed: zmeta_cbor raises RecursionError (which names the
+                # wrong cause) and cbor2 raises CBOREncodeValueError.
+                with self.assertRaises(
+                    zmeta_compact.CompactUnrepresentableError
+                ) as caught:
+                    zmeta_compact._find_unencodable_int(value)
+                self.assertIn("refers back to itself", str(caught.exception))
+
+    def test_shared_but_acyclic_structure_is_not_refused_as_a_cycle(self):
+        # The other half of the trade: terminating by refusing anything seen
+        # twice would reject a perfectly representable event. Sharing is not a
+        # cycle. This is also the check that the seen-set is not just a
+        # disguised bound -- nothing large-but-honest may be discarded.
+        shared_clean = {"n": 1}
+        self.assertIsNone(
+            zmeta_compact._find_unencodable_int(
+                {"a": shared_clean, "b": shared_clean}
+            )
+        )
+        # And the skip must not hide an offender: a shared subtree reachable
+        # only through the SECOND reference is still reported.
+        shared_bad = {"n": 2**70}
+        self.assertEqual(
+            "$.b.n (integer %d is outside the CBOR 64-bit range)" % (2**70),
+            zmeta_compact._find_unencodable_int({"a": {"x": 1}, "b": shared_bad}),
+        )
+        # Sharing at every level is 2**levels distinct paths. Before the
+        # seen-set this was exponential work off a few hundred wire bytes;
+        # it must now be linear in CONTAINERS.
+        budget = _Budget(256)
+        node = _CountedDict(budget, {"leaf": 1})
+        for _ in range(64):
+            node = _CountedDict(budget, {"l": node, "r": node})
+        self.assertIsNone(zmeta_compact._find_unencodable_int(node))
+
+    def test_dumps_refuses_a_self_referential_event(self):
+        # End of the class, through the public API: the operator gets the one
+        # governed refusal the compact ladder handles, not a hang.
+        #
+        # The vendor blob is budget-counted so that reverting the fix makes
+        # THIS test fail too instead of wedging the whole suite. The budget is
+        # deliberately loose -- it only has to be finite.
+        budget = _Budget(512)
+        for entry in (zmeta_compact.dumps, zmeta_compact.verify_representable):
+            with self.subTest(entry=entry.__name__):
+                event = self._v1_0_state()
+                event.setdefault("payload", {}).setdefault("extensions", {})[
+                    "vendor"
+                ] = _self_referential_dict(budget)
+                with self.assertRaises(
+                    zmeta_compact.CompactUnrepresentableError
+                ) as caught:
+                    entry(event)
+                self.assertIn("refers back to itself", str(caught.exception))
+
+    def test_no_recursive_walk_runs_outside_the_fail_closed_guard(self):
+        """Structural pin: nothing that can RecursionError may sit in front
+        of the try that converts RecursionError into a refusal.
+
+        The behavioural pins above can only see failures a live input can
+        reach today. _semantic_difference is still recursive and is only
+        depth-bounded because decode refuses first -- move its call back out
+        of the try and no input in this suite notices, until some later
+        change to the decode limits makes it reachable. That is the exact
+        shape of A-04: a guard defeated by code shipped alongside it. This
+        test reads the module's own structure instead, so the family is
+        enumerated from the code rather than from anyone's memory of it.
+
+        Two things this pin gets wrong if written casually, both of which it
+        got wrong on the first pass and both of which let a live escape pass
+        green:
+          - "inside the try" is the try BODY, not ast.walk(Try). An else:,
+            finally: or except: clause is outside the guard.
+          - the perimeter is the whole encode path, not one function. A
+            pre-scan in dumps() escapes just as completely.
+        """
+        source = (ROOT / "zmeta_compact.py").read_text(encoding="utf-8")
+        tree = ast.parse(source)
+        funcs = {n.name: n for n in tree.body if isinstance(n, ast.FunctionDef)}
+
+        def callees(node):
+            return {
+                sub.func.id
+                for sub in ast.walk(node)
+                if isinstance(sub, ast.Call)
+                and isinstance(sub.func, ast.Name)
+                and sub.func.id in funcs
+            }
+
+        graph = {name: callees(node) for name, node in funcs.items()}
+
+        def closure(names, stop=frozenset()):
+            seen, stack = set(), [n for n in names if n not in stop]
+            while stack:
+                current = stack.pop()
+                if current in seen:
+                    continue
+                seen.add(current)
+                stack.extend(c for c in graph.get(current, ()) if c not in stop)
+            return seen
+
+        recursive = {name for name in funcs if name in closure(graph[name])}
+        # Vacuity guard: this module HAS recursive walkers. If the scan finds
+        # none, the parse broke and the assertion below means nothing.
+        self.assertTrue(recursive, "recursion scan found nothing to check")
+        # AsyncFunctionDef and Lambda are in this list because `funcs` cannot
+        # see them at all: a recursive walker written as either would be
+        # invisible to the call graph below, and so would every escape it
+        # makes. There are none today; if one appears, re-derive this test
+        # rather than widening the assertion.
+        self.assertEqual(
+            len(funcs),
+            len(
+                [
+                    n
+                    for n in ast.walk(tree)
+                    if isinstance(
+                        n, (ast.FunctionDef, ast.AsyncFunctionDef, ast.Lambda)
+                    )
+                ]
+            ),
+            "nested / async / lambda function defs exist; the top-level scan "
+            "no longer sees every function in this module",
+        )
+        self.assertIn(
+            "_semantic_difference",
+            recursive,
+            "the known recursive walker is gone from the scan -- if it was "
+            "made iterative that is an improvement, but re-derive this "
+            "test's coverage before deleting the assertion",
+        )
+
+        guard = "_verified_compact_bytes"
+        guarded = funcs[guard]
+        tries = [n for n in ast.walk(guarded) if isinstance(n, ast.Try)]
+        self.assertEqual(1, len(tries), "expected exactly one guard try block")
+        # ONLY the try BODY is protected. ast.walk over an ast.Try descends
+        # into handlers, orelse and finalbody as well, and code in an
+        # `except:` / `else:` / `finally:` clause is semantically OUTSIDE the
+        # guard -- an exception raised there propagates raw. Counting those as
+        # "inside" is how the first version of this pin stayed green on a
+        # source where the recursive walk provably escaped: moving the
+        # _semantic_difference call from the try body into an `else:` of the
+        # same try turned the refusal back into a raw RecursionError and this
+        # test did not notice (R1-11 residual against the A-04 wave).
+        protected = {
+            id(n) for stmt in tries[0].body for n in ast.walk(stmt)
+        }
+        self.assertTrue(protected, "the guard's try body is empty")
+
+        # The perimeter is not just the guard function. A recursive pre-scan
+        # added one level up, in dumps() or verify_representable(), is exactly
+        # as far outside the try as one added in front of it -- and that is
+        # A-04's own shape. Derive the encode-path entry points from the call
+        # graph rather than naming them from memory, so a public entry added
+        # later is covered the day it is written.
+        entries = {
+            name
+            for name in funcs
+            if not name.startswith("_") and guard in closure(graph[name])
+        } | {guard}
+        for expected in ("dumps", "verify_representable"):
+            self.assertIn(
+                expected,
+                entries,
+                f"{expected}() no longer routes through {guard}; the "
+                "perimeter this test walks is derived from that fact",
+            )
+
+        # Three ways a module function reaches the outside of the guard, all
+        # of which a naive "Call with a Name func" scan misses. B1/B2 below
+        # were live blind spots in this pin until they were attacked:
+        #   f(...)          a plain call
+        #   obj.f(...)      an attribute call -- the graph is name-based, so
+        #                   this is invisible unless matched on the attr
+        #   g = f; g(...)   a bare reference that hands the function off; a
+        #                   rename must not be a way out of the guard
+        unguarded = set()
+        for name in entries:
+            for sub in ast.walk(funcs[name]):
+                if id(sub) in protected:
+                    continue
+                if isinstance(sub, ast.Call) and isinstance(sub.func, ast.Name):
+                    if sub.func.id in funcs:
+                        unguarded.add(sub.func.id)
+                elif isinstance(sub, ast.Attribute) and sub.attr in funcs:
+                    unguarded.add(sub.attr)
+                elif (
+                    isinstance(sub, ast.Name)
+                    and isinstance(sub.ctx, ast.Load)
+                    and sub.id in funcs
+                ):
+                    unguarded.add(sub.id)
+        # Calls TO the guard are what the entries are supposed to do, and the
+        # guard's own interior is judged by `protected` above, so do not walk
+        # back through it.
+        exposed = sorted(closure(unguarded, stop={guard}) & recursive)
+        self.assertEqual(
+            [],
+            exposed,
+            "recursive walker(s) reachable from the compact encode path "
+            f"({sorted(entries)}) outside the {guard} try body: {exposed}",
+        )
+        # And the guard must actually be covering something.
+        guarded_calls = {
+            sub.func.id
+            for stmt in tries[0].body
+            for sub in ast.walk(stmt)
+            if isinstance(sub, ast.Call) and isinstance(sub.func, ast.Name)
+            and sub.func.id in funcs
+        }
+        self.assertTrue(closure(guarded_calls) & recursive)
+
+    def test_unencodable_int_scan_reports_first_offender_with_path(self):
+        # Pin the traversal ORDER and the path text, not just "something was
+        # found": an iterative walk that reports a different offender than
+        # the pre-order walk changes the refusal message operators filter on.
+        value = {"a": {"b": [{"c": 2**70}]}, "z": -(2**64) - 1}
+        self.assertEqual(
+            "$.a.b[0].c (integer %d is outside the CBOR 64-bit range)" % (2**70),
+            zmeta_compact._find_unencodable_int(value),
+        )
+        self.assertIsNone(zmeta_compact._find_unencodable_int({"a": {"b": [True, 1]}}))
+
+    def test_gateway_forwards_encoding_unsupported_for_hostile_nesting(self):
+        # The honest end of A-04: the consumer must get the governed
+        # ENCODING_UNSUPPORTED refusal, not silence. Before the fix the raw
+        # RecursionError escaped _COMPACT_UNREPRESENTABLE entirely and the
+        # datagram was dropped as INTERNAL_ERROR with nothing forwarded.
+        settings = {
+            "output_encoding": "compact",
+            "stamp_contract_hash": False,
+            "profile": "H",
+        }
         event = self._v1_0_state()
-        event.setdefault("payload", {}).setdefault("extensions", {})["vendor"] = deep
-        with self.assertRaises(zmeta_compact.CompactUnrepresentableError):
-            zmeta_compact.dumps(event)
+        event.setdefault("payload", {}).setdefault("extensions", {})["vendor"] = (
+            _deep_chain(_hostile_depth())
+        )
+
+        payload, emitted = gateway._encode_outgoing_or_diagnostic(
+            event,
+            settings,
+            contract_hashes=None,
+            should_stamp_profile=False,
+            metrics=None,
+        )
+
+        self.assertIsNotNone(payload, "hostile nesting produced no forwarded payload")
+        self.assertEqual(
+            emitted["payload"]["metrics"]["reason_code"], "ENCODING_UNSUPPORTED"
+        )
+        decoded = zmeta_compact.loads(payload)
+        self.assertEqual(
+            decoded["payload"]["metrics"]["reason_code"], "ENCODING_UNSUPPORTED"
+        )
+        self.assertEqual(list(self.validator.iter_errors(emitted)), [])
 
     def test_sub_microsecond_truncation_is_refused(self):
         # datetime.fromisoformat truncates at microseconds, so BOTH sides of a
@@ -544,6 +974,40 @@ class CompactFailClosedTest(unittest.TestCase):
                 (ROOT / "pytest-work").rmdir()
             except OSError:
                 pass
+
+
+class CborValueSharingReachabilityTest(unittest.TestCase):
+    """Records WHY the cycle-termination pins above matter.
+
+    The residual that found the non-terminating walk called it unreachable
+    from the wire, on the grounds that json.loads cannot build a cycle. That
+    is true of JSON and false of the gateway: CBOR ingress is a supported
+    input encoding, gateway._decode_cbor falls back to cbor2 when zmeta_cbor
+    is absent (an install both modules explicitly support), and cbor2 honours
+    the standard value-sharing tags by default. This test asserts only the
+    decode fact -- it never walks the result, so it cannot hang even with the
+    fix reverted. If cbor2 ever stops doing this the pin fails, and that is
+    correct: the threat model changed and the walkers' cycle-safety should be
+    re-derived rather than assumed.
+    """
+
+    def test_cbor2_ingress_decode_can_produce_a_self_referential_event(self):
+        if zmeta_compact.cbor2 is None:  # pragma: no cover - optional dep
+            self.skipTest("cbor2 not installed")
+        vendor = {}
+        vendor["self"] = vendor
+        event = {"payload": {"extensions": {"vendor": vendor}}}
+        wire = zmeta_compact.cbor2.dumps(event, value_sharing=True)
+        self.assertLess(len(wire), 256, "the hostile datagram is tiny")
+
+        original = gateway.zmeta_cbor
+        gateway.zmeta_cbor = None  # the supported cbor2-only install
+        try:
+            decoded = gateway._decode_cbor(wire)
+        finally:
+            gateway.zmeta_cbor = original
+        blob = decoded["payload"]["extensions"]["vendor"]
+        self.assertIs(blob, blob["self"], "no cycle -- reachability changed")
 
 
 if __name__ == "__main__":

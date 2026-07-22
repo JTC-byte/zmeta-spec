@@ -14,6 +14,7 @@ SapientMessage dicts (protobuf-JSON, lowerCamelCase or snake_case keys) via
 conflicting declarations are never resolved by guessing.
 """
 
+import math
 import re
 
 __all__ = ["RegistrationStore", "snake_keys"]
@@ -87,8 +88,19 @@ def _is_number(value):
 def duration_ms(duration):
     """Convert a SAPIENT Registration.Duration dict to milliseconds.
 
-    Returns None when units are unknown/unspecified or the value is not
-    numeric — a duration is never guessed.
+    Returns None when units are unknown/unspecified, the value is not
+    numeric, or the SCALED result is not finite — a duration is never
+    guessed. The scale is a product: a NaN on the wire survives every
+    multiplication, and a value near the float64 ceiling in seconds/days
+    overflows to inf. Either way the declaration is unresolvable, which
+    is the same disposition as unresolvable units — and returning it
+    would push a non-finite est_error_ms into every event this node
+    produces.
+
+    Returning None here is NOT the whole disposition. None is also what an
+    absent declaration yields, and those two states are not the same: see
+    ``RegistrationStore.latency_unresolved``, which keeps them apart so an
+    unresolvable declaration cannot read downstream as a quieter node.
     """
     if not isinstance(duration, dict):
         return None
@@ -97,7 +109,20 @@ def duration_ms(duration):
     value = duration.get("value")
     if factor is None or not _is_number(value):
         return None
-    return float(value) * factor
+    try:
+        scaled = float(value) * factor
+    except OverflowError:
+        # ``json.loads`` builds an arbitrary-precision Python int straight
+        # from a plain integer literal, and float() on one outside the
+        # float64 range RAISES rather than returning inf. Wire data must
+        # never crash the ingest loop (fail closed): a value with no
+        # float64 form is unresolvable, the same disposition as unknown
+        # units, and one malformed Registration must not take down
+        # ``RegistrationStore.ingest`` for the whole node.
+        return None
+    if not math.isfinite(scaled):
+        return None
+    return scaled
 
 
 def _merge(mapping, key, value):
@@ -185,8 +210,16 @@ class RegistrationStore:
                 continue
             mode_name = mode.get("mode_name")
             if isinstance(mode_name, str) and mode_name:
+                declared_latency = mode.get("maximum_latency")
+                latency_ms = duration_ms(declared_latency)
                 modes[mode_name] = {
-                    "maximum_latency_ms": duration_ms(mode.get("maximum_latency")),
+                    "maximum_latency_ms": latency_ms,
+                    # "declared it and we cannot use it" is a different
+                    # state from "never declared it"; duration_ms collapses
+                    # both to None, so the distinction is kept here.
+                    "maximum_latency_unresolved": (
+                        declared_latency is not None and latency_ms is None
+                    ),
                     "settle_time_ms": duration_ms(mode.get("settle_time")),
                     "tracking_type": enum_tail(mode.get("tracking_type"), "TRACKING_TYPE_"),
                 }
@@ -290,6 +323,36 @@ class RegistrationStore:
             if entry["maximum_latency_ms"] is not None
         ]
         return max(values) if values else None
+
+    def latency_unresolved(self, node_id, mode=None):
+        """True when this node DECLARED a maximum_latency we cannot resolve.
+
+        ``max_latency_ms`` returns None for two very different states: the
+        node never declared a latency bound at all, and the node declared
+        one this store could not resolve (unknown units, a NaN or
+        overflowing value, an integer with no float64 form). Collapsing
+        them is a laundering: a consumer of ``max_latency_ms`` alone widens
+        by nothing in both cases, so the node with the BROKEN declaration
+        ships a TIGHTER timestamp-error bound than the node with a sane
+        one — the worse the input, the cleaner the event. Callers that turn
+        this into an uncertainty MUST read both.
+
+        Scoped exactly like ``max_latency_ms``: when a named mode carries a
+        resolvable latency that IS the bound, so a different mode's broken
+        declaration does not matter. Otherwise the cross-mode maximum
+        applies, and any unresolvable mode means that maximum is not a
+        maximum.
+        """
+        node = self._node(node_id)
+        if not node:
+            return False
+        if mode is not None:
+            entry = node["modes"].get(mode)
+            if entry and entry["maximum_latency_ms"] is not None:
+                return False
+        return any(
+            entry["maximum_latency_unresolved"] for entry in node["modes"].values()
+        )
 
     def declared_units(self, node_id):
         """Full units codex: {(category, type_lowercase): units_string}.

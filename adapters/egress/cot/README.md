@@ -8,6 +8,24 @@ non-state inputs and state payloads that still carry raw observation/evidence
 fields such as `features`, `raw_features`, `modality`, `data_ref`, or
 `data_refs`; those events must be rejected or corrected before projection.
 
+It also refuses (`None`) any event carrying a non-finite (`NaN`/`inf`) number
+in a canonical field, plus any non-finite value in the operator-supplied
+`cot_config` and in the `zmeta_to_cot_uncertainty_circle` radius. `lat="nan"`
+renders on ATAK as an ordinary marker at a position that is not a position,
+carrying no uncertainty label and nothing an operator can filter on. The
+gateway refuses such an event at its outgoing gate before CoT is ever called;
+this guard covers callers that project directly, and the gateway buckets the
+refusal as a counted, reason-tagged `cot_skipped` record.
+
+The check is scoped by value, not by a list of fields: every canonical field
+is walked, so a number that reaches `<remarks>`, an uncertainty key added to
+`geo.error_ellipse_m` later, or a `default_valid_for_ms` that would otherwise
+raise out of the adapter are all covered without editing a list.
+`payload.extensions` is the one deliberate exclusion — it is namespaced vendor
+content this adapter never reads and never renders, and refusing the
+operator's track because a provenance blob carried a `NaN` would destroy good
+canonical data over content CoT does not project.
+
 ### Features
 
 | Feature | Details |

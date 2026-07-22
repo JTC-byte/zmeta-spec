@@ -21,9 +21,45 @@ ADAPTER_VERSION = "1.2.0"
 SCHEMA_ID = "mavlink-telemetry"
 PROMOTION_POLICY_ID = "PROMOTE-MAVLINK-STATE-V1"
 
+# The v1.0 schema's LINK_STATUS state vocabulary. "UNKNOWN" is the honest label
+# for a link whose health verdict nobody supplied; DEGRADED/DOWN additionally
+# require metrics.reason_code.
+_LINK_STATUS_STATES = ("UP", "DEGRADED", "DOWN", "UNKNOWN")
+
 
 def _utc_now():
     return utc_now_z()
+
+
+def _normalize_sync_state(sync_state):
+    """Map the MAVLink-side "SYNCED" label onto the v1.0 sync_state vocabulary.
+
+    ``LOCKED``/``HOLDOVER``/``UNSYNCED`` is the schema's enum; "SYNCED" and
+    "LOCKED" are the same claim in two vocabularies, so this is a rename, not
+    a promotion - nothing is made cleaner than the message reported.
+    """
+    return "LOCKED" if sync_state == "SYNCED" else sync_state
+
+
+def _time_status_payload_state(sync_state, carried_state=None):
+    """Derive TIME_STATUS ``payload.state`` from the carried sync verdict.
+
+    ``payload.state`` must not assert a locked clock a message never reported:
+    a SYSTEM_TIME dict that says nothing about sync is UNSYNCED, and UNSYNCED
+    is DEGRADED, not SYNCED. Both TIME_STATUS emitters in this module share
+    this one derivation so identical telemetry can never yield two opposite
+    verdicts in the same field.
+
+    A message-carried ``state`` is honoured only when it is *more* conservative
+    than the derived verdict: an upstream that already knows its clock is
+    degraded keeps that verdict, while an optimistic "UP"/"SYNCED" label never
+    overrides an UNSYNCED metrics block. The event therefore never contradicts
+    itself and never launders a caller's degraded claim into a clean one.
+    """
+    derived = "UP" if _normalize_sync_state(sync_state) == "LOCKED" else "DEGRADED"
+    if carried_state and str(carried_state).upper() not in ("UP", "SYNCED"):
+        return str(carried_state)
+    return derived
 
 
 def _assert_true_north_heading_frame(heading_frame):
@@ -92,14 +128,19 @@ def translate_platform_state(
             platform telemetry. Expected fields:
               lat (float): degrees; absent/None refuses emission (no default)
               lon (float): degrees; absent/None refuses emission (no default)
-              alt_m (float): metres AMSL
+              alt_m (float): metres AMSL; absent/None refuses emission
+                (no default). Canonical geo is all-or-nothing (contract 6.8).
               heading_deg (float, optional): 0-360; None or absent means
                 unknown and omits payload.heading_deg (no 0.0 default).
                 A known value is canonical only when heading_frame is
                 explicitly "TRUE_NORTH".
-              speed_mps (float): ground speed m/s
-              gps_fix_type (int): ArduPilot fix type 0-6
-              satellites_visible (int)
+              speed_mps (float, optional): ground speed m/s; None or absent
+                omits payload.speed_mps (no 0.0 "stationary" default)
+              gps_fix_type (int, optional): ArduPilot fix type 0-6; absent
+                means unreported and omits payload.quality.gps_fix_type
+              satellites_visible (int, optional): absent, or the MAVLink
+                UINT8_MAX "satellite count unknown" sentinel (255), means
+                unreported and omits payload.quality.satellites_visible
               vx, vy, vz (float): velocity components m/s (optional)
               roll_deg, pitch_deg, yaw_deg (float): attitude (optional)
               battery_voltage (float): volts (optional)
@@ -116,9 +157,9 @@ def translate_platform_state(
 
     Returns:
         ZMeta STATE_EVENT dict, or None when no usable position exists
-        (lat/lon absent, or the ArduPilot no-fix null-island signature:
-        gps_fix_type < 2 with lat == 0.0 and lon == 0.0), or when no real
-        lineage is available. STATE_EVENT lineage is mandatory (semantic
+        (any of lat/lon/alt_m absent, or the ArduPilot no-fix null-island
+        signature: gps_fix_type < 2 with lat == 0.0 and lon == 0.0), or when
+        no real lineage is available. STATE_EVENT lineage is mandatory (semantic
         contract 4.8) and must reference real events: supply
         ``state["based_on"]`` (list of parent ZMeta event ids, UUIDv7) or
         ``state["source_zmeta_event_id"]``. Neither a position nor a lineage
@@ -132,7 +173,7 @@ def translate_platform_state(
     heading_frame = _assert_true_north_heading_frame(heading_frame)
     lat = _get("lat")
     lon = _get("lon")
-    alt_m = _get("alt_m", 0.0)
+    alt_m = _get("alt_m")
     # heading_deg comes from GLOBAL_POSITION_INT.hdg, which reports the value
     # as unknown (UINT16_MAX -> None after decode). An unknown heading is
     # omitted from the payload, never fabricated as a 0.0 (due-north) default.
@@ -141,28 +182,50 @@ def translate_platform_state(
     # heading_frame="TRUE_NORTH"; otherwise the raw value is retained only as
     # quality context.
     heading_deg = _get("heading_deg")
-    speed_mps = _get("speed_mps", 0.0)
-    gps_fix_type = _get("gps_fix_type", 0)
-    satellites_visible = _get("satellites_visible", 0)
+    # An unreported ground speed is omitted, never fabricated as a 0.0
+    # ("stationary") default: payload.speed_mps is schema-optional, and
+    # asserting that a platform is not moving is a claim the telemetry never
+    # made. Same rule as heading above.
+    speed_mps = _get("speed_mps")
+    # Unreported GPS quality is omitted from payload.quality rather than
+    # restated as "0 satellites / no GPS", which the sensor never said either.
+    # The decisions below (confidence floor, geo_status, the null-island
+    # refusal) still treat an unreported fix as the no-fix floor, so the
+    # missing value degrades the event and never cleans it up.
+    gps_fix_type = _get("gps_fix_type")
+    satellites_visible = _get("satellites_visible")
+    fix_for_decisions = 0 if gps_fix_type is None else gps_fix_type
 
     # Refuse to fabricate a position. The v1.0 schema requires payload.geo on
-    # TRACK_STATE, so an event without a usable position must not be emitted:
+    # TRACK_STATE and geo is all-or-nothing (contract 6.8: "If any of lat,
+    # lon, or alt_m is missing, omit geo entirely. Missing values MUST be
+    # omitted, not zero-filled"), so an event without a complete usable
+    # position must not be emitted:
     # - absent lat/lon must not default to (0, 0);
+    # - absent alt_m must not default to 0.0 m AMSL - a fabricated 0 is read
+    #   downstream as a concrete altitude claim (CoT re-projects it as one)
+    #   and drives deconfliction, terrain masking and 3D fusion;
     # - ArduPilot reports lat=0, lon=0 before GPS lock (fix types 0/1), the
     #   "null island" no-fix signature.
-    if lat is None or lon is None:
+    if lat is None or lon is None or alt_m is None:
         return None
-    if gps_fix_type < 2 and lat == 0.0 and lon == 0.0:
+    if fix_for_decisions < 2 and lat == 0.0 and lon == 0.0:
         return None
 
     geo = {"lat": lat, "lon": lon, "alt_m": alt_m}
-    confidence = _gps_fix_confidence(gps_fix_type)
+    confidence = _gps_fix_confidence(fix_for_decisions)
 
-    quality = {
-        "gps_fix_type": gps_fix_type,
-        "satellites_visible": satellites_visible,
-    }
-    if gps_fix_type < 3:
+    quality = {}
+    if gps_fix_type is not None:
+        quality["gps_fix_type"] = gps_fix_type
+    # GPS_RAW_INT.satellites_visible is uint8 with UINT8_MAX documented as
+    # "if unknown"; 255 is the sentinel, never a 255-satellite measurement.
+    # Guarded here as well as in decode_gps_raw_int because the state dict can
+    # be assembled by any MAVLink bridge, the same way the battery sentinels
+    # below are guarded on both sides.
+    if satellites_visible is not None and satellites_visible != 255:
+        quality["satellites_visible"] = satellites_visible
+    if fix_for_decisions < 3:
         quality["geo_status"] = "STALE"
     else:
         quality["geo_status"] = "AVAILABLE"
@@ -241,7 +304,6 @@ def translate_platform_state(
             "track_id": f"{producer}-{platform_id}-platform-position",
             "geo": geo,
             "valid_for_ms": 30000,
-            "speed_mps": speed_mps,
             "quality": quality,
             "timing_quality": coerce_timing_quality(_get("timing_quality"), event_ts=event_ts),
             "extensions": {"external_promotion": promotion},
@@ -252,6 +314,8 @@ def translate_platform_state(
             "transform": f"promote:{SCHEMA_ID}@{ADAPTER_VERSION}:{promotion['promotion_policy_id']}",
         },
     }
+    if speed_mps is not None:
+        event["payload"]["speed_mps"] = speed_mps
     if heading_deg is not None and heading_frame == "TRUE_NORTH":
         event["payload"]["heading_deg"] = heading_deg
         event["payload"]["quality"]["heading_source"] = (
@@ -280,20 +344,28 @@ def decode_global_position_int(msg_dict):
     heading_frame="TRUE_NORTH" assertion. Unknown heading decodes to None
     (omitted downstream, never defaulted).
 
-    Absent ``lat``/``lon`` fields decode to None rather than (0, 0) so the
-    translator can refuse to fabricate a null-island position.
+    Every absent field decodes to None rather than to a zero: absent
+    ``lat``/``lon``/``alt`` so the translator can refuse to fabricate a
+    position (contract 6.8 - a missing altitude is omitted, never zero-filled),
+    and absent ``vx``/``vy``/``vz`` so an unreported velocity is not restated
+    as a measured standstill. ``speed_mps`` is derived only when both
+    horizontal components were actually reported.
     """
     lat_raw = msg_dict.get("lat")
     lon_raw = msg_dict.get("lon")
+    alt_raw = msg_dict.get("alt")
+    vx_raw = msg_dict.get("vx")
+    vy_raw = msg_dict.get("vy")
+    vz_raw = msg_dict.get("vz")
     lat = lat_raw / 1e7 if lat_raw is not None else None
     lon = lon_raw / 1e7 if lon_raw is not None else None
-    alt_m = msg_dict.get("alt", 0) / 1000.0
-    vx = msg_dict.get("vx", 0) / 100.0
-    vy = msg_dict.get("vy", 0) / 100.0
-    vz = msg_dict.get("vz", 0) / 100.0
+    alt_m = alt_raw / 1000.0 if alt_raw is not None else None
+    vx = vx_raw / 100.0 if vx_raw is not None else None
+    vy = vy_raw / 100.0 if vy_raw is not None else None
+    vz = vz_raw / 100.0 if vz_raw is not None else None
     hdg_cdeg = msg_dict.get("hdg", 65535)
     heading_deg = hdg_cdeg / 100.0 if hdg_cdeg != 65535 else None
-    speed_mps = math.sqrt(vx ** 2 + vy ** 2)
+    speed_mps = math.sqrt(vx ** 2 + vy ** 2) if vx is not None and vy is not None else None
     return {
         "lat": lat,
         "lon": lon,
@@ -307,28 +379,65 @@ def decode_global_position_int(msg_dict):
 
 
 def decode_attitude(msg_dict):
-    """Extract attitude from ATTITUDE fields (radians -> degrees)."""
-    return {
-        "roll_deg": math.degrees(msg_dict.get("roll", 0.0)),
-        "pitch_deg": math.degrees(msg_dict.get("pitch", 0.0)),
-        "yaw_deg": math.degrees(msg_dict.get("yaw", 0.0)) % 360,
-    }
+    """Extract attitude from ATTITUDE fields (radians -> degrees).
+
+    An axis the message does not report is omitted from the decoded state
+    dict rather than decoded as 0.0 degrees, which would assert a measured
+    level attitude the autopilot never reported. Omitted keys also leave any
+    previously accumulated value in the caller's state dict intact.
+    """
+    decoded = {}
+    for field, key in (("roll", "roll_deg"), ("pitch", "pitch_deg"), ("yaw", "yaw_deg")):
+        value = msg_dict.get(field)
+        if value is None:
+            continue
+        degrees = math.degrees(value)
+        decoded[key] = degrees % 360 if key == "yaw_deg" else degrees
+    return decoded
 
 
 def decode_gps_raw_int(msg_dict):
-    """Extract GPS fix quality from GPS_RAW_INT fields."""
-    return {
-        "gps_fix_type": msg_dict.get("fix_type", 0),
-        "satellites_visible": msg_dict.get("satellites_visible", 0),
-    }
+    """Extract GPS fix quality from GPS_RAW_INT fields.
+
+    An unreported ``fix_type`` or ``satellites_visible`` is omitted rather
+    than decoded as 0, which would assert a measured "no GPS / 0 satellites"
+    the receiver never reported. ``translate_platform_state`` still treats an
+    absent fix type as the no-fix floor for confidence, geo_status and the
+    null-island refusal, so the omission only ever degrades the event.
+
+    MAVLink common.xml declares ``satellites_visible`` as uint8 with "if
+    unknown, set to UINT8_MAX", so 255 is the same class of "not sent"
+    sentinel as ``GLOBAL_POSITION_INT.hdg = 65535`` and the two SYS_STATUS
+    sentinels: it decodes to an omitted key, never to a 255-satellite
+    measurement that would read downstream as the best fix ever observed.
+    """
+    decoded = {}
+    fix_type = msg_dict.get("fix_type")
+    if fix_type is not None:
+        decoded["gps_fix_type"] = fix_type
+    satellites_visible = msg_dict.get("satellites_visible")
+    if satellites_visible is not None and satellites_visible != 255:
+        decoded["satellites_visible"] = satellites_visible
+    return decoded
 
 
 def decode_sys_status(msg_dict):
-    """Extract battery info from SYS_STATUS fields."""
-    return {
-        "battery_voltage": msg_dict.get("voltage_battery", 0) / 1000.0,
-        "battery_remaining_pct": msg_dict.get("battery_remaining", -1),
-    }
+    """Extract battery info from SYS_STATUS fields.
+
+    MAVLink SYS_STATUS documents ``voltage_battery = UINT16_MAX`` as "voltage
+    not sent by autopilot" and ``battery_remaining = -1`` as "battery
+    remaining not sent". Both sentinels, and an absent field, decode to an
+    omitted key - never to a fabricated 0 V flat battery, and never to a
+    65.535 V measurement laundered out of the unknown sentinel.
+    """
+    decoded = {}
+    voltage_mv = msg_dict.get("voltage_battery")
+    if voltage_mv is not None and voltage_mv != 65535:
+        decoded["battery_voltage"] = voltage_mv / 1000.0
+    remaining_pct = msg_dict.get("battery_remaining")
+    if remaining_pct is not None and remaining_pct >= 0:
+        decoded["battery_remaining_pct"] = remaining_pct
+    return decoded
 
 
 # ---------------------------------------------------------------------------
@@ -347,6 +456,14 @@ def mavlink_decoded_to_zmeta_system_events(
     Convert decoded MAVLink message dicts into SYSTEM_EVENTs.
 
     Handles TASK_ACK, TIME_STATUS, and LINK_STATUS based on message content.
+
+    ``payload.state`` is never invented on any of the three branches. The
+    acknowledgement verdict must be message-carried (the v1.0 TASK_ACK state
+    vocabulary has no "unknown" member, so a message with no verdict is
+    refused rather than reported as RECEIVED); the TIME_STATUS verdict is
+    derived from the carried sync state by the same ``_time_status_payload_state``
+    ``translate_time_status`` uses, so the two never disagree; and the
+    LINK_STATUS fallback stays "UNKNOWN".
     """
     if not isinstance(msg, dict):
         raise ValueError("msg must be a dict")
@@ -354,7 +471,13 @@ def mavlink_decoded_to_zmeta_system_events(
     msg_type = str(msg.get("type") or msg.get("msg_type") or msg.get("name") or "").upper()
 
     if "task_id" in msg or "mission_ack" in msg or "mission_state" in msg or "ack" in msg:
-        state = msg.get("state") or msg.get("mission_state") or msg.get("ack") or "RECEIVED"
+        # The acknowledgement verdict is the whole point of a TASK_ACK: a
+        # commander reading "RECEIVED" believes the vehicle took the task.
+        # It is never defaulted - the v1.0 TASK_ACK state enum offers no
+        # "unknown" member to degrade into, so a message that carries no
+        # verdict is refused (convert or refuse, never invent). Nothing is
+        # lost: the task_id and original_event_id are already the commander's.
+        state = msg.get("state") or msg.get("mission_state") or msg.get("ack")
         task_id = msg.get("task_id")
         original_event_id = (
             msg.get("original_event_id")
@@ -363,6 +486,11 @@ def mavlink_decoded_to_zmeta_system_events(
         )
         if task_id is None or original_event_id is None:
             raise ValueError("TASK_ACK requires task_id and original_event_id")
+        if not state:
+            raise ValueError(
+                "TASK_ACK requires a message-carried ack state; an "
+                "acknowledgement verdict is never fabricated"
+            )
         metrics = {
             "task_id": task_id,
             "original_event_id": original_event_id,
@@ -372,10 +500,14 @@ def mavlink_decoded_to_zmeta_system_events(
         ]
 
     if "time_usec" in msg or "gps_time" in msg or msg_type in {"SYSTEM_TIME", "TIMESYNC"}:
-        state = msg.get("state") or "SYNCED"
         metrics = {}
         metrics["time_source"] = msg.get("time_source") or "UNKNOWN"
-        metrics["sync_state"] = msg.get("sync_state") or "UNSYNCED"
+        metrics["sync_state"] = _normalize_sync_state(msg.get("sync_state") or "UNSYNCED")
+        # payload.state is derived from the sync verdict this same payload
+        # carries, never defaulted to "SYNCED": a SYSTEM_TIME dict that said
+        # nothing about sync cannot assert a locked clock one line above a
+        # metrics block that says UNSYNCED.
+        state = _time_status_payload_state(metrics["sync_state"], msg.get("state"))
         metrics["est_error_ms"] = msg.get("est_error_ms")
         metrics["last_sync_ts"] = normalize_utc_z(msg.get("last_sync_ts"))
         if metrics["est_error_ms"] is None or metrics["last_sync_ts"] is None:
@@ -410,9 +542,14 @@ def mavlink_decoded_to_zmeta_system_events(
 def translate_link_status(
     *,
     platform_id,
-    battery_voltage=0.0,
-    battery_pct=-1,
-    rc_rssi=0,
+    latency_ms=None,
+    packet_loss_pct=None,
+    throughput_bps=None,
+    state=None,
+    reason_code=None,
+    battery_voltage=None,
+    battery_pct=None,
+    rc_rssi=None,
     active_link="unknown",
     producer="mavlink-adapter",
     ts=None,
@@ -420,10 +557,63 @@ def translate_link_status(
 ):
     """Build a LINK_STATUS SYSTEM_EVENT from MAVLink SYS_STATUS / battery data.
 
+    ``latency_ms``, ``packet_loss_pct`` and ``throughput_bps`` are the three
+    link measurements the v1.0 schema requires on a LINK_STATUS payload. They
+    are caller-supplied and never defaulted: hard-coding ``0 ms / 0.0 % / 0
+    bps`` would report a perfect, fully-measured link on a node whose comms
+    were never measured at all. A caller without the measurements gets a
+    refusal (ValueError), the same rule ``mavlink_decoded_to_zmeta_system_events``
+    applies to TIME_STATUS - convert or refuse, never invent.
+
+    ``state`` is the link-health verdict a consumer reads first, so it is not
+    hard-coded either. It is caller-supplied and defaults to the v1.0 schema's
+    own "UNKNOWN" rather than to "UP": measuring latency, loss and throughput
+    is not the same as adjudicating that the link is healthy, and an adapter
+    that reports UP alongside 92 % packet loss has laundered the one field the
+    operator reads first. UNKNOWN keeps every measured metric on the event and
+    filterable, so the consumer adjudicates. "DEGRADED"/"DOWN" additionally
+    require ``reason_code`` (the v1.0 schema requires metrics.reason_code for
+    those states); supplying a state outside UP/DEGRADED/DOWN/UNKNOWN, or a
+    DEGRADED/DOWN with no reason, is refused rather than emitted invalid.
+
+    ``battery_voltage``, ``battery_pct`` and ``rc_rssi`` are optional; when
+    unreported they are omitted rather than emitted as 0 V / -1 % / 0 RSSI.
+
     ``based_on`` may carry real parent ZMeta event ids (UUIDv7 strings); when
     None (default), lineage is omitted (SYSTEM_EVENT lineage is optional and
     parent ids are never fabricated).
     """
+    if latency_ms is None or packet_loss_pct is None or throughput_bps is None:
+        raise ValueError(
+            "LINK_STATUS requires measured latency_ms, packet_loss_pct and "
+            "throughput_bps; link health is never fabricated"
+        )
+    if state is None:
+        state = "UNKNOWN"
+    if state not in _LINK_STATUS_STATES:
+        raise ValueError(
+            "LINK_STATUS state must be one of "
+            f"{'/'.join(_LINK_STATUS_STATES)}; link health is never fabricated"
+        )
+    if state in ("DEGRADED", "DOWN") and not reason_code:
+        raise ValueError(
+            "LINK_STATUS state DEGRADED/DOWN requires metrics.reason_code"
+        )
+    metrics = {
+        "link_id": f"edge-comms-{platform_id}",
+        "active_link": active_link,
+        "latency_ms": latency_ms,
+        "packet_loss_pct": packet_loss_pct,
+        "throughput_bps": throughput_bps,
+    }
+    if battery_voltage is not None:
+        metrics["battery_voltage"] = battery_voltage
+    if battery_pct is not None and battery_pct >= 0:
+        metrics["battery_remaining_pct"] = battery_pct
+    if rc_rssi is not None:
+        metrics["rc_rssi"] = rc_rssi
+    if reason_code is not None:
+        metrics["reason_code"] = reason_code
     event = {
         "zmeta_version": "1.0",
         "event": {
@@ -439,17 +629,8 @@ def translate_link_status(
         },
         "payload": {
             "system_type": "LINK_STATUS",
-            "state": "UP",
-            "metrics": {
-                "link_id": f"edge-comms-{platform_id}",
-                "battery_voltage": battery_voltage,
-                "battery_remaining_pct": battery_pct,
-                "rc_rssi": rc_rssi,
-                "active_link": active_link,
-                "latency_ms": 0,
-                "packet_loss_pct": 0.0,
-                "throughput_bps": 0,
-            },
+            "state": state,
+            "metrics": metrics,
         },
     }
     if based_on:
@@ -465,7 +646,7 @@ def translate_time_status(
     platform_id,
     time_source="UNKNOWN",
     sync_state="UNSYNCED",
-    est_error_ms=0.0,
+    est_error_ms=None,
     last_sync_ts=None,
     producer="mavlink-adapter",
     ts=None,
@@ -473,13 +654,26 @@ def translate_time_status(
 ):
     """Build a TIME_STATUS SYSTEM_EVENT from MAVLink SYSTEM_TIME data.
 
+    ``est_error_ms`` and ``last_sync_ts`` are caller-supplied and never
+    defaulted. ``est_error_ms = 0.0`` would assert a perfectly accurate clock
+    for a node that reported no timing error at all - and would do it in the
+    uncertainty field consumers read to decide how far to trust the timeline -
+    while defaulting ``last_sync_ts`` to the event timestamp would assert a
+    sync that just happened. Both refuse instead (ValueError), the same rule
+    ``mavlink_decoded_to_zmeta_system_events`` already applies to TIME_STATUS.
+
     ``based_on`` may carry real parent ZMeta event ids (UUIDv7 strings); when
     None (default), lineage is omitted (SYSTEM_EVENT lineage is optional and
     parent ids are never fabricated).
     """
     event_ts = normalize_utc_z(ts) or _utc_now()
-    normalized_sync_state = "LOCKED" if sync_state == "SYNCED" else sync_state
-    normalized_last_sync_ts = normalize_utc_z(last_sync_ts) or event_ts
+    normalized_sync_state = _normalize_sync_state(sync_state)
+    normalized_last_sync_ts = normalize_utc_z(last_sync_ts)
+    if est_error_ms is None or normalized_last_sync_ts is None:
+        raise ValueError(
+            "TIME_STATUS requires est_error_ms and last_sync_ts; timing "
+            "uncertainty and sync time are never fabricated"
+        )
     event = {
         "zmeta_version": "1.0",
         "event": {
@@ -495,7 +689,7 @@ def translate_time_status(
         },
         "payload": {
             "system_type": "TIME_STATUS",
-            "state": "UP" if normalized_sync_state == "LOCKED" else "DEGRADED",
+            "state": _time_status_payload_state(normalized_sync_state),
             "metrics": {
                 "time_source": time_source,
                 "sync_state": normalized_sync_state,

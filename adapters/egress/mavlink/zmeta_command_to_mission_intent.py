@@ -1,3 +1,5 @@
+import math
+
 # Canonical altitude field names a COMMAND_EVENT must never carry (semantics
 # contract 7.8). COMMAND_EVENT SHALL NOT specify altitude - the receiving
 # autonomy/drone deconflicts vertical internally. This egress guard rejects a
@@ -26,6 +28,26 @@ def _contains_altitude(value):
         for item in value:
             if _contains_altitude(item):
                 return True
+    return False
+
+
+def _has_non_finite(value):
+    # Value scoped, not field scoped: NaN/inf anywhere in the projected
+    # mission is a number that is not a number, and a per-field list only
+    # closes the fields someone thought of (R1-11 A-01). geometry is copied
+    # verbatim from the payload, so a vertex deep inside it is reachable.
+    # Iterative so sender-controlled nesting is a memory cost, never a
+    # RecursionError.
+    stack = [value]
+    while stack:
+        current = stack.pop()
+        if isinstance(current, float) and not math.isfinite(current):
+            return True
+        if isinstance(current, dict):
+            stack.extend(current.keys())
+            stack.extend(current.values())
+        elif isinstance(current, (list, tuple)):
+            stack.extend(current)
     return False
 
 
@@ -77,5 +99,12 @@ def zmeta_command_to_mission_intent(event):
         if _contains_altitude(geometry):
             raise ValueError("command geometry must not include altitude")
         mission["geometry"] = geometry
+
+    # Refuse rather than hand an autonomy stack a waypoint, boundary vertex or
+    # duration that is NaN/inf. This is the sharpest end of the class: a
+    # non-finite target is a fly-to command with no destination, and it
+    # validates against every structural check above (R1-11 A-01).
+    if _has_non_finite(mission):
+        return None
 
     return mission

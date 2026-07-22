@@ -24,7 +24,15 @@ Supports:
 Source: Z-ISR zisr/transport/publisher.py (_builtin_zmeta_to_cot)
 """
 
+import math
+from collections.abc import Mapping, Sequence
+from collections.abc import Set as AbstractSet
 from datetime import datetime, timedelta, timezone
+from decimal import Decimal
+
+# Text leaves are Sequences, so they have to be excluded before the Sequence
+# branch or every string becomes a walk over its own characters.
+_TEXT_LEAF_TYPES = (str, bytes, bytearray)
 
 
 DEFAULT_COT_TYPE = "a-u-G"
@@ -68,6 +76,63 @@ def _has_state_prohibited_payload_fields(payload):
     return any(field in payload for field in STATE_PROHIBITED_PAYLOAD_FIELDS)
 
 
+def _is_non_finite(value):
+    # float and Decimal are the only decoded types that can be non-finite. A
+    # Python int is never converted: math.isfinite() on an int outside float64
+    # range raises OverflowError, which would trade this guard for a crash.
+    if isinstance(value, float):
+        return not math.isfinite(value)
+    if isinstance(value, Decimal):
+        return not value.is_finite()
+    return False
+
+
+def _has_non_finite(value):
+    """True when NaN/inf appears anywhere inside `value`.
+
+    Value scoped, not field scoped. The guard this replaced was a list of nine
+    candidate numbers, which is the same structural mistake A-01 names as the
+    defect: it closes the fields someone thought of. Its list was already
+    incomplete - a non-finite in payload.source_summary rendered into
+    <remarks> as the token "nan", and a non-finite cot_config default escaped
+    as a raw ValueError/OverflowError out of an adapter whose documented
+    refusal signal is None.
+
+    Container coverage is by abstract type, not by dict/list: the gateway's
+    cbor2 fallback backend decodes CBOR tag 258 into a `set`, a map used as a
+    map key into a Mapping that is not a dict, and an unrecognised tag into a
+    tag object whose `.value` still reaches the wire.
+
+    Iterative, with a seen-set: recursing would tie the process stack to
+    sender-controlled nesting depth, and CBOR value-sharing tags make the
+    decoded structure possibly cyclic, so an unbounded walk here would be a
+    hang on the egress path.
+    """
+    stack = [value]
+    seen = set()
+    while stack:
+        current = stack.pop()
+        if _is_non_finite(current):
+            return True
+        if isinstance(current, _TEXT_LEAF_TYPES):
+            continue
+        if isinstance(current, (Mapping, AbstractSet, Sequence)) or (
+            hasattr(current, "tag") and hasattr(current, "value")
+        ):
+            marker = id(current)
+            if marker in seen:
+                continue
+            seen.add(marker)
+        if isinstance(current, Mapping):
+            stack.extend(current.keys())
+            stack.extend(current.values())
+        elif isinstance(current, (AbstractSet, Sequence)):
+            stack.extend(current)
+        elif hasattr(current, "tag") and hasattr(current, "value"):
+            stack.append(current.value)
+    return False
+
+
 def zmeta_to_cot(event, cot_config=None):
     """Convert a ZMeta STATE_EVENT into CoT XML.
 
@@ -95,8 +160,9 @@ def zmeta_to_cot(event, cot_config=None):
 
     Returns:
         CoT XML string, or None if the event cannot be converted (wrong
-        event type, prohibited raw payload fields, missing geo/track_id, or
-        missing event.ts outside wall-clock mode).
+        event type, prohibited raw payload fields, missing geo/track_id,
+        missing event.ts outside wall-clock mode, or any non-finite
+        (NaN/inf) number that would become a CoT attribute).
     """
     if event.get("event", {}).get("event_type") != "STATE_EVENT":
         return None
@@ -113,6 +179,45 @@ def zmeta_to_cot(event, cot_config=None):
     track_id = payload.get("track_id")
     if not track_id:
         return None
+
+    # Refuse rather than render a position that is not a position. NaN/inf
+    # reach a CoT attribute as the literal tokens "nan"/"inf", which ATAK
+    # draws as an ordinary marker carrying no uncertainty label, no violation
+    # code and nothing an operator can filter on - the sharp end of design
+    # gate 3 (R1-11 A-01). The kernel refuses such an event before it ever
+    # gets here, so this closes the same hole for callers that project
+    # directly without going through the gateway's outgoing gate. Refusal is
+    # this adapter's documented signal (None), the same one used for missing
+    # geo/track_id/ts, and the gateway buckets it as a counted, reason-tagged
+    # cot_skipped record - so the refusal stays visible to the operator.
+    #
+    # Scope: every canonical field of the event, plus the operator's config,
+    # walked by VALUE. The list-of-numbers version this replaced was field
+    # scoped, which is the structure A-01 names as the defect, and its list
+    # was already short by at least three (payload.source_summary, whose
+    # members render into <remarks>; any error_ellipse_m key added later; and
+    # cot_config.default_valid_for_ms, which escaped as a raw ValueError /
+    # OverflowError rather than the documented None).
+    #
+    # payload.extensions is the one deliberate exclusion. It is namespaced
+    # vendor content this adapter never reads and never renders, so refusing
+    # the operator's track because a provenance blob carried a NaN would
+    # destroy good canonical data over content CoT does not project - the
+    # escalation this repo had to repair in the SAPIENT ingress adapter in
+    # this same audit. Everything CoT can render, and everything a future
+    # field could render, is covered without editing a list.
+    if _has_non_finite(cot_config):
+        return None
+    for key, value in event.items():
+        if key == "payload":
+            continue
+        if _has_non_finite(value):
+            return None
+    for key, value in payload.items():
+        if key == "extensions":
+            continue
+        if _has_non_finite(value):
+            return None
 
     # Timestamps: event-authoritative by default (contract section 9.5 —
     # replay must not be indistinguishable from live). use_wall_clock=True
@@ -285,7 +390,10 @@ def zmeta_to_cot_uncertainty_circle(zmeta_state_event, radius_m, cot_config=None
     except (TypeError, ValueError):
         return None
 
-    if radius <= 0:
+    # NaN fails every comparison, so `radius <= 0` alone lets NaN through and
+    # draws <circle radius="nan"> - an uncertainty ring that states no
+    # uncertainty. inf passes the same test (R1-11 A-01).
+    if _is_non_finite(radius) or radius <= 0:
         return None
 
     root = ET.fromstring(cot_xml)

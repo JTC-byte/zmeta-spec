@@ -103,15 +103,71 @@ event = translate_platform_state(
 - GPS fix type maps to confidence: 3D+ = 0.8, 2D = 0.5, lower = 0.2.
 - When `gps_fix_type < 3`, `payload.quality.geo_status` is set to `STALE`.
 - `translate_platform_state()` refuses to fabricate a position (returns
-  `None`, no event) when `lat`/`lon` are absent, or when `gps_fix_type < 2`
-  with `lat == 0.0` and `lon == 0.0` (the ArduPilot pre-lock "null island"
-  signature). The v1.0 schema requires `payload.geo` on `TRACK_STATE`, so a
-  state without a usable position must not be emitted rather than defaulted
-  to (0, 0). `decode_global_position_int()` likewise decodes absent
-  `lat`/`lon` to `None` instead of `0.0`. Stale-but-real coordinates without
-  a current fix are still emitted with `geo_status: STALE` and floor
-  confidence. This follows the kraken/moth anti-fabrication pattern
-  (convert or refuse, never invent).
+  `None`, no event) when any of `lat`/`lon`/`alt_m` is absent, or when
+  `gps_fix_type < 2` with `lat == 0.0` and `lon == 0.0` (the ArduPilot
+  pre-lock "null island" signature). Canonical `geo` is all-or-nothing
+  (semantics contract 6.8: "If any of `lat`, `lon`, or `alt_m` is missing,
+  omit `geo` entirely. Missing values MUST be omitted, not zero-filled"), and
+  the v1.0 schema requires `payload.geo` on `TRACK_STATE` — so a state without
+  a complete usable position must not be emitted rather than defaulted to
+  `(0, 0, 0)`. A fabricated `alt_m: 0.0` is not harmless padding: CoT egress
+  re-projects it as a concrete `hae="0.0"` altitude claim, and deconfliction,
+  terrain masking and 3D fusion all consume it. `decode_global_position_int()`
+  likewise decodes absent `lat`/`lon`/`alt` to `None` instead of `0.0`.
+  Stale-but-real coordinates without a current fix are still emitted with
+  `geo_status: STALE` and floor confidence. This follows the kraken/moth
+  anti-fabrication pattern (convert or refuse, never invent).
+- The same rule applies to every other never-reported value, not only to
+  `geo` and not only to numbers. Every scalar this adapter emits is either a
+  value the telemetry carried or a constant declared — with its reason — in
+  the provenance sweeps in `test_mavlink_ingress.py`, which are path-scoped
+  (a constant is authorised at one path, not as a literal everywhere) and
+  cover strings and categorical verdicts, not only numerics:
+  - an unreported `speed_mps` omits `payload.speed_mps` rather than asserting
+    a stationary platform;
+  - an unreported `gps_fix_type` / `satellites_visible` omits
+    `payload.quality.gps_fix_type` / `.satellites_visible` rather than
+    restating "no GPS / 0 satellites" — while still driving the conservative
+    confidence floor, `geo_status: STALE` and the null-island refusal, so the
+    omission only ever degrades the event;
+  - `decode_attitude()` omits an unreported axis rather than reporting 0.0°
+    (a measured level attitude); `decode_gps_raw_int()` omits unreported fix
+    quality and drops the MAVLink `satellites_visible = UINT8_MAX` (255)
+    "count unknown" sentinel so it never becomes a 255-satellite reading (the
+    guard is repeated in `translate_platform_state()`, since a state dict can
+    be assembled by any bridge); and `decode_sys_status()` omits both
+    SYS_STATUS "not sent" sentinels (`voltage_battery = UINT16_MAX`,
+    `battery_remaining = -1`) so neither becomes a 0 V flat battery nor a
+    65.535 V reading;
+  - `translate_link_status()` requires caller-supplied `latency_ms`,
+    `packet_loss_pct` and `throughput_bps` (the three measurements the v1.0
+    schema requires on a LINK_STATUS payload) and raises `ValueError` without
+    them, rather than reporting a perfect link the node never measured;
+    `battery_voltage`, `battery_pct` and `rc_rssi` are omitted when
+    unreported;
+  - `payload.state` — the field a consumer reads before any metric — is never
+    hard-coded either. `translate_link_status()` takes a caller-supplied
+    `state` and defaults to the schema's own `UNKNOWN`, not `UP`: measuring
+    latency is not the same as adjudicating link health, and every measured
+    metric still travels so the consumer adjudicates. `DEGRADED`/`DOWN`
+    additionally require `reason_code`, and an out-of-vocabulary state is
+    refused rather than emitted schema-invalid;
+  - `translate_time_status()` requires caller-supplied `est_error_ms` and
+    `last_sync_ts` and raises `ValueError` without them — a `0.0` timing
+    error asserts a perfect clock in the very field consumers read to decide
+    how far to trust the timeline, and a defaulted `last_sync_ts` asserts a
+    sync that just happened;
+  - both TIME_STATUS emitters derive `payload.state` from the sync verdict
+    the message carried, through one shared derivation, so identical
+    telemetry can never yield two opposite verdicts and an `UNSYNCED` metrics
+    block can never sit under a `SYNCED` state. A carried verdict is honoured
+    only when it is *more* conservative than the derived one, so an optimistic
+    label never overrides the metrics and a degraded one is never laundered;
+  - `mavlink_decoded_to_zmeta_system_events()` refuses a TASK_ACK whose
+    message carries no acknowledgement verdict rather than reporting
+    `RECEIVED` — a commander reads that as the vehicle having taken the task,
+    and the v1.0 TASK_ACK state vocabulary offers no "unknown" member to
+    degrade into.
 
 ### Heading and attitude frame provenance
 

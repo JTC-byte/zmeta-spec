@@ -57,7 +57,7 @@ What the store resolves — and what its absence costs:
 | `node_definition` node types | Observation modality (CAMERA→EO, ACOUSTIC→ACOUSTIC, CYBER→NETWORK) and fusion-node detection | No modality: no observation |
 | signal-category units (`centre_frequency`/`start_frequency`/`stop_frequency` in Hz/MHz/GHz, `amplitude` in dBm) | Canonical RF features | Whole `signal` block extension-only; no RF observation |
 | `config_data` manufacturer/model (+`software_version`, else `"unknown"`) | `payload.model` for inference events | No inference events (model identity is never fabricated, contract 7.5); native classification stays in the vendor extension |
-| `maximum_latency` per mode | `est_error_ms` timing widen | No widen (only the fallback bound) |
+| `maximum_latency` per mode | `est_error_ms` timing widen | Never declared: no widen (only the fallback bound). Declared but **unresolvable**: degraded timing, see below — never a silent no-widen |
 | `velocity_type` ENU units (m/s or km/h) | `features.velocity_enu_mps` | `enu_velocity` extension-only |
 | `geometric_error` "Standard Deviation" in metres | `quality.measurement_error` from `x/y/z_error` | Errors stay raw in the vendor extension |
 
@@ -82,6 +82,31 @@ with a good clock. `active_mode` scopes the widen to one mode's
 declaration; when `None` — or when the name matches no declared mode with
 a resolvable latency — the maximum across declared modes applies
 (conservative: a mismatched mode name never shrinks the claimed error).
+
+**An unresolvable declaration is not the same as no declaration.** A node
+that declared a `maximum_latency` this adapter cannot resolve — unknown
+`Duration` units, a `NaN`/`Infinity` value, a value whose millisecond
+scaling overflows, or an integer with no float64 form — has told us its
+capture→send gap is bounded and left us unable to say by what. Skipping
+the widen and shipping the caller's bound unchanged would make that node
+publish a *tighter* `est_error_ms` than a node with a sane declaration
+(measured before this was closed: `0.5 s` declared → `505.0`, `NaN`
+declared → `5.0`). The worse the input, the cleaner the event — laundering.
+
+So an unresolvable declaration degrades the event instead: `time_source`
+`UNKNOWN`, `sync_state` `UNSYNCED`, and `est_error_ms` the **wider** of the
+caller's own bound and the module's unknown-clock fallback. The event is
+still emitted — one malformed mode declaration must not zero every event
+from that node forever — but its timing is explicitly untrustworthy and
+filterable, and consumers read `est_error_ms` together with `sync_state`
+(contract 5.3), never as a standalone bound. A caller `est_error_ms` that
+is *already* non-finite is left alone and refused whole at the emit
+boundary; it is never replaced with a clean default.
+
+`RegistrationStore.latency_unresolved(node_id, mode=None)` exposes this
+state directly, because `max_latency_ms()` returns `None` for both "never
+declared" and "declared, unusable" and a caller reading only that cannot
+tell the quiet node from the broken one.
 
 ### Geo, bearings, signal, velocity
 
@@ -150,7 +175,14 @@ An observation is emitted only when an honest modality exists:
 | Promotion without caller `based_on`, `detection_confidence`, or full canonical geo | refused |
 | Promotion dict carrying any key outside the enumerated promotion vocabulary | refused — promotion metadata never smuggles raw measurements or unenumerated keys into STATE (contract 4.5.1) |
 | `task_index` entry present but null/empty | refused — the TaskAck correlation is never fabricated (no `str(None)` coercion) |
-| Non-finite (NaN/inf) confidence on the wire | refused at the guard (canonical fields) or omitted from native pass-through blocks — never emitted |
+| Non-finite (NaN/inf) value on the wire | refused at the guard (canonical fields) or omitted from native pass-through blocks — never emitted |
+| Non-finite arithmetic PRODUCT from finite operands (unit scaling, radians->degrees, band-edge difference, latency widen) | that canonical field is not written and the raw block is preserved as provenance; guarding the operand is not enough, since `value * 1e6` and `math.degrees()` overflow to inf near the float64 ceiling and `inf % 360.0` is NaN |
+| Non-finite anywhere inside the canonical `claim` (e.g. a vendor `sub_class` taxonomy) | that inference entry refused — `claim` is canonical, so the vendor pass-through drop rule does not apply; the raw entry stays in `native_classification` |
+| Registration `Duration` whose scaled value is non-finite | treated as an unresolvable declaration (`None`), same as unknown units — never a non-finite `est_error_ms` on every event from that node |
+| Registration `maximum_latency` that is unresolvable for ANY reason | the event's timing degrades to `UNKNOWN`/`UNSYNCED` with the **wider** of the caller's bound and the unknown-clock fallback — a broken declaration must never yield a tighter `est_error_ms` than a sane one (see Timing above) |
+| Integer literal with no float64 form (e.g. a 400-digit number) anywhere on the wire | that field refuses like any other unmappable value; `translate()` and `RegistrationStore.ingest()` never raise — `math.isfinite` raises `OverflowError` on such an int, and wire data must never crash the ingest loop |
+| Non-finite dict KEY inside a verbatim vendor block | that entry is dropped from the provenance block; the event and every canonical field it resolved are still emitted — a defect confined to a pass-through blob never destroys the geo, bearing, RF features or classification around it |
+| Any non-finite surviving to the emit boundary | that event refused, and the refusal CASCADES to events citing it as `based_on` — a dependent must never assert lineage to an event that was not emitted (contract 4.8) |
 | TaskAck with unresolvable `task_id` (no `task_index` entry) | refused — the `original_event_id` correlation is never fabricated |
 | TaskAck `TASK_STATUS_UNSPECIFIED` | refused |
 | StatusReport `power` mapping to no metrics | no `PLATFORM_STATUS` (never padded) |

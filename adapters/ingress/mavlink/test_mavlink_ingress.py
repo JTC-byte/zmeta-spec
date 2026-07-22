@@ -1,13 +1,21 @@
 import json
 import importlib.util
+import math
 from pathlib import Path
 
 from jsonschema import Draft202012Validator, FormatChecker
 
+import pytest
+
 from adapters.ingress.mavlink.mavlink_to_zmeta_template import (
+    decode_attitude,
     decode_global_position_int,
+    decode_gps_raw_int,
+    decode_sys_status,
     mavlink_decoded_to_zmeta_system_events,
+    translate_link_status,
     translate_platform_state,
+    translate_time_status,
 )
 
 
@@ -23,6 +31,15 @@ POLICY = validators.load_policy(ROOT / "policy")
 
 
 _PARENT_EVENT_ID = "019c2b5c-c053-70e1-b6aa-340000000001"
+
+# The three link measurements the v1.0 schema requires on a LINK_STATUS
+# payload. They are caller-supplied because the adapter refuses to fabricate
+# them (see test_mavlink_link_status_refuses_to_fabricate_link_health).
+_LINK_METRICS = {
+    "latency_ms": 42.0,
+    "packet_loss_pct": 1.5,
+    "throughput_bps": 250000,
+}
 
 
 def test_mavlink_platform_state_promotion_authority_valid():
@@ -221,7 +238,11 @@ def test_mavlink_system_events_omit_lineage_by_default():
         translate_time_status,
     )
 
-    link = translate_link_status(platform_id="uav-1", ts="2025-01-17T15:20:00+00:00")
+    link = translate_link_status(
+        platform_id="uav-1",
+        ts="2025-01-17T15:20:00+00:00",
+        **_LINK_METRICS,
+    )
     time_status = translate_time_status(
         platform_id="uav-1",
         est_error_ms=1.0,
@@ -242,6 +263,7 @@ def test_mavlink_system_events_carry_caller_lineage_when_supplied():
         platform_id="uav-1",
         ts="2025-01-17T15:20:00+00:00",
         based_on=[_PARENT_EVENT_ID],
+        **_LINK_METRICS,
     )
 
     assert link["lineage"]["based_on"] == [_PARENT_EVENT_ID]
@@ -325,3 +347,833 @@ def test_mavlink_without_loop_status_refuses_promotion():
         ts="2025-01-17T15:20:00+00:00",
     )
     assert event is None
+
+
+# ---------------------------------------------------------------------------
+# R1-11 A-06: the fabricate-a-sentinel class.
+#
+# Contract 6.8 is an explicit MUST: "If any of lat, lon, or alt_m is missing,
+# omit geo entirely. Missing values MUST be omitted, not zero-filled" and
+# "Adapters MUST NOT emit zero-filled geospatial data to satisfy schema
+# shape." The defect was `alt_m = _get("alt_m", 0.0)`, which projected an
+# airborne platform reporting no altitude as being at exactly 0 m AMSL,
+# labelled AVAILABLE at confidence 0.8, through every gate.
+#
+# These tests pin the whole family, not the one exemplar: every never-reported
+# numeric this module could restate as a definite value, on the translator, on
+# each of the four raw-message decoders, and on the composition of the two (a
+# decoder that zero-fills defeats a translator-only guard entirely).
+# ---------------------------------------------------------------------------
+
+
+def test_mavlink_refuses_missing_alt_m_instead_of_zero_filling():
+    # A-06, the reported exemplar: a real lat/lon with no altitude must not
+    # become a concrete 0 m AMSL claim. geo is all-or-nothing and the v1.0
+    # schema requires geo on TRACK_STATE, so the event refuses.
+    state = {k: v for k, v in _BASE_STATE.items() if k != "alt_m"}
+    assert translate_platform_state(
+        state, platform_id="uav-1", ts="2025-01-17T15:20:00+00:00"
+    ) is None
+
+
+def test_mavlink_refuses_explicit_none_alt_m():
+    # A decoder that maps an invalid-altitude flag to None reaches the same
+    # refusal as an absent key - the guard is value-scoped, not key-scoped.
+    assert _state_event(alt_m=None) is None
+
+
+def test_mavlink_absent_speed_omitted_not_asserted_stationary():
+    # payload.speed_mps is schema-optional; a 0.0 default asserts "stationary"
+    # for a platform whose speed was never reported.
+    state = {k: v for k, v in _BASE_STATE.items() if k != "speed_mps"}
+    event = translate_platform_state(
+        state, platform_id="uav-1", ts="2025-01-17T15:20:00+00:00"
+    )
+
+    assert "speed_mps" not in event["payload"]
+    VALIDATOR.validate(event)
+
+
+def test_mavlink_absent_gps_quality_omitted_but_still_degrades():
+    # An unreported fix type / satellite count is omitted from quality rather
+    # than restated as "no GPS / 0 satellites" - and the omission must still
+    # drive the conservative decisions, never a cleaner-looking event.
+    state = {
+        k: v for k, v in _BASE_STATE.items()
+        if k not in ("gps_fix_type", "satellites_visible")
+    }
+    event = translate_platform_state(
+        state, platform_id="uav-1", ts="2025-01-17T15:20:00+00:00"
+    )
+
+    assert "gps_fix_type" not in event["payload"]["quality"]
+    assert "satellites_visible" not in event["payload"]["quality"]
+    assert event["payload"]["quality"]["geo_status"] == "STALE"
+    assert event["confidence"] == 0.2
+    VALIDATOR.validate(event)
+
+
+def test_mavlink_unreported_fix_still_refuses_null_island():
+    # The conservative floor must also hold for the refusal itself: with no
+    # fix type reported, (0, 0) is still the no-fix signature and is refused.
+    state = {k: v for k, v in _BASE_STATE.items() if k != "gps_fix_type"}
+    state["lat"] = 0.0
+    state["lon"] = 0.0
+    assert translate_platform_state(
+        state, platform_id="uav-1", ts="2025-01-17T15:20:00+00:00"
+    ) is None
+
+
+_GENERATED = object()
+_INPUT_TS = "2025-01-17T15:20:00+00:00"
+_EVENT_TS_Z = "2025-01-17T15:20:00Z"
+
+
+def _reported_scalars(inputs):
+    """Every scalar the caller actually supplied, as (type-name, value) pairs.
+
+    Typed so that ``True`` cannot be satisfied by a reported ``1``.
+    """
+    out = set()
+
+    def _collect(node):
+        if isinstance(node, dict):
+            for value in node.values():
+                _collect(value)
+        elif isinstance(node, list):
+            for value in node:
+                _collect(value)
+        else:
+            out.add((type(node).__name__, node))
+
+    _collect(inputs)
+    return out
+
+
+def _undeclared_leaves(event, inputs, declared):
+    """Scalar leaves of ``event`` that neither the inputs nor a declaration explains.
+
+    Path-scoped and type-complete, both deliberately:
+
+    - **Path-scoped.** A value-scoped allowlist authorises a literal
+      *everywhere at once*: allowlisting 30000 for ``payload.valid_for_ms``
+      would silently bless a brand-new fabricated 30000 at any other path,
+      forever - and 30000 is this module's own house constant, exactly the
+      number a future author reaches for when defaulting a duration field.
+      Here a declaration authorises one value at one path; a value at any
+      other path is still a finding, and a *different* value at a declared
+      path is a finding too.
+    - **Type-complete.** Strings, bools and None are checked as well as
+      numbers. This module's promotion block wraps every default in
+      ``str(...)`` - that is the house idiom - and every categorical verdict
+      it emits (``payload.state``, ``quality.geo_status``,
+      ``metrics.sync_state``) is a string. A numbers-only sweep is
+      structurally unable to see a fabricated verdict, which is the more
+      dangerous half of the class: an operator reads "UP" before they read a
+      latency number.
+
+    Declaring a path is the point of the guard, not an escape hatch from it:
+    a value that is not telemetry has to be written down, with a reason, by
+    whoever adds it. ``_GENERATED`` marks the few leaves whose value cannot
+    be pinned (a uuid7, a version-bearing transform label); it exempts the
+    value, never the path, so a new field still has to be declared.
+
+    Deliberately written out here rather than derived from the module under
+    test: a check that re-ran the adapter's own defaulting logic to build its
+    expectation would be blind to that logic by construction.
+
+    Stated limit: acceptance of *reported* values is value-scoped, not
+    path-scoped - a fabricated value that happens to equal something the
+    telemetry carried at another path is invisible to a single sweep. That is
+    why the sweeps come in pairs: the minimum-telemetry case carries only a
+    handful of deliberately distinctive inputs, so a fabrication that hides
+    behind a reported value in the fully-populated case is still caught there
+    (verified by mutation). A fabrication equal to a *declared* value at its
+    own declared path is invisible by definition - that is what declaring it
+    means - and a fabricated sub-object whose every leaf traces to an input is
+    invisible too; neither is what this guard is for.
+
+    Returns a list of ``(path, emitted, declared_or_None)`` findings.
+    """
+    reported = _reported_scalars(inputs)
+    findings = []
+
+    def _walk(node, path):
+        if isinstance(node, dict):
+            for key, value in node.items():
+                _walk(value, f"{path}.{key}")
+            return
+        if isinstance(node, list):
+            for index, value in enumerate(node):
+                _walk(value, f"{path}[{index}]")
+            return
+        if path in declared:
+            expected = declared[path]
+            if expected is not _GENERATED and node != expected:
+                findings.append((path, node, expected))
+            return
+        if (type(node).__name__, node) in reported:
+            return
+        findings.append((path, node, None))
+
+    _walk(event, "$")
+    return findings
+
+
+def _envelope_declarations(event_type, event_subtype, node_role):
+    """The envelope values every emitter in this module writes itself."""
+    return {
+        "$.zmeta_version": "1.0",
+        "$.event.event_id": _GENERATED,  # uuid7, minted per event
+        "$.event.event_type": event_type,
+        "$.event.event_subtype": event_subtype,
+        "$.event.ts": _EVENT_TS_Z,  # the caller's ts, normalized to Z
+        "$.source.node_role": node_role,
+    }
+
+
+_PROMOTION_DECLARATIONS = {
+    # Policy-scoped boundary evidence for the promotion decision. Every one of
+    # these is an adapter constant, not telemetry, and is pinned by value.
+    "$.payload.extensions.external_promotion.state_category": "PROMOTED_EXTERNAL_STATE",
+    "$.payload.extensions.external_promotion.origin_kind": "EXTERNAL_REPORT",
+    "$.payload.extensions.external_promotion.projection_id": "mavlink",
+    "$.payload.extensions.external_promotion.promotion_policy_id": "PROMOTE-MAVLINK-STATE-V1",
+    "$.payload.extensions.external_promotion.trust_ref": "producer-authority:mavlink-adapter",
+    "$.payload.extensions.external_promotion.lineage_status": "EXTERNAL_SOURCE",
+    "$.payload.extensions.external_promotion.confidence_basis": "GPS_FIX_CONFIDENCE",
+    "$.payload.extensions.external_promotion.source_event_uid": f"mavlink:uav-1:{_EVENT_TS_Z}",
+    "$.payload.extensions.external_promotion.freshness_ms": 30000,
+}
+
+
+def test_mavlink_minimum_state_emits_no_undeclared_leaf_anywhere():
+    # Family-wide sweep rather than a per-field check: with every optional
+    # telemetry field absent, no value anywhere in the emitted event may be one
+    # the telemetry never carried and this test did not declare. This catches a
+    # newly added default in a field no per-field assertion above names -
+    # including a non-zero one (a zeros-only sweep cannot see it), one that
+    # reuses a house constant at a new path (a value-scoped allowlist cannot
+    # see it), and a categorical or str()-wrapped one (a numeric-only sweep
+    # cannot see it).
+    state = {
+        "lat": 34.0517,
+        "lon": -118.2437,
+        "alt_m": 412.5,
+        "based_on": [_PARENT_EVENT_ID],
+        "loop_status": "CHECKED_NOT_REFLECTION",
+    }
+    kwargs = {
+        "platform_id": "uav-1",
+        "producer": "mavlink-adapter",
+        "ts": _INPUT_TS,
+    }
+    declared = {
+        **_envelope_declarations("STATE_EVENT", "TRACK_STATE", "GATEWAY"),
+        **_PROMOTION_DECLARATIONS,
+        # Composed from producer + platform_id, both caller-supplied.
+        "$.payload.track_id": "mavlink-adapter-uav-1-platform-position",
+        "$.payload.valid_for_ms": 30000,  # adapter policy constant
+        # The conservative verdict for an unreported fix - never AVAILABLE.
+        "$.payload.quality.geo_status": "STALE",
+        # coerce_timing_quality's conservative unknown-timing block
+        # (adapters/ingress/time_utils.py, not this module): an explicit
+        # UNSYNCED / UNKNOWN source with a 60 s error bound.
+        "$.payload.timing_quality.time_source": "UNKNOWN",
+        "$.payload.timing_quality.sync_state": "UNSYNCED",
+        "$.payload.timing_quality.est_error_ms": 60000,
+        "$.payload.timing_quality.last_sync_ts": _EVENT_TS_Z,
+        # _gps_fix_confidence floor for an unreported fix.
+        "$.confidence": 0.2,
+        # Carries ADAPTER_VERSION; its prefix is pinned by
+        # test_mavlink_platform_state_promotion_authority_valid.
+        "$.lineage.transform": _GENERATED,
+    }
+    event = translate_platform_state(state, **kwargs)
+
+    undeclared = _undeclared_leaves(event, {**state, **kwargs}, declared)
+    assert undeclared == [], f"values with no source in the telemetry: {undeclared}"
+    VALIDATOR.validate(event)
+
+
+def test_mavlink_every_emitted_leaf_traces_to_input_or_declaration():
+    # The same provenance rule over a fully populated telemetry dict, so the
+    # carry-through paths are covered too, not only the omission paths. Input
+    # values are deliberately distinctive so a fabricated value cannot collide
+    # with a real one.
+    state = {
+        "lat": 34.0517,
+        "lon": -118.2437,
+        "alt_m": 412.5,
+        "speed_mps": 18.25,
+        "heading_deg": 137.5,
+        "gps_fix_type": 4,
+        "satellites_visible": 17,
+        "roll_deg": 2.75,
+        "pitch_deg": -1.25,
+        "yaw_deg": 137.5,
+        "vx": 12.5,
+        "vy": 13.25,
+        "vz": -0.75,
+        "battery_voltage": 22.4,
+        "battery_remaining_pct": 63,
+        "custom_mode": 5,
+        "timing_quality": {
+            "time_source": "GPS_PPS",
+            "sync_state": "LOCKED",
+            "est_error_ms": 3.5,
+            "last_sync_ts": "2025-01-17T15:19:59+00:00",
+        },
+        "based_on": [_PARENT_EVENT_ID],
+        "loop_status": "CHECKED_NOT_REFLECTION",
+    }
+    kwargs = {
+        "platform_id": "uav-1",
+        "producer": "mavlink-adapter",
+        "ts": _INPUT_TS,
+    }
+    declared = {
+        **_envelope_declarations("STATE_EVENT", "TRACK_STATE", "GATEWAY"),
+        **_PROMOTION_DECLARATIONS,
+        "$.payload.track_id": "mavlink-adapter-uav-1-platform-position",
+        "$.payload.valid_for_ms": 30000,
+        "$.payload.quality.geo_status": "AVAILABLE",
+        "$.payload.quality.heading_source": "MAVLINK_GLOBAL_POSITION_INT_TRUE_NORTH",
+        # Reported last_sync_ts, normalized to Z.
+        "$.payload.timing_quality.last_sync_ts": "2025-01-17T15:19:59Z",
+        # _gps_fix_confidence table value for a 3D+ fix.
+        "$.confidence": 0.8,
+        "$.lineage.transform": _GENERATED,
+    }
+
+    event = translate_platform_state(state, heading_frame="TRUE_NORTH", **kwargs)
+
+    undeclared = _undeclared_leaves(event, {**state, **kwargs}, declared)
+    assert undeclared == [], f"values with no source in the telemetry: {undeclared}"
+    VALIDATOR.validate(event)
+
+
+class _AttributeState:
+    """A non-dict telemetry carrier, the other branch of the module's _get."""
+
+    def __init__(self, **fields):
+        self.__dict__.update(fields)
+
+
+def test_mavlink_attribute_state_refuses_missing_alt_m():
+    # translate_platform_state accepts an object as well as a dict, and the
+    # object branch uses a different accessor (getattr, not dict.get). A guard
+    # that only holds on the dict branch is half a guard.
+    fields = {k: v for k, v in _BASE_STATE.items() if k != "alt_m"}
+    assert translate_platform_state(
+        _AttributeState(**fields), platform_id="uav-1", ts="2025-01-17T15:20:00+00:00"
+    ) is None
+
+    event = translate_platform_state(
+        _AttributeState(**_BASE_STATE),
+        platform_id="uav-1",
+        ts="2025-01-17T15:20:00+00:00",
+    )
+    assert event["payload"]["geo"]["alt_m"] == 120.0
+    VALIDATOR.validate(event)
+
+
+def test_mavlink_attribute_state_omits_unreported_optional_numerics():
+    fields = {
+        k: v for k, v in _BASE_STATE.items()
+        if k not in ("speed_mps", "gps_fix_type", "satellites_visible")
+    }
+    event = translate_platform_state(
+        _AttributeState(**fields),
+        platform_id="uav-1",
+        ts="2025-01-17T15:20:00+00:00",
+    )
+
+    assert "speed_mps" not in event["payload"]
+    assert "gps_fix_type" not in event["payload"]["quality"]
+    assert "satellites_visible" not in event["payload"]["quality"]
+    assert event["payload"]["quality"]["geo_status"] == "STALE"
+
+
+def test_decode_global_position_int_absent_alt_and_velocity_yield_none():
+    # The decoder half of the same class. A translator-only guard is defeated
+    # by a decoder that zero-fills, because the state dict then carries a
+    # definite 0.0 the translator cannot tell from a measurement.
+    decoded = decode_global_position_int({"lat": 340000000, "lon": -1180000000})
+
+    assert decoded["alt_m"] is None
+    assert decoded["vx"] is None
+    assert decoded["vy"] is None
+    assert decoded["vz"] is None
+    assert decoded["speed_mps"] is None
+
+
+def test_decode_global_position_int_to_translate_refuses_without_alt():
+    # End-to-end composition: the documented decode -> translate pipeline must
+    # refuse, not emit 0 m AMSL. This is the pin an exemplar-only fix fails.
+    state = decode_global_position_int(
+        {"lat": 340000000, "lon": -1180000000, "hdg": 65535}
+    )
+    state.update(decode_gps_raw_int({"fix_type": 3, "satellites_visible": 12}))
+    state["based_on"] = [_PARENT_EVENT_ID]
+    state["loop_status"] = "CHECKED_NOT_REFLECTION"
+
+    assert translate_platform_state(
+        state, platform_id="uav-1", ts="2025-01-17T15:20:00+00:00"
+    ) is None
+
+
+def test_decode_global_position_int_reported_values_preserved():
+    # The refusal must not cost the honest path: reported values still decode,
+    # including a genuinely measured zero.
+    decoded = decode_global_position_int(
+        {"lat": 340000000, "lon": -1180000000, "alt": 120000,
+         "vx": 500, "vy": 0, "vz": -100, "hdg": 9000}
+    )
+
+    assert decoded["alt_m"] == 120.0
+    assert decoded["vx"] == 5.0
+    assert decoded["vy"] == 0.0
+    assert decoded["vz"] == -1.0
+    assert decoded["speed_mps"] == 5.0
+    assert decoded["heading_deg"] == 90.0
+
+
+def test_decode_attitude_omits_unreported_axes():
+    # A 0.0-degree default asserts a measured level attitude.
+    assert decode_attitude({}) == {}
+    assert decode_attitude({"roll": 0.5}) == {"roll_deg": math.degrees(0.5)}
+
+    full = decode_attitude({"roll": 0.0, "pitch": 0.1, "yaw": 3.0})
+    assert full["roll_deg"] == 0.0
+    assert full["yaw_deg"] == math.degrees(3.0) % 360
+
+
+def test_decode_gps_raw_int_omits_unreported_fix_quality():
+    assert decode_gps_raw_int({}) == {}
+    assert decode_gps_raw_int({"fix_type": 3}) == {"gps_fix_type": 3}
+    assert decode_gps_raw_int({"fix_type": 0, "satellites_visible": 0}) == {
+        "gps_fix_type": 0,
+        "satellites_visible": 0,
+    }
+
+
+def test_decode_gps_raw_int_drops_satellites_unknown_sentinel():
+    # The fourth member of the same "not sent" sentinel family as
+    # GLOBAL_POSITION_INT.hdg = 65535 and the two SYS_STATUS sentinels.
+    # MAVLink common.xml: GPS_RAW_INT.satellites_visible is uint8, "if
+    # unknown, set to UINT8_MAX". 255 is not a 255-satellite measurement -
+    # which would read downstream as the best fix quality ever observed.
+    assert decode_gps_raw_int({"fix_type": 3, "satellites_visible": 255}) == {
+        "gps_fix_type": 3
+    }
+    # A real count, including a genuinely measured 0, still decodes.
+    assert decode_gps_raw_int({"fix_type": 3, "satellites_visible": 12}) == {
+        "gps_fix_type": 3,
+        "satellites_visible": 12,
+    }
+
+
+def test_mavlink_satellites_unknown_sentinel_never_becomes_quality():
+    # Both sides of the boundary, the same way the battery sentinels are
+    # guarded in the decoder and again in the translator: a state dict can be
+    # assembled by any MAVLink bridge, so a decoder-only guard is half a guard.
+    event = _state_event(satellites_visible=255)
+    assert "satellites_visible" not in event["payload"]["quality"]
+    VALIDATOR.validate(event)
+
+    # End-to-end through the documented decode -> translate pipeline.
+    state = decode_global_position_int(
+        {"lat": 340000000, "lon": -1180000000, "alt": 120000, "hdg": 65535}
+    )
+    state.update(decode_gps_raw_int({"fix_type": 3, "satellites_visible": 255}))
+    state["based_on"] = [_PARENT_EVENT_ID]
+    state["loop_status"] = "CHECKED_NOT_REFLECTION"
+    piped = translate_platform_state(
+        state, platform_id="uav-1", ts=_INPUT_TS
+    )
+    assert "satellites_visible" not in piped["payload"]["quality"]
+    # The omission must not clean the event up elsewhere: the reported 3D fix
+    # still carries its own quality and confidence.
+    assert piped["payload"]["quality"]["gps_fix_type"] == 3
+    VALIDATOR.validate(piped)
+
+
+def test_decode_sys_status_omits_absent_and_sentinel_battery_values():
+    # MAVLink SYS_STATUS documents voltage_battery = UINT16_MAX and
+    # battery_remaining = -1 as "not sent by autopilot". Neither may become a
+    # measurement: not a 0 V flat battery, and not a 65.535 V reading.
+    assert decode_sys_status({}) == {}
+    assert decode_sys_status({"voltage_battery": 65535, "battery_remaining": -1}) == {}
+    assert decode_sys_status({"voltage_battery": 12600, "battery_remaining": 75}) == {
+        "battery_voltage": 12.6,
+        "battery_remaining_pct": 75,
+    }
+
+
+def test_mavlink_link_status_refuses_to_fabricate_link_health():
+    # latency_ms / packet_loss_pct / throughput_bps were hard-coded 0 / 0.0 / 0
+    # on every LINK_STATUS this template ever emitted: a perfect, fully
+    # measured link reported by a node that measured nothing.
+    with pytest.raises(ValueError, match="never fabricated"):
+        translate_link_status(platform_id="uav-1", ts="2025-01-17T15:20:00+00:00")
+    with pytest.raises(ValueError, match="never fabricated"):
+        translate_link_status(
+            platform_id="uav-1", latency_ms=42.0, packet_loss_pct=1.5
+        )
+
+
+def test_mavlink_link_status_omits_unreported_optional_metrics():
+    link = translate_link_status(
+        platform_id="uav-1", ts="2025-01-17T15:20:00+00:00", **_LINK_METRICS
+    )
+    metrics = link["payload"]["metrics"]
+
+    assert "battery_voltage" not in metrics
+    assert "battery_remaining_pct" not in metrics
+    assert "rc_rssi" not in metrics
+    assert metrics["latency_ms"] == 42.0
+    assert metrics["packet_loss_pct"] == 1.5
+    assert metrics["throughput_bps"] == 250000
+    VALIDATOR.validate(link)
+
+
+def test_mavlink_link_status_carries_reported_optional_metrics():
+    link = translate_link_status(
+        platform_id="uav-1",
+        ts="2025-01-17T15:20:00+00:00",
+        battery_voltage=12.6,
+        battery_pct=75,
+        rc_rssi=-70,
+        **_LINK_METRICS,
+    )
+    metrics = link["payload"]["metrics"]
+
+    assert metrics["battery_voltage"] == 12.6
+    assert metrics["battery_remaining_pct"] == 75
+    assert metrics["rc_rssi"] == -70
+    VALIDATOR.validate(link)
+
+
+def test_mavlink_link_status_drops_not_sent_battery_sentinel():
+    link = translate_link_status(
+        platform_id="uav-1",
+        ts="2025-01-17T15:20:00+00:00",
+        battery_pct=-1,
+        **_LINK_METRICS,
+    )
+
+    assert "battery_remaining_pct" not in link["payload"]["metrics"]
+
+
+# ---------------------------------------------------------------------------
+# R1-11 A-06 residuals (b), (c): the fabricated *categorical* half of the same
+# class. payload.state is the field a consumer reads first - "UP", "SYNCED",
+# "RECEIVED" - and it was hard-coded or defaulted on three of the four
+# emitters, below three metrics blocks that had just been made honest.
+# ---------------------------------------------------------------------------
+
+
+def test_mavlink_link_status_never_asserts_up_by_default():
+    # The link-health verdict is not a by-product of measuring latency. A
+    # caller honestly reporting 92 % loss and 5 s latency must not emit an
+    # event whose first field says the link is UP.
+    link = translate_link_status(
+        platform_id="uas-1",
+        latency_ms=5000.0,
+        packet_loss_pct=92.0,
+        throughput_bps=0,
+        ts=_INPUT_TS,
+    )
+
+    assert link["payload"]["state"] == "UNKNOWN"
+    # Refusing the verdict must not cost the measurements: everything the
+    # caller did measure still travels, so the consumer adjudicates.
+    assert link["payload"]["metrics"]["packet_loss_pct"] == 92.0
+    assert link["payload"]["metrics"]["latency_ms"] == 5000.0
+    VALIDATOR.validate(link)
+
+
+def test_mavlink_link_status_carries_caller_supplied_verdict():
+    for state in ("UP", "UNKNOWN"):
+        link = translate_link_status(
+            platform_id="uas-1", state=state, ts=_INPUT_TS, **_LINK_METRICS
+        )
+        assert link["payload"]["state"] == state
+        VALIDATOR.validate(link)
+
+    degraded = translate_link_status(
+        platform_id="uas-1",
+        state="DEGRADED",
+        reason_code="HIGH_PACKET_LOSS",
+        ts=_INPUT_TS,
+        **_LINK_METRICS,
+    )
+    assert degraded["payload"]["state"] == "DEGRADED"
+    assert degraded["payload"]["metrics"]["reason_code"] == "HIGH_PACKET_LOSS"
+    VALIDATOR.validate(degraded)
+
+
+def test_mavlink_link_status_refuses_unusable_verdicts():
+    # A state outside the v1.0 vocabulary, and a DEGRADED/DOWN with no
+    # reason_code, are refused loudly rather than emitted schema-invalid.
+    with pytest.raises(ValueError, match="never fabricated"):
+        translate_link_status(platform_id="uas-1", state="GREEN", **_LINK_METRICS)
+    for state in ("DEGRADED", "DOWN"):
+        with pytest.raises(ValueError, match="reason_code"):
+            translate_link_status(
+                platform_id="uas-1", state=state, **_LINK_METRICS
+            )
+
+
+def test_mavlink_time_status_emitters_agree_on_identical_telemetry():
+    # Same telemetry, two code paths, one verdict. The decoded-message path
+    # defaulted payload.state to "SYNCED" one line above a metrics block that
+    # said UNSYNCED, while the sibling called the same input DEGRADED.
+    msg = {
+        "msg_type": "SYSTEM_TIME",
+        "time_usec": 1700000000000000,
+        "est_error_ms": 3.5,
+        "last_sync_ts": "2025-01-17T15:19:00Z",
+    }
+    decoded = mavlink_decoded_to_zmeta_system_events(
+        msg, platform_id="uav-1", producer="mavlink-adapter", ts=_INPUT_TS
+    )[0]
+    sibling = translate_time_status(
+        platform_id="uav-1",
+        est_error_ms=3.5,
+        last_sync_ts="2025-01-17T15:19:00Z",
+        ts=_INPUT_TS,
+    )
+
+    assert decoded["payload"]["state"] == sibling["payload"]["state"] == "DEGRADED"
+    # The event must not contradict itself: an UNSYNCED metrics block cannot
+    # sit under a payload.state that asserts a locked clock.
+    assert decoded["payload"]["metrics"]["sync_state"] == "UNSYNCED"
+    assert decoded["payload"]["state"] != "SYNCED"
+    VALIDATOR.validate(decoded)
+    VALIDATOR.validate(sibling)
+
+
+def test_mavlink_time_status_reported_lock_still_reads_up():
+    # The conservative default must not cost the honest path.
+    reported = mavlink_decoded_to_zmeta_system_events(
+        {
+            "msg_type": "SYSTEM_TIME",
+            "time_source": "GPS_PPS",
+            "sync_state": "LOCKED",
+            "est_error_ms": 1,
+            "last_sync_ts": "2025-01-17T15:19:59+00:00",
+        },
+        platform_id="uav-1",
+        producer="mavlink-adapter",
+        ts=_INPUT_TS,
+    )[0]
+
+    assert reported["payload"]["state"] == "UP"
+    assert reported["payload"]["metrics"]["sync_state"] == "LOCKED"
+    VALIDATOR.validate(reported)
+
+
+def test_mavlink_time_status_never_launders_a_carried_degraded_verdict():
+    # The derivation must not run the other way either: an upstream that has
+    # already judged its clock degraded keeps that verdict, and an optimistic
+    # carried label never overrides an UNSYNCED metrics block.
+    carried_bad = mavlink_decoded_to_zmeta_system_events(
+        {
+            "msg_type": "SYSTEM_TIME",
+            "state": "DOWN",
+            "sync_state": "LOCKED",
+            "est_error_ms": 1,
+            "last_sync_ts": "2025-01-17T15:19:59+00:00",
+        },
+        platform_id="uav-1",
+        producer="mavlink-adapter",
+        ts=_INPUT_TS,
+    )[0]
+    assert carried_bad["payload"]["state"] == "DOWN"
+
+    carried_clean = mavlink_decoded_to_zmeta_system_events(
+        {
+            "msg_type": "SYSTEM_TIME",
+            "state": "SYNCED",
+            "est_error_ms": 1,
+            "last_sync_ts": "2025-01-17T15:19:59+00:00",
+        },
+        platform_id="uav-1",
+        producer="mavlink-adapter",
+        ts=_INPUT_TS,
+    )[0]
+    assert carried_clean["payload"]["metrics"]["sync_state"] == "UNSYNCED"
+    assert carried_clean["payload"]["state"] == "DEGRADED"
+
+
+def test_mavlink_task_ack_refuses_to_fabricate_an_acknowledgement():
+    # The third member of the same categorical family: a MISSION_ACK dict
+    # carrying no verdict was reported as "RECEIVED", and a commander reads
+    # that as the vehicle having taken the task. The v1.0 TASK_ACK state enum
+    # has no "unknown" member to degrade into, so this one refuses.
+    with pytest.raises(ValueError, match="never fabricated"):
+        mavlink_decoded_to_zmeta_system_events(
+            {
+                "msg_type": "MISSION_ACK",
+                "task_id": "task-1",
+                "original_event_id": "019c3ef3-98c4-7c99-8daf-3643ed0bc8ef",
+            },
+            platform_id="uav-1",
+            producer="mavlink",
+            ts=_INPUT_TS,
+        )
+    # An empty/None carried verdict is the same non-answer, not a "RECEIVED".
+    with pytest.raises(ValueError, match="never fabricated"):
+        mavlink_decoded_to_zmeta_system_events(
+            {
+                "msg_type": "MISSION_ACK",
+                "task_id": "task-1",
+                "original_event_id": "019c3ef3-98c4-7c99-8daf-3643ed0bc8ef",
+                "ack": "",
+            },
+            platform_id="uav-1",
+            producer="mavlink",
+            ts=_INPUT_TS,
+        )
+    # A carried verdict still emits, from any of the three carrier keys.
+    for key in ("state", "mission_state", "ack"):
+        msg = {
+            "msg_type": "MISSION_ACK",
+            "task_id": "task-1",
+            "original_event_id": "019c3ef3-98c4-7c99-8daf-3643ed0bc8ef",
+            key: "ACCEPTED",
+        }
+        event = mavlink_decoded_to_zmeta_system_events(
+            msg, platform_id="uav-1", producer="mavlink", ts=_INPUT_TS
+        )[0]
+        assert event["payload"]["state"] == "ACCEPTED"
+        VALIDATOR.validate(event)
+
+
+def test_mavlink_system_events_emit_no_undeclared_leaf_anywhere():
+    # The same path-scoped, type-complete provenance sweep as on the state
+    # translator, over the SYSTEM_EVENT emitters - the ones that carried the
+    # fabricated categorical verdicts. A declaration here pins the value at
+    # that path, so re-hardcoding "UP" or "SYNCED" is a failure, not a pass.
+    link_kwargs = {
+        "platform_id": "uav-1",
+        "producer": "mavlink-adapter",
+        "ts": _INPUT_TS,
+        **_LINK_METRICS,
+    }
+    link = translate_link_status(**link_kwargs)
+    assert _undeclared_leaves(
+        link,
+        link_kwargs,
+        {
+            **_envelope_declarations("SYSTEM_EVENT", "LINK_STATUS", "EDGE"),
+            "$.payload.system_type": "LINK_STATUS",
+            # No verdict was supplied, so none is asserted.
+            "$.payload.state": "UNKNOWN",
+            "$.payload.metrics.link_id": "edge-comms-uav-1",
+            # The declared default for an unnamed interface.
+            "$.payload.metrics.active_link": "unknown",
+        },
+    ) == []
+    VALIDATOR.validate(link)
+
+    time_kwargs = {
+        "platform_id": "uav-1",
+        "producer": "mavlink-adapter",
+        "est_error_ms": 1.0,
+        "last_sync_ts": "2025-01-17T15:19:59+00:00",
+        "ts": _INPUT_TS,
+    }
+    time_status = translate_time_status(**time_kwargs)
+    assert _undeclared_leaves(
+        time_status,
+        time_kwargs,
+        {
+            **_envelope_declarations("SYSTEM_EVENT", "TIME_STATUS", "EDGE"),
+            "$.payload.system_type": "TIME_STATUS",
+            # Derived from the UNSYNCED default below, never "UP"/"SYNCED".
+            "$.payload.state": "DEGRADED",
+            "$.payload.metrics.time_source": "UNKNOWN",
+            "$.payload.metrics.sync_state": "UNSYNCED",
+            "$.payload.metrics.last_sync_ts": "2025-01-17T15:19:59Z",
+        },
+    ) == []
+    VALIDATOR.validate(time_status)
+
+    ack_msg = {
+        "msg_type": "MISSION_ACK",
+        "task_id": "task-1",
+        "original_event_id": "019c3ef3-98c4-7c99-8daf-3643ed0bc8ef",
+        "state": "ACCEPTED",
+    }
+    ack_kwargs = {"platform_id": "uav-1", "producer": "mavlink", "ts": _INPUT_TS}
+    ack = mavlink_decoded_to_zmeta_system_events(ack_msg, **ack_kwargs)[0]
+    assert _undeclared_leaves(
+        ack,
+        {**ack_msg, **ack_kwargs},
+        {
+            **_envelope_declarations("SYSTEM_EVENT", "TASK_ACK", "EDGE"),
+            "$.payload.system_type": "TASK_ACK",
+        },
+    ) == []
+    VALIDATOR.validate(ack)
+
+    decoded_time_msg = {
+        "msg_type": "SYSTEM_TIME",
+        "time_usec": 1700000000000000,
+        "est_error_ms": 3.5,
+        "last_sync_ts": "2025-01-17T15:19:00Z",
+    }
+    decoded_time = mavlink_decoded_to_zmeta_system_events(
+        decoded_time_msg, **ack_kwargs
+    )[0]
+    assert _undeclared_leaves(
+        decoded_time,
+        {**decoded_time_msg, **ack_kwargs},
+        {
+            **_envelope_declarations("SYSTEM_EVENT", "TIME_STATUS", "EDGE"),
+            "$.payload.system_type": "TIME_STATUS",
+            "$.payload.state": "DEGRADED",
+            "$.payload.metrics.time_source": "UNKNOWN",
+            "$.payload.metrics.sync_state": "UNSYNCED",
+        },
+    ) == []
+    VALIDATOR.validate(decoded_time)
+
+    # The catch-all LINK_STATUS branch. Swept for provenance only, and not
+    # schema-validated: it emits a metrics block without the link_id /
+    # latency_ms / packet_loss_pct / throughput_bps the v1.0 schema requires
+    # on LINK_STATUS. That is a shape defect, not a fabrication - it is
+    # recorded separately and is out of this class's scope; what is pinned
+    # here is that its verdict stays "UNKNOWN".
+    fallback_msg = {"msg_type": "RADIO_STATUS", "rssi": -70}
+    fallback = mavlink_decoded_to_zmeta_system_events(fallback_msg, **ack_kwargs)[0]
+    assert _undeclared_leaves(
+        fallback,
+        {**fallback_msg, **ack_kwargs},
+        {
+            **_envelope_declarations("SYSTEM_EVENT", "LINK_STATUS", "EDGE"),
+            "$.payload.system_type": "LINK_STATUS",
+            "$.payload.state": "UNKNOWN",
+        },
+    ) == []
+
+
+def test_mavlink_time_status_refuses_to_fabricate_timing_uncertainty():
+    # est_error_ms = 0.0 asserts a perfectly accurate clock in the very field
+    # consumers read to decide how far to trust the timeline, and defaulting
+    # last_sync_ts to the event ts asserts a sync that just happened.
+    with pytest.raises(ValueError, match="never fabricated"):
+        translate_time_status(
+            platform_id="uav-1",
+            last_sync_ts="2025-01-17T15:19:59+00:00",
+            ts="2025-01-17T15:20:00+00:00",
+        )
+    with pytest.raises(ValueError, match="never fabricated"):
+        translate_time_status(
+            platform_id="uav-1",
+            est_error_ms=1.0,
+            ts="2025-01-17T15:20:00+00:00",
+        )
