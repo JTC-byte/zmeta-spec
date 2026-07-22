@@ -350,9 +350,11 @@ every finding adversarially refuted before acceptance) opened the pass;
 a second nine-lens sweep over the resulting fixes (85 agents, every
 finding adversarially refuted before acceptance; 29 survived, 46 were
 refuted) plus direct probing of each new guard extended it. Fourteen
-findings closed: three MAJOR (two crash classes and one cross-backend
-laundering/interop hole) and eleven honesty, enforcement,
-checking-machinery, and release-machinery gaps.
+findings closed: **2 MAJOR** (V2-01, a process-killing crash class;
+V2-09, a cross-backend laundering/interop hole), **7 MODERATE**, and
+**5 MINOR**. Note that a *second* crash class, V2-02, sits at MODERATE —
+the cycle-level "two MAJOR crash classes" counts V2-01 alongside
+pass 1's V1-01, not V2-02.
 
 **Most of these were found by attacking the fixes, not the original
 code.** A structural pin caught a sixth vendor-block sink the audit's

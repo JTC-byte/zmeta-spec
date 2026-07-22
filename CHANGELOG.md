@@ -99,8 +99,10 @@
     fields, version relabeling, bool-vs-numeric) stays refused and
     pinned.
 - R1-11 post-fix verification, pass 2 — a full seven-slice audit over
-  the fixed stack, adversarially verified, closing a further crash
-  class and five honesty/enforcement gaps:
+  the fixed stack plus a second sweep over the resulting fixes, every
+  finding adversarially verified. 14 findings closed: 2 MAJOR (a
+  process-killing crash class and a cross-backend laundering/interop
+  hole), 7 MODERATE, 5 MINOR:
   - (MAJOR, crash) The recovery ladder handled only
     `CompactUnrepresentableError`, but the codec itself could raise
     `OverflowError` (an integer >= 2**64), `ValueError` (extension

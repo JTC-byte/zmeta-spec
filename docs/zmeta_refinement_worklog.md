@@ -29,8 +29,9 @@
 - Current state (2026-07-22, fifth closeout): the **R1-11 cycle is
   COMPLETE through both post-fix verification passes.** The fix pass
   (seven waves) and verification pass 1 (`d955cd0`) were followed by
-  verification pass 2, which closed a further MAJOR crash class and
-  five honesty/enforcement gaps; the findings record
+  verification pass 2, which closed **14 findings — 2 MAJOR (a
+  process-killing crash class and a cross-backend laundering/interop
+  hole), 7 MODERATE, 5 MINOR**; the findings record
   `docs/r1_11_full_stack_audit.md` now carries the disposition, the
   cycle outcome, and both verification passes. Final battery: kernel
   gate all flags (bad-events 29, harness 40), examples 51/51 strict,
@@ -141,8 +142,9 @@
   flipped to a normalization, with the sub-millisecond case replacing it
   as the honest refusal pin.
   Pass 2 (seven slices, 24 agents, every finding adversarially refuted
-  before acceptance; 2 refuted) closed a further crash class and five
-  gaps: (V2-01 MAJOR crash) the ladder catches only
+  before acceptance; 2 refuted) opened with these, and the second sweep
+  below extended it to **14 findings total — 2 MAJOR, 7 MODERATE,
+  5 MINOR**: (V2-01 MAJOR crash) the ladder catches only
   `CompactUnrepresentableError`, but the codec itself raises
   `OverflowError` (int ≥ 2**64), `ValueError` (nesting past CBOR decode
   depth — pass 1's real-serialization decode ADDED this path), and
