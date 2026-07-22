@@ -13,15 +13,32 @@ Details in the worklog P1-08/P1-07/R1-10 entries and the release notes
 per version. Current main additionally carries the R1-11 full-stack
 audit findings record, its seven fix-pass waves, and **both post-fix
 verification passes** (worklog R1-11 entries; findings record
-`docs/r1_11_full_stack_audit.md`). The R1-11 cycle is complete: the
-maintainer release-cut decision (v1.1.17 recommended — the cycle
-includes a MAJOR honesty fix, two MAJOR crash classes, and two Class B
-vocabulary batches) and the queued v1.1.0 adoption-decision session are
-the next substantive work items. Note that current main diverges from
-the published v1.1.16 SHA256SUMS manifest/package pins because the
-fix-pass and verification-pass commits regenerate the manifest under
-the v1.1.16 identity; published checksums stay immutable and the next
-release cut resolves the divergence.
+`docs/r1_11_full_stack_audit.md`).
+
+**HOLD (2026-07-22). The R1-11 cycle is COMPLETE and FROZEN pending a
+fresh full-stack audit.** Head `6ea9888`; **11 unpushed commits**
+(`118f0b9`..`6ea9888` — the entire cycle); tree clean; nothing pushed,
+tagged, or signed, so no consumer has seen any of it and the published
+v1.1.16 assets remain the only downstream truth. **NEXT: the fresh
+audit, then the maintainer release-cut decision** (v1.1.17 recommended
+— the cycle includes a MAJOR honesty fix, two MAJOR crash classes, a
+MAJOR cross-backend laundering/interop hole, and two Class B vocabulary
+batches). The queued v1.1.0 adoption-decision session follows.
+
+The cycle was executed across four sessions broken by usage limits,
+plus a model switch and a full chat reset. **Read the "HOLD state" and
+"Execution continuity" sections of the findings record before auditing
+or releasing** — they carry the interruption ledger, the residue checks
+already run, and a targeted checklist for the fresh audit. Headline
+from that record: one interruption left a **half-applied two-layer
+fix** that looked complete and was caught only by reading the working
+diff — *resume from the tree, never from the transcript.*
+
+Note that current main diverges from the published v1.1.16 SHA256SUMS
+manifest/package pins because the fix-pass and verification-pass
+commits regenerate the manifest under the v1.1.16 identity; published
+checksums stay immutable and the next release cut resolves the
+divergence.
 
 This note is the quick resume point for the current ZMeta refinement effort. Recent session records and the deferred issue register are in `docs/zmeta_refinement_worklog.md`; completed task sections S0-01..R1-05 are archived verbatim in `docs/zmeta_refinement_worklog_archive.md`.
 

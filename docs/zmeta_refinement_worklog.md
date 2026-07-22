@@ -4,6 +4,22 @@
 
 - Last updated: 2026-07-22
 - Quick handoff: `docs/zmeta_refinement_handoff.md`
+- **HOLD (2026-07-22): the R1-11 cycle is COMPLETE and FROZEN pending a
+  fresh full-stack audit.** Head `6ea9888`; **11 unpushed commits**
+  (`118f0b9`..`6ea9888`, the entire cycle); tree clean; nothing pushed,
+  tagged, or signed, so no consumer has seen any of it and the published
+  v1.1.16 assets remain the only downstream truth. The maintainer's
+  release decision stays OPEN behind that audit. **The cycle was
+  executed across four sessions broken by usage limits, plus a model
+  switch and a full chat reset — the interruption ledger, the residue
+  checks that were run, and a targeted checklist for the fresh audit are
+  recorded in `docs/r1_11_full_stack_audit.md` ("HOLD state" and
+  "Execution continuity").** The single most important item there:
+  interruption 2 left a **half-applied two-layer fix** (compact codec
+  layer applied, gateway backstop layer missing) that looked complete
+  and was caught only because the resuming session read the working diff
+  instead of trusting the narrative — **resume from the tree, never from
+  the transcript.**
 - Current state (2026-07-22, fifth closeout): the **R1-11 cycle is
   COMPLETE through both post-fix verification passes.** The fix pass
   (seven waves) and verification pass 1 (`d955cd0`) were followed by
@@ -18,14 +34,23 @@
   commits regenerate the manifest and claims under the v1.1.16
   identity, so current main diverges from the published v1.1.16
   SHA256SUMS manifest/package pins; published checksums stay
-  immutable; resolution is the next release cut.** NEXT: the
-  maintainer release-cut decision (v1.1.17 recommended — the cycle
-  includes a MAJOR honesty fix, two MAJOR crash classes, and two
+  immutable; resolution is the next release cut.** NEXT: **a fresh
+  full-stack audit over the held cycle** (targeted checklist in the
+  findings record: partial-application residue, commit-truth across the
+  interrupted boundaries, the new guards as unreviewed code,
+  blind-by-construction self-checks, record counts, doc-currency
+  judgement calls), THEN the maintainer release-cut decision (v1.1.17
+  recommended — the cycle includes a MAJOR honesty fix, two MAJOR crash
+  classes, a MAJOR cross-backend laundering/interop hole, and two
   Class B vocabulary batches). **Carry-forward lesson: a fix has
-  introduced or exposed the next defect five times across R1-10, the
-  R1-11 fix pass, and both verification passes — the verification
-  pass produced roughly half this cycle's real findings and should
-  stay mandatory after any pass touching honesty-critical paths.**
+  introduced or exposed the next defect more than a dozen times across
+  R1-10, the R1-11 fix pass, and both verification passes — the
+  verification pass produced most of this cycle's real findings and
+  should stay mandatory after any pass touching honesty-critical
+  paths. Two sharper forms earned in pass 2: a new guard is itself
+  unreviewed code (two fresh pins reproduced the exact defect class
+  they were written to prevent), and a self-check running the same
+  machinery on both sides is blind by construction (V2-09).**
   Prior closeout state follows.
 - Previous state (2026-07-21, first closeout): the SAPIENT lane is
   FULLY CLOSED — P1-07 mapping pack + reference adapters, the end-to-end
@@ -54,6 +79,38 @@
   session-limit interruption recovery (resume with verify-and-complete
   prompts + a dedicated interruption-integrity review) left zero
   half-done state, twice validated as a working pattern.
+- R1-11 execution continuity + HOLD (2026-07-22): the cycle ran across
+  **four sessions broken by usage limits**, plus a mid-cycle model
+  switch (Fable 5 → Opus 4.8, twice, from safeguards spuriously
+  flagging routine work on this defensive ISR codebase) and one **full
+  chat reset**. Recorded because interrupted work is its own defect
+  surface. (1) The first post-fix verification audit was killed with
+  **1 of 6 slices complete** — that lone slice had already found two
+  defects the fix pass introduced; on resume its result was re-read
+  rather than re-run, both were independently reproduced before fixing,
+  and a third surfaced during the fix (→ `d955cd0`). (2) The next limit
+  hit **mid-edit on a two-layer fix**, leaving the compact codec layer
+  applied and the gateway backstop layer missing, uncommitted. **This
+  is the dangerous class: a partial fix looks finished** — syntactically
+  complete, imports clean, reads as deliberate. It was caught only
+  because the resuming session started from `git status` and the real
+  working diff. **Resume from the tree, never from the transcript.**
+  (3) After the chat reset the recovering session had zero in-context
+  memory and rebuilt state purely from the repo (git log, working diff,
+  findings record, worklog) with the prior transcript supplied as data;
+  everything in `6ea9888` was produced under that reconstruction.
+  Residue checks run at freeze: full working-diff read before any new
+  edit (caught the partial fix), full battery after every change set,
+  finding list re-derived from audit output rather than memory,
+  counts re-measured, UTF-8/mojibake scan on every edited doc (clean,
+  no BOM), manifest regenerated and re-validated after every code
+  change. **HOLD: 11 unpushed commits `118f0b9`..`6ea9888`, tree
+  clean, nothing pushed/tagged/signed — a fresh full-stack audit runs
+  before any release decision, with a targeted checklist in
+  `docs/r1_11_full_stack_audit.md`.** This is the third validation of
+  the interruption-recovery pattern (R1-09, R1-10, now R1-11), and the
+  first under a full context reset — the pattern held, but only
+  because state was reconstructed from artifacts rather than narrative.
 - R1-11 post-fix verification passes (2026-07-21/22): **BOTH COMPLETE.**
   The R1-10 lesson — the fix pass is itself an audit surface — paid out
   twice more. Pass 1 (`d955cd0`) found three defects wave 1 had

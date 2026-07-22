@@ -575,3 +575,132 @@ encodes and decodes with the same CBOR library, so a backend divergence
 that corrupts data only on the receiving node was invisible to it by
 construction). Write the pin, then attack the pin — and ask what the
 check cannot see.
+
+## HOLD state (2026-07-22) — frozen pending a fresh full audit
+
+**Status: WORK COMPLETE, HELD.** The R1-11 cycle is finished and
+committed. It is deliberately **not** published: a fresh full-stack
+audit runs before any release cut, and this section is the input to
+that audit.
+
+| | |
+| --- | --- |
+| Head | `6ea9888` (R1-11 verification pass 2) |
+| Unpushed commits | **11**, `118f0b9`..`6ea9888` — the entire R1-11 cycle |
+| Working tree | clean; `git diff --check` clean |
+| Remote | `origin/main` unchanged; nothing pushed, tagged, or signed |
+| Battery at freeze | kernel gate all flags (bad-events 29, harness 40), examples 51/51 strict, policy risk-mode lint ok, compact packet max=150/240 unchanged, pytest **785 + 316 subtests** |
+| Release decision | OPEN — maintainer's call (v1.1.17 recommended) |
+
+Nothing in this cycle has reached a consumer. The published v1.1.16
+assets and their `SHA256SUMS` are untouched and remain the only thing
+downstream verifiers see.
+
+### Commit ledger
+
+| Commit | Time | Content |
+| --- | --- | --- |
+| `118f0b9` | 07-21 19:15 | Audit findings record (disposition pending) |
+| `74d92e1` | 21:41 | Fix wave 1 — compact fails closed (R11-01 MAJOR) |
+| `88b527e` | 21:49 | Fix wave 2 — SAPIENT adapter honesty |
+| `e3203ad` | 21:57 | Fix wave 3 — signalhunter no-lock + template loop_status |
+| `545fe0b` | 22:06 | Fix wave 4 — checking machinery |
+| `c1eb9d0` | 22:10 | Fix wave 5 — machine-encoded semantics |
+| `33230af` | 22:16 | Fix wave 6 — release machinery honesty |
+| `05ad9a8` | 22:21 | Fix wave 7 — doc currency + teaching surfaces |
+| `07921e6` | 22:23 | Fix pass closeout (CHANGELOG, worklog, cycle outcome) |
+| `d955cd0` | 22:55 | Verification pass 1 (V1-01..V1-03) |
+| `6ea9888` | 07-22 01:09 | Verification pass 2 (V2-01..V2-14) |
+
+## Execution continuity — interruptions and recovery
+
+This cycle was executed across **four sessions broken by usage limits**,
+plus a mid-cycle model switch and one full chat reset. That is recorded
+here in detail because interrupted work is a defect surface in its own
+right, and because the fresh audit should target it (checklist below).
+
+**Interruption 1 — post-fix verification audit killed mid-run.** After
+`07921e6`, the first post-fix verification audit was cut off with **1
+of 6 slices complete**. That single surviving slice had already found
+two defects the fix pass itself introduced. On resume the slice result
+was re-read rather than re-run, both defects were independently
+reproduced before being fixed, and a third (the over-refusal, V1-03)
+was found while fixing them. Closed as `d955cd0`.
+*Residue risk: none — the interruption fell between a completed commit
+and a not-yet-started edit.*
+
+**Interruption 2 — usage limit mid-edit, leaving a PARTIAL fix.** The
+full seven-slice verification audit then ran to completion (24 agents,
+~42 min, zero errors) and reported its findings. Work began on the
+V2-01 crash-class fix, which is a **two-layer** fix: (a) the codec
+converts its own serialization failures into
+`CompactUnrepresentableError`, and (b) the gateway receive loop gains a
+last-resort backstop. The session was cut off **after layer (a) and
+before layer (b)**, leaving one uncommitted, half-applied change in
+`zmeta_compact.py`.
+***This is the dangerous class.*** A partial fix looks like a finished
+one: the codec change alone is syntactically complete, passes its own
+import, and reads as deliberate. It was caught only because the resuming
+session began by reading `git status` and the actual working diff
+instead of trusting the narrative of what had been done. **Resume from
+the tree, never from the transcript.**
+
+**Interruption 3 — model switch and blocked requests.** Mid-cycle,
+automated safeguards flagged several routine requests on this
+(defensive, ISR-interoperability) codebase, switching the model
+Fable 5 → Opus 4.8 twice and blocking one request outright. No repo
+state was changed by these events, but they fragmented the working
+context.
+
+**Interruption 4 — full chat reset.** The maintainer reset the
+conversation entirely after repeated spurious flags. The recovering
+session therefore had **no in-context memory of the work at all** — it
+reconstructed state solely from the repository (git log, working diff,
+the audit record, the worklog) plus the prior transcript supplied as
+data. Everything from `6ea9888` was produced under that reconstruction.
+
+### What the interruptions could have left, and what was checked
+
+| Risk | Check performed | Result |
+| --- | --- | --- |
+| Half-applied multi-layer fix | Read full working diff before any new edit | Found — V2-01 layer (b) missing; completed |
+| Edits applied but untested | Full battery re-run after every change set | Green at each point |
+| Findings silently dropped across sessions | Re-derived the finding list from the completed audit output, not from memory | All accounted for; V2-01..V2-08 then extended to V2-14 |
+| Stale counts in records after resumed work | Re-measured pytest/gate/packet numbers at freeze | Records match measurement |
+| Encoding corruption from tooling across sessions | UTF-8 + mojibake scan on every edited doc | Clean, no BOM |
+| Manifest drift from partial regeneration | Regenerated and re-validated after every code change | Gate exit 0 |
+
+### Targeted checklist for the fresh audit
+
+Given the above, the re-audit should not merely repeat the R1-11 method.
+It should specifically attack:
+
+1. **Partial-application residue.** Every fix claimed in `V1-*`/`V2-*`
+   should be verified present *in the code*, not just in the record —
+   with particular attention to multi-layer fixes (V2-01 codec +
+   gateway; V2-03 six vendor sinks; V2-04 global + per-producer lint).
+2. **Commit-truth across the interrupted boundaries.** Each of the 11
+   commits should reproduce its message's claims, especially `d955cd0`
+   and `6ea9888`, which were authored on either side of the resets.
+3. **The new guards themselves.** This cycle demonstrated twice that a
+   fresh pin can reproduce the defect it targets. Every guard added in
+   V2 is unreviewed-by-anyone-but-its-author code: the promotion lint,
+   the currency-guard matcher and its family check, the drop-reason
+   vocabulary pin, the vendor-sink point-of-use pin, the release-notes
+   placeholder validator, the backend-parametrized compact tests.
+4. **Blind-by-construction checks.** V2-09 was invisible to the compact
+   round-trip check because that check uses one library on both sides.
+   Ask the same question of every other self-check in the stack: what
+   can it not see because both sides share machinery?
+5. **Counts and claims in the records.** The CHANGELOG, worklog,
+   handoff, and this record were all edited during resumed sessions;
+   their stated numbers, commit hashes, and finding IDs should be
+   re-verified against reality.
+6. **Scope creep in the doc-currency sweep.** Several stale literals
+   were re-baselined and one (`adapters/README.md` "For v1.1.8 and
+   later") was deliberately left as a correct historical boundary. That
+   judgement should be re-checked, along with whether any re-baseline
+   falsified a genuinely historical statement.
+
+Until that audit runs and the maintainer takes the release decision,
+this cycle stays local and unpublished.
