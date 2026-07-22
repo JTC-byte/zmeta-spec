@@ -73,6 +73,28 @@ def parse_bin_header(data: bytes) -> dict:
     }
 
 
+def _plausible_fix(lat, lon):
+    """Return (lat, lon) for a plausible GPS fix, else (None, None).
+
+    The SignalHunter header reports (0.0, 0.0) before GPS lock. That
+    sentinel is not evidence of a position (contract 6.8) and must never
+    be consumed as one: a gradient bearing computed from null island to
+    the first real fix would be a fabricated TRUE_NORTH claim.
+    """
+    try:
+        lat_f = float(lat)
+        lon_f = float(lon)
+    except (TypeError, ValueError):
+        return None, None
+    if not (math.isfinite(lat_f) and math.isfinite(lon_f)):
+        return None, None
+    if not (-90.0 <= lat_f <= 90.0 and -180.0 <= lon_f <= 180.0):
+        return None, None
+    if lat_f == 0.0 and lon_f == 0.0:
+        return None, None
+    return lat_f, lon_f
+
+
 def _looks_like_gps_frame(values: List[float]) -> bool:
     """Heuristic: detect GPS-fill frames (repeating lat/lon pairs)."""
     if len(values) < 10:
@@ -103,7 +125,10 @@ def iter_bin_frames(raw: bytes) -> Tuple[dict, List[Tuple[int, List[float], Opti
             break
         values = list(struct.unpack_from(f"<{BINS_PER_FRAME}f", raw, offset))
         if _looks_like_gps_frame(values):
-            frames.append((idx, [], {"lat": values[0], "lon": values[1], "alt_m": 0.0}))
+            # No alt_m key: the GPS-fill frames carry no altitude and a
+            # fabricated 0.0 — even an unconsumed one — is the zero-fill
+            # class contract 6.8 prohibits.
+            frames.append((idx, [], {"lat": values[0], "lon": values[1]}))
         else:
             frames.append((idx, values, None))
     return header, frames
@@ -269,13 +294,15 @@ def translate_bin_file(
     prev_state: Dict[float, Tuple[float, float, float]] = {}
     # Peak persistence: freq_key -> list of booleans
     peak_history: Dict[float, List[bool]] = {}
-    current_lat = header["lat"]
-    current_lon = header["lon"]
+    # A no-lock header reports (0, 0); no position is consumed until a
+    # plausible fix exists (see _plausible_fix).
+    current_lat, current_lon = _plausible_fix(header["lat"], header["lon"])
 
     for frame_idx, psd, gps in frames:
         if gps:
-            current_lat = gps["lat"]
-            current_lon = gps["lon"]
+            fix_lat, fix_lon = _plausible_fix(gps["lat"], gps["lon"])
+            if fix_lat is not None:
+                current_lat, current_lon = fix_lat, fix_lon
             continue
 
         if not psd:
@@ -309,6 +336,11 @@ def translate_bin_file(
             key = round(peak["freq_hz"] / 1000) * 1000
             history = peak_history.get(key, [])
             if sum(history) < peak_persistence_count:
+                continue
+
+            if current_lat is None:
+                # No GPS fix yet: no position, so no gradient sample and
+                # no bearing — never seed the tracker from a sentinel.
                 continue
 
             prev = prev_state.get(key)

@@ -81,6 +81,13 @@ def cot_dict_to_zmeta_track_state(cot: dict) -> dict:
     if not based_on:
         raise ValueError("cot must include based_on lineage event ids")
 
+    # The reflection check is a verification this template never performs,
+    # so its verdict must arrive message-carried — never self-asserted
+    # (contract 4.5.1; same rule the SAPIENT ingress enforces).
+    loop_status = _detail_value(cot, "loop_status")
+    if not loop_status:
+        raise ValueError("cot must carry loop_status (detail.loop_status)")
+
     source_event_uid = str(_detail_value(cot, "source_event_uid", uid))
     promotion = {
         "state_category": "PROMOTED_EXTERNAL_STATE",
@@ -89,7 +96,7 @@ def cot_dict_to_zmeta_track_state(cot: dict) -> dict:
         "promotion_policy_id": str(_detail_value(cot, "promotion_policy_id", PROMOTION_POLICY_ID)),
         "trust_ref": str(_detail_value(cot, "trust_ref", "producer-authority:cot-ingress")),
         "lineage_status": str(_detail_value(cot, "lineage_status", "EXTERNAL_SOURCE")),
-        "loop_status": str(_detail_value(cot, "loop_status", "CHECKED_NOT_REFLECTION")),
+        "loop_status": str(loop_status),
         "confidence_basis": str(
             _detail_value(cot, "confidence_basis", "EXPLICIT_EXTERNAL_CONFIDENCE")
         ),

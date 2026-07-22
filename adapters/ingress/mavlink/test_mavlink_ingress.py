@@ -37,6 +37,7 @@ def test_mavlink_platform_state_promotion_authority_valid():
             "satellites_visible": 10,
             "source_event_uid": "mavlink:sysid-1:seq-1",
             "based_on": [_PARENT_EVENT_ID],
+            "loop_status": "CHECKED_NOT_REFLECTION",
         },
         platform_id="uav-1",
         producer="mavlink-adapter",
@@ -46,6 +47,10 @@ def test_mavlink_platform_state_promotion_authority_valid():
     assert event["event"]["event_type"] == "STATE_EVENT"
     assert event["payload"]["extensions"]["external_promotion"]["promotion_policy_id"] == (
         "PROMOTE-MAVLINK-STATE-V1"
+    )
+    assert (
+        event["payload"]["extensions"]["external_promotion"]["loop_status"]
+        == "CHECKED_NOT_REFLECTION"
     )
     assert event["lineage"]["transform"].startswith("promote:mavlink-telemetry@")
     assert event["lineage"]["based_on"] == [_PARENT_EVENT_ID]
@@ -65,6 +70,9 @@ _BASE_STATE = {
     "satellites_visible": 10,
     "source_event_uid": "mavlink:sysid-1:seq-1",
     "based_on": [_PARENT_EVENT_ID],
+    # Message-carried reflection verdict: the template never self-asserts
+    # it (contract 4.5.1) — see the refusal test below.
+    "loop_status": "CHECKED_NOT_REFLECTION",
 }
 
 
@@ -304,3 +312,16 @@ def test_mavlink_time_status_normalizes_last_sync_ts():
     assert event["event"]["ts"] == "2025-01-17T15:20:00Z"
     assert event["payload"]["metrics"]["last_sync_ts"] == "2025-01-17T15:19:59Z"
     VALIDATOR.validate(event)
+
+
+def test_mavlink_without_loop_status_refuses_promotion():
+    # The reflection verdict is never self-asserted (R1-11 R11-07): a
+    # telemetry dict that does not carry loop_status refuses the promotion.
+    state = {k: v for k, v in _BASE_STATE.items() if k != "loop_status"}
+    event = translate_platform_state(
+        state,
+        platform_id="uav-1",
+        producer="mavlink-adapter",
+        ts="2025-01-17T15:20:00+00:00",
+    )
+    assert event is None

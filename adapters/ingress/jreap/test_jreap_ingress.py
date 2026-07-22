@@ -19,7 +19,7 @@ spec.loader.exec_module(validators)
 POLICY = validators.load_policy(ROOT / "policy")
 
 
-def test_jreap_track_to_state_schema_valid():
+def _jreap_track(**overrides):
     track = {
         "track_id": "track-1",
         "lat": 34.0,
@@ -30,13 +30,21 @@ def test_jreap_track_to_state_schema_valid():
         "track_type": "UNKNOWN",
         "confidence": 0.6,
         "based_on": [str(uuid7())],
+        # Message-carried reflection verdict: the template never
+        # self-asserts it (contract 4.5.1) — see the refusal test below.
+        "loop_status": "CHECKED_NOT_REFLECTION",
     }
+    track.update(overrides)
+    return track
 
-    event = jreap_track_dict_to_zmeta_track_state(track)
+
+def test_jreap_track_to_state_schema_valid():
+    event = jreap_track_dict_to_zmeta_track_state(_jreap_track())
     assert event["event"]["event_type"] == "STATE_EVENT"
     assert event["event"]["event_subtype"] == "TRACK_STATE"
     promotion = event["payload"]["extensions"]["external_promotion"]
     assert promotion["promotion_policy_id"] == "PROMOTE-JREAP-STATE-V1"
+    assert promotion["loop_status"] == "CHECKED_NOT_REFLECTION"
     assert event["lineage"]["transform"].startswith("promote:jreap@template:")
     VALIDATOR.validate(event)
     ok, violations = validators.validate_producer_authority(
@@ -45,18 +53,23 @@ def test_jreap_track_to_state_schema_valid():
     assert ok, violations
 
 
+def test_jreap_without_loop_status_refuses():
+    # The reflection verdict is never self-asserted (R1-11 R11-07).
+    track = _jreap_track()
+    del track["loop_status"]
+    try:
+        jreap_track_dict_to_zmeta_track_state(track)
+    except ValueError as exc:
+        assert "loop_status" in str(exc)
+    else:
+        raise AssertionError("missing loop_status must refuse the promotion")
+
+
 def test_jreap_ingress_normalizes_utc_offset_timestamp():
-    track = {
-        "track_id": "track-1",
-        "lat": 34.0,
-        "lon": -118.0,
-        "hae_m": 120.0,
-        "timestamp": "2025-01-17T15:20:00+00:00",
-        "stale_time": "2025-01-17T15:20:05+00:00",
-        "track_type": "UNKNOWN",
-        "confidence": 0.6,
-        "based_on": [str(uuid7())],
-    }
+    track = _jreap_track(
+        timestamp="2025-01-17T15:20:00+00:00",
+        stale_time="2025-01-17T15:20:05+00:00",
+    )
 
     event = jreap_track_dict_to_zmeta_track_state(track)
 

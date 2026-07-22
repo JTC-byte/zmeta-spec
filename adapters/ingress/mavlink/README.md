@@ -44,7 +44,11 @@ State-safe fields used by this adapter include:
 `payload.extensions` must not be used as a loophole for raw measurements. The
 MAVLink state template uses `payload.extensions.external_promotion` only as
 policy-scoped boundary evidence for the promotion decision; it does not carry
-raw telemetry or reinterpret state.
+raw telemetry or reinterpret state. `loop_status` must arrive in the decoded
+telemetry dict: the reflection check is a verification the template never
+performs, so its verdict is never self-asserted — a message without it
+refuses the promotion (returns None; contract 4.5.1, same rule as the
+SAPIENT ingress).
 
 | MAVLink input concept | Incorrect mapping to avoid | Correct ZMeta treatment | Notes |
 |---|---|---|---|

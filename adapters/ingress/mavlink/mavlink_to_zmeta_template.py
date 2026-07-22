@@ -191,6 +191,14 @@ def translate_platform_state(
         or _get("msg_id")
         or f"mavlink:{platform_id}:{event_ts}"
     )
+    # The reflection check is a verification this template never performs,
+    # so its verdict must arrive message-carried — never self-asserted
+    # (contract 4.5.1; same rule the SAPIENT ingress enforces). Refuse to
+    # promote rather than stamp a verdict for a check that never ran.
+    loop_status = _get("loop_status")
+    if not loop_status:
+        return None
+
     promotion = {
         "state_category": "PROMOTED_EXTERNAL_STATE",
         "origin_kind": str(_get("origin_kind", "EXTERNAL_REPORT")),
@@ -198,7 +206,7 @@ def translate_platform_state(
         "promotion_policy_id": str(_get("promotion_policy_id", PROMOTION_POLICY_ID)),
         "trust_ref": str(_get("trust_ref", f"producer-authority:{producer}")),
         "lineage_status": str(_get("lineage_status", "EXTERNAL_SOURCE")),
-        "loop_status": str(_get("loop_status", "CHECKED_NOT_REFLECTION")),
+        "loop_status": str(loop_status),
         "confidence_basis": str(_get("confidence_basis", "GPS_FIX_CONFIDENCE")),
         "source_event_uid": str(source_event_uid),
         "freshness_ms": 30000,

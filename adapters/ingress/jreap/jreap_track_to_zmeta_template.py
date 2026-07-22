@@ -73,6 +73,13 @@ def jreap_track_dict_to_zmeta_track_state(track: dict) -> dict:
     if not based_on:
         raise ValueError("track must include based_on lineage event ids")
 
+    # The reflection check is a verification this template never performs,
+    # so its verdict must arrive message-carried — never self-asserted
+    # (contract 4.5.1; same rule the SAPIENT ingress enforces).
+    loop_status = _detail_value(track, "loop_status")
+    if not loop_status:
+        raise ValueError("track must carry loop_status")
+
     source_event_uid = str(_detail_value(track, "source_event_uid", track_id))
     promotion = {
         "state_category": "PROMOTED_EXTERNAL_STATE",
@@ -81,7 +88,7 @@ def jreap_track_dict_to_zmeta_track_state(track: dict) -> dict:
         "promotion_policy_id": str(_detail_value(track, "promotion_policy_id", PROMOTION_POLICY_ID)),
         "trust_ref": str(_detail_value(track, "trust_ref", "producer-authority:jreap-ingress")),
         "lineage_status": str(_detail_value(track, "lineage_status", "EXTERNAL_SOURCE")),
-        "loop_status": str(_detail_value(track, "loop_status", "CHECKED_NOT_REFLECTION")),
+        "loop_status": str(loop_status),
         "confidence_basis": str(
             _detail_value(track, "confidence_basis", "EXPLICIT_EXTERNAL_CONFIDENCE")
         ),

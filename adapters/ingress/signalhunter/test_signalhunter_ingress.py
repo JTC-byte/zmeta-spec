@@ -9,6 +9,7 @@ from adapters.ingress.signalhunter.signalhunter_to_zmeta import (
     BINS_PER_FRAME,
     FILE_HEADER_SIZE,
     compute_gradient_bearing,
+    iter_bin_frames,
     translate_bin_file,
 )
 
@@ -25,14 +26,14 @@ MOVED_LAT = 34.001
 MOVED_LON = -118.0
 
 
-def _header(n_frames):
+def _header(n_frames, lat=START_LAT, lon=START_LON):
     header = bytearray(FILE_HEADER_SIZE)
     struct.pack_into("<f", header, 0, 2400.0)   # start_freq_mhz
     struct.pack_into("<f", header, 4, 2500.0)   # end_freq_mhz
     struct.pack_into("<I", header, 8, n_frames)
     struct.pack_into("<I", header, 12, BINS_PER_FRAME)
-    struct.pack_into("<f", header, 32, START_LAT)
-    struct.pack_into("<f", header, 36, START_LON)
+    struct.pack_into("<f", header, 32, lat)
+    struct.pack_into("<f", header, 36, lon)
     header[40:44] = b"test"
     return bytes(header)
 
@@ -95,3 +96,54 @@ def test_no_event_without_meaningful_power_delta():
 def test_events_validate_against_v1_0_schema():
     for event in translate_bin_file(_capture_with_gradient_lob(), platform_id="foot-patrol-01"):
         VALIDATOR.validate(event)
+
+
+# --- GPS no-lock sentinel (R1-11 R11-06) ------------------------------------
+# A no-lock header reports (0, 0). Consuming it as a position produced a
+# null-island geodesic asserted as a TRUE_NORTH/GPS_COURSE bearing that
+# passed strict-H clean; the sentinel must never seed the gradient tracker
+# (contract 6.8: the (0,0,0) sentinel is not evidence of position).
+
+
+def test_no_lock_header_never_yields_null_island_bearing():
+    frames = [
+        _psd_frame(-70.0),
+        _psd_frame(-70.0),
+        _psd_frame(-70.0),
+        _gps_frame(34.05, -118.24),  # first real fix, mid-file
+        _psd_frame(-65.0),           # stronger peak at the real fix
+    ]
+    raw = _header(len(frames), lat=0.0, lon=0.0) + b"".join(frames)
+
+    # Pre-fix this produced az ~307 deg with displacement_m ~12,574 km.
+    assert translate_bin_file(raw, platform_id="foot-patrol-01") == []
+
+
+def test_first_bearing_after_no_lock_uses_only_real_fixes():
+    frames = [
+        _psd_frame(-50.0),
+        _psd_frame(-50.0),
+        _psd_frame(-50.0),
+        _gps_frame(START_LAT, START_LON),  # first real fix seeds here
+        _psd_frame(-50.0),
+        _gps_frame(MOVED_LAT, MOVED_LON),  # ~111 m due north
+        _psd_frame(-45.0),
+    ]
+    raw = _header(len(frames), lat=0.0, lon=0.0) + b"".join(frames)
+
+    events = translate_bin_file(raw, platform_id="foot-patrol-01")
+    assert len(events) == 1
+    payload = events[0]["payload"]
+    assert payload["bearing"]["az_deg"] == pytest.approx(0.0, abs=0.1)
+    assert payload["features"]["displacement_m"] == pytest.approx(111.2, abs=1.0)
+    position = payload["quality"]["sensor_position_2d"]
+    assert position["lat"] == pytest.approx(MOVED_LAT, abs=1e-4)
+    assert position["lon"] == pytest.approx(MOVED_LON, abs=1e-4)
+
+
+def test_gps_frames_carry_no_fabricated_altitude():
+    frames = [_gps_frame(START_LAT, START_LON)]
+    raw = _header(len(frames)) + b"".join(frames)
+    _header_dict, parsed = iter_bin_frames(raw)
+    gps = parsed[0][2]
+    assert set(gps.keys()) == {"lat", "lon"}
