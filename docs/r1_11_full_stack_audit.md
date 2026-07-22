@@ -1705,3 +1705,111 @@ captures the command, terminating at a backtick.
   doc-currency step already enumerates "tools README examples". Recorded
   rather than fixed by widening the currency guard, which is another
   group's file.
+---
+
+## Disposition pass (2026-07-22) — and why the fixing stops here
+
+**Status: 91 findings dispositioned. 46 open, 2 MAJOR. Still HOLD.**
+
+Maintainer direction: adjudicate `B-01`..`B-04` on whichever of fix-or-revert
+is cleaner and more permanent, work everything else per doctrine, and list
+whatever doctrine cannot resolve. Ten groups, serial.
+
+### What the pass actually produced
+
+The best result was not volume. **`B-01` was closed one level up from where it
+was reported.** The finding named a set-carried oversized integer; driving the
+public API with everything the two supported backends can emit showed the class
+is the entire non-JSON value model — sets, frozensets, `Decimal`, `datetime`,
+`UUID`, `Pattern`, `IPv4Address`, `CBORTag`, simple values, `undefined`,
+`complex`, `bytes`, and every non-string map key, several accepted on *both*
+backends.
+
+The remedy the finding proposed — widen the container dispatch — provably does
+not close it: a plain `{"s": {1,2}}` with no oversized integer still refuses
+under `zmeta_cbor` and encodes clean under `cbor2`, because the divergence is
+the container's *existence*, not its contents. The rule is now an **allowlist
+of the canonical JSON value model** folded into the existing walk. A blocklist
+must be re-derived every time a backend learns a new tag; an allowlist refuses
+the unknown by construction.
+
+No new normative text was needed: `spec/compact-binary-mapping.md` already
+requires refusing anything that would not expand back to a value-identical
+canonical envelope. Non-finite floats were simply the one member of that class
+the code enforced. **The round-trip check was structurally blind to all of it**
+— both sides of the comparison hold the same non-JSON object, so `==` is
+satisfied and nothing looks lost.
+
+Revert was evaluated on every finding a previous round introduced, and taken
+where it was the right instrument: the SAPIENT uncertainty-widen *control flow*
+was reverted and re-derived rather than patched, and the MAVLink `str()`
+coercion was deleted rather than fixed.
+
+### The fail-open this pass introduced, and closed
+
+Attacking the above found it. The unhashable-input guard added for `A-14` was
+reused at three **risk/trigger** sites where its polarity inverts. At an
+allowlist site the caller asks `not contains(...)`, so answering `False` on
+`TypeError` refuses — fail closed. At a trigger site the caller asks directly,
+so `False` means the risk did not fire and the event is **forwarded**.
+
+Measured, with `allowed_loop_statuses` emptied — the documented "no constraint"
+reading, and a legal deployment — a promotion carrying
+`loop_status: ["REFLECTION_DETECTED"]` was **admitted**, `always_reject_loop_risk`
+included. Under the shipped policy a neighbouring allowlist happens to catch
+the same token, so there it degrades to a wrong diagnostic rather than an
+admit. Severity is therefore **conditional on configuration**, and the record
+says so rather than claiming the worse reading.
+
+The first pin written for it was **itself vacuous** — `assertFalse(ok)` passes
+on the reverted tree, because a different gate refuses — and was rewritten to
+assert the specific refusal. Recorded because it is the same defect this cycle
+has now found in four separate pins, including one written to catch it.
+
+### Why the fixing stops here
+
+| Round | Input | Attack pass found | MAJOR | Introduced by the round itself |
+|---|---|---|---|---|
+| 1 — fix waves | 6 blockers | 30 | 8 | 2 fixes laundered |
+| 2 — remediation | 30 residuals | 32 | 4 | 18 (56%) |
+| 3 — disposition | 91 findings | 47 | 3 | **35 (74%)** |
+
+Severity is converging. **Volume is not, and the introduction rate is rising** —
+56% to 74%. A fourth round would, on this trend, spend more than it returns.
+
+The trend is not the whole argument, though, and the character of what remains
+matters more. The surviving findings are increasingly **trade-off questions
+rather than defects**: is discarding a datum better than laundering it, is a
+warning storm worse than silence, is refusing a whole detection proportionate
+to one malformed vendor key. Those have no derivable answer — they are
+maintainer judgements, and an agent resolving them by momentum is precisely
+what the governance apparatus exists to prevent.
+
+Design gate 7 binds the fix loop as much as the kernel. **Stopping is the
+doctrinally correct action, not a concession.**
+
+### State
+
+- Battery: kernel gate all flags exit 0, examples 51/51 strict, **pytest 1200
+  passed + 1021 subtests** (cycle start: 785 + 316). Manifest regenerated.
+- **No governed artifact modified anywhere in this cycle.**
+  `spec/semantics-contract.md`, `schema/*.json`, `policy/violation-codes.yaml`
+  and `policy/semantics.yaml` are untouched; no `reason_code` minted.
+- Twenty doctrine review log entries across two passes, all OPEN or HELD, none
+  decided inside a fix wave.
+- Working tree clean. Nothing pushed, tagged, or signed.
+
+### Carried forward for the maintainer
+
+1. **Two MAJOR open.** `_parse_utc` still raises out of CoT and JREAP on a
+   gate-clean `ts` (a "no change needed" verdict resting on a `FormatChecker`
+   that is not installed — the verdict, not the code, was the defect); and the
+   `A-13` record anchor is only half-anchored, because `origin/main` is a
+   moving ref, so the replacement figures go stale exactly as the originals did.
+2. **Forty-four further findings** at MODERATE and below, in
+   `docs/r1_11_fix_pass_findings.md`.
+3. **Twenty doctrine entries** in `docs/zmeta_doctrine_review_log.md`. The
+   highest-leverage is not a kernel question: **"governed" has no defined
+   boundary**, and it is now parking otherwise-mechanical fixes.
+4. **Deferred to the cut:** `A-12` (manifest divergence) and `A-29` (the
+   Compatibility bullet naming the three added reason codes).

@@ -392,3 +392,145 @@ Observations that only become meaningful across cycles. Not verdicts.
 - **"Governed" has no defined boundary outside the event model** (R1-11-09,
   R1-11-10). Log record types, lint dimensions and diagnostic detail strings
   are all consumer-visible and none is covered by the change-class rules.
+---
+
+## Cycle R1-11 — disposition pass addendum (2026-07-22)
+
+Seven further entries, surfaced by working the remaining findings per doctrine.
+Same rule as above: **no governed artifact was modified** to produce any of
+them. Several are the same tension arriving from a new direction, which is
+exactly the pattern this log exists to make visible.
+
+| # | Tension | Gates | Status |
+|---|---|---|---|
+| R1-11-14 | `TIME_STATUS.state` is not enum-constrained while its two siblings are | 1, 3 | OPEN |
+| R1-11-15 | Adapter-declared vocabularies mirror governed enums by hand, unlinted | 1, 6 | OPEN |
+| R1-11-16 | Formal release identity has no stated grammar | 5 | OPEN |
+| R1-11-17 | Compact mapping declares no size or expansion bound | 4, 6 | OPEN |
+| R1-11-18 | `--strict` makes a deliberately tolerated warn unrepresentable | 2, 3 | OPEN |
+| R1-11-19 | Two conventions the new pins now enforce, chosen not discovered | 5, 7 | OPEN |
+| R1-11-20 | Illustrative-example currency policy left inconsistent | 7 | OPEN |
+
+### R1-11-14 — `TIME_STATUS.state` is unconstrained by the schema · OPEN
+
+**This is why B-04 was invisible.** `$defs/SystemPayload` enum-constrains
+`state` on the `LINK_STATUS` and `TASK_ACK` branches, but the `TIME_STATUS`
+branch constrains `metrics` only and leaves `state` as the base
+`{type: string, minLength: 1}`. Probed live: `payload.state = 'NOMINAL'` over
+`metrics.sync_state = 'UNSYNCED'` is schema-OK and passes `validate_semantics`
+without complaint — a self-contradicting event the kernel cannot see.
+
+Closed adapter-side by declaring the vocabulary and its severity ordering in
+the MAVLink template and refusing there. **That makes one adapter honest; it
+does not make the kernel enforce it for all of them.**
+
+**Recommendation:** decide whether the `TIME_STATUS` branch should
+enum-constrain `state` the way its siblings do. Class B. This is the clearest
+case in the log of a *missing* constraint rather than a contested one — the
+asymmetry between the three branches reads as an oversight, not a design.
+
+### R1-11-15 — Hand-mirrored vocabularies with no lint · OPEN
+
+Three vocabularies now live in `mavlink_to_zmeta_template.py` duplicating
+governed enums by hand: `_LINK_STATUS_STATES` (pre-existing),
+`_LINK_STATUS_REASON_CODES` and `_TASK_ACK_STATES` (new). They mirror rather
+than load the schema because the file is a **template meant to be copied into
+a bridge with no ZMeta repo alongside it** — loading the schema at runtime
+would add a filesystem dependency to an adapter.
+
+Drift is fail-closed in one direction (adapter over-refuses a code the kernel
+allows — covered by a pin that runs all twelve codes through the shipped
+validator) and **fail-open in the other** (under-refuses — not covered).
+
+**Recommendation:** a repo-side lint asserting adapter-declared vocabularies
+are subsets of the schema enums. Closes it for every adapter at once, costs
+nothing at runtime, and keeps the template dependency-free. Cheap and
+outer-ring — this one probably just wants doing.
+
+### R1-11-16 — Formal release identity has no stated grammar · OPEN
+
+A-09 is closed to the letter of what `spec/release-hash-policy.md` already
+promises: a formal manifest can no longer keep the builder's *default*
+identity. But **nothing in any governed document says what a valid formal
+identity looks like**, so a manifest carrying a wrong-but-plausible one — the
+previous release's id, or a date that is not the cut date — still validates
+clean.
+
+**Recommendation:** if tag/identity agreement should be enforced, it belongs in
+`spec/release-hash-policy.md` first and the validator second, and the natural
+enforcement point is **the cut, not the committed manifest**. Note the shape:
+a validator can only ever enforce a rule the spec has stated.
+
+### R1-11-17 — No size or expansion bound in the compact mapping · OPEN
+
+CBOR value sharing lets a small datagram expand enormously. Measured: an
+~800-byte shared-DAG datagram costs 2.77 s inside `dumps()` before refusing at
+2^20 paths, and materialises 786 KB at 2^16. The mechanism to refuse it cheaply
+already exists — the walk's memo makes the exact expanded node count computable
+in linear time.
+
+**What blocks it is that every candidate number is a normative choice.**
+`zmeta_compact.py`'s own docstring rejects node budgets outright: *"any node
+budget refuses some large-but-honest event, and discarding good data is not a
+safe default."* `zmeta_cbor`'s 1 MiB default is a self-declared receive-side
+DoS knob, not a mapping limit; adopting it would newly refuse honest large
+events on cbor2-only installs — the same runtime posture change as R1-11-12.
+
+**Adjudicate with R1-11-02 and R1-11-03.** All three are the same missing
+clause in `spec/compact-binary-mapping.md`, and answering them separately risks
+three inconsistent answers.
+
+### R1-11-18 — `--strict` makes a tolerated warn unrepresentable · OPEN
+
+The teaching corpus is validated with `--strict --require-all`, which means a
+condition the standard deliberately **tolerates as a warning** cannot be shown
+in an example. So the corpus can teach what is valid and what is refused, but
+not what is *permitted-with-a-caveat* — which is precisely where an integrator
+most needs an example.
+
+**Recommendation:** decide whether the corpus should carry a warn-bearing
+example under a relaxed flag, or whether teaching-by-example is deliberately
+scoped to the pass/fail boundary. Gate 2 argues the former; gate 7 argues the
+latter. No change made.
+
+### R1-11-19 — Two conventions the new pins now enforce · OPEN
+
+Listed so they are **chosen rather than discovered**, which is the whole point
+of writing them down before they harden:
+
+1. A future compact normalization must close its spec-table row with
+   `"Same <thing>."` **and** be implemented as `_same_<thing>(original,
+   restored)` inside `_semantic_difference`. A naming convention promoted to a
+   machine-checked contract.
+2. `release/zmeta-release-manifest.yaml`'s `known_open_issues` is now
+   **authoritative over prose** in `spec/*.md`, the release templates,
+   `release/README.md`, `RELEASE_CHECKLIST.md`, `AGENTS.md` and `README.md`: a
+   genuinely open issue must be listed there before a forward-facing document
+   may say it is open.
+
+Both are narrower than the surfaces they bind, and both were adopted by a pin
+rather than by a decision. **Endorse or loosen them deliberately.**
+
+### R1-11-20 — Illustrative-example currency policy · OPEN
+
+`TRADEMARK.md:22,24` and `adapters/README.md` carry structurally identical
+release-named examples. The previous cycle re-baselined one and deliberately
+declined the other, and this pass pinned neither.
+
+This is a taste call about what the standard promises to keep current. Either
+pin the family or record the exclusion in the currency suite's docstring —
+**the current silence is the only real problem.** Relates to the
+fabricate-a-sentinel note above: a convention survives partly because nobody
+wrote down that it was a convention.
+
+### Pattern note added this pass
+
+**"Governed" still has no defined boundary, and it is now blocking work.**
+R1-11-09 raised it; this pass hit it three more times — the CoT skip-reason
+vocabulary, a new metrics JSONL token, and adapter-mirrored enums. Two
+otherwise-mechanical fixes are parked *solely* because nobody can say whether
+an operator-visible token outside the event model is governed vocabulary.
+
+This is the highest-leverage entry in the log: adjudicating it unblocks several
+others at once, and unlike the kernel questions it costs nothing to answer —
+it is a scope definition, not a semantic change.
