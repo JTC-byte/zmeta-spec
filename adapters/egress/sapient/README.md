@@ -78,6 +78,14 @@ Refusals (returns None):
 - `payload.extensions.risk_adjudication` containing a `QUARANTINE_ACCEPT`
   or `REJECTED` decision — quarantine bounds the consumer set and a
   coalition SAPIENT feed is outside it (contract 3.3).
+- Any risk record whose `policy_decision` is outside the governed
+  vocabulary (`tools/filter_risk.py` DECISION_RANKS), including
+  deployment-local labels contract 3.3 permits, or missing entirely —
+  `filter_risk` ranks unknowns as `REJECTED` (fail closed) and this
+  egress is never more permissive than the operator's own filter.
+- Malformed fields (unparseable `ts`, non-finite or non-numeric
+  coordinates, heading/speed, or confidence) — refused per the None
+  contract, never raised and never projected.
 - Any risk record — or the caller-supplied `use_labels` dict — whose
   `prohibited_uses` include the export path, or whose `allowed_uses` grant
   list omits it (`export_use` kwarg, default `COALITION_EXPORT` from the
@@ -89,7 +97,7 @@ event exports WITH its context attached as `object_info` entries:
 
 | `object_info.type` | Attached when | `value` |
 | --- | --- | --- |
-| `zmeta.risk` | Any `WARN_ACCEPT`/`DEGRADED_ACCEPT` record, or caller `use_labels` carrying use restrictions | Compact JSON list of the use-constraining record fields |
+| `zmeta.risk` | Any `WARN_ACCEPT`/`DEGRADED_ACCEPT` record, any accepted record (e.g. `IGNORED`) carrying use restrictions, or caller `use_labels` carrying use restrictions | Compact JSON list of the use-constraining record fields |
 | `zmeta.timing_quality` | `payload.timing_quality.sync_state` != `LOCKED` | Compact JSON of the full timing_quality object |
 
 Stock SAPIENT DMMs ignore unknown `object_info` types, so the labels are

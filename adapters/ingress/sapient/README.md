@@ -148,6 +148,9 @@ An observation is emitted only when an honest modality exists:
 | Fusion-node detection without `promotion` kwarg | refused — never silently downgraded to an observation |
 | Promotion without caller-supplied `promotion["loop_status"]` | refused — the reflection check is a verification the adapter never performs, so its verdict is never self-asserted |
 | Promotion without caller `based_on`, `detection_confidence`, or full canonical geo | refused |
+| Promotion dict carrying any key outside the enumerated promotion vocabulary | refused — promotion metadata never smuggles raw measurements or unenumerated keys into STATE (contract 4.5.1) |
+| `task_index` entry present but null/empty | refused — the TaskAck correlation is never fabricated (no `str(None)` coercion) |
+| Non-finite (NaN/inf) confidence on the wire | refused at the guard (canonical fields) or omitted from native pass-through blocks — never emitted |
 | TaskAck with unresolvable `task_id` (no `task_index` entry) | refused — the `original_event_id` correlation is never fabricated |
 | TaskAck `TASK_STATUS_UNSPECIFIED` | refused |
 | StatusReport `power` mapping to no metrics | no `PLATFORM_STATUS` (never padded) |

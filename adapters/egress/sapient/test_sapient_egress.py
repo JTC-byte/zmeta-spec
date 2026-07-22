@@ -478,3 +478,93 @@ def test_loss_notes_cover_dropped_concerns():
     for concern in ("lineage", "timing_quality", "risk_adjudication", "valid_for_ms"):
         assert concern in SAPIENT_EGRESS_LOSS_NOTES
         assert SAPIENT_EGRESS_LOSS_NOTES[concern]
+
+
+# --- fail-closed decision vocabulary (R1-11 R11-02) --------------------------
+# tools/filter_risk.py maps unknown/local/missing decisions to max rank
+# (REJECTED) and blocks them; the coalition egress must never be more
+# permissive than the operator's own filter on the identical record.
+
+
+@pytest.mark.parametrize(
+    "decision", ["SITE_QUARANTINE", "LOCAL_HOLD", "quarantine_accept_v2", ""]
+)
+def test_unknown_or_local_policy_decision_refuses(decision):
+    event = _state_event(
+        extensions={"risk_adjudication": [{"policy_decision": decision}]}
+    )
+    assert _detection(event) is None
+
+
+def test_risk_record_without_decision_refuses():
+    event = _state_event(
+        extensions={"risk_adjudication": [{"risk_dimension": "external_promotion"}]}
+    )
+    assert _detection(event) is None
+
+
+def test_ignored_decision_without_restrictions_exports_clean():
+    # IGNORED ranks 0 in filter_risk: parity means it exports, and with no
+    # use restrictions there is nothing to self-label.
+    event = _state_event(
+        extensions={"risk_adjudication": [{"policy_decision": "IGNORED"}]}
+    )
+    detection = _detection(event)["detection_report"]
+    assert "object_info" not in detection
+
+
+def test_ignored_decision_with_restrictions_keeps_the_label():
+    event = _state_event(
+        extensions={
+            "risk_adjudication": [
+                {"policy_decision": "IGNORED", "prohibited_uses": ["COMMAND_BASIS"]}
+            ]
+        }
+    )
+    detection = _detection(event)["detection_report"]
+    labels = json.loads(
+        next(
+            info["value"]
+            for info in detection["object_info"]
+            if info["type"] == "zmeta.risk"
+        )
+    )
+    assert labels[0]["prohibited_uses"] == ["COMMAND_BASIS"]
+
+
+# --- documented None-refusal on malformed fields (R1-11 R11-20/R11-04) ------
+
+
+def test_state_malformed_ts_refuses_not_raises():
+    event = _state_event()
+    event["event"]["ts"] = "not-a-time"
+    assert _detection(event) is None
+
+
+def test_state_non_numeric_heading_refuses_not_raises():
+    event = _state_event(heading_deg="90", speed_mps=12.0)
+    assert _detection(event) is None
+
+
+def test_state_non_finite_values_refuse():
+    assert _detection(_state_event(heading_deg=float("nan"), speed_mps=12.0)) is None
+    nan_geo = _state_event(geo={"lat": float("nan"), "lon": -118.0, "alt_m": 120.0})
+    assert _detection(nan_geo) is None
+    nan_confidence = _state_event()
+    nan_confidence["confidence"] = float("nan")
+    assert _detection(nan_confidence) is None
+
+
+def test_command_malformed_ts_refuses_not_raises():
+    event = _command_event()
+    event["event"]["ts"] = "not-a-time"
+    assert _task(event) is None
+
+
+def test_command_non_integer_valid_for_ms_refuses_not_raises():
+    assert _task(_command_event(valid_for_ms="soon")) is None
+
+
+def test_command_non_finite_target_refuses():
+    event = _command_event(target_geo={"lat": float("inf"), "lon": -118.0})
+    assert _task(event) is None

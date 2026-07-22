@@ -226,9 +226,9 @@ egress:
     unmapped_task_types: ORBIT/HOLD/SEARCH_BOX/LOITER/SCAN_RF/RETURN_TO_BASE/LAND => None (no honest SAPIENT verb; documented residue)
     dropped: payload.priority (SAPIENT Task has no priority field — never smuggled)
   state_to_detection:                        # zmeta_state_to_sapient_detection (adapters/egress/sapient)
-    accepts: STATE_EVENT/TRACK_STATE only; quarantine or prohibited_uses covering the export path => None
+    accepts: STATE_EVENT/TRACK_STATE only; quarantine, prohibited_uses covering the export path, or any policy_decision outside the governed filter_risk vocabulary (unknown/local labels rank REJECTED there — egress fails closed the same way) => None
     detection_report.object_id: payload.track_id
-    detection_report.report_id: fresh uuid7-derived report id
+    detection_report.report_id: fresh ULID minted from the event's own ts (never wall clock; ulid_util)
     detection_report.location: payload.geo (x=lon, y=lat, z=alt_m, LAT_LNG_DEG_M, WGS84_E)
     detection_report.classification: payload.class + event confidence when present
     detection_report.enu_velocity: east/north from payload.heading_deg + speed_mps; up omitted (never fabricated)

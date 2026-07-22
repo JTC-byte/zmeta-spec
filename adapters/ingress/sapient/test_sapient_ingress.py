@@ -968,6 +968,59 @@ def test_fusion_promotion_refusals():
     )
 
 
+def test_promotion_unknown_keys_refuse():
+    # Promotion metadata is allowlisted (contract 4.5.1): a raw feature or
+    # any unenumerated key refuses the promotion outright — never merged
+    # into external_promotion, never silently dropped (R1-11 R11-12).
+    store = _store(_fusion_registration_msg())
+    for extra in (
+        {"signal_snapshot": {"power_dbm": -57.0}},
+        {"not_a_promotion_key": True},
+    ):
+        promotion = {"loop_status": "CHECKED_NOT_REFLECTION"}
+        promotion.update(extra)
+        assert (
+            translate(
+                _detection_msg(),
+                SCHEMA_ID,
+                registration=store,
+                promotion=promotion,
+                based_on=[_PARENT_ID],
+            )
+            == []
+        )
+
+
+def test_nan_confidence_refuses_promotion_and_never_emits():
+    # NaN passes jsonschema min/max vacuously, so the adapter must refuse
+    # it at the guard (R1-11 R11-04): a NaN detection_confidence refuses
+    # the promotion, and a NaN classification confidence never reaches an
+    # emitted event.
+    store = _store(_fusion_registration_msg())
+    msg = _detection_msg()
+    msg["detection_report"]["detection_confidence"] = float("nan")
+    assert (
+        translate(
+            msg,
+            SCHEMA_ID,
+            registration=store,
+            promotion={"loop_status": "CHECKED_NOT_REFLECTION"},
+            based_on=[_PARENT_ID],
+        )
+        == []
+    )
+
+    events = translate(
+        _detection_msg(classification=[{"type": "UAV", "confidence": float("nan")}]),
+        SCHEMA_ID,
+        registration=_store(_rf_registration_msg()),
+    )
+    assert events, "NaN classification confidence must not refuse the whole message"
+    assert "NaN" not in json.dumps(events)
+    for emitted in events:
+        _assert_valid(emitted)
+
+
 def test_promotion_kwarg_reaches_promotion_path_without_registration():
     # A DMM feed the caller vouches for (promotion kwarg) promotes even
     # when its Registration was never captured.
@@ -1275,6 +1328,20 @@ def test_task_ack_without_resolution_is_refused():
     # The task_id -> COMMAND event correlation is never fabricated.
     assert translate(_task_ack_msg(), SCHEMA_ID) == []
     assert translate(_task_ack_msg(), SCHEMA_ID, task_index={"other": str(uuid7())}) == []
+
+
+def test_task_ack_null_or_empty_index_value_is_refused():
+    # A present key whose value is None/empty is as unresolvable as a
+    # missing one; str()-coercion would fabricate the literal "None" as
+    # the correlation id (R1-11 R11-03, the R1-10 A1 class).
+    assert (
+        translate(_task_ack_msg(), SCHEMA_ID, task_index={"01J00000000000000000000006": None})
+        == []
+    )
+    assert (
+        translate(_task_ack_msg(), SCHEMA_ID, task_index={"01J00000000000000000000006": ""})
+        == []
+    )
 
 
 def test_task_ack_unspecified_status_is_refused():

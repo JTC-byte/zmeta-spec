@@ -23,6 +23,7 @@ has no priority field and smuggling it through task_name/description
 free-text would make free-text load-bearing.
 """
 
+import math
 from datetime import datetime, timedelta, timezone
 
 from adapters.egress.sapient.ulid_util import is_ulid
@@ -63,6 +64,15 @@ def _parse_utc(ts):
     if ts.endswith("Z"):
         ts = ts[:-1] + "+00:00"
     return datetime.fromisoformat(ts).astimezone(timezone.utc)
+
+
+def _is_finite_number(value):
+    # Finite only: a NaN/inf coordinate is not an honest target claim.
+    return (
+        isinstance(value, (int, float))
+        and not isinstance(value, bool)
+        and math.isfinite(value)
+    )
 
 
 def _utc_z(dt):
@@ -139,7 +149,7 @@ def zmeta_command_to_sapient_task(event, *, node_id, destination_id, track_to_ob
             raise ValueError("target_geo must be 2D (lat/lon only)")
         target_lat = target_geo.get("lat")
         target_lon = target_geo.get("lon")
-        if target_lat is None or target_lon is None:
+        if not (_is_finite_number(target_lat) and _is_finite_number(target_lon)):
             return None
         # Location is built field-by-field from lat/lon only; the optional
         # SAPIENT z is never populated and no payload dict is ever copied
@@ -177,8 +187,14 @@ def zmeta_command_to_sapient_task(event, *, node_id, destination_id, track_to_ob
         # (documented residue — see module docstring and README).
         return None
 
-    time_dt = _parse_utc(ts)
-    end_dt = time_dt + timedelta(milliseconds=int(valid_for_ms))
+    # Malformed ts or a non-integer valid_for_ms is refused per the
+    # documented None contract; the altitude tripwire above remains the
+    # only deliberate raise in this projection.
+    try:
+        time_dt = _parse_utc(ts)
+        end_dt = time_dt + timedelta(milliseconds=int(valid_for_ms))
+    except (ValueError, TypeError, OverflowError):
+        return None
 
     return {
         "timestamp": _utc_z(time_dt),

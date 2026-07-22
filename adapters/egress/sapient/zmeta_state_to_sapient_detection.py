@@ -37,6 +37,19 @@ _REFUSING_POLICY_DECISIONS = frozenset({"QUARANTINE_ACCEPT", "REJECTED"})
 # risky data look clean).
 _SELF_LABEL_POLICY_DECISIONS = frozenset({"WARN_ACCEPT", "DEGRADED_ACCEPT"})
 
+# The complete governed decision vocabulary (tools/filter_risk.py
+# DECISION_RANKS). filter_risk maps any OTHER decision string — including
+# deployment-local labels, which contract 3.3 explicitly permits — to max
+# rank (REJECTED) and blocks it; this egress fails closed the same way
+# rather than exporting the record clean to the coalition feed.
+_KNOWN_POLICY_DECISIONS = frozenset({
+    "IGNORED",
+    "WARN_ACCEPT",
+    "DEGRADED_ACCEPT",
+    "QUARANTINE_ACCEPT",
+    "REJECTED",
+})
+
 # Risk-record keys that travel in the zmeta.risk self-label. Identity and
 # scope keys are dropped: the label constrains use, it does not re-export
 # the whole diagnostic.
@@ -95,6 +108,16 @@ def _parse_utc(ts):
     if ts.endswith("Z"):
         ts = ts[:-1] + "+00:00"
     return datetime.fromisoformat(ts).astimezone(timezone.utc)
+
+
+def _is_finite_number(value):
+    # Finite only: a NaN/inf coordinate, confidence, or rate is not an
+    # honest claim and must refuse, not project (contract 8.1 / 6.8).
+    return (
+        isinstance(value, (int, float))
+        and not isinstance(value, bool)
+        and math.isfinite(value)
+    )
 
 
 def _utc_z(dt):
@@ -218,7 +241,7 @@ def zmeta_state_to_sapient_detection(event, *, node_id, use_labels=None, export_
     lat = geo.get("lat")
     lon = geo.get("lon")
     alt_m = geo.get("alt_m")
-    if lat is None or lon is None or alt_m is None:
+    if not (_is_finite_number(lat) and _is_finite_number(lon) and _is_finite_number(alt_m)):
         return None
 
     risk_records = _risk_records(payload)
@@ -228,13 +251,23 @@ def zmeta_state_to_sapient_detection(event, *, node_id, use_labels=None, export_
         decision = str(record.get("policy_decision", "")).strip().upper()
         if decision in _REFUSING_POLICY_DECISIONS:
             return None
+        if decision not in _KNOWN_POLICY_DECISIONS:
+            # Unknown, local, or missing decision labels rank as REJECTED
+            # in tools/filter_risk.py (_decision_rank); fail closed here
+            # too — never export an unadjudicable record clean.
+            return None
     for record in risk_records + caller_records:
         if _blocks_export(record, str(export_use).strip().upper()):
             return None
 
     # report_id timestamp component is the event's own ts (never wall
-    # clock — same honesty rule as the envelope timestamp below).
-    time_dt = _parse_utc(ts)
+    # clock — same honesty rule as the envelope timestamp below). A ts
+    # that does not parse is refused per the documented None contract,
+    # never raised out of the projection.
+    try:
+        time_dt = _parse_utc(ts)
+    except (ValueError, TypeError):
+        return None
 
     detection = {
         "report_id": ulid_from_ts_ms(round(time_dt.timestamp() * 1000)),
@@ -252,9 +285,12 @@ def zmeta_state_to_sapient_detection(event, *, node_id, use_labels=None, export_
     if track_class:
         classification = {"type": track_class}
         # Confidence is projected as-is, never increased (contract 4.5.1);
-        # an event without one exports no classification confidence claim.
+        # an event without one exports no classification confidence claim,
+        # and a present-but-non-finite one refuses the event outright.
         confidence = event.get("confidence")
         if confidence is not None:
+            if not _is_finite_number(confidence):
+                return None
             classification["confidence"] = confidence
         detection["classification"] = [classification]
 
@@ -266,6 +302,8 @@ def zmeta_state_to_sapient_detection(event, *, node_id, use_labels=None, export_
     heading_deg = payload.get("heading_deg")
     speed_mps = payload.get("speed_mps")
     if heading_deg is not None and speed_mps is not None:
+        if not (_is_finite_number(heading_deg) and _is_finite_number(speed_mps)):
+            return None
         heading_rad = math.radians(heading_deg)
         detection["enu_velocity"] = {
             "east_rate": speed_mps * math.sin(heading_rad),
@@ -277,11 +315,17 @@ def zmeta_state_to_sapient_detection(event, *, node_id, use_labels=None, export_
     # is SAPIENT's free type/value channel; stock DMMs ignore unknown
     # types, honesty-aware consumers filter on them.
     object_info = []
-    label_records = [
-        _risk_label_entry(record)
-        for record in risk_records
-        if str(record.get("policy_decision", "")).strip().upper() in _SELF_LABEL_POLICY_DECISIONS
-    ]
+    label_records = []
+    for record in risk_records:
+        decision = str(record.get("policy_decision", "")).strip().upper()
+        entry = _risk_label_entry(record)
+        if decision in _SELF_LABEL_POLICY_DECISIONS:
+            label_records.append(entry)
+        elif entry.get("allowed_uses") or entry.get("prohibited_uses"):
+            # An accepted record (e.g. IGNORED) that still carries use
+            # restrictions: the restriction must stay visible downstream,
+            # not vanish with the dropped extensions.
+            label_records.append(entry)
     for record in caller_records:
         entry = _risk_label_entry(record)
         if entry.get("allowed_uses") or entry.get("prohibited_uses"):

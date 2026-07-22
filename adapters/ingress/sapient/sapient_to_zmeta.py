@@ -110,7 +110,38 @@ _schema_cache = {}
 
 
 def _is_number(value):
-    return isinstance(value, (int, float)) and not isinstance(value, bool)
+    # Finite only: NaN/inf from the wire would ride through every
+    # numeric guard and vacuously pass jsonschema range checks (min/max
+    # comparisons against NaN are all False) — a meaningless confidence
+    # or measurement must refuse, not validate clean.
+    return (
+        isinstance(value, (int, float))
+        and not isinstance(value, bool)
+        and math.isfinite(value)
+    )
+
+
+def _drop_non_finite(value):
+    """Strip non-finite floats from a native pass-through structure.
+
+    Applied to verbatim vendor blocks only — canonical fields refuse via
+    _is_number instead. Dropping the key is the honest shape: a NaN/inf
+    carries no measurement information, and keeping it would make the
+    whole event unserializable to strict RFC-8259 JSON.
+    """
+    if isinstance(value, dict):
+        return {
+            key: _drop_non_finite(item)
+            for key, item in value.items()
+            if not (isinstance(item, float) and not math.isfinite(item))
+        }
+    if isinstance(value, list):
+        return [
+            _drop_non_finite(item)
+            for item in value
+            if not (isinstance(item, float) and not math.isfinite(item))
+        ]
+    return value
 
 
 def _envelope_ts(value):
@@ -546,6 +577,10 @@ def _translate_detection(
         vendor_ext["location_errors"] = _location_errors(location)
     if isinstance(body.get("range_bearing"), dict) and not rb_fully_carried:
         vendor_ext["range_bearing"] = body["range_bearing"]
+    # proto3 JSON permits "NaN"/"Infinity" float values; a bare NaN in the
+    # verbatim native block poisons RFC-8259 serialization of the whole
+    # event downstream. A non-finite number is a non-claim — omit the key.
+    vendor_ext = _drop_non_finite(vendor_ext)
 
     events = []
     observation_id = None
@@ -699,8 +734,27 @@ def _promote_fusion_detection(
     if geo is None:
         return []
 
-    # Caller-supplied promotion evidence wins key-by-key; the adapter fills
-    # only the fields it truly knows, mirroring the CoT template contract.
+    # Caller-supplied promotion evidence wins key-by-key, but only within
+    # the enumerated promotion vocabulary (contract 4.5.1): promotion
+    # metadata must never smuggle raw measurements, observation features,
+    # or unenumerated keys into STATE. Unknown keys refuse the promotion
+    # (fail closed) rather than merging or silently dropping. Unlike the
+    # CoT template (fixed key set, message-carried values), this whole
+    # dict is caller-supplied — which is why it is allowlisted.
+    allowed_caller_keys = {
+        "loop_status",
+        "state_category",
+        "origin_kind",
+        "projection_id",
+        "promotion_policy_id",
+        "trust_ref",
+        "lineage_status",
+        "confidence_basis",
+        "source_event_uid",
+        "freshness_ms",
+    }
+    if set(promotion) - allowed_caller_keys:
+        return []
     promotion_meta = {
         "state_category": "PROMOTED_EXTERNAL_STATE",
         "origin_kind": "EXTERNAL_REPORT",
@@ -928,11 +982,17 @@ def _translate_task_ack(body, node_id, ts, *, task_index, based_on):
     mapped = _TASK_ACK_STATE.get(enum_tail(body.get("task_status"), "TASK_STATUS_"))
     if mapped is None:
         return []
-    if not isinstance(task_index, dict) or task_id not in task_index:
+    if not isinstance(task_index, dict):
+        return []
+    original_event_id = task_index.get(task_id)
+    if not isinstance(original_event_id, str) or not original_event_id:
+        # A present-but-null/empty mapping is as unresolvable as a missing
+        # one; str()-coercing it would fabricate the literal "None" as a
+        # correlation id (the R1-10 A1 class).
         return []
     state, reason_code = mapped
 
-    metrics = {"task_id": task_id, "original_event_id": str(task_index[task_id])}
+    metrics = {"task_id": task_id, "original_event_id": original_event_id}
     if reason_code is not None:
         metrics["reason_code"] = reason_code
     reasons = [item for item in body.get("reason") or [] if isinstance(item, str) and item]
