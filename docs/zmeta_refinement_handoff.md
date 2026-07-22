@@ -36,6 +36,15 @@ from that record: one interruption left a **half-applied two-layer
 fix** that looked complete and was caught only by reading the working
 diff — *resume from the tree, never from the transcript.*
 
+**What was touched:** 77 files, +4802/−392 across `origin/main..HEAD`.
+The record's "What was touched — validation inventory" section maps it —
+governed surfaces first (`schema/` and `policy/` took only three additive
+`reason_code` enum entries; `spec/semantics-contract.md` took +6/−1 lines
+in §5.3), then code, tests, regenerated artifacts, and records. The
+manifest and conformance claims are **build outputs**, so verify them by
+regenerating and diffing rather than reading. "Order of events" in the
+same record gives the chronology with the interruption points marked.
+
 **The audit's first deliverable is "Step 0" in that record: a finding →
 code → test map, 17 rows (`V1-01`..`V1-03`, `V2-01`..`V2-14`).** It does
 not exist yet, it must be derived from the code rather than copied from

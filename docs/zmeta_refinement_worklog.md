@@ -21,11 +21,18 @@
   layer applied, gateway backstop layer missing) that looked complete
   and was caught only because the resuming session read the working diff
   instead of trusting the narrative — **resume from the tree, never from
-  the transcript.** **The audit's FIRST deliverable is "Step 0" in that
-  record: a finding → code → test map, 17 rows (`V1-01`..`V1-03`,
-  `V2-01`..`V2-14`), derived from the code rather than copied from the
-  record — it does not exist yet, every later check depends on it, and a
-  row that cannot be filled is a live finding.**
+  the transcript.** **What was touched: 77 files, +4802/−392 — the
+  record's "What was touched — validation inventory" maps it (governed
+  surfaces first: `schema/`+`policy/` took only three additive
+  `reason_code` enum entries, `spec/semantics-contract.md` took +6/−1 in
+  §5.3; the release manifest and conformance claims are BUILD OUTPUTS,
+  verify by regenerating and diffing, not reading), and "Order of events"
+  gives the chronology with interruption points marked. The audit's FIRST
+  deliverable is "Step 0" in that record: a finding → code → test map,
+  17 rows (`V1-01`..`V1-03`, `V2-01`..`V2-14`), derived from the code
+  rather than copied from the record — it does not exist yet, every later
+  check depends on it, and a row that cannot be filled is a live
+  finding.**
 - Current state (2026-07-22, fifth closeout): the **R1-11 cycle is
   COMPLETE through both post-fix verification passes.** The fix pass
   (seven waves) and verification pass 1 (`d955cd0`) were followed by

@@ -649,12 +649,114 @@ correction to it. Those are deliberately not listed by hash: a ledger row
 naming its own commit cannot be written correctly, and the live
 `git log` is the honest source for them.
 
+## What was touched — validation inventory
+
+The audit validates against the diff, so this is the map of it. Total
+surface: **77 files, +4802 / −392** across `origin/main..HEAD`.
+
+```bash
+git diff --stat origin/main..HEAD          # full surface
+git diff --name-only origin/main..HEAD     # file list
+git log --oneline --reverse origin/main..HEAD -- <path>   # per-file history
+```
+
+### Governed surfaces — check these first
+
+Highest authority, smallest diffs, so they are cheap to verify exhaustively.
+
+| Surface | Commits | Exactly what changed |
+| --- | --- | --- |
+| `schema/zmeta-event-1.0.schema.json`, `schema/zmeta-event-1.1.0.schema.json` | `74d92e1`, `c1eb9d0` | **Additive only:** three `reason_code` enum entries in each — `ENCODING_UNSUPPORTED`, `BEARING_FRAME_UNLABELED`, `NON_FINITE_CONFIDENCE`. No field, type, or event-vocabulary change. |
+| `policy/violation-codes.yaml` | `74d92e1`, `c1eb9d0` | Same three codes with severities (`fail`, `warn`, `fail`). |
+| `policy/semantics.yaml` | `74d92e1`, `c1eb9d0` | Same three codes listed. |
+| `spec/semantics-contract.md` (**v1.0 LOCKED**) | `05ad9a8` | **+6 / −1 lines, §5.3 only.** Adds the rule that `last_sync_ts` is a synchronization claim only when `sync_state` is not `UNSYNCED`. Clarifies how to *read* an existing required field; adds no field and changes no vocabulary. |
+| `AGENTS.md` | `33230af` | +6 lines: the post-release manifest-divergence recording rule. |
+
+The three diagnostic codes are the cycle's only vocabulary additions
+(Class B). Verify they are additive in both schemas, that severities
+agree across `policy/` and `schema/`, and that nothing else in these
+files moved.
+
+### Code surfaces
+
+| Area | Files | Commits | Why touched |
+| --- | --- | --- | --- |
+| `zmeta_compact.py` | 1 | `74d92e1`, `d955cd0`, `6ea9888` | Encode-side refusal, then verification through real serialization, then codec-internal failure conversion + exact epoch-ms arithmetic + backend-independent integer range. |
+| `gateway/src/gateway.py` | 1 | `74d92e1`, `d955cd0`, `6ea9888` | `ENCODING_UNSUPPORTED` diagnostic, then the recovery ladder, then the receive-loop backstop. |
+| `gateway/src/validators.py` | 1 | `545fe0b`, `c1eb9d0`, `6ea9888` | Producer-authority structural lint, bearing-frame/non-finite checks, then iterative denylist traversal + global-block lint. |
+| `adapters/ingress/sapient/`, `adapters/egress/sapient/` | 6 | `88b527e`, `6ea9888` | Adapter honesty fixes, then non-finite handling on all vendor sinks + non-string `ts` guards. |
+| `adapters/ingress/{cot,jreap,mavlink,signalhunter}/` | ~11 | `e3203ad` | `loop_status` self-assertion removed from three templates; signalhunter no-lock geo. |
+| `tools/` (7 files) | 7 | `545fe0b`, `33230af`, `6ea9888` | Harness lint, release manifest/package builders and validators. |
+| `release/` machinery | 4 | `33230af`, `6ea9888` | Formal-status honesty, notes-template handling, signing help text. |
+
+### Test surfaces
+
+New and extended tests are the cycle's largest single block
+(pytest 687 → 785). Files: `test_compact_fail_closed.py`,
+`test_gateway_runtime_guards.py`, `test_policy_risk_mode_lint.py`,
+`test_release_currency.py`, `test_release_package.py`,
+`test_release_manifest.py`, `test_bearing_frame_warn.py`,
+`test_external_state_promotion.py`, `test_published_checksums_immutable.py`,
+`test_bad_event_corpus.py`, plus the SAPIENT/CoT/JREAP/MAVLink/signalhunter
+adapter suites. Per Step 0, each of these should end up mapped to the
+finding it pins.
+
+### Regenerated artifacts (not hand-edited)
+
+`release/zmeta-release-manifest.yaml` (8 commits) and
+`conformance/claims/example-*.yaml` (8 commits each) are **outputs of
+`tools/build_release_manifest.py --update-claims`**, regenerated after
+every code change. Their churn count is high and carries no independent
+meaning — verify by regenerating and diffing, not by reading:
+
+```bash
+python tools/build_release_manifest.py --release-id zmeta-v1.1.16 \
+  --release-name "ZMeta v1.1.16" --release-status formal_release \
+  --release-date 2026-07-21 --branch main --update-claims
+git diff --stat   # expect: no change
+```
+
+### Records
+
+`docs/r1_11_full_stack_audit.md` (10 commits),
+`docs/zmeta_refinement_worklog.md` (7), `CHANGELOG.md` (5),
+`docs/zmeta_refinement_handoff.md` (5), plus `README.md`,
+`RELEASE_CHECKLIST.md`, `TRADEMARK.md`, `adapters/AUTHORING.md` and the
+doc-currency re-baselines. High churn because they were rewritten across
+resumed sessions — which is why checklist item 5 targets them.
+
 ## Execution continuity — interruptions and recovery
 
 This cycle was executed across **four sessions broken by usage limits**,
 plus a mid-cycle model switch and one full chat reset. That is recorded
 here in detail because interrupted work is a defect surface in its own
 right, and because the fresh audit should target it (checklist below).
+
+### Order of events
+
+Read top to bottom; **▲ marks where a session ended involuntarily.**
+
+| When | Event | State left behind |
+| --- | --- | --- |
+| 07-21 19:15 | Audit record committed `118f0b9` | Clean; disposition pending |
+| | Maintainer disposition: "fix them and work down that list" | — |
+| 21:41–22:21 | Fix waves 1–7 (`74d92e1`..`05ad9a8`), full battery at each wave boundary | Clean at every boundary |
+| 22:23 | Fix-pass closeout `07921e6` | Clean |
+| | Post-fix verification audit launched | — |
+| ▲ | **Usage limit — audit killed with 1 of 6 slices done** | Clean tree; one slice's findings unread |
+| | Resume: read the surviving slice, reproduce both defects, find a third while fixing | — |
+| 22:55 | Verification pass 1 `d955cd0` | Clean |
+| | Full 7-slice verification audit run to completion (24 agents) | Findings reported |
+| | Began V2-01 fix — a **two-layer** change (codec, then gateway) | — |
+| ▲ | **Usage limit mid-edit** | ⚠ **`zmeta_compact.py` modified, uncommitted, layer 2 missing** |
+| ▲ | Safeguards flag routine requests; model switched Fable 5 → Opus 4.8 (×2), one request blocked | No repo change |
+| ▲ | **Maintainer reset the chat entirely** | ⚠ Same partial edit; **zero in-context memory** |
+| | Resume: state rebuilt from `git status` + working diff + records; partial fix found and completed | — |
+| 07-22 01:09 | Verification pass 2 `6ea9888` | Clean — last code commit |
+| 07-22 | Closeout records (HOLD, ledger, Step 0, count corrections) | Clean; **held** |
+
+The two ⚠ rows are the whole reason for checklist item 1: for that
+span, the repository contained a fix that looked finished and was not.
 
 **Interruption 1 — post-fix verification audit killed mid-run.** After
 `07921e6`, the first post-fix verification audit was cut off with **1
