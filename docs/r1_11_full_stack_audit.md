@@ -553,6 +553,27 @@ uppercase-UUID + millisecond-timestamp event forwarded normally
 (the V1-03 over-refusal class, closed); and ordinary `STATE_EVENT`
 traffic still flowed afterwards. Process alive throughout.
 
+*Reproducing it.* The probe was a throwaway script and is not in the
+tree, so the method is recorded here rather than the file — deliberately,
+since adding tooling would change the artifact under audit. Start the
+gateway on loopback with `--profile H --input-encoding json
+--output-encoding compact --no-emit-cot --no-metrics --no-stamp-timing`;
+bind a UDP receiver on the forward port. Three setup facts cost real time
+to rediscover and are worth having up front: **event ids must be UUIDv7**
+(the schema pattern pins version 7 — a `uuid4` fails validation),
+**profile H refuses `STATE_EVENT`s until timing is established** (send a
+`SYSTEM_EVENT`/`TIME_STATUS` first or everything returns
+`TIMING_STATUS_MISSING`), and **`STATE_EVENT` requires a resolvable
+lineage parent** (an invented one returns `LINEAGE_PARENT_UNRESOLVED`) —
+so the cleanest carrier for the normalization case is a `TIME_STATUS`
+event with an uppercase `event_id` and a millisecond `ts`. Producer must
+be one the policy authorizes (e.g. `fusion-engine`). Then send, per
+datagram, checking process liveness and draining all replies between
+sends: a `2**64` integer in `payload.extensions`, a ~300-deep extension
+nest, a ~20k-deep raw JSON array bomb (larger overruns the UDP datagram
+limit), the uppercase-UUID + millisecond-`ts` event, and finally an
+ordinary event to confirm the gateway still serves.
+
 **Validation at close:** kernel gate green all flags (bad-events 29,
 harness 40), examples 51/51 strict, policy risk-mode lint ok, packet
 size compact max=150 of 240 (unchanged), full pytest 785 passed + 316
@@ -684,6 +705,19 @@ data. Everything from `6ea9888` was produced under that reconstruction.
 | Encoding corruption from tooling across sessions | UTF-8 + mojibake scan on every edited doc | Clean, no BOM |
 | Manifest drift from partial regeneration | Regenerated and re-validated after every code change | Gate exit 0 |
 
+### What is NOT recoverable
+
+Stated plainly so the audit does not hunt for evidence that no longer
+exists. The audit and sweep ran as multi-agent workflows whose per-agent
+transcripts live in session-scoped storage and are **gone** — the
+findings, verdicts, and refutation reasoning survive only as summarized
+into this record. Likewise the live-probe script (method recorded above).
+**Practical consequence: this record is the sole surviving evidence for
+the V1/V2 findings, and it was written by the same author as the fixes.**
+An auditor should therefore re-derive the findings from the code rather
+than confirm them from this document — treat the V1/V2 sections as
+claims to be tested, not as findings already established.
+
 ### Targeted checklist for the fresh audit
 
 Given the above, the re-audit should not merely repeat the R1-11 method.
@@ -693,9 +727,10 @@ It should specifically attack:
    should be verified present *in the code*, not just in the record —
    with particular attention to multi-layer fixes (V2-01 codec +
    gateway; V2-03 six vendor sinks; V2-04 global + per-producer lint).
-2. **Commit-truth across the interrupted boundaries.** Each of the 11
-   commits should reproduce its message's claims, especially `d955cd0`
-   and `6ea9888`, which were authored on either side of the resets.
+2. **Commit-truth across the interrupted boundaries.** Every commit in
+   `origin/main..HEAD` should reproduce its message's claims, especially
+   `d955cd0` and `6ea9888`, which were authored on either side of the
+   resets.
 3. **The new guards themselves.** This cycle demonstrated twice that a
    fresh pin can reproduce the defect it targets. Every guard added in
    V2 is unreviewed-by-anyone-but-its-author code: the promotion lint,
