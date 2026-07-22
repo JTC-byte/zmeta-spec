@@ -1359,3 +1359,110 @@ All six are narrow, mechanical fixes that stay in the outer rings or in referenc
 - Whether the release-package layer works at all under the mandated gate, since `validate_conformance.py` runs it in `templates_only` mode. Every "kernel gate green" assurance in this audit and in the record is silent about that layer.
 
 **Recommendation.** Fix A-01 through A-06, re-run the full battery, and run one more verification pass over those fixes specifically — this cycle's own carry-forward lesson, demonstrated a dozen times over and again in A-04, is that a fix introduces or exposes the next defect. Then cut. Cutting now would publish a release whose headline claim is honesty-class closure while `lat="nan"` reaches ATAK.
+---
+
+## Fix pass — two adversarial rounds (2026-07-22)
+
+**Status: SIX BLOCKERS CLOSED, FOUR MAJOR FINDINGS OPEN. Still held; not ready
+to cut.**
+
+Maintainer disposition on the fresh audit: fix all six blockers. What follows
+is what actually happened, including what it cost.
+
+### Round 1 — six fix waves, then attack the pins
+
+A-01..A-06 were fixed serially, each wave required to reproduce the defect
+before fixing it, close the class rather than the exemplar, and prove its pin
+by revert-simulation. All six reproduced exactly as the audit described. Every
+wave left the battery green.
+
+A read-only adversarial pass then attacked all six new guards and returned
+**30 residual findings, 8 MAJOR**, against a tree that was fully green
+(pytest 896 + 716 subtests at that point). Three shapes, all of them ones this
+repository has already recorded about itself:
+
+- **Two fixes closed a defect by introducing a quieter one.** `duration_ms`
+  returning `None` on an unusable declared latency made a node declaring
+  `maximum_latency: NaN` publish a *narrower* uncertainty bound (`est_error_ms`
+  5.0) than one declaring 0.5 s (505.0) - the worse the input, the cleaner the
+  event, with the discarded declaration recorded nowhere. Separately, a new
+  emit-boundary backstop turned one non-finite key in a vendor blob into total
+  loss: 4 good events to 0, discarding geo, bearing and classification the
+  adapter had resolved correctly.
+- **A new guard reproduced its own target defect class, twice more.** The new
+  routing lint opened with a silent early return on precisely the bare-key
+  mangle it existed to catch (`routing:` truncated gave lint `ok`, exit 0, then
+  a raw `AttributeError` on every event - 100% outage). The new AST structural
+  pin walked `ast.Try` with `ast.walk`, which descends `orelse` and
+  `finalbody`, so a recursive call moved into `else:` counted as *inside* the
+  guard while the refusal reverted to a raw crash.
+- **Pins that pinned nothing.** `_assert_clean(events, ...)` is
+  `for event in events: assert ...` - an empty list asserts nothing, so
+  reverting a guard made the backstop refuse the whole event and the test still
+  passed. All 13 non-finite cases passed with the fix reverted. A second test
+  never reached the code it claimed to pin at all.
+
+Plus one the audit had not found: **NaN confidence laundered to 1.0**.
+`min(1.0, nan)` returns `1.0` in Python, and that clamp runs upstream of the
+new gate - degraded data emerging as maximally trustworthy.
+
+### Round 2 — remediation, then a final attack
+
+All 30 residuals were remediated (six serial groups), and the final read-only
+pass returned **32 findings, 4 MAJOR, of which 18 were introduced by the
+remediation itself**.
+
+Round 2 also **escalated** the severity of a residual rather than closing it
+quietly. The claim that the non-terminating walker was reachable only from a
+Python caller was refuted: `cbor2` honours CBOR value-sharing tags 28/29 on
+decode, and `gateway._decode_cbor` falls back to `cbor2` whenever `zmeta_cbor`
+is absent - a supported configuration. Measured: a **586-byte datagram**
+produced a real reference cycle at ingress and hung `_find_forbidden_key` and
+`_find_non_finite` ahead of every semantic check. That is an unauthenticated
+remote hang of the receive loop, found and closed in this round, and it was in
+no audit finding.
+
+### Why the pass stopped here
+
+Round 1: 6 fixes gave 30 residuals / 8 MAJOR. Round 2: 6 remediations gave 32
+findings / 4 MAJOR. Severity is converging; **count is not.**
+
+The decisive signal is not the arithmetic but the *character* of what remains.
+The surviving findings are increasingly **design trade-off questions rather
+than defects** - is discarding a datum better than laundering it? is a warning
+storm worse than silence? is refusing a whole detection proportionate to one
+bad vendor key? Several round-2 "introduced" findings are exactly that shape:
+a remediation trading one honesty problem for another, where which trade is
+correct is a maintainer judgement, not a derivable fact.
+
+Design gate 7 applies to the fix loop itself. A third round would spend
+maintainer trust to buy diminishing severity reduction while continuing to
+generate new trade-offs at the same rate. **The honest move is to stop and
+hand over the state.**
+
+### Open findings carried forward — 4 MAJOR
+
+| ID | Anchor | Introduced? | Summary |
+|---|---|---|---|
+| B-01 | `zmeta_compact.py:525` | no | The mapping-limit scan descends only dict/list, so a **set**-carried oversized integer still leaves compact egress as a CBOR bignum - two conforming nodes disagree. Same class as V2-09, one container type over. |
+| B-02 | `gateway/src/validators.py:1546` | **yes** | The remediation traded a loud lint failure for a **silent pass** on a mangled `timing_freshness` block - the timing-freshness gate is now fully disabled with the lint green. |
+| B-03 | `adapters/ingress/sapient/sapient_to_zmeta.py:388` | **yes** | The degraded branch returns before the widen and **discards the resolvable cross-mode latency the store still holds**, so adding a broken mode NARROWS the node's published error. The same laundering shape the remediation was written to close, one branch over. |
+| B-04 | `adapters/ingress/mavlink/mavlink_to_zmeta_template.py:60` | **yes** | The TIME_STATUS carried-verdict guard whitelists two literals rather than a vocabulary - `LOCKED`, `NOMINAL`, and even `UP ` with one trailing space override the derived verdict. |
+
+Twenty-eight further findings at MODERATE and below are recorded in the run
+artifacts. **Fourteen of the thirty-two are introduced-by-remediation**, which
+is the number that should drive the next decision.
+
+### State at hand-over
+
+- Battery green: kernel gate all flags exit 0 (bad-events 29, harness 40),
+  examples 51/51 strict, **pytest 1004 passed + 858 subtests** (baseline
+  785 + 316).
+- Working tree clean; nothing pushed, tagged, or signed.
+- **No governed artifact was modified anywhere in the fix pass.**
+  `spec/semantics-contract.md`, `schema/*.json`, `policy/violation-codes.yaml`
+  and `policy/semantics.yaml` are untouched. No `reason_code` was minted. All
+  thirteen governed collisions are recorded in
+  `docs/zmeta_doctrine_review_log.md` for separate adjudication.
+- The release decision remains **HOLD**, and the manifest/checksum divergence
+  (A-12) is still unresolved - it resolves only through a genuine cut.
