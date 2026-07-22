@@ -125,12 +125,10 @@ def build_attestation(
                 "release_manifest": PLACEHOLDER,
                 "checksums": PLACEHOLDER,
             },
-            "known_open_issues": manifest.get(
-                "known_open_issues",
-                [
-                    "D-003 OPEN - Future Semantics Require Versioned Implementation Branches",
-                ],
-            ),
+            # Sourced from the manifest only - never a hardcoded fallback
+            # (R1-11 R11-14: a stale hardcoded "D-003 OPEN" shipped in four
+            # post-closure release attestations).
+            "known_open_issues": manifest.get("known_open_issues", []),
         }
     )
     return template

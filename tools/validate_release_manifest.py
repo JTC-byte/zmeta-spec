@@ -125,6 +125,31 @@ def validate_manifest(manifest_path: Path | str, *, root: Path = ROOT) -> list[d
             )
         )
 
+    # Formal-status coherence (R1-11 R11-10): a formal-release manifest
+    # must carry a real branch (git_commit legitimately keeps the stable
+    # placeholder - the committed manifest cannot embed its own release
+    # commit; see spec/release-hash-policy.md) and must not self-describe
+    # as a non-formal reference baseline.
+    if manifest.get("release_status") == "formal_release":
+        if manifest.get("branch") == "explicit_release_input_required":
+            issues.append(
+                _issue(
+                    "RELEASE_MANIFEST_FORMAL_PROVENANCE_MISSING",
+                    "formal_release manifests must pass an explicit --branch "
+                    "(spec/release-hash-policy.md provenance rules)",
+                )
+            )
+        notes = manifest.get("notes")
+        notes_text = " ".join(str(item) for item in notes) if isinstance(notes, list) else str(notes or "")
+        if "not a formal tagged release" in notes_text:
+            issues.append(
+                _issue(
+                    "RELEASE_MANIFEST_FORMAL_STATUS_CONTRADICTED",
+                    "formal_release manifest self-describes as a non-formal "
+                    "reference baseline in notes",
+                )
+            )
+
     artifact_groups = manifest.get("artifact_groups")
     if not isinstance(artifact_groups, dict):
         issues.append(_issue("RELEASE_MANIFEST_GROUPS_INVALID", "artifact_groups must be a mapping"))

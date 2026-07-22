@@ -163,14 +163,26 @@ Validate it with:
 python tools/validate_release_manifest.py --manifest release/zmeta-release-manifest.yaml
 ```
 
-The builder writes a reference hardening-baseline manifest, not a formal tagged
-release. It uses fixed release metadata by default, including stable
-`git_commit` and `branch` placeholders, so rebuilding the committed reference
-manifest after a checkpoint commit does not change the manifest only because
-the repo head moved. Formal release generation must pass explicit
-`--git-commit`, `--branch`, `--release-id`, and related metadata. The manifest
-validator recomputes every file hash, group hash, `release_bundle_hash`, and
-`release_manifest_hash`, and fails on missing artifacts or mismatches.
+By default the builder writes a reference hardening-baseline manifest, not a
+formal tagged release. It uses fixed release metadata by default, including
+stable `git_commit` and `branch` placeholders, so rebuilding the committed
+reference manifest after a checkpoint commit does not change the manifest only
+because the repo head moved.
+
+Formal release generation (`--release-status formal_release`) must pass
+explicit `--release-id`, `--release-name`, `--release-date`, and `--branch`.
+`git_commit` is the one field a committed formal manifest cannot carry
+truthfully: the manifest is part of the release commit, so embedding that
+commit's own hash is structurally circular. Commit provenance for a formal
+release is therefore carried by the annotated release tag, the publication
+record, and `SHA256SUMS_<version>.txt` (all of which pin the release commit),
+while the manifest's `git_commit` field keeps the documented stable
+placeholder; `--git-commit` exists for out-of-tree manifest builds where no
+circularity applies. A formal-release manifest must not carry the placeholder
+`branch` and must not self-describe as a non-formal reference baseline — the
+manifest validator enforces both. The validator also recomputes every file
+hash, group hash, `release_bundle_hash`, and `release_manifest_hash`, and
+fails on missing artifacts or mismatches.
 
 ## Deployment And Gateway Gate Guidance
 

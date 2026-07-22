@@ -28,8 +28,10 @@ signer_identity_placeholder: explicit_release_input_required
 signature_artifacts:
   release_manifest: explicit_release_input_required
   checksums: explicit_release_input_required
-known_open_issues:
-  - D-003 OPEN - Future Semantics Require Versioned Implementation Branches
+# Mirrors the release manifest's known_open_issues (the governed source of
+# deferred-register state); the register has been fully closed since
+# 2026-07-08, so the list is empty unless a build explicitly reopens one.
+known_open_issues: []
 limitations:
   - Template only; no real release signature or signer identity is included.
 notes:

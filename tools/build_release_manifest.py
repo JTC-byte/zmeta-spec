@@ -300,6 +300,7 @@ def build_manifest_data(
     branch: str | None = DEFAULT_RELEASE_METADATA,
     generated_by: str = "tools/build_release_manifest.py",
     include_tool_source: bool = True,
+    known_open_issues: list[str] | None = None,
     root: Path = ROOT,
 ) -> dict[str, Any]:
     groups = artifact_groups(root, include_tool_source=include_tool_source)
@@ -370,16 +371,28 @@ def build_manifest_data(
         "git_commit": git_commit or DEFAULT_RELEASE_METADATA,
         "branch": branch or DEFAULT_RELEASE_METADATA,
         "generated_by": generated_by,
+        # The status note must match release_status: a formal-release
+        # manifest self-describing as non-formal is a false claim in a
+        # governed, hash-pinned artifact (R1-11 R11-10).
         "notes": [
-            "Reference hardening-baseline manifest, not a formal tagged release.",
-            "git_commit and branch use stable placeholders by default; formal release generation must pass explicit metadata.",
+            (
+                "Formal release manifest; the committed copy cannot embed its own "
+                "release commit hash (structural circularity), so commit provenance "
+                "is carried by the annotated tag, the publication record, and "
+                "SHA256SUMS_<version>.txt (spec/release-hash-policy.md)."
+                if release_status == "formal_release"
+                else "Reference hardening-baseline manifest, not a formal tagged release."
+            ),
+            "git_commit and branch use stable placeholders by default; release generation must pass explicit metadata (see spec/release-hash-policy.md provenance rules).",
             "The semantic contract hash is narrow and does not include implementation artifacts.",
             "Protobuf is classified as an experimental encoding projection, not v1.0 semantic authority.",
             "Release manifest validation is opt-in and does not change default strict conformance.",
         ],
-        "known_open_issues": [
-            "D-003 OPEN - Future Semantics Require Versioned Implementation Branches",
-        ],
+        # Deferred-issue register state: fully closed since 2026-07-08
+        # (worklog: D-001..D-014 all resolved). Reopened issues must be
+        # passed explicitly, never hardcoded (R1-11 R11-14: a stale
+        # hardcoded "D-003 OPEN" shipped in four post-closure releases).
+        "known_open_issues": list(known_open_issues or []),
         "experimental_surfaces": [
             "schema/zmeta-event-1.1.0.schema.json",
             "schema/proto/zmeta_event_v1.proto",
@@ -463,6 +476,15 @@ def parse_args() -> argparse.Namespace:
         help="Explicit release branch. Default is a stable placeholder for committed reference manifests.",
     )
     parser.add_argument("--generated-by", default="tools/build_release_manifest.py")
+    parser.add_argument(
+        "--known-open-issue",
+        action="append",
+        dest="known_open_issues",
+        default=None,
+        help="Declare a genuinely open deferred issue (repeatable). The register "
+        "has been fully closed since 2026-07-08; reopened issues are passed "
+        "explicitly, never hardcoded.",
+    )
     parser.add_argument("--include-tool-source", action="store_true", default=True)
     parser.add_argument("--no-include-tool-source", dest="include_tool_source", action="store_false")
     parser.add_argument("--update-claims", action="store_true", help="Update example claims with current release hash fields before rebuilding the manifest.")
@@ -482,6 +504,7 @@ def main() -> int:
         branch=args.branch,
         generated_by=args.generated_by,
         include_tool_source=args.include_tool_source,
+        known_open_issues=args.known_open_issues,
     )
 
     if args.update_claims:
@@ -495,6 +518,7 @@ def main() -> int:
             branch=args.branch,
             generated_by=args.generated_by,
             include_tool_source=args.include_tool_source,
+            known_open_issues=args.known_open_issues,
         )
 
     output = Path(args.output)

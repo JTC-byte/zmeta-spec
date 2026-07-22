@@ -207,9 +207,19 @@ def _validate_attestation(path: Path, manifest: dict[str, Any]) -> list[dict[str
                     item=field,
                 )
             )
-    known = "\n".join(str(item) for item in data.get("known_open_issues", []))
-    if "D-003" not in known:
-        issues.append(_issue("RELEASE_PACKAGE_ATTESTATION_OPEN_ISSUE_MISSING", "known_open_issues must include D-003"))
+    # The attestation's open-issue list must mirror the manifest's - the
+    # manifest is the governed source of register state. The previous check
+    # required the literal "D-003", machine-enforcing a stale claim for
+    # four releases after the register closed (R1-11 R11-14).
+    attested = [str(item) for item in data.get("known_open_issues", []) or []]
+    manifest_issues = [str(item) for item in manifest.get("known_open_issues", []) or []]
+    if attested != manifest_issues:
+        issues.append(
+            _issue(
+                "RELEASE_PACKAGE_ATTESTATION_OPEN_ISSUE_MISMATCH",
+                f"known_open_issues must mirror the manifest: expected {manifest_issues}, got {attested}",
+            )
+        )
     return issues
 
 

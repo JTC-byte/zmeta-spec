@@ -92,6 +92,40 @@ def test_validator_passes_current_manifest():
     assert validator.validate_manifest(MANIFEST_PATH) == []
 
 
+def test_formal_manifest_state_is_coherent():
+    # R1-11 R11-10/R11-14: the shipped formal manifest must not
+    # self-describe as non-formal, must carry a real branch, and must not
+    # assert stale deferred-register state (the register closed 2026-07-08;
+    # reopened issues enter via --known-open-issue, never a hardcode).
+    data = yaml.safe_load(MANIFEST_PATH.read_text(encoding="utf-8"))
+    assert data["release_status"] == "formal_release"
+    assert data["branch"] != builder.DEFAULT_RELEASE_METADATA
+    assert "not a formal tagged release" not in " ".join(data["notes"])
+    assert data["known_open_issues"] == []
+
+
+def test_formal_manifest_with_placeholder_branch_fails(release_tmp_dir):
+    def mutate(data):
+        data["branch"] = builder.DEFAULT_RELEASE_METADATA
+
+    path = _manifest_copy(release_tmp_dir, mutate)
+    assert "RELEASE_MANIFEST_FORMAL_PROVENANCE_MISSING" in _codes(
+        validator.validate_manifest(path)
+    )
+
+
+def test_formal_manifest_with_non_formal_note_fails(release_tmp_dir):
+    def mutate(data):
+        data["notes"] = [
+            "Reference hardening-baseline manifest, not a formal tagged release."
+        ]
+
+    path = _manifest_copy(release_tmp_dir, mutate)
+    assert "RELEASE_MANIFEST_FORMAL_STATUS_CONTRADICTED" in _codes(
+        validator.validate_manifest(path)
+    )
+
+
 def test_missing_artifact_fails(release_tmp_dir):
     def mutate(data):
         old_path = data["artifact_groups"]["semantic_contract"]["paths"][0]

@@ -130,6 +130,12 @@ If you cannot run a required check, document the reason in the final handoff.
   material, signing secrets, or generated local cache/package output.
 - `release/SHA256SUMS_<version>.txt` represents published assets for that
   version. Do not rewrite it for post-release current-main guidance changes.
+- A post-release main commit that regenerates the release manifest under the
+  published identity makes current main diverge from the published
+  `SHA256SUMS_<version>.txt` manifest pin. Record that divergence explicitly
+  in the worklog entry for the commit (published checksums are immutable;
+  resolution is the next release cut) — an unexplained mismatch must never be
+  the downstream verifier's first notice.
 
 ## Handoff Standard
 
