@@ -1,4 +1,12 @@
 import math
+from collections.abc import Mapping, Sequence
+from collections.abc import Set as AbstractSet
+from decimal import Decimal
+
+# Text leaves are Sequences, so they have to be excluded before the Sequence
+# branch or every string becomes a walk over its own characters - and a
+# one-character string yields itself, so that walk never terminates.
+_TEXT_LEAF_TYPES = (str, bytes, bytearray)
 
 # Canonical altitude field names a COMMAND_EVENT must never carry (semantics
 # contract 7.8). COMMAND_EVENT SHALL NOT specify altitude - the receiving
@@ -14,20 +22,62 @@ _ALTITUDE_FIELDS = frozenset({
 })
 
 
+def _walk_containers(root):
+    """Yield every value reachable from `root`, once per distinct container.
+
+    Shared by both guards below so neither can drift back to the narrower
+    traversal the other has. Iterative with a seen-set for the reason both
+    guards were written iterative in the first place: geometry is copied
+    verbatim from the payload, so sender-controlled nesting must be a memory
+    cost, never a RecursionError - and CBOR value-sharing tags make the
+    decoded structure possibly cyclic, so an unbounded walk would be a hang
+    (R1-11 R2-07).
+
+    Container coverage is by abstract type, not by dict/list: the gateway's
+    cbor2 fallback backend decodes CBOR tag 258 into a `set`, a map used as a
+    map key into a Mapping that is not a dict, and an unrecognised tag into a
+    tag object whose `.value` still reaches the wire. A dict/list-only walk
+    sees none of them.
+    """
+    stack = [root]
+    seen = set()
+    while stack:
+        current = stack.pop()
+        yield current
+        if isinstance(current, _TEXT_LEAF_TYPES):
+            continue
+        if isinstance(current, (Mapping, AbstractSet, Sequence)) or (
+            hasattr(current, "tag") and hasattr(current, "value")
+        ):
+            marker = id(current)
+            if marker in seen:
+                continue
+            seen.add(marker)
+        if isinstance(current, Mapping):
+            stack.extend(current.keys())
+            stack.extend(current.values())
+        elif isinstance(current, (AbstractSet, Sequence)):
+            stack.extend(current)
+        elif hasattr(current, "tag") and hasattr(current, "value"):
+            stack.append(current.value)
+
+
 def _contains_altitude(value):
-    if isinstance(value, dict):
-        for key, item in value.items():
-            # strip+casefold so whitespace-/case-padded altitude keys cannot
-            # slip the guard (matches the gateway validator's key normalization).
-            key_lc = str(key).strip().casefold()
-            if key_lc in _ALTITUDE_FIELDS:
-                return True
-            if _contains_altitude(item):
-                return True
-    elif isinstance(value, list):
-        for item in value:
-            if _contains_altitude(item):
-                return True
+    # Contract 7.8: COMMAND_EVENT SHALL NOT specify altitude. This is
+    # defence in depth behind the gateway's COMMAND_HAS_ALTITUDE validator,
+    # so its failure mode matters: the recursive dict/list version raised
+    # RecursionError on deep geometry (a crash where the documented signal is
+    # None/ValueError) and never looked inside a Mapping that is not a dict,
+    # a tuple, a set or a CBOR tag wrapper - so an altitude key one container
+    # off the beaten path reached an autonomy stack unremarked.
+    for current in _walk_containers(value):
+        if isinstance(current, Mapping):
+            for key in current:
+                # strip+casefold so whitespace-/case-padded altitude keys
+                # cannot slip the guard (matches the gateway validator's key
+                # normalization).
+                if str(key).strip().casefold() in _ALTITUDE_FIELDS:
+                    return True
     return False
 
 
@@ -36,18 +86,15 @@ def _has_non_finite(value):
     # mission is a number that is not a number, and a per-field list only
     # closes the fields someone thought of (R1-11 A-01). geometry is copied
     # verbatim from the payload, so a vertex deep inside it is reachable.
-    # Iterative so sender-controlled nesting is a memory cost, never a
-    # RecursionError.
-    stack = [value]
-    while stack:
-        current = stack.pop()
+    # float and Decimal are the only decoded types that can be non-finite; a
+    # Python int is never converted, because math.isfinite() on an int
+    # outside float64 range raises OverflowError, which would trade this
+    # guard for a crash.
+    for current in _walk_containers(value):
         if isinstance(current, float) and not math.isfinite(current):
             return True
-        if isinstance(current, dict):
-            stack.extend(current.keys())
-            stack.extend(current.values())
-        elif isinstance(current, (list, tuple)):
-            stack.extend(current)
+        if isinstance(current, Decimal) and not current.is_finite():
+            return True
     return False
 
 

@@ -88,6 +88,15 @@ spec = importlib.util.spec_from_file_location("zmeta_validate_release_manifest",
 validate_release_manifest = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(validate_release_manifest)
 
+# The package builder is the authority on which category hashes the package
+# metadata carries; importing its list keeps writer and checker from drifting
+# apart again (R1-11 A-19).
+BUILD_PACKAGE_PATH = ROOT / "tools" / "build_release_package.py"
+_build_spec = importlib.util.spec_from_file_location("zmeta_build_release_package", BUILD_PACKAGE_PATH)
+build_release_package = importlib.util.module_from_spec(_build_spec)
+_build_spec.loader.exec_module(build_release_package)
+METADATA_HASH_FIELDS = list(build_release_package.METADATA_HASH_FIELDS)
+
 
 def _issue(code: str, message: str, *, item: str | None = None) -> dict[str, str]:
     out = {"code": code, "message": message}
@@ -306,7 +315,13 @@ def _validate_metadata(path: Path, manifest: dict[str, Any], package_dir: Path) 
     data = load_yaml(path)
     if not isinstance(data, dict):
         return [_issue("RELEASE_PACKAGE_METADATA_INVALID", "package metadata must be a YAML mapping", item=str(path))]
-    for field in ("release_manifest_hash", "release_bundle_hash", "semantic_contract_hash", "schema_bundle_hash"):
+    # Every hash the builder writes is compared. The previous literal
+    # 4-tuple left policy_bundle_hash, extension_registry_hash and
+    # conformance_class_manifest_hash as unverified claims: a package could
+    # misdescribe the policy bundle it pins and validate clean, because
+    # _validate_checksums only proves the file matches its own listed digest
+    # (R1-11 A-19).
+    for field in METADATA_HASH_FIELDS:
         if data.get(field) != manifest.get(field):
             issues.append(
                 _issue(

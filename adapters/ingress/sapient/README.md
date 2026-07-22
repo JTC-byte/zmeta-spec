@@ -95,13 +95,34 @@ declared → `5.0`). The worse the input, the cleaner the event — laundering.
 
 So an unresolvable declaration degrades the event instead: `time_source`
 `UNKNOWN`, `sync_state` `UNSYNCED`, and `est_error_ms` the **wider** of the
-caller's own bound and the module's unknown-clock fallback. The event is
-still emitted — one malformed mode declaration must not zero every event
+normally-widened bound and the module's unknown-clock fallback. The event
+is still emitted — one malformed mode declaration must not zero every event
 from that node forever — but its timing is explicitly untrustworthy and
 filterable, and consumers read `est_error_ms` together with `sync_state`
 (contract 5.3), never as a standalone bound. A caller `est_error_ms` that
 is *already* non-finite is left alone and refused whole at the emit
 boundary; it is never replaced with a clean default.
+
+**The degradation is a floor over the normal widen, never a substitute for
+it.** `max_latency_ms()` skips only the modes it could not resolve, so a
+node that declares one sane mode and one broken one still has a real,
+resolvable cross-mode bound — and that bound is folded in first, with the
+unknown-clock fallback applied on top. Degrading *before* widening threw
+that surviving term away and made the broken node publish the **tighter**
+number: measured, with no caller timing, sane-mode-only `60500.0` against
+sane-plus-broken `60000.0`, `sync_state` identical in both. Since the widen
+is unaffected by a mode the store could not resolve, adding a broken
+declaration can now only ever widen what the node publishes — the
+monotonicity property, pinned directly in the colocated tests.
+
+Within the locked `timing_quality` vocabulary there is no way to say "the
+bound is *unresolved*" as distinct from "the clock is unsynchronized", so
+`UNKNOWN`/`UNSYNCED` is the loud, filterable proxy. One consequence is
+visible and deliberate: when the caller supplies no `timing_quality` at
+all, both nodes are already `UNKNOWN`/`UNSYNCED` for an unrelated reason,
+so the two events differ in nothing. That vocabulary gap is recorded for
+adjudication in `docs/zmeta_doctrine_review_log.md` (R1-11-04); it is not
+worked around here.
 
 `RegistrationStore.latency_unresolved(node_id, mode=None)` exposes this
 state directly, because `max_latency_ms()` returns `None` for both "never
@@ -133,7 +154,13 @@ tell the quiet node from the broken one.
   `power_dbm`. `bandwidth_hz` is stop−start when both edges resolve;
   otherwise the declared `0.0` "not measured" sentinel (same convention as
   the kraken/moth/signalhunter adapters — a documented consumer-visible
-  marker, not an invented measurement). Canonical features map from the
+  marker, not an invented measurement). A band edge the producer **did**
+  declare and this adapter could not resolve (unresolvable edge units, a
+  non-numeric or unrepresentable edge, an overflowing difference, or a stop
+  below the start) additionally keeps the whole raw `signal` block as
+  provenance: the sentinel states what ZMeta carries, and the raw block
+  keeps what the producer said, so a consumer can tell "never measured"
+  from "measured, not resolvable here". Canonical features map from the
   **first** `signal[]` entry only; additional entries (further emitters)
   are preserved verbatim as `signal_additional` in the vendor extension,
   never dropped.
@@ -179,13 +206,14 @@ An observation is emitted only when an honest modality exists:
 | Non-finite arithmetic PRODUCT from finite operands (unit scaling, radians->degrees, band-edge difference, latency widen) | that canonical field is not written and the raw block is preserved as provenance; guarding the operand is not enough, since `value * 1e6` and `math.degrees()` overflow to inf near the float64 ceiling and `inf % 360.0` is NaN |
 | Non-finite anywhere inside the canonical `claim` (e.g. a vendor `sub_class` taxonomy) | that inference entry refused — `claim` is canonical, so the vendor pass-through drop rule does not apply; the raw entry stays in `native_classification` |
 | Registration `Duration` whose scaled value is non-finite | treated as an unresolvable declaration (`None`), same as unknown units — never a non-finite `est_error_ms` on every event from that node |
-| Registration `maximum_latency` that is unresolvable for ANY reason | the event's timing degrades to `UNKNOWN`/`UNSYNCED` with the **wider** of the caller's bound and the unknown-clock fallback — a broken declaration must never yield a tighter `est_error_ms` than a sane one (see Timing above) |
+| Registration `maximum_latency` that is unresolvable for ANY reason | the event's timing degrades to `UNKNOWN`/`UNSYNCED` with the **wider** of the normally-widened bound and the unknown-clock fallback — the widen happens first, so the resolvable latency of the node's *other* modes is never discarded and a broken declaration can only ever widen the published `est_error_ms`, never tighten it (see Timing above) |
 | Integer literal with no float64 form (e.g. a 400-digit number) anywhere on the wire | that field refuses like any other unmappable value; `translate()` and `RegistrationStore.ingest()` never raise — `math.isfinite` raises `OverflowError` on such an int, and wire data must never crash the ingest loop |
+| Any value the producer DECLARED that reaches no canonical field | the raw block is preserved in the vendor extension, whatever the reason it did not map (non-numeric, no float64 form, unresolvable units, an overflowing product, an elevation with no azimuth, an error term with no canonical carrier). Presence drives preservation, not numeric-ness: a declared value that is deleted is indistinguishable from one the producer never sent, and that is the one thing provenance exists to prevent |
 | Non-finite dict KEY inside a verbatim vendor block | that entry is dropped from the provenance block; the event and every canonical field it resolved are still emitted — a defect confined to a pass-through blob never destroys the geo, bearing, RF features or classification around it |
 | Any non-finite surviving to the emit boundary | that event refused, and the refusal CASCADES to events citing it as `based_on` — a dependent must never assert lineage to an event that was not emitted (contract 4.8) |
 | TaskAck with unresolvable `task_id` (no `task_index` entry) | refused — the `original_event_id` correlation is never fabricated |
 | TaskAck `TASK_STATUS_UNSPECIFIED` | refused |
-| StatusReport `power` mapping to no metrics | no `PLATFORM_STATUS` (never padded) |
+| StatusReport `power` mapping to no metrics | no `PLATFORM_STATUS` (never padded); the raw `power` block moves to the `SENSOR_STATUS` vendor extension — refusing the event must not erase the declaration that produced it |
 | Non-TRUE / non-degrees field-of-view cone | `fov_deg` omitted; raw cone extension-only |
 | SAPIENT `task` content | no events (out of scope v1) |
 

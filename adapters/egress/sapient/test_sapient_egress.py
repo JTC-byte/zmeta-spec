@@ -581,3 +581,251 @@ def test_command_non_integer_valid_for_ms_refuses_not_raises():
 def test_command_non_finite_target_refuses():
     event = _command_event(target_geo={"lat": float("inf"), "lon": -118.0})
     assert _task(event) is None
+
+
+# --- R1-11 A-10: the ts guard must cover the mint, not just the parse -------
+# The refusal guard wrapped only _parse_utc; ulid_from_ts_ms on the very next
+# statement raises ValueError for any negative epoch-ms, so a schema-valid
+# pre-1970 event.ts raised out of the public entry point past the None
+# contract this module and its README both document.
+
+
+@pytest.mark.parametrize(
+    "bad_ts",
+    [
+        "1969-12-31T23:59:59.500Z",  # half a second before the epoch
+        "1969-07-20T20:17:00Z",
+        "1900-01-01T00:00:00Z",
+        "1970-01-01T00:00:00+01:00",  # positive offset lands pre-epoch in UTC
+    ],
+)
+def test_pre_epoch_ts_refuses_not_raises(bad_ts):
+    # Pre-epoch timestamps are the canonical bad-clock symptom on an
+    # unsynced edge node — precisely the degraded-timing events whose
+    # export honesty this adapter exists to preserve.
+    state = _state_event()
+    state["event"]["ts"] = bad_ts
+    assert _detection(state) is None
+
+
+@pytest.mark.parametrize(
+    "naive_ts",
+    [
+        "1969-12-31T23:59:59.500",  # no zone designator
+        "1900-01-01T00:00:00",
+        "0001-01-01T00:00:00",
+    ],
+)
+def test_naive_pre_epoch_ts_refuses_in_both_projections(naive_ts):
+    # Second member of the same class, found while pinning the first and
+    # NOT covered by the original (ValueError, TypeError) guard in either
+    # file: _parse_utc calls .astimezone(), which delegates to the
+    # platform for a naive datetime and raises OSError(EINVAL) on Windows
+    # for a pre-1970 instant. Portable assertion — on a platform where
+    # astimezone succeeds the value is still pre-epoch and refuses at the
+    # ULID mint (state) or projects an honest pre-epoch task (command),
+    # so only the state adapter's disposition is asserted as None here.
+    state = _state_event()
+    state["event"]["ts"] = naive_ts
+    assert _detection(state) is None
+
+    command = _command_event()
+    command["event"]["ts"] = naive_ts
+    # The command projection mints no ULID, so its only requirement is
+    # that it does not raise: None or a message, never a traceback.
+    result = _task(command)
+    assert result is None or result["timestamp"]
+
+
+@pytest.mark.parametrize(
+    "good_ts",
+    [
+        "1970-01-01T00:00:00Z",  # the exact boundary still projects
+        "1970-01-01T00:00:00.001Z",
+        "9999-12-31T23:59:59Z",  # 2**48 ms runs to year 10889: no upper clip
+    ],
+)
+def test_representable_ts_still_projects(good_ts):
+    # Non-vacuity for the guard above: it must refuse the unrepresentable
+    # instants only, not blunt-refuse every unusual one.
+    state = _state_event()
+    state["event"]["ts"] = good_ts
+    message = _detection(state)
+    assert message is not None
+    assert is_ulid(message["detection_report"]["report_id"])
+
+
+# --- R1-11 A-11: no non-finite inside an honesty self-label -----------------
+# The self-labels ride as JSON *inside* a JSON string, so an outer
+# json.dumps(message, allow_nan=False) cannot see a bare NaN/Infinity token
+# in them (RFC 8259 s6 has no such literals). zmeta.timing_quality is
+# attached only when sync_state != LOCKED — it exists solely on the events
+# whose degradation it reports — so a label a strict consumer drops or
+# rejects launders the detection clean (contract 3.3, design gates 3/4).
+
+
+def _strict_reparse(value):
+    """json.loads that refuses NaN/Infinity/-Infinity, unlike the default."""
+
+    def _reject(constant):
+        raise AssertionError(f"non-JSON constant {constant!r} inside a self-label")
+
+    return json.loads(value, parse_constant=_reject)
+
+
+# (label carrier, poisoned event kwargs, clean event kwargs, label type)
+_SELF_LABEL_CARRIERS = [
+    (
+        "timing_quality.est_error_ms",
+        {"timing_quality": {"sync_state": "HOLDOVER", "est_error_ms": float("nan")}},
+        {"timing_quality": {"sync_state": "HOLDOVER", "est_error_ms": 250}},
+        "zmeta.timing_quality",
+    ),
+    (
+        "timing_quality.est_error_ms inf",
+        {"timing_quality": {"sync_state": "UNSYNCED", "est_error_ms": float("inf")}},
+        {"timing_quality": {"sync_state": "UNSYNCED", "est_error_ms": 60000}},
+        "zmeta.timing_quality",
+    ),
+    (
+        "risk.reason_code",
+        {
+            "extensions": {
+                "risk_adjudication": [
+                    {"policy_decision": "WARN_ACCEPT", "reason_code": float("nan")}
+                ]
+            }
+        },
+        {
+            "extensions": {
+                "risk_adjudication": [
+                    {"policy_decision": "WARN_ACCEPT", "reason_code": "STALE_SOURCE"}
+                ]
+            }
+        },
+        "zmeta.risk",
+    ),
+    (
+        "risk.policy_ref",
+        {
+            "extensions": {
+                "risk_adjudication": [
+                    {"policy_decision": "DEGRADED_ACCEPT", "policy_ref": float("-inf")}
+                ]
+            }
+        },
+        {
+            "extensions": {
+                "risk_adjudication": [
+                    {"policy_decision": "DEGRADED_ACCEPT", "policy_ref": "pol-7"}
+                ]
+            }
+        },
+        "zmeta.risk",
+    ),
+]
+
+
+@pytest.mark.parametrize(
+    "carrier,poisoned,clean,label_type",
+    _SELF_LABEL_CARRIERS,
+    ids=[case[0] for case in _SELF_LABEL_CARRIERS],
+)
+def test_non_finite_in_a_self_label_refuses_never_launders(
+    carrier, poisoned, clean, label_type
+):
+    # The clean arm is what makes this non-vacuous: the ONLY difference
+    # between the two events is the non-finite value, so a blanket refusal
+    # (or a refusal for some unrelated reason) fails the test.
+    message = _detection(_state_event(**clean))
+    assert message is not None, f"{carrier}: clean control must still export"
+    labels = message["detection_report"]["object_info"]
+    assert [info["type"] for info in labels] == [label_type]
+    _strict_reparse(labels[0]["value"])
+
+    assert _detection(_state_event(**poisoned)) is None, (
+        f"{carrier}: a non-finite value must refuse the export, never ride "
+        f"inside the {label_type} label string"
+    )
+
+
+def test_caller_use_labels_non_finite_refuses():
+    # use_labels enters from the caller, not the event, so it bypasses every
+    # event-side validator: the adapter is the only gate on this path.
+    clean = _detection(
+        _state_event(), use_labels={"allowed_uses": ["COALITION_EXPORT"]}
+    )
+    assert clean is not None
+    assert (
+        _detection(
+            _state_event(),
+            use_labels={
+                "allowed_uses": ["COALITION_EXPORT"],
+                "reason_code": float("nan"),
+            },
+        )
+        is None
+    )
+
+
+def test_unserializable_self_label_refuses_not_raises():
+    # Same sink, non-float arm: a value with no JSON form, and mixed key
+    # types sort_keys cannot order. Both raise out of json.dumps and must
+    # take the None contract, not escape the projection.
+    assert _detection(_state_event(timing_quality={"sync_state": "HOLDOVER", 1: "x"})) is None
+    assert (
+        _detection(_state_event(timing_quality={"sync_state": "HOLDOVER", "x": {"y"}}))
+        is None
+    )
+
+
+def test_no_self_label_serializer_permits_non_json_constants():
+    # Source-level oracle, deliberately sharing no runtime machinery with
+    # the behavioural pins above: every json.dumps in this egress package
+    # must pass allow_nan=False. Catches a future self-label carrier added
+    # without the guard — the failure mode the behavioural pins cannot see
+    # because they only know today's carriers.
+    import ast
+    import pathlib
+
+    package = pathlib.Path(__file__).resolve().parent
+    checked = 0
+    for source_path in sorted(package.glob("*.py")):
+        if source_path.name.startswith("test_"):
+            continue
+        tree = ast.parse(source_path.read_text(encoding="utf-8"))
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.Call):
+                continue
+            func = node.func
+            if not (isinstance(func, ast.Attribute) and func.attr == "dumps"):
+                continue
+            checked += 1
+            allow_nan = [kw for kw in node.keywords if kw.arg == "allow_nan"]
+            assert allow_nan, (
+                f"{source_path.name}:{node.lineno} json.dumps without "
+                f"allow_nan=False can emit bare NaN/Infinity inside a label"
+            )
+            assert allow_nan[0].value.value is False, (
+                f"{source_path.name}:{node.lineno} allow_nan must be False"
+            )
+    # Non-vacuity floor: the package serializes its self-labels through a
+    # single helper today, so one site is the true count. A rename or a
+    # deleted module drops this to zero and the assert fires.
+    assert checked >= 1, "no json.dumps found — the scan is looking at nothing"
+
+
+# --- R1-11 A-10 family: no numeric guard may raise on a huge int ------------
+# math.isfinite RAISES OverflowError on a Python int outside float64 range,
+# and json.loads builds exactly such an int from a plain integer literal.
+# Same class as the ingress guard (sapient_to_zmeta._is_number).
+
+
+@pytest.mark.parametrize("huge", [10**400, -(10**400)])
+def test_unrepresentable_int_refuses_not_raises(huge):
+    assert _detection(_state_event(geo={"lat": huge, "lon": -118.0, "alt_m": 120.0})) is None
+    assert _detection(_state_event(heading_deg=huge, speed_mps=12.0)) is None
+    confidence_event = _state_event()
+    confidence_event["confidence"] = huge
+    assert _detection(confidence_event) is None
+    assert _task(_command_event(target_geo={"lat": huge, "lon": -118.0})) is None

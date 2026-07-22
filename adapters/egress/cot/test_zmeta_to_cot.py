@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta, timezone
+from decimal import Decimal
 import importlib.util
 from pathlib import Path
 import xml.etree.ElementTree as ET
@@ -667,3 +668,121 @@ def test_zmeta_to_cot_guard_does_not_convert_huge_ints():
     event = _nf_state_event()
     event["payload"]["source_summary"] = [10 ** 400]
     assert zmeta_to_cot_module.zmeta_to_cot(event, cot_config=_TEST_CONFIG) is not None
+
+
+# R1-11, third pass (R2-05 / R2-06). Two members of the same class the pass
+# above closed only halfway: an adapter whose documented failure signal is
+# None must not raise, and a guard branch nothing exercises is not a guard.
+
+
+def test_is_non_finite_sees_a_decimal_nan():
+    # R2-06. cbor2 decodes CBOR tag 4/5 into a Decimal, and Decimal('NaN') is
+    # not a float, so `isinstance(x, float)` alone never sees it. This is the
+    # unit-level twin of the projection pin below: deleting the two Decimal
+    # lines from _is_non_finite left 33/33 CoT tests green because NOTHING in
+    # this file mentioned Decimal.
+    for token in ("NaN", "sNaN", "Infinity", "-Infinity"):
+        assert zmeta_to_cot_module._is_non_finite(Decimal(token)) is True, token
+    for token in ("0", "-118.2435", "1E+308"):
+        assert zmeta_to_cot_module._is_non_finite(Decimal(token)) is False, token
+
+
+def test_zmeta_to_cot_refuses_a_decimal_non_finite_on_a_rendered_attribute():
+    # R2-06 at the boundary that matters: without the Decimal arm this puts
+    # <point lat="NaN"> on the TAK wire - an ordinary marker at a position
+    # that is not a position, carrying nothing an operator can filter on.
+    for path in (
+        ("payload", "geo", "lat"),
+        ("payload", "geo", "lon"),
+        ("payload", "geo", "alt_m"),
+        ("payload", "heading_deg"),
+        ("payload", "speed_mps"),
+        ("confidence",),
+    ):
+        for token in ("NaN", "Infinity", "-Infinity"):
+            event = _nf_state_event()
+            target = event
+            for key in path[:-1]:
+                target = target[key]
+            target[path[-1]] = Decimal(token)
+            xml_text = zmeta_to_cot_module.zmeta_to_cot(event, cot_config=_TEST_CONFIG)
+            assert xml_text is None, (path, token, xml_text)
+
+
+def test_zmeta_to_cot_refuses_a_decimal_non_finite_nested_in_a_container():
+    # The Decimal arm and the container walk are separate mechanisms; a leaf
+    # pin on a top-level attribute passes even if the walk never descends.
+    event = _nf_state_event()
+    event["payload"]["source_summary"] = ["rf-sensor", {"cep": Decimal("NaN")}]
+    assert zmeta_to_cot_module.zmeta_to_cot(event, cot_config=_TEST_CONFIG) is None
+
+
+def test_zmeta_to_cot_still_renders_a_finite_decimal():
+    # The refusal must be about non-finiteness, not about the type. A
+    # Decimal carrying a real number is a real number.
+    event = _nf_state_event()
+    event["payload"]["geo"]["alt_m"] = Decimal("120.5")
+    assert zmeta_to_cot_module.zmeta_to_cot(event, cot_config=_TEST_CONFIG) is not None
+
+
+# --- R2-05: the stale interval, class-enumerated from the expression ---
+#
+# `payload.valid_for_ms` is {"type": "integer", "minimum": 1} with NO upper
+# bound (schema/zmeta-event-1.0.schema.json), and `event.ts` is any RFC3339
+# instant, so all three of these pass the gateway's outgoing gate with zero
+# violations and then hit `time + timedelta(milliseconds=valid_for_ms)`.
+# Each raised a different OverflowError out of an adapter documented to
+# return None. The gateway's per-datagram backstop swallowed it as an
+# uncounted INTERNAL_ERROR drop AFTER the event had already been forwarded,
+# so the operator lost the counted, reason-tagged cot_skipped record the
+# README promises for exactly this case.
+
+_UNREPRESENTABLE_STALE = (
+    # (ts, valid_for_ms, why)
+    ("2025-01-17T15:20:00Z", 10 ** 400, "int too large to convert to C int"),
+    ("2025-01-17T15:20:00Z", 10 ** 15, "date value out of range"),
+    ("9999-12-31T23:59:59Z", 300000, "ordinary 5 min stale on a legal late ts"),
+)
+
+
+def test_zmeta_to_cot_refuses_an_unrepresentable_stale_instead_of_raising():
+    for ts, valid_for_ms, why in _UNREPRESENTABLE_STALE:
+        event = _nf_state_event()
+        event["event"]["ts"] = ts
+        event["payload"]["valid_for_ms"] = valid_for_ms
+        result = zmeta_to_cot_module.zmeta_to_cot(event, cot_config=_TEST_CONFIG)
+        assert result is None, (ts, valid_for_ms, why, result)
+
+
+def test_zmeta_to_cot_refuses_an_unrepresentable_config_stale_interval():
+    # The config default reaches the same expression, and the README states
+    # outright that a default_valid_for_ms "that would otherwise raise out of
+    # the adapter" is covered. The non-finite arm of that promise was kept;
+    # the integer arm was not.
+    for valid_for_ms in (10 ** 400, 10 ** 15):
+        event = _nf_state_event()
+        del event["payload"]["valid_for_ms"]
+        config = dict(_TEST_CONFIG)
+        config["default_valid_for_ms"] = valid_for_ms
+        result = zmeta_to_cot_module.zmeta_to_cot(event, cot_config=config)
+        assert result is None, (valid_for_ms, result)
+
+
+def test_zmeta_to_cot_refusal_is_a_refusal_not_a_substituted_default():
+    # The failure mode this fix must NOT have: quietly falling back to the
+    # 300000 ms default would publish a freshness bound the event never
+    # claimed. Nothing may come out of the adapter for these inputs.
+    event = _nf_state_event()
+    event["payload"]["valid_for_ms"] = 10 ** 400
+    assert zmeta_to_cot_module.zmeta_to_cot(event) is None
+    assert zmeta_to_cot_module.zmeta_to_cot(event, cot_config={"use_wall_clock": True}) is None
+
+
+def test_zmeta_to_cot_still_projects_a_large_but_representable_stale():
+    # Proportionality: the refusal is scoped to windows datetime cannot
+    # express, not to windows that merely look big. ~1000 years is fine.
+    event = _nf_state_event()
+    event["payload"]["valid_for_ms"] = 31_536_000_000_000
+    xml_text = zmeta_to_cot_module.zmeta_to_cot(event, cot_config=_TEST_CONFIG)
+    assert xml_text is not None
+    assert 'stale="3024-05-20T15:20:00' in xml_text

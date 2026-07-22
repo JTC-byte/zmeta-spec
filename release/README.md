@@ -22,7 +22,7 @@ python tools/build_release_manifest.py --output release/zmeta-release-manifest.y
 python tools/validate_release_manifest.py --manifest release/zmeta-release-manifest.yaml
 python release/build_mvp_packages.py --version <version>
 python release/build_release_bundle.py --version <version-number>
-python tools/build_release_package.py --manifest release/zmeta-release-manifest.yaml --output-dir release/package-<version> --release-id zmeta-<version> --release-state formal_release --no-signatures
+python tools/build_release_package.py --manifest release/zmeta-release-manifest.yaml --output-dir release/package-<version> --release-id zmeta-<version> --release-state formal_release --no-signatures --release-notes release/RELEASE_NOTES_<version>.md
 python tools/validate_release_package.py --manifest release/zmeta-release-manifest.yaml --package-dir release/package-<version>
 python release/sign_release_artifacts.py --version <version> --write-checksums --verify-checksums
 ```

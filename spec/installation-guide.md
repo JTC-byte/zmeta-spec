@@ -220,9 +220,15 @@ local verification:
 ```text
 python release/build_mvp_packages.py --version v1.1.16
 python release/build_release_bundle.py --version 1.1.16
-python tools/build_release_package.py --manifest release/zmeta-release-manifest.yaml --output-dir release/package-v1.1.16 --release-id zmeta-v1.1.16 --release-state formal_release --no-signatures
+python tools/build_release_package.py --manifest release/zmeta-release-manifest.yaml --output-dir release/package-v1.1.16 --release-id zmeta-v1.1.16 --release-state formal_release --no-signatures --release-notes release/RELEASE_NOTES_v1.1.16.md
 python tools/validate_release_package.py --manifest release/zmeta-release-manifest.yaml --package-dir release/package-v1.1.16
 ```
+
+`--release-notes` is required whenever `--release-state formal_release` is
+used. Without it the builder copies `release/RELEASE_NOTES_TEMPLATE.md`
+verbatim, and the validator on the next line refuses the result with
+`RELEASE_PACKAGE_NOTES_PLACEHOLDER` — a formal package must not ship
+unpopulated notes. `RELEASE_CHECKLIST.md` carries the same step for cuts.
 
 Generated bundles, package directories, and zip files are ignored local outputs
 unless an explicit release publication task selects them. Detached signatures

@@ -148,6 +148,75 @@ def test_write_checksums_uses_lf_line_endings(release_tmp_dir):
     assert b"\r" not in checksum_path.read_bytes()
 
 
+def test_write_checksums_refuses_to_rewrite_a_published_release(release_tmp_dir, monkeypatch):
+    # R1-11 A-23: write_checksums opened SHA256SUMS_<version>.txt in "w"
+    # with no existence check, and --version defaults to the manifest
+    # release_id - which in the post-release window is the ALREADY
+    # PUBLISHED version. A bare `--write-checksums` therefore rewrote a
+    # published, immutable record (AGENTS.md release limits) and nothing in
+    # the tool refused. "Published" is the release tag, the same definition
+    # test_published_checksums_immutable.py uses.
+    version = "v9.9.9"
+    _write_artifacts(release_tmp_dir, version)
+    monkeypatch.setattr(signing, "_published_release_tags", lambda: set())
+    published = signing.write_checksums(release_tmp_dir, version)
+    original = published.read_bytes()
+
+    monkeypatch.setattr(signing, "_published_release_tags", lambda: {version})
+    with pytest.raises(SystemExit) as excinfo:
+        signing.write_checksums(release_tmp_dir, version)
+
+    assert "already published" in str(excinfo.value)
+    assert published.read_bytes() == original
+
+
+def test_write_checksums_allows_regeneration_before_the_release_is_tagged(
+    release_tmp_dir, monkeypatch
+):
+    # The guard must not obstruct the cut it protects. RELEASE_CHECKLIST.md
+    # writes checksums BEFORE the tag is created, and a cut legitimately
+    # regenerates them after rebuilding an asset.
+    version = "v9.9.9"
+    _write_artifacts(release_tmp_dir, version)
+    monkeypatch.setattr(signing, "_published_release_tags", lambda: {"v1.1.16"})
+    first = signing.write_checksums(release_tmp_dir, version)
+    (release_tmp_dir / signing._artifact_names(version)[0]).write_text(
+        "rebuilt\n", encoding="utf-8"
+    )
+
+    second = signing.write_checksums(release_tmp_dir, version)
+
+    assert second == first
+    assert signing.verify_checksums(release_tmp_dir, version) == []
+
+
+def test_write_checksums_announces_unknown_publication_state(release_tmp_dir, monkeypatch, capsys):
+    # Honest degradation: in a tagless/shallow checkout the tool cannot
+    # tell whether the version is published. It proceeds - refusing would
+    # break out-of-tree use - but it says so rather than letting an
+    # unverifiable state read as verified.
+    version = "v9.9.9"
+    _write_artifacts(release_tmp_dir, version)
+    monkeypatch.setattr(signing, "_published_release_tags", lambda: set())
+    signing.write_checksums(release_tmp_dir, version)
+    capsys.readouterr()
+
+    monkeypatch.setattr(signing, "_published_release_tags", lambda: None)
+    signing.write_checksums(release_tmp_dir, version)
+
+    out = capsys.readouterr().out
+    assert "cannot determine whether v9.9.9 is already published" in out
+
+
+def test_published_release_tags_sees_this_repository_tags():
+    # Non-vacuity: the guard is only as good as this lookup. If it silently
+    # returned an empty set here, every test above would still pass while
+    # the shipped guard never fired.
+    tags = signing._published_release_tags()
+
+    assert tags is None or "v1.1.16" in tags, tags
+
+
 def test_verify_checksums_rejects_empty_checksum_file(release_tmp_dir):
     version = "v9.9.9"
     _write_artifacts(release_tmp_dir, version)

@@ -285,6 +285,17 @@ def test_superseded_release_matcher_is_phrasing_independent():
         "A v1.1.0 event validates on the experimental branch.",
         "validated as v1.0.",
         "schema/zmeta-event-1.1.0.schema.json",
+        # R1-11 A-25: the `v` prefix is the discriminator that separates a
+        # release pin from the many non-release dotted triples in these
+        # docs (contract section numbers like 4.5.1, vendor semvers like
+        # translate:kraken@1.0.0, schema filenames like 1.1.0). Matching
+        # the bare form here would false-positive on "Section 1.1.2" in the
+        # very documents this guard protects, so the bound is deliberate
+        # and pinned: bare version literals inside narrowly-scoped worked
+        # command blocks are covered by _stale_version_literals, which does
+        # use `v?` precisely because its scope is a single command block.
+        "See Section 1.1.9 of the contract.",
+        "translate:kraken@1.1.9",
         # the current release, in any phrasing
         f"Current release context: ZMeta {version}.",
         f"ZMeta {version} is current",
@@ -311,6 +322,92 @@ def test_overview_body_names_no_superseded_release():
         f"docs/zmeta_professional_overview.md names superseded releases {stale}; "
         f"keep body guidance version-agnostic — the header release-context line "
         f"is the single pinned current-version statement (now {version})"
+    )
+
+
+def test_change_governance_worked_commands_match_manifest():
+    # R1-11 A-28: the third member of the worked-command family. README and
+    # the installation guide were pinned; the governance doc's build-then-
+    # validate block carries the same `--release-id zmeta-vX.Y.Z` literal and
+    # was re-baselined by hand every cycle, so it could go stale with no
+    # signal - the failure the other two pins already exist to prevent.
+    version = manifest_release_version()
+    text = _read("docs/zmeta_change_governance.md")
+    blocks = re.findall(r"```[a-z]*\n(.*?)```", text, re.DOTALL)
+    release_blocks = [block for block in blocks if "build_release_manifest.py" in block]
+    assert release_blocks, (
+        "docs/zmeta_change_governance.md worked manifest-rebuild block not found"
+    )
+    stale = []
+    for block in release_blocks:
+        stale.extend(_stale_version_literals(block, version))
+    assert stale == [], (
+        f"docs/zmeta_change_governance.md worked commands carry stale version "
+        f"literals {stale}; re-baseline them to {version}"
+    )
+
+
+def test_signer_version_help_example_matches_manifest():
+    # R1-11 A-28. RELEASE_CHECKLIST.md's doc-currency pass already names this
+    # file as a surface to re-baseline, so the obligation exists either way;
+    # this makes it machine-checked instead of remembered. The `--version`
+    # default is manifest-derived, so a stale example is not a silent wrong
+    # signature - but an operator who copies it passes an explicit --version
+    # for a PUBLISHED release, and the checksum-immutability guard is then
+    # the only thing between that and a rewritten published record.
+    version = manifest_release_version()
+    text = _read("release/sign_release_artifacts.py")
+    examples = re.findall(r"e\.g\. (v\d+\.\d+\.\d+)", text)
+    assert examples, (
+        "release/sign_release_artifacts.py --version help no longer carries an "
+        "'e.g. vX.Y.Z' example"
+    )
+    stale = [item for item in examples if item != version]
+    assert stale == [], (
+        f"release/sign_release_artifacts.py --version help names {stale}; "
+        f"re-baseline the example to {version}"
+    )
+
+
+def test_compat_cli_test_derives_its_target_rather_than_hardcoding_it():
+    """The compat CLI test must not pin a release literal in executable code.
+
+    R1-11 A-28: the target had been hardcoded to `v1.1.14` while the manifest
+    read `v1.1.16`, so a test named "accepts current release target" quietly
+    stopped exercising the current release. The fix derives the target from the
+    manifest - a real improvement that was reversible with no signal, because
+    `check_compat.py` TARGETS still lists the older release and a revert to the
+    literal therefore still passes.
+
+    Docstrings and comments are exempt: this file's own docstring has to be
+    able to name the versions that produced the defect. Only the `v` prefixed
+    form is a release pin, which is the same discriminator
+    `_NOT_LONGER_VERSION` above is built on - bare dotted triples are
+    zmeta_version semantic branches.
+    """
+    import ast
+
+    path = ROOT / "gateway" / "tests" / "test_check_compat_cli.py"
+    tree = ast.parse(path.read_text(encoding="utf-8"))
+    docstrings = set()
+    for node in ast.walk(tree):
+        if isinstance(node, (ast.Module, ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef)):
+            if node.body and isinstance(node.body[0], ast.Expr):
+                value = node.body[0].value
+                if isinstance(value, ast.Constant) and isinstance(value.value, str):
+                    docstrings.add(id(value))
+    hardcoded = [
+        (node.lineno, literal)
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Constant)
+        and isinstance(node.value, str)
+        and id(node) not in docstrings
+        for literal in re.findall(r"\bv\d+\.\d+\.\d+", node.value)
+    ]
+    assert hardcoded == [], (
+        f"gateway/tests/test_check_compat_cli.py hardcodes release literals "
+        f"{hardcoded}; derive the target from the release manifest so the test "
+        "cannot quietly stop exercising the current release"
     )
 
 

@@ -85,7 +85,18 @@ Refusals (returns None):
   egress is never more permissive than the operator's own filter.
 - Malformed fields (unparseable `ts`, non-finite or non-numeric
   coordinates, heading/speed, or confidence) — refused per the None
-  contract, never raised and never projected.
+  contract, never raised and never projected. "Non-finite" includes an
+  integer too large for a float64: it has no form a SAPIENT float field
+  can carry.
+- An `event.ts` that parses but predates 1970. `report_id` is a ULID whose
+  48-bit timestamp component is the event's own time, and that component
+  cannot represent a negative epoch — so a pre-epoch instant (the
+  canonical bad-clock symptom on an unsynced edge node) is refused rather
+  than clamped to zero or backfilled from the wall clock, either of which
+  would fabricate a time the event does not have. The upper bound is
+  unreachable: 2^48 ms runs to year 10889.
+- A non-finite or unserializable value inside an honesty self-label
+  (`zmeta.risk`, `zmeta.timing_quality`) — see below.
 - Any risk record — or the caller-supplied `use_labels` dict — whose
   `prohibited_uses` include the export path, or whose `allowed_uses` grant
   list omits it (`export_use` kwarg, default `COALITION_EXPORT` from the
@@ -104,6 +115,19 @@ Stock SAPIENT DMMs ignore unknown `object_info` types, so the labels are
 safe-to-ignore for consumers that cannot read them and filterable for those
 that can. They are a projection of ZMeta's honesty context, not new
 SAPIENT vocabulary.
+
+Both label values are serialized with `allow_nan=False`. Python's default
+would emit the bare tokens `NaN`/`Infinity`, which are not JSON
+(RFC 8259 §6), and because a label rides as JSON *inside* a JSON string,
+an outer `json.dumps(message, allow_nan=False)` over the whole message
+cannot see them. If a label cannot be serialized honestly the **event is
+refused**, not the label: `zmeta.timing_quality` is attached only when
+`sync_state` != `LOCKED`, so it exists solely on the events whose
+degradation it reports. Dropping it — or omitting just the corrupt
+`est_error_ms`, which contract §5.3/§5.9 says MUST NOT be omitted — would
+export a detection with no degradation notice, which is precisely the
+laundering the labels exist to prevent. ZMeta remains the source of truth;
+only this lossy projection refuses.
 
 ENU velocity: emitted only when both `heading_deg` and `speed_mps` are
 present (`east_rate`/`north_rate` decomposed from the true-north heading,

@@ -30,8 +30,20 @@ def _git(*args):
 class PublishedChecksumImmutabilityTest(unittest.TestCase):
     def test_published_checksum_files_match_their_release_tags(self):
         files = sorted(ROOT.glob("release/SHA256SUMS_v*.txt"))
+        # Honest scope of this floor (R1-11 A-26): it is a sanity check that
+        # the glob found a corpus at all, NOT a deletion detector - 13 of
+        # the 19 present files could be removed and it would still pass.
+        # That is deliberate: the published record lives in the annotated
+        # tags (compared per file below), not in the working tree, and
+        # deriving the expected set from tags instead would make this test
+        # vacuous in the tagless/shallow checkout the floor exists for.
         self.assertGreaterEqual(
-            len(files), 6, "published checksum corpus shrank - investigate"
+            len(files),
+            6,
+            "no published checksum corpus found in release/ - the glob or the "
+            "checkout is wrong (this floor is a corpus-presence sanity check, "
+            "not a deletion detector; immutability is enforced per file "
+            "against each release tag below)",
         )
 
         code, out = _git("tag", "-l", "v*")

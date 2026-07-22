@@ -36,7 +36,12 @@ from that record: one interruption left a **half-applied two-layer
 fix** that looked complete and was caught only by reading the working
 diff — *resume from the tree, never from the transcript.*
 
-**What was touched:** 77 files, +4802/−392 across `origin/main..HEAD`.
+**What was touched:** measure it — `git diff --shortstat origin/main..HEAD`.
+The range keeps growing, so no total is frozen here (A-13: the figure that
+used to sit on this line was falsified by the commit that wrote it, twice
+over). For reference, at the fresh audit's anchor:
+`git diff --shortstat origin/main..eb41794` = 77 files, +4920 / −392, over
+18 commits.
 The record's "What was touched — validation inventory" section maps it —
 governed surfaces first (`schema/` and `policy/` took only three additive
 `reason_code` enum entries; `spec/semantics-contract.md` took +6/−1 lines
@@ -769,9 +774,26 @@ entries. The single block below is retained as the most recent full command
 inventory recorded in this handoff; older validation generations were
 pruned from this rolling brief and live in git history.
 
-Validation command inventory (run per release; version literals track the
-release being cut — shown as recorded for the v1.1.12 preparation and
-unchanged in shape since):
+Validation command inventory **as recorded for the S1-26 v1.1.12 release
+preparation (2026-07-08, Windows, Python) — historical; superseded by the
+newest `release/VALIDATION_REPORT_v*.md`.** Keep it labelled that way: the
+command set is *not* unchanged in shape since v1.1.12. It gained
+`tools/compute_contract_hash.py` and
+`tools/validate_conformance_classes.py --verify-contract-hash` at v1.1.14
+and dropped `tools/validate_future_roadmap.py` at v1.1.16, so the block
+below is a shape from three releases ago, not a per-release template.
+**Take the inventory for a live cut from the most recent
+`release/VALIDATION_REPORT_v*.md` and `RELEASE_CHECKLIST.md`, not from
+here.** Reproduce the divergence with:
+
+```bash
+for v in 13 14 15 16; do f=release/VALIDATION_REPORT_v1.1.$v.md; \
+  printf '%s roadmap=%s contract_hash=%s\n' "$f" \
+    "$(grep -c validate_future_roadmap $f)" "$(grep -c compute_contract_hash $f)"; done
+```
+
+The results recorded beneath the block are likewise v1.1.12-era
+(`465 passed, 110 subtests`; `total=47 passed=47`) and are **not** current.
 
 ```powershell
 python tools\build_release_manifest.py --release-id zmeta-v1.1.12 --release-name "ZMeta v1.1.12" --release-status formal_release --release-date 2026-07-08 --branch main --update-claims

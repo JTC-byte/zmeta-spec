@@ -64,7 +64,11 @@ def encode_payload(raw, encoding):
     if encoding == "compact":
         if zmeta_compact is None:
             raise SystemExit("Compact encoding requires zmeta_compact.")
-        return zmeta_compact.dumps(obj)
+        # Same refusal contract as tools/convert_encoding.py (R1-11 A-24).
+        try:
+            return zmeta_compact.dumps(obj)
+        except zmeta_compact.CompactUnrepresentableError as exc:
+            raise SystemExit(f"send refused: {exc}") from exc
 
     if encoding == "proto":
         if zmeta_proto is None:

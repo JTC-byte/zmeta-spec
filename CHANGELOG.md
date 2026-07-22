@@ -34,9 +34,14 @@
     closed on unknown/local `policy_decision` labels (filter_risk
     parity) and keeps use restrictions visible on accepted records;
     TaskAck refuses null correlations instead of fabricating "None";
-    non-finite numbers refuse at every canonical guard and are dropped
-    from native pass-through blocks; fusion promotion allowlists caller
-    keys; egress projections honor their documented None-refusal.
+    **in this adapter family** non-finite numbers refuse at every
+    canonical guard and are dropped from its native pass-through blocks
+    (scoped deliberately — the sentence is true of the SAPIENT ingress and
+    egress paths this bullet covers, and was read repo-wide as a stack-wide
+    guarantee it never made; the kernel-wide non-finite gate is a separate,
+    later item — see `docs/zmeta_doctrine_review_log.md` R1-11-13); fusion
+    promotion allowlists caller keys; egress projections honor their
+    documented None-refusal.
   - signalhunter GPS no-lock (R11-06): a (0, 0) header never seeds the
     gradient tracker (previously produced a null-island geodesic
     asserted TRUE_NORTH passing strict-H clean); fabricated dead

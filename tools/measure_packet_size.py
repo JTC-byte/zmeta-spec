@@ -138,14 +138,21 @@ def main() -> None:
         trimmed = _strip_paths(event, args.strip)
         label = _event_label(trimmed)
         sizes: Dict[str, int] = {}
-        if "json" in encodings:
-            sizes["json"] = _size_json(trimmed)
-        if "cbor" in encodings:
-            sizes["cbor"] = _size_cbor(trimmed)
-        if "compact" in encodings:
-            sizes["compact"] = _size_compact(trimmed)
-        if "proto" in encodings:
-            sizes["proto"] = _size_proto(trimmed)
+        # The compact codec deliberately refuses events it cannot carry
+        # honestly (non-1.0 zmeta_version, out-of-range integers). Report
+        # that refusal the way the sibling CLI does rather than aborting
+        # with a raw traceback (R1-11 A-24; tools/convert_encoding.py).
+        try:
+            if "json" in encodings:
+                sizes["json"] = _size_json(trimmed)
+            if "cbor" in encodings:
+                sizes["cbor"] = _size_cbor(trimmed)
+            if "compact" in encodings:
+                sizes["compact"] = _size_compact(trimmed)
+            if "proto" in encodings:
+                sizes["proto"] = _size_proto(trimmed)
+        except zmeta_compact.CompactUnrepresentableError as exc:
+            raise SystemExit(f"measurement refused for {label}: {exc}") from exc
         rows.append((label, sizes))
         if budget_encoding:
             size_value = sizes.get(budget_encoding)

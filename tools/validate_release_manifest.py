@@ -149,6 +149,32 @@ def validate_manifest(manifest_path: Path | str, *, root: Path = ROOT) -> list[d
                     "reference baseline in notes",
                 )
             )
+        # Identity half of the same rule (R1-11 A-09). The notes sentence
+        # above is derived from release_status by a ternary in the builder,
+        # so builder output can never trip it; the identity fields CAN and
+        # DO, because the builder defaults them. `--release-status
+        # formal_release --branch main` with the identity flags omitted
+        # produced a governed, hash-pinned manifest that called itself the
+        # reference hardening baseline and validated with zero issues -
+        # which is exactly the self-description spec/release-hash-policy.md
+        # says this validator refuses.
+        for field, baseline in (
+            ("release_id", builder.DEFAULT_RELEASE_ID),
+            ("release_name", builder.DEFAULT_RELEASE_NAME),
+            ("release_date", builder.DEFAULT_RELEASE_DATE),
+        ):
+            value = manifest.get(field)
+            if value == baseline or value == builder.DEFAULT_RELEASE_METADATA:
+                issues.append(
+                    _issue(
+                        "RELEASE_MANIFEST_FORMAL_IDENTITY_INVALID",
+                        f"formal_release manifest carries the reference-baseline "
+                        f"{field} ({value!r}); pass an explicit "
+                        f"--{field.replace('_', '-')} "
+                        "(spec/release-hash-policy.md provenance rules)",
+                        item=field,
+                    )
+                )
 
     artifact_groups = manifest.get("artifact_groups")
     if not isinstance(artifact_groups, dict):

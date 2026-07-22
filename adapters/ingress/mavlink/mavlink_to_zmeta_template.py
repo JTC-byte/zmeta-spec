@@ -26,9 +26,162 @@ PROMOTION_POLICY_ID = "PROMOTE-MAVLINK-STATE-V1"
 # require metrics.reason_code.
 _LINK_STATUS_STATES = ("UP", "DEGRADED", "DOWN", "UNKNOWN")
 
+# The v1.0 schema's LINK_STATUS metrics.reason_code vocabulary, mirrored from
+# schema/zmeta-event-1.0.schema.json $defs/SystemPayload. Mirrored rather than
+# loaded because this file is a template meant to be copied into a bridge with
+# no ZMeta repo alongside it; the schema remains authoritative, and a drift
+# between the two is a schema-refusal at the gateway, never a silent pass.
+_LINK_STATUS_REASON_CODES = (
+    "LINK_LOSS",
+    "LOW_RSSI",
+    "HIGH_LATENCY",
+    "HIGH_PACKET_LOSS",
+    "LOW_THROUGHPUT",
+    "INTERFERENCE",
+    "JAMMED",
+    "BACKHAUL_DOWN",
+    "NO_ROUTE",
+    "CONFIG_ERROR",
+    "POWER_SAVE",
+    "UNKNOWN_CAUSE",
+)
+
+# The v1.0 schema's TASK_ACK state vocabulary, mirrored the same way and for
+# the same reason. There is deliberately no "unknown" member: an unknown
+# acknowledgement is not a state a task can be in, it is the absence of an ack,
+# so a message that carries no interpretable verdict is refused rather than
+# reported (doctrine review log R1-11-05, HELD).
+_TASK_ACK_STATES = (
+    "RECEIVED",
+    "ACCEPTED",
+    "REJECTED",
+    "EXECUTING",
+    "COMPLETED",
+    "FAILED",
+    "CANCELLED",
+    "EXPIRED",
+    "DUPLICATE_IGNORED",
+)
+
+# The three keys a decoded MISSION_ACK / COMMAND_ACK dict may carry the verdict
+# under. Presence is tested by key, never by truthiness: MAV_MISSION_ACCEPTED
+# and MAV_RESULT_ACCEPTED are both the integer 0, so a truthiness test destroys
+# precisely the successful acknowledgements.
+_TASK_ACK_CARRIER_KEYS = ("state", "mission_state", "ack")
+
+# TIME_STATUS payload.state, ordered least-degraded to most. The v1.0 schema
+# does NOT enum-constrain this field (only the LINK_STATUS and TASK_ACK
+# branches of $defs/SystemPayload constrain `state`), so there is no governed
+# enum to derive from and nothing downstream that would catch an
+# out-of-vocabulary verdict - which is exactly why the vocabulary has to be
+# declared and enforced here. An ordering, not a whitelist: "more conservative"
+# has to be a comparison, or the guard degenerates into a list of the two
+# labels its author happened to think of.
+_TIME_STATUS_STATE_SEVERITY = {"UP": 0, "DEGRADED": 1, "DOWN": 2}
+
+# "SYNCED" is the MAVLink-side spelling of a locked clock - the same rename
+# _normalize_sync_state performs on the metrics side, not an extra verdict.
+_TIME_STATUS_STATE_SYNONYMS = {"SYNCED": "UP"}
+
+# MAVLink's uint8 "invalid/unknown" sentinel. GPS_RAW_INT.satellites_visible,
+# RC_CHANNELS(_RAW).rssi and RADIO_STATUS.rssi all document "Values: [0-254],
+# UINT8_MAX: invalid/unknown".
+_UINT8_UNKNOWN = 255
+
+# SYS_STATUS.voltage_battery is uint16 millivolts with UINT16_MAX documented as
+# "voltage not sent by autopilot". decode_sys_status drops it in millivolts;
+# this is the same sentinel in the volts a caller-assembled state dict carries,
+# because a bridge copied from an older template divides before handing it over.
+_UINT16_UNKNOWN_VOLTAGE_V = 65535 / 1000.0
+
 
 def _utc_now():
     return utc_now_z()
+
+
+def _is_real_number(value):
+    """True for a value the range guards below can actually compare.
+
+    Needed because those guards use ordered comparisons: without it a caller
+    handing a string voltage or heading - which every one of these emitters
+    accepts as an opaque keyword - would get a bare ``TypeError`` out of the
+    adapter instead of the documented disposition. ``bool`` is excluded on
+    purpose: ``True`` is an ``int`` in Python, and a boolean is not a
+    measurement in any of these fields.
+    """
+    return isinstance(value, (int, float)) and not isinstance(value, bool)
+
+
+def _is_kernel_business(value):
+    """True for a non-finite, which these guards deliberately do not swallow.
+
+    A NaN/Inf in a canonical or quality field is refused by the kernel's
+    value-honesty gate, loudly and with a reason code the operator can filter
+    on. Dropping it here instead would trade that filterable refusal for a
+    silent omission - the operator would lose both the value and the signal
+    that anything was wrong. Range and sentinel guards stop at their own
+    question; non-finiteness belongs to the gate that owns it.
+    """
+    return isinstance(value, float) and not math.isfinite(value)
+
+
+def _uint8_measurement_or_none(value):
+    """Drop MAVLink's uint8 UINT8_MAX "invalid/unknown" sentinel.
+
+    255 on a documented 0-254 scale is not a measurement; forwarded verbatim it
+    reads downstream as the strongest signal ever observed, i.e. the sentinel
+    becomes the best possible reading. Callers that report RSSI in dBm are
+    unaffected - a dBm scale never reaches +255 either, so 255 is unusable in
+    both readings this adapter accepts.
+    """
+    if value is None or value == _UINT8_UNKNOWN:
+        return None
+    return value
+
+
+def _battery_voltage_or_none(volts):
+    """Drop a battery voltage that is a sentinel or a fabricated zero.
+
+    Two values are refused. ``UINT16_MAX / 1000`` is SYS_STATUS's "voltage not
+    sent by autopilot" after the conversion any bridge performs, and publishing
+    it is the 65.535 V measurement ``decode_sys_status`` already refuses to
+    manufacture one layer down. ``<= 0`` is the fabricated-default shape: an
+    autopilot with no battery monitor configured reports 0, and a flying
+    vehicle cannot be at 0 V, so a zero here is "not measured", not a flat
+    battery. Guarded on both sides of the boundary because a state dict, and
+    every ``translate_link_status`` keyword, can be assembled by any bridge -
+    a decoder-only guard is half a guard.
+
+    Stated cost: a genuine reading of exactly 65.535 V - reachable on a 16S
+    pack - is omitted for that sample. An omitted optional quality field
+    degrades the event; a sentinel published as a healthy-battery measurement
+    launders it, and the two are indistinguishable at this boundary.
+    """
+    if not _is_real_number(volts):
+        return None
+    if _is_kernel_business(volts):
+        return volts
+    if volts <= 0 or volts == _UINT16_UNKNOWN_VOLTAGE_V:
+        return None
+    return volts
+
+
+def _heading_deg_or_none(heading_deg):
+    """Drop a heading that is outside the only range a heading can occupy.
+
+    GLOBAL_POSITION_INT.hdg = UINT16_MAX is "unknown"; a bridge that divides
+    before handing the value over produces 655.35 deg. That is not a bearing in
+    any frame, and on the non-canonical ``quality`` path nothing downstream
+    catches it (only ``payload.heading_deg`` carries the schema's 0-360 bound).
+    Omitted, never clamped: clamping would invent a direction.
+    """
+    if not _is_real_number(heading_deg):
+        return None
+    if _is_kernel_business(heading_deg):
+        return heading_deg
+    if not 0 <= heading_deg <= 360:
+        return None
+    return heading_deg
 
 
 def _normalize_sync_state(sync_state):
@@ -41,6 +194,24 @@ def _normalize_sync_state(sync_state):
     return "LOCKED" if sync_state == "SYNCED" else sync_state
 
 
+def _normalize_vocabulary_token(value, vocabulary, synonyms=None):
+    """Fold a caller-supplied label onto a declared vocabulary, or return None.
+
+    Normalisation is surrounding whitespace and case only, and it happens
+    *before* the comparison. ``"UP "`` renders as ``UP`` in every operator UI,
+    so a guard that compares the raw string lets the exact label it was written
+    to catch escape on one space. Non-strings normalise to nothing: they are
+    not spellings of a verdict, and coercing them with ``str()`` would turn an
+    uninterpretable value into a schema-valid one.
+    """
+    if not isinstance(value, str):
+        return None
+    token = value.strip().upper()
+    if synonyms:
+        token = synonyms.get(token, token)
+    return token if token in vocabulary else None
+
+
 def _time_status_payload_state(sync_state, carried_state=None):
     """Derive TIME_STATUS ``payload.state`` from the carried sync verdict.
 
@@ -51,14 +222,43 @@ def _time_status_payload_state(sync_state, carried_state=None):
     verdicts in the same field.
 
     A message-carried ``state`` is honoured only when it is *more* conservative
-    than the derived verdict: an upstream that already knows its clock is
-    degraded keeps that verdict, while an optimistic "UP"/"SYNCED" label never
-    overrides an UNSYNCED metrics block. The event therefore never contradicts
-    itself and never launders a caller's degraded claim into a clean one.
+    than the derived verdict, compared on the declared severity ordering
+    ``_TIME_STATUS_STATE_SEVERITY``: an upstream that already knows its clock
+    is degraded keeps that verdict, while an optimistic "UP"/"SYNCED" label
+    never overrides an UNSYNCED metrics block.
+
+    A carried value that is not a member of that vocabulary is **refused**
+    (ValueError), not silently replaced by the derived verdict. Replacing it
+    would be the laundering this function exists to prevent, running the other
+    way: an unrankable label may be *more* degraded than the derivation
+    ("FAULT", "DRIFTING", a raw numeric code), and quietly publishing the
+    derived "UP" over it would clean up an upstream that said something was
+    wrong. Since the label cannot be ranked, it cannot be honoured and it
+    cannot be dropped - so the event that carries it is refused, the same
+    disposition this module already applies to a TIME_STATUS missing
+    ``est_error_ms`` and to an out-of-vocabulary LINK_STATUS ``state``.
+
+    An absent verdict is not an uninterpretable one: ``None`` and a blank
+    string mean "this message said nothing about clock health" and take the
+    derived verdict.
     """
     derived = "UP" if _normalize_sync_state(sync_state) == "LOCKED" else "DEGRADED"
-    if carried_state and str(carried_state).upper() not in ("UP", "SYNCED"):
-        return str(carried_state)
+    if carried_state is None or (isinstance(carried_state, str) and not carried_state.strip()):
+        return derived
+    carried = _normalize_vocabulary_token(
+        carried_state, _TIME_STATUS_STATE_SEVERITY, _TIME_STATUS_STATE_SYNONYMS
+    )
+    if carried is None:
+        raise ValueError(
+            "TIME_STATUS carried a state this adapter cannot rank: "
+            f"{carried_state!r}. A clock verdict must be one of "
+            f"{'/'.join(_TIME_STATUS_STATE_SEVERITY)} (or the synonym "
+            f"{'/'.join(_TIME_STATUS_STATE_SYNONYMS)}); map the upstream label "
+            "in the bridge. It is neither honoured nor discarded here - a "
+            "verdict that cannot be ranked is never fabricated away"
+        )
+    if _TIME_STATUS_STATE_SEVERITY[carried] > _TIME_STATUS_STATE_SEVERITY[derived]:
+        return carried
     return derived
 
 
@@ -130,10 +330,12 @@ def translate_platform_state(
               lon (float): degrees; absent/None refuses emission (no default)
               alt_m (float): metres AMSL; absent/None refuses emission
                 (no default). Canonical geo is all-or-nothing (contract 6.8).
-              heading_deg (float, optional): 0-360; None or absent means
-                unknown and omits payload.heading_deg (no 0.0 default).
-                A known value is canonical only when heading_frame is
-                explicitly "TRUE_NORTH".
+              heading_deg (float, optional): 0-360; None, absent, or outside
+                0-360 (655.35 is the UINT16_MAX "hdg unknown" sentinel a
+                bridge produces by dividing before handing it over) means
+                unknown and omits both heading destinations (no 0.0 default,
+                and no clamp). A known value is canonical only when
+                heading_frame is explicitly "TRUE_NORTH".
               speed_mps (float, optional): ground speed m/s; None or absent
                 omits payload.speed_mps (no 0.0 "stationary" default)
               gps_fix_type (int, optional): ArduPilot fix type 0-6; absent
@@ -143,7 +345,9 @@ def translate_platform_state(
                 unreported and omits payload.quality.satellites_visible
               vx, vy, vz (float): velocity components m/s (optional)
               roll_deg, pitch_deg, yaw_deg (float): attitude (optional)
-              battery_voltage (float): volts (optional)
+              battery_voltage (float): volts (optional); a non-positive value
+                or the SYS_STATUS UINT16_MAX "voltage not sent" sentinel in
+                volts (65.535) is omitted, never published as a measurement
               battery_remaining_pct (int): 0-100 (optional)
               custom_mode (int): ArduPilot flight mode (optional)
         platform_id: Platform identifier string.
@@ -181,7 +385,14 @@ def translate_platform_state(
     # heading is canonical only when deployment config explicitly asserts
     # heading_frame="TRUE_NORTH"; otherwise the raw value is retained only as
     # quality context.
-    heading_deg = _get("heading_deg")
+    # A heading outside 0-360 is not a bearing in any frame: the commonest
+    # arrival is 655.35, the UINT16_MAX "hdg unknown" sentinel divided by 100
+    # by a bridge that does the conversion itself. Guarded here as well as in
+    # decode_global_position_int, and on both destinations - the canonical
+    # payload.heading_deg is schema-bounded to 0-360, but the non-canonical
+    # quality.mavlink_hdg_frame_unknown_deg is not, so an unguarded sentinel
+    # lands there schema-clean.
+    heading_deg = _heading_deg_or_none(_get("heading_deg"))
     # An unreported ground speed is omitted, never fabricated as a 0.0
     # ("stationary") default: payload.speed_mps is schema-optional, and
     # asserting that a platform is not moving is a claim the telemetry never
@@ -223,7 +434,7 @@ def translate_platform_state(
     # Guarded here as well as in decode_gps_raw_int because the state dict can
     # be assembled by any MAVLink bridge, the same way the battery sentinels
     # below are guarded on both sides.
-    if satellites_visible is not None and satellites_visible != 255:
+    if _uint8_measurement_or_none(satellites_visible) is not None:
         quality["satellites_visible"] = satellites_visible
     if fix_for_decisions < 3:
         quality["geo_status"] = "STALE"
@@ -237,8 +448,8 @@ def translate_platform_state(
             quality[attr] = val
 
     # Optional battery/mode fields
-    battery_v = _get("battery_voltage")
-    if battery_v is not None and battery_v > 0:
+    battery_v = _battery_voltage_or_none(_get("battery_voltage"))
+    if battery_v is not None:
         quality["battery_voltage"] = battery_v
     battery_pct = _get("battery_remaining_pct")
     if battery_pct is not None and battery_pct >= 0:
@@ -381,15 +592,27 @@ def decode_global_position_int(msg_dict):
 def decode_attitude(msg_dict):
     """Extract attitude from ATTITUDE fields (radians -> degrees).
 
-    An axis the message does not report is omitted from the decoded state
-    dict rather than decoded as 0.0 degrees, which would assert a measured
-    level attitude the autopilot never reported. Omitted keys also leave any
-    previously accumulated value in the caller's state dict intact.
+    An axis the message does not report decodes to explicit ``None``, never to
+    0.0 degrees (which would assert a measured level attitude the autopilot
+    never reported) and never to an omitted key.
+
+    The omitted-key form was the earlier behaviour and it was wrong in the
+    documented accumulation pattern (``state.update(decode_attitude(...))``,
+    README): an omitted key leaves the *previous* message's roll in the state
+    dict, and ``translate_platform_state`` then publishes it in
+    ``payload.quality.roll_deg`` as a current reading with no per-field
+    staleness marker. Stale-presented-as-current is the same laundering class
+    as fabricated-as-measured. Explicit ``None`` clobbers instead - the value
+    is dropped from the emitted quality block, which degrades the event and
+    never cleans it up - and it makes this decoder agree with
+    ``decode_global_position_int``, which already returns ``None`` per absent
+    field for exactly this reason.
     """
     decoded = {}
     for field, key in (("roll", "roll_deg"), ("pitch", "pitch_deg"), ("yaw", "yaw_deg")):
         value = msg_dict.get(field)
         if value is None:
+            decoded[key] = None
             continue
         degrees = math.degrees(value)
         decoded[key] = degrees % 360 if key == "yaw_deg" else degrees
@@ -415,8 +638,8 @@ def decode_gps_raw_int(msg_dict):
     fix_type = msg_dict.get("fix_type")
     if fix_type is not None:
         decoded["gps_fix_type"] = fix_type
-    satellites_visible = msg_dict.get("satellites_visible")
-    if satellites_visible is not None and satellites_visible != 255:
+    satellites_visible = _uint8_measurement_or_none(msg_dict.get("satellites_visible"))
+    if satellites_visible is not None:
         decoded["satellites_visible"] = satellites_visible
     return decoded
 
@@ -457,13 +680,23 @@ def mavlink_decoded_to_zmeta_system_events(
 
     Handles TASK_ACK, TIME_STATUS, and LINK_STATUS based on message content.
 
-    ``payload.state`` is never invented on any of the three branches. The
-    acknowledgement verdict must be message-carried (the v1.0 TASK_ACK state
-    vocabulary has no "unknown" member, so a message with no verdict is
-    refused rather than reported as RECEIVED); the TIME_STATUS verdict is
-    derived from the carried sync state by the same ``_time_status_payload_state``
-    ``translate_time_status`` uses, so the two never disagree; and the
-    LINK_STATUS fallback stays "UNKNOWN".
+    ``payload.state`` is never invented on any of the three branches, and it is
+    never accepted uninterpreted either.
+
+    The acknowledgement verdict must be message-carried *and* be a member of
+    the v1.0 TASK_ACK vocabulary. Presence is tested by carrier key, so a
+    carried MAVLink code of 0 - MAV_MISSION_ACCEPTED / MAV_RESULT_ACCEPTED - is
+    not mistaken for a missing verdict; it is refused as unmappable, with a
+    message that says so. The vocabulary has no "unknown" member to degrade
+    into, so both failures refuse rather than report a RECEIVED nobody sent.
+
+    The TIME_STATUS verdict is derived from the carried sync state by the same
+    ``_time_status_payload_state`` ``translate_time_status`` uses, so the two
+    never disagree, and a carried verdict outside that function's declared
+    ordering is refused rather than published over a metrics block it may
+    contradict.
+
+    The LINK_STATUS fallback stays "UNKNOWN".
     """
     if not isinstance(msg, dict):
         raise ValueError("msg must be a dict")
@@ -477,7 +710,13 @@ def mavlink_decoded_to_zmeta_system_events(
         # "unknown" member to degrade into, so a message that carries no
         # verdict is refused (convert or refuse, never invent). Nothing is
         # lost: the task_id and original_event_id are already the commander's.
-        state = msg.get("state") or msg.get("mission_state") or msg.get("ack")
+        carried_key = None
+        carried_state = None
+        for key in _TASK_ACK_CARRIER_KEYS:
+            if key in msg and msg[key] is not None:
+                carried_key = key
+                carried_state = msg[key]
+                break
         task_id = msg.get("task_id")
         original_event_id = (
             msg.get("original_event_id")
@@ -486,10 +725,31 @@ def mavlink_decoded_to_zmeta_system_events(
         )
         if task_id is None or original_event_id is None:
             raise ValueError("TASK_ACK requires task_id and original_event_id")
-        if not state:
+        if carried_key is None:
             raise ValueError(
                 "TASK_ACK requires a message-carried ack state; an "
                 "acknowledgement verdict is never fabricated"
+            )
+        state = _normalize_vocabulary_token(carried_state, _TASK_ACK_STATES)
+        if state is None:
+            # Presence is tested by key above and interpretability here, so the
+            # two failures get two different, true messages. Truthiness cannot
+            # do this job: MAV_MISSION_ACCEPTED and MAV_RESULT_ACCEPTED are
+            # both the integer 0, so a falsy test reports "no verdict carried"
+            # about precisely the successful acknowledgements and destroys them.
+            #
+            # A raw MAVLink result code is refused rather than mapped, and that
+            # is deliberate: 0 means ACCEPTED under MISSION_ACK.type and
+            # COMMAND_ACK.result but UNKNOWN under MISSION_CURRENT.mission_state,
+            # and this dict does not say which enum the integer came from.
+            # Guessing an acceptance is the one direction that must never be
+            # guessed - a commander reads it as the vehicle having taken the
+            # task. The bridge holds the message type; it maps the code.
+            raise ValueError(
+                f"TASK_ACK carrier {carried_key!r} carried {carried_state!r}, which is "
+                f"not one of the v1.0 TASK_ACK states ({'/'.join(_TASK_ACK_STATES)}); "
+                "map the MAVLink result code to a ZMeta verdict in the bridge - an "
+                "acknowledgement verdict is never fabricated and never guessed"
             )
         metrics = {
             "task_id": task_id,
@@ -521,7 +781,11 @@ def mavlink_decoded_to_zmeta_system_events(
         ]
 
     metrics = {}
-    if "rssi" in msg:
+    # RADIO_STATUS.rssi carries the same uint8 UINT8_MAX "invalid/unknown"
+    # convention as RC_CHANNELS.rssi and GPS_RAW_INT.satellites_visible.
+    # (snr and drop_rate below are left as carried: neither SYS_STATUS
+    # drop_rate_comm nor any common-message snr field declares a sentinel.)
+    if _uint8_measurement_or_none(msg.get("rssi")) is not None:
         metrics["rssi"] = msg["rssi"]
     if "snr" in msg:
         metrics["snr"] = msg["snr"]
@@ -576,8 +840,17 @@ def translate_link_status(
     those states); supplying a state outside UP/DEGRADED/DOWN/UNKNOWN, or a
     DEGRADED/DOWN with no reason, is refused rather than emitted invalid.
 
+    ``reason_code`` is checked against the v1.0 vocabulary, not merely for
+    presence, and it may not accompany ``state="UP"`` - a healthy link with a
+    cause of degradation contradicts itself in the field the operator reads
+    first. Both are refusals, not silent corrections.
+
     ``battery_voltage``, ``battery_pct`` and ``rc_rssi`` are optional; when
-    unreported they are omitted rather than emitted as 0 V / -1 % / 0 RSSI.
+    unreported they are omitted rather than emitted as 0 V / -1 % / 0 RSSI,
+    and each is guarded against its documented MAVLink sentinel on this side
+    too (``rc_rssi = 255`` is UINT8_MAX "invalid/unknown", ``battery_voltage =
+    65.535`` is UINT16_MAX "voltage not sent"), because these are bare keyword
+    arguments with no decoder in front of them.
 
     ``based_on`` may carry real parent ZMeta event ids (UUIDv7 strings); when
     None (default), lineage is omitted (SYSTEM_EVENT lineage is optional and
@@ -599,6 +872,29 @@ def translate_link_status(
         raise ValueError(
             "LINK_STATUS state DEGRADED/DOWN requires metrics.reason_code"
         )
+    if reason_code is not None:
+        # Presence was enforced and the value was not, on a path that only
+        # became reachable when `state` stopped being hard-coded - so a
+        # DEGRADED could still be emitted schema-invalid. Same treatment as
+        # `state` above: a declared vocabulary, refused rather than emitted.
+        if reason_code not in _LINK_STATUS_REASON_CODES:
+            raise ValueError(
+                f"LINK_STATUS metrics.reason_code must be one of "
+                f"{'/'.join(_LINK_STATUS_REASON_CODES)}; link health is never fabricated"
+            )
+        # A cause of degradation under a state that says the link is healthy is
+        # the same self-contradiction as a SYNCED clock over an UNSYNCED
+        # metrics block, and the operator reads the state first. Which of the
+        # two the caller meant is not adjudicable here, so neither is silently
+        # dropped. UNKNOWN is deliberately still permitted: "I observed high
+        # latency and I am not adjudicating health" is an honest pair.
+        if state == "UP":
+            raise ValueError(
+                "LINK_STATUS state UP cannot carry metrics.reason_code "
+                f"({reason_code!r}): a healthy link has no cause of degradation. "
+                "Supply DEGRADED/DOWN, or UNKNOWN to report the observation "
+                "without adjudicating link health"
+            )
     metrics = {
         "link_id": f"edge-comms-{platform_id}",
         "active_link": active_link,
@@ -606,11 +902,14 @@ def translate_link_status(
         "packet_loss_pct": packet_loss_pct,
         "throughput_bps": throughput_bps,
     }
-    if battery_voltage is not None:
+    # Every optional metric below is guarded on this side too: these are bare
+    # keyword arguments with no decoder in front of them, so this is the only
+    # side there is.
+    if _battery_voltage_or_none(battery_voltage) is not None:
         metrics["battery_voltage"] = battery_voltage
     if battery_pct is not None and battery_pct >= 0:
         metrics["battery_remaining_pct"] = battery_pct
-    if rc_rssi is not None:
+    if _uint8_measurement_or_none(rc_rssi) is not None:
         metrics["rc_rssi"] = rc_rssi
     if reason_code is not None:
         metrics["reason_code"] = reason_code

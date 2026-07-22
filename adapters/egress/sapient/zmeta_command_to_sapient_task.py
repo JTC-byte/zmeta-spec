@@ -72,11 +72,17 @@ def _parse_utc(ts):
 
 def _is_finite_number(value):
     # Finite only: a NaN/inf coordinate is not an honest target claim.
-    return (
-        isinstance(value, (int, float))
-        and not isinstance(value, bool)
-        and math.isfinite(value)
-    )
+    if not isinstance(value, (int, float)) or isinstance(value, bool):
+        return False
+    try:
+        return math.isfinite(value)
+    except OverflowError:
+        # ``math.isfinite`` RAISES on a Python int outside the float64
+        # range, and ``json.loads`` builds exactly such an int from a
+        # plain integer literal — so a 400-digit target_lat would raise
+        # out of this projection instead of refusing. The altitude
+        # tripwire stays the only deliberate raise here (see docstring).
+        return False
 
 
 def _utc_z(dt):
@@ -194,10 +200,16 @@ def zmeta_command_to_sapient_task(event, *, node_id, destination_id, track_to_ob
     # Malformed ts or a non-integer valid_for_ms is refused per the
     # documented None contract; the altitude tripwire above remains the
     # only deliberate raise in this projection.
+    #
+    # OSError is in the tuple because `_parse_utc` calls `.astimezone()`,
+    # which delegates to the platform for a NAIVE datetime and raises
+    # OSError(EINVAL) on Windows for any pre-1970 instant. A naive
+    # pre-epoch ts is the bad-clock symptom arriving without a zone —
+    # without this arm it escapes the guard and the projection raises.
     try:
         time_dt = _parse_utc(ts)
         end_dt = time_dt + timedelta(milliseconds=int(valid_for_ms))
-    except (ValueError, TypeError, OverflowError):
+    except (ValueError, TypeError, OverflowError, OSError):
         return None
 
     return {

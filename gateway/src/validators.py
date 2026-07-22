@@ -580,7 +580,38 @@ def _profile_for_event(event, profile=None):
 
 
 def _timing_freshness_enabled(policy):
-    return isinstance(policy, dict) and policy.get("enabled", True) is not False
+    """Is the timing-freshness gate on?
+
+    Only an explicit ``enabled: false`` turns it off. A block that is NOT a
+    mapping cannot say ``enabled: false`` — it is a destroyed block, and
+    reading a destroyed block as "the operator disabled this gate" is what
+    silently switched the whole stale / negative-age gate off with no
+    diagnostic anywhere (R1-11 B-02, runtime half).
+
+    This was the sole outlier in its own family. Every other reader here
+    already falls back to its built-in default when the policy is not a
+    mapping — ``_timing_mode`` returns ``reject``, ``_max_timing_status_age_ms``
+    and ``_max_negative_timing_status_age_ms`` return the per-profile
+    defaults — and ``validate_timing_quality``'s own MISSING branch already
+    refuses when the policy is unreadable. Absence stays legal and permissive
+    the same way it always did: an absent ``timing-freshness.yaml`` loads as
+    ``{}``, which is a mapping and takes the built-in defaults.
+    """
+    if not isinstance(policy, dict):
+        return True
+    return policy.get("enabled", True) is not False
+
+
+def _timing_policy_block_error(policy):
+    """Name a destroyed timing_freshness block so a refusal can cite it."""
+    if isinstance(policy, dict):
+        return None
+    return (
+        "the timing_freshness policy block must be a mapping; got "
+        f"{type(policy).__name__}, so no freshness bound could be read and the "
+        "built-in defaults were applied "
+        "(policy/timing-freshness.yaml#timing_freshness)"
+    )
 
 
 def _timing_mode(policy, reason, profile=None):
@@ -654,6 +685,11 @@ def _timing_policy_violation(
         policy=timing_freshness_policy,
         policy_ref="policy/timing-freshness.yaml",
     )
+    # A refusal caused by broken policy must name the policy, the same way the
+    # routing and producer-authority refusals do (R1-11 B-02).
+    block_error = _timing_policy_block_error(timing_freshness_policy)
+    if block_error is not None:
+        details["policy_error"] = block_error
     if mode == "degrade":
         details["action"] = "degrade"
         degradation = (
@@ -815,6 +851,13 @@ def _event_vocabulary(field, schema_dir=None):
             continue
         _collect_event_field_values(document, field, values)
     vocabulary = frozenset(values)
+    if not vocabulary:
+        # Never cache a FAILURE. An empty result means the schemas could not
+        # be read on this call, which is a transient, environmental condition
+        # (the directory not mounted yet, a read error) — caching it disables
+        # the vocabulary check for the life of the process, so one unlucky
+        # first call permanently turns the gate off (R1-11 R2-32).
+        return vocabulary
     _EVENT_VOCABULARY_CACHE[cache_key] = vocabulary
     return vocabulary
 
@@ -891,6 +934,27 @@ _PRODUCER_RULE_LIST_KEYS = (
     "allowed_event_subtypes",
     "forbidden_event_types",
 )
+# Of the per-producer list keys, the ones where an unmatchable token fails
+# OPEN — and are therefore the ones a runtime refusal is proportionate for.
+#
+#   forbidden_event_types: `COMMAND_EVEN` silently DROPS a prohibition. The
+#   extent of what is now un-prohibited is unknowable from the typo, so the
+#   whole rule's adjudication is untrustworthy and the producer is refused.
+#
+#   allowed_event_types is deliberately NOT here. A typo there removes an
+#   entry from an ALLOWLIST, which already fails closed by construction — the
+#   producer's STATE_EVENTs stop being authorized on their own. Refusing the
+#   producer wholesale on top of that discards the events the SURVIVING,
+#   correctly-spelled entries explicitly authorize, buying no honesty: it
+#   throws away good canonical data to re-close a door that is already shut
+#   (R1-11 R2-17). The deployment lint still reports the token loudly through
+#   _LIST_ENTRY_VOCABULARIES, so the operator is not left in the dark.
+#
+#   allowed_event_subtypes is not here either, for a different reason: the
+#   subtype vocabulary is open — spec/extension-registry.yaml registers
+#   subtypes that are not yet schema-valid — so "unknown token" is not
+#   decidable from the schema at all (doctrine log R1-11-11, still open).
+_FAIL_OPEN_ON_UNKNOWN_TOKEN = frozenset({"forbidden_event_types"})
 
 
 def _producer_rule_policy_error(rule, policy_ref):
@@ -943,10 +1007,7 @@ def _producer_rule_policy_error(rule, policy_ref):
                 f"not, and each is stringified into a token that can never "
                 f"match ({policy_ref})"
             )
-        if key == "allowed_event_subtypes":
-            # The subtype vocabulary is open: spec/extension-registry.yaml
-            # registers subtypes that are not yet schema-valid, so an unknown
-            # token here is not decidable from the schema alone.
+        if key not in _FAIL_OPEN_ON_UNKNOWN_TOKEN:
             continue
         unknown = _unknown_event_tokens(raw)
         if unknown:
@@ -960,6 +1021,61 @@ def _producer_rule_policy_error(rule, policy_ref):
 
 def _is_blank(value):
     return value is None or value == "" or value == []
+
+
+def _allowlist_contains(value, allowlist):
+    """Is ``value`` a member of ``allowlist``, for a value we do not control?
+
+    ``payload.extensions`` is free-form in both schemas — no type constraint on
+    ``external_promotion`` or any of its members — so a producer may legally
+    put a list or a dict where the promotion guard expects a scalar token.
+    ``<list> in <set>`` raises ``TypeError: unhashable type`` straight out of
+    the public ``validate_producer_authority`` API: inside the reference
+    gateway the receive-loop backstop turns that into an ``INTERNAL_ERROR``
+    drop, which tells the operator "gateway bug" instead of "promotion
+    refused" and hides the laundering attempt; any embedder calling the API
+    directly just gets the traceback (R1-11 A-14).
+
+    An unhashable value is not a member of any allowlist, so answer that
+    honestly and let the caller emit its normal refusal, naming the offending
+    value in the diagnostic. This changes no answer for a hashable value: the
+    membership test is unchanged, and where the allowlist is empty the caller
+    still applies its documented "no constraint" reading.
+    """
+    try:
+        return value in allowlist
+    except TypeError:
+        return False
+
+
+def _risk_trigger_matches(value, triggers):
+    """Does ``value`` trip a RISK/TRIGGER list, for a value we do not control?
+
+    Same unhashable-input problem as :func:`_allowlist_contains`, opposite
+    safety polarity, and the distinction is the whole point of this function
+    existing separately.
+
+    At an *allowlist* site the caller asks ``not _allowlist_contains(...)``, so
+    answering ``False`` for an unhashable token produces a refusal — fail
+    closed. At a *trigger* site the caller asks the question directly, so
+    answering ``False`` means "this token did not trip the risk" and the event
+    is ADMITTED — fail open. Reusing the allowlist helper here silently
+    disabled the loop/reflection gate, ``always_reject_loop_risk`` included:
+    a producer sending ``loop_status: ["REFLECTION_DETECTED"]`` as a list
+    instead of a scalar went from a crash (which at least dropped the event)
+    to a clean forward.
+
+    An unhashable token is not a legal value for these fields, and a malformed
+    token in a promotion-risk field is exactly the shape a laundering attempt
+    takes. Treat it as tripping the trigger and let the caller emit its normal
+    refusal naming the offending value. Hashable values are unaffected: the
+    membership test is unchanged, and an empty trigger list still trips
+    nothing.
+    """
+    try:
+        return value in triggers
+    except TypeError:
+        return True
 
 
 def _external_promotion_rules(matching_rules):
@@ -1216,7 +1332,25 @@ def _validate_external_state_promotion(
         return None
 
     global_cfg = authority_policy.get("external_state_promotion", {})
-    if not isinstance(global_cfg, dict) or global_cfg.get("enabled", True) is False:
+    # Same class as the timing_freshness block, in the gate that exists to stop
+    # laundering: a block that is NOT a mapping cannot say `enabled: false`.
+    # Reading a destroyed block as "the operator disabled promotion checking"
+    # turned the ENTIRE external-promotion gate off in silence — no trust
+    # anchor, no lineage status, no loop check, no freshness bound — for every
+    # producer whose rule requires promotion (R1-11 B-02 class, enumerated from
+    # the code). An absent block is `{}`, which is a mapping and keeps the
+    # built-in defaults; only a mangled one lands here.
+    block_policy_error = None
+    if not isinstance(global_cfg, dict):
+        block_policy_error = (
+            "the external_state_promotion policy block must be a mapping; got "
+            f"{type(global_cfg).__name__}, so no promotion evidence could be "
+            "required of this externally-promoted state "
+            "(policy/producer-authority.yaml#producer_authority."
+            "external_state_promotion)"
+        )
+        global_cfg = {}
+    elif global_cfg.get("enabled", True) is False:
         return None
 
     source = event.get("source", {}) if isinstance(event, dict) else {}
@@ -1239,6 +1373,16 @@ def _validate_external_state_promotion(
         policy=global_cfg,
         policy_ref="policy/producer-authority.yaml#external_state_promotion",
     )
+
+    if block_policy_error is not None:
+        # Refuse the PROMOTION, not some unrelated part of the event, and name
+        # the file to fix. _promotion_mode returns "reject" for an unreadable
+        # block, so this carries fail severity.
+        return _promotion_violation(
+            "external STATE_EVENT promotion policy is unreadable",
+            details={**details, "policy_error": block_policy_error},
+            severity_map=severity_map,
+        )
 
     if not isinstance(metadata, dict):
         return _promotion_violation(
@@ -1275,7 +1419,11 @@ def _validate_external_state_promotion(
 
     allowed_origin_kinds = set(_list_values(global_cfg.get("allowed_origin_kinds")))
     origin_kind = metadata.get("origin_kind")
-    if origin_kind is not None and allowed_origin_kinds and origin_kind not in allowed_origin_kinds:
+    if (
+        origin_kind is not None
+        and allowed_origin_kinds
+        and not _allowlist_contains(origin_kind, allowed_origin_kinds)
+    ):
         return _promotion_violation(
             "external STATE_EVENT promotion origin kind is not allowed",
             details={**details, "origin_kind": origin_kind, "allowed_origin_kinds": sorted(allowed_origin_kinds)},
@@ -1289,7 +1437,11 @@ def _validate_external_state_promotion(
         _list_values(lineage_by_profile.get(profile, lineage_by_profile.get("default", [])))
     )
     lineage_status = metadata.get("lineage_status")
-    if lineage_status is not None and allowed_lineage_status and lineage_status not in allowed_lineage_status:
+    if (
+        lineage_status is not None
+        and allowed_lineage_status
+        and not _allowlist_contains(lineage_status, allowed_lineage_status)
+    ):
         return _promotion_violation(
             "external STATE_EVENT promotion lineage status is not allowed for profile",
             details={
@@ -1301,7 +1453,9 @@ def _validate_external_state_promotion(
         )
 
     source_uid_statuses = set(_list_values(global_cfg.get("source_event_uid_required_statuses")))
-    if lineage_status in source_uid_statuses and _is_blank(metadata.get("source_event_uid")):
+    if _risk_trigger_matches(lineage_status, source_uid_statuses) and _is_blank(
+        metadata.get("source_event_uid")
+    ):
         return _promotion_violation(
             "external STATE_EVENT promotion requires source event identity",
             details={**details, "lineage_status": lineage_status, "missing": ["source_event_uid"]},
@@ -1325,9 +1479,9 @@ def _validate_external_state_promotion(
     loop_status = metadata.get("loop_status")
     loop_risk_statuses = set(_list_values(global_cfg.get("loop_risk_statuses")))
     if (
-        loop_status in loop_risk_statuses
+        _risk_trigger_matches(loop_status, loop_risk_statuses)
         or (source_zmeta_event_id and source_zmeta_event_id == current_event_id)
-        or (current_event_id and current_event_id in lineage_ids)
+        or (current_event_id and _risk_trigger_matches(current_event_id, lineage_ids))
     ):
         loop_mode = mode
         if global_cfg.get("always_reject_loop_risk", True) is not False:
@@ -1356,7 +1510,11 @@ def _validate_external_state_promotion(
         )
 
     allowed_loop_statuses = set(_list_values(global_cfg.get("allowed_loop_statuses")))
-    if loop_status is not None and allowed_loop_statuses and loop_status not in allowed_loop_statuses:
+    if (
+        loop_status is not None
+        and allowed_loop_statuses
+        and not _allowlist_contains(loop_status, allowed_loop_statuses)
+    ):
         return _promotion_violation(
             "external STATE_EVENT promotion loop status is not allowed",
             details={**details, "loop_status": loop_status, "allowed_loop_statuses": sorted(allowed_loop_statuses)},
@@ -1374,7 +1532,11 @@ def _validate_external_state_promotion(
 
     policy_id = metadata.get("promotion_policy_id")
     approved_policy_ids = _union_rule_values(promotion_rules, "approved_policy_ids")
-    if policy_id is not None and approved_policy_ids and policy_id not in approved_policy_ids:
+    if (
+        policy_id is not None
+        and approved_policy_ids
+        and not _allowlist_contains(policy_id, approved_policy_ids)
+    ):
         return _promotion_violation(
             "external STATE_EVENT promotion policy is not approved for producer",
             details={**details, "promotion_policy_id": policy_id, "approved_policy_ids": sorted(approved_policy_ids)},
@@ -1383,7 +1545,11 @@ def _validate_external_state_promotion(
 
     projection_id = metadata.get("projection_id")
     allowed_projection_ids = _union_rule_values(promotion_rules, "allowed_projection_ids")
-    if projection_id is not None and allowed_projection_ids and projection_id not in allowed_projection_ids:
+    if (
+        projection_id is not None
+        and allowed_projection_ids
+        and not _allowlist_contains(projection_id, allowed_projection_ids)
+    ):
         return _promotion_violation(
             "external STATE_EVENT projection id is not approved for producer",
             details={**details, "projection_id": projection_id, "allowed_projection_ids": sorted(allowed_projection_ids)},
@@ -1392,7 +1558,11 @@ def _validate_external_state_promotion(
 
     confidence_basis = metadata.get("confidence_basis")
     allowed_confidence_basis = _union_rule_values(promotion_rules, "allowed_confidence_basis")
-    if confidence_basis is not None and allowed_confidence_basis and confidence_basis not in allowed_confidence_basis:
+    if (
+        confidence_basis is not None
+        and allowed_confidence_basis
+        and not _allowlist_contains(confidence_basis, allowed_confidence_basis)
+    ):
         return _promotion_violation(
             "external STATE_EVENT confidence basis is not approved for producer",
             details={
@@ -1529,8 +1699,55 @@ def _ignore_is_allowlisted(entry):
     return True
 
 
-def _mapping_or_empty(value):
-    return value if isinstance(value, dict) else {}
+# Risk dimension and reason codes for each policy BLOCK this lint reads, so a
+# destroyed block can be reported with the same fields as any other issue.
+# Nothing minted: every dimension and every reason code below is already in
+# use elsewhere in this module and in policy/violation-codes.yaml.
+_POLICY_BLOCK_RISK = {
+    "timing_freshness": (
+        "timing",
+        ["TIMING_STATUS_MISSING", "TIMING_STATUS_STALE", "TIMING_STATUS_AGE_NEGATIVE"],
+    ),
+    "timing_freshness.holdover_est_error_monotonic": (
+        "timing",
+        ["TIMING_STATUS_HOLDOVER_NON_MONOTONIC"],
+    ),
+    "lineage": ("lineage", ["LINEAGE_PARENT_UNRESOLVED"]),
+    "producer_authority": ("external_promotion", ["PRODUCER_NOT_ALLOWED"]),
+    "producer_authority.external_state_promotion": (
+        "external_promotion",
+        ["PRODUCER_NOT_ALLOWED"],
+    ),
+}
+
+
+def _mapping_or_empty(container, key, path, emit):
+    """Read one policy block, coercing a mangled one to ``{}`` — and SAY SO.
+
+    The coercion exists because an unhandled ``AttributeError`` out of the
+    FIRST lint is not a diagnostic: it aborts the run before the structure
+    lints get to name the defect (R1-11 A-05 residual d). But a coercion that
+    reports nothing is worse than the crash it replaced — it substitutes a
+    clean, empty, entirely legal-looking block for a destroyed one and prints
+    ``policy risk mode lint ok``. That is exactly what happened to
+    ``timing_freshness``: the gate was fully disabled with the operator-facing
+    lint green (R1-11 B-02).
+
+    So reporting is not optional here — ``emit`` and ``path`` are required
+    arguments, and a caller cannot add a new block to this lint without
+    deciding how a destroyed one is announced.
+
+    ABSENCE stays legal and silent: a block that is not present at all is the
+    documented "no policy of this kind" deployment, and ``load_policy`` gives
+    an absent file an empty mapping rather than this shape.
+    """
+    if key not in container:
+        return {}
+    value = container[key]
+    if isinstance(value, dict):
+        return value
+    emit(path, value)
+    return {}
 
 
 def lint_policy_risk_modes(policy):
@@ -1539,11 +1756,28 @@ def lint_policy_risk_modes(policy):
     if not isinstance(policy, dict):
         return issues
 
+    def _block_issue(path, value):
+        risk_dimension, reason_codes = _POLICY_BLOCK_RISK[path]
+        issues.append(
+            {
+                # Existing lint code, reused rather than minted, exactly as
+                # the routing structure lint reuses it. The path and
+                # risk_dimension carry which block is broken.
+                "code": "POLICY_PRODUCER_AUTHORITY_STRUCTURE",
+                "path": path,
+                "risk_dimension": risk_dimension,
+                "reason_codes": list(reason_codes),
+                "message": (
+                    f"{path} must be a mapping; got {type(value).__name__}. A "
+                    "bare key or wrong-typed value here is read as an empty "
+                    "block, which switches every check this block configures "
+                    "off while the rest of the lint stays green"
+                ),
+            }
+        )
+
     entries = []
-    # A mangled policy BLOCK must not take this lint down with an
-    # AttributeError before the structure lints get to name the defect: an
-    # unhandled traceback is not a diagnostic (R1-11 A-05 residual d).
-    timing = _mapping_or_empty(policy.get("timing_freshness"))
+    timing = _mapping_or_empty(policy, "timing_freshness", "timing_freshness", _block_issue)
     entries.extend(
         _policy_mode_entries(
             "timing_freshness",
@@ -1616,7 +1850,12 @@ def lint_policy_risk_modes(policy):
             "timing",
         )
     )
-    holdover = _mapping_or_empty(timing.get("holdover_est_error_monotonic"))
+    holdover = _mapping_or_empty(
+        timing,
+        "holdover_est_error_monotonic",
+        "timing_freshness.holdover_est_error_monotonic",
+        _block_issue,
+    )
     entries.extend(
         _policy_mode_entries(
             "timing_freshness.holdover_est_error_monotonic",
@@ -1627,7 +1866,7 @@ def lint_policy_risk_modes(policy):
         )
     )
 
-    lineage = _mapping_or_empty(policy.get("lineage"))
+    lineage = _mapping_or_empty(policy, "lineage", "lineage", _block_issue)
     entries.extend(
         _policy_mode_entries(
             "lineage",
@@ -1665,8 +1904,20 @@ def lint_policy_risk_modes(policy):
         )
     )
 
-    producer_authority = _mapping_or_empty(policy.get("producer_authority"))
-    promotion = _mapping_or_empty(producer_authority.get("external_state_promotion"))
+    # producer_authority is ALSO reported by lint_producer_authority_structure.
+    # The duplicate is deliberate: "coerce only where another lint happens to
+    # speak" is the arrangement that produced B-02, and it fails silently the
+    # moment a block is added or a lint is moved. Every coercion here reports
+    # for itself.
+    producer_authority = _mapping_or_empty(
+        policy, "producer_authority", "producer_authority", _block_issue
+    )
+    promotion = _mapping_or_empty(
+        producer_authority,
+        "external_state_promotion",
+        "producer_authority.external_state_promotion",
+        _block_issue,
+    )
     entries.extend(
         _policy_mode_entries(
             "producer_authority.external_state_promotion",
@@ -1739,8 +1990,23 @@ def lint_policy_risk_modes(policy):
 _PRODUCER_AUTHORITY_TOP_KEYS = frozenset(
     {"enabled", "producers", "require_match_for_event_types", "external_state_promotion"}
 )
+# allowed_event_subtypes is read and ENFORCED by validate_producer_authority
+# ("event_subtype not authorized for producer") and is documented producer-rule
+# vocabulary at policy/README.md, but was absent from this set — so the lint
+# failed a legal, working policy and told the operator the control was a typo
+# that "silently disables enforcement". The remedy that message prescribed —
+# delete the key — removes a subtype restriction that was actually in force,
+# turning a correct configuration into a weaker one (R1-11 A-15). Nothing is
+# minted by listing it: the key already governs live traffic, and its ENTRY
+# vocabulary stays unchecked (see _LIST_ENTRY_VOCABULARIES and the open
+# question R1-11-11 in docs/zmeta_doctrine_review_log.md).
 _PRODUCER_ENTRY_KEYS = frozenset(
-    {"allowed_event_types", "forbidden_event_types", "external_state_promotion"}
+    {
+        "allowed_event_types",
+        "allowed_event_subtypes",
+        "forbidden_event_types",
+        "external_state_promotion",
+    }
 )
 # Keys the enforcement actually reads PER RULE (_external_promotion_rules,
 # _promotion_mode, _union_rule_values). Nothing else has per-producer effect:
@@ -1814,6 +2080,9 @@ _PRODUCER_AUTHORITY_TOP_SHAPES = {
 }
 _PRODUCER_ENTRY_SHAPES = {
     "allowed_event_types": _SHAPE_LIST,
+    # R1-11 A-15: same key, same collapse-to-"no constraint" reading through
+    # _list_values as its routing twin in _ROUTING_PRODUCER_ENTRY_SHAPES.
+    "allowed_event_subtypes": _SHAPE_LIST,
     "forbidden_event_types": _SHAPE_LIST,
     "external_state_promotion": _SHAPE_MAPPING,
 }
@@ -2118,7 +2387,13 @@ def lint_producer_authority_structure(policy):
 
     producers = authority.get("producers")
     if not isinstance(producers, dict):
-        if "producers" not in authority:
+        if "producers" not in authority and authority:
+            # An EMPTY authority block is the documented "no producer-authority
+            # policy" deployment — load_policy produces exactly {} for an
+            # absent producer-authority.yaml — so demanding `producers` there
+            # failed a legal configuration (R1-11 R2-24). A block that
+            # configures something else but has no `producers` table is still
+            # the drift this check exists to catch.
             _issue("producer_authority.producers", "producers must be a mapping")
         # A present-but-wrong-shaped producers block was already reported by
         # the top-level shape check; either way there is nothing to walk.
@@ -2290,9 +2565,18 @@ def lint_routing_producer_enforcement_structure(policy):
 # in-memory lints structurally cannot see this: by the time they run, a typoed
 # wrapper and a legitimately empty block are the same object. Only a check
 # that reads the DOCUMENT can tell them apart.
+#
+# The third element says whether load_policy treats an ABSENT file as a legal
+# deployment. It has to, because load_policy makes an absent file and an
+# empty/comment-only one byte-identical in memory: both become the permissive
+# default. Reporting the empty file while skipping the absent one failed a
+# deployment that the same function deliberately blesses one line up
+# (R1-11 R2-24). routing.yaml is different — load_policy REQUIRES it, so an
+# empty routing.yaml is not equivalent to anything legal: it silently empties
+# every routing gate and must still be reported.
 _POLICY_DOCUMENT_WRAPPERS = {
-    "producer-authority.yaml": ("producer_authority", "external_promotion"),
-    "routing.yaml": ("routing", "routing"),
+    "producer-authority.yaml": ("producer_authority", "external_promotion", True),
+    "routing.yaml": ("routing", "routing", False),
 }
 
 
@@ -2313,7 +2597,7 @@ def lint_policy_document_structure(policy_dir):
         )
 
     for filename in sorted(_POLICY_DOCUMENT_WRAPPERS):
-        wrapper, risk_dimension = _POLICY_DOCUMENT_WRAPPERS[filename]
+        wrapper, risk_dimension, absence_is_legal = _POLICY_DOCUMENT_WRAPPERS[filename]
         path = directory / filename
         if not path.exists():
             # An absent document is the documented "no policy of this kind"
@@ -2329,6 +2613,10 @@ def lint_policy_document_structure(policy_dir):
                 f"{filename} is not parseable YAML, so the whole gate it "
                 f"carries is unreadable: {exc}",
             )
+            continue
+        if absence_is_legal and not document:
+            # Empty or comment-only. load_policy cannot tell this from an
+            # absent file, so neither may this check.
             continue
         if not isinstance(document, dict) or wrapper not in document:
             _issue(
@@ -2346,6 +2634,31 @@ def _ids_from_list(value):
     if not isinstance(value, list):
         return []
     return [str(item) for item in value if isinstance(item, str) and item.strip()]
+
+
+# Every place a canonical `geo` / `bearing` block can sit in a payload.
+# Derived from the two shipped schemas rather than restated per check:
+# ObservationPayload and TrackStatePayload carry them at the payload root,
+# FusionPayload carries them under `estimated_state`, and `claim` is an open
+# object a producer can mirror either into. The zero-fill check walked two of
+# these and the frame check walked exactly one, so the FUSED estimate — the
+# promoted, downstream-consumed state, furthest from the sensor that knew the
+# frame, and the one a consumer is most likely to act on — was invisible to
+# both, while the check's PRESENCE on observations made its absence on fusion
+# read as an assertion that the fused bearing was labeled (R1-11 A-16).
+_SPATIAL_CONTAINERS = (("payload", None), ("payload.claim", "claim"),
+                       ("payload.estimated_state", "estimated_state"))
+
+
+def _spatial_candidates(payload, key):
+    """Yield ``(path, value)`` for every canonical ``key`` block in a payload."""
+    if not isinstance(payload, dict):
+        return
+    for prefix, container in _SPATIAL_CONTAINERS:
+        block = payload if container is None else payload.get(container)
+        if not isinstance(block, dict) or key not in block:
+            continue
+        yield f"{prefix}.{key}", block[key]
 
 
 def _lineage_based_on(event):
@@ -2487,7 +2800,18 @@ def validate_timing_quality(
     if event_type == "SYSTEM_EVENT" and system_type == "TIME_STATUS":
         if not freshness_enabled or state is None:
             return True, []
-        holdover_policy = timing_freshness_policy.get("holdover_est_error_monotonic", {})
+        # freshness_enabled is now True for a DESTROYED block as well as a
+        # mapping (R1-11 B-02), so this dereference is reachable with a
+        # non-mapping policy and must not raise into the receive-loop
+        # backstop. Holdover monotonicity is opt-in, so an unreadable block
+        # leaves it off - it is a corroboration check, not an authorization
+        # gate, and the stale/negative-age gate below is the one that fails
+        # closed on the same input.
+        holdover_policy = (
+            timing_freshness_policy.get("holdover_est_error_monotonic", {})
+            if isinstance(timing_freshness_policy, dict)
+            else {}
+        )
         if not isinstance(holdover_policy, dict) or not holdover_policy.get("enabled", False):
             return True, []
         metrics = payload.get("metrics", {}) if isinstance(payload, dict) else {}
@@ -2777,11 +3101,7 @@ def validate_semantics(event, semantics_policy, severity_map=None):
     # the MAVLink adapter's refuse-to-fabricate rule
     # (adapters/ingress/mavlink/README.md).
     if isinstance(payload, dict):
-        geo_candidates = [("payload.geo", payload.get("geo"))]
-        claim = payload.get("claim")
-        if isinstance(claim, dict):
-            geo_candidates.append(("payload.claim.geo", claim.get("geo")))
-        for geo_path, geo in geo_candidates:
+        for geo_path, geo in _spatial_candidates(payload, "geo"):
             if (
                 isinstance(geo, dict)
                 and isinstance(geo.get("lat"), (int, float))
@@ -2806,11 +3126,12 @@ def validate_semantics(event, semantics_policy, severity_map=None):
     # warn is the ceiling - this makes the assertively-labeled vs
     # legacy-unlabeled distinction machine-visible (R1-11 R11-21).
     if isinstance(payload, dict):
-        bearing = payload.get("bearing")
-        if isinstance(bearing, dict) and bearing.get("az_deg") is not None:
-            quality_block = payload.get("quality")
-            if not isinstance(quality_block, dict):
-                quality_block = {}
+        quality_block = payload.get("quality")
+        if not isinstance(quality_block, dict):
+            quality_block = {}
+        for bearing_path, bearing in _spatial_candidates(payload, "bearing"):
+            if not isinstance(bearing, dict) or bearing.get("az_deg") is None:
+                continue
             if "frame" not in bearing and "bearing_frame" not in quality_block:
                 warnings.append(
                     _violation(
@@ -2818,7 +3139,7 @@ def validate_semantics(event, semantics_policy, severity_map=None):
                         "canonical bearing carries no frame provenance "
                         "(bearing.frame or quality.bearing_frame) - contract 6.4 "
                         "frame assertion missing",
-                        details={"path": "payload.bearing"},
+                        details={"path": bearing_path},
                         severity_map=severity_map,
                     )
                 )
@@ -3146,7 +3467,21 @@ def validate_semantics(event, semantics_policy, severity_map=None):
 
 
 def validate_lineage(event, lineage_policy, state=None, profile=None, severity_map=None):
-    if not isinstance(lineage_policy, dict) or lineage_policy.get("enabled", True) is False:
+    # Third member of the destroyed-block family (R1-11 B-02 class). A
+    # non-mapping block cannot say `enabled: false`, and reading it as
+    # "lineage checking is switched off" silently drops every lineage
+    # honesty signal. An absent lineage.yaml loads as `{}` — a mapping — and
+    # keeps the built-in per-check defaults, so only a mangled block lands
+    # here; run the checks on those defaults rather than skipping them.
+    lineage_block_error = None
+    if not isinstance(lineage_policy, dict):
+        lineage_block_error = (
+            "the lineage policy block must be a mapping; got "
+            f"{type(lineage_policy).__name__}, so the built-in per-check "
+            "defaults were applied (policy/lineage.yaml#lineage)"
+        )
+        lineage_policy = {}
+    elif lineage_policy.get("enabled", True) is False:
         return True, []
 
     event_block = event.get("event", {}) if isinstance(event, dict) else {}
@@ -3204,8 +3539,18 @@ def validate_lineage(event, lineage_policy, state=None, profile=None, severity_m
                 if violation:
                     violations.append(violation)
 
+    def _finish(collected):
+        # A diagnostic produced under a destroyed policy block must name the
+        # block, the same way the routing and producer-authority refusals do.
+        if lineage_block_error is not None:
+            for entry in collected:
+                details = entry.get("details")
+                if isinstance(details, dict):
+                    details.setdefault("policy_error", lineage_block_error)
+        return not any(v.get("severity") == "fail" for v in collected), collected
+
     if state is None or not hasattr(state, "get_event"):
-        return not any(v.get("severity") == "fail" for v in violations), violations
+        return _finish(violations)
 
     allowed_policy = lineage_policy.get("allowed_parent_event_types", {})
     if not isinstance(allowed_policy, dict):
@@ -3263,7 +3608,7 @@ def validate_lineage(event, lineage_policy, state=None, profile=None, severity_m
         if violation:
             violations.append(violation)
 
-    return not any(v.get("severity") == "fail" for v in violations), violations
+    return _finish(violations)
 
 
 def validate_producer_authority(event, authority_policy, severity_map=None):

@@ -252,6 +252,7 @@ class PolicyShapeLintTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.policy = validators.load_policy(ROOT / "policy")
+        cls.severity_map = cls.policy["violation_severities"]
 
     def lint(self, policy):
         return validators.lint_producer_authority_structure(
@@ -291,6 +292,55 @@ class PolicyShapeLintTest(unittest.TestCase):
         "boolean": True,
         "number": 1,
     }
+
+    def test_allowed_event_subtypes_is_legal_policy_the_lint_accepts(self):
+        """R1-11 A-15: the lint must not fail a control that is IN FORCE.
+
+        ``validate_producer_authority`` reads ``allowed_event_subtypes`` and
+        refuses on it. The producer-entry name lint reported that key as
+        "unknown ... a typo here silently disables enforcement", so the
+        remedy it prescribed — delete the key — would have removed a subtype
+        restriction that was actually working, turning a correct
+        configuration into a weaker one.
+
+        Both halves are asserted together, because either alone can pass
+        while the pair is incoherent.
+        """
+        policy = copy.deepcopy(self.policy)
+        policy["producer_authority"]["producers"]["rf-sensor"][
+            "allowed_event_subtypes"
+        ] = ["RF"]
+
+        self.assertEqual(
+            [],
+            validators.lint_producer_authority_structure(policy),
+            "the lint failed a policy whose control the enforcement honours",
+        )
+
+        allowed = state_event("rf-sensor", "OBSERVATION_EVENT", "RF")
+        ok, violations = validators.validate_producer_authority(
+            allowed, policy["producer_authority"], self.severity_map
+        )
+        self.assertTrue(ok, violations)
+
+        refused = state_event("rf-sensor", "OBSERVATION_EVENT", "OTHER_SUBTYPE")
+        ok, violations = validators.validate_producer_authority(
+            refused, policy["producer_authority"], self.severity_map
+        )
+        self.assertFalse(ok, "the key the lint called a typo is not enforced")
+        self.assertEqual(
+            "event_subtype not authorized for producer", violations[0]["message"]
+        )
+
+        # ...and a wrong-typed value for it is still reported, so accepting
+        # the key did not buy silence on the shape.
+        policy["producer_authority"]["producers"]["rf-sensor"][
+            "allowed_event_subtypes"
+        ] = 7
+        self.assertIn(
+            "producer_authority.producers.rf-sensor.allowed_event_subtypes",
+            [issue["path"] for issue in validators.lint_producer_authority_structure(policy)],
+        )
 
     def test_every_global_promotion_key_shape_is_linted(self):
         for key, (label, _types) in validators._GLOBAL_PROMOTION_SHAPES.items():
@@ -594,14 +644,16 @@ class ShapeTableCompletenessTest(unittest.TestCase):
     # key it was written for.
     HELPER_READS = {"_require_match_types"}
     # Read by enforcement, deliberately NOT given a declared shape here.
-    KNOWN_UNDECLARED = {
-        # R1-11 A-15: allowed_event_subtypes is read and honoured by
-        # validate_producer_authority but is absent from
-        # _PRODUCER_ENTRY_KEYS, so the name lint reports it as unknown. That
-        # inversion is a separate, maintainer-owned finding; adding a shape
-        # for it here would silently grow the producer-entry vocabulary.
-        ("_PRODUCER_ENTRY_SHAPES", "allowed_event_subtypes"),
-    }
+    #
+    # EMPTY, and it must stay empty unless a maintainer decides otherwise:
+    # every key the enforcement reads now has a declared shape. R1-11 A-15
+    # (`allowed_event_subtypes`, read and ENFORCED by
+    # validate_producer_authority while the name lint called it a typo that
+    # "silently disables enforcement") was the only entry, and it is fixed —
+    # so the exclusion is retired rather than left to rot into a blanket
+    # excuse. An entry added here suppresses a real drift signal, so
+    # test_no_silent_exclusions below forces it to be justified.
+    KNOWN_UNDECLARED = frozenset()
 
     @staticmethod
     def _loop_constants(function_node):
@@ -717,9 +769,11 @@ class ShapeTableCompletenessTest(unittest.TestCase):
                     f"{table_name} and the enforcement source disagree",
                 )
 
-    def test_known_undeclared_entries_are_still_real(self):
-        # If A-15 is fixed the exclusion must be retired, not left to rot
-        # into a blanket excuse.
+    def test_no_silent_exclusions(self):
+        # The exclusion set suppresses the drift signal the scan above
+        # exists to raise, so it may not grow quietly. Empty is the pinned
+        # state; any future entry has to name a key the enforcement really
+        # reads AND really lacks a shape, or this fails.
         tree = ast.parse(VALIDATORS_PATH.read_text(encoding="utf-8"))
         source_keys = {
             sub.args[0].value
@@ -734,7 +788,13 @@ class ShapeTableCompletenessTest(unittest.TestCase):
             and sub.args
             and isinstance(sub.args[0], ast.Constant)
         }
-        for table_name, key in self.KNOWN_UNDECLARED:
+        self.assertEqual(
+            frozenset(),
+            frozenset(self.KNOWN_UNDECLARED),
+            "an enforcement-read key was excluded from the shape tables; "
+            "justify it here or declare the shape",
+        )
+        for table_name, key in self.KNOWN_UNDECLARED:  # pragma: no cover
             with self.subTest(key=key):
                 self.assertIn(key, source_keys)
                 self.assertNotIn(key, getattr(validators, table_name))
@@ -892,16 +952,411 @@ class PolicyContainerFailsClosedTest(unittest.TestCase):
                     paths = [issue["path"] for issue in self.lint(policy)]
                     self.assertIn(f"routing.command_event.{key}", paths)
 
-    def test_risk_mode_lint_survives_a_mangled_block(self):
-        # An unhandled AttributeError out of the FIRST lint is not a
-        # diagnostic: it aborts the run before the structure lints get to
-        # name the defect.
-        for block in ("producer_authority", "timing_freshness", "lineage"):
+    def test_risk_mode_lint_reports_a_mangled_block(self):
+        """R1-11 B-02 / R2-18: not-crashing is not the property to pin.
+
+        The predecessor of this test called ``lint_policy_risk_modes`` and
+        asserted nothing. It therefore certified "the lint did not traceback"
+        as sufficient, and passed precisely BECAUSE nothing was reported: the
+        coercion that stopped the AttributeError substituted a clean, empty,
+        entirely legal-looking block for a destroyed one, and the operator got
+        ``policy risk mode lint ok``, exit 0, with the timing-freshness gate
+        fully off. Two of its three arms were also vacuous — a mangled
+        ``lineage`` block never raised in the first place, so those subtests
+        exercised no code the change touched.
+
+        The property is: a destroyed block is NAMED. Surviving the mangle is
+        asserted too (the call is still made), but it is now the weaker half.
+        """
+        blocks = (
+            "producer_authority",
+            "producer_authority.external_state_promotion",
+            "timing_freshness",
+            "timing_freshness.holdover_est_error_monotonic",
+            "lineage",
+        )
+        for block in blocks:
             for bad in WRONG_FOR_MAPPING:
                 with self.subTest(block=block, bad=repr(bad)):
                     policy = copy.deepcopy(self.policy)
-                    policy[block] = bad
+                    head, _, tail = block.partition(".")
+                    if tail:
+                        policy[head][tail] = bad
+                    else:
+                        policy[head] = bad
+                    issues = validators.lint_policy_risk_modes(policy)
+                    paths = [issue["path"] for issue in issues]
+                    self.assertIn(
+                        block,
+                        paths,
+                        f"{block}={bad!r} was coerced to an empty block in silence",
+                    )
+                    reported = next(i for i in issues if i["path"] == block)
+                    # The issue has to be usable: an operator filtering on
+                    # risk_dimension or reason_code must see it.
+                    self.assertTrue(reported["risk_dimension"])
+                    self.assertTrue(reported["reason_codes"])
+                    self.assertIn(type(bad).__name__, reported["message"])
+
+    def test_every_coerced_block_is_covered_by_the_risk_table(self):
+        """The coercion helper cannot be used without deciding how it reports.
+
+        This is the structural half of B-02: the previous arrangement was
+        "coerce, and rely on some other lint happening to speak for this
+        block", which held for ``producer_authority`` and silently did not
+        for ``timing_freshness``. Read the SOURCE, not the constants: every
+        ``_mapping_or_empty`` call site must name a path the risk table
+        knows, or the block it coerces has no way to announce itself.
+        """
+        tree = ast.parse(VALIDATORS_PATH.read_text(encoding="utf-8"))
+        call_paths = set()
+        for node in ast.walk(tree):
+            if (
+                isinstance(node, ast.Call)
+                and isinstance(node.func, ast.Name)
+                and node.func.id == "_mapping_or_empty"
+            ):
+                self.assertEqual(
+                    4,
+                    len(node.args),
+                    "_mapping_or_empty must be called with (container, key, path, emit)",
+                )
+                path_arg = node.args[2]
+                self.assertIsInstance(
+                    path_arg, ast.Constant, "the reported path must be a literal"
+                )
+                call_paths.add(path_arg.value)
+
+        self.assertTrue(call_paths, "AST scan found no _mapping_or_empty call sites")
+        self.assertEqual(
+            set(),
+            call_paths - set(validators._POLICY_BLOCK_RISK),
+            "a coerced block has no entry in _POLICY_BLOCK_RISK, so a "
+            "destroyed one would raise KeyError instead of reporting",
+        )
+        self.assertEqual(
+            set(validators._POLICY_BLOCK_RISK),
+            call_paths,
+            "_POLICY_BLOCK_RISK describes a block nothing coerces",
+        )
+
+    def test_mangled_timing_freshness_does_not_certify_a_stale_event(self):
+        """R1-11 B-02, the runtime half the lint silence was hiding.
+
+        A destroyed ``timing_freshness`` block cannot say ``enabled: false``.
+        Reading it that way turned the whole stale / negative-age gate off,
+        so an event whose only TIME_STATUS was an hour old validated clean.
+        Absence stays permissive-with-defaults, because ``load_policy`` gives
+        an absent file ``{}`` — which is a mapping and never lands here.
+        """
+        timing_status = {
+            "zmeta_version": "1.0",
+            "event": {
+                "event_id": "01J00000000000000000000TS",
+                "event_type": "SYSTEM_EVENT",
+                "ts": "2026-07-21T00:00:00Z",
+            },
+            "source": {
+                "platform_id": "test-platform",
+                "node_role": "GATEWAY",
+                "producer": "zmeta-gateway",
+            },
+            "payload": {
+                "system_type": "TIME_STATUS",
+                "metrics": {
+                    "time_source": "GPS_PPS",
+                    "sync_state": "LOCKED",
+                    "est_error_ms": 1,
+                    "last_sync_ts": "2026-07-21T00:00:00Z",
+                },
+            },
+        }
+        # One hour later, same source: stale against every shipped bound.
+        target = state_event("zmeta-gateway", "STATE_EVENT", "TRACK_STATE")
+        target["source"]["platform_id"] = "test-platform"
+        target["event"]["ts"] = "2026-07-21T01:00:00Z"
+
+        def check(timing_policy):
+            state = validators.ValidationState()
+            state.record_timing(timing_status)
+            return validators.validate_timing_quality(
+                target,
+                self.policy["semantics"],
+                state=state,
+                severity_map=self.severity_map,
+                timing_freshness_policy=timing_policy,
+            )
+
+        ok, violations = check(self.policy["timing_freshness"])
+        self.assertFalse(ok, "the probe is useless unless the shipped policy refuses")
+        self.assertEqual("TIMING_STATUS_STALE", violations[0]["code"])
+
+        for bad in WRONG_FOR_MAPPING:
+            with self.subTest(bad=repr(bad)):
+                ok, violations = check(bad)
+                self.assertFalse(ok, f"timing_freshness={bad!r} certified a stale event")
+                self.assertEqual("TIMING_STATUS_STALE", violations[0]["code"])
+                self.assertIn(
+                    "policy_error",
+                    violations[0]["details"],
+                    "a refusal caused by broken policy must name the policy",
+                )
+
+        # An explicit disable is still honoured, and an absent file (`{}`)
+        # still runs on the built-in defaults.
+        ok, _ = check({"enabled": False})
+        self.assertTrue(ok)
+        ok, violations = check({})
+        self.assertFalse(ok, "an absent policy file must still bound staleness")
+        self.assertNotIn("policy_error", violations[0]["details"])
+
+    def test_mangled_promotion_block_does_not_wave_a_promotion_through(self):
+        """Same class as B-02, in the gate that exists to stop laundering.
+
+        ``producer_authority.external_state_promotion`` mangled to a bare key
+        silently switched the ENTIRE external-promotion gate off: no trust
+        anchor, no lineage status, no loop check, no freshness bound, for
+        every producer whose rule requires promotion.
+        """
+        event = state_event("cot-ingress", "STATE_EVENT", "TRACK_STATE")
+        ok, violations = self.authority_probe(self.policy, event)
+        self.assertFalse(ok, "the probe is useless unless the shipped policy refuses")
+
+        for bad in WRONG_FOR_MAPPING:
+            with self.subTest(bad=repr(bad)):
+                policy = copy.deepcopy(self.policy)
+                policy["producer_authority"]["external_state_promotion"] = bad
+                self.assertIn(
+                    "producer_authority.external_state_promotion",
+                    [i["path"] for i in validators.lint_policy_risk_modes(policy)],
+                )
+                ok, violations = self.authority_probe(policy, event)
+                self.assertFalse(ok, f"promotion block {bad!r} disabled the gate")
+                self.assertIn("policy_error", violations[0]["details"])
+
+        # enabled: false is a real, documented deployment and stays honoured.
+        policy = copy.deepcopy(self.policy)
+        policy["producer_authority"]["external_state_promotion"]["enabled"] = False
+        ok, _ = self.authority_probe(policy, event)
+        self.assertTrue(ok)
+
+    def test_mangled_lineage_block_still_produces_its_diagnostics(self):
+        """Third member of the same family: a destroyed block is not a disable."""
+        event = state_event("fusion-engine", "STATE_EVENT", "TRACK_STATE")
+        event["lineage"] = {"based_on": ["01J000000000000000000PARENT"]}
+
+        def check(lineage_policy):
+            return validators.validate_lineage(
+                event,
+                lineage_policy,
+                state=validators.ValidationState(),
+                profile="H",
+                severity_map=self.severity_map,
+            )
+
+        _ok, violations = check(self.policy["lineage"])
+        self.assertEqual(["LINEAGE_PARENT_UNRESOLVED"], [v["code"] for v in violations])
+
+        for bad in WRONG_FOR_MAPPING:
+            with self.subTest(bad=repr(bad)):
+                _ok, violations = check(bad)
+                self.assertEqual(
+                    ["LINEAGE_PARENT_UNRESOLVED"],
+                    [v["code"] for v in violations],
+                    f"lineage={bad!r} dropped the lineage diagnostics in silence",
+                )
+                self.assertIn("policy_error", violations[0]["details"])
+
+        _ok, violations = check({"enabled": False})
+        self.assertEqual([], violations)
+
+    def test_unhashable_promotion_metadata_refuses_instead_of_crashing(self):
+        """R1-11 A-14: `payload.extensions` is free-form in both schemas.
+
+        A producer may legally put a list or a dict where the promotion guard
+        expects a scalar token, and ``<list> in <set>`` raised ``TypeError``
+        out of the public ``validate_producer_authority`` API — an
+        ``INTERNAL_ERROR`` drop that tells the operator "gateway bug" instead
+        of "promotion refused", hiding the laundering attempt.
+
+        Enumerated from the metadata the guard tests for membership, not from
+        the one key the finding named.
+        """
+        metadata = {
+            "state_category": "PROMOTED_EXTERNAL_STATE",
+            "origin_kind": "EXTERNAL_REPORT",
+            "projection_id": "cot",
+            "promotion_policy_id": "PROMOTE-COT-STATE-V1",
+            "trust_ref": "producer-authority:cot-ingress",
+            "lineage_status": "EXTERNAL_SOURCE",
+            "loop_status": "CHECKED_NOT_REFLECTION",
+            "confidence_basis": "EXPLICIT_EXTERNAL_CONFIDENCE",
+            "source_event_uid": "cot:external-1",
+            "freshness_ms": 5000,
+        }
+        event = state_event("cot-ingress", "STATE_EVENT", "TRACK_STATE")
+        event["lineage"] = {
+            "based_on": ["01J000000000000000000PARENT"],
+            "transform": "promote:cot@template:PROMOTE-COT-STATE-V1",
+        }
+        event["payload"] = {"extensions": {"external_promotion": dict(metadata)}}
+
+        ok, violations = self.authority_probe(self.policy, event)
+        self.assertTrue(ok, f"the probe is useless unless it passes clean: {violations}")
+
+        # `source_event_uid` is only PRESENCE-checked (`_is_blank`), never
+        # compared against a policy allowlist, so an unhashable value there is
+        # not a promotion-policy question at all — refusing it would need a
+        # type claim about promotion metadata that neither schema makes
+        # (`payload.extensions` is `additionalProperties: true`). The crash
+        # class still has to be closed for it; the refusal must not be
+        # invented. `source_zmeta_event_id` is the same shape.
+        PRESENCE_ONLY = {"source_event_uid", "source_zmeta_event_id"}
+
+        for key in sorted(metadata):
+            for bad in (["X"], {"X": 1}, [{"X": 1}]):
+                with self.subTest(key=key, bad=repr(bad)):
+                    poisoned = copy.deepcopy(event)
+                    poisoned["payload"]["extensions"]["external_promotion"][key] = bad
+                    try:
+                        ok, violations = self.authority_probe(self.policy, poisoned)
+                    except Exception as exc:  # noqa: BLE001 - that IS the defect
+                        self.fail(f"{key}={bad!r} raised {type(exc).__name__}: {exc}")
+                    if key in PRESENCE_ONLY:
+                        continue
+                    self.assertFalse(
+                        ok,
+                        f"{key}={bad!r} was accepted as a valid promotion token",
+                    )
+                    self.assertEqual("PRODUCER_NOT_ALLOWED", violations[0]["code"])
+
+        # And the split above must stay honest: every key excluded from the
+        # refusal assertion has to be one the promotion guard really never
+        # membership-tests, read from the SOURCE rather than trusted.
+        promotion_source = ast.parse(VALIDATORS_PATH.read_text(encoding="utf-8"))
+        compared = set()
+        for node in ast.walk(promotion_source):
+            if not isinstance(node, ast.Call) or not isinstance(node.func, ast.Name):
+                continue
+            if node.func.id != "_allowlist_contains" or not node.args:
+                continue
+            target = node.args[0]
+            if isinstance(target, ast.Name):
+                compared.add(target.id)
+        self.assertTrue(compared, "AST scan found no allowlist membership tests")
+        self.assertEqual(
+            set(),
+            compared & PRESENCE_ONLY,
+            "a key excluded from the refusal assertion IS membership-tested",
+        )
+
+        # ...and the enumeration above must not drift: resolve each compared
+        # local back to the metadata key it was read from, and require the
+        # probe to carry it. A new membership-tested metadata key added to the
+        # guard fails here instead of shipping unexercised.
+        bound = {}
+        for node in ast.walk(promotion_source):
+            if not isinstance(node, ast.FunctionDef):
+                continue
+            if node.name != "_validate_external_state_promotion":
+                continue
+            for sub in ast.walk(node):
+                if not isinstance(sub, ast.Assign) or len(sub.targets) != 1:
+                    continue
+                target = sub.targets[0]
+                call = sub.value
+                if not isinstance(target, ast.Name) or not isinstance(call, ast.Call):
+                    continue
+                func = call.func
+                if (
+                    isinstance(func, ast.Attribute)
+                    and func.attr == "get"
+                    and isinstance(func.value, ast.Name)
+                    and func.value.id == "metadata"
+                    and call.args
+                    and isinstance(call.args[0], ast.Constant)
+                ):
+                    bound[target.id] = call.args[0].value
+        exercised = {bound[name] for name in compared if name in bound}
+        self.assertTrue(exercised, "no membership-tested metadata key was resolved")
+        self.assertEqual(
+            set(),
+            exercised - set(metadata),
+            "the guard membership-tests a metadata key this probe never poisons",
+        )
+
+    def test_empty_authority_document_is_a_legal_deployment(self):
+        """R1-11 R2-24: an absent and an empty policy file are the same thing.
+
+        ``load_policy`` produces ``{}`` for both, so a lint that reports one
+        and blesses the other fails a deployment it cannot distinguish.
+        """
+        import tempfile
+        import shutil
+
+        for content, label in (
+            ("# no producer-authority policy in this deployment\n", "comment-only"),
+            ("", "empty"),
+            (None, "absent"),
+        ):
+            with self.subTest(document=label):
+                scratch = Path(tempfile.mkdtemp()) / "policy"
+                shutil.copytree(ROOT / "policy", scratch)
+                target = scratch / "producer-authority.yaml"
+                if content is None:
+                    target.unlink()
+                else:
+                    target.write_text(content, encoding="utf-8")
+
+                policy = validators.load_policy(scratch)
+                self.assertEqual({}, policy["producer_authority"], label)
+                issues = (
                     validators.lint_policy_risk_modes(policy)
+                    + validators.lint_producer_authority_structure(policy)
+                    + validators.lint_routing_producer_enforcement_structure(policy)
+                    + validators.lint_policy_document_structure(scratch)
+                )
+                self.assertEqual(
+                    [],
+                    [issue["path"] for issue in issues],
+                    f"a {label} producer-authority.yaml failed the lint",
+                )
+
+        # routing.yaml is NOT optional to load_policy, so an empty one is not
+        # equivalent to anything legal and must still be reported.
+        scratch = Path(tempfile.mkdtemp()) / "policy"
+        shutil.copytree(ROOT / "policy", scratch)
+        (scratch / "routing.yaml").write_text("# oops\n", encoding="utf-8")
+        self.assertIn(
+            "routing.yaml#routing",
+            [i["path"] for i in validators.lint_policy_document_structure(scratch)],
+        )
+
+    def test_an_unreadable_vocabulary_is_never_cached(self):
+        """R1-11 R2-32: one unlucky first call must not disable the check.
+
+        The vocabulary is derived from ``schema/*.schema.json``. Caching an
+        EMPTY derivation makes a transient unreadable-schema condition
+        permanent for the life of the process, and the runtime half of the
+        entry check reports nothing when the vocabulary is empty.
+        """
+        saved_dir = validators._KERNEL_SCHEMA_DIR
+        saved_cache = dict(validators._EVENT_VOCABULARY_CACHE)
+        try:
+            validators._EVENT_VOCABULARY_CACHE.clear()
+            validators._KERNEL_SCHEMA_DIR = ROOT / "no-such-schema-directory"
+            self.assertEqual(frozenset(), validators._event_vocabulary("event_type"))
+            self.assertEqual(
+                {},
+                validators._EVENT_VOCABULARY_CACHE,
+                "a failed derivation was cached and now cannot recover",
+            )
+            validators._KERNEL_SCHEMA_DIR = saved_dir
+            self.assertIn("STATE_EVENT", validators._event_vocabulary("event_type"))
+        finally:
+            validators._KERNEL_SCHEMA_DIR = saved_dir
+            validators._EVENT_VOCABULARY_CACHE.clear()
+            validators._EVENT_VOCABULARY_CACHE.update(saved_cache)
 
     def test_routing_key_name_typos_are_reported(self):
         # The other half of the treatment the producer-authority side already
@@ -1029,6 +1484,46 @@ class EventTypeVocabularyFailsClosedTest(unittest.TestCase):
             state_event("torch", "INFERENCE_EVENT", "CLASSIFICATION"),
         )
 
+    def check_allowlist_typo_is_proportionate(self, mutate, lint_path, probe, key_typed):
+        """R1-11 R2-17: an ALLOWLIST typo must not cost the surviving entries.
+
+        A typo in ``allowed_event_types`` removes an entry from an allowlist,
+        which already fails closed on its own — the event type that was
+        misspelled simply stops being authorized. Refusing the producer
+        WHOLESALE on top of that throws away the events the surviving,
+        correctly-spelled entries explicitly authorize, and buys no honesty:
+        it re-closes a door that is already shut. That is the "discard good
+        canonical data" failure, and this pins that it does not happen.
+
+        Three things are asserted together, because the fail-open direction
+        must NOT be relaxed with it:
+          1. the deployment lint still reports the typo, loudly and by path;
+          2. an event named correctly in a surviving entry is still admitted;
+          3. the event type that was MIStyped is refused.
+        """
+        for typo in self.TYPOS:
+            with self.subTest(typo=typo):
+                policy = copy.deepcopy(self.policy)
+                mutate(policy, typo)
+
+                paths = [issue["path"] for issue in self.lint(policy)]
+                self.assertIn(lint_path, paths, f"lint stayed silent on {typo!r}")
+
+                survivor = state_event("torch", "FUSION_EVENT", "TRACK_FUSION")
+                ok, violations = probe(policy, survivor)
+                self.assertTrue(
+                    ok,
+                    f"{typo!r} discarded an event the surviving entry authorizes: "
+                    f"{violations}",
+                )
+
+                mistyped = state_event("torch", key_typed, "TRACK_STATE")
+                ok, _violations = probe(policy, mistyped)
+                self.assertFalse(
+                    ok,
+                    f"{typo!r} left the MIStyped event type authorized",
+                )
+
     def test_routing_allowed_event_types(self):
         def mutate(policy, typo):
             policy["routing"]["producers"]["torch"]["allowed_event_types"] = [
@@ -1036,11 +1531,11 @@ class EventTypeVocabularyFailsClosedTest(unittest.TestCase):
                 "FUSION_EVENT",
             ]
 
-        self.check_typo(
+        self.check_allowlist_typo_is_proportionate(
             mutate,
             "routing.producers.torch.allowed_event_types",
             self.routing_probe,
-            state_event("torch", "FUSION_EVENT", "TRACK_FUSION"),
+            "STATE_EVENT",
         )
 
     def test_producer_authority_allowed_event_types(self):
@@ -1050,11 +1545,11 @@ class EventTypeVocabularyFailsClosedTest(unittest.TestCase):
                 "FUSION_EVENT",
             ]
 
-        self.check_typo(
+        self.check_allowlist_typo_is_proportionate(
             mutate,
             "producer_authority.producers.torch.allowed_event_types",
             self.authority_probe,
-            state_event("torch", "FUSION_EVENT", "TRACK_FUSION"),
+            "STATE_EVENT",
         )
 
     def test_real_event_types_stay_green(self):

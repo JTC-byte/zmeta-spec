@@ -5,6 +5,21 @@ Supports: dict, list/tuple, str, bytes/bytearray, int, float, bool, None.
 This is a fallback when cbor2 is unavailable. Maps are encoded using canonical
 CBOR key ordering so equivalent objects produce stable bytes. Decoding enforces
 default message, item, container, and nesting limits for untrusted network input.
+
+Anything outside that supported set is REFUSED on decode rather than
+reinterpreted (see `_decode_simple`) -- inventing a plausible value for a
+representation this profile never defined is how one datagram comes to mean
+two different things on two conforming nodes.
+
+KNOWN GAP, deliberately left open: CBOR major type 6 (tags) is still decoded
+transparently -- the tag number is read and discarded and the tagged item is
+returned, so `c2 41 05` (tag 2, bignum 5) yields `b'\\x05'` here and the
+integer `5` under cbor2. Closing it is R1-11 audit finding A-08 and doctrine
+review log entry R1-11-02: the remedy is a normative clause in
+`spec/compact-binary-mapping.md` saying which tags a conforming decoder must
+reject, which is a governed Class B change. Do not close it here without that
+clause -- a decoder stricter than the written mapping is its own
+interoperability failure.
 """
 
 from __future__ import annotations
@@ -256,17 +271,37 @@ def _validate_limit(value: int | None, name: str) -> None:
 
 
 def _decode_simple(data: bytes, index: int, addl: int) -> Tuple[Any, int]:
+    """Decode CBOR major type 7.
+
+    Only the four values this module declares support for (false, true, null,
+    and the three float widths) decode. The others are REFUSED rather than
+    reinterpreted, because reinterpreting them fabricates canonical content
+    out of wire bytes whose meaning this profile never defined:
+
+      0xf7 `undefined` used to decode as None. `undefined` and `null` are
+           distinct CBOR values; canonical JSON has only `null`. Returning
+           None turns "no value was supplied" into the positive claim "this
+           field is null", which a consumer cannot tell apart from a producer
+           that meant it.
+      0xf8 an unassigned simple value (32..255) used to decode as its
+           argument INTEGER, so the two bytes `f8 20` became the number 32.
+           Nothing in CBOR or in this mapping says a simple value is a number.
+           The inline unassigned simple values (addl 0..19) already fell
+           through to the refusal below, so this arm was the same class of
+           input accepted through a different spelling.
+
+    Both were live divergences from `cbor2`, which yields the `undefined`
+    sentinel and `CBORSimpleValue(32)` (R1-11 audit A-08). Refusing does not
+    make the two backends agree - that needs the normative clause A-08 asks
+    for - but it stops this one from inventing a value, which is the half that
+    does not need it.
+    """
     if addl == 20:
         return False, index
     if addl == 21:
         return True, index
     if addl == 22:
         return None, index
-    if addl == 23:
-        return None, index
-    if addl == 24:
-        value, index = _read_uint_n(data, index, 1)
-        return value, index
     if addl == 25:
         bits, index = _read_uint_n(data, index, 2)
         return _float16(bits), index

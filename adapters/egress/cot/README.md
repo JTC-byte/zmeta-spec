@@ -26,6 +26,18 @@ content this adapter never reads and never renders, and refusing the
 operator's track because a provenance blob carried a `NaN` would destroy good
 canonical data over content CoT does not project.
 
+It refuses (`None`) one further case: a validity window whose `stale`
+timestamp is not representable. `payload.valid_for_ms` is
+`{"type": "integer", "minimum": 1}` with no upper bound, and `event.ts` is any
+RFC3339 instant, so the kernel forwards events whose `time + valid_for_ms` the
+`datetime` module cannot express — `10**400` ms, `10**15` ms, and even an
+ordinary 300 000 ms stale on `ts="9999-12-31T23:59:59Z"`. Each of those used
+to leave the adapter as a raw `OverflowError`. CoT has no unknown-value
+convention for `stale` the way it has `9999999.0` for `ce`/`le`, and a CoT
+event without `stale` is not a CoT event, so the whole event is refused rather
+than published with a substituted default — a fallback to
+`default_valid_for_ms` would assert a freshness bound the event never made.
+
 ### Features
 
 | Feature | Details |
@@ -48,7 +60,7 @@ canonical data over content CoT does not project.
 | `payload.class` | `type` | Falls back to `a-u-G` |
 | `payload.geo.lat/lon/alt_m` | `point lat/lon/hae` | Absent `alt_m` → `hae="9999999.0"` (CoT unknown-value convention — never a fabricated 0 m claim); a real `alt_m` of `0.0` passes through as `0.0` |
 | `payload.geo.error_ellipse_m` | `point ce/le` + `precisionlocation` | `semi_major` → `ce`, `semi_minor` → `le`; absent → `9999999.0` (CoT unknown-value convention) |
-| `payload.valid_for_ms` | `stale` | `time + valid_for_ms` |
+| `payload.valid_for_ms` | `stale` | `time + valid_for_ms`; a sum `datetime` cannot represent refuses the event (`None`) rather than substituting the config default |
 | `payload.heading_deg` | `track course` | Frame-preserving: both are degrees true north (see below) |
 | `payload.speed_mps` | `track speed` | |
 | `payload.callsign` | `contact callsign` | With hostile fallback |

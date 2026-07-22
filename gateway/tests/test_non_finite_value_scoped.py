@@ -791,5 +791,132 @@ class DiagnosticDetailsTest(unittest.TestCase):
         self.assertEqual("<non-finite:+inf>", cleaned["x"])
 
 
+class PathScopedCheckCoverageTest(unittest.TestCase):
+    """R1-11 A-16: the same defect shape as A-01, one axis over.
+
+    A-01 was a check with a hardcoded list of FIELDS. These two are checks
+    with a hardcoded list of PATHS, and the list was short in the direction
+    that matters: ``GEO_ZERO_FILL_SUSPECTED`` walked two of the three places
+    a payload can carry a ``geo`` block and ``BEARING_FRAME_UNLABELED``
+    walked exactly one, so the FUSED estimate — the promoted, downstream
+    state, furthest from the sensor that knew the frame, and the one a
+    consumer is most likely to act on — was invisible to both. Worse than
+    a plain gap: the check's PRESENCE on observations made its absence on
+    fusion read as an assertion that the fused bearing WAS labeled.
+
+    The expected path set is derived from the SHIPPED SCHEMAS here, not from
+    ``validators._SPATIAL_CONTAINERS``. A test that reads the same constant
+    the code reads cannot see a location both of them missed.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        cls.policy = validators.load_policy(ROOT / "policy")
+        cls.severity_map = cls.policy["violation_severities"]
+
+    @staticmethod
+    def _schema_payload_paths(key):
+        """Every ``payload...<key>`` location the shipped schemas declare."""
+        found = set()
+        for name in ("zmeta-event-1.0.schema.json", "zmeta-event-1.1.0.schema.json"):
+            document = json.loads(
+                (ROOT / "schema" / name).read_text(encoding="utf-8")
+            )
+            for def_name, definition in document.get("$defs", {}).items():
+                if not def_name.endswith("Payload") or not isinstance(definition, dict):
+                    continue
+                properties = definition.get("properties")
+                if not isinstance(properties, dict):
+                    continue
+                if isinstance(properties.get(key), dict):
+                    found.add(f"payload.{key}")
+                for container, spec in properties.items():
+                    if not isinstance(spec, dict):
+                        continue
+                    nested = spec.get("properties")
+                    if isinstance(nested, dict) and isinstance(nested.get(key), dict):
+                        found.add(f"payload.{container}.{key}")
+        return found
+
+    def _semantics(self, event):
+        return validators.validate_semantics(
+            event, self.policy["semantics"], self.severity_map
+        )
+
+    def _fusion_event(self):
+        for line in (
+            ROOT / "examples" / "zmeta-v1.1-examples.jsonl"
+        ).read_text(encoding="utf-8").splitlines():
+            if not line.strip():
+                continue
+            event = json.loads(line)
+            if event.get("event", {}).get("event_type") == "FUSION_EVENT":
+                return event
+        self.fail("no FUSION_EVENT in the shipped example corpus")
+
+    def _place(self, path, value):
+        event = self._fusion_event()
+        payload = event["payload"]
+        for container in ("claim", "estimated_state"):
+            if isinstance(payload.get(container), dict):
+                payload[container].pop(path.rsplit(".", 1)[-1], None)
+        payload.pop(path.rsplit(".", 1)[-1], None)
+        parts = path.split(".")[1:]
+        node = payload
+        for part in parts[:-1]:
+            node = node.setdefault(part, {})
+        node[parts[-1]] = value
+        return event
+
+    def test_unlabeled_bearing_is_reported_at_every_schema_declared_path(self):
+        declared = self._schema_payload_paths("bearing")
+        self.assertIn("payload.estimated_state.bearing", declared)
+        for path in sorted(declared):
+            with self.subTest(path=path):
+                event = self._place(path, {"az_deg": 45.0})
+                _ok, violations = self._semantics(event)
+                codes = [v["code"] for v in violations]
+                self.assertIn("BEARING_FRAME_UNLABELED", codes, f"{path} is invisible")
+                reported = next(
+                    v for v in violations if v["code"] == "BEARING_FRAME_UNLABELED"
+                )
+                # A warning that names the wrong location is not filterable.
+                self.assertEqual(path, reported["details"]["path"])
+                self.assertEqual("warn", reported["severity"])
+
+    def test_a_labeled_bearing_stays_clean_at_every_path(self):
+        # The check must not fire on correctly-labeled data, or it is noise
+        # that trains operators to ignore it.
+        for path in sorted(self._schema_payload_paths("bearing")):
+            with self.subTest(path=path):
+                event = self._place(path, {"az_deg": 45.0, "frame": "TRUE_NORTH"})
+                _ok, violations = self._semantics(event)
+                self.assertNotIn(
+                    "BEARING_FRAME_UNLABELED", [v["code"] for v in violations]
+                )
+
+    def test_zero_fill_geo_is_reported_at_every_schema_declared_path(self):
+        declared = self._schema_payload_paths("geo")
+        self.assertIn("payload.estimated_state.geo", declared)
+        for path in sorted(declared):
+            with self.subTest(path=path):
+                event = self._place(path, {"lat": 0.0, "lon": 0.0})
+                _ok, violations = self._semantics(event)
+                reported = [
+                    v for v in violations if v["code"] == "GEO_ZERO_FILL_SUSPECTED"
+                ]
+                self.assertTrue(reported, f"{path} is invisible")
+                self.assertEqual(path, reported[0]["details"]["path"])
+
+    def test_a_real_position_stays_clean_at_every_path(self):
+        for path in sorted(self._schema_payload_paths("geo")):
+            with self.subTest(path=path):
+                event = self._place(path, {"lat": 34.05, "lon": -118.24})
+                _ok, violations = self._semantics(event)
+                self.assertNotIn(
+                    "GEO_ZERO_FILL_SUSPECTED", [v["code"] for v in violations]
+                )
+
+
 if __name__ == "__main__":
     unittest.main()

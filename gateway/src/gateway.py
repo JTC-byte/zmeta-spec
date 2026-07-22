@@ -6,6 +6,7 @@ import socket
 import subprocess
 import sys
 import time
+from collections.abc import Mapping, Set as AbstractSet
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -82,6 +83,20 @@ DEFAULT_RATE_LIMIT_PER_SEC = 0
 DEFAULT_RATE_LIMIT_PRODUCER_PER_SEC = 0
 DEFAULT_METRICS_LOG_MAX_BYTES = 5_000_000
 DEFAULT_METRICS_LOG_BACKUPS = 3
+# Minimum seconds between two ATTEMPTS to deliver a sink's one-shot
+# degradation warning. Both sinks latch that warning on DELIVERY, so an
+# undelivered attempt has to be retried or a correlated stderr outage costs the
+# operator the only notice they get. Retrying on every failed write is the
+# other extreme and was measured at 1000 warning lines / 473,000 bytes of
+# stderr for 1000 failed writes on a stream that accepts writes and fails at
+# flush - which is how ENOSPC and EPIPE usually surface, and is the same
+# per-datagram warning storm the one-shot design exists to prevent (R1-11
+# R2-15). Bounding the retry in TIME rather than in count keeps both
+# properties: the warning still lands whenever stderr comes back, at O(1)
+# lines per interval instead of O(1) per record. One metrics interval is the
+# natural period - it is the cadence at which the counters this warning points
+# the operator at are republished anyway.
+SINK_WARNING_RETRY_SEC = DEFAULT_METRICS_INTERVAL_SEC
 # Warn (metrics/log only) when an outgoing UDP datagram exceeds this many
 # bytes. 0 disables the check. This is observability only: oversized
 # datagrams are still sent unchanged (they may IP-fragment or be dropped by
@@ -278,6 +293,9 @@ class GatewayMetrics:
         self.window = self._new_window()
         self.console_failures = 0
         self._console_warned = False
+        # Earliest monotonic time at which the undelivered console warning may
+        # be re-attempted. See SINK_WARNING_RETRY_SEC.
+        self._console_warn_retry_at = 0.0
         # Last log-sink failure total already attributed to a window, so the
         # per-window delta is a real delta and not a running total restated.
         self._log_failures_seen = 0
@@ -369,14 +387,20 @@ class GatewayMetrics:
         The latch is set on DELIVERY, not on attempt (see MetricsLogger.write
         for the full argument): a closed pipe on stdout is frequently the same
         closed pipe on stderr, so latching on the attempt spent the one warning
-        on a line nobody received.
+        on a line nobody received. The re-attempt is rate limited in time
+        (SINK_WARNING_RETRY_SEC) so recovering delivery cannot turn into the
+        warning storm the latch exists to prevent - maybe_log calls this once
+        per summary LINE, so an unbounded retry is already several attempts per
+        interval here and one per failed record on the log sink.
         """
         try:
             print(line)
         except Exception as exc:  # noqa: BLE001 - observability must not kill translation
             self.console_failures += 1
             self._bump("console_failures", 1)
-            if not self._console_warned:
+            now = time.monotonic()
+            if not self._console_warned and now >= self._console_warn_retry_at:
+                self._console_warn_retry_at = now + SINK_WARNING_RETRY_SEC
                 self._console_warned = _warn_stderr(
                     f"WARNING: metrics console sink unavailable: "
                     f"{_exc_detail(exc)}; periodic metrics summaries are "
@@ -449,27 +473,52 @@ class GatewayMetrics:
         self._log_event("duplicate", payload)
 
     def _log_sink_failures(self):
-        """Read the log sink's failure total and attribute the new losses.
+        """Read the log sink's failure total; report what is known as known.
 
         MetricsLogger counts cumulatively; the periodic summary is windowed.
-        Returning (window_delta, total) lets both stay honest without either
-        one restating the other. A logger that does not expose the counter (an
-        operator-supplied sink, a test double) reports zero rather than
-        guessing - the console channel then says nothing it cannot support.
+        Returning `(window_delta, total, readable)` lets both stay honest
+        without either one restating the other.
+
+        `readable` is the load-bearing third value. The read can fail in three
+        ways, all of them ordinary for an operator-supplied sink: the
+        `write_failures` property raises, the attribute is absent entirely, or
+        the value comes back BELOW the last reading (a counter that went
+        backwards is not a counter). The first version of this guard degraded
+        all three to `(0, 0)` - and zero losses is not "unknown", it is a
+        positive claim that the sink is healthy, published on the one surface
+        that exists to make sink degradation visible, at the moment the gateway
+        knows least. Measured consequences of that shape: the cumulative total
+        read 200 -> 0 -> 250, so a delta-based collector saw a counter reset;
+        the `metrics sink_degraded` console line vanished for the whole
+        interval while the sink was still dead; and the JSONL record asserted
+        `write_failures_total: 0` outright (R1-11 R2-14).
+
+        So an unreadable counter reports the LAST TOTAL ACTUALLY READ - a
+        floor, never a fresh claim, and monotone by construction so no
+        collector can see a reset - with `readable=False` carried alongside so
+        both surfaces can say that the numbers are stale rather than current.
+        The window delta is 0 in that case because nothing was attributed, not
+        because nothing was lost; `readable=False` is what says so.
+
+        A gateway with no logger at all is not a failed reading: there is no
+        log sink, so there are no log-sink losses, and `(0, 0, True)` is the
+        true answer rather than a guess.
         """
+        if self.logger is None:
+            return 0, 0, True
         try:
-            total = int(getattr(self.logger, "write_failures", 0) or 0)
+            raw = getattr(self.logger, "write_failures", None)
+            total = None if raw is None else int(raw)
         except Exception:  # noqa: BLE001 - reading a counter must not kill translation
-            # The logger can be operator-supplied, so `write_failures` may be a
-            # property that raises. maybe_log sits on the datagram path (the
-            # backstop's own handler calls it), and this whole subsystem exists
-            # because an observability read must never become an outage.
-            return 0, 0
-        if total < 0:
-            return 0, 0
-        delta = max(0, total - self._log_failures_seen)
+            # maybe_log sits on the datagram path (the backstop's own handler
+            # calls it), and this whole subsystem exists because an
+            # observability read must never become an outage.
+            total = None
+        if total is None or total < self._log_failures_seen:
+            return 0, self._log_failures_seen, False
+        delta = total - self._log_failures_seen
         self._log_failures_seen = total
-        return delta, total
+        return delta, total, True
 
     def maybe_log(self):
         if not self.emit:
@@ -483,8 +532,12 @@ class GatewayMetrics:
         # lands in the next window rather than this one - a one-interval lag,
         # not a loss. When emit is off there is no periodic summary at all and
         # the in-band metrics_sink_gap record is the surface that still works.
-        log_delta, log_total = self._log_sink_failures()
-        window["log_write_failures"] += log_delta
+        log_delta, log_total, log_readable = self._log_sink_failures()
+        # Through _bump, not straight onto the window dict: _bump is what keeps
+        # self.total in step with self.window, and this was the one counter in
+        # the class that bypassed it, leaving total['log_write_failures']
+        # permanently 0 for the life of the process (R1-11 R2-29).
+        self._bump("log_write_failures", log_delta)
         self._print(
             "metrics "
             f"interval={self.interval_sec}s recv={window['received']} "
@@ -540,11 +593,17 @@ class GatewayMetrics:
         # "3 lost since startup" are different operational facts.
         console_delta = window["console_failures"]
         if console_delta or log_delta or self.console_failures or log_total:
+            # write_failures_readable=false marks the pair above as the last
+            # values actually read rather than a current reading. It is
+            # appended only when the reading failed, so a healthy run and a
+            # sink that simply does not expose the counter both stay silent
+            # here instead of printing a degradation line every interval.
             self._print(
                 "metrics sink_degraded "
                 f"console_failures={console_delta} write_failures={log_delta} "
                 f"console_failures_total={self.console_failures} "
                 f"write_failures_total={log_total}"
+                + ("" if log_readable else " write_failures_readable=false")
             )
         self._log_event(
             "metrics",
@@ -571,6 +630,11 @@ class GatewayMetrics:
                 "write_failures": window["log_write_failures"],
                 "console_failures_total": self.console_failures,
                 "write_failures_total": log_total,
+                # Always present, so the machine channel never has to infer
+                # whether the two write_failures numbers above are current or
+                # the last ones that could be read. False means "floor, not
+                # measurement" - see _log_sink_failures.
+                "write_failures_readable": log_readable,
                 "drop_reasons": window["drop_reasons"],
                 "cot_skip_reasons": window["cot_skip_reasons"],
                 "timing_quality_modes": window["timing_quality_modes"],
@@ -591,6 +655,9 @@ class MetricsLogger:
         self.backups = max(0, int(backups)) if backups is not None else 0
         self.write_failures = 0
         self._warned = False
+        # Earliest monotonic time at which the undelivered sink warning may be
+        # re-attempted. See SINK_WARNING_RETRY_SEC.
+        self._warn_retry_at = 0.0
         # Records lost since the last successful append, and the first error of
         # that run. Emitted as an in-band gap marker when the sink recovers so
         # a consumer READS the discontinuity instead of inferring it from a
@@ -616,9 +683,23 @@ class MetricsLogger:
         first = self.path.with_suffix(self.path.suffix + ".1")
         self.path.replace(first)
 
-    def _write(self, record):
+    def _write(self, record, rotate=True):
+        """Append one record. `rotate=False` pins it to the current file.
+
+        Rotation normally runs before every append, which is right for records
+        that stand alone and wrong for the two-line gap marker + record pair:
+        the marker exists to be read immediately above the record that follows
+        the gap, and a rotation between them separates the two into different
+        files - or, with backups <= 0, TRUNCATES the file the marker was just
+        written into and destroys it outright, leaving exactly the pair of
+        contiguous-looking records the marker exists to prevent (R1-11 R2-16).
+        Deferring rotation for the trailing record costs at most one record of
+        overshoot past max_bytes, once per gap; the next ordinary write
+        rotates.
+        """
         self.path.parent.mkdir(parents=True, exist_ok=True)
-        self._rotate_if_needed()
+        if rotate:
+            self._rotate_if_needed()
         with self.path.open("a", encoding="utf-8") as handle:
             handle.write(json.dumps(record, ensure_ascii=True) + "\n")
 
@@ -651,16 +732,24 @@ class MetricsLogger:
           CORRELATED case, not an exotic one: full disk and closed pipe are the
           documented primary causes here and they take stderr down with the log
           file. The result was zero warnings for the entire run even after
-          stderr recovered. Re-attempting costs one failed print per failed
-          write - the same per-record retry the sink itself already does - and
-          can never storm, because a stderr that delivers latches immediately.
+          stderr recovered. The re-attempt is bounded in TIME, not in count:
+          "retry until delivered" reads as free only if an undelivered attempt
+          produces no bytes, and on the shape that actually dominates here - a
+          stream that accepts the write and fails at flush - print() has
+          already put the whole ~473-byte warning into the stream before
+          _warn_stderr can report the failure. Measured unbounded: 1000 failed
+          writes produced 1000 warning lines and 473,000 bytes, which is the
+          per-datagram storm this design exists to prevent (R1-11 R2-15). A
+          count cap would silently stop reporting recovery; a time bound does
+          not - the warning still lands whenever stderr comes back, within
+          SINK_WARNING_RETRY_SEC, at O(1) lines per interval.
         - The loss is marked IN BAND. When the sink recovers, the gap marker
-          below is appended ahead of the next record, so a consumer reading the
-          file sees `metrics_sink_gap` with the count and cause instead of two
-          records that look contiguous. The counters that the stderr warning
-          names also appear on the periodic summary and in the metrics record
-          (GatewayMetrics.maybe_log), so neither channel points at a number
-          with no output surface.
+          below is appended ahead of the next record, in the SAME file, so a
+          consumer reading the file sees `metrics_sink_gap` with the count and
+          cause instead of two records that look contiguous. The counters that
+          the stderr warning names also appear on the periodic summary and in
+          the metrics record (GatewayMetrics.maybe_log), so neither channel
+          points at a number with no output surface.
 
         What is still lost: if the sink never recovers, the marker never lands -
         a file cannot report its own end. That case is covered by the other
@@ -668,6 +757,7 @@ class MetricsLogger:
         which is why both sinks report each other.
         """
         try:
+            marked = False
             if self._pending_gap:
                 # Ahead of the record it precedes, so the marker is impossible
                 # to read as belonging to the data that follows it.
@@ -682,13 +772,20 @@ class MetricsLogger:
                 )
                 self._pending_gap = 0
                 self._gap_error = None
-            self._write(record)
+                marked = True
+            # rotate=False after a marker: the marker and the record it
+            # annotates must land in one file, or rotation silently defeats the
+            # loss marking. Rotation for the pair already happened on the
+            # marker's own append.
+            self._write(record, rotate=not marked)
         except Exception as exc:  # noqa: BLE001 - observability must not kill translation
             self.write_failures += 1
             self._pending_gap += 1
             if self._gap_error is None:
                 self._gap_error = _exc_detail(exc)
-            if not self._warned:
+            now = time.monotonic()
+            if not self._warned and now >= self._warn_retry_at:
+                self._warn_retry_at = now + SINK_WARNING_RETRY_SEC
                 self._warned = _warn_stderr(
                     f"WARNING: metrics log sink unavailable ({self.path}): "
                     f"{_exc_detail(exc)}; metrics logging is degraded "
@@ -1604,9 +1701,28 @@ def _wire_safe_details(details):
     and was itself not RFC 8259. A refusal that the consumer it is warning
     cannot parse is not a refusal (R1-11 residual against A-01).
 
-    This is the boundary where details become wire content, so it closes the
-    class for every validator, present and future, rather than for the one
-    check that was caught echoing.
+    This is the boundary where details become wire content, so it is placed to
+    cover every validator rather than the one check that was caught echoing.
+
+    Coverage is by VALUE, in both positions and by abstract container type,
+    for the same reason the kernel walk one file over is (validators
+    `_child_entries`): a `dict`/`list`-only dispatch misses the shapes the
+    supported cbor2 backend actually decodes, and converting values but not
+    KEYS leaves the one laundering json.dumps performs silently - a NaN map
+    key becomes the bare string "NaN", which reads as a number token and is
+    indistinguishable from a key an operator named. The first version of this
+    function reproduced both blindnesses (R1-11 R2-22).
+
+    Two residues are deliberate. (1) Two distinct non-finite keys in one map
+    collapse to one entry, because they render to the same marker; json.dumps
+    already collapses them to duplicate "NaN" keys, so this loses no
+    information the old shape kept, and a non-finite key is pathological to
+    begin with. (2) A `.tag`/`.value` wrapper (cbor2.CBORTag) is left
+    untouched: it has no honest JSON projection - dropping the tag number
+    launders it and inventing `{"tag":…,"value":…}` mints a shape no consumer
+    was promised - and it is not JSON-encodable at all, so a wrapper in
+    details makes the encode fail loudly rather than shipping a laundered
+    value. Loud failure is the acceptable end state; silent laundering is not.
 
     The substitution is deliberately a STRING, and one that names which
     non-finite it was. Dropping the key would delete the diagnostic; coercing
@@ -1626,7 +1742,7 @@ def _wire_safe_details(details):
     also handed to the metrics recorder, and quietly rewriting the caller's
     values would be a second, invisible mutation.
     """
-    if not isinstance(details, dict):
+    if not isinstance(details, Mapping):
         return details
 
     memo = {}
@@ -1638,7 +1754,7 @@ def _wire_safe_details(details):
         existing = memo.get(marker)
         if existing is not None:
             return existing
-        copied = {} if isinstance(value, dict) else []
+        copied = {} if isinstance(value, Mapping) else []
         memo[marker] = copied
         originals.append(value)  # keep alive so id() cannot be recycled
         pending.append((value, copied))
@@ -1653,14 +1769,42 @@ def _wire_safe_details(details):
             # They become lists: JSON has no set, and a diagnostic the
             # consumer cannot decode is not a diagnostic.
             return _shell(value)
+        if isinstance(value, (Mapping, AbstractSet)):
+            # cbor2 decodes a map used as a map key into a `frozendict` - a
+            # Mapping that is NOT a dict - and CBOR tag 258 into a set-like
+            # that need not be the builtin.
+            #
+            # Bare `Sequence` is deliberately NOT matched. list and tuple are
+            # already covered above and no decoder on this path produces
+            # another sequence type, so matching the abstract one would buy
+            # nothing and would materialise anything else registered as a
+            # Sequence (a range, a lazy view) into a full list. Anyone who
+            # widens this to `Sequence` must add a str/bytes/bytearray leaf
+            # arm AHEAD of it first - text is a Sequence, and without that
+            # guard every string in every diagnostic is exploded into a list
+            # of its own characters. That is what
+            # test_text_is_a_leaf_not_a_sequence exists to catch.
+            return _shell(value)
         return value
+
+    def _convert_key(key):
+        # Values and keys, because json.dumps coerces a float key to a string
+        # and for NaN/Infinity that string is the bare token "NaN"/"Infinity".
+        # Only non-finite keys are rewritten: every other key is left exactly
+        # as it was, since renaming a key changes the diagnostic and only the
+        # non-finite ones are dishonest. Containers used as keys are hashable
+        # (tuple, frozenset) and are left alone - json.dumps refuses them
+        # outright, so there is nothing to launder.
+        if _is_non_finite_number(key):
+            return _non_finite_marker(key)
+        return key
 
     root = _shell(details)
     while pending:
         original, target = pending.pop()
-        if isinstance(original, dict):
+        if isinstance(original, Mapping):
             for key, value in original.items():
-                target[key] = _convert(value)
+                target[_convert_key(key)] = _convert(value)
         else:
             for value in original:
                 target.append(_convert(value))

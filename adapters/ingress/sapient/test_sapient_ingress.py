@@ -2357,3 +2357,417 @@ def test_validate_fails_unsupported_version_and_broken_events():
     relabeled["zmeta_version"] = "1.0"
     status, violations = validate(relabeled)
     assert status == "fail" and violations
+
+
+# ---------------------------------------------------------------------------
+# R1-11 B-03: the degradation must be a FLOOR over the honest widen, never a
+# substitute for it. The property is monotonicity, so it is tested as a
+# property: worse input must never produce a cleaner event.
+# ---------------------------------------------------------------------------
+
+
+def _two_mode_registration_msg(broken_value, units="TIME_UNITS_SECONDS",
+                               sane_seconds=0.5):
+    """One mode with a RESOLVABLE latency, plus one the store cannot resolve.
+
+    This is the shape no previous pin built at the EVENT level. The
+    single-mode fixtures cannot express the defect: the discarded term is
+    the surviving cross-mode bound, and a node with only a broken mode has
+    no surviving bound to discard.
+    """
+    msg = _latency_registration_msg(sane_seconds)
+    msg["registration"]["mode_definition"].append(
+        {"mode_name": "sweep",
+         "maximum_latency": {"units": units, "value": broken_value}}
+    )
+    return msg
+
+
+_BROKEN_LATENCY_DECLARATIONS = [
+    ("NaN value", {"broken_value": float("nan")}),
+    ("Infinity value", {"broken_value": float("inf")}),
+    ("value overflows the ms scale", {"broken_value": _BIG}),
+    ("integer with no float64 form", {"broken_value": 10 ** 400}),
+    ("undeclarable units", {"broken_value": 2.0, "units": "TIME_UNITS_FORTNIGHTS"}),
+]
+
+_CALLER_TIMINGS = [
+    # The default path is listed FIRST because it is the one the previous
+    # pins could not see: with no caller timing the labels are ALREADY
+    # UNKNOWN/UNSYNCED, so the degradation adds no loudness and the number
+    # is the only channel left. That is exactly where the regression lived.
+    ("caller supplies nothing (module default 60000)", None),
+    ("caller LOCKED at 59900 ms (just under the fallback)",
+     {"time_source": "GPS_PPS", "sync_state": "LOCKED", "est_error_ms": 59900.0}),
+    ("caller LOCKED at 5 ms", dict(_SANE_TIMING)),
+    ("caller UNSYNCED at 120000 ms (wider than the fallback)",
+     {"time_source": "UNKNOWN", "sync_state": "UNSYNCED", "est_error_ms": 120000.0}),
+]
+
+
+def _published_timing(store, timing_quality):
+    events = translate(
+        _detection_msg(), SCHEMA_ID, registration=store,
+        **({} if timing_quality is None else {"timing_quality": dict(timing_quality)}),
+    )
+    # Indexing an empty list raises: this oracle cannot be satisfied by a
+    # refusal, which is how the previous non-finite oracle went vacuous.
+    return events[0]["payload"]["timing_quality"], events
+
+
+@pytest.mark.parametrize("broken_label,broken_kwargs", _BROKEN_LATENCY_DECLARATIONS)
+@pytest.mark.parametrize("caller_label,caller_timing", _CALLER_TIMINGS)
+def test_adding_a_broken_mode_never_narrows_the_published_est_error_ms(
+    broken_label, broken_kwargs, caller_label, caller_timing
+):
+    # THE B-03 laundering, stated as the invariant rather than as an
+    # exemplar: take a node, add a second mode whose maximum_latency this
+    # adapter cannot resolve, change NOTHING else. The node now knows
+    # strictly LESS about its own latency, so the number it publishes must
+    # not go down. Measured before this was closed, caller supplying
+    # nothing: sane-only 60500.0 -> sane+broken 60000.0, with sync_state
+    # identical in both, i.e. zero compensating loudness.
+    #
+    # The degraded branch returned before the widen, so it substituted
+    # max(caller, 60000) for caller + the cross-mode bound the store STILL
+    # held and still returned from max_latency_ms(). The fix computes the
+    # widen first and applies the degradation as a floor on top.
+    sane_only = _store(_latency_registration_msg(0.5))
+    plus_broken = _store(_two_mode_registration_msg(**broken_kwargs))
+
+    # Precondition: the store really does still hold a resolvable bound on
+    # the degraded node. Without this the test could pass vacuously on a
+    # node that has nothing left to discard.
+    assert plus_broken.max_latency_ms(NODE) == 500.0, broken_label
+    assert plus_broken.latency_unresolved(NODE) is True, broken_label
+    assert sane_only.latency_unresolved(NODE) is False
+
+    good, good_events = _published_timing(sane_only, caller_timing)
+    degraded, degraded_events = _published_timing(plus_broken, caller_timing)
+    label = f"{broken_label} / {caller_label}"
+
+    assert len(good_events) == 4, label
+    assert len(degraded_events) == 4, label
+    assert degraded["est_error_ms"] >= good["est_error_ms"], label
+    # The floor is a floor, and the widen still happened underneath it.
+    assert degraded["est_error_ms"] >= 60000.0, label
+    # The degradation is stated where a consumer can filter on it.
+    assert degraded["sync_state"] == "UNSYNCED", label
+    assert degraded["time_source"] == "UNKNOWN", label
+    _assert_clean(degraded_events, label)
+
+
+def test_the_degraded_bound_still_includes_the_resolvable_latency():
+    # The specific arithmetic, pinned as a value rather than an inequality,
+    # so a future "simplification" back to max(caller, DEFAULT) fails here
+    # with the number in the message. 59900 + 500 = 60400 > 60000, so the
+    # surviving latency term is the only thing that can produce this.
+    store = _store(_two_mode_registration_msg(float("nan")))
+    timing = translate(
+        _detection_msg(), SCHEMA_ID, registration=store,
+        timing_quality={"time_source": "GPS_PPS", "sync_state": "LOCKED",
+                        "est_error_ms": 59900.0},
+    )[0]["payload"]["timing_quality"]
+    assert timing["est_error_ms"] == 60400.0
+    assert timing["sync_state"] == "UNSYNCED"
+
+    # And with no caller timing at all: 60000 (module fallback) + 500.
+    default = translate(
+        _detection_msg(), SCHEMA_ID, registration=store,
+    )[0]["payload"]["timing_quality"]
+    assert default["est_error_ms"] == 60500.0
+
+
+def test_the_degradation_floor_survives_the_widen_reorder():
+    # The other side of the reorder: a node whose ONLY mode is broken has
+    # no resolvable bound to fold in, so the floor is all there is. This is
+    # the case the original remediation got right and the reorder must keep.
+    store = _store(_latency_registration_msg(float("nan")))
+    assert store.max_latency_ms(NODE) is None
+    timing = translate(
+        _detection_msg(), SCHEMA_ID, registration=store,
+        timing_quality=dict(_SANE_TIMING),
+    )[0]["payload"]["timing_quality"]
+    assert timing["est_error_ms"] == 60000.0
+    assert timing["sync_state"] == "UNSYNCED"
+
+
+# ---------------------------------------------------------------------------
+# R1-11 R2-11 / R2-12: a DECLARED value this adapter cannot carry to a
+# canonical field must survive as provenance. Deleting it is indistinguishable
+# from a producer that never declared it.
+# ---------------------------------------------------------------------------
+
+_UNMAPPABLE_HUGE = int("7" * 400)          # no float64 form; distinctive digits
+_UNMAPPABLE_STR = "ZZ_NOT_A_NUMBER_ZZ"     # a wire type this adapter cannot map
+
+_RB_TRUE = {"coordinate_system": "RANGE_BEARING_COORDINATE_SYSTEM_DEGREES_M",
+            "datum": "RANGE_BEARING_DATUM_TRUE"}
+
+# (label, detection_report override builder, vendor key that must appear).
+# Enumerated from the code, not from the report: every site where a wire key
+# is read through a gate that can decline it without leaving a marker. Four
+# functions, eight keys -- the register named three gates in one function.
+_DECLARED_BUT_UNMAPPABLE = [
+    ("range_bearing.range",
+     lambda v: {"range_bearing": dict(_RB_TRUE, range=v, azimuth=10.0)},
+     "range_bearing"),
+    ("range_bearing.azimuth",
+     lambda v: {"range_bearing": dict(_RB_TRUE, range=100.0, azimuth=v)},
+     "range_bearing"),
+    ("range_bearing.elevation",
+     lambda v: {"range_bearing": dict(_RB_TRUE, azimuth=10.0, elevation=v)},
+     "range_bearing"),
+    ("range_bearing.range_error",
+     lambda v: {"range_bearing": dict(_RB_TRUE, azimuth=10.0, range_error=v)},
+     "range_bearing"),
+    ("range_bearing.azimuth_error",
+     lambda v: {"range_bearing": dict(_RB_TRUE, azimuth=10.0, azimuth_error=v)},
+     "range_bearing"),
+    ("range_bearing.elevation_error",
+     lambda v: {"range_bearing": dict(_RB_TRUE, azimuth=10.0, elevation_error=v)},
+     "range_bearing"),
+    ("enu_velocity.up_rate",
+     lambda v: {"enu_velocity": {"east_rate": 1.0, "north_rate": 2.0, "up_rate": v}},
+     "enu_velocity"),
+    ("enu_velocity.east_rate_error",
+     lambda v: {"enu_velocity": {"east_rate": 1.0, "north_rate": 2.0,
+                                 "east_rate_error": v}},
+     "enu_velocity"),
+    ("location.x_error",
+     lambda v: {"location": dict(_location(), x_error=v)},
+     "location_errors"),
+    ("signal.start_frequency",
+     lambda v: {"signal": [{"amplitude": -57.0, "centre_frequency": 433.0,
+                            "start_frequency": v, "stop_frequency": 200.0}]},
+     "signal"),
+    ("signal.stop_frequency",
+     lambda v: {"signal": [{"amplitude": -57.0, "centre_frequency": 433.0,
+                            "start_frequency": 100.0, "stop_frequency": v}]},
+     "signal"),
+]
+
+
+@pytest.mark.parametrize("poison,poison_label",
+                         [(_UNMAPPABLE_HUGE, "integer with no float64 form"),
+                          (_UNMAPPABLE_STR, "non-numeric wire value")])
+@pytest.mark.parametrize("label,build,vendor_key", _DECLARED_BUT_UNMAPPABLE)
+def test_a_declared_value_this_adapter_cannot_map_is_preserved_not_deleted(
+    poison, poison_label, label, build, vendor_key
+):
+    # The disposition the module states for itself (`_is_number`: "it
+    # refuses here and stays verbatim in the vendor provenance block like
+    # every other unmappable value"; README: "the raw block is preserved as
+    # provenance") was true for some gates and false for these. The FALSE
+    # branch of an `_is_number` gate left `fully_carried` True, so the raw
+    # block was never written and the producer's declaration vanished from
+    # the event entirely -- no canonical field, no provenance, no marker,
+    # indistinguishable from a producer that never declared it.
+    #
+    # Both poison shapes matter. The float twin (1e308) already took the
+    # `_finite`-is-None path and WAS preserved, which is why the asymmetry
+    # went unnoticed: the two are the same magnitude family on the wire and
+    # took opposite paths in the adapter.
+    msg = _detection_msg(**build(poison))
+    events = translate(
+        msg, SCHEMA_ID, registration=_store(_camera_signal_registration_msg())
+    )
+    assert events, f"{label}: the detection itself must still be carried"
+    vendor = events[0]["payload"]["extensions"]["vendor.sapient"]
+    assert vendor_key in vendor, (
+        f"{label} ({poison_label}): declared and then deleted -- "
+        f"vendor keys were {sorted(vendor)}"
+    )
+    # And the value itself is really there, not just the container.
+    blob = json.dumps(events)
+    needle = str(poison) if poison is _UNMAPPABLE_HUGE else poison
+    assert needle in blob, f"{label} ({poison_label}): container kept, value lost"
+    _assert_clean(events, f"{label} / {poison_label}")
+
+
+def test_the_provenance_marker_is_precise_not_blanket():
+    # The trap on the other side: marking everything not-fully-carried
+    # would satisfy the test above while making the vendor block a verbatim
+    # copy of the wire on every event -- which is its own dishonesty, since
+    # "not fully carried" would then be asserted about data that was. A
+    # fully mappable report must carry NONE of these provenance keys.
+    msg = _detection_msg(
+        range_bearing=dict(_RB_TRUE, range=100.0, azimuth=10.0, elevation=5.0),
+        enu_velocity={"east_rate": 1.0, "north_rate": 2.0},
+        signal=[{"amplitude": -57.0, "centre_frequency": 433.0,
+                 "start_frequency": 100.0, "stop_frequency": 200.0}],
+    )
+    events = translate(
+        msg, SCHEMA_ID, registration=_store(_camera_signal_registration_msg())
+    )
+    vendor = events[0]["payload"]["extensions"]["vendor.sapient"]
+    for key in ("range_bearing", "enu_velocity", "signal", "location_errors"):
+        assert key not in vendor, f"{key} preserved for a fully-carried report"
+    payload = events[0]["payload"]
+    assert payload["bearing"] == {"az_deg": 10.0, "el_deg": 5.0}
+    assert payload["features"]["range_m"] == 100.0
+    assert payload["features"]["bandwidth_hz"] == 100.0 * 1e6
+
+
+def test_an_absent_band_edge_keeps_the_sentinel_and_preserves_nothing():
+    # The sentinel's original, honest case must not be disturbed: a Signal
+    # that never declared band edges cannot state bandwidth, the declared
+    # 0.0 "not measured" sentinel marks that, and there is no declaration to
+    # preserve. Only a DECLARED-but-unresolvable edge preserves the block.
+    events = translate(
+        _detection_msg(signal=[{"amplitude": -57.0, "centre_frequency": 433.0}]),
+        SCHEMA_ID,
+        registration=_store(_camera_signal_registration_msg()),
+    )
+    payload = events[0]["payload"]
+    assert payload["features"]["bandwidth_hz"] == 0.0
+    assert "signal" not in payload["extensions"]["vendor.sapient"]
+
+
+def test_an_inverted_band_declaration_is_preserved_beside_the_sentinel():
+    # stop < start resolves both edges and still yields no bandwidth. The
+    # sentinel alone would state "not measured" about a producer that did
+    # measure, and the raw block was dropped because features was non-None
+    # -- destroying the only evidence a consumer could use to disagree.
+    events = translate(
+        _detection_msg(signal=[{"amplitude": -57.0, "centre_frequency": 433.0,
+                                "start_frequency": 200.0, "stop_frequency": 100.0}]),
+        SCHEMA_ID,
+        registration=_store(_camera_signal_registration_msg()),
+    )
+    payload = events[0]["payload"]
+    assert payload["features"]["bandwidth_hz"] == 0.0
+    signal = payload["extensions"]["vendor.sapient"]["signal"]
+    assert signal[0]["start_frequency"] == 200.0
+    assert signal[0]["stop_frequency"] == 100.0
+
+
+def test_an_elevation_with_no_azimuth_is_preserved():
+    # Elevation is only ever mapped alongside a usable azimuth, so a
+    # declared elevation on its own reaches no canonical carrier at all.
+    # This member is not reachable by poisoning a leaf of any shipped
+    # fixture -- it needs a message shape the fixtures do not build -- which
+    # is why a leaf sweep alone cannot enumerate this class.
+    events = translate(
+        _detection_msg(range_bearing=dict(_RB_TRUE, elevation=5.0)),
+        SCHEMA_ID,
+        registration=_store(_camera_signal_registration_msg()),
+    )
+    payload = events[0]["payload"]
+    assert "bearing" not in payload
+    assert payload["extensions"]["vendor.sapient"]["range_bearing"]["elevation"] == 5.0
+
+
+def test_a_power_block_that_maps_to_nothing_is_preserved_not_erased():
+    # Same class as the detection-report gates, in the status branch. A
+    # PLATFORM_STATUS with no power fact in it is not a status, so refusing
+    # the EVENT is right -- but the raw block was that declaration's only
+    # carrier, so refusing the datum with it erased the node's own report
+    # of its power state. Refuse the datum a canonical field; do not erase
+    # it.
+    for label, power in (
+        ("level out of range, source unmapped",
+         {"level": 150, "source": "POWERSOURCE_SOLAR", "status": "POWERSTATUS_OK"}),
+        ("non-numeric level, source unmapped",
+         {"level": "LOW", "source": "POWERSOURCE_SOLAR"}),
+        ("integer level with no float64 form",
+         {"level": 10 ** 400, "source": "POWERSOURCE_SOLAR"}),
+    ):
+        events = translate(_status_msg(power=power), SCHEMA_ID)
+        assert len(events) == 1, label          # no PLATFORM_STATUS, correctly
+        vendor = events[0]["payload"]["extensions"]["vendor.sapient"]
+        assert vendor["power"] == power, label
+        _assert_clean(events, label)
+
+    # And when the block DOES map, it rides the PLATFORM_STATUS event as
+    # before -- not duplicated onto the sensor status.
+    mapped = translate(
+        _status_msg(power={"level": 55, "source": "POWERSOURCE_MAINS"}), SCHEMA_ID
+    )
+    assert len(mapped) == 2
+    assert "power" not in mapped[0]["payload"]["extensions"]["vendor.sapient"]
+    assert mapped[1]["payload"]["metrics"]["battery_pct"] == 55
+    assert mapped[1]["payload"]["extensions"]["vendor.sapient"]["power"]["level"] == 55
+
+
+def test_the_provenance_marker_is_precise_on_the_native_datum_branch_too():
+    # The precision oracle above uses the TRUE-datum branch. The
+    # MAGNETIC/GRID/PLATFORM branch carries elevation through a DIFFERENT
+    # canonical field (features.bearing_native_el_deg), so a marker that is
+    # correct on one branch can be wrong on the other -- and a mutation
+    # confined to the native branch would be invisible to a TRUE-only pin.
+    native = dict(_RB_TRUE, datum="RANGE_BEARING_DATUM_MAGNETIC")
+    events = translate(
+        _detection_msg(range_bearing=dict(native, range=100.0, azimuth=10.0,
+                                          elevation=5.0)),
+        SCHEMA_ID,
+        registration=_store(_camera_signal_registration_msg()),
+    )
+    payload = events[0]["payload"]
+    assert payload["features"]["bearing_native_deg"] == 10.0
+    assert payload["features"]["bearing_native_el_deg"] == 5.0
+    assert payload["features"]["range_m"] == 100.0
+    assert "bearing" not in payload
+    assert "range_bearing" not in payload["extensions"]["vendor.sapient"], (
+        "a fully-carried native-datum report needs no provenance copy"
+    )
+
+    # ... and an unmappable elevation on the SAME branch still preserves.
+    poisoned = translate(
+        _detection_msg(range_bearing=dict(native, azimuth=10.0,
+                                          elevation=_UNMAPPABLE_STR)),
+        SCHEMA_ID,
+        registration=_store(_camera_signal_registration_msg()),
+    )
+    assert (poisoned[0]["payload"]["extensions"]["vendor.sapient"]
+            ["range_bearing"]["elevation"] == _UNMAPPABLE_STR)
+
+
+def test_the_canonical_claim_guard_refuses_on_its_own_not_via_the_backstop(monkeypatch):
+    # R1-11 R1-27(2) recorded the A-02(a) fix -- the canonical
+    # `payload.claim.sub_class` refusal -- as UNPINNABLE, because removing
+    # it produces a byte-identical event list: the emit-boundary backstop
+    # drops the same inference one layer later. That is true of any
+    # end-to-end oracle, and it is exactly how a defence-in-depth layer
+    # rots unnoticed.
+    #
+    # It is pinnable by ISOLATING the layer. With the backstop neutralized,
+    # the claim guard is the only thing standing between a NaN inside a
+    # vendor taxonomy and a canonical `claim` presented to a consumer as
+    # adjudicable evidence. Remove the guard and this test emits the
+    # poisoned inference; keep it and only the clean sibling survives.
+    from adapters.ingress.sapient import sapient_to_zmeta as s2z
+
+    monkeypatch.setattr(s2z, "_refuse_non_finite", lambda events: events)
+
+    msg = _detection_msg(
+        classification=[
+            {"type": "UAV", "confidence": 0.9,
+             "sub_class": [{"type": "quadcopter", "level": float("nan")}]},
+            {"type": "GROUND_VEHICLE", "confidence": 0.7,
+             "sub_class": [{"type": "truck", "level": 2}]},
+        ]
+    )
+    events = translate(msg, SCHEMA_ID, registration=_store(_rf_registration_msg()))
+
+    # The trailing detection-existence claim carries no `type`, so read the
+    # taxonomy claims specifically rather than every CLASSIFICATION event.
+    claims = [
+        event["payload"]["claim"].get("type")
+        for event in events
+        if event["event"]["event_subtype"] == "CLASSIFICATION"
+    ]
+    assert "UAV" not in claims, (
+        "the poisoned taxonomy reached a canonical claim with the backstop "
+        f"neutralized; claims were {claims}"
+    )
+    assert "GROUND_VEHICLE" in claims, (
+        f"the clean sibling entry was collateral damage; claims were {claims}"
+    )
+    # The refused entry is not lost -- it stays verbatim in the observation's
+    # provenance block, which is the whole point of refusing the CLAIM
+    # rather than the report.
+    native = events[0]["payload"]["extensions"]["vendor.sapient"]
+    assert [entry["type"] for entry in native["native_classification"]] == [
+        "UAV", "GROUND_VEHICLE"
+    ]

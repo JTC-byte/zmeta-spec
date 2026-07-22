@@ -126,6 +126,88 @@ def test_formal_manifest_with_non_formal_note_fails(release_tmp_dir):
     )
 
 
+def _write_built_manifest(release_tmp_dir, name, **kwargs):
+    """Write a freshly BUILT manifest, so the file hashes are current.
+
+    These cases must exercise the builder's own defaults end to end, not a
+    mutated copy of the committed manifest: A-09 was a defaulting bug, and
+    a hand-mutated copy would not have shown it.
+    """
+    data = builder.build_manifest_data(**kwargs)
+    path = release_tmp_dir / name
+    path.write_text(
+        yaml.safe_dump(data, sort_keys=False, allow_unicode=False, width=1000),
+        encoding="utf-8",
+    )
+    return path
+
+
+def _identity_items(issues):
+    return {
+        issue.get("item")
+        for issue in issues
+        if issue["code"] == "RELEASE_MANIFEST_FORMAL_IDENTITY_INVALID"
+    }
+
+
+def test_formal_manifest_with_reference_baseline_identity_fails(release_tmp_dir):
+    # R1-11 A-09: `--release-status formal_release --branch main` with the
+    # identity flags omitted built a governed, hash-pinned manifest that
+    # called itself the reference hardening baseline, dated 2026-05-07, and
+    # validated with ZERO issues - while spec/release-hash-policy.md:181-183
+    # told the maintainer this validator refuses exactly that. The branch
+    # half was enforced; the identity half was not.
+    #
+    # All three fields are asserted individually: a partial implementation
+    # that checks only release_id passes a bare "some issue was raised"
+    # oracle.
+    path = _write_built_manifest(
+        release_tmp_dir,
+        "formal-default-identity.yaml",
+        release_status="formal_release",
+        branch="main",
+    )
+    issues = validator.validate_manifest(path)
+
+    assert "RELEASE_MANIFEST_FORMAL_PROVENANCE_MISSING" not in _codes(issues)
+    assert _identity_items(issues) == {"release_id", "release_name", "release_date"}
+
+
+def test_formal_manifest_with_explicit_identity_passes(release_tmp_dir):
+    # The other direction: a real cut must validate clean. Without this the
+    # check above could be satisfied by refusing every formal manifest.
+    path = _write_built_manifest(
+        release_tmp_dir,
+        "formal-real-identity.yaml",
+        release_id="zmeta-v9.9.9",
+        release_name="ZMeta v9.9.9",
+        release_status="formal_release",
+        release_date="2026-07-22",
+        branch="main",
+    )
+
+    assert validator.validate_manifest(path) == []
+
+
+def test_reference_baseline_manifest_keeps_its_default_identity(release_tmp_dir):
+    # False-positive guard: the baseline identity is CORRECT for a
+    # non-formal reference manifest, which is what the builder writes by
+    # default and what the repo committed for most of its history.
+    path = _write_built_manifest(release_tmp_dir, "reference-baseline.yaml")
+
+    assert validator.validate_manifest(path) == []
+
+
+def test_builder_known_open_issues_are_explicit_only(release_tmp_dir):
+    # R1-11 A-27: the R11-14 fix (stop hardcoding "D-003 OPEN") had no
+    # direct test - only an assertion on the committed manifest, which a
+    # regeneration also rewrites.
+    assert builder.build_manifest_data()["known_open_issues"] == []
+    assert builder.build_manifest_data(known_open_issues=["D-999"])[
+        "known_open_issues"
+    ] == ["D-999"]
+
+
 def test_missing_artifact_fails(release_tmp_dir):
     def mutate(data):
         old_path = data["artifact_groups"]["semantic_contract"]["paths"][0]

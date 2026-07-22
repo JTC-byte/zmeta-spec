@@ -144,6 +144,63 @@ class ExternalStatePromotionTest(unittest.TestCase):
         self.assertEqual("PRODUCER_NOT_ALLOWED", violations[0]["code"])
         self.assertEqual("REFLECTION_DETECTED", violations[0]["details"]["loop_status"])
 
+    def test_unhashable_risk_tokens_trip_their_trigger_instead_of_being_admitted(self):
+        """An unhashable token at a RISK/TRIGGER site must fail CLOSED.
+
+        ``payload.extensions`` is free-form, so a producer can legally put a
+        list where a scalar token belongs. The unhashable-input guard added for
+        A-14 answers "not a member" on ``TypeError``, which is correct at an
+        allowlist site (the caller asks ``not contains(...)`` and refuses) and
+        INVERTED at a trigger site, where "not a member" means the risk did not
+        fire and the event is forwarded clean. That silently disabled the
+        loop/reflection gate including ``always_reject_loop_risk``.
+
+        Severity is conditional, so this pins both halves. Under the SHIPPED
+        policy the downstream ``allowed_loop_statuses`` allowlist happens to
+        catch the same token, so reverting only degrades the diagnostic from
+        "loop/reflection risk" to "loop status is not allowed" — the event is
+        still refused. Under ``allowed_loop_statuses: []`` — the documented
+        "no constraint" reading, and a legal deployment — that backstop is
+        absent and reverting ADMITS the event outright.
+
+        Asserting only ``ok is False`` is therefore vacuous: it passes on the
+        reverted tree. Both arms below assert the specific refusal.
+        """
+        reflection = promotion_metadata(loop_status=["REFLECTION_DETECTED"])
+
+        # Arm 1 (shipped policy): the loop/reflection gate must be the thing
+        # that speaks, not a neighbouring allowlist wearing its clothes.
+        ok, violations = self.validate_authority(state_event(metadata=reflection))
+        self.assertFalse(ok)
+        self.assertEqual("PRODUCER_NOT_ALLOWED", violations[0]["code"])
+        self.assertIn("loop/reflection risk", violations[0]["message"])
+        self.assertEqual(["REFLECTION_DETECTED"], violations[0]["details"]["loop_status"])
+
+        # Arm 2 (no-constraint config): the trigger is the ONLY control here,
+        # so a reverted trigger admits a reflection-risk promotion.
+        authority = copy.deepcopy(self.authority)
+        authority["external_state_promotion"]["allowed_loop_statuses"] = []
+        ok, violations = validators.validate_producer_authority(
+            state_event(metadata=reflection), authority, self.severity_map
+        )
+        self.assertFalse(
+            ok,
+            "unhashable loop_status was ADMITTED with allowed_loop_statuses "
+            "empty - the loop/reflection trigger failed open",
+        )
+        self.assertIn("loop/reflection risk", violations[0]["message"])
+
+        # Arm 3: the source-identity trigger, same polarity bug.
+        ok, violations = self.validate_authority(
+            state_event(
+                metadata=promotion_metadata(
+                    lineage_status=["EXTERNAL_SOURCE"], source_event_uid=""
+                )
+            )
+        )
+        self.assertFalse(ok)
+        self.assertIn("source_event_uid", violations[0]["details"]["missing"])
+
     def test_external_state_requires_promotion_transform(self):
         event = state_event(
             metadata=promotion_metadata(),

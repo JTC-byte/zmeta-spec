@@ -651,14 +651,24 @@ naming its own commit cannot be written correctly, and the live
 
 ## What was touched — validation inventory
 
-The audit validates against the diff, so this is the map of it. Total
-surface: **77 files, +4802 / −392** across `origin/main..HEAD`.
+The audit validates against the diff, so this is the map of it.
+**Measure the surface; do not read it out of this prose.** The range grows
+every time another record or fix commit lands, so any total frozen here is
+false by the time it is read — that is the defect class checklist item 5
+exists to catch, and A-13 caught it here for the fifth time. Run:
 
 ```bash
-git diff --stat origin/main..HEAD          # full surface
+git diff --shortstat origin/main..HEAD     # total surface, live
+git diff --stat origin/main..HEAD          # per-file surface
 git diff --name-only origin/main..HEAD     # file list
 git log --oneline --reverse origin/main..HEAD -- <path>   # per-file history
 ```
+
+Every count that remains in this section is a **historical measurement
+anchored to `eb41794`** — the commit the fresh audit froze at — not a claim
+about `HEAD`. The anchor is immutable, so those numbers stay true:
+`git diff --shortstat origin/main..eb41794` → 77 files, +4920 / −392, over
+18 commits. Reproduce with `git diff --shortstat origin/main..eb41794`.
 
 ### Governed surfaces — check these first
 
@@ -679,12 +689,15 @@ files moved.
 
 ### Code surfaces
 
+File counts below are `git diff --name-only origin/main..eb41794 -- <area>`
+at the audit anchor.
+
 | Area | Files | Commits | Why touched |
 | --- | --- | --- | --- |
 | `zmeta_compact.py` | 1 | `74d92e1`, `d955cd0`, `6ea9888` | Encode-side refusal, then verification through real serialization, then codec-internal failure conversion + exact epoch-ms arithmetic + backend-independent integer range. |
 | `gateway/src/gateway.py` | 1 | `74d92e1`, `d955cd0`, `6ea9888` | `ENCODING_UNSUPPORTED` diagnostic, then the recovery ladder, then the receive-loop backstop. |
 | `gateway/src/validators.py` | 1 | `545fe0b`, `c1eb9d0`, `6ea9888` | Producer-authority structural lint, bearing-frame/non-finite checks, then iterative denylist traversal + global-block lint. |
-| `adapters/ingress/sapient/`, `adapters/egress/sapient/` | 6 | `88b527e`, `6ea9888` | Adapter honesty fixes, then non-finite handling on all vendor sinks + non-string `ts` guards. |
+| `adapters/ingress/sapient/`, `adapters/egress/sapient/` | 7 | `88b527e`, `6ea9888` | Adapter honesty fixes, then non-finite handling on all vendor sinks + non-string `ts` guards. |
 | `adapters/ingress/{cot,jreap,mavlink,signalhunter}/` | ~11 | `e3203ad` | `loop_status` self-assertion removed from three templates; signalhunter no-lock geo. |
 | `tools/` (7 files) | 7 | `545fe0b`, `33230af`, `6ea9888` | Harness lint, release manifest/package builders and validators. |
 | `release/` machinery | 4 | `33230af`, `6ea9888` | Formal-status honesty, notes-template handling, signing help text. |
@@ -718,12 +731,26 @@ git diff --stat   # expect: no change
 
 ### Records
 
-`docs/r1_11_full_stack_audit.md` (10 commits),
-`docs/zmeta_refinement_worklog.md` (7), `CHANGELOG.md` (5),
-`docs/zmeta_refinement_handoff.md` (5), plus `README.md`,
+`docs/r1_11_full_stack_audit.md`, `docs/zmeta_refinement_worklog.md`,
+`CHANGELOG.md`, `docs/zmeta_refinement_handoff.md`, plus `README.md`,
 `RELEASE_CHECKLIST.md`, `TRADEMARK.md`, `adapters/AUTHORING.md` and the
 doc-currency re-baselines. High churn because they were rewritten across
 resumed sessions — which is why checklist item 5 targets them.
+
+Per-record commit counts are deliberately **not** frozen here: they are the
+fastest-moving number in the range (every correction to a record increments
+its own count, so the figure is stale the instant it is written — the
+original of this paragraph was wrong on three of its four counts). Measure
+them:
+
+```bash
+for f in docs/r1_11_full_stack_audit.md docs/zmeta_refinement_worklog.md \
+         CHANGELOG.md docs/zmeta_refinement_handoff.md; do
+  printf '%s %s\n' "$f" "$(git log --oneline origin/main..HEAD -- "$f" | wc -l)"
+done
+```
+
+At the audit anchor `eb41794` they were 11 / 8 / 5 / 6 respectively.
 
 ## Execution continuity — interruptions and recovery
 
@@ -919,6 +946,18 @@ It should specifically attack:
    later") was deliberately left as a correct historical boundary. That
    judgement should be re-checked, along with whether any re-baseline
    falsified a genuinely historical statement.
+7. **Allocate at least one lens by CLAIM DENSITY, not diff size.**
+   Added from A-30, which measured the fresh audit's own coverage: lens
+   allocation concentrated on the ~15 largest diffs, and eleven changed
+   surfaces — mostly small doc and data files (`examples/*.jsonl`, six
+   adapter READMEs, `spec/release-hash-policy.md`,
+   `spec/profile-compatibility.md`, a mapping pack, a template) — had
+   their **diffs read by no lens** until the critic pass. Four findings
+   (A-09, A-10's false claim, A-20, A-21) lived there. A small diff is
+   where a *claim* gets added that the code does not keep, and a claim
+   costs one line to write and a full probe to falsify. Rank the changed
+   file list by assertions-per-line, not by insertions, and give the top
+   of that list a dedicated lens.
 
 Until that audit runs and the maintainer takes the release decision,
 this cycle stays local and unpublished.
@@ -929,7 +968,7 @@ this cycle stays local and unpublished.
 
 ### 1. Method and what it could not see
 
-This audit ran against the working tree at `eb41794` with `origin/main` at `09118b3` — 18 held commits, `git diff --shortstat origin/main..HEAD` = 77 files, +4920 / −392, nothing pushed, tagged, or signed. It ran read-only: no file was created, edited, or deleted; no git write command, no manifest or package builder was executed.
+This audit ran against the working tree at `eb41794` with `origin/main` at `09118b3` — 18 held commits, `git diff --shortstat origin/main..eb41794` = 77 files, +4920 / −392, nothing pushed, tagged, or signed. (The anchor is written as `eb41794`, not `HEAD`, on purpose: `HEAD` has moved since, so a `HEAD`-relative figure would misdescribe what this audit actually read.) It ran read-only: no file was created, edited, or deleted; no git write command, no manifest or package builder was executed.
 
 Eleven independent lenses were run over the range, each with a distinct surface: partial-application residue; commit-message-to-diff truth; the promotion/policy lint; the vocabulary and non-finite sinks; the release and compact guards; the doc-currency guards; the record counts and validation inventory; blind-by-construction self-checks; the locked semantics contract; the schema/policy governed surfaces; the three core modules (`zmeta_compact.py`, `gateway/src/gateway.py`, `gateway/src/validators.py`); the adapters; the tools/release machinery; the test suite's own quality; and the seven design gates. Every candidate finding was then put through three-lens adversarial refutation, where a refuter's default was "not a defect" and the burden sat on the finder. **35 candidates were killed. 28 survived.** The refuted list in section 4 is not decoration — it is the bar.
 
@@ -1466,3 +1505,203 @@ is the number that should drive the next decision.
   `docs/zmeta_doctrine_review_log.md` for separate adjudication.
 - The release decision remains **HOLD**, and the manifest/checksum divergence
   (A-12) is still unresolved - it resolves only through a genuine cut.
+
+---
+
+## Records, docs-currency and teaching-corpus pass (2026-07-22)
+
+Scope: `docs/`, non-normative `spec/*.md`, `CHANGELOG.md`, `README.md`,
+`examples/`. No governed artifact touched; no `reason_code`, enum entry,
+field or type minted.
+
+### Closed
+
+- **A-13 (record accuracy) — FIXED AT THE CLASS LEVEL, and the class is
+  wider than the finding said.** Re-measured: the range has grown well past
+  the frozen figure. At the audit anchor,
+  `git diff --shortstat origin/main..eb41794` = 77 files, +4920 / −392;
+  the same command against `HEAD` reports more, and the working tree more
+  again. Keeping the number correct is not achievable — every
+  record commit falsifies it, which is exactly why this recurred five times.
+  So the frozen totals were **removed**, not corrected: each of the four
+  sites now either tells the reader to run `git diff --shortstat`, or states
+  the figure as the output of a named command against the **immutable
+  anchor** `eb41794`. Same treatment for the per-record commit counts (which
+  were wrong on three of four) and the `origin/main..HEAD` attribution in
+  §1 of the fresh audit. One genuinely-wrong static count was corrected in
+  place: the SAPIENT code-surface row said 6 files, `git diff --name-only`
+  says 7.
+- **A-17 (stale worked command) — FIXED, family enumerated.** The finding
+  named two surfaces; grepping every markdown surface for
+  `build_release_package.py` found **four** carrying a `formal_release`
+  build with no `--release-notes`: `README.md:464`,
+  `spec/installation-guide.md:223`, `release/README.md:25` and
+  `tools/README.md:236`. All four now pass it, and README and the
+  installation guide say *why* (without it the builder copies
+  `RELEASE_NOTES_TEMPLATE.md` and the validator on the next line refuses
+  with `RELEASE_PACKAGE_NOTES_PLACEHOLDER`). Historical
+  `release/VALIDATION_REPORT_v*.md` commands and the v1.1.12 inventory in
+  the handoff were **deliberately left alone** — they record what was run.
+  Proven A/B against the shipped code: with `--release-notes` the built
+  `RELEASE_NOTES.md` is `# ZMeta v1.1.16 Release Notes` and the validator
+  returns no issues; without it, `# ZMeta Release Notes Template` and
+  `['RELEASE_PACKAGE_NOTES_PLACEHOLDER']`.
+- **A-18 (doc-currency regression) — FIXED by restoring the label, not by
+  reverting the sweep.** A literal revert was evaluated and rejected: the
+  pre-sweep text said "superseded by the v1.1.13 record above", and the
+  v1.1.13 record was pruned from this rolling brief in the same period, so
+  reverting would have restored a *dangling* pointer in place of a false
+  claim. The block is now labelled historical again and points at
+  `release/VALIDATION_REPORT_v1.1.16.md`, with the measured divergence
+  (roadmap validator dropped at v1.1.16; contract-hash gates added at
+  v1.1.14) stated inline and a one-line reproduction command.
+- **R1-11-13 (CHANGELOG scope) — NARROWED.** The non-finite claim now
+  carries its scope inside the sentence instead of inheriting it from the
+  heading, and cites the doctrine-log entry.
+- **A-21 (teaching corpus) — HALF CLOSED, HALF ESCALATED.** See below.
+- **A-30 (audit coverage) — RECORDED** as item 7 of the targeted checklist,
+  where the next audit will actually read it.
+
+### No change needed
+
+- **A-22 (`BEARING_FRAME_UNLABELED` gate 1).** Confirmed as recorded, and
+  the disposition is **no change**. Three independent reasons. (a) The
+  remedy is unavailable to this pass and to any agent: removing the code
+  means editing `schema/*.json` and `policy/violation-codes.yaml`, both
+  governed Class B. (b) The remedy is not obviously right even for the
+  maintainer — the audit's own analysis shows the enum entry is *forced*
+  once the decision to materialize warns on the wire is taken
+  (`policy/semantics.yaml` gates `schema_violation_allowed_reason_codes`
+  and the gateway validates its own diagnostics), and the identical shape
+  already ships as `GEO_ZERO_FILL_SUSPECTED` on `origin/main`. (c) The
+  broader "warn architecture is over-costly" version was already refuted
+  3/3 in this record. Acting on a marginal gate-1 call by deleting shipped
+  vocabulary would be the more expensive mistake. Left for the maintainer,
+  as the audit intended.
+- **A-24 (`measure_packet_size.py` traceback).** **Already closed by the
+  tools pass** — re-run at HEAD,
+  `python tools/measure_packet_size.py --file examples/zmeta-v1.1-examples.jsonl --summary-only`
+  now exits 1 with `measurement refused for OBSERVATION_EVENT/EO: compact
+  encodes zmeta_version '1.0' events only, got '1.1.0'` and no traceback.
+  No documentation surface promised the old behaviour, so nothing to
+  re-baseline here.
+
+### A-21 — what was fixed and what was escalated
+
+The finding has two halves and they resolve differently.
+
+**Falsifiable half — fixed.** `c1eb9d0`'s message justifies the RF edit as
+"matching the reference adapter it names", and it did not:
+`adapters/ingress/kraken/kraken_to_zmeta.py:35` emits
+`features.doa_array_relative_deg` on **every** event unconditionally, and
+sets `bearing` + `quality.bearing_frame` + `quality.heading_source` only on
+the compensated branch. The example carried the compensated labels and no
+array-relative angle at all — so an example stamped
+`producer: "kraken-sdr"` depicted a shape that producer cannot emit. The
+example now carries `features.doa_array_relative_deg: 45.2`, consistent
+with the labelled `bearing.az_deg: 135.2` under a 90° platform heading.
+That is a record-accuracy fix of the same class as A-13 and A-18, and
+doctrine settles it: an example attributed to a named producer must be a
+shape that producer emits, and gate 3 wants the provenance anchor
+travelling with the promoted bearing.
+
+*The demotion alternative was considered and rejected:* removing
+`payload.bearing` entirely and keeping only the raw angle (the
+`AUTHORING.md:147-151` uncompensated pattern) is also honest, and would also
+keep the gate green — but the corpus already contains a bearingless
+`kraken-sdr` RF event one line down, so demoting this one would leave the
+corpus with **two** uncompensated examples and **zero** showing what a
+correctly-provenanced compensated bearing looks like. Completing the shape
+teaches more and loses nothing.
+
+*Not adopted from the finding:* the characterisation of the RF example as
+"a static ground sensor" is **not established** — `sensor-01` carries
+`geo.alt_m: 1500.0` and no motion fields either way, and `GPS_COURSE` is one
+of the heading-source labels the kraken adapter's own docstring lists
+(`kraken_to_zmeta.py:106`). `heading_source` was therefore left alone rather
+than churned on an unsupported reading.
+
+**Doctrinal half — escalated, not guessed.** Because `--strict` promotes
+warnings to failures and is part of the mandated gate, no shipped example
+can demonstrate the legacy-unlabeled bearing that contract §6.4 explicitly
+*tolerates*. The only pressure the gate can apply to the corpus is toward
+stamping a label. Every available fix lands in `tools/validate_examples.py`
+or in new corpus/gate wiring — a change to the mandated release gate's
+semantics, which is a maintainer call under gate 6. Logged as
+**`docs/zmeta_doctrine_review_log.md` R1-11-14**.
+
+### Pin
+
+`gateway/tests/test_records_claim_currency.py` (new, 7 tests) pins the three
+classes rather than the exemplars:
+
+| Test | Class | Family it sweeps |
+|---|---|---|
+| `test_record_diff_totals_are_not_attributed_to_a_moving_ref` | A-13 | every markdown surface; a total mentioning `HEAD` must carry a commit anchor |
+| `test_anchored_diff_totals_still_measure_what_they_claim` | A-13 | every `git diff --shortstat origin/main..<sha>` figure, re-measured against git (4 sites) |
+| `test_documented_formal_package_builds_pass_release_notes` | A-17 | every documented `formal_release` build command (4 sites); older-release commands skipped as history |
+| `test_handoff_validation_inventory_labelled_historical_while_it_diverges` | A-18 | the handoff inventory vs the newest `VALIDATION_REPORT_v*.md` tool set |
+
+Plus three detector self-tests that assert each oracle **fires** on the
+exact defective text, so none can pass by matching nothing. Every check
+carries a non-vacuity floor first.
+
+**Revert-simulated, watched fail, restored** — individually, on every family
+member: all four A-17 surfaces (4/4 FAIL on revert), all three A-13 record
+surfaces (3/3 FAIL), the A-18 label (FAIL), and a stale figure injected at
+each of the three anchored-total sites (3/3 FAIL). One revert-simulation
+found a real hole while it ran: the A-17 oracle was line-scoped, and the
+prose I had added to `README.md` mentioning `--release-notes` satisfied it
+while the command on the same line was still broken. The matcher now
+captures the command, terminating at a backtick.
+
+**What the pins cannot see** (stated, not hidden):
+
+- The A-13 anchoring check proves a total is *anchored*, and the correctness
+  check only re-measures totals presented as the output of a named
+  `git diff --shortstat origin/main..<sha>` command. A wrong figure written
+  in free prose next to a commit id is not re-measured. A broader matcher
+  was implemented and **withdrawn**: it false-positived on a legitimate
+  `git show <sha> --stat` figure and on A-13's own quotation of the wrong
+  number it documents. A pin that cries wolf on a correct record is worse
+  than one with a stated blind spot.
+- The A-13 check treats any 7+ hex token on the line as an anchor. A bogus
+  anchor would satisfy it.
+- The A-17 check reads markdown only. No non-markdown surface currently
+  carries the command (grepped across `*.yml`, `Makefile`, `*.ps1`, `*.sh`,
+  `*.toml`), but a future CI step would be invisible. It also does not check
+  that the referenced notes file exists.
+- The A-18 check extracts tool names with the **same regex on both sides**
+  — the handoff block and the validation report. A tool family that regex
+  cannot see is invisible in both, so the divergence set would be empty for
+  the wrong reason. This is the shared-machinery blind spot checklist item 4
+  names, in my own pin. The non-vacuity floor (>= 5 tools parsed from the
+  block) bounds it but does not remove it.
+- All four checks are keyword/shape checks on prose. None can tell a true
+  claim from a false one in general; they enforce *form* (anchored, flagged,
+  complete) because form is what the five recurrences actually broke.
+
+### For the maintainer / other groups
+
+- The **cut-time** items in this scope stay open by construction: A-29's
+  Compatibility bullet needs `release/RELEASE_NOTES_v1.1.17.md`, which does
+  not exist yet, and A-12 resolves only through a genuine cut.
+- `docs/zmeta_refinement_handoff.md` still carries `465 passed, 110
+  subtests` and `total=47 passed=47` beneath the v1.1.12 inventory. Those
+  are now explicitly labelled v1.1.12-era and not current; they are correct
+  as history and were not re-baselined.
+- `tools/README.md` and `release/README.md` were edited (one line each) to
+  close the A-17 family. They are documentation, but they sit outside the
+  records scope — flagging it so it is not a surprise.
+- **New failure mode introduced, stated:** the A-17 fix adds a
+  `release/RELEASE_NOTES_v1.1.16.md` literal to four surfaces. For
+  `README.md` and `spec/installation-guide.md` that literal is machine-
+  guarded (`test_release_currency.py` fails pytest on a stale one) and
+  `release/README.md` uses the `<version>` placeholder, so neither can
+  silently stale. `tools/README.md` is **not** machine-guarded — but it
+  already carried two literals of the same vintage on the same line
+  (`package-v1.1.16`, `zmeta-v1.1.16`), so this adds a third instance of an
+  existing exposure rather than a new class, and `RELEASE_CHECKLIST.md`'s
+  doc-currency step already enumerates "tools README examples". Recorded
+  rather than fixed by widening the currency guard, which is another
+  group's file.

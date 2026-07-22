@@ -72,7 +72,16 @@ def main():
             elif args.encoding == "compact":
                 if zmeta_compact is None:
                     raise SystemExit("Compact encoding requires zmeta_compact.")
-                sock.sendto(zmeta_compact.dumps(msg), (args.host, args.port))
+                # Same refusal contract as tools/convert_encoding.py: the
+                # codec refuses events it cannot carry honestly, and the
+                # CLI reports that instead of a raw traceback (R1-11 A-24).
+                try:
+                    packet = zmeta_compact.dumps(msg)
+                except zmeta_compact.CompactUnrepresentableError as exc:
+                    raise SystemExit(
+                        f"replay refused after {sent} events sent: {exc}"
+                    ) from exc
+                sock.sendto(packet, (args.host, args.port))
             elif args.encoding == "proto":
                 if zmeta_proto is None:
                     raise SystemExit("Protobuf encoding requires zmeta_proto.")

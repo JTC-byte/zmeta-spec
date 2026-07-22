@@ -38,7 +38,16 @@ fallback, and ``est_error_ms`` is then widened by the registration-declared
 ``bandwidth_hz: 0.0`` is the repository's declared "not measured" sentinel
 (kraken/moth/signalhunter convention): a SAPIENT Signal without both band
 edges cannot state emitter bandwidth, so the sentinel marks it rather than
-inventing a value. See README for the full mapping and refusal matrix.
+inventing a value. When an edge WAS declared and did not resolve, the raw
+signal block rides along as provenance so the sentinel is not the only
+thing a consumer sees.
+
+Preservation is driven by PRESENCE, not by whether a value was mappable:
+anything the producer put on the wire that reaches no canonical field stays
+in ``payload.extensions["vendor.sapient"]``. A declared value that is
+simply deleted reads downstream exactly like one the producer never sent,
+and telling those two apart is the whole job of a provenance block.
+See README for the full mapping and refusal matrix.
 """
 
 import json
@@ -350,54 +359,68 @@ def _timing(timing_quality, ts, registration, node_id, active_mode):
     absolute timestamp error regardless of clock quality.
 
     A node that DECLARED a maximum_latency this adapter cannot resolve gets
-    the module's documented degraded timing instead of the widen. Skipping
-    the widen and shipping the caller's bound unchanged is not the neutral
-    option it looks like: it makes the broken declaration produce a
-    NARROWER est_error_ms than a sane one (measured: 0.5 s declared ->
-    505.0, NaN declared -> 5.0), so the worse the node's input the cleaner
-    the event — laundering, and precisely the understatement the widen
-    comment below forbids.
+    the module's degraded timing ON TOP of that widen, never INSTEAD of it.
+    The two are independent facts about the same node: whatever latency the
+    store DID resolve is real error, and a declaration it could not resolve
+    means the total is not provably bounded. Ordering matters, and it is
+    the whole finding this shape was rewritten for — a degraded branch that
+    returned before the widen substituted ``max(caller, DEFAULT)`` for
+    ``caller + resolvable_latency`` and threw the resolvable term away, so a
+    node with one sane mode plus one broken mode published a TIGHTER
+    est_error_ms (60000.0) than the same node with only the sane mode
+    (60500.0). Worse input, cleaner event: the identical laundering the
+    degradation exists to close, one branch over.
+
+    MONOTONICITY (the property, stated so it can be tested directly):
+    ``max_latency_ms`` skips modes it could not resolve, so adding a broken
+    mode declaration to a node leaves the widened bound W unchanged and
+    only flips ``latency_unresolved``. The published bound is therefore
+    ``W`` normally and ``max(W, DEFAULT_UNSYNCED_ERROR_MS) >= W`` when
+    degraded — so degrading a node can only ever WIDEN what it publishes,
+    for every unresolvable reason and every mode combination. The
+    degradation is a FLOOR over the honest computation, not a replacement
+    for it.
     """
     timing = coerce_timing_quality(timing_quality, event_ts=ts)
-    if registration is not None:
-        if registration.latency_unresolved(node_id, mode=active_mode):
-            # The capture->send gap is unbounded as far as this adapter can
-            # tell, so no finite number is an honest upper bound and the
-            # clock claim cannot be carried through it. Fall back to the
-            # module's own degraded UNKNOWN/UNSYNCED disposition (contract
-            # 5.3: consumers read est_error_ms together with sync_state,
-            # never as a standalone bound) and take the WIDER of the two
-            # bounds, never the tighter. UNSYNCED is loud and filterable —
-            # every timing-gated consumer drops or degrades it — where a
-            # silently un-widened LOCKED bound is neither.
-            #
-            # Refusing the event instead would be disproportionate and
-            # permanent: one malformed mode declaration would zero every
-            # event from that node forever, discarding geo, bearing and RF
-            # the adapter resolved correctly.
-            caller_error = timing["est_error_ms"]
-            timing["time_source"] = "UNKNOWN"
-            timing["sync_state"] = "UNSYNCED"
-            if _is_number(caller_error):
-                timing["est_error_ms"] = max(
-                    float(caller_error), float(DEFAULT_UNSYNCED_ERROR_MS)
-                )
-            # A caller bound that is ALREADY non-finite is left alone on
-            # purpose: the emit boundary refuses it whole. Substituting a
-            # clean default here would trade one laundering for another.
-            return timing
-        latency_ms = registration.max_latency_ms(node_id, mode=active_mode)
-        if latency_ms is not None:
-            # The widened bound is a PRODUCT. If it leaves the float64
-            # range the timestamp error is unbounded, and falling back to
-            # the un-widened value would UNDERSTATE it — the one thing an
-            # uncertainty field must never do. A non-finite est_error_ms is
-            # refused whole by _refuse_non_finite at the emit boundary; do
-            # not "fix" this by narrowing it. An unresolvable DECLARED
-            # latency never reaches here — it took the degraded branch
-            # above — so this is reachable only from a caller-supplied
-            # est_error_ms near the ceiling.
-            timing["est_error_ms"] = float(timing["est_error_ms"]) + float(latency_ms)
+    if registration is None:
+        return timing
+
+    latency_ms = registration.max_latency_ms(node_id, mode=active_mode)
+    if latency_ms is not None:
+        # The widened bound is a PRODUCT. If it leaves the float64 range
+        # the timestamp error is unbounded, and falling back to the
+        # un-widened value would UNDERSTATE it — the one thing an
+        # uncertainty field must never do. A non-finite est_error_ms is
+        # refused whole by _refuse_non_finite at the emit boundary; do not
+        # "fix" this by narrowing it.
+        timing["est_error_ms"] = float(timing["est_error_ms"]) + float(latency_ms)
+
+    if registration.latency_unresolved(node_id, mode=active_mode):
+        # The capture->send gap is not provably bounded as far as this
+        # adapter can tell, so the widened number above is not an upper
+        # bound and the clock claim cannot be carried through it. Fall back
+        # to the module's own degraded UNKNOWN/UNSYNCED disposition
+        # (contract 5.3: consumers read est_error_ms together with
+        # sync_state, never as a standalone bound) and take the WIDER of
+        # the widened bound and the unknown-clock fallback, never the
+        # tighter. UNSYNCED is loud and filterable — every timing-gated
+        # consumer drops or degrades it — where a silently un-widened
+        # LOCKED bound is neither.
+        #
+        # Refusing the event instead would be disproportionate and
+        # permanent: one malformed mode declaration would zero every event
+        # from that node forever, discarding geo, bearing and RF the
+        # adapter resolved correctly.
+        widened = timing["est_error_ms"]
+        timing["time_source"] = "UNKNOWN"
+        timing["sync_state"] = "UNSYNCED"
+        if _is_number(widened):
+            timing["est_error_ms"] = max(
+                float(widened), float(DEFAULT_UNSYNCED_ERROR_MS)
+            )
+        # A bound that is ALREADY non-finite is left alone on purpose: the
+        # emit boundary refuses it whole. Substituting a clean default here
+        # would trade one laundering for another.
     return timing
 
 
@@ -479,6 +502,16 @@ def _range_bearing_map(range_bearing):
     fields. Range converts to meters per the self-describing coordinate
     system. ``fully_carried`` is False when any component (unspecified
     units/datum, per-axis errors) needs raw preservation.
+
+    ``fully_carried`` is driven by PRESENCE, not by numeric-ness. A key the
+    producer put on the wire that this adapter does not carry to a
+    canonical field marks the block not-fully-carried whatever the reason —
+    a non-numeric value, an integer with no float64 form, an overflowing
+    product, an elevation with no azimuth to hang it on, an error term with
+    no canonical carrier. Gating on ``_is_number`` instead let a declared
+    value fall off the event entirely: no canonical field, no vendor
+    provenance, no marker, indistinguishable from a producer that never
+    declared it. Absence is the only honest silence; deletion is not.
     """
     features = {}
     if not isinstance(range_bearing, dict):
@@ -499,10 +532,13 @@ def _range_bearing_map(range_bearing):
             features["range_m"] = range_m
         else:
             fully_carried = False
+    elif rng is not None:
+        fully_carried = False
 
     bearing = None
     azimuth = range_bearing.get("azimuth")
     elevation = range_bearing.get("elevation")
+    elevation_carried = False
     if _is_number(azimuth):
         if not angle_known:
             fully_carried = False
@@ -526,6 +562,7 @@ def _range_bearing_map(range_bearing):
                 bearing = {"az_deg": az_deg % 360.0}
                 if el_deg is not None and -90.0 <= el_deg <= 90.0:
                     bearing["el_deg"] = el_deg
+                    elevation_carried = True
                 elif el_deg is not None:
                     fully_carried = False
             elif datum in ("MAGNETIC", "GRID", "PLATFORM"):
@@ -533,13 +570,24 @@ def _range_bearing_map(range_bearing):
                 features["bearing_native_datum"] = datum
                 if el_deg is not None:
                     features["bearing_native_el_deg"] = el_deg
+                    elevation_carried = True
             else:
                 fully_carried = False
+    elif azimuth is not None:
+        fully_carried = False
+    if elevation is not None and not elevation_carried:
+        # Elevation is only ever mapped alongside a usable azimuth, so a
+        # declared elevation with no azimuth (or with an unusable one) has
+        # no canonical carrier at all — it is preserved, not dropped.
+        fully_carried = False
 
     if any(
-        _is_number(range_bearing.get(key))
+        range_bearing.get(key) is not None
         for key in ("azimuth_error", "elevation_error", "range_error")
     ):
+        # Per-axis errors have no canonical carrier on this path at all, so
+        # their mere presence needs the raw block. Testing _is_number here
+        # meant a declared-but-unmappable error term silently vanished.
         fully_carried = False
     return bearing, features, fully_carried
 
@@ -547,15 +595,26 @@ def _range_bearing_map(range_bearing):
 def _canonical_rf_features(signals, signal_units):
     """Build the canonical RF feature triple from the first signal entry.
 
-    Returns None unless the registration codex resolves centre_frequency to
-    Hz/MHz/GHz AND amplitude to dBm — amplitude with non-dBm or unknown
-    units is never mapped to ``power_dbm``, and unresolved units leave the
-    whole signal block extension-only (contract 6.5/6.7). ``bandwidth_hz``
-    is stop-start when both edges resolve; otherwise the declared 0.0
-    "not measured" sentinel.
+    Returns (features|None, fully_carried). ``features`` is None unless the
+    registration codex resolves centre_frequency to Hz/MHz/GHz AND
+    amplitude to dBm — amplitude with non-dBm or unknown units is never
+    mapped to ``power_dbm``, and unresolved units leave the whole signal
+    block extension-only (contract 6.5/6.7). ``bandwidth_hz`` is stop-start
+    when both edges resolve; otherwise the declared 0.0 "not measured"
+    sentinel.
+
+    ``fully_carried`` is False when a band edge was DECLARED on the wire and
+    did not reach ``bandwidth_hz`` — unresolvable edge units, a non-numeric
+    or unrepresentable edge, an overflowing difference, or a stop below the
+    start. The sentinel alone is not an honest disposition for that case:
+    it states "not measured" about a producer that did measure, and the
+    caller used to drop the raw ``signal`` block whenever ``features`` was
+    non-None, so the declaration the consumer would need to see otherwise
+    was destroyed. The sentinel still marks the canonical absence; the flag
+    keeps the producer's own declaration alongside it as provenance.
     """
     if not signals or not isinstance(signals[0], dict) or not signal_units:
-        return None
+        return None, True
     first = signals[0]
 
     def _freq_hz(field):
@@ -574,7 +633,7 @@ def _canonical_rf_features(signals, signal_units):
 
     center_hz = _freq_hz("centre_frequency")
     if center_hz is None:
-        return None
+        return None, True
     amplitude = first.get("amplitude")
     amplitude_units = signal_units.get("amplitude")
     if (
@@ -582,7 +641,7 @@ def _canonical_rf_features(signals, signal_units):
         or not isinstance(amplitude_units, str)
         or amplitude_units.strip().lower() != "dbm"
     ):
-        return None
+        return None, True
 
     features = {"center_freq_hz": center_hz, "power_dbm": float(amplitude)}
     start_hz = _freq_hz("start_frequency")
@@ -597,7 +656,15 @@ def _canonical_rf_features(signals, signal_units):
     features["bandwidth_hz"] = (
         bandwidth_hz if bandwidth_hz is not None else BANDWIDTH_SENTINEL_HZ
     )
-    return features
+    # A DECLARED edge that did not reach bandwidth_hz keeps the raw signal
+    # block as provenance; an edge that was simply absent has nothing to
+    # preserve and is the sentinel's original, honest case.
+    declared_edges = any(
+        first.get(field) is not None
+        for field in ("start_frequency", "stop_frequency")
+    )
+    fully_carried = not (declared_edges and bandwidth_hz is None)
+    return features, fully_carried
 
 
 def _node_modality(node_types):
@@ -634,8 +701,12 @@ def _velocity_enu_mps(enu_velocity, registration, node_id):
     if east_mps is None or north_mps is None:
         return None, False
     velocity = {"east": east_mps, "north": north_mps}
+    # Presence, not numeric-ness: the rate errors have no canonical carrier
+    # here, so any declared error term needs the raw block. Testing
+    # _is_number meant a declared-but-unmappable error (a string, an
+    # integer with no float64 form) silently vanished from the event.
     fully_carried = not any(
-        _is_number(enu_velocity.get(key))
+        enu_velocity.get(key) is not None
         for key in ("east_rate_error", "north_rate_error", "up_rate_error")
     )
     up = enu_velocity.get("up_rate")
@@ -646,6 +717,8 @@ def _velocity_enu_mps(enu_velocity, registration, node_id):
             velocity["up"] = up_mps
         else:
             fully_carried = False
+    elif up is not None:
+        fully_carried = False
     return velocity, fully_carried
 
 
@@ -679,10 +752,20 @@ def _measurement_error(location, registration, node_id):
 
 
 def _location_errors(location):
+    """Declared per-axis errors, verbatim, for the provenance block.
+
+    Presence, not numeric-ness. This is the only carrier a per-axis error
+    gets once canonical geo resolved (the whole raw ``location`` is
+    preserved only when geo did NOT resolve), so filtering on
+    ``_is_number`` deleted a declared-but-unmappable error outright —
+    no canonical field, no provenance, no marker. Verbatim is the rule for
+    a provenance block; ``_drop_non_finite`` still strips NaN/inf at the
+    point of use, which is the one value that carries no information.
+    """
     errors = {
         key: location[key]
         for key in ("x_error", "y_error", "z_error")
-        if _is_number(location.get(key))
+        if location.get(key) is not None
     }
     return errors or None
 
@@ -741,7 +824,7 @@ def _translate_detection(
     node_types = registration.node_types(node_id) if registration else []
     signals = [entry for entry in body.get("signal") or [] if isinstance(entry, dict)]
     signal_units = registration.signal_units(node_id) if registration else {}
-    rf_features = _canonical_rf_features(signals, signal_units)
+    rf_features, rf_fully_carried = _canonical_rf_features(signals, signal_units)
     modality = "RF" if rf_features else _node_modality(node_types)
 
     location = body.get("location") if isinstance(body.get("location"), dict) else None
@@ -776,7 +859,11 @@ def _translate_detection(
         vendor_ext["native_classification"] = body["classification"]
     if body.get("behaviour"):
         vendor_ext["native_behaviour"] = body["behaviour"]
-    if signals and rf_features is None:
+    if signals and (rf_features is None or not rf_fully_carried):
+        # Either nothing canonical resolved, or something the producer
+        # declared did not reach a canonical field. Both keep the whole raw
+        # block — the first entry included, because that is the entry whose
+        # declaration was only partly carried.
         vendor_ext["signal"] = signals
     elif len(signals) > 1:
         # Canonical RF features map from signal[0] only; further entries
@@ -1077,6 +1164,22 @@ def _translate_status(body, node_id, ts, *, registration, active_mode):
             metrics["fov_deg"] = float(extent)
             fov_mapped = True
 
+    # The power block is RESOLVED before the sensor event is built, so a
+    # block that yields no PLATFORM_STATUS still has somewhere honest to go.
+    # Only the resolution moves up: both envelopes are still minted below in
+    # emission order, so the time-ordered event_ids stay in that order.
+    power = body.get("power")
+    platform_metrics = {}
+    if isinstance(power, dict):
+        level = power.get("level")
+        if _is_number(level) and 0 <= level <= 100:
+            platform_metrics["battery_pct"] = int(level)
+        power_state = _POWER_STATE.get(enum_tail(power.get("source"), "POWERSOURCE_"))
+        if power_state is not None:
+            platform_metrics["power_state"] = power_state
+    # PLATFORM_STATUS metrics require at least one power fact; a power block
+    # that maps to none is refused, not padded.
+
     vendor_ext = {}
     for key in ("report_id", "active_task_id", "info"):
         if body.get(key) is not None:
@@ -1085,6 +1188,13 @@ def _translate_status(body, node_id, ts, *, registration, active_mode):
         vendor_ext["status"] = status_entries
     if fov is not None and not fov_mapped:
         vendor_ext["field_of_view"] = fov
+    if body.get("power") is not None and not platform_metrics:
+        # Refusing the EVENT is right — a PLATFORM_STATUS with no power fact
+        # in it is not a status. Refusing the DATUM with it is not: the node
+        # declared something about its power and the raw block was its only
+        # carrier, so it rode out of the adapter nowhere at all. The bad
+        # datum is refused a canonical field, not erased.
+        vendor_ext["power"] = body["power"]
     # No kernel home for these: extension-only, never canonical geo.
     for key in ("node_location", "coverage", "obscuration"):
         if body.get(key) is not None:
@@ -1100,33 +1210,19 @@ def _translate_status(body, node_id, ts, *, registration, active_mode):
         "extensions": {VENDOR_EXTENSION_KEY: _drop_non_finite(vendor_ext)},
     }
     events = [sensor_event]
-
-    power = body.get("power")
-    if isinstance(power, dict):
-        platform_metrics = {}
-        level = power.get("level")
-        if _is_number(level) and 0 <= level <= 100:
-            platform_metrics["battery_pct"] = int(level)
-        power_state = _POWER_STATE.get(enum_tail(power.get("source"), "POWERSOURCE_"))
-        if power_state is not None:
-            platform_metrics["power_state"] = power_state
-        # PLATFORM_STATUS metrics require at least one power fact; a power
-        # block that maps to none is refused, not padded.
-        if platform_metrics:
-            status_tail = enum_tail(power.get("status"), "POWERSTATUS_")
-            platform_state = {"OK": "NOMINAL", "FAULT": "WARNING"}.get(status_tail, "UNKNOWN")
-            platform_event = _envelope(
-                "SYSTEM_EVENT", "PLATFORM_STATUS", ts, node_id, zmeta_version="1.1.0"
-            )
-            platform_event["payload"] = {
-                "system_type": "PLATFORM_STATUS",
-                "state": platform_state,
-                "metrics": platform_metrics,
-                "extensions": {
-                    VENDOR_EXTENSION_KEY: _drop_non_finite({"power": power})
-                },
-            }
-            events.append(platform_event)
+    if platform_metrics:
+        status_tail = enum_tail(power.get("status"), "POWERSTATUS_")
+        platform_state = {"OK": "NOMINAL", "FAULT": "WARNING"}.get(status_tail, "UNKNOWN")
+        platform_event = _envelope(
+            "SYSTEM_EVENT", "PLATFORM_STATUS", ts, node_id, zmeta_version="1.1.0"
+        )
+        platform_event["payload"] = {
+            "system_type": "PLATFORM_STATUS",
+            "state": platform_state,
+            "metrics": platform_metrics,
+            "extensions": {VENDOR_EXTENSION_KEY: _drop_non_finite({"power": power})},
+        }
+        events.append(platform_event)
     return events
 
 

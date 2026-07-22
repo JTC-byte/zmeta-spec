@@ -12,10 +12,34 @@ from pathlib import Path
 
 
 MANIFEST_PATH = Path(__file__).resolve().parent / "zmeta-release-manifest.yaml"
+ROOT = Path(__file__).resolve().parents[1]
 
 
 def _release_dir() -> Path:
     return Path(__file__).resolve().parent
+
+
+def _published_release_tags() -> set[str] | None:
+    """Release tags known to git, or None when git cannot answer.
+
+    "Published" is defined here exactly as gateway/tests/
+    test_published_checksums_immutable.py defines it: the annotated release
+    tag is the published record. None means the question could not be
+    answered (no git, shallow/tagless checkout) - the caller must say so
+    rather than treat an unverifiable state as verified.
+    """
+    try:
+        result = subprocess.run(
+            ["git", "tag", "-l", "v*"],
+            cwd=str(ROOT),
+            capture_output=True,
+            check=False,
+        )
+    except OSError:
+        return None
+    if result.returncode != 0:
+        return None
+    return set(result.stdout.decode("utf-8", "replace").split())
 
 
 def default_version_tag():
@@ -83,7 +107,40 @@ def _ensure_package_zip(release_dir: Path, version: str) -> None:
     print(f"built {zip_path.name} from {package_dir.name}/")
 
 
+def _refuse_if_published(release_dir: Path, version: str) -> None:
+    """Refuse to rewrite a checksum file for an already-tagged release.
+
+    AGENTS.md release limits make published SHA256SUMS_<version>.txt
+    immutable: a divergence is resolved by a NEW release cut, never a
+    rewrite. --version defaults to the manifest release_id, which in the
+    post-release window is the already-published version, so a bare
+    `--write-checksums` could overwrite a published record (R1-11 A-23).
+    The tag is what makes a release published, and RELEASE_CHECKLIST.md
+    writes checksums BEFORE the tag is created, so an in-flight cut - and
+    any number of regenerations within it - is unaffected.
+    """
+    checksum_path = release_dir / f"SHA256SUMS_{version}.txt"
+    if not checksum_path.is_file():
+        return
+    tags = _published_release_tags()
+    if tags is None:
+        print(
+            f"warning: cannot determine whether {version} is already published "
+            f"(no git tag data available); {checksum_path.name} will be "
+            "overwritten unverified"
+        )
+        return
+    if version in tags:
+        raise SystemExit(
+            f"refusing to rewrite {checksum_path.name}: {version} is already "
+            "published (release tag exists). Published checksums are immutable "
+            "(AGENTS.md release limits) - a divergence is resolved by cutting a "
+            "new release and publishing a new SHA256SUMS file."
+        )
+
+
 def write_checksums(release_dir: Path, version: str) -> Path:
+    _refuse_if_published(release_dir, version)
     _ensure_package_zip(release_dir, version)
     artifacts = _existing_artifacts(release_dir, version)
     checksum_path = release_dir / f"SHA256SUMS_{version}.txt"

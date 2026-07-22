@@ -117,11 +117,51 @@ def _parse_utc(ts):
 def _is_finite_number(value):
     # Finite only: a NaN/inf coordinate, confidence, or rate is not an
     # honest claim and must refuse, not project (contract 8.1 / 6.8).
-    return (
-        isinstance(value, (int, float))
-        and not isinstance(value, bool)
-        and math.isfinite(value)
-    )
+    if not isinstance(value, (int, float)) or isinstance(value, bool):
+        return False
+    try:
+        return math.isfinite(value)
+    except OverflowError:
+        # ``math.isfinite`` RAISES on a Python int outside the float64
+        # range, and ``json.loads`` builds exactly such an int from a
+        # plain integer literal — so a 400-digit number in geo, confidence
+        # or heading/speed would raise out of this projection instead of
+        # refusing, past the documented None contract. A value with no
+        # float64 form is not a claim a SAPIENT float field can carry.
+        # Mirrors the ingress guard (adapters/ingress/sapient/
+        # sapient_to_zmeta.py _is_number), same reasoning, same answer.
+        return False
+
+
+def _honest_label_json(value):
+    """Compact JSON for an ``object_info`` self-label, or None if it cannot
+    be stated honestly.
+
+    ``allow_nan=False`` is the load-bearing argument. Python's default
+    emits the bare tokens ``NaN``/``Infinity``, which are not JSON
+    (RFC 8259 s6), and because a self-label rides INSIDE a JSON string an
+    outer ``allow_nan=False`` over the whole message cannot see them —
+    the corruption is invisible to every check upstream of the consumer's
+    own parse.
+
+    Refusing the event is the proportionate disposition rather than
+    dropping the offending field or the whole label: these labels are the
+    only channel carrying risk/degradation context across the coalition
+    boundary (contract 3.3, label-don't-launder), so a detection exported
+    with the label dropped, or with the timing bound silently omitted
+    (contract 5.3/5.9 — ``est_error_ms`` MUST NOT be omitted), is exactly
+    the laundering the labels exist to prevent. Same answer this module
+    already gives a non-finite geo, confidence or rate.
+    """
+    try:
+        return json.dumps(
+            value, separators=(",", ":"), sort_keys=True, allow_nan=False
+        )
+    except (ValueError, TypeError):
+        # ValueError: a non-finite float anywhere in the label.
+        # TypeError: a value with no JSON form, or mixed key types that
+        # sort_keys cannot order. Both mean the label cannot be stated.
+        return None
 
 
 def _utc_z(dt):
@@ -204,9 +244,11 @@ def zmeta_state_to_sapient_detection(event, *, node_id, use_labels=None, export_
     Returns:
         Proto3-JSON-shaped SapientMessage dict carrying a DetectionReport,
         or None if the event cannot be honestly projected (wrong
-        type/subtype, missing ts/track_id, no ULID object identity,
-        partial geo, quarantined or rejected by policy, or export-path
-        use prohibited).
+        type/subtype, missing ts/track_id, an unparseable ts or one
+        outside the ULID timestamp range, no ULID object identity,
+        partial or non-finite geo, quarantined or rejected by policy,
+        export-path use prohibited, or an honesty self-label that cannot
+        be serialized as honest JSON). This projection never raises.
     """
     if event.get("event", {}).get("event_type") != "STATE_EVENT":
         return None
@@ -266,15 +308,34 @@ def zmeta_state_to_sapient_detection(event, *, node_id, use_labels=None, export_
 
     # report_id timestamp component is the event's own ts (never wall
     # clock — same honesty rule as the envelope timestamp below). A ts
-    # that does not parse is refused per the documented None contract,
-    # never raised out of the projection.
+    # that does not parse, OR that parses to an instant a ULID cannot
+    # carry, is refused per the documented None contract, never raised
+    # out of the projection.
+    #
+    # The mint MUST stay inside this guard: ulid_from_ts_ms raises
+    # ValueError for any epoch-ms outside [0, 2**48), and a pre-1970
+    # event.ts — the canonical bad-clock symptom on an unsynced edge
+    # node, and schema-valid — lands there. Refusal is the only honest
+    # answer: the ULID's timestamp component is a claim about the event,
+    # so clamping it to 0 (or reading the wall clock) would fabricate a
+    # time this event does not have. Since the whole message is keyed to
+    # that instant, the event is unusable across this projection without
+    # it. The upper bound is unreachable from an ISO-8601 datetime
+    # (2**48 ms runs to year 10889, past datetime.max).
+    #
+    # OSError is in the tuple for the second member of the same class:
+    # `_parse_utc` calls `.astimezone()`, which delegates to the platform
+    # for a NAIVE datetime and raises OSError(EINVAL) on Windows for any
+    # pre-1970 instant — so a zone-less pre-epoch ts escaped the original
+    # (ValueError, TypeError) guard before it ever reached the mint.
     try:
         time_dt = _parse_utc(ts)
-    except (ValueError, TypeError):
+        report_id = ulid_from_ts_ms(round(time_dt.timestamp() * 1000))
+    except (ValueError, TypeError, OverflowError, OSError):
         return None
 
     detection = {
-        "report_id": ulid_from_ts_ms(round(time_dt.timestamp() * 1000)),
+        "report_id": report_id,
         "object_id": object_id,
         "location": {
             "x": lon,
@@ -335,17 +396,24 @@ def zmeta_state_to_sapient_detection(event, *, node_id, use_labels=None, export_
         if entry.get("allowed_uses") or entry.get("prohibited_uses"):
             label_records.append(entry)
     if label_records:
-        object_info.append({
-            "type": "zmeta.risk",
-            "value": json.dumps(label_records, separators=(",", ":"), sort_keys=True),
-        })
+        # _risk_label_entry normalizes only allowed_uses/prohibited_uses;
+        # risk_dimension, reason_code, policy_decision and policy_ref are
+        # copied verbatim, so a non-finite float reaches this dump too.
+        risk_value = _honest_label_json(label_records)
+        if risk_value is None:
+            return None
+        object_info.append({"type": "zmeta.risk", "value": risk_value})
 
     timing_quality = payload.get("timing_quality")
     if isinstance(timing_quality, dict) and timing_quality.get("sync_state") != "LOCKED":
-        object_info.append({
-            "type": "zmeta.timing_quality",
-            "value": json.dumps(timing_quality, separators=(",", ":"), sort_keys=True),
-        })
+        # This label exists ONLY when timing is degraded, so it is the one
+        # channel keeping the events that need it most honest. A verbatim
+        # pass-through of an event sub-object: est_error_ms is the field a
+        # broken clock corrupts, and NaN is not a worst-case upper bound.
+        timing_value = _honest_label_json(timing_quality)
+        if timing_value is None:
+            return None
+        object_info.append({"type": "zmeta.timing_quality", "value": timing_value})
 
     if object_info:
         detection["object_info"] = object_info

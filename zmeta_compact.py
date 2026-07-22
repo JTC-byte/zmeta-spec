@@ -17,12 +17,12 @@ including below microsecond resolution, where a parsed-value comparison
 cannot see the loss because both sides truncate identically.
 
 Representability is a property of the MAPPING, not of the local install.
-Limits the mapping imposes (notably the CBOR 64-bit integer range) are
-enforced here rather than delegated to whichever CBOR backend is present,
-because the supported backends disagree: an out-of-range integer that
-zmeta_cbor refuses, cbor2 silently encodes as a bignum tag that a
-zmeta_cbor consumer then decodes as raw bytes. Two conforming nodes must
-never disagree about what an event means.
+Limits the mapping imposes (notably the CBOR 64-bit integer range and the
+canonical JSON value model) are enforced here rather than delegated to
+whichever CBOR backend is present, because the supported backends disagree:
+an out-of-range integer that zmeta_cbor refuses, cbor2 silently encodes as a
+bignum tag that a zmeta_cbor consumer then decodes as raw bytes. Two
+conforming nodes must never disagree about what an event means.
 """
 
 from __future__ import annotations
@@ -382,6 +382,13 @@ def _semantic_difference(original: Any, restored: Any, path: str = "$"):
     Returns a human-readable path/reason string for the first difference
     that changes meaning, treating the codec's declared representation
     normalizations (above) as equivalent.
+
+    This check is STRUCTURALLY BLIND to values outside the canonical JSON
+    model and cannot be made to see them: both sides hold the same non-JSON
+    object (a set, a CBORTag, a bytes blob, a non-string map key), so `==`
+    is satisfied and nothing looks lost. That whole class is enforced by
+    _find_unrepresentable instead, which is why the scan must run before the
+    encode rather than being folded into this comparison.
     """
     if isinstance(original, dict) and isinstance(restored, dict):
         for key in original:
@@ -436,6 +443,45 @@ _CBOR_INT_MIN = -(2**64)
 _CBOR_INT_MAX = 2**64 - 1
 
 
+# The same argument, one level up from the integer range: CBOR can carry a
+# whole family of values the canonical ZMeta envelope cannot express at all.
+#
+# `spec/compact-binary-mapping.md` already governs this. Encoders MUST refuse
+# any event "that would not expand back to a value-identical canonical
+# envelope", and the clause names non-finite floats as its worked example
+# precisely because they are values "CBOR can carry but canonical JSON
+# (RFC 8259) cannot represent, so they could never decode back to a valid
+# canonical envelope". Non-finite floats are one member of that class. The
+# rest of it was never enforced, so the round-trip check waved it through:
+# both sides of the comparison are the SAME non-JSON object, so `==` is
+# satisfied and nothing looks lost. Measured on HEAD before this check, all
+# through the public `dumps()` on a schema-valid Profile-L STATE:
+#
+#   accepted on cbor2 only  set, frozenset, Decimal, datetime, date, UUID,
+#                           re.Pattern, IPv4Address, frozendict,
+#                           CBORSimpleValue, undefined, complex
+#   accepted on BOTH        bytes, bytearray, and any non-string map key
+#                           (int, big int, float, bool, None, bytes, tuple)
+#
+# Two failures, not one. The cbor2-only rows are backend-dependent
+# representability - the exact sentence this module's header forbids, and the
+# B-01/R2-04 finding (a `set` carrying a 2**70 integer left compact egress as
+# a bignum tag: a cbor2 consumer read an integer, a zmeta_cbor consumer read a
+# list of raw bytes, neither errored). The both-backends rows are a private
+# dialect: a channel two compact nodes can use that no other ZMeta encoding
+# can express, which is the interoperability guarantee failing quietly.
+#
+# So the rule is stated positively, as an ALLOWLIST of the canonical JSON
+# value model. A blocklist of container types would have to be re-derived
+# every time a backend learns a new tag; an allowlist refuses the unknown by
+# construction and needs no maintenance. It also means the walk below never
+# has to descend into an exotic container - it refuses at the container
+# itself, which closes the tuple-mediated cycle that used to fall through to
+# the backend and produce two different refusal reasons for one event.
+_JSON_SCALARS: Tuple[type, ...] = (str, bool, float)
+_JSON_CONTAINERS: Tuple[type, ...] = (dict, list)
+
+
 # Traversal modes for the explicit-stack walk below: _LEAVE marks the point
 # where a container's whole subtree has been popped, so it can come back off
 # the "currently on this path" set.
@@ -453,12 +499,30 @@ def _joined_path(link) -> str:
     return "".join(parts)
 
 
-def _find_unencodable_int(value: Any, path: str = "$"):
-    """First integer outside the CBOR 64-bit range, or None.
+def _find_unrepresentable(value: Any, path: str = "$"):
+    """The mapping-limit scan. First integer outside the CBOR 64-bit range,
+    or None.
 
-    Raises CompactUnrepresentableError if the structure is self-referential
-    (see the last paragraph) -- that is not an integer-range finding and does
-    not travel back through the return value.
+    Two kinds of finding come out of this walk, and they leave by two
+    different doors:
+
+      RETURNED  an integer outside the CBOR 64-bit range. The caller composes
+                it with the mapping's range explanation, because the reason
+                is a property of the mapping rather than of the value.
+      RAISED    a value the canonical envelope cannot express at all - an
+                exotic type, a non-string map key, a reference cycle. Each
+                carries its own reason and its own honest advice, which
+                differ per case, so they are raised where they are found
+                rather than flattened into one caller-side message. Raising
+                is safe: the sole production caller invokes this from inside
+                the guard's try, whose first handler re-raises
+                CompactUnrepresentableError unchanged.
+
+    The type allowlist (_JSON_SCALARS / _JSON_CONTAINERS above) is checked by
+    `isinstance`, not by exact type, so a str/int/float/dict/list SUBCLASS is
+    accepted: it is value-identical to its base in canonical JSON, which is
+    the only question this mapping asks. `bool` is listed as a scalar in its
+    own right and tested before `int`, so it never reaches the range check.
 
     Iterative depth-first traversal, for the same reason as
     validators._find_forbidden_key: recursing here tied the process stack to
@@ -501,9 +565,7 @@ def _find_unencodable_int(value: Any, path: str = "$"):
     two different reasons for one event -- zmeta_cbor raises RecursionError
     ("nesting too deep", which names the wrong cause) and cbor2 raises
     CBOREncodeValueError -- and which one an operator sees would depend on the
-    local install. Raising is safe: the sole production caller invokes this
-    from inside the guard's try, whose first handler re-raises
-    CompactUnrepresentableError unchanged.
+    local install.
     """
     stack = [(_ENTER, value, (path, None))]
     on_path = set()
@@ -513,7 +575,49 @@ def _find_unencodable_int(value: Any, path: str = "$"):
         if mode is _LEAVE:
             on_path.discard(id(current))
             continue
-        if isinstance(current, bool):
+        if isinstance(current, _JSON_CONTAINERS):
+            marker = id(current)
+            if marker in on_path:
+                raise CompactUnrepresentableError(
+                    f"compact cannot encode {_joined_path(link)}: the "
+                    "structure refers back to itself, and a reference cycle "
+                    "has no finite encoding in CBOR or in canonical JSON, so "
+                    "no ZMeta encoding can carry it; the producer must emit "
+                    "an acyclic event"
+                )
+            if marker in scanned:
+                continue
+            on_path.add(marker)
+            scanned.add(marker)
+            stack.append((_LEAVE, current, link))
+            if isinstance(current, dict):
+                # Keys are scanned as well as values -- the walk used to push
+                # values only, so nothing about a key was ever checked. A
+                # canonical JSON object key is a string. A non-string key
+                # survives CBOR as itself (an integer key past the 64-bit
+                # range becomes a bignum tag, which is where B-01 hid one
+                # level deeper than the finding named) while json.dumps
+                # silently stringifies it -- 1.5 to "1.5", NaN to "NaN", None
+                # to "null" -- so the two encodings of one event disagree
+                # about what the field is even called.
+                for key, item in reversed(list(current.items())):
+                    if not isinstance(key, str):
+                        raise CompactUnrepresentableError(
+                            f"compact cannot encode {_joined_path(link)}: the "
+                            f"map key {key!r} is a {type(key).__name__} and "
+                            "canonical JSON object keys are strings, so this "
+                            "event has no canonical envelope to decode back "
+                            "to; the producer must emit string keys"
+                        )
+                    stack.append((_ENTER, item, (f".{key}", link)))
+            else:
+                for index in range(len(current) - 1, -1, -1):
+                    stack.append((_ENTER, current[index], (f"[{index}]", link)))
+            continue
+        if current is None or isinstance(current, _JSON_SCALARS):
+            # Non-finite floats are the one scalar that is in the JSON value
+            # model by type and outside it by value; _semantic_difference
+            # names them by path, so do not duplicate the check here.
             continue
         if isinstance(current, int):
             if not _CBOR_INT_MIN <= current <= _CBOR_INT_MAX:
@@ -522,27 +626,14 @@ def _find_unencodable_int(value: Any, path: str = "$"):
                     "CBOR 64-bit range)"
                 )
             continue
-        if not isinstance(current, (dict, list)):
-            continue
-        marker = id(current)
-        if marker in on_path:
-            raise CompactUnrepresentableError(
-                f"compact cannot encode {_joined_path(link)}: the structure "
-                "refers back to itself, and a reference cycle has no finite "
-                "CBOR encoding; use a version-preserving encoding "
-                "(json/cbor/proto)"
-            )
-        if marker in scanned:
-            continue
-        on_path.add(marker)
-        scanned.add(marker)
-        stack.append((_LEAVE, current, link))
-        if isinstance(current, dict):
-            for key, item in reversed(list(current.items())):
-                stack.append((_ENTER, item, (f".{key}", link)))
-        else:
-            for index in range(len(current) - 1, -1, -1):
-                stack.append((_ENTER, current[index], (f"[{index}]", link)))
+        raise CompactUnrepresentableError(
+            f"compact cannot encode {_joined_path(link)}: a "
+            f"{type(current).__name__} is not a value the canonical ZMeta "
+            "envelope can express (the event model is JSON/RFC 8259: object, "
+            "array, string, number, true/false, null), so no compact packet "
+            "could decode back to it; the producer must emit a canonical "
+            "value"
+        )
     return None
 
 
@@ -595,12 +686,12 @@ def _verified_compact_bytes(event: Dict[str, Any]) -> bytes:
 
     Mapping-level limits are checked HERE rather than left to whichever
     CBOR backend is installed, so an event is representable or not by the
-    same rule everywhere (see _find_unencodable_int).
+    same rule everywhere (see _find_unrepresentable).
 
     EVERY traversal of caller-supplied structure runs INSIDE the guard. The
     pre-checks used to sit in front of it, so the one failure mode the guard
     names by name -- RecursionError on hostile nesting -- escaped it
-    (R1-11 fresh-audit A-04). _find_unencodable_int is now iterative and
+    (R1-11 fresh-audit A-04). _find_unrepresentable is now iterative and
     cannot raise it at all; _semantic_difference is still recursive, so its
     call belongs under the same try rather than after it. Nothing that walks
     the event may be moved back out.
@@ -612,7 +703,7 @@ def _verified_compact_bytes(event: Dict[str, Any]) -> bytes:
             "use a version-preserving encoding (json/cbor/proto)"
         )
     try:
-        oversized = _find_unencodable_int(event)
+        oversized = _find_unrepresentable(event)
         if oversized is not None:
             raise CompactUnrepresentableError(
                 f"compact cannot encode {oversized}; CBOR major types 0/1 carry "

@@ -74,10 +74,10 @@ upheld) · **CHANGED** (a guiding document was amended) · **DROPPED**
 ## Cycle R1-11 — 2026-07-22
 
 Seeded from the fresh full-stack audit and the two adversarial fix rounds that
-followed it. Thirteen entries. **No governed artifact was modified in any of
-them** — `spec/semantics-contract.md`, `schema/*.json`,
-`policy/violation-codes.yaml` and `policy/semantics.yaml` are untouched across
-the entire fix pass.
+followed it, then extended by the records/teaching-corpus pass. Fourteen
+entries. **No governed artifact was modified in any of them** —
+`spec/semantics-contract.md`, `schema/*.json`, `policy/violation-codes.yaml`
+and `policy/semantics.yaml` are untouched across the entire fix pass.
 
 | # | Tension | Gates in play | Status |
 |---|---|---|---|
@@ -94,6 +94,7 @@ the entire fix pass.
 | R1-11-11 | Policy `event_subtype` vocabulary: open or closed? | 1, 6 | OPEN |
 | R1-11-12 | Collapsed-to-no-constraint now refuses (posture change) | 3, 6 | OPEN |
 | R1-11-13 | CHANGELOG claim true-as-scoped, false read repo-wide | 3, 5 | OPEN |
+| R1-11-14 | `--strict` makes a *tolerated* warn unrepresentable in the corpus | 3, 7 | OPEN |
 
 ### R1-11-01 — No governed reason code for a non-finite value · OPEN
 
@@ -320,6 +321,55 @@ down to the code, which is the healthy direction.
 Read repo-wide the sentence is still false. **Recommendation:** narrow the
 wording at closeout. Logged as a documentation-precision pattern worth
 watching: a scoped claim under a scoped heading is easy to read unscoped.
+
+**Disposition (2026-07-22, records group):** wording narrowed in place —
+`CHANGELOG.md` now carries the scope inside the sentence ("in this adapter
+family") rather than relying on the heading, and points back at this entry.
+The recommendation is applied; the entry stays OPEN because the underlying
+*pattern* judgement (whether scoped-heading inheritance is acceptable in the
+CHANGELOG at all) is the maintainer's, not a records fix.
+
+### R1-11-14 — `--strict` makes a *tolerated* warn unrepresentable in the corpus · OPEN
+
+Raised while dispositioning **A-21** (teaching-corpus doctrine).
+
+`BEARING_FRAME_UNLABELED` is `warn`, and the contract's own §6.4 language
+*tolerates* legacy-unlabeled v1.0 bearings — a deliberate, documented
+tolerance. But `tools/validate_examples.py:131-133` promotes warnings to
+failures under `--strict`, and `--strict --require-all` is part of the
+mandated kernel gate. The consequence is structural: **no shipped example
+can ever demonstrate the case the contract says is tolerated.** The only
+pressure the gate can apply to the teaching corpus is *toward stamping a
+frame label* — which is how `c1eb9d0` came to add `TRUE_NORTH` provenance to
+two examples in the same commit that introduced the warn.
+
+That is a gate-3 problem pointed at the teaching surface rather than at the
+wire: the corpus can teach "always labeled" but cannot teach "unlabeled is
+tolerated and here is what it looks like", so an adapter author reading the
+corpus infers a stricter rule than the contract states, and the honest
+legacy shape has nowhere to live.
+
+**What the fix wants:** a way for the corpus to carry an example whose
+*expected* diagnostic is a specific warn — an expectations sidecar, a
+`warn-tolerated` corpus, or a `--strict` that fails on unexpected warnings
+rather than on all of them.
+
+**What blocks it here:** all three land in `tools/validate_examples.py`
+and/or a new corpus file plus its gate wiring — outside a records pass, and
+a change to the *mandated release gate's* semantics is a maintainer call
+under gate 6, not a documentation fix. Narrowing `--strict` would also
+weaken a gate that currently catches real regressions.
+
+**What was done instead:** nothing to the gate. The falsifiable half of
+A-21 was closed on its merits (the RF example now carries the
+`features.doa_array_relative_deg` provenance the reference adapter it names
+always emits, so the example depicts a shape `kraken-sdr` can actually
+produce). The doctrinal half is logged here rather than guessed at.
+
+**Recommendation:** adjudicate alongside R1-11-06 (adapter refusals
+invisible to the wire) — both are the same shape, a *deliberately tolerated
+or refused* condition having no representable place in the artifacts a
+consumer or author reads.
 
 ---
 

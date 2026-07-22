@@ -482,8 +482,13 @@ class _FlushFailsStream(io.TextIOBase):
     def __init__(self):
         super().__init__()
         self._live = True
+        # Everything print() actually put into the stream before flush failed.
+        # These bytes are produced whether or not the warning was delivered,
+        # which is the whole reason the retry has to be bounded.
+        self.text = ""
 
     def write(self, text):
+        self.text += text
         return len(text)
 
     def flush(self):
@@ -495,6 +500,21 @@ class _FlushFailsStream(io.TextIOBase):
         # problem, not the property under test.
         self._live = False
         super().close()
+
+
+def _let_the_warning_retry(*sinks):
+    """Model the passage of one gateway.SINK_WARNING_RETRY_SEC.
+
+    An undelivered one-shot sink warning is re-attempted, but at most once per
+    retry interval, so a test that issues its writes back to back has to say
+    that time passed. Opening the gate directly keeps these tests deterministic
+    and off the wall clock. The bound ITSELF is pinned by
+    MetricsSinkWarningStormTest, which never touches these attributes.
+    """
+    for sink in sinks:
+        for attr in ("_warn_retry_at", "_console_warn_retry_at"):
+            if hasattr(sink, attr):
+                setattr(sink, attr, 0.0)
 
 
 class MetricsSinkWarningDeliveryTest(unittest.TestCase):
@@ -525,7 +545,9 @@ class MetricsSinkWarningDeliveryTest(unittest.TestCase):
         with contextlib.redirect_stderr(_BrokenStream()):
             logger.write({"type": "drop", "reason": "X"})
         self.assertEqual(1, logger.write_failures)
-        # stderr recovers; the sink is still dead.
+        # stderr recovers; the sink is still dead. A retry interval has to have
+        # elapsed for the re-attempt to be due.
+        _let_the_warning_retry(logger)
         err = io.StringIO()
         with contextlib.redirect_stderr(err):
             for _ in range(50):
@@ -547,6 +569,7 @@ class MetricsSinkWarningDeliveryTest(unittest.TestCase):
             metrics.last_log -= 3600
             with contextlib.redirect_stdout(_BrokenStream()):
                 metrics.maybe_log()
+        _let_the_warning_retry(metrics)
         err = io.StringIO()
         with contextlib.redirect_stderr(err):
             for _ in range(5):
@@ -569,6 +592,7 @@ class MetricsSinkWarningDeliveryTest(unittest.TestCase):
         self.assertFalse(
             logger._warned, "a warning that only reached the buffer was not delivered"
         )
+        _let_the_warning_retry(logger)
         err = io.StringIO()
         with contextlib.redirect_stderr(err):
             logger.write({"type": "drop", "reason": "X"})
@@ -636,7 +660,10 @@ class MetricsSinkObservabilityTest(unittest.TestCase):
 
     @staticmethod
     def _kill(logger):
-        def _boom(_record):
+        # Matches _write's real signature, `rotate` included: a double that
+        # silently accepted anything would hide a signature change in the
+        # method it stands in for.
+        def _boom(_record, rotate=True):
             raise OSError("no space left on device")
 
         logger._write = _boom
@@ -686,11 +713,11 @@ class MetricsSinkObservabilityTest(unittest.TestCase):
 
             attempts = {"n": 0}
 
-            def _fail_the_marker_then_recover(record):
+            def _fail_the_marker_then_recover(record, rotate=True):
                 attempts["n"] += 1
                 if attempts["n"] == 1:
                     raise OSError("no space left on device")
-                healthy(record)
+                healthy(record, rotate=rotate)
 
             logger._write = _fail_the_marker_then_recover
             logger.write({"type": "violation", "code": "B"})  # marker attempt fails
@@ -811,6 +838,492 @@ class MetricsSinkObservabilityTest(unittest.TestCase):
                     f"{name} is named to the operator but never logged",
                 )
 
+    def test_console_window_and_cumulative_are_distinct_on_both_surfaces(self):
+        """The console half of the window-vs-cumulative distinction.
+
+        The log half is pinned above. Restating a running total as a per-window
+        count makes an operator read a long-past outage as an ongoing one,
+        every interval, forever - and it was unpinned on the console counter:
+        substituting `self.console_failures` for `window["console_failures"]`
+        at either the record site or the console-line site left the whole file
+        green (R1-11 R2-25). Both surfaces are asserted because the two sites
+        are separate.
+        """
+        logger = gateway.MetricsLogger(self.path)
+        metrics = gateway.GatewayMetrics(interval_sec=1, emit=True, logger=logger)
+        # Interval 1: stdout is dead, so the console counter takes real losses.
+        with contextlib.redirect_stderr(io.StringIO()):
+            metrics.last_log -= 3600
+            with contextlib.redirect_stdout(_BrokenStream()):
+                metrics.maybe_log()
+        first = [rec for rec in self._records() if rec["type"] == "metrics"][-1]
+        lost = first["console_failures"]
+        self.assertGreater(lost, 0)
+        self.assertEqual(lost, first["console_failures_total"])
+        # Interval 2: stdout works again and nothing new is lost. The window
+        # count must be 0 while the cumulative one still remembers.
+        out = io.StringIO()
+        metrics.last_log -= 3600
+        with contextlib.redirect_stdout(out), contextlib.redirect_stderr(io.StringIO()):
+            metrics.maybe_log()
+        second = [rec for rec in self._records() if rec["type"] == "metrics"][-1]
+        self.assertEqual(
+            0,
+            second["console_failures"],
+            "a quiet interval must not restate the earlier console losses",
+        )
+        self.assertEqual(lost, second["console_failures_total"])
+        degraded = [
+            line for line in out.getvalue().splitlines() if "sink_degraded" in line
+        ]
+        self.assertEqual(1, len(degraded))
+        self.assertIn("console_failures=0 ", degraded[0])
+        self.assertIn(f"console_failures_total={lost}", degraded[0])
+
+    def test_an_unreadable_counter_is_reported_as_unknown_not_as_zero_losses(self):
+        """Degrading to "0 losses" is a claim, not an absence of one.
+
+        The counter read can fail while the sink is still dead. Reporting
+        (0, 0) then made the cumulative total non-monotone (200 -> 0 -> 250,
+        which a delta collector reads as a counter reset), deleted the
+        sink_degraded line for the whole interval, and put a positive
+        `write_failures_total: 0` on the wire at the moment the gateway knew
+        least (R1-11 R2-14).
+        """
+
+        class _Flaky:
+            def __init__(self):
+                self.records = []
+                self.count = 200
+                self.raising = False
+
+            def write(self, record):
+                self.records.append(record)
+
+            @property
+            def write_failures(self):
+                if self.raising:
+                    raise RuntimeError("counter transiently unavailable")
+                return self.count
+
+        logger = _Flaky()
+        metrics = gateway.GatewayMetrics(interval_sec=1, emit=True, logger=logger)
+        lines, records = [], []
+
+        def _interval():
+            out = io.StringIO()
+            metrics.last_log -= 3600
+            with contextlib.redirect_stdout(out), contextlib.redirect_stderr(io.StringIO()):
+                metrics.maybe_log()
+            lines.append(out.getvalue())
+            records.append([r for r in logger.records if r["type"] == "metrics"][-1])
+
+        _interval()                       # readable, 200 genuinely lost
+        logger.raising = True
+        _interval()                       # counter unreadable, sink still dead
+        logger.raising = False
+        logger.count = 250
+        _interval()                       # readable again
+
+        totals = [rec["write_failures_total"] for rec in records]
+        self.assertEqual([200, 200, 250], totals, "the cumulative total went backwards")
+        self.assertEqual(sorted(totals), totals, "the cumulative total is not monotone")
+        self.assertEqual([True, False, True], [r["write_failures_readable"] for r in records])
+        # The surface this whole subsystem exists to provide must not vanish
+        # exactly when the reading fails.
+        self.assertIn("sink_degraded", lines[1])
+        self.assertIn("write_failures_readable=false", lines[1])
+        # ...and it must not carry that qualifier when the reading is good.
+        self.assertNotIn("write_failures_readable", lines[0])
+        self.assertNotIn("write_failures_readable", lines[2])
+        # The window delta is still a delta, never the running total restated.
+        self.assertEqual([200, 0, 50], [rec["write_failures"] for rec in records])
+
+    def test_a_counter_that_goes_backwards_is_not_believed(self):
+        # A counter that decreases is a broken counter or a replaced sink;
+        # believing it publishes a cumulative total that drops.
+        class _Rewinding:
+            def __init__(self):
+                self.records = []
+                self.write_failures = 200
+
+            def write(self, record):
+                self.records.append(record)
+
+        logger = _Rewinding()
+        metrics = gateway.GatewayMetrics(interval_sec=1, emit=True, logger=logger)
+        # 5 is a plausible replaced sink; -1 and a value int() cannot read are
+        # the hostile shapes. All three are "unknown", none of them is zero.
+        for value in (200, 5):
+            logger.write_failures = value
+            metrics.last_log -= 3600
+            with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+                metrics.maybe_log()
+        records = [r for r in logger.records if r["type"] == "metrics"]
+        self.assertEqual([200, 200], [r["write_failures_total"] for r in records])
+        self.assertEqual([True, False], [r["write_failures_readable"] for r in records])
+
+    def test_a_counter_that_is_not_a_number_is_unknown_not_zero(self):
+        # int() raising is the same class as the property raising: neither is
+        # evidence that the sink is healthy.
+        for hostile in ("not-a-number", float("nan"), object(), -1):
+            with self.subTest(counter=repr(hostile)):
+
+                class _Hostile:
+                    def __init__(self):
+                        self.records = []
+                        self.write_failures = hostile
+
+                    def write(self, record):
+                        self.records.append(record)
+
+                logger = _Hostile()
+                metrics = gateway.GatewayMetrics(interval_sec=1, emit=True, logger=logger)
+                metrics.last_log -= 3600
+                with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+                    metrics.maybe_log()  # must not raise
+                record = [r for r in logger.records if r["type"] == "metrics"][-1]
+                self.assertFalse(record["write_failures_readable"])
+                self.assertEqual(0, record["write_failures_total"])
+
+    def test_a_sink_that_exposes_no_counter_does_not_claim_a_healthy_sink(self):
+        # getattr's default turned "this sink has no counter" into "this sink
+        # lost nothing" - a positive claim about a sink the gateway cannot see.
+        class _NoCounter:
+            def __init__(self):
+                self.records = []
+
+            def write(self, record):
+                self.records.append(record)
+
+        logger = _NoCounter()
+        metrics = gateway.GatewayMetrics(interval_sec=1, emit=True, logger=logger)
+        out = io.StringIO()
+        metrics.last_log -= 3600
+        with contextlib.redirect_stdout(out), contextlib.redirect_stderr(io.StringIO()):
+            metrics.maybe_log()
+        record = [r for r in logger.records if r["type"] == "metrics"][-1]
+        self.assertFalse(record["write_failures_readable"])
+        # No console noise for a benign configuration: nothing was lost, so
+        # the degradation line must not fire every interval forever.
+        self.assertNotIn("sink_degraded", out.getvalue())
+
+    def test_log_sink_losses_reach_the_run_total_like_every_other_counter(self):
+        # log_write_failures was the one counter incremented straight onto the
+        # window dict, so total['log_write_failures'] was dead and permanently
+        # 0 for the life of the process (R1-11 R2-29).
+        logger = gateway.MetricsLogger(self.path)
+        metrics = gateway.GatewayMetrics(interval_sec=1, emit=True, logger=logger)
+        with contextlib.redirect_stderr(io.StringIO()):
+            self._kill(logger)
+            for _ in range(7):
+                metrics.record_drop("X")
+            metrics.last_log -= 3600
+            with contextlib.redirect_stdout(io.StringIO()):
+                metrics.maybe_log()
+        self.assertEqual(7, metrics.total["log_write_failures"])
+
+    def test_no_window_counter_is_incremented_outside_bump(self):
+        """Class guard: `self.total` only stays true if every counter uses _bump.
+
+        Scoped to the family rather than to log_write_failures, so the next
+        counter written straight onto the window dict is caught the day it is
+        added rather than the day someone reads self.total and gets a zero.
+        """
+        source = GATEWAY_PATH.read_text(encoding="utf-8")
+        offenders = [
+            line.strip()
+            for line in source.splitlines()
+            # A literal-keyed window increment. `self.window[key] += inc`
+            # inside _bump itself is the mechanism, not an offender.
+            if 'window["' in line and "+=" in line
+        ]
+        self.assertEqual([], offenders)
+        # Guard the guard: _bump is still the thing that keeps the two in step.
+        self.assertIn("self.total[key] += inc", source)
+
+
+class MetricsSinkWarningStormTest(unittest.TestCase):
+    """Retrying an undelivered warning must not become the storm it replaced.
+
+    The latch is spent on DELIVERY, so an undelivered attempt has to be
+    retried. Retrying on every failed write reintroduced exactly the
+    per-datagram warning storm the one-shot design exists to prevent: measured
+    at 1000 warning lines / 473,000 bytes of stderr for 1000 failed writes, on
+    a stream that accepts the write and fails at flush - which is how ENOSPC
+    and EPIPE usually surface, and is the shape the delivery fix itself was
+    written for (R1-11 R2-15). The bound is in TIME, not in count: a count cap
+    would silently stop reporting recovery.
+
+    Nothing here touches _warn_retry_at - that is the property under test.
+    """
+
+    def setUp(self):
+        self._tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self._tmp.cleanup)
+        blocker = Path(self._tmp.name) / "logs"
+        blocker.write_text("not a directory", encoding="utf-8")
+        self.dead_path = blocker / "metrics.jsonl"
+
+    def test_a_stderr_that_queues_and_fails_at_flush_does_not_get_one_warning_per_record(self):
+        logger = gateway.MetricsLogger(self.dead_path)
+        stream = _FlushFailsStream()
+        with contextlib.redirect_stderr(stream):
+            for _ in range(1000):
+                logger.write({"type": "drop", "reason": "X"})
+        self.assertEqual(1000, logger.write_failures)
+        self.assertFalse(logger._warned, "nothing was ever delivered, so nothing latched")
+        lines = stream.text.count("metrics log sink unavailable")
+        self.assertLessEqual(
+            lines,
+            2,
+            f"{lines} warnings for 1000 failed writes is the storm the latch exists "
+            "to prevent",
+        )
+        self.assertGreaterEqual(lines, 1, "the operator must still be told once")
+
+    def test_the_console_sink_retry_is_bounded_the_same_way(self):
+        # maybe_log calls _print once per summary LINE, so an unbounded retry
+        # is already several stderr warnings per interval here.
+        metrics = gateway.GatewayMetrics(interval_sec=1, emit=True)
+        stream = _FlushFailsStream()
+        with contextlib.redirect_stderr(stream):
+            for _ in range(50):
+                metrics.last_log -= 3600
+                with contextlib.redirect_stdout(_BrokenStream()):
+                    metrics.maybe_log()
+        lines = stream.text.count("metrics console sink unavailable")
+        self.assertLessEqual(lines, 2, f"{lines} console-sink warnings is a storm")
+        self.assertGreaterEqual(lines, 1)
+
+    def test_a_real_full_disk_stderr_is_not_hammered_once_per_record(self):
+        """Independent oracle: count syscalls, not warning lines.
+
+        _FlushFailsStream is a hand-written double that shares its notion of
+        "queued but not delivered" with the code under test. This one measures
+        the thing the operator's machine actually pays - failed write attempts
+        against a dead fd - through a real TextIOWrapper/BufferedWriter stack
+        over a raw stream that raises ENOSPC, i.e. `gateway 2> /full/disk`.
+        Measured unbounded: 2000 failed record writes produced 2000 of them.
+        """
+
+        class _NoSpaceRaw(io.RawIOBase):
+            def __init__(self):
+                super().__init__()
+                self.attempts = 0
+                self.live = True
+
+            def writable(self):
+                return True
+
+            def write(self, data):
+                if not self.live:
+                    # Finalization flushes; a raise from there is the harness's
+                    # problem, not the property under test.
+                    return len(data)
+                self.attempts += 1
+                raise OSError(28, "No space left on device")
+
+        raw = _NoSpaceRaw()
+        stream = io.TextIOWrapper(io.BufferedWriter(raw, 8192), line_buffering=True)
+        logger = gateway.MetricsLogger(self.dead_path)
+        with contextlib.redirect_stderr(stream):
+            for _ in range(2000):
+                logger.write({"type": "drop", "reason": "X"})
+        raw.live = False
+        self.addCleanup(stream.close)
+        self.assertEqual(2000, logger.write_failures)
+        self.assertLessEqual(
+            raw.attempts,
+            2,
+            f"{raw.attempts} write(2) attempts against a dead fd for 2000 records",
+        )
+        self.assertGreaterEqual(raw.attempts, 1, "the operator must still be told once")
+
+    def test_the_bound_is_time_based_so_recovery_is_still_announced(self):
+        # A count cap would stop reporting forever. After the retry interval
+        # elapses the warning must still land the moment stderr comes back.
+        logger = gateway.MetricsLogger(self.dead_path)
+        with contextlib.redirect_stderr(_FlushFailsStream()):
+            for _ in range(100):
+                logger.write({"type": "drop", "reason": "X"})
+        self.assertFalse(logger._warned)
+        logger._warn_retry_at -= gateway.SINK_WARNING_RETRY_SEC + 1  # time passes
+        err = io.StringIO()
+        with contextlib.redirect_stderr(err):
+            logger.write({"type": "drop", "reason": "X"})
+        self.assertTrue(logger._warned)
+        self.assertEqual(1, err.getvalue().count("metrics log sink unavailable"))
+
+
+class MetricsSinkGapMarkerRotationTest(unittest.TestCase):
+    """The gap marker and the record it annotates must land in one file.
+
+    _write rotates before every append, so writing the marker and then the
+    record as two appends let rotation fall between them: the post-gap record
+    started a new file with no marker above it, and with backups <= 0 the
+    rotation truncates in place and destroys the marker outright - leaving
+    exactly the pair of contiguous-looking records the marker exists to
+    prevent (R1-11 R2-16). The pre-existing marker pin uses the 5 MB default
+    max_bytes and ~200 short records, so it structurally cannot cross a
+    rotation boundary.
+    """
+
+    def setUp(self):
+        self._tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self._tmp.cleanup)
+        self.dir = Path(self._tmp.name)
+        self.path = self.dir / "metrics.jsonl"
+
+    def _kinds(self, path):
+        if not path.exists():
+            return []
+        return [
+            json.loads(line)["type"]
+            for line in path.read_text(encoding="utf-8").splitlines()
+            if line.strip()
+        ]
+
+    def _run(self, backups, prefill):
+        logger = gateway.MetricsLogger(self.path, max_bytes=200, backups=backups)
+        with contextlib.redirect_stderr(io.StringIO()):
+            for idx in range(prefill):
+                logger.write({"type": "violation", "code": f"A{idx}"})
+            size_before = self.path.stat().st_size
+            healthy = logger._write
+
+            def _boom(_record, rotate=True):
+                raise OSError("no space left on device")
+
+            logger._write = _boom
+            for _ in range(3):
+                logger.write({"type": "violation", "code": "LOST"})
+            logger._write = healthy
+            logger.write({"type": "violation", "code": "B"})
+        return size_before
+
+    def test_the_marker_stays_with_its_record_across_a_rotation_boundary(self):
+        # prefill=6 puts the file over max_bytes so the recovery write really
+        # does cross a rotation boundary; prefill=1 is the control.
+        for backups in (3, 0):
+            for prefill, rotates in ((1, False), (6, True)):
+                with self.subTest(backups=backups, prefill=prefill):
+                    self.setUp()
+                    size_before = self._run(backups, prefill)
+                    # Anti-vacuity: if the boundary were never crossed this
+                    # subtest would prove nothing at all.
+                    self.assertEqual(
+                        rotates,
+                        size_before >= 200,
+                        "the rotation case no longer crosses max_bytes",
+                    )
+                    live = self._kinds(self.path)
+                    self.assertIn(
+                        "metrics_sink_gap",
+                        live,
+                        "the marker is not in the file the consumer is tailing",
+                    )
+                    # ...and immediately above the record it annotates.
+                    self.assertEqual(
+                        "violation",
+                        live[live.index("metrics_sink_gap") + 1],
+                        "the marker was separated from the record it precedes",
+                    )
+                    if rotates and backups > 0:
+                        # ...and the rotation genuinely happened.
+                        self.assertTrue(
+                            (self.dir / "metrics.jsonl.1").exists(),
+                            "no rotation occurred, so nothing was under test",
+                        )
+
+    def test_truncating_rotation_cannot_destroy_the_marker(self):
+        # backups=0 truncates in place, so a rotation after the marker erases
+        # it from disk entirely rather than merely relocating it.
+        self._run(0, 6)
+        on_disk = any(
+            "metrics_sink_gap" in path.read_text(encoding="utf-8")
+            for path in self.dir.iterdir()
+            if path.is_file()
+        )
+        self.assertTrue(on_disk, "the marker exists nowhere on disk")
+
+
+class WireSafeDetailsCoverageTest(unittest.TestCase):
+    """The details sanitizer must cover keys and abstract containers.
+
+    It is the boundary where violation details become wire content, and it
+    reproduced inside its own remediation the two blindnesses the kernel walk
+    was widened to remove: values were converted but KEYS were not, so
+    json.dumps laundered a NaN key into the bare string "NaN"; and dispatch
+    was on concrete dict/list/tuple/set, so a cbor2 frozendict passed through
+    with its non-finite intact (R1-11 R2-22).
+    """
+
+    def test_a_non_finite_map_key_is_marked_not_laundered(self):
+        cleaned = gateway._wire_safe_details(
+            {"field": "payload.metrics.est_error_ms", "histogram": {float("nan"): 3}}
+        )
+        key = list(cleaned["histogram"])[0]
+        self.assertIsInstance(key, str)
+        self.assertEqual("<non-finite:nan>", key)
+        # The whole point: the refusal is now RFC 8259 and cannot be misread
+        # as a number the sensor reported.
+        text = json.dumps(cleaned, allow_nan=False)
+        self.assertNotIn('"NaN"', text)
+
+    def test_every_non_finite_key_flavour_is_named(self):
+        cleaned = gateway._wire_safe_details(
+            {float("nan"): 1, float("inf"): 2, float("-inf"): 3}
+        )
+        # Read off the module's own marker table: NaN, +inf and -inf are
+        # different sensor faults and the key must keep the distinction.
+        self.assertEqual(
+            sorted(gateway._NON_FINITE_DETAIL_MARKERS.values()), sorted(cleaned)
+        )
+        self.assertEqual(3, len(cleaned))
+
+    def test_ordinary_keys_are_left_exactly_as_they_were(self):
+        # Renaming a key changes the diagnostic; only the dishonest ones move.
+        original = {"field": 1, 2: "two", True: "yes", None: "none", 3.5: "f"}
+        self.assertEqual(original, gateway._wire_safe_details(original))
+
+    def test_a_non_dict_mapping_is_walked_and_becomes_encodable(self):
+        cbor2 = _optional("cbor2")
+        if cbor2 is None:  # pragma: no cover - cbor2 is a declared dependency
+            self.skipTest("cbor2 not installed")
+        cleaned = gateway._wire_safe_details(
+            {"vendor": cbor2.frozendict({"x": float("nan")})}
+        )
+        self.assertEqual({"vendor": {"x": "<non-finite:nan>"}}, cleaned)
+        json.dumps(cleaned, allow_nan=False)
+
+    def test_text_is_a_leaf_not_a_sequence(self):
+        """Forward guard on the next plausible widening of the dispatch.
+
+        str/bytes/bytearray are Sequences. The dispatch matches Mapping and Set
+        abstractly but list/tuple concretely, so today nothing walks text; the
+        moment someone widens it to bare `Sequence` without putting a text leaf
+        arm in front, every string in every diagnostic becomes a list of its
+        own characters. That mutation is what this catches.
+        """
+        original = {"t": "abc", "b": b"abc", "ba": bytearray(b"ab"), "n": [1.0]}
+        self.assertEqual(original, gateway._wire_safe_details(original))
+
+    def test_a_self_referential_detail_still_terminates(self):
+        # Guard the guard: widening the dispatch must not reopen the cycle
+        # hang the memo was added for.
+        loop = {"a": 1}
+        loop["self"] = loop
+        cleaned = gateway._wire_safe_details(loop)
+        self.assertIs(cleaned, cleaned["self"])
+
+
+def _optional(name):
+    try:
+        return importlib.import_module(name)
+    except ImportError:  # pragma: no cover - optional dependency
+        return None
+
 
 class _StopReceiveLoop(BaseException):
     """Ends the loop under test from recvfrom.
@@ -908,6 +1421,127 @@ class ReceiveLoopSurvivesDeadMetricsSinkTest(unittest.TestCase):
             2, err.count("datagram dropped after unexpected ValueError: inner failure")
         )
         self.assertEqual(1, err.count("metrics log sink unavailable"))
+
+
+class UnencodableEventDropReasonTest(unittest.TestCase):
+    """The last rung of the egress ladder must drop honestly, not generically.
+
+    R1-11 A-28: `_encode_outgoing_or_diagnostic` returns `(None, event)` when
+    even the minimal diagnostic cannot be encoded, and the receive loop then
+    drops that datagram as `ENCODING_UNSUPPORTED` and continues. Nothing drove
+    that branch. Deleting it left the whole suite green - the nearest test
+    counts `record_drop` string literals `>= 4`, which goes slack the moment a
+    fifth lands anywhere - while the datagram fell through to
+    `_check_datagram_size(len(None))`, raising TypeError into the A-03
+    backstop. No crash, but the operator-facing drop reason silently changed
+    from the honest `ENCODING_UNSUPPORTED` to the catch-all `INTERNAL_ERROR`,
+    so a `drop_reasons` filter for encoding refusals showed zero while every
+    such event was being discarded.
+
+    There is no natural datagram that reaches it: the second rung builds a
+    minimal diagnostic with no caller content, which compact can always carry.
+    So the fault is injected at the documented boundary - `_encode_message`,
+    the sole thing `_encode_outgoing_or_diagnostic` calls - and the injection
+    is itself asserted below rather than assumed, because an oracle that
+    silently stopped reaching the branch would pass with zero drops.
+    """
+
+    def setUp(self):
+        if not gateway._COMPACT_UNREPRESENTABLE:  # pragma: no cover
+            self.skipTest("zmeta_compact not installed")
+        self._unrepresentable = gateway._COMPACT_UNREPRESENTABLE[0]
+        self._tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self._tmp.cleanup)
+        self.log_path = Path(self._tmp.name) / "metrics.jsonl"
+
+    def _refuse_every_encode(self, *_args, **_kwargs):
+        raise self._unrepresentable("nothing on this wire can carry it")
+
+    def _run_loop(self, datagrams):
+        sock_in = _LoopSocket(datagrams)
+        sock_out = _LoopSocket()
+        sockets = [sock_in, sock_out]
+        argv = [
+            "gateway.py",
+            "--profile", "H",
+            "--listen-port", "45597",
+            "--forward-port", "45596",
+            "--metrics-log-path", str(self.log_path),
+        ]
+        out, err = io.StringIO(), io.StringIO()
+        with contextlib.ExitStack() as stack:
+            stack.enter_context(mock.patch("sys.argv", argv))
+            stack.enter_context(
+                mock.patch.object(gateway.socket, "socket", lambda *a, **k: sockets.pop(0))
+            )
+            stack.enter_context(
+                mock.patch.object(gateway, "_encode_message", self._refuse_every_encode)
+            )
+            stack.enter_context(contextlib.redirect_stdout(out))
+            stack.enter_context(contextlib.redirect_stderr(err))
+            with self.assertRaises(_StopReceiveLoop):
+                gateway.main()
+        return sock_out, err.getvalue()
+
+    def _records(self):
+        if not self.log_path.exists():
+            return []
+        return [
+            json.loads(line)
+            for line in self.log_path.read_text(encoding="utf-8").splitlines()
+            if line.strip()
+        ]
+
+    def test_the_injection_really_exhausts_the_recovery_ladder(self):
+        # Anti-vacuity: if the ladder ever stopped returning None under this
+        # injection, the loop test below would pass having driven nothing.
+        settings = {
+            "output_encoding": "json",
+            "profile": "H",
+            "stamp_contract_hash": False,
+        }
+        with mock.patch.object(gateway, "_encode_message", self._refuse_every_encode):
+            payload, event = gateway._encode_outgoing_or_diagnostic(
+                {"event": {"event_id": "e-1"}},
+                settings,
+                contract_hashes={"contract_hash": "sha256:x"},
+                should_stamp_profile=False,
+                metrics=None,
+            )
+        self.assertIsNone(payload)
+        self.assertEqual({"event": {"event_id": "e-1"}}, event)
+
+    def test_an_unencodable_event_is_dropped_as_encoding_unsupported(self):
+        bad = json.dumps({"event": {"event_type": "NOT_A_TYPE"}}).encode()
+        sock_out, err = self._run_loop([bad, bad])
+
+        # Nothing may reach the wire: there is no honest bytes to send.
+        self.assertEqual([], sock_out.sent)
+        drops = [record for record in self._records() if record["type"] == "drop"]
+        # Exactly one per datagram, so the loop continued rather than dying on
+        # the first - and the count cannot pass on an empty result set.
+        self.assertEqual(2, len(drops), f"expected two drops, got {drops}")
+        self.assertEqual(
+            ["ENCODING_UNSUPPORTED", "ENCODING_UNSUPPORTED"],
+            [record["reason"] for record in drops],
+            "the operator-facing drop reason is not the honest encoding "
+            "refusal; a drop_reasons filter for encoding failures now shows "
+            "zero while every such event is discarded",
+        )
+        # It must be the dedicated branch that recorded it, not the catch-all
+        # backstop reached by falling through into len(None).
+        self.assertNotIn("datagram dropped after unexpected", err)
+
+    def test_the_refusal_is_still_announced_as_a_violation(self):
+        # Proportionality: the datagram is dropped, but the reason travels on
+        # the violation surface too, so an operator can see WHICH event was
+        # unrepresentable and not merely that a drop happened.
+        bad = json.dumps({"event": {"event_type": "NOT_A_TYPE"}}).encode()
+        self._run_loop([bad])
+        violations = [
+            record for record in self._records() if record["type"] == "violation"
+        ]
+        self.assertIn("ENCODING_UNSUPPORTED", [record["code"] for record in violations])
 
 
 class DropReasonVocabularyTest(unittest.TestCase):

@@ -70,6 +70,43 @@ def _esc(text):
     )
 
 
+def _stale_time(time_obj, valid_for_ms):
+    """`time_obj + valid_for_ms` as a datetime, or None when unrepresentable.
+
+    CoT `stale` is an absolute timestamp, so a validity window the datetime
+    module cannot add is a window CoT has no way to express. Three raising
+    modes reach here on input the kernel forwards clean, because
+    `payload.valid_for_ms` is `{"type": "integer", "minimum": 1}` with **no
+    upper bound** (schema/zmeta-event-1.0.schema.json):
+
+      * `10**400` ms  -> OverflowError "Python int too large to convert to
+        C int" (the arm R1-11 R2-05 names)
+      * `10**15` ms   -> OverflowError "date value out of range"
+      * an ordinary `300000` ms stale on `ts="9999-12-31T23:59:59Z"` ->
+        OverflowError "date value out of range", from a timestamp and a
+        window that are each individually unremarkable
+
+    All three previously escaped as a raw exception out of an adapter whose
+    documented failure signal is None - the same defect the non-finite arm of
+    this expression already had closed (`default_valid_for_ms = NaN`), left
+    open on the integer arm. TypeError is caught for the same reason: the
+    disposition for "this cannot be projected" is the documented None, not a
+    traceback out of the caller's event loop.
+
+    Refusal, not substitution. Falling back to `default_valid_for_ms` would
+    publish a freshness bound the event never claimed, and clamping to
+    `datetime.max` would publish "this track never goes stale". CoT has no
+    unknown-value convention for `stale` the way it has 9999999.0 for
+    ce/le, and a CoT event without `stale` is not a CoT event - so this is
+    the case where the event genuinely is unusable without the bad datum,
+    and whole-event refusal is proportionate rather than escalatory.
+    """
+    try:
+        return time_obj + timedelta(milliseconds=valid_for_ms)
+    except (OverflowError, ValueError, TypeError):
+        return None
+
+
 def _has_state_prohibited_payload_fields(payload):
     if not isinstance(payload, dict):
         return True
@@ -161,8 +198,9 @@ def zmeta_to_cot(event, cot_config=None):
     Returns:
         CoT XML string, or None if the event cannot be converted (wrong
         event type, prohibited raw payload fields, missing geo/track_id,
-        missing event.ts outside wall-clock mode, or any non-finite
-        (NaN/inf) number that would become a CoT attribute).
+        missing event.ts outside wall-clock mode, any non-finite (NaN/inf)
+        number that would become a CoT attribute, or a validity window whose
+        stale timestamp is not representable - see _stale_time).
     """
     if event.get("event", {}).get("event_type") != "STATE_EVENT":
         return None
@@ -238,7 +276,9 @@ def zmeta_to_cot(event, cot_config=None):
 
     default_valid_for_ms = cot_config.get("default_valid_for_ms", 300000)
     valid_for_ms = payload.get("valid_for_ms", default_valid_for_ms)
-    stale_obj = time_obj + timedelta(milliseconds=valid_for_ms)
+    stale_obj = _stale_time(time_obj, valid_for_ms)
+    if stale_obj is None:
+        return None
 
     time_str = time_obj.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
     stale_str = stale_obj.strftime("%Y-%m-%dT%H:%M:%S.%fZ")

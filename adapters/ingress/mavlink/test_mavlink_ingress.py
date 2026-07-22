@@ -739,10 +739,19 @@ def test_decode_global_position_int_reported_values_preserved():
     assert decoded["heading_deg"] == 90.0
 
 
-def test_decode_attitude_omits_unreported_axes():
-    # A 0.0-degree default asserts a measured level attitude.
-    assert decode_attitude({}) == {}
-    assert decode_attitude({"roll": 0.5}) == {"roll_deg": math.degrees(0.5)}
+def test_decode_attitude_reports_unreported_axes_as_none():
+    # A 0.0-degree default asserts a measured level attitude; an *omitted* key
+    # is the other half of the same problem and is pinned separately below.
+    assert decode_attitude({}) == {
+        "roll_deg": None,
+        "pitch_deg": None,
+        "yaw_deg": None,
+    }
+    assert decode_attitude({"roll": 0.5}) == {
+        "roll_deg": math.degrees(0.5),
+        "pitch_deg": None,
+        "yaw_deg": None,
+    }
 
     full = decode_attitude({"roll": 0.0, "pitch": 0.1, "yaw": 3.0})
     assert full["roll_deg"] == 0.0
@@ -1177,3 +1186,356 @@ def test_mavlink_time_status_refuses_to_fabricate_timing_uncertainty():
             est_error_ms=1.0,
             ts="2025-01-17T15:20:00+00:00",
         )
+
+# ---------------------------------------------------------------------------
+# R1-11 second-pass pins (B-04 / R2-01, R2-08, R2-09, R2-10, R2-20, R2-21,
+# R1-23, R1-26). Each closes a defect that a *previous* fix introduced or left
+# behind, so each is written to fail on the code as it stood before this pass -
+# not merely to describe the code as it stands now.
+#
+# Deliberate construction note: every vocabulary below is written out as a
+# literal here rather than imported from the module under test. A pin that
+# asserted the module's tuple equals the module's tuple would be satisfied by
+# any vocabulary at all, which is the shape of oracle this cycle already
+# shipped once.
+# ---------------------------------------------------------------------------
+
+
+def _time_status_msg(**overrides):
+    msg = {
+        "msg_type": "SYSTEM_TIME",
+        "est_error_ms": 1.0,
+        "last_sync_ts": "2025-01-17T15:19:59+00:00",
+    }
+    msg.update(overrides)
+    return msg
+
+
+def _time_status_event(**overrides):
+    return mavlink_decoded_to_zmeta_system_events(
+        _time_status_msg(**overrides),
+        platform_id="uav-1",
+        producer="mavlink-adapter",
+        ts=_INPUT_TS,
+    )[0]
+
+
+def test_mavlink_time_status_carried_verdict_is_a_vocabulary_not_a_whitelist():
+    # B-04 / R2-01. The guard compared the carried label against the two
+    # literals its author thought of ("UP", "SYNCED"), so every other
+    # optimistic label - including this module's own sync vocabulary, and
+    # including the targeted exemplar with one trailing space - was published
+    # verbatim over an UNSYNCED metrics block.
+    #
+    # Normalisation happens before the comparison: these all render as "UP" in
+    # an operator UI, so none of them may escape it.
+    for carried in ("UP ", " UP", "up", " Up ", "SYNCED", "synced", "Synced "):
+        event = _time_status_event(state=carried)
+        assert event["payload"]["metrics"]["sync_state"] == "UNSYNCED"
+        assert event["payload"]["state"] == "DEGRADED", carried
+        VALIDATOR.validate(event)
+
+    # An unrankable label is refused, not published and not silently replaced
+    # by the derived verdict. Replacing it would launder in the other
+    # direction: "FAULT" may be *more* degraded than the derivation, and
+    # quietly emitting the derived verdict over it would clean up an upstream
+    # that said something was wrong.
+    for carried in ("LOCKED", "NOMINAL", "OK", "GOOD", "HEALTHY", "TRUE", "FAULT"):
+        with pytest.raises(ValueError, match="cannot rank"):
+            _time_status_event(state=carried)
+
+    # A genuinely more-conservative carried verdict is still honoured, and the
+    # honest clean path still reads UP - the refusal must not cost either.
+    degraded = _time_status_event(state="DOWN", sync_state="LOCKED")
+    assert degraded["payload"]["state"] == "DOWN"
+    VALIDATOR.validate(degraded)
+    locked = _time_status_event(state="UP", sync_state="LOCKED")
+    assert locked["payload"]["state"] == "UP"
+    VALIDATOR.validate(locked)
+
+
+def test_mavlink_time_status_absent_verdict_is_not_an_unrankable_one():
+    # The refusal above must stay proportionate: a message that simply says
+    # nothing about clock health is not carrying a verdict this adapter cannot
+    # interpret, and it still emits on the derived verdict.
+    for absent in (None, "", "   "):
+        event = _time_status_event(state=absent)
+        assert event["payload"]["state"] == "DEGRADED"
+        VALIDATOR.validate(event)
+    assert _time_status_event()["payload"]["state"] == "DEGRADED"
+
+
+def test_mavlink_time_status_non_string_verdict_is_refused_not_stringified():
+    # R2-08. str(carried_state) turned three verdicts the gateway used to
+    # refuse as SCHEMA_INVALID into clean, schema-valid payload.state values
+    # reading '1' / 'True' / '3.5' over an UNSYNCED metrics block - an event a
+    # consumer cannot interpret and nothing downstream will reject.
+    for carried in (1, 0, True, False, 3.5, ["UP"], {"state": "UP"}):
+        with pytest.raises(ValueError, match="cannot rank"):
+            _time_status_event(state=carried)
+
+
+def test_mavlink_task_ack_zero_is_a_carried_verdict_not_a_missing_one():
+    # R2-10. `state or mission_state or ack` collapsed every falsy value to
+    # None and the guard then reported "no verdict carried". Both MAVLink
+    # acceptance codes are the integer 0, so the truthiness test destroyed
+    # precisely the successful acknowledgements while REJECTED/FAILED kept
+    # emitting - and told the operator something false about why.
+    base = {
+        "msg_type": "MISSION_ACK",
+        "task_id": "task-1",
+        "original_event_id": "019c3ef3-98c4-7c99-8daf-3643ed0bc8ef",
+    }
+
+    def _emit(**overrides):
+        return mavlink_decoded_to_zmeta_system_events(
+            {**base, **overrides}, platform_id="uav-1", producer="mavlink", ts=_INPUT_TS
+        )
+
+    # A carrier that is present says so, whatever it carries. The two failures
+    # are distinguishable, and neither message is false: this one may not claim
+    # the message carried no verdict.
+    for key in ("ack", "mission_state", "state"):
+        with pytest.raises(ValueError) as absent_claim:
+            _emit(**{key: 0})
+        message = str(absent_claim.value)
+        assert "not one of the v1.0 TASK_ACK states" in message
+        assert repr(key) in message and " 0," in message
+        assert "requires a message-carried ack state" not in message
+
+    # No carrier key at all is the genuinely missing verdict, and keeps the
+    # original message.
+    with pytest.raises(ValueError, match="requires a message-carried ack state"):
+        _emit(mission_ack=True)
+
+    # An unmappable non-zero code is refused at ingress rather than emitted as
+    # a schema-invalid event for the gateway to reject.
+    for carried in (1, 4, "GOOD", ""):
+        with pytest.raises(ValueError, match="not one of the v1.0 TASK_ACK states"):
+            _emit(ack=carried)
+
+    # Every real verdict still emits, from any carrier, in any spelling.
+    for state in (
+        "RECEIVED",
+        "ACCEPTED",
+        "REJECTED",
+        "EXECUTING",
+        "COMPLETED",
+        "FAILED",
+        "CANCELLED",
+        "EXPIRED",
+        "DUPLICATE_IGNORED",
+    ):
+        for key in ("state", "mission_state", "ack"):
+            event = _emit(**{key: state})[0]
+            assert event["payload"]["state"] == state
+    assert _emit(ack="accepted ")[0]["payload"]["state"] == "ACCEPTED"
+
+
+def test_mavlink_uint8_max_rssi_sentinel_never_becomes_a_measurement():
+    # R2-09. The sentinel family was declared enumerated and closed at
+    # satellites_visible; RC_CHANNELS(_RAW).rssi and RADIO_STATUS.rssi carry
+    # the identical uint8 "Values: [0-254], UINT8_MAX: invalid/unknown"
+    # documentation and were emitted verbatim. 255 on a 0-254 scale reads
+    # downstream as the strongest signal ever observed.
+    sentinel = translate_link_status(
+        platform_id="uav-1", ts=_INPUT_TS, rc_rssi=255, **_LINK_METRICS
+    )
+    assert "rc_rssi" not in sentinel["payload"]["metrics"]
+    VALIDATOR.validate(sentinel)
+
+    # The top of the real scale, and the dBm convention this template's own
+    # tests use, both still travel: the guard drops the sentinel, not the
+    # measurement next to it.
+    for reported in (254, 0, -70):
+        link = translate_link_status(
+            platform_id="uav-1", ts=_INPUT_TS, rc_rssi=reported, **_LINK_METRICS
+        )
+        assert link["payload"]["metrics"]["rc_rssi"] == reported
+
+    # The same sentinel on the decoded-message path.
+    kwargs = {"platform_id": "uav-1", "producer": "mavlink", "ts": _INPUT_TS}
+    dropped = mavlink_decoded_to_zmeta_system_events(
+        {"msg_type": "RADIO_STATUS", "rssi": 255}, **kwargs
+    )[0]
+    assert "rssi" not in (dropped["payload"].get("metrics") or {})
+    kept = mavlink_decoded_to_zmeta_system_events(
+        {"msg_type": "RADIO_STATUS", "rssi": -70}, **kwargs
+    )[0]
+    assert kept["payload"]["metrics"]["rssi"] == -70
+
+
+def test_mavlink_battery_voltage_sentinel_dropped_by_every_emitter():
+    # R2-21 + R1-23, as a class rather than as the named exemplar. The comment
+    # justifying the repeated satellites guard claimed the battery sentinels
+    # were "guarded on both sides"; the voltage was guarded in the decoder
+    # only, and translate_link_status - which has no decoder in front of it at
+    # all - published both 0 V and the 65.535 V UINT16_MAX "voltage not sent"
+    # sentinel as measurements.
+    #
+    # 65535 mV is the sentinel in the units decode_sys_status sees; 65.535 V is
+    # the same sentinel in the units a bridge that converts before handing over
+    # produces, which is what the pre-fix template in this very module did.
+    def _quality(volts):
+        return _state_event(battery_voltage=volts)["payload"]["quality"]
+
+    def _metrics(volts):
+        return translate_link_status(
+            platform_id="uav-1", ts=_INPUT_TS, battery_voltage=volts, **_LINK_METRICS
+        )["payload"]["metrics"]
+
+    for emitted in (_quality, _metrics):
+        for refused in (65535 / 1000.0, 65.535, 0.0, -1.0):
+            assert "battery_voltage" not in emitted(refused), (emitted, refused)
+        # A real measurement, including one just either side of the sentinel,
+        # is untouched: this drops one exact value, not a range.
+        for reported in (12.6, 65.534, 65.536, 50.4):
+            assert emitted(reported)["battery_voltage"] == reported
+        # These guards compare, so they must not turn a caller's wrong-typed
+        # value into a bare TypeError out of the adapter: before this pass the
+        # link emitter took `is not None` and a string voltage travelled to a
+        # loud gateway refusal. A crash is not a refusal.
+        for wrong_typed in ("12.6", True, None):
+            assert "battery_voltage" not in emitted(wrong_typed), wrong_typed
+        # A non-finite is deliberately NOT swallowed here. The kernel's
+        # value-honesty gate refuses it loudly and with a filterable reason
+        # code; dropping it in the adapter would trade that signal for a
+        # silent omission, which is the trade this whole pass exists to undo.
+        assert math.isnan(emitted(float("nan"))["battery_voltage"])
+    assert decode_sys_status({"voltage_battery": 65535}) == {}
+
+    poisoned = _state_event(battery_voltage=float("nan"))
+    ok, violations = validators.validate_semantics(
+        poisoned, POLICY["semantics"], POLICY.get("violation_severities")
+    )
+    assert ok is False and violations, "the kernel gate must still see the NaN"
+
+
+def test_mavlink_unknown_heading_sentinel_never_reaches_either_destination():
+    # Enumerated from the code rather than from the register: the fifth member
+    # of the same sentinel family. GLOBAL_POSITION_INT.hdg = UINT16_MAX
+    # divided by 100 by a bridge is 655.35 deg. On the canonical path the
+    # schema's 0-360 bound catches it; quality.mavlink_hdg_frame_unknown_deg
+    # has no such bound, so it landed there schema-clean.
+    # Wrong-typed headings take the same route, and take it without raising:
+    # the guard compares, so a string heading must drop, not crash the adapter.
+    for sentinel in (655.35, 720.0, -1.0, "090", True):
+        uncertain = _state_event(heading_deg=sentinel)
+        assert "mavlink_hdg_frame_unknown_deg" not in uncertain["payload"]["quality"]
+        VALIDATOR.validate(uncertain)
+
+        canonical = _state_event(heading_deg=sentinel, heading_frame="TRUE_NORTH")
+        assert "heading_deg" not in canonical["payload"]
+        assert "heading_source" not in canonical["payload"]["quality"]
+        VALIDATOR.validate(canonical)
+
+    # A non-finite heading is left for the kernel's value-honesty gate, which
+    # refuses it loudly with a reason code. Swallowing it here would cost the
+    # operator the signal as well as the value.
+    nan_heading = _state_event(heading_deg=float("nan"))
+    assert math.isnan(
+        nan_heading["payload"]["quality"]["mavlink_hdg_frame_unknown_deg"]
+    )
+    ok, violations = validators.validate_semantics(
+        nan_heading, POLICY["semantics"], POLICY.get("violation_severities")
+    )
+    assert ok is False and violations, "the kernel gate must still see the NaN"
+
+    # A real heading, at both ends of the legal range, still travels.
+    for reported in (0.0, 90.0, 359.9, 360.0):
+        assert (
+            _state_event(heading_deg=reported)["payload"]["quality"][
+                "mavlink_hdg_frame_unknown_deg"
+            ]
+            == reported
+        )
+
+
+def test_mavlink_link_status_reason_code_is_a_vocabulary_and_must_agree():
+    # R2-20. Only presence was enforced, on a path that became reachable only
+    # when `state` stopped being hard-coded "UP" - so a DEGRADED could still be
+    # emitted schema-invalid, and an UP could carry a cause of degradation.
+    with pytest.raises(ValueError, match="reason_code must be one of"):
+        translate_link_status(
+            platform_id="uav-1",
+            ts=_INPUT_TS,
+            state="DEGRADED",
+            reason_code="NOT_A_CODE",
+            **_LINK_METRICS,
+        )
+    with pytest.raises(ValueError, match="cannot carry metrics.reason_code"):
+        translate_link_status(
+            platform_id="uav-1",
+            ts=_INPUT_TS,
+            state="UP",
+            reason_code="JAMMED",
+            **_LINK_METRICS,
+        )
+
+    # Every code in the v1.0 vocabulary is accepted under a degraded verdict,
+    # and the schema agrees - so the mirrored tuple cannot silently drift into
+    # refusing a code the kernel allows.
+    for code in (
+        "LINK_LOSS",
+        "LOW_RSSI",
+        "HIGH_LATENCY",
+        "HIGH_PACKET_LOSS",
+        "LOW_THROUGHPUT",
+        "INTERFERENCE",
+        "JAMMED",
+        "BACKHAUL_DOWN",
+        "NO_ROUTE",
+        "CONFIG_ERROR",
+        "POWER_SAVE",
+        "UNKNOWN_CAUSE",
+    ):
+        link = translate_link_status(
+            platform_id="uav-1",
+            ts=_INPUT_TS,
+            state="DOWN",
+            reason_code=code,
+            **_LINK_METRICS,
+        )
+        assert link["payload"]["metrics"]["reason_code"] == code
+        VALIDATOR.validate(link)
+
+    # UNKNOWN keeps carrying an observed cause: "I measured this and I am not
+    # adjudicating link health" is an honest pair, and refusing it would cost
+    # the operator a real observation.
+    unknown = translate_link_status(
+        platform_id="uav-1",
+        ts=_INPUT_TS,
+        state="UNKNOWN",
+        reason_code="HIGH_LATENCY",
+        **_LINK_METRICS,
+    )
+    assert unknown["payload"]["metrics"]["reason_code"] == "HIGH_LATENCY"
+    VALIDATOR.validate(unknown)
+
+
+def test_decode_attitude_unreported_axis_clobbers_rather_than_carrying_stale():
+    # R1-26. decode_attitude omitted an unreported axis, and its docstring sold
+    # that as a feature. In the README's documented accumulation pattern an
+    # omitted key leaves the *previous* message's roll in the state dict, and
+    # the translator then publishes it as a current reading with no per-field
+    # staleness marker. Stale-presented-as-current is the same class as
+    # fabricated-as-measured, and the sibling decoder already clobbers.
+    state = {
+        "lat": 34.0517,
+        "lon": -118.2437,
+        "alt_m": 412.5,
+        "gps_fix_type": 3,
+        "based_on": [_PARENT_EVENT_ID],
+        "loop_status": "CHECKED_NOT_REFLECTION",
+    }
+    state.update(decode_attitude({"roll": 0.5, "pitch": 0.1, "yaw": 3.0}))
+    first = translate_platform_state(state, platform_id="uav-1", ts=_INPUT_TS)
+    assert first["payload"]["quality"]["roll_deg"] == math.degrees(0.5)
+
+    # Ten seconds later, the same accumulating state dict, roll not reported.
+    state.update(decode_attitude({"pitch": 0.1, "yaw": 3.0}))
+    later = translate_platform_state(state, platform_id="uav-1", ts=_INPUT_TS)
+    assert "roll_deg" not in later["payload"]["quality"]
+    # Dropping the stale axis must not cost the axes that were reported.
+    assert later["payload"]["quality"]["pitch_deg"] == math.degrees(0.1)
+    VALIDATOR.validate(later)
