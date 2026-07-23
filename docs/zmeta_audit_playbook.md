@@ -157,6 +157,12 @@ Formalized from what demonstrably worked across R1-09, R1-10 and R1-11:
    (a `reason_code`, an enum entry, normative text) implements what doctrine
    permits and records the tension in `docs/zmeta_doctrine_review_log.md`. It
    never decides a governance question inside a fix wave.
+8. **Audit the doctrine; do not just follow it.** These rules are themselves
+   scored on the cadence — age, times-fired, outcome — and a rule that stops
+   earning its place is retired, not grandfathered. Tensions in the doctrine log
+   reach a forced terminal decision after recurring (working value: three
+   times), then archive. A log that only grows is a swamp. Lifecycle and scoring
+   are defined in `docs/zmeta_doctrine_review_log.md` (Lifecycle).
 
 ## How this feeds the self-healing automation
 

@@ -534,3 +534,59 @@ an operator-visible token outside the event model is governed vocabulary.
 This is the highest-leverage entry in the log: adjudicating it unblocks several
 others at once, and unlike the kernel questions it costs nothing to answer —
 it is a scope definition, not a semantic change.
+
+---
+
+## Lifecycle — these logs terminate, they do not accumulate
+
+The value of this log is the pattern over time. But a log that only ever grows
+is a swamp: questions go in and never come out. So both the tensions here and
+the rules in `docs/zmeta_audit_playbook.md` carry a defined end state, and reach
+it on a trigger rather than by endless re-review.
+
+### Tensions (the entries above)
+
+Each entry carries an **occurrence count across cycles**. A tension may sit OPEN
+while it is rare — one instance is noise. But recurrence forces a decision:
+
+- **On the Nth recurrence [working value: N = 3], the entry MUST reach a
+  terminal status** — it can no longer stay OPEN, and it is no longer re-reviewed
+  from scratch each cycle. Terminal statuses: **CHANGED** (a guiding document was
+  amended), **HELD-FIRM** (doctrine upheld as final — re-open only on genuinely
+  new evidence, never on another instance of the same shape), **MINTED** (a
+  governed change was made), **DROPPED** (recommendation withdrawn).
+- **N = 3 is not arbitrary.** The fabricate-a-sentinel class already took
+  pressure across three cycles (R1-10, then twice in R1-11) before anyone forced
+  the question. Three recurrences is where "noise" has demonstrably become
+  "signal." Tune it after observing a few, like the other thresholds.
+- **A terminal entry is summarized to one line and moved to the Archive** below,
+  out of the active list. The active list stays short by construction — that is
+  the whole point.
+
+### Rules (the playbook's disciplines and budgets)
+
+A rule is not sacred because it is written down. Each is **scored, and the score
+is reviewed on the cadence** — reconstructed from the record (git history, the
+after-action log) at review time, *not* maintained as live per-event
+bookkeeping, which would be its own bureaucracy:
+
+| Dimension | Question |
+|---|---|
+| **Age** | How long has it been in force? |
+| **Fired** | How many times has it actually caught something? |
+| **Outcome** | When it fired, did it prevent harm — or misfire? |
+
+- **Never fired** after several cycles → **retirement candidate.** It is
+  documentation pretending to be a guardrail.
+- **Fires but misfires** → **revision candidate.**
+- **Fires and prevents harm** → **validated; leave it alone.**
+
+Retiring a stale rule is "prefer a known-good over a tangled knot" applied to
+governance: a rule that no longer earns its place is removed, not grandfathered.
+The discipline to *add* a rule is matched by the discipline to *retire* one.
+
+## Archive
+
+Terminal tension entries and retired rules, one line each. Empty for now — the
+first entries reach the archive when a tension hits its third recurrence or a
+rule is scored out.
