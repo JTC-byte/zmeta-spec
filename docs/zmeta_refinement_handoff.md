@@ -1,5 +1,49 @@
 # ZMeta Refinement Handoff Notes
 
+## RESUME QUEUE — read first (set 2026-07-22, before a ~3-day usage-limit wait)
+
+The R1-11 cycle is **concluded and HELD**: 27 commits ahead of `origin/main`,
+nothing pushed/tagged/signed, tree clean, battery green (kernel gate all flags,
+examples 51/51, pytest **1200 + 1021 subtests**). Six blockers closed and
+probe-verified (`docs/r1_11_closure_probe.py`, 17/17). No governed artifact was
+touched; no `reason_code` minted. The audit-wave cadence is now adopted
+(`docs/zmeta_audit_playbook.md`) and governs what follows.
+
+**On resume, in priority order:**
+
+1. **REFRESH first (now mandatory).** Re-orient on the repo + logs, then re-read
+   this session's ~27 commits with fresh eyes per the cadence — a cold reading
+   catches what the author missed. This is P1 precisely because a 3-day gap is
+   the ideal fresh-eyes window.
+2. **Adjudicate the 20 doctrine-log entries** (`docs/zmeta_doctrine_review_log.md`).
+   **Highest-leverage single item:** the "what counts as governed vocabulary"
+   boundary (R1-11-09/14/15) — it unblocks three otherwise-mechanical fixes and
+   costs nothing to answer (a scope definition, not a semantic change). Then the
+   compact-mapping clause cluster (R1-11-02/03/17) — one decision resolving three
+   entries and closing a real cross-backend interop hole. This is the bottleneck:
+   the cut cannot proceed until it is settled, and it is uniquely the
+   maintainer's to decide.
+3. **The 2 open MAJOR**, as one small scoped wave (reproduce-then-fix, floor =
+   MAJOR/MODERATE): `_parse_utc` still raising out of CoT/JREAP on a gate-clean
+   `ts` (the "no change needed" *verdict* was the defect, not the code); and the
+   A-13 record anchor being half-anchored because `origin/main` is a moving ref.
+   Risk is contained — the code is HELD and unpublished — so severity does not
+   force it ahead of the doctrine bottleneck.
+4. **The 44 sub-MAJOR findings** (`docs/r1_11_fix_pass_findings.md`), worked as
+   scoped waves under the playbook (floor + one-third cap), **not** a marathon.
+   Many will be unblocked or reclassified by step 2.
+5. **The release cut — LAST.** Resolves A-12 (manifest divergence) and A-29
+   (release-notes compatibility bullet), both cut-time-only. Rebuild the manifest
+   under a **new** identity; never rewrite `release/SHA256SUMS_v1.1.16.txt`.
+   Tag / push / sign / upload are the maintainer's alone.
+
+Full cycle detail: `docs/r1_11_full_stack_audit.md` (audit + fix-pass +
+disposition records), `docs/r1_11_fix_pass_findings.md` (all 62 findings),
+`docs/zmeta_after_action_log.md` (the R1-11 AAR). Companion stack Praesens was
+sent the same cadence doctrine to codify.
+
+---
+
 Status date: 2026-07-22
 
 Current release: **v1.1.16** (P1-08, 2026-07-21) — the
