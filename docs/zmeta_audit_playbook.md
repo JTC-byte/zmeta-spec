@@ -5,9 +5,10 @@ review the ZMeta stack. It does not define conformance and does not replace
 `AGENTS.md` or `spec/semantics-contract.md`. It complements the "How we work
 here" section of `CLAUDE.md` with an operational cadence.
 
-> **Draft, 2026-07-22.** Authored from the R1-11 after-action review. The wave
-> partition and cadence model below are proposed and await the maintainer's
-> confirmation. See the open decisions at the end.
+> **Adopted 2026-07-22** from the R1-11 after-action review. The three-tier
+> cadence, the MAJOR/MODERATE severity floor and the one-third introduction-rate
+> cap are in force. The wave partition is provisional and under observation for
+> the first few audits — see Status at the end.
 
 ## Why this exists
 
@@ -38,6 +39,32 @@ A **wave** is one audit pass over **one part of the stack**, with:
 
 You never open a wave you cannot state all six for. That single discipline is
 what turns a blast into a cadence.
+
+## The cadence: closeout, refresh, full audit
+
+Reviews run continuously at three escalating scopes, so drift is caught as it
+appears rather than accumulating into one giant pre-cut audit. The small
+continuous passes are what make the large one cheap.
+
+- **Closeout** — at the end of every session or change. Briefly touch
+  *everything just changed* and confirm each change still fits the intent that
+  drove it. Scoped to the working diff. First line of defence: a change is
+  reviewed against its own purpose while that purpose is fresh.
+- **Refresh** — at the start of every fresh session. The usual re-orientation
+  on the repo generals and the logs of prior work, **plus** a fresh-eyes
+  re-look at the *previous* session's changes to see whether any assessment
+  shifts when context is rebuilt cold. A defect that looked fine to its author
+  often does not survive a fresh reading — this is where that catch happens.
+- **Full wave audit** — when a whole backlog item is complete (for example a
+  finished adapter or integration, like the TAK work), before a release cut.
+  The full six-wave pass. It is streamlined *because* closeout and refresh have
+  already reviewed each change as it landed: the full audit confirms an
+  already-reviewed stack rather than discovering an unreviewed one.
+
+The failure this prevents is R1-11's: a whole cycle of change reaching a single
+audit at once, with no continuous review behind it. We generally stay within a
+scope and do not jump around, so "touch everything recently changed" stays
+small and bounded in practice.
 
 ## The wave partition
 
@@ -76,23 +103,35 @@ Each wave runs the same shape:
 6. **Close or re-scope.** Meet the exit criterion, or record what remains and
    stop. Never roll straight into an unbounded next round.
 
-## The fix-budget rule (the R1-11 change)
+## The fix-budget rule
 
-This is the specific antidote to the 74% introduction rate:
+The scope-discipline the R1-11 review found missing. Gate 7 binds *scope*, not
+only the stopping point.
 
-- **Bound the appetite by severity, not by exhaustion.** A wave fixes findings
-  **at or above its declared severity floor** and no further. Everything below
-  goes to a register (`docs/r1_11_fix_pass_findings.md` is the template) for a
-  later, separately-scoped wave. Gate 7 applies to *scope*, not only to the
-  stopping point.
-- **Cap the introduction rate.** If a fix round's own attack pass finds that
-  more than a set fraction of its findings were introduced by that round, the
-  wave **stops and re-scopes** rather than spawning another fix round. R1-11's
-  rounds went 7% → 56% → 74%; a cap around one-third would have ended the fix
-  marathon a full round earlier.
-- **Prefer revert to layering.** A defect introduced by a previous fix is
-  usually cleaner to revert-and-re-derive than to patch. Patching three deep is
-  how a codebase becomes unreasonable.
+- **Severity floor: fix MAJOR and MODERATE; defer the rest.** A wave fixes
+  findings at or above MODERATE and no further. MINOR and OBSERVATION findings
+  are *recorded* to a register (`docs/r1_11_fix_pass_findings.md` is the
+  template) and deferred to a later, separately-scoped wave — banked honestly,
+  not ignored, not fixed inline. In R1-11 the low-severity tail is where much of
+  the self-inflicted churn came from. *(Uniform for now; the kernel wave may
+  warrant fixing everything, since even minor drift matters on a locked
+  surface — under observation.)*
+- **Introduction-rate cap: one third.** After a fix batch, the mandatory attack
+  pass classifies each new finding as pre-existing or introduced-by-this-batch.
+  If introduced findings exceed one third of the batch's total, the wave
+  **stops, freezes, and re-scopes** rather than spawning another fix round.
+  R1-11 ran 7% → 56% → 74%; a one-third cap ends it after the second round, and
+  most of the third round's introduced defects are never created.
+- **Prefer a known-good over a tangled knot.** When a fix has introduced a
+  defect, revert to the last known-good and re-derive — do not patch the patch.
+  Patience over forward momentum: there is no time crunch, and momentum in the
+  wrong direction is worse than a deliberate restart. **A revert does not lose
+  the context that produced it.** The failed attempt is reconnaissance — it
+  showed where the ground gives way, and that hindsight travels forward from the
+  known-good, so the second approach is better-informed than the first. Restart
+  an effort entirely before tangling it further — but do not swing to the other
+  failure and loop in endless optimization; the escape from both is a properly
+  scoped objective, not more or less momentum.
 
 ## Standing disciplines (sustains — these are not optional)
 
@@ -138,16 +177,20 @@ Each wave is small enough to run, verify, and close inside one working session,
 which is what makes the whole thing survivable when sessions are interrupted —
 the property R1-11 proved matters most.
 
-## Open decisions for the maintainer
+## Status
 
-1. **The wave partition** above is proposed along doctrinal seams. Confirm or
-   re-cut it — you know the stack's natural boundaries best.
-2. **The cadence trigger.** Three candidate models, not mutually exclusive:
-   (a) *on-change* — a wave runs when its surface changes on a branch;
-   (b) *full rotation before any release cut* — all six waves, in order,
-   bounded; (c) *triggered deep-dive* — a wave escalates to a full pass when it
-   finds a systemic issue. Which govern?
-3. **The introduction-rate cap** — the specific fraction that stops a fix round.
-   One-third is a starting proposal, not a derived number.
-4. **The severity floor per wave** — do all waves fix down to the same floor,
-   or does the kernel (W1) fix everything while the outer rings defer more?
+**Adopted 2026-07-22** (R1-11 after-action review):
+
+- The three-tier cadence — closeout, refresh, full wave audit before a cut.
+- The six-wave partition along doctrinal seams.
+- Severity floor: fix MAJOR and MODERATE, defer the rest.
+- Introduction-rate cap: one third.
+
+**Under observation** — watch-items, not open questions; the cadence runs on the
+adopted settings until observation says otherwise. Revisit after the first few
+full audits:
+
+- Whether the doctrinal-seam partition holds, or a wave needs re-cutting once
+  real drift is seen. The first few runs are deliberately watched for this.
+- Whether the kernel wave (W1) should fix everything rather than stop at the
+  MODERATE floor, given it is small, locked, and drift-intolerant.
