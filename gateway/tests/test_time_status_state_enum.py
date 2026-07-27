@@ -45,7 +45,12 @@ spec.loader.exec_module(validators)
 
 # The locked v1.0 schema, byte-for-byte. This wave (and every future one)
 # must not touch it: the TIME_STATUS state enum is v1.1.0 ONLY.
-V1_0_SCHEMA_SHA256 = "5a40d9370bdee5b3d6cc9ae1b2a8f2a43f61af34257868f213a1a05e88604ebf"
+# Digest of the LF-normalized bytes: git stores the schema with LF line
+# endings, but a Windows checkout under autocrlf materializes CRLF, so a
+# raw-bytes pin holds on exactly one platform (post-release CI catch,
+# 2026-07-27). Normalizing CRLF to LF before hashing makes the pin hold on
+# every checkout while still detecting any real edit.
+V1_0_SCHEMA_SHA256 = "1d2d84164b3a8986874e932c0e9369be3bf392a483a8ff261d464f34bd16d7b5"
 
 # The derived vocabulary, in declared order: the sync-state trio in the
 # metrics.sync_state enum's own order, then the mavlink template's health
@@ -217,10 +222,9 @@ class TimeStatusStateEnumTest(unittest.TestCase):
                 )
 
     def test_v1_0_schema_byte_identical(self):
-        """The locked v1.0 schema is untouched by this wave."""
-        digest = hashlib.sha256(
-            (SCHEMA_DIR / "zmeta-event-1.0.schema.json").read_bytes()
-        ).hexdigest()
+        """The locked v1.0 schema is untouched by this wave (EOL-agnostic)."""
+        raw = (SCHEMA_DIR / "zmeta-event-1.0.schema.json").read_bytes()
+        digest = hashlib.sha256(raw.replace(b"\r\n", b"\n")).hexdigest()
         self.assertEqual(digest, V1_0_SCHEMA_SHA256)
 
     def test_v1_0_state_stays_unconstrained(self):
