@@ -2,8 +2,30 @@
 
 ## Current Resume Note
 
-- Last updated: 2026-07-26
+- Last updated: 2026-07-27
 - Quick handoff: `docs/zmeta_refinement_handoff.md`
+- **2026-07-27 — HEALTH FIX WAVE + ADJUDICATION (resume session 2).**
+  Maintainer adjudicated four decisions in-session (doctrine log
+  "Adjudication pass"): governed vocabulary = the event model only;
+  compact fail-closed clause approved (own governed wave pending);
+  `TIME_STATUS.state` Class B enum approved for the next cut; round-3
+  register loss recorded as final. Fix wave per the playbook — nine
+  disjoint-surface clusters, red-first pins, an independent attacker per
+  cluster, a verifier-driven completion round — commits
+  `25bb5fa`/`ede9bb6`/`dcabcc8` plus this records commit. Closed: CR-01
+  and CR-02 (both MAJOR, both live in published v1.1.16), the banked
+  `_parse_utc` MAJOR as a CLASS (CoT/JREAP/SAPIENT twins; unparseable AND
+  gate-clean naive shapes refuse — "1969-12-31Z" parses naive on Python
+  3.14 and used to localize silently), CR-05/06/08/09/10/11/12/16, the
+  unblocked R2-30 skip token, and the R1-11-16 vocabulary lint (which
+  would have caught CR-05/06 mechanically). Introduced-at-MODERATE+
+  across the whole batch: 1, fixed same-day — the one-third cap held.
+  Battery: kernel gate all flags exit 0, examples 51/51 strict, pytest
+  **1262 passed + 1021 subtests**, vocabulary lint ok. Six new tensions
+  banked (H1-01..06); the audit record's falsified "Refuted 3/3" ts
+  disposition carries a dated correction. **NEXT: the records wave (A-13,
+  CR-13/14/15/23/24/25, verifier register candidates), the compact-clause
+  governed wave, then the v1.1.17 cut.**
 - **2026-07-26 — R1-11 resume queue P1 COMPLETE (refresh + cold re-read);
   next is P2, the maintainer's doctrine adjudication.** Battery re-verified
   live (kernel gate all flags exit 0, examples 51/51 strict, pytest 1200

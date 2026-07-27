@@ -4,6 +4,24 @@
 adversarial rounds of the R1-11 fix pass, recorded here because the run
 artifacts that produced them are session-scoped and do not survive.
 
+## Status — 2026-07-27
+
+- **The round-3 (disposition-pass attack) findings are NOT in this file and
+  never were** (cold re-read CR-03): they survive only as counts in the cycle
+  record. Maintainer decision 2026-07-27: that loss is recorded as **final** —
+  no reconstruction round; the defects re-derive from the tree through the
+  playbook's scoped waves, which is also why the stop-at-three decision stands.
+- **The `_parse_utc` carried-forward MAJOR is CLOSED as a class** (health wave
+  `25bb5fa`/`ede9bb6`): CoT, JREAP, and the SAPIENT egress twins refuse
+  gate-clean unparseable and NAIVE timestamps per their documented contracts.
+  The `A-13` anchor MAJOR remains open (records wave).
+- **Cold re-read findings fixed by the health wave** (`25bb5fa`/`ede9bb6`/
+  `dcabcc8`): CR-01, CR-02, CR-05, CR-06, CR-08, CR-09, CR-10, CR-11, CR-12,
+  CR-16, plus the unblocked R2-30 skip-reason token and the R1-11-16
+  vocabulary lint. Verifier-surfaced register candidates from the wave are
+  logged in the cold re-read record's companions and the doctrine log's H1
+  section.
+
 `docs/r1_11_full_stack_audit.md` carries the audit itself, the fix-pass
 narrative and the four MAJOR findings carried forward. This file carries
 **all of them**, so a later reader can re-derive a disposition rather than
@@ -1030,6 +1048,11 @@ Compare the guarded sibling three lines up, same call: battery_pct=-1 -> 'batter
 grep of the test file: the only rc_rssi cases are `assert "rc_rssi" not in metrics` (:834) and `rc_rssi=-70` (:847).
 ```
 
+*(Editor note 2026-07-27: the "separately-recorded shape defect"
+parenthetical in the evidence above pointed at a record that never existed —
+cold re-read CR-05, claim 3. The shape defect itself is now fixed: the
+decoded LINK_STATUS branch refuses-or-emits-valid, commit `ede9bb6`.)*
+
 ### R2-10 (MODERATE) — **INTRODUCED BY REMEDIATION** — The new TASK_ACK refusal uses truthiness as a presence test, so it discards a carried ack code of 0 — MAV_MISSION_ACCEPTED / MAV_RESULT_ACCEPTED — and reports a cause that is false
 
 **Location:** `adapters/ingress/mavlink/mavlink_to_zmeta_template.py:489`
@@ -1459,7 +1482,9 @@ Same module, `_KERNEL_SCHEMA_DIR` repointed at a nonexistent directory and the c
 | OBSERVATION | 5 | 7 |
 | **Total** | **30** | **32** |
 
-Round 1: fully remediated. Round 2: **open, undispositioned** — the fix
-pass stopped here deliberately rather than opening a third round. See the
-"Why the pass stopped here" section of `docs/r1_11_full_stack_audit.md`.
+Round 1: fully remediated. Round 2: **dispositioned 2026-07-22** by the
+disposition pass (`c54215a`) — this line previously read "open,
+undispositioned", which that pass falsified without updating it (cold
+re-read CR-07). The disposition's own attack round was not persisted
+per-finding; see the Status block at the top of this file.
 

@@ -19,6 +19,30 @@
 > records wave), and the release decision remains open behind the
 > doctrine adjudication.
 
+- 2026-07-27 — R1-11 health fix wave (`25bb5fa`, `ede9bb6`, `dcabcc8`):
+  fielded-safety and command-path fixes from the cold re-read record, every
+  fix red-first pinned and adversarially attacked. SAPIENT ingress: a
+  negative declared latency can no longer narrow `est_error_ms`, and a
+  latency declared under an unusable mode_name never silently drops. CoT
+  egress no longer fabricates vertical certainty (`semi_minor`→`le`), GPS
+  source pedigrees, or a hardcoded `how="m-g"` — all config-asserted or
+  omitted. The gate-clean-timestamp crash/localization class is closed
+  across CoT, JREAP, and both SAPIENT egress twins (unparseable AND naive
+  shapes refuse; nothing localizes silently). MAVLink ingress: LINK_STATUS
+  and all nine TASK_ACK verdicts emit schema-valid, carried reason codes
+  are never silently dropped, uninterpretable states refuse. MAVLink
+  mission intent no longer fabricates `priority=MED`. SAPIENT egress
+  export prohibitions fail closed one container down; `target_geo` shape
+  errors follow the documented contract. The trigger-polarity pin's third
+  arm is no longer vacuous; the release-signing pin runs meaningfully in
+  tagless CI and no longer leaks residue on Windows. New advisory
+  `tools/lint_adapter_vocabularies.py` holds adapter vocabulary mirrors to
+  the governed schema enums. `_cot_skip_reason` names value-honesty
+  refusals `NON_FINITE_VALUE`, scoped to exclude tolerated extensions
+  (outer-ring token per the 2026-07-27 vocabulary-boundary adjudication).
+  Doctrine log: six entries adjudicated with the maintainer (09/16
+  CHANGED; 02/03/15/18 DECIDED), six new H1 tensions banked. Battery:
+  pytest 1262 + 1021 subtests, kernel gate all flags, examples 51/51.
 - 2026-07-26 — R1-11 resume P1, records only (`7eaea97`, `e524c8c`): the
   doctrine-log disposition addendum renumbered 15–21, closing a
   duplicate-ID collision at R1-11-14 (the log holds 21 entries; every

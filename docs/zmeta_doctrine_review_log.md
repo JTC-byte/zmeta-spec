@@ -82,14 +82,14 @@ and `policy/semantics.yaml` are untouched across the entire fix pass.
 | # | Tension | Gates in play | Status |
 |---|---|---|---|
 | R1-11-01 | No governed reason code for a non-finite value | 1 vs 3 | OPEN |
-| R1-11-02 | CBOR value-sharing tags 28/29 undefined; backends disagree | 4, 6 | OPEN |
-| R1-11-03 | Compact mapping declares no maximum nesting depth | 4, 6 | OPEN |
+| R1-11-02 | CBOR value-sharing tags 28/29 undefined; backends disagree | 4, 6 | **DECIDED** |
+| R1-11-03 | Compact mapping declares no maximum nesting depth | 4, 6 | **DECIDED** |
 | R1-11-04 | `timing_quality` cannot say "bound unresolved" | 2, 3 | OPEN |
 | R1-11-05 | `TASK_ACK` has no `UNKNOWN` state | 1, 3 | **HELD** |
 | R1-11-06 | Adapter refusals are invisible to the wire | 3, 6 | OPEN |
 | R1-11-07 | `bandwidth_hz: 0.0` sentinel is a documented convention | 3 | OPEN |
 | R1-11-08 | CoT `error_ellipse` zero defaults | 3, 4 | OPEN |
-| R1-11-09 | New `metrics_sink_gap` JSONL record type | 1, 6 | OPEN |
+| R1-11-09 | New `metrics_sink_gap` JSONL record type | 1, 6 | **CHANGED** |
 | R1-11-10 | `risk_dimension: routing` — existing vocabulary or new? | 1 | OPEN |
 | R1-11-11 | Policy `event_subtype` vocabulary: open or closed? | 1, 6 | OPEN |
 | R1-11-12 | Collapsed-to-no-constraint now refuses (posture change) | 3, 6 | OPEN |
@@ -130,7 +130,7 @@ The question is whether a consumer can *responsibly act* on `SCHEMA_INVALID` +
 `details.field` — if yes, the existing code suffices and the recommendation
 should be dropped.
 
-### R1-11-02 — CBOR value-sharing tags 28/29 undefined · OPEN
+### R1-11-02 — CBOR value-sharing tags 28/29 undefined · **DECIDED 2026-07-27**
 
 The same 11-byte payload `d81ca16473656c66d81d00` decodes to a genuinely
 self-referential dict under `cbor2`, and to `{'self': 0}` under `zmeta_cbor`
@@ -157,7 +157,7 @@ non-conforming and worth correcting; (2) then have the `cbor2` fallback reject
 such datagrams at the ingress boundary so the backends agree. Step 1 is
 normative MUST text — Class B.
 
-### R1-11-03 — Compact mapping declares no maximum nesting depth · OPEN
+### R1-11-03 — Compact mapping declares no maximum nesting depth · **DECIDED 2026-07-27**
 
 An event with extensions nested 65–400 deep **encodes** under `cbor2` and
 **refuses** under `zmeta_cbor` (`DEFAULT_MAX_DEPTH = 64`). A cbor2-backed node
@@ -255,7 +255,7 @@ screen** — for a partially populated ellipse. Same class as R1-11-07, on the
 egress side, where gate 4 (egress is a lossy projection, never an upgrade in
 apparent certainty) also applies.
 
-### R1-11-09 — New `metrics_sink_gap` JSONL record type · OPEN
+### R1-11-09 — New `metrics_sink_gap` JSONL record type · **CHANGED 2026-07-27**
 
 The metrics-degradation fix introduced a new value of the `type` field in the
 gateway's metrics JSONL log. That log is gateway-internal observability — not a
@@ -408,15 +408,15 @@ In-repo cross-references were swept in the same commit.)*
 
 | # | Tension | Gates | Status |
 |---|---|---|---|
-| R1-11-15 | `TIME_STATUS.state` is not enum-constrained while its two siblings are | 1, 3 | OPEN |
-| R1-11-16 | Adapter-declared vocabularies mirror governed enums by hand, unlinted | 1, 6 | OPEN |
+| R1-11-15 | `TIME_STATUS.state` is not enum-constrained while its two siblings are | 1, 3 | **DECIDED** |
+| R1-11-16 | Adapter-declared vocabularies mirror governed enums by hand, unlinted | 1, 6 | **CHANGED** |
 | R1-11-17 | Formal release identity has no stated grammar | 5 | OPEN |
-| R1-11-18 | Compact mapping declares no size or expansion bound | 4, 6 | OPEN |
+| R1-11-18 | Compact mapping declares no size or expansion bound | 4, 6 | **DECIDED** |
 | R1-11-19 | `--strict` makes a deliberately tolerated warn unrepresentable | 2, 3 | OPEN |
 | R1-11-20 | Two conventions the new pins now enforce, chosen not discovered | 5, 7 | OPEN |
 | R1-11-21 | Illustrative-example currency policy left inconsistent | 7 | OPEN |
 
-### R1-11-15 — `TIME_STATUS.state` is unconstrained by the schema · OPEN
+### R1-11-15 — `TIME_STATUS.state` is unconstrained by the schema · **DECIDED 2026-07-27**
 
 **This is why B-04 was invisible.** `$defs/SystemPayload` enum-constrains
 `state` on the `LINK_STATUS` and `TASK_ACK` branches, but the `TIME_STATUS`
@@ -434,7 +434,7 @@ enum-constrain `state` the way its siblings do. Class B. This is the clearest
 case in the log of a *missing* constraint rather than a contested one — the
 asymmetry between the three branches reads as an oversight, not a design.
 
-### R1-11-16 — Hand-mirrored vocabularies with no lint · OPEN
+### R1-11-16 — Hand-mirrored vocabularies with no lint · **CHANGED 2026-07-27**
 
 Three vocabularies now live in `mavlink_to_zmeta_template.py` duplicating
 governed enums by hand: `_LINK_STATUS_STATES` (pre-existing),
@@ -466,7 +466,7 @@ clean.
 enforcement point is **the cut, not the committed manifest**. Note the shape:
 a validator can only ever enforce a rule the spec has stated.
 
-### R1-11-18 — No size or expansion bound in the compact mapping · OPEN
+### R1-11-18 — No size or expansion bound in the compact mapping · **DECIDED 2026-07-27**
 
 CBOR value sharing lets a small datagram expand enormously. Measured: an
 ~800-byte shared-DAG datagram costs 2.77 s inside `dumps()` before refusing at
@@ -539,6 +539,109 @@ an operator-visible token outside the event model is governed vocabulary.
 This is the highest-leverage entry in the log: adjudicating it unblocks several
 others at once, and unlike the kernel questions it costs nothing to answer —
 it is a scope definition, not a semantic change.
+
+---
+
+## Adjudication pass — 2026-07-27 (maintainer)
+
+Four decisions taken with the maintainer in-session, per the protocol's
+separate-pass rule. New interim status **DECIDED**: the maintainer has set
+the direction; the entry reaches its terminal status (CHANGED / MINTED) when
+the implementing wave lands.
+
+1. **Governed-vocabulary boundary (R1-11-09, R1-11-16, both pattern notes) —
+   governed = the event model only.** Schema enums, reason codes, policy
+   vocabulary, and wire semantics are governed. Operator-visible tokens
+   outside the event model — gateway JSONL record types, lint dimensions,
+   diagnostic detail strings, adapter-declared vocabularies — are
+   **outer-ring**: mirrors of governed enums must stay subsets, and adding an
+   outer-ring token needs no governance gate. R1-11-09 → **CHANGED** (the
+   `metrics_sink_gap` record type had already shipped in the disposition pass
+   and is now pinned); R1-11-16 → **CHANGED** (the subset lint shipped:
+   `tools/lint_adapter_vocabularies.py`). The two parked mechanical fixes
+   landed the same day (R2-30 `NON_FINITE_VALUE` skip token — `dcabcc8`).
+2. **Compact-mapping clause cluster (R1-11-02/03/18) — fail-closed clause
+   approved; all three DECIDED.** The mapping accepts only the canonical JSON
+   value model: any tag or construct that cannot expand back value-identically
+   (28/29 included) is refused at decode, and decoders MUST enforce a declared
+   expansion bound — the walk's memo makes the expanded node count linear-time
+   computable — refusing beyond it with an explicit diagnostic. Implementation
+   is its own governed wave in `spec/compact-binary-mapping.md`; the entries go
+   CHANGED when it lands.
+3. **R1-11-15 `TIME_STATUS.state` — Class B enum approved; DECIDED.**
+   Constrain to a declared vocabulary matching the sibling branches at the
+   next cut, with fixtures and conformance evidence; goes MINTED when it lands.
+4. **Round-3 register loss (cold re-read CR-03; a records decision, not a
+   doctrine entry) — the loss is recorded as final.** No reconstruction
+   round; the findings re-derive from the tree via scoped waves. Recorded in
+   the register's Status block.
+
+---
+
+## Cycle H1 — 2026-07-27 (health fix wave)
+
+Tensions surfaced by the wave's fix and attack agents. Same rule as always:
+no governed artifact was modified to produce any of them.
+
+| # | Tension | Gates | Status |
+|---|---|---|---|
+| H1-01 | ADAPTER_VERSION bump discipline is undefined | 5, 7 | OPEN |
+| H1-02 | Negative TASK_ACK verdicts default to a restating reason_code | 3 | OPEN |
+| H1-03 | Adapter-stricter-than-schema contradiction refusals | 1, 3 | OPEN |
+| H1-04 | Vocabulary lint: mandated-gate wiring and schema breadth | 6, 7 | OPEN |
+| H1-05 | CoT `how`/pedigree omission vs consumer expectations | 4 | OPEN |
+| H1-06 | `_normalized_uses` member-shape tolerance is mirrored in filter_risk | 3 | OPEN |
+
+### H1-01 — ADAPTER_VERSION bump discipline · OPEN
+
+The mavlink template's behavior changed materially this wave (new refusals,
+new emitted fields) with ADAPTER_VERSION left at 1.2.0. Precedent cuts both
+ways: one prior commit bumped for behavior alignment, while three held-range
+fix commits to the same file did not. Decide what a version bump MEANS for a
+template adapter, then apply it one way.
+
+### H1-02 — Restating reason_code on negative acks · OPEN
+
+For a negative TASK_ACK verdict with no message-carried cause, the adapter
+now writes the code that restates the verdict (REJECTED → TASK_REJECTED) —
+the SAPIENT sibling's pairing, and a restatement adds no cause the message
+did not carry. Logged because it WRITES a field the wire did not: the
+alternative (refusing every causeless negative ack) suppresses exactly the
+verdicts a commander most needs.
+
+### H1-03 — Adapter-stricter-than-schema refusals · OPEN
+
+The schema permits `metrics.reason_code` on any TASK_ACK state; the adapter
+refuses a failure cause under a clean verdict (and keeps the UP twin on
+LINK_STATUS) as self-contradictory. Honest in direction, but it is an
+adapter inventing a constraint the kernel does not state — if the pattern
+recurs, the constraint belongs in the schema (Class B) or nowhere.
+
+### H1-04 — Lint gate wiring and schema breadth · OPEN
+
+Two open knobs on the new vocabulary lint: whether it joins the mandated
+kernel gate (a gate-semantics change — maintainer call), and that it holds
+mirrors against BOTH published schemas while the mavlink template claims
+v1.0 specifically (identical enums today; a future v1.1-only value forces
+the question). Known-blind spots, banked as register candidates: rebindings
+inside `if`/`try` blocks and tuple-target assignments.
+
+### H1-05 — CoT `how` omission vs consumer expectations · OPEN
+
+`how`, `geopointsrc`, and `altsrc` are now config-asserted and omitted when
+unasserted — honest, but some TAK-ecosystem consumers may expect `how` on
+every event. Validate against the real display tools at the field exercise;
+if a consumer chokes, the answer is a deployment config assertion, never a
+restored hardcoded default.
+
+### H1-06 — Member-shape tolerance mirrored across two surfaces · OPEN
+
+`_normalized_uses` (sapient egress) deliberately mirrors
+`tools/filter_risk.py` `_list_values`, and both coerce garbage members into
+never-matching tokens — a member-level tuple/bytes prohibition fails open
+(verifier MODERATE, deferred). A fix must move BOTH surfaces together, or
+egress and operator tooling adjudicate the same labels differently.
+
 
 ---
 

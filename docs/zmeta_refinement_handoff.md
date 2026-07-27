@@ -30,6 +30,26 @@ P4's input exists only as counts, not as a register); and a set of
 count/claim defects in the frozen cycle records (CR-04, CR-13..CR-15,
 CR-23..CR-25) left for a scoped records wave. The queue order below stands.
 
+**Update 2026-07-27 — HEALTH FIX WAVE COMPLETE (P3 and most CR code
+findings).** Four maintainer adjudications taken in-session (doctrine log,
+"Adjudication pass"): **governed vocabulary = the event model only**; the
+compact **fail-closed clause approved** (its own governed wave pending);
+`TIME_STATUS.state` **Class B enum approved** for the next cut; the round-3
+register loss **recorded as final** (re-derive by waves). Three code commits
+landed per the playbook (fix → attack → completion → independent verify):
+`25bb5fa` (CR-01, CR-02, the `_parse_utc` MAJOR closed as a CLASS — naive +
+OSError arms, SAPIENT twins included — and CR-11 plus the hardcoded
+`how="m-g"` site), `ede9bb6` (CR-05/06/08/09/10 + class completions),
+`dcabcc8` (CR-12 CI-safe pin, CR-16 de-vacuoused, the R1-11-16 vocabulary
+lint, unblocked R2-30; `metrics_sink_gap` pinned). Every fix red-first
+pinned; introduced-at-MODERATE+ across the whole batch: **1**, fixed
+same-day — the one-third cap held. Battery: gate all flags exit 0, examples
+51/51, pytest **1262 + 1021 subtests**, vocabulary lint ok. Six new tensions
+banked (H1-01..06). **Remaining before the cut:** the records wave (A-13 +
+CR-13/14/15/23/24/25 + verifier register candidates in H1-04/06), the
+compact-clause governed wave, then the v1.1.17 cut (A-12/A-29); the
+TIME_STATUS enum lands at that cut per decision.
+
 **On resume, in priority order:**
 
 1. **REFRESH first (now mandatory).** Re-orient on the repo + logs, then re-read
@@ -45,13 +65,16 @@ CR-23..CR-25) left for a scoped records wave. The queue order below stands.
    compact-mapping clause cluster (R1-11-02/03/18) — one decision resolving three
    entries and closing a real cross-backend interop hole. This is the bottleneck:
    the cut cannot proceed until it is settled, and it is uniquely the
-   maintainer's to decide.
+   maintainer's to decide. *(UPDATE 2026-07-27: six adjudicated — 09/16 CHANGED,
+   02/03/15/18 DECIDED; see the log's Adjudication pass. Fifteen R1-11 entries
+   remain OPEN, plus six new H1 tensions from the health wave.)*
 3. **The 2 open MAJOR**, as one small scoped wave (reproduce-then-fix, floor =
    MAJOR/MODERATE): `_parse_utc` still raising out of CoT/JREAP on a gate-clean
    `ts` (the "no change needed" *verdict* was the defect, not the code); and the
    A-13 record anchor being half-anchored because `origin/main` is a moving ref.
    Risk is contained — the code is HELD and unpublished — so severity does not
-   force it ahead of the doctrine bottleneck.
+   force it ahead of the doctrine bottleneck. *(UPDATE 2026-07-27: `_parse_utc`
+   CLOSED as a class — `25bb5fa`/`ede9bb6`; A-13 moves to the records wave.)*
 4. **The 44 sub-MAJOR findings**, worked as scoped waves under the playbook
    (floor + one-third cap), **not** a marathon. Many will be unblocked or
    reclassified by step 2. **CR-03 caveat:** these findings are *not* actually

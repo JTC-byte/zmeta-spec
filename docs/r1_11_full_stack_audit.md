@@ -1257,6 +1257,13 @@ Derived from code. 41 rows. Non-PRESENT rows are flagged and carried into A-28.
 - *"SAPIENT egress exports a PROMOTED_EXTERNAL_STATE as a first-party detection with no provenance self-label."* — Refuted 3/3. Contract §4.5.1 itself distinguishes degrade/quarantine promotions from "a clean promoted state"; the marking obligation attaches to INVALID promotion, and that path is fully wired (QUARANTINE_ACCEPT/REJECTED refuses the export, pinned at `test_sapient_egress.py:305-312`). The drop is the documented uniform disposition across the whole egress family — the module drops all lineage including the `promote:*` transform, with an explicit note. And the proposed fix is self-refuting: the repo's own README states stock DMMs ignore unknown `object_info` types.
 - *"CoT egress carries confidence and source_summary only in free-text `<remarks>` (gate 5)."* — Refuted 3/3. `spec/semantics-contract.md:1830-1839` permits full *omission* of confidence at CoT egress; the adapter does strictly better. CoT v2.0 has no standard detail element for a classification-confidence scalar, so inventing one would mint a private dialect (gates 1 and 6). Gate 5 forbids free-text being the *source*; here the structured source is the canonical event and remarks is the rendered projection — exactly the prescribed relationship. Positional uncertainty *is* already structured (`error_ellipse_m` → ce/le/precisionlocation). `git log origin/main..HEAD -- adapters/egress/cot/` is empty: untouched by the range.
 - *"CoT and JREAP egress raise on a malformed `event.ts`, contradicting their documented None contract."* — Refuted 3/3. The docstrings state a *closed enumeration* of refusal conditions, not a universal promise, and `adapters/egress/cot/README.md:6-9` states the input precondition outright. Every probe input is schema-invalid, so it cannot reach the parse. The only in-repo caller validates first and replaces the event with a SYSTEM_EVENT diagnostic carrying a fresh `ts`. `zmeta_state_to_jreap_track_json` has no non-test caller anywhere.
+  *(Correction 2026-07-27: this refutation is falsified. Its premise — "every
+  probe input is schema-invalid, so it cannot reach the parse" — was wrong:
+  Z$-satisfying shapes like `"1969-12-31Z"` are gate-clean yet parse NAIVE,
+  so the crash class was live, including an OSError arm on Windows and a
+  silent host-local reinterpretation arm. The disposition correctly banked it
+  as an open MAJOR; it is now CLOSED as a class across CoT, JREAP, and the
+  SAPIENT egress twins — health wave commits `25bb5fa`/`ede9bb6`.)*
 - *"SAPIENT command egress does not ULID-validate `follow_object_id`."* — Refuted 3/3. The premise (that it is an is_ulid-marked SapientMessage id) is unverifiable — no SAPIENT proto in this tree — and contradicted by the repo's live-verified record: `ulid_util.py:3-5`, the egress README table and the pack README all enumerate exactly three ULID-validated fields, and the 2026-07-21 Apex v4.2.0 end-to-end run with strict `ParseDict` found and fixed exactly the ULID gaps that were real. `node_id` and `destination_id` are also caller-supplied and unchecked, and the pack's own published smoke test supplies UUIDs.
 - *"Notes-template guard keys on a free CLI string, never cross-checked against the manifest's `release_status`."* — Refuted 3/3. `spec/release-signing-attestation.md:75-81` enumerates five legitimate release states; the conditional is the specified design. The proposed cross-check would break every documented non-formal build (`--release-state audit_runtime_sweep`, dry-run/RC packages), fail the repo's own passing test, and force an audit package to self-label `formal_release` — the laundering gate 3 forbids.
 - *"Formal-release attestations still self-describe as 'Template only'."* — Refuted 3/3. The statement is TRUE: `signature_mode: none`, and six fields are still `explicit_release_input_required`. The error direction *inverts* gate 3 — over-disclosure, not laundering. The governed spec sanctions the shape (`:70-71`, `:109-111`, `:122-138` list "limitations and notes" as first-class attestation contents). Identical text back to `release/package-v1.1.8`, nine releases.
@@ -1807,8 +1814,17 @@ doctrinally correct action, not a concession.**
    that is not installed — the verdict, not the code, was the defect); and the
    `A-13` record anchor is only half-anchored, because `origin/main` is a
    moving ref, so the replacement figures go stale exactly as the originals did.
+   *(Update 2026-07-27: the `_parse_utc` MAJOR is CLOSED as a class — CoT,
+   JREAP, and the SAPIENT egress twins now refuse gate-clean unparseable AND
+   naive timestamps per their documented contracts; commits
+   `25bb5fa`/`ede9bb6`, every pin red-first verified. `A-13` remains open.)*
 2. **Forty-four further findings** at MODERATE and below, in
-   `docs/r1_11_fix_pass_findings.md`.
+   `docs/r1_11_fix_pass_findings.md`. *(Update 2026-07-27: cold re-read CR-03
+   established these are NOT itemized in that register — it ends at round 2,
+   and the round-3 per-finding detail was never persisted. Maintainer
+   decision 2026-07-27: the loss is recorded as final; the set re-derives
+   from the tree through the playbook's scoped waves. See the register's
+   Status block.)*
 3. **Twenty-one doctrine entries** in `docs/zmeta_doctrine_review_log.md`. The
    highest-leverage is not a kernel question: **"governed" has no defined
    boundary**, and it is now parking otherwise-mechanical fixes.
