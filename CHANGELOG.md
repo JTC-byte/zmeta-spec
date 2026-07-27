@@ -2,19 +2,19 @@
 
 ## [Unreleased]
 
-> **HOLD — release pending (v1.1.17 recommended).** Everything under
-> [Unreleased] is local and unpushed: the R1-11 pre-audit waves (the
-> bullet list at the bottom of this section), the fresh full-stack audit
-> and its six-blocker fix pass, the disposition pass, the 2026-07-26 cold
-> re-read, and the 2026-07-27 health fix wave (dated bullets directly
-> below). Nothing has reached a consumer; the published v1.1.16 assets
-> remain the only downstream truth. Execution history and the
-> interruption ledger: `docs/r1_11_full_stack_audit.md`; current state:
-> the resume queue in `docs/zmeta_refinement_handoff.md`. The next cut
-> resolves the in-repo manifest divergence (A-12) under the new identity;
-> published `SHA256SUMS_v1.1.16.txt` is never rewritten.
-> *(Banner realigned 2026-07-27 — cold re-read CR-13; the previous banner
-> froze the cycle at its pre-audit state.)*
+(Nothing yet — the next work lands here.)
+
+## [1.1.17] - 2026-07-27
+
+> Cut prepared 2026-07-27 and HELD for maintainer review; tag, push, and
+> publish are the maintainer's. This release carries the entire held
+> R1-11 cycle and its resume work: the pre-audit waves (bullet list at
+> the end of this section), the fresh full-stack audit and six-blocker
+> fix pass, the disposition pass, the 2026-07-26 cold re-read, the
+> 2026-07-27 health fix wave, and the 2026-07-27 governed waves. The
+> in-repo manifest divergence (A-12) is resolved by this cut's new
+> identity; published `SHA256SUMS_v1.1.16.txt` is unchanged. Signing:
+> checksums-only unless the maintainer attaches signatures at publish.
 
 - 2026-07-27 — Governed waves per the maintainer adjudication (`40be64a`,
   `2a00ef2`, `7027a55`): `spec/compact-binary-mapping.md` gains the

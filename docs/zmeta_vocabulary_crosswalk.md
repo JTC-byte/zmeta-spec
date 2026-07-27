@@ -1,7 +1,7 @@
 # Deployment Concept Crosswalk - Mapping Common Domain Concepts to Canonical ZMeta Vocabulary
 
 Status: advisory (Docs/advisory change class), non-normative.
-Current release context: ZMeta v1.1.16.
+Current release context: ZMeta v1.1.17.
 
 This document is a dictionary-to-alphabet table. It changes no validation
 rule, no dispatch behavior, no schema, and no policy. When anything here

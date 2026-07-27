@@ -285,7 +285,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--version",
         default=None,
-        help="Release version tag, e.g. v1.1.16 (default: release_id from release/zmeta-release-manifest.yaml).",
+        help="Release version tag, e.g. v1.1.17 (default: release_id from release/zmeta-release-manifest.yaml).",
     )
     parser.add_argument("--release-dir", default=str(_release_dir()), help="Directory containing artifacts.")
     parser.add_argument("--write-checksums", action="store_true", help="Rewrite SHA256SUMS_<version>.txt.")

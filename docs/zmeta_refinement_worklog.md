@@ -2,8 +2,28 @@
 
 ## Current Resume Note
 
-- Last updated: 2026-07-27
+- Last updated: 2026-07-27 (cut prepared, HELD)
 - Quick handoff: `docs/zmeta_refinement_handoff.md`
+- **2026-07-27 (later) — GOVERNED WAVES, RECORDS WAVE, v1.1.17 CUT PREPARED
+  (HELD).** The two adjudicated governed waves landed with attack passes:
+  `40be64a` (compact fail-closed value-model clause — no tags incl. 28/29,
+  declared nesting max 64, declared expansion bound 2^20; spec-sync-pinned;
+  doctrine 02/03/18 → CHANGED) and `2a00ef2` (TIME_STATUS.state enum in
+  v1.1.0, Class B; B-04 now schema-visible; v1.0 pinned byte-identical;
+  doctrine 15 → MINTED). Records wave `ae42a4d` closed A-13 (figures
+  anchored to literal base `09118b3`, currency pin extended) and corrected
+  the six frozen-record counts (CR-04/13/14/15/24/25) with dated notes;
+  health-wave verifier candidates banked as VW-01..13. Cut prep: manifest
+  rebuilt under `zmeta-v1.1.17` with explicit provenance and claims
+  update, release notes + validation report written, dist/edge/gateway
+  bundles + release package built, `SHA256SUMS_v1.1.17.txt` written and
+  verified, doc-currency re-baselined (README, installation guide,
+  overview, release/tools READMEs, guidance docs, CI target, compat
+  TARGETS, manifest pins, signer example). Battery at hold: kernel gate
+  all flags exit 0, examples 51/51, pytest **1284 + 1051 subtests**,
+  packet check max 150/240, checksums verified. **HELD for maintainer
+  review — tag/push/publish are the maintainer's.** Not exercised
+  locally: Docker build/run, GitHub CI (post-push).
 - **2026-07-27 — HEALTH FIX WAVE + ADJUDICATION (resume session 2).**
   Maintainer adjudicated four decisions in-session (doctrine log
   "Adjudication pass"): governed vocabulary = the event model only;

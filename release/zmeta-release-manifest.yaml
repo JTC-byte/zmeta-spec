@@ -1,8 +1,8 @@
 manifest_version: 1
-release_id: zmeta-v1.1.16
-release_name: ZMeta v1.1.16
+release_id: zmeta-v1.1.17
+release_name: ZMeta v1.1.17
 release_status: formal_release
-release_date: '2026-07-21'
+release_date: '2026-07-27'
 zmeta_versions:
   normative:
   - '1.0'
@@ -27,9 +27,9 @@ profile_precision_policy_hash: sha256:a2f51cf5f0779c43ae4118b941524fb14783181c73
 bad_event_corpus_hash: sha256:f839d7fb4a0ab127c95c7e904b00ee44284d6c1a1218158d1179f277f366aeb8
 adapter_conformance_hash: sha256:1f6982e138d4b86843afa7220b249cf5fd80f0ca66cd7d8461ce3c7e9edaa4ce
 encoding_projection_specs_hash: sha256:817c780b7871d57404efd144e72c77f8519d12481bb2d0eb9d32f2c36ee967f0
-process_governance_hash: sha256:8e1776cf2f6278fe9f7fd2f101774c1f0939de238b3daecff88755e584fb55b5
-release_bundle_hash: sha256:a7e166d74b5eed0c0397b24e10c2f202ece0ac286cc0774af5c1691f9b18f973
-release_manifest_hash: sha256:aa2e908a090162afe8e9d4773e8214061073f3a6e735f833dc259b989a5d4b5c
+process_governance_hash: sha256:18bf261d60d52bf7cd0f3cee56db225ed4ae4a3d6101aa26b7b71d97f60be201
+release_bundle_hash: sha256:56c346fe0c81ddaa4b67d9e4d08d3e80347e58c678fbacd956955b52c7e5ae38
+release_manifest_hash: sha256:a7050bae9f9154f74dc61cb68814cafe0f735750958c7f9730cae39aa7bd88aa
 artifact_hashes:
 - path: AGENTS.md
   group: process_governance
@@ -69,11 +69,11 @@ artifact_hashes:
   canonicalization: text_lf
 - path: conformance/claims/example-core-producer.yaml
   group: claims
-  hash: sha256:755a9568bf019a9ca638c783309d68abce0bb3f9eeafe7c1496261bd5cb8f66b
+  hash: sha256:34e78a9183a8e7967492e4f1c1c76b12317953767b85fd261767caf25b14d865
   canonicalization: text_lf
 - path: conformance/claims/example-reference-gateway.yaml
   group: claims
-  hash: sha256:cd52dd08098bd2f78c7ce2a16ffa24eb651dc3512425b5991db5eb090ee559a3
+  hash: sha256:68b39850cbf53b7704787d6187af2cea5bb4cce933f2dd399ef7780e832b4ed4
   canonicalization: text_lf
 - path: conformance/conformance_classes.yaml
   group: conformance_classes
@@ -133,7 +133,7 @@ artifact_hashes:
   canonicalization: text_lf
 - path: docs/zmeta_change_governance.md
   group: process_governance
-  hash: sha256:b73cfe7c77ef2616033ce5eb205df8b13df2246f488a9f158c9e2b5f09c5391d
+  hash: sha256:56e846da5d57b353cda2dcf6530864004975013f17d0d81b1a30dc70259a6f07
   canonicalization: text_lf
 - path: docs/zmeta_defensive_publication.md
   group: process_governance
@@ -410,7 +410,7 @@ artifact_groups:
     paths:
     - conformance/claims/example-core-producer.yaml
     - conformance/claims/example-reference-gateway.yaml
-    hash: sha256:aa0c9f6b632852ec6a7d1ba1071bf5f1fd4babbc7847aece2a11ff9f242dc746
+    hash: sha256:ce29cc2964aabf6d259ce9a6262c68a4ba580e79aec45bb64405dea6b6304d6c
   release_policy:
     description: Human-readable release hash taxonomy and canonicalization policy.
     paths:
@@ -426,7 +426,7 @@ artifact_groups:
     - TRADEMARK.md
     - docs/zmeta_change_governance.md
     - docs/zmeta_defensive_publication.md
-    hash: sha256:8e1776cf2f6278fe9f7fd2f101774c1f0939de238b3daecff88755e584fb55b5
+    hash: sha256:18bf261d60d52bf7cd0f3cee56db225ed4ae4a3d6101aa26b7b71d97f60be201
   release_packaging:
     description: Formal release signing, attestation, package template, and package validation support.
     paths:
@@ -462,7 +462,7 @@ tool_versions:
   python: 3.14.0
   builder: tools/build_release_manifest.py
   validator: tools/validate_release_manifest.py
-git_commit: ae42a4d7a8f92626c234791ab5c7cfb9346d043d
+git_commit: explicit_release_input_required
 branch: main
 generated_by: tools/build_release_manifest.py
 notes:
