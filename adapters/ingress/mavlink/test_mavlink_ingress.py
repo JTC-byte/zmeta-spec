@@ -1151,13 +1151,13 @@ def test_mavlink_system_events_emit_no_undeclared_leaf_anywhere():
     ) == []
     VALIDATOR.validate(decoded_time)
 
-    # The catch-all LINK_STATUS branch. Swept for provenance only, and not
-    # schema-validated: it emits a metrics block without the link_id /
-    # latency_ms / packet_loss_pct / throughput_bps the v1.0 schema requires
-    # on LINK_STATUS. That is a shape defect, not a fabrication - it is
-    # recorded separately and is out of this class's scope; what is pinned
-    # here is that its verdict stays "UNKNOWN".
-    fallback_msg = {"msg_type": "RADIO_STATUS", "rssi": -70}
+    # The catch-all LINK_STATUS branch, swept for provenance and - since the
+    # CR-05 fix - schema-validated like every other emitter in this file: the
+    # link_id / latency_ms / packet_loss_pct / throughput_bps the v1.0 schema
+    # requires are message-carried (and refused when absent; see the CR-05
+    # pins below). What stays pinned here is that with no verdict supplied,
+    # none is asserted.
+    fallback_msg = {"msg_type": "RADIO_STATUS", "rssi": -70, **_LINK_METRICS}
     fallback = mavlink_decoded_to_zmeta_system_events(fallback_msg, **ack_kwargs)[0]
     assert _undeclared_leaves(
         fallback,
@@ -1166,8 +1166,12 @@ def test_mavlink_system_events_emit_no_undeclared_leaf_anywhere():
             **_envelope_declarations("SYSTEM_EVENT", "LINK_STATUS", "EDGE"),
             "$.payload.system_type": "LINK_STATUS",
             "$.payload.state": "UNKNOWN",
+            # The same declared default translate_link_status writes above:
+            # an identifier the adapter assigns, not a measurement.
+            "$.payload.metrics.link_id": "edge-comms-uav-1",
         },
     ) == []
+    VALIDATOR.validate(fallback)
 
 
 def test_mavlink_time_status_refuses_to_fabricate_timing_uncertainty():
@@ -1353,16 +1357,21 @@ def test_mavlink_uint8_max_rssi_sentinel_never_becomes_a_measurement():
         )
         assert link["payload"]["metrics"]["rc_rssi"] == reported
 
-    # The same sentinel on the decoded-message path.
+    # The same sentinel on the decoded-message path. The link measurements
+    # ride along because since the CR-05 fix the branch refuses to emit
+    # without them (they are schema-required), and a refusal would hide this
+    # pin's actual question.
     kwargs = {"platform_id": "uav-1", "producer": "mavlink", "ts": _INPUT_TS}
     dropped = mavlink_decoded_to_zmeta_system_events(
-        {"msg_type": "RADIO_STATUS", "rssi": 255}, **kwargs
+        {"msg_type": "RADIO_STATUS", "rssi": 255, **_LINK_METRICS}, **kwargs
     )[0]
-    assert "rssi" not in (dropped["payload"].get("metrics") or {})
+    assert "rssi" not in dropped["payload"]["metrics"]
+    VALIDATOR.validate(dropped)
     kept = mavlink_decoded_to_zmeta_system_events(
-        {"msg_type": "RADIO_STATUS", "rssi": -70}, **kwargs
+        {"msg_type": "RADIO_STATUS", "rssi": -70, **_LINK_METRICS}, **kwargs
     )[0]
     assert kept["payload"]["metrics"]["rssi"] == -70
+    VALIDATOR.validate(kept)
 
 
 def test_mavlink_battery_voltage_sentinel_dropped_by_every_emitter():
@@ -1539,3 +1548,176 @@ def test_decode_attitude_unreported_axis_clobbers_rather_than_carrying_stale():
     # Dropping the stale axis must not cost the axes that were reported.
     assert later["payload"]["quality"]["pitch_deg"] == math.degrees(0.1)
     VALIDATOR.validate(later)
+
+
+# ---------------------------------------------------------------------------
+# CR-05 / CR-06 pins (R1-11 cold re-read). Both defects had the same shape:
+# the mirrored vocabulary imported a schema enum without the emission
+# obligations attached to it, so a documented emitter path produced only
+# gateway-refused events. Fail-closed, not laundering - but a whole advertised
+# message family went dark, and the docstring's "never accepted uninterpreted"
+# claim was false on the LINK_STATUS branch. Vocabularies and pairings are
+# written out as literals here, per the construction note above.
+# ---------------------------------------------------------------------------
+
+
+def _task_ack_event(**overrides):
+    msg = {
+        "msg_type": "MISSION_ACK",
+        "task_id": "task-1",
+        "original_event_id": "019c3ef3-98c4-7c99-8daf-3643ed0bc8ef",
+    }
+    msg.update(overrides)
+    return mavlink_decoded_to_zmeta_system_events(
+        msg, platform_id="uav-1", producer="mavlink", ts=_INPUT_TS
+    )[0]
+
+
+def test_mavlink_task_ack_negative_verdicts_validate_with_restating_reason():
+    # CR-06. The mirror imported the TASK_ACK state enum but not the
+    # conditional obligation attached to it: the v1.0 schema requires
+    # metrics.reason_code on the five negative verdicts, and the metrics
+    # literal carried only task_id/original_event_id - so the negative acks a
+    # commander most needs were 100% gateway-refused (the commander saw a
+    # SCHEMA_VIOLATION diagnostic, never the REJECTED). Each negative verdict
+    # now carries the code that restates the verdict itself - the same pairing
+    # the SAPIENT ingress makes. A restatement, not a diagnosis: it adds no
+    # cause the message did not carry.
+    for verdict, restated in (
+        ("REJECTED", "TASK_REJECTED"),
+        ("FAILED", "TASK_FAILED"),
+        ("CANCELLED", "TASK_CANCELLED"),
+        ("EXPIRED", "TASK_EXPIRED"),
+        ("DUPLICATE_IGNORED", "TASK_DUPLICATE"),
+    ):
+        event = _task_ack_event(ack=verdict)
+        assert event["payload"]["state"] == verdict
+        assert event["payload"]["metrics"]["reason_code"] == restated
+        VALIDATOR.validate(event)
+
+    # The four clean verdicts keep emitting without a reason_code: the schema
+    # attaches no obligation there, and stamping a failure cause under a clean
+    # verdict would be a fabricated diagnosis.
+    for verdict in ("RECEIVED", "ACCEPTED", "EXECUTING", "COMPLETED"):
+        event = _task_ack_event(ack=verdict)
+        assert event["payload"]["state"] == verdict
+        assert "reason_code" not in event["payload"]["metrics"]
+        VALIDATOR.validate(event)
+
+
+def test_mavlink_task_ack_carried_reason_code_is_never_silently_dropped():
+    # CR-06, second half. A message-carried reason_code - including a legal
+    # member of the schema's 12-value TASK_ACK vocabulary - was read by
+    # nothing and silently dropped: the exact silent-drop the refusal paths in
+    # this same branch were rebuilt to avoid (R2-10). A carried cause beats
+    # the restating default, because it says more than the verdict does.
+    carried = _task_ack_event(ack="REJECTED", reason_code="COMMAND_NOT_DECONFLICTED")
+    assert carried["payload"]["metrics"]["reason_code"] == "COMMAND_NOT_DECONFLICTED"
+    VALIDATOR.validate(carried)
+    # Message-carried tokens are normalised (whitespace/case) before the
+    # comparison, like every other verdict this function reads.
+    assert (
+        _task_ack_event(ack="FAILED", reason_code=" task_aborted ")["payload"][
+            "metrics"
+        ]["reason_code"]
+        == "TASK_ABORTED"
+    )
+
+    # An out-of-vocabulary carried cause refuses at ingress - neither dropped
+    # (silent) nor emitted (schema-invalid for the gateway to reject).
+    with pytest.raises(ValueError, match="not one of the v1.0 TASK_ACK reason codes"):
+        _task_ack_event(ack="REJECTED", reason_code="BECAUSE")
+    # A failure cause under a clean verdict is the TASK_ACK spelling of "UP
+    # cannot carry a cause of degradation": which half the message meant is
+    # not adjudicable here, so neither half is silently corrected.
+    with pytest.raises(ValueError, match="cannot carry metrics.reason_code"):
+        _task_ack_event(ack="ACCEPTED", reason_code="TASK_REJECTED")
+
+
+def _link_status_event(**overrides):
+    msg = {"msg_type": "RADIO_STATUS", **_LINK_METRICS}
+    msg.update(overrides)
+    return mavlink_decoded_to_zmeta_system_events(
+        msg, platform_id="uav-1", producer="mavlink", ts=_INPUT_TS
+    )[0]
+
+
+def test_mavlink_decoded_link_status_every_advertised_state_validates():
+    # CR-05. The branch emitted only the optional rssi/snr/drop_rate keys -
+    # never the link_id / latency_ms / packet_loss_pct / throughput_bps the
+    # v1.0 schema requires on every LINK_STATUS, and with no metric keys at
+    # all it omitted `metrics` entirely - so 100% of this documented emitter
+    # path's output was refused at the gateway. The measurements are
+    # message-carried (see the refusal pin below); what this pin holds is
+    # that every advertised state now emits an event the schema accepts.
+    for state, reason_code in (
+        ("UP", None),
+        ("DEGRADED", "LOW_RSSI"),
+        ("DOWN", "LINK_LOSS"),
+        ("UNKNOWN", None),
+    ):
+        overrides = {"state": state}
+        if reason_code is not None:
+            overrides["reason_code"] = reason_code
+        event = _link_status_event(**overrides)
+        assert event["payload"]["state"] == state
+        assert event["payload"]["metrics"]["link_id"] == "edge-comms-uav-1"
+        assert event["payload"]["metrics"]["latency_ms"] == 42.0
+        assert event["payload"]["metrics"]["packet_loss_pct"] == 1.5
+        assert event["payload"]["metrics"]["throughput_bps"] == 250000
+        if reason_code is not None:
+            assert event["payload"]["metrics"]["reason_code"] == reason_code
+        VALIDATOR.validate(event)
+
+    # An absent verdict stays the honest "UNKNOWN" - and now validates.
+    absent = _link_status_event()
+    assert absent["payload"]["state"] == "UNKNOWN"
+    VALIDATOR.validate(absent)
+    # The alternate carrier key, and the spelling rule: "up " renders as UP
+    # in every operator UI, so it must not escape the comparison.
+    alt_key = _link_status_event(link_state="up ")
+    assert alt_key["payload"]["state"] == "UP"
+    VALIDATOR.validate(alt_key)
+    normalised = _link_status_event(state=" down ", reason_code="LINK_LOSS")
+    assert normalised["payload"]["state"] == "DOWN"
+    VALIDATOR.validate(normalised)
+    # The optional carried metrics still travel next to the required ones,
+    # and a message-carried link identity is kept, not overwritten.
+    carried = _link_status_event(rssi=-70, snr=20, drop_rate=0.1, link_id="sik-1")
+    assert carried["payload"]["metrics"]["rssi"] == -70
+    assert carried["payload"]["metrics"]["snr"] == 20
+    assert carried["payload"]["metrics"]["drop_rate"] == 0.1
+    assert carried["payload"]["metrics"]["link_id"] == "sik-1"
+    VALIDATOR.validate(carried)
+
+
+def test_mavlink_decoded_link_status_refuses_rather_than_emits_invalid():
+    # CR-05, second half. `state or link_state or "UNKNOWN"` forwarded any
+    # truthy carried string verbatim - payload.state = 'HEALTHY' emitted, with
+    # only the gateway's schema enum to catch it - making the docstring's
+    # "never accepted uninterpreted" claim false on this branch. And the
+    # branch fabricated nothing but also refused nothing: a message without
+    # the schema-required measurements emitted schema-invalid instead of
+    # refusing loudly at ingress like every sibling branch.
+    for uninterpretable in ("HEALTHY", "OK", "NOMINAL", 1, True):
+        with pytest.raises(ValueError, match="not one of the v1.0 LINK_STATUS states"):
+            _link_status_event(state=uninterpretable)
+
+    # The three schema-required measurements are message-carried, never
+    # fabricated - the same refusal translate_link_status applies.
+    for missing in ("latency_ms", "packet_loss_pct", "throughput_bps"):
+        msg = {"msg_type": "RADIO_STATUS", "rssi": -70, **_LINK_METRICS}
+        del msg[missing]
+        with pytest.raises(ValueError, match="never fabricated"):
+            mavlink_decoded_to_zmeta_system_events(
+                msg, platform_id="uav-1", producer="mavlink", ts=_INPUT_TS
+            )
+
+    # reason_code follows the same rules as translate_link_status: required
+    # under DEGRADED/DOWN, a declared vocabulary, contradictory under UP.
+    with pytest.raises(ValueError, match="requires metrics.reason_code"):
+        _link_status_event(state="DEGRADED")
+    with pytest.raises(ValueError, match="reason_code must be one of"):
+        _link_status_event(state="DOWN", reason_code="BROKEN")
+    with pytest.raises(ValueError, match="cannot carry metrics.reason_code"):
+        _link_status_event(state="UP", reason_code="JAMMED")

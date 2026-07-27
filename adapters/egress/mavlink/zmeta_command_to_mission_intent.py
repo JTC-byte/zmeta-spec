@@ -134,9 +134,15 @@ def zmeta_command_to_mission_intent(event):
         "task_id": task_id,
         "task_type": task_type,
         "valid_for_ms": valid_for_ms,
-        "priority": payload.get("priority") or "MED",
         "requires_deconfliction": True,
     }
+    # priority is OPTIONAL with no declared default: an omitted priority is
+    # the absence of a priority claim, so it projects as an absent key - never
+    # a fabricated MED reaching an autonomy consumer clean (R1-11 CR-08). Map
+    # only what is present.
+    priority = payload.get("priority")
+    if priority is not None:
+        mission["priority"] = priority
     if target_lat is not None and target_lon is not None:
         mission["target_lat"] = target_lat
         mission["target_lon"] = target_lon

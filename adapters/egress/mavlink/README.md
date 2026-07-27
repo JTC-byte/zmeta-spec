@@ -22,6 +22,11 @@ The authoritative altitude gate is the gateway validator
 set a superset of `policy/semantics.yaml`
 `command_event.payload_must_not_contain`.
 
+`priority` maps only when the command carries one. It is optional in the
+schema with no declared default, so a priority-less command projects a
+mission with no `priority` key — an unstated tasking priority is omitted,
+never defaulted.
+
 Both walks descend containers by abstract type (`Mapping`, `Set`, `Sequence`,
 CBOR tag wrappers), not just `dict`/`list`, and share one iterative traversal
 with a seen-set: `geometry` is copied verbatim from a sender-controlled
@@ -40,7 +45,7 @@ Input (ZMeta COMMAND_EVENT):
 Output (MissionIntent):
 
 ```
-{"task_id":"task-1","task_type":"GOTO","target_lat":34.0,"target_lon":-118.0,"valid_for_ms":600000,"priority":"MED","requires_deconfliction":true}
+{"task_id":"task-1","task_type":"GOTO","target_lat":34.0,"target_lon":-118.0,"valid_for_ms":600000,"requires_deconfliction":true}
 ```
 
 ### Smoke test

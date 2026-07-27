@@ -829,3 +829,155 @@ def test_unrepresentable_int_refuses_not_raises(huge):
     confidence_event["confidence"] = huge
     assert _detection(confidence_event) is None
     assert _task(_command_event(target_geo={"lat": huge, "lon": -118.0})) is None
+
+
+# --- R1-11 CR-09: an unadjudicable use_labels fails CLOSED -------------------
+# The adapter treated any non-dict use_labels as NO restriction: a caller
+# export prohibition passed as a LIST (the natural mistake — event-carried
+# risk_adjudication records are a list) was dropped and the detection
+# exported to the coalition feed clean; no refusal, no self-label. That was
+# the fail-open polarity on the one parameter whose whole purpose is
+# restricting the export path, in a function every other arm of which fails
+# closed (unknown decisions, unserializable labels, partial geo).
+
+
+def test_list_shaped_use_labels_prohibition_refuses_never_drops():
+    # Controls first, for non-vacuity: no use_labels exports, and the
+    # identical prohibition in the documented dict shape refuses — so the
+    # list arm below can only pass by adjudicating the SHAPE, not via a
+    # blanket refusal or some unrelated defect in the event.
+    assert _detection(_state_event()) is not None
+    prohibition = {"prohibited_uses": ["COALITION_EXPORT"]}
+    assert _detection(_state_event(), use_labels=prohibition) is None
+    assert _detection(_state_event(), use_labels=[prohibition]) is None
+
+
+@pytest.mark.parametrize(
+    "malformed",
+    [
+        [{"prohibited_uses": ["COALITION_EXPORT"]}],  # list of label dicts
+        [{"allowed_uses": ["DISPLAY"]}],  # grant list omitting the export use
+        ({"prohibited_uses": ["COALITION_EXPORT"]},),  # tuple wrapper
+        '{"prohibited_uses": ["COALITION_EXPORT"]}',  # JSON-encoded, not decoded
+        "COALITION_EXPORT",  # bare string
+        [],  # empty list: shape gate, not content gate — intent unknowable
+    ],
+)
+def test_undocumented_use_labels_shape_refuses(malformed):
+    # Fail closed on shape, not content: the adapter cannot know whether a
+    # non-dict was a restriction, so it must never adjudicate one as no
+    # restriction. Refusing is recoverable; a dropped prohibition is not.
+    assert _detection(_state_event(), use_labels=malformed) is None
+
+
+# --- R1-11 CR-10: altitude tripwire crash/blindness past the contract -------
+# The recursive dict/list-only _contains_altitude raised RecursionError on
+# deep target_geo — a third exception class where the documented contract is
+# ValueError/None only — and never looked inside a Mapping that is not a
+# dict, a tuple, a set or a CBOR tag wrapper: the identical guard-shape
+# defect the MAVLink sibling fixed in this same held range (R2-07 family).
+
+
+class _CborTag:
+    """Stand-in for cbor2.CBORTag: an unrecognised tag decodes to an object
+    whose `.value` still reaches the consumer."""
+
+    def __init__(self, tag, value):
+        self.tag = tag
+        self.value = value
+
+
+def _nested_geo(leaf, depth=2000):
+    node = leaf
+    for _ in range(depth):
+        node = {"n": node}
+    return {"lat": 34.0, "lon": -118.0, "meta": node}
+
+
+def test_deep_target_geo_takes_the_documented_contract_not_recursionerror():
+    # Clean deep nesting projects: no altitude key anywhere, and Location is
+    # built field-by-field from lat/lon so none of the nest leaks (2000 deep
+    # is past the default interpreter recursion limit of 1000).
+    message = _task(_command_event(target_geo=_nested_geo({"note": "x"})))
+    assert message is not None
+    location = message["task"]["command"]["move_to"]["locations"][0]
+    assert set(location) == {"x", "y", "coordinate_system", "datum"}
+    # An altitude key at the BOTTOM of the same nest still trips the one
+    # deliberate raise — never a stack crash before the guard finds it.
+    with pytest.raises(ValueError, match="target_geo must be 2D"):
+        _task(_command_event(target_geo=_nested_geo({"alt_m": 120.0})))
+
+
+def test_altitude_in_a_non_dict_container_still_raises():
+    # Contract 7.8 is a fielded-safety rule: no vertical intent may cross.
+    # An altitude key one container off dict/list must trip the same
+    # ValueError, not project silently past the tripwire.
+    from collections import OrderedDict
+    from types import MappingProxyType
+
+    for meta in (
+        ({"alt_m": 500},),  # tuple-wrapped dict (the CR-10 live probe)
+        MappingProxyType({"agl_m": 50.0}),  # a Mapping that is not a dict
+        [[{" ALT_M ": 100.0}]],  # case/whitespace padding still normalized
+        _CborTag(4242, {"target_alt_m": 1.0}),  # tag wrapper's .value
+        OrderedDict({"altitude": 100.0}),  # concrete-dict subclass dispatch
+    ):
+        event = _command_event(target_geo={"lat": 34.0, "lon": -118.0, "meta": meta})
+        with pytest.raises(ValueError, match="target_geo must be 2D"):
+            _task(event)
+
+
+def test_altitude_walk_terminates_on_cyclic_target_geo():
+    # CBOR value-sharing tags (28/29) make decoded structure possibly
+    # cyclic, so the walk needs a seen-set to terminate — and a cycle must
+    # not hide an altitude key sitting beside it.
+    loop = {"lat": 34.0, "lon": -118.0}
+    loop["self"] = loop
+    assert _task(_command_event(target_geo=loop)) is not None
+    poisoned = {"lat": 34.0, "lon": -118.0}
+    poisoned["self"] = poisoned
+    poisoned["deep"] = {"alt_m": 100.0}
+    with pytest.raises(ValueError, match="target_geo must be 2D"):
+        _task(_command_event(target_geo=poisoned))
+
+
+def test_tuple_shaped_prohibition_refuses_one_container_down():
+    # Attack-pass completion (2026-07-27): the top-level shape gate refused
+    # a non-dict use_labels, but a dict whose restriction VALUE is a tuple
+    # or set normalised to [] in _normalized_uses and exported clean - the
+    # same dropped prohibition one container down. Refuse the shape.
+    for key in ("prohibited_uses", "allowed_uses"):
+        for value in (("COALITION_EXPORT",), {"COALITION_EXPORT"}):
+            assert _detection(_state_event(), use_labels={key: value}) is None
+    # Control that separates shape-refusal from adjudication: the
+    # documented LIST shape still adjudicates - an allowed_uses list
+    # granting the export use exports.
+    granted = _detection(
+        _state_event(), use_labels={"allowed_uses": ["COALITION_EXPORT"]}
+    )
+    assert granted is not None
+
+
+def test_list_target_geo_raises_valueerror_not_attributeerror():
+    # Attack-pass completion (2026-07-27): a LIST of waypoint dicts walked
+    # _contains_altitude clean and then crashed on .get("lat") - an
+    # AttributeError outside the documented ValueError/None contract.
+    event = _command_event()
+    event["payload"]["target_geo"] = [{"lat": 34.0, "lon": -118.0}]
+    with pytest.raises(ValueError, match="must be a mapping"):
+        _task(event)
+
+
+def test_gate_clean_naive_ts_refuses_in_both_sapient_egress_twins():
+    # Verifier carry-forward (2026-07-27): the CoT/JREAP naive-timestamp
+    # closure had its template in THESE twins, which still reinterpreted
+    # gate-clean "2026-W01-1Z" as host-local time - a silently shifted
+    # instant on the wire (and a skewed report_id ULID time component in
+    # the detection). Both refuse now, per each module's None contract.
+    for ts in ("1969-12-31Z", "2026-W01-1Z"):
+        state = _state_event()
+        state["event"]["ts"] = ts
+        assert _detection(state) is None
+        command = _command_event()
+        command["event"]["ts"] = ts
+        assert _task(command) is None

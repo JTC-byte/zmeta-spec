@@ -111,7 +111,18 @@ def _parse_utc(ts):
         raise TypeError(f"ts must be a string, got {type(ts).__name__}")
     if ts.endswith("Z"):
         ts = ts[:-1] + "+00:00"
-    return datetime.fromisoformat(ts).astimezone(timezone.utc)
+    parsed = datetime.fromisoformat(ts)
+    if parsed.tzinfo is None:
+        # Gate-clean does not mean offset-carrying: "1969-12-31Z" and
+        # "2026-W01-1Z" satisfy the schema's `Z$` pattern yet parse NAIVE,
+        # and `.astimezone()` on a naive datetime asks the PLATFORM -
+        # silent host-local reinterpretation (a fabricated instant, which
+        # here also skews the report_id ULID time component) or OSError
+        # pre-epoch on Windows. ValueError so the caller's documented
+        # None-refusal path handles it (same closure as the CoT/JREAP
+        # siblings, 2026-07-27).
+        raise ValueError(f"ts parses without a UTC offset: {ts!r}")
+    return parsed.astimezone(timezone.utc)
 
 
 def _is_finite_number(value):
@@ -231,7 +242,10 @@ def zmeta_state_to_sapient_detection(event, *, node_id, use_labels=None, export_
             ({"allowed_uses": [...], "prohibited_uses": [...]}) for policy
             adjudication that rides outside the event. Adjudicated exactly
             like an event-carried risk record, and any use restriction it
-            carries travels in the zmeta.risk self-label.
+            carries travels in the zmeta.risk self-label. Any other shape
+            (e.g. a list of label dicts) refuses the event outright: an
+            export restriction the adapter cannot adjudicate is never
+            adjudicated as no restriction.
         export_use: The use label this export path consumes under (default
             "COALITION_EXPORT", semantics contract 3.3 vocabulary). An
             event whose labels prohibit — or whose grant list omits — this
@@ -247,7 +261,8 @@ def zmeta_state_to_sapient_detection(event, *, node_id, use_labels=None, export_
         type/subtype, missing ts/track_id, an unparseable ts or one
         outside the ULID timestamp range, no ULID object identity,
         partial or non-finite geo, quarantined or rejected by policy,
-        export-path use prohibited, or an honesty self-label that cannot
+        export-path use prohibited, a use_labels that is not the
+        documented dict shape, or an honesty self-label that cannot
         be serialized as honest JSON). This projection never raises.
     """
     if event.get("event", {}).get("event_type") != "STATE_EVENT":
@@ -291,6 +306,24 @@ def zmeta_state_to_sapient_detection(event, *, node_id, use_labels=None, export_
         return None
 
     risk_records = _risk_records(payload)
+    # use_labels is the caller's export restriction and this is its ONLY
+    # gate — it rides outside the event, so no event-side validator ever
+    # sees it. A shape the adapter cannot adjudicate (the natural mistake
+    # is a LIST of label dicts, since event-carried risk_adjudication
+    # records are a list) must fail closed like every other unadjudicable
+    # restriction in this function: refusing is recoverable, a silently
+    # dropped prohibition is not (contract 3.3).
+    if use_labels is not None and not isinstance(use_labels, dict):
+        return None
+    if isinstance(use_labels, dict):
+        for key in ("allowed_uses", "prohibited_uses"):
+            value = use_labels.get(key)
+            if value is not None and not isinstance(value, (list, str)):
+                # Same rule one container down: a tuple/set restriction
+                # would normalise to [] in _normalized_uses and export
+                # clean - a silently dropped prohibition, the exact
+                # failure the top-level shape gate refuses.
+                return None
     caller_records = [use_labels] if isinstance(use_labels, dict) else []
 
     for record in risk_records:

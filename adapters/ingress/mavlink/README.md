@@ -212,7 +212,32 @@ event = translate_platform_state(
     `MISSION_CURRENT.mission_state`, and the decoded dict does not say which
     enum it came from — the bridge holds the message type, so the bridge maps
     the code. Guessing an acceptance is the one direction that must never be
-    guessed.
+    guessed;
+  - the five negative TASK_ACK verdicts (`REJECTED` / `FAILED` / `CANCELLED`
+    / `EXPIRED` / `DUPLICATE_IGNORED`) carry the `metrics.reason_code` the
+    v1.0 schema requires on exactly those states: the message's own when it
+    carried a member of the schema's 12-value TASK_ACK reason vocabulary,
+    else the code that restates the verdict itself (`TASK_REJECTED`,
+    `TASK_FAILED`, `TASK_CANCELLED`, `TASK_EXPIRED`, `TASK_DUPLICATE` — the
+    same pairing the SAPIENT ingress makes). A restatement, not a diagnosis:
+    it adds no cause the message did not carry. A message-carried
+    `reason_code` is never silently dropped — an out-of-vocabulary one is
+    refused, and one carried under a clean verdict (`RECEIVED` / `ACCEPTED` /
+    `EXECUTING` / `COMPLETED`) is refused as self-contradictory, since the
+    v1.0 reason vocabulary is causes of non-execution;
+  - the decoded LINK_STATUS branch of the same function holds itself to the
+    schema shape it emits, instead of leaving the whole advertised message
+    family to be refused at the gateway: `latency_ms`, `packet_loss_pct` and
+    `throughput_bps` are message-carried and refused when absent (never
+    fabricated — same rule as `translate_link_status()`); `link_id` is the
+    message's own or the declared `edge-comms-<platform_id>` default (an
+    identifier the adapter assigns, not a measurement it invents); a carried
+    `state` / `link_state` is normalised onto the v1.0
+    `UP`/`DEGRADED`/`DOWN`/`UNKNOWN` vocabulary and refused when
+    uninterpretable — never forwarded verbatim — while an absent or blank
+    verdict stays the honest `UNKNOWN`; and `reason_code` follows the same
+    vocabulary / required-under-`DEGRADED`-`DOWN` / no-cause-under-`UP` rules
+    as `translate_link_status()`.
 
 ### Heading and attitude frame provenance
 

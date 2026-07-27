@@ -24,9 +24,16 @@ free-text would make free-text load-bearing.
 """
 
 import math
+from collections.abc import Mapping, Sequence
+from collections.abc import Set as AbstractSet
 from datetime import datetime, timedelta, timezone
 
 from adapters.egress.sapient.ulid_util import is_ulid
+
+# Text leaves are Sequences, so they have to be excluded before the Sequence
+# branch or every string becomes a walk over its own characters - and a
+# one-character string yields itself, so that walk never terminates.
+_TEXT_LEAF_TYPES = (str, bytes, bytearray)
 
 # Canonical altitude field names a COMMAND_EVENT must never carry (semantics
 # contract 7.8). COMMAND_EVENT SHALL NOT specify altitude - the receiving
@@ -44,19 +51,51 @@ _ALTITUDE_FIELDS = frozenset({
 
 
 def _contains_altitude(value):
-    if isinstance(value, dict):
-        for key, item in value.items():
-            # strip+casefold so whitespace-/case-padded altitude keys cannot
-            # slip the guard (matches the gateway validator's key normalization).
-            key_lc = str(key).strip().casefold()
-            if key_lc in _ALTITUDE_FIELDS:
-                return True
-            if _contains_altitude(item):
-                return True
-    elif isinstance(value, list):
-        for item in value:
-            if _contains_altitude(item):
-                return True
+    # Contract 7.8: COMMAND_EVENT SHALL NOT specify altitude. This is
+    # defence in depth behind the gateway's COMMAND_HAS_ALTITUDE validator,
+    # so its failure mode matters: the recursive dict/list version raised
+    # RecursionError on deep geometry (a crash where the documented signal
+    # is None/ValueError) and never looked inside a Mapping that is not a
+    # dict, a tuple, a set or a CBOR tag wrapper - so an altitude key one
+    # container off the beaten path reached the tasked node unremarked.
+    #
+    # Iterative with a seen-set, same discipline as the MAVLink sibling
+    # (zmeta_command_to_mission_intent._walk_containers) and the gateway
+    # kernel walk (gateway/src/validators.py _child_entries): target_geo is
+    # sender-controlled, so nesting depth must be a memory cost, never a
+    # RecursionError, and CBOR value-sharing tags make the decoded structure
+    # possibly cyclic, so an unbounded walk would be a hang (R1-11 R2-07).
+    # Container coverage is by abstract type: cbor2 decodes CBOR tag 258
+    # into a `set`, a map used as a map key into a Mapping that is not a
+    # dict, and an unrecognised tag into a tag object whose `.value` still
+    # reaches the wire. Mapping keys are walked as values too - a key can
+    # itself be a frozendict carrying an altitude key inside it.
+    stack = [value]
+    seen = set()
+    while stack:
+        current = stack.pop()
+        if isinstance(current, _TEXT_LEAF_TYPES):
+            continue
+        if isinstance(current, (Mapping, AbstractSet, Sequence)) or (
+            hasattr(current, "tag") and hasattr(current, "value")
+        ):
+            marker = id(current)
+            if marker in seen:
+                continue
+            seen.add(marker)
+        if isinstance(current, Mapping):
+            for key in current:
+                # strip+casefold so whitespace-/case-padded altitude keys
+                # cannot slip the guard (matches the gateway validator's key
+                # normalization).
+                if str(key).strip().casefold() in _ALTITUDE_FIELDS:
+                    return True
+            stack.extend(current.keys())
+            stack.extend(current.values())
+        elif isinstance(current, (AbstractSet, Sequence)):
+            stack.extend(current)
+        elif hasattr(current, "tag") and hasattr(current, "value"):
+            stack.append(current.value)
     return False
 
 
@@ -67,7 +106,17 @@ def _parse_utc(ts):
         raise TypeError(f"ts must be a string, got {type(ts).__name__}")
     if ts.endswith("Z"):
         ts = ts[:-1] + "+00:00"
-    return datetime.fromisoformat(ts).astimezone(timezone.utc)
+    parsed = datetime.fromisoformat(ts)
+    if parsed.tzinfo is None:
+        # Gate-clean does not mean offset-carrying: "1969-12-31Z" and
+        # "2026-W01-1Z" satisfy the schema's `Z$` pattern yet parse NAIVE,
+        # and `.astimezone()` on a naive datetime asks the PLATFORM -
+        # silent host-local reinterpretation (a fabricated instant) or
+        # OSError pre-epoch on Windows. ValueError so the caller's
+        # documented None-refusal path handles it (same closure as the
+        # CoT/JREAP siblings, 2026-07-27).
+        raise ValueError(f"ts parses without a UTC offset: {ts!r}")
+    return parsed.astimezone(timezone.utc)
 
 
 def _is_finite_number(value):
@@ -155,6 +204,10 @@ def zmeta_command_to_sapient_task(event, *, node_id, destination_id, track_to_ob
         target_geo = payload.get("target_geo")
         if target_geo is None:
             return None
+        if not isinstance(target_geo, Mapping):
+            # A LIST of waypoint dicts is the natural producer mistake; the
+            # documented contract is ValueError/None, never AttributeError.
+            raise ValueError("target_geo must be a mapping (lat/lon)")
         if _contains_altitude(target_geo):
             raise ValueError("target_geo must be 2D (lat/lon only)")
         target_lat = target_geo.get("lat")

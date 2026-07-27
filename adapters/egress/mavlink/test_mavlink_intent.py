@@ -207,3 +207,34 @@ def test_clean_command_with_exotic_but_finite_containers_still_projects():
         "vertices": ({"lat": 34.0, "lon": -118.0},),
     }
     assert zmeta_command_to_mission_intent(event) is not None
+
+
+# R1-11 CR-08: CommandPayload.priority is OPTIONAL with no declared default -
+# an omitted priority is the absence of a priority claim. This egress stamped
+# priority=MED on commands that carried none, a fabricated tasking-priority
+# claim reaching an autonomy consumer clean. Refuse-or-omit: map only what is
+# present.
+
+
+def test_priority_less_command_omits_priority():
+    event = _command_event()
+    assert "priority" not in event["payload"]
+    result = zmeta_command_to_mission_intent(event)
+    assert result is not None
+    assert "priority" not in result, result
+    # the omission touches nothing else in the projection
+    assert result["task_id"] == "task-1"
+    assert result["task_type"] == "GOTO"
+    assert result["valid_for_ms"] == 600000
+    assert result["requires_deconfliction"] is True
+    assert result["target_lat"] == 34.0
+    assert result["target_lon"] == -118.0
+
+
+def test_priority_present_maps_exactly():
+    for value in ("LOW", "MED", "HIGH"):
+        event = _command_event()
+        event["payload"]["priority"] = value
+        result = zmeta_command_to_mission_intent(event)
+        assert result is not None
+        assert result["priority"] == value, value

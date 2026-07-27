@@ -63,6 +63,39 @@ _TASK_ACK_STATES = (
     "DUPLICATE_IGNORED",
 )
 
+# The v1.0 schema's TASK_ACK metrics.reason_code vocabulary, mirrored the same
+# way and for the same reason as the LINK_STATUS codes above.
+_TASK_ACK_REASON_CODES = (
+    "SCHEMA_INVALID",
+    "EVENT_TYPE_NOT_ALLOWED_FOR_ROLE",
+    "EVENT_TYPE_NOT_ALLOWED_FOR_PROFILE",
+    "PRODUCER_NOT_ALLOWED",
+    "COMMAND_NOT_DECONFLICTED",
+    "COMMAND_HAS_ALTITUDE",
+    "TASK_DUPLICATE",
+    "TASK_EXPIRED",
+    "TASK_CANCELLED",
+    "TASK_FAILED",
+    "TASK_ABORTED",
+    "TASK_REJECTED",
+)
+
+# The conditional obligation attached to that vocabulary: the v1.0 schema
+# requires metrics.reason_code on exactly these five verdicts - the negative
+# acks a commander most needs. Absent a message-carried cause, each is paired
+# with the code that restates the verdict itself (the same pairing the SAPIENT
+# ingress makes). A restatement, not a diagnosis: it adds no cause the message
+# did not carry, so nothing is fabricated - and without it every negative
+# verdict this branch emits is gateway-refused, so the commander sees a
+# SCHEMA_VIOLATION diagnostic instead of the REJECTED.
+_TASK_ACK_REASON_REQUIRED = {
+    "REJECTED": "TASK_REJECTED",
+    "FAILED": "TASK_FAILED",
+    "CANCELLED": "TASK_CANCELLED",
+    "EXPIRED": "TASK_EXPIRED",
+    "DUPLICATE_IGNORED": "TASK_DUPLICATE",
+}
+
 # The three keys a decoded MISSION_ACK / COMMAND_ACK dict may carry the verdict
 # under. Presence is tested by key, never by truthiness: MAV_MISSION_ACCEPTED
 # and MAV_RESULT_ACCEPTED are both the integer 0, so a truthiness test destroys
@@ -689,6 +722,12 @@ def mavlink_decoded_to_zmeta_system_events(
     not mistaken for a missing verdict; it is refused as unmappable, with a
     message that says so. The vocabulary has no "unknown" member to degrade
     into, so both failures refuse rather than report a RECEIVED nobody sent.
+    The five negative verdicts carry the ``metrics.reason_code`` the v1.0
+    schema requires on them: the message's own when it carried a vocabulary
+    member, else the code that restates the verdict itself (``TASK_REJECTED``
+    for REJECTED, and so on - a restatement, not a diagnosis). An
+    out-of-vocabulary carried cause, or a cause under a clean verdict, is
+    refused - never silently dropped and never emitted schema-invalid.
 
     The TIME_STATUS verdict is derived from the carried sync state by the same
     ``_time_status_payload_state`` ``translate_time_status`` uses, so the two
@@ -696,7 +735,14 @@ def mavlink_decoded_to_zmeta_system_events(
     ordering is refused rather than published over a metrics block it may
     contradict.
 
-    The LINK_STATUS fallback stays "UNKNOWN".
+    The LINK_STATUS fallback verdict stays "UNKNOWN" - the schema's honest
+    label for a message that said nothing about link health - but a carried
+    ``state``/``link_state`` is normalised onto the v1.0 vocabulary and
+    refused when uninterpretable. The three link measurements the schema
+    requires (``latency_ms``/``packet_loss_pct``/``throughput_bps``) are
+    message-carried and refused when absent, and ``reason_code`` follows the
+    same rules ``translate_link_status`` enforces (a declared vocabulary,
+    required under DEGRADED/DOWN, contradictory under UP).
     """
     if not isinstance(msg, dict):
         raise ValueError("msg must be a dict")
@@ -751,10 +797,41 @@ def mavlink_decoded_to_zmeta_system_events(
                 "map the MAVLink result code to a ZMeta verdict in the bridge - an "
                 "acknowledgement verdict is never fabricated and never guessed"
             )
+        # The five negative verdicts require metrics.reason_code (the
+        # conditional obligation attached to the state enum the tuple above
+        # mirrors). A message-carried cause is never silently dropped: a
+        # vocabulary member beats the restating default because it says more
+        # than the verdict does, an out-of-vocabulary one refuses, and a
+        # failure cause under a clean verdict refuses as self-contradictory -
+        # the TASK_ACK spelling of "UP cannot carry a cause of degradation".
+        carried_reason = msg.get("reason_code")
+        reason_code = None
+        if carried_reason is not None:
+            reason_code = _normalize_vocabulary_token(carried_reason, _TASK_ACK_REASON_CODES)
+            if reason_code is None:
+                raise ValueError(
+                    f"TASK_ACK carried reason_code {carried_reason!r}, which is "
+                    f"not one of the v1.0 TASK_ACK reason codes "
+                    f"({'/'.join(_TASK_ACK_REASON_CODES)}); map the MAVLink "
+                    "failure cause in the bridge - a carried cause is never "
+                    "silently dropped and never emitted schema-invalid"
+                )
+            if state not in _TASK_ACK_REASON_REQUIRED:
+                raise ValueError(
+                    f"TASK_ACK state {state} cannot carry metrics.reason_code "
+                    f"({reason_code!r}): the v1.0 reason vocabulary is causes of "
+                    "non-execution, and a clean verdict with a failure cause "
+                    "contradicts itself. Which half the message meant is not "
+                    "adjudicable here, so neither half is silently corrected"
+                )
+        if reason_code is None and state in _TASK_ACK_REASON_REQUIRED:
+            reason_code = _TASK_ACK_REASON_REQUIRED[state]
         metrics = {
             "task_id": task_id,
             "original_event_id": original_event_id,
         }
+        if reason_code is not None:
+            metrics["reason_code"] = reason_code
         return [
             _make_event("TASK_ACK", state, platform_id=platform_id, producer=producer, ts=ts, metrics=metrics)
         ]
@@ -780,7 +857,84 @@ def mavlink_decoded_to_zmeta_system_events(
             _make_event("TIME_STATUS", state, platform_id=platform_id, producer=producer, ts=ts, metrics=metrics or None)
         ]
 
-    metrics = {}
+    # The three link measurements the v1.0 schema requires on every
+    # LINK_STATUS payload are message-carried and never defaulted - the same
+    # refusal translate_link_status applies to its keyword arguments
+    # (hard-coding 0 ms / 0.0 % / 0 bps would report a perfect, fully-measured
+    # link on a node whose comms were never measured at all).
+    latency_ms = msg.get("latency_ms")
+    packet_loss_pct = msg.get("packet_loss_pct")
+    throughput_bps = msg.get("throughput_bps")
+    if latency_ms is None or packet_loss_pct is None or throughput_bps is None:
+        raise ValueError(
+            "LINK_STATUS requires measured latency_ms, packet_loss_pct and "
+            "throughput_bps; link health is never fabricated"
+        )
+
+    # A message-carried verdict is normalised onto the v1.0 vocabulary and
+    # refused when uninterpretable - never forwarded verbatim for the
+    # gateway's schema enum to catch. An absent or blank verdict is not an
+    # uninterpretable one: it means the message said nothing about link
+    # health, and "UNKNOWN" is the schema's own honest label for that, so the
+    # fallback stays "UNKNOWN".
+    carried_state = None
+    for key in ("state", "link_state"):
+        value = msg.get(key)
+        if value is None or (isinstance(value, str) and not value.strip()):
+            continue
+        carried_state = value
+        break
+    if carried_state is None:
+        state = "UNKNOWN"
+    else:
+        state = _normalize_vocabulary_token(carried_state, _LINK_STATUS_STATES)
+        if state is None:
+            raise ValueError(
+                f"LINK_STATUS carried state {carried_state!r}, which is not one "
+                f"of the v1.0 LINK_STATUS states ({'/'.join(_LINK_STATUS_STATES)}); "
+                "map the upstream label in the bridge - link health is never "
+                "accepted uninterpreted and never guessed"
+            )
+
+    # Same reason_code rules as translate_link_status: a declared vocabulary,
+    # required under DEGRADED/DOWN, contradictory under UP - and still
+    # permitted under UNKNOWN ("I observed this and I am not adjudicating
+    # health" is an honest pair).
+    carried_reason = msg.get("reason_code")
+    reason_code = None
+    if carried_reason is not None:
+        reason_code = _normalize_vocabulary_token(carried_reason, _LINK_STATUS_REASON_CODES)
+        if reason_code is None:
+            raise ValueError(
+                f"LINK_STATUS carried reason_code {carried_reason!r}; "
+                f"metrics.reason_code must be one of "
+                f"{'/'.join(_LINK_STATUS_REASON_CODES)}; link health is never fabricated"
+            )
+        if state == "UP":
+            raise ValueError(
+                "LINK_STATUS state UP cannot carry metrics.reason_code "
+                f"({reason_code!r}): a healthy link has no cause of degradation. "
+                "Supply DEGRADED/DOWN, or UNKNOWN to report the observation "
+                "without adjudicating link health"
+            )
+    if state in ("DEGRADED", "DOWN") and reason_code is None:
+        raise ValueError(
+            "LINK_STATUS state DEGRADED/DOWN requires metrics.reason_code"
+        )
+
+    # The link identity is the message's own when it carried a usable one,
+    # else the same declared default translate_link_status writes - an
+    # identifier this adapter assigns, not a measurement it invents.
+    link_id = msg.get("link_id")
+    if not (isinstance(link_id, str) and link_id.strip()):
+        link_id = f"edge-comms-{platform_id}"
+
+    metrics = {
+        "link_id": link_id,
+        "latency_ms": latency_ms,
+        "packet_loss_pct": packet_loss_pct,
+        "throughput_bps": throughput_bps,
+    }
     # RADIO_STATUS.rssi carries the same uint8 UINT8_MAX "invalid/unknown"
     # convention as RC_CHANNELS.rssi and GPS_RAW_INT.satellites_visible.
     # (snr and drop_rate below are left as carried: neither SYS_STATUS
@@ -791,10 +945,11 @@ def mavlink_decoded_to_zmeta_system_events(
         metrics["snr"] = msg["snr"]
     if "drop_rate" in msg:
         metrics["drop_rate"] = msg["drop_rate"]
+    if reason_code is not None:
+        metrics["reason_code"] = reason_code
 
-    state = msg.get("state") or msg.get("link_state") or "UNKNOWN"
     return [
-        _make_event("LINK_STATUS", state, platform_id=platform_id, producer=producer, ts=ts, metrics=metrics or None)
+        _make_event("LINK_STATUS", state, platform_id=platform_id, producer=producer, ts=ts, metrics=metrics)
     ]
 
 

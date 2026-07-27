@@ -46,10 +46,15 @@ Command safety rules (semantics contract 7.8) dominate this projection:
   region tasking and discrete thresholds cannot carry their semantics
   without reinterpreting what the receiving node is asked to do, and this
   adapter never emits region/threshold commands.
-- Altitude never crosses. A `target_geo` carrying an altitude field raises
-  `ValueError` (mirroring the MAVLink mission-intent guard), and the output
-  `Location` is built field-by-field from lat/lon only, so
-  altitude-adjacent keys hiding in `extensions` cannot leak.
+- Altitude never crosses. A `target_geo` carrying an altitude field — at
+  any depth, in any decoded container (a Mapping that is not a dict, a
+  tuple, a set, a CBOR tag wrapper's `.value`) — raises `ValueError`
+  (mirroring the MAVLink mission-intent guard), and the output `Location`
+  is built field-by-field from lat/lon only, so altitude-adjacent keys
+  hiding in `extensions` cannot leak. The walk is iterative with a
+  seen-set: sender-controlled nesting is a memory cost, never a
+  `RecursionError` past the documented `ValueError`/None contract, and a
+  cyclic (CBOR value-sharing) structure terminates instead of hanging.
 - `task_end_time` = `event.ts` + `payload.valid_for_ms` (the ZMeta TTL is
   the only honest task bound available).
 - `destination_id` is a required caller kwarg — a SAPIENT task without a
@@ -102,6 +107,12 @@ Refusals (returns None):
   list omits it (`export_use` kwarg, default `COALITION_EXPORT` from the
   contract 3.3 use-label vocabulary). Adjudication matches
   `tools/filter_risk.py` semantics.
+- A `use_labels` argument that is not the documented dict shape (the
+  natural mistake is a list of label dicts, since event-carried
+  `risk_adjudication` records are a list). An export restriction the
+  adapter cannot adjudicate fails closed like every other unadjudicable
+  restriction here — refusing is recoverable, a silently dropped
+  prohibition is not.
 
 Honesty self-labels (label, don't launder — contract 3.3): a soft-accepted
 event exports WITH its context attached as `object_info` entries:
