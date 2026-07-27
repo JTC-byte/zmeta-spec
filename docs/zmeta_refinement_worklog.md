@@ -4,6 +4,28 @@
 
 - Last updated: 2026-07-27 (cut prepared, HELD)
 - Quick handoff: `docs/zmeta_refinement_handoff.md`
+- **2026-07-27 (post-publish) — v1.1.17 PUBLISHED; two CI hotfixes; CI
+  GREEN.** Release published with explicit maintainer direction (tag on
+  `7302073`, eight assets, checksums-only). The release commit's CI — the
+  first CI contact for the entire 44-commit range — caught two
+  platform-dependent defects no local run could see (local cbor2 is
+  pure-Python on 3.14; the runner's is the C extension): (1) the compact
+  ENCODE path handed hostile-depth structures to the backend before
+  refusing — segfault on C-extension installs; fixed in `8175aa7` (depth
+  guard in the iterative scan, sentinel-pinned pre-backend refusal;
+  shipped gateway/edge bundles unaffected — they bundle and prefer
+  zmeta_cbor; noted honestly on the GitHub release body, assets
+  untouched); (2) the v1.0 byte-identity pin hashed raw checkout bytes,
+  which differ under autocrlf — fixed in `1fb6fa3` (LF-normalized digest).
+  The A-13 anchored-totals pin also fired exactly as designed the moment
+  the push moved origin/main, catching three remaining unanchored figure
+  sites — anchored in `8175aa7`. The repo manifest again diverges from the
+  published v1.1.17 manifest asset (hotfix regeneration; published
+  checksums immutable; next cut resolves — the documented A-12 pattern).
+  NEXT: the event-readiness queue (bladeRF adapter as the timed
+  hour-proof, Pi/Docker verification, two-node quickstart, TAK display
+  validation, UxS-roadmap command-evidence lineage + track-lifecycle +
+  SITL gate).
 - **2026-07-27 (later) — GOVERNED WAVES, RECORDS WAVE, v1.1.17 CUT PREPARED
   (HELD).** The two adjudicated governed waves landed with attack passes:
   `40be64a` (compact fail-closed value-model clause — no tags incl. 28/29,
