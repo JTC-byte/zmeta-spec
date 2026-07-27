@@ -1757,3 +1757,38 @@ class IngressWalkTerminationTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+def test_cot_skip_reason_names_the_value_honesty_refusal():
+    # R2-30, unblocked by the 2026-07-27 vocabulary-boundary adjudication:
+    # a value-honesty refusal was bucketed under the catch-all
+    # UNCONVERTIBLE, so an operator could count the skip but never filter
+    # it apart from any other unconvertible event. cot_skipped reason
+    # tokens are gateway-internal (outer-ring), so naming it mints nothing.
+    poisoned = {
+        "event": {"event_type": "STATE_EVENT"},
+        "payload": {"track_id": "t1", "geo": {"lat": 1.0, "lon": float("nan")}},
+    }
+    assert gateway._cot_skip_reason(poisoned) == "NON_FINITE_VALUE"
+    clean = {
+        "event": {"event_type": "STATE_EVENT"},
+        "payload": {"track_id": "t1", "geo": {"lat": 1.0, "lon": 2.0}},
+    }
+    assert gateway._cot_skip_reason(clean) == "UNCONVERTIBLE"
+
+
+def test_cot_skip_reason_never_attributes_a_tolerated_extension_value():
+    # Verifier finding (2026-07-27, introduced-by-batch, closed same day):
+    # zmeta_to_cot deliberately tolerates non-finite values inside
+    # payload.extensions, so a skip whose only non-finite lives there must
+    # NOT be labeled NON_FINITE_VALUE - the token would attribute the
+    # refusal to a condition that did not cause it.
+    tolerated = {
+        "event": {"event_type": "STATE_EVENT"},
+        "payload": {
+            "track_id": "t1",
+            "geo": {"lat": 1.0, "lon": 2.0},
+            "extensions": {"vendor": {"metric": float("nan")}},
+        },
+    }
+    assert gateway._cot_skip_reason(tolerated) == "UNCONVERTIBLE"

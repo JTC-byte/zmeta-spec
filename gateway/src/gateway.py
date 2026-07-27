@@ -38,6 +38,7 @@ except ImportError:  # pragma: no cover - optional dependency
 
 from validators import (
     ValidationState,
+    _find_non_finite,
     _is_non_finite_number,
     apply_external_promotion_policy_action,
     apply_timing_freshness_degradation,
@@ -1389,6 +1390,20 @@ def _cot_skip_reason(event):
     geo = payload.get("geo")
     if not isinstance(geo, dict) or geo.get("lat") is None or geo.get("lon") is None:
         return "MISSING_GEO"
+    # R2-30: a value-honesty refusal must be filterable apart from the
+    # generic bucket. cot_skipped reason tokens are gateway-internal
+    # (outer-ring per the 2026-07-27 vocabulary-boundary adjudication), so
+    # naming the condition mints nothing. Scope matches what the adapter
+    # actually refuses on: zmeta_to_cot deliberately tolerates non-finite
+    # values inside payload.extensions, so the probe excludes them - the
+    # token must never attribute a refusal to a condition that did not
+    # cause it.
+    probe_payload = dict(payload)
+    probe_payload.pop("extensions", None)
+    probe = dict(event)
+    probe["payload"] = probe_payload
+    if _find_non_finite(probe) is not None:
+        return "NON_FINITE_VALUE"
     return "UNCONVERTIBLE"
 
 

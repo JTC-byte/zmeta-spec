@@ -1,6 +1,9 @@
 import hashlib
 import importlib.util
+import os
 import shutil
+import stat
+import subprocess
 import uuid
 from pathlib import Path
 
@@ -31,6 +34,15 @@ def release_tmp_dir():
     try:
         yield path
     finally:
+        # ignore_errors alone leaks on Windows: a throwaway repo's .git
+        # objects are read-only, rmtree stops at the first one, and the
+        # residue lands inside the real working tree (attack-pass finding,
+        # 2026-07-27). Clear the read-only bit first, then remove.
+        for item in path.rglob("*"):
+            try:
+                os.chmod(item, stat.S_IWRITE)
+            except OSError:
+                pass
         shutil.rmtree(path, ignore_errors=True)
         try:
             TMP_ROOT.rmdir()
@@ -208,13 +220,65 @@ def test_write_checksums_announces_unknown_publication_state(release_tmp_dir, mo
     assert "cannot determine whether v9.9.9 is already published" in out
 
 
-def test_published_release_tags_sees_this_repository_tags():
+def _git(cwd, *args):
+    return subprocess.run(["git", *args], cwd=str(cwd), capture_output=True, check=True)
+
+
+def test_published_release_tags_reads_real_git_tags(release_tmp_dir, monkeypatch):
     # Non-vacuity: the guard is only as good as this lookup. If it silently
-    # returned an empty set here, every test above would still pass while
-    # the shipped guard never fired.
+    # returned an empty set, every guard test above would still pass while
+    # the shipped guard never fired. The original pin asserted v1.1.16 is
+    # visible in THIS repository, which fails honestly-empty in a shallow or
+    # tagless checkout (default CI fetch-depth 1) where `git tag -l v*`
+    # legitimately returns nothing (CR-12). A throwaway repo carrying known
+    # tags exercises the same lookup with an EXACT expectation, identically
+    # in full and tagless checkouts.
+    if shutil.which("git") is None:
+        pytest.skip("git executable not available")
+    repo = release_tmp_dir / "tagged-repo"
+    repo.mkdir()
+    _git(repo, "init", "--quiet")
+    # Hermetic identity/signing config for the throwaway repo only, so a
+    # host-level gpgsign default cannot fail the fixture commit or tags.
+    _git(repo, "config", "user.name", "zmeta-tests")
+    _git(repo, "config", "user.email", "zmeta-tests@localhost")
+    _git(repo, "config", "commit.gpgsign", "false")
+    _git(repo, "config", "tag.gpgSign", "false")
+    (repo / "seed.txt").write_text("seed\n", encoding="utf-8")
+    _git(repo, "add", "seed.txt")
+    _git(repo, "commit", "--quiet", "-m", "seed")
+    _git(repo, "tag", "v1.1.16")
+    _git(repo, "tag", "v9.9.9")
+    # A non-v* tag must NOT count: the guard's definition of "published"
+    # is the v-prefixed release tag, nothing else.
+    _git(repo, "tag", "checkpoint-1")
+    monkeypatch.setattr(signing, "ROOT", repo)
+
+    assert signing._published_release_tags() == {"v1.1.16", "v9.9.9"}
+
+
+def test_published_release_tags_agrees_with_this_repository():
+    # The temp-repo pin above proves the lookup reads tags; this one proves
+    # the shipped ROOT points at THIS repository, by asking git the same
+    # question independently and requiring agreement. In a shallow/tagless
+    # checkout both sides are legitimately empty and the agreement still
+    # holds - meaningful in every checkout shape, no skip, no false red.
     tags = signing._published_release_tags()
 
-    assert tags is None or "v1.1.16" in tags, tags
+    if shutil.which("git") is None:
+        assert tags is None
+        return
+    result = subprocess.run(
+        ["git", "tag", "-l", "v*"],
+        cwd=str(signing.ROOT),
+        capture_output=True,
+        check=False,
+    )
+    if result.returncode != 0:
+        assert tags is None
+        return
+    expected = set(result.stdout.decode("utf-8", "replace").split())
+    assert tags == expected
 
 
 def test_verify_checksums_rejects_empty_checksum_file(release_tmp_dir):

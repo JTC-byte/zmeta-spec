@@ -164,7 +164,8 @@ class ExternalStatePromotionTest(unittest.TestCase):
         absent and reverting ADMITS the event outright.
 
         Asserting only ``ok is False`` is therefore vacuous: it passes on the
-        reverted tree. Both arms below assert the specific refusal.
+        reverted tree. Every arm below asserts the specific refusal, from an
+        input that reaches its trigger with every upstream gate satisfied.
         """
         reflection = promotion_metadata(loop_status=["REFLECTION_DETECTED"])
 
@@ -190,16 +191,39 @@ class ExternalStatePromotionTest(unittest.TestCase):
         )
         self.assertIn("loop/reflection risk", violations[0]["message"])
 
-        # Arm 3: the source-identity trigger, same polarity bug.
-        ok, violations = self.validate_authority(
+        # Arm 3 (no-constraint config): the source-identity trigger, same
+        # polarity bug. Under the SHIPPED policy this input never reaches
+        # it: profile H lists source_event_uid in required_fields (so the
+        # presence gate refuses first) and profiles L/M refuse the
+        # unhashable lineage_status at the lineage ALLOWLIST — either way
+        # a DIFFERENT gate speaks and the arm passes on the reverted tree
+        # (CR-16). Profile L does not require source_event_uid, and with
+        # the lineage allowlist emptied — the documented "no constraint"
+        # reading, a legal deployment — the trigger is the ONLY control
+        # left: a reverted trigger ADMITS an EXTERNAL_SOURCE-shaped
+        # promotion carrying no source identity at all.
+        authority = copy.deepcopy(self.authority)
+        promotion = authority["external_state_promotion"]
+        promotion["allowed_lineage_status_by_profile"]["L"] = []
+        ok, violations = validators.validate_producer_authority(
             state_event(
+                profile="L",
                 metadata=promotion_metadata(
                     lineage_status=["EXTERNAL_SOURCE"], source_event_uid=""
-                )
-            )
+                ),
+            ),
+            authority,
+            self.severity_map,
         )
-        self.assertFalse(ok)
-        self.assertIn("source_event_uid", violations[0]["details"]["missing"])
+        self.assertFalse(
+            ok,
+            "unhashable lineage_status was ADMITTED with the lineage "
+            "allowlist empty - the source-identity trigger failed open",
+        )
+        self.assertEqual("PRODUCER_NOT_ALLOWED", violations[0]["code"])
+        self.assertIn("requires source event identity", violations[0]["message"])
+        self.assertEqual(["EXTERNAL_SOURCE"], violations[0]["details"]["lineage_status"])
+        self.assertEqual(["source_event_uid"], violations[0]["details"]["missing"])
 
     def test_external_state_requires_promotion_transform(self):
         event = state_event(
