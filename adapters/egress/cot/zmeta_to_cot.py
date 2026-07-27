@@ -459,8 +459,12 @@ def zmeta_to_cot(event, cot_config=None):
     # <__group> for ATAK team coloring on friendly platforms
     group_xml = ""
     if cot_type.startswith("a-f-"):
-        group_name = cot_config.get("friendly_team_name", "Cyan")
-        group_role = cot_config.get("friendly_team_role", "Team Member")
+        # str() like every other cot_config value that reaches _esc: a YAML
+        # scalar that parses as a number or bool would otherwise raise
+        # inside _esc and drop the whole event at the gateway backstop
+        # (pre-cut review).
+        group_name = str(cot_config.get("friendly_team_name", "Cyan"))
+        group_role = str(cot_config.get("friendly_team_role", "Team Member"))
         group_xml = f'\n    <__group name="{_esc(group_name)}" role="{_esc(group_role)}" />'
 
     # Persistent labels for hostile tracks (CE readout always visible)

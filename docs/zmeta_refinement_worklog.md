@@ -4,7 +4,35 @@
 
 - Last updated: 2026-07-27 (post-publish; bladeRF reference adapter landed)
 - Quick handoff: `docs/zmeta_refinement_handoff.md`
-- **2026-07-27 (post-publish, latest) — THE COMMAND-LOOP PAIR LANDED
+- **2026-07-27 (post-publish, latest) — PRE-CUT REVIEW + v1.1.18 CUT.**
+  Bounded four-lens fresh-eyes review of the whole post-v1.1.17 range
+  (9 commits, 33 files) at release stakes, every finding independently
+  verified: **13 confirmed, 0 refuted**, all closed before the cut. Three
+  had survived their per-wave attacks: (a) MODERATE — a re-sent clean
+  copy of an already-seen parent ERASED its recorded command prohibition
+  and the citing command then forwarded with no diagnostic (dedupe is
+  time-bounded, the evidence index only cardinality-bounded); closed by
+  making recorded labels STICKY (union, never downgrade) plus an
+  unadjudicable-shape marker for unreadable risk blocks; (b) MODERATE —
+  the new policy block had mode-value and wrapper-key lints but nothing
+  checking key NAMES or value TYPES, so a one-character typo silently
+  reverted a knob to its permissive default with the lint green; closed
+  with a key/type lint; (c) MODERATE — the bladeRF non-finite screen
+  missed the bearing-demotion and metadata arms. Also closed: the
+  quickstart's wire path was WRONG (edge forwards 5556, GCS listens
+  5555 — stock two-node path silently went nowhere), the 4096-cap memory
+  rationale overstated what it bounds (ValidationState.events is
+  unbounded — corrected in place rather than smuggling a behavior
+  change), CoT team-name config could crash the projection, and three
+  records claims (the superseded ~40 min figure, a 44-vs-42 commit
+  count, a stale handoff block). **v1.1.18 CUT:** currency pass first,
+  manifest last; notes + validation report written (incl. the honest
+  not-exercised list: real-Pi throughput, TAK display, SAPIENT enclave,
+  SITL); bundles + package + `SHA256SUMS_v1.1.18.txt` written and
+  verified; battery **1420 + 1070 subtests**, gate all flags exit 0,
+  harness 48/48, all lints + roadmap validator clean, packet max
+  150/240.
+- **2026-07-27 (post-publish) — THE COMMAND-LOOP PAIR LANDED
   (maintainer-directed).** Wave A, attack verdict CLEAN: the
   command-evidence lineage check — `policy/command-evidence.yaml` (S1-15
   risk-model shape, lint-covered) + `validate_command_evidence` +
@@ -115,7 +143,7 @@
 - **2026-07-27 (post-publish) — v1.1.17 PUBLISHED; two CI hotfixes; CI
   GREEN.** Release published with explicit maintainer direction (tag on
   `7302073`, eight assets, checksums-only). The release commit's CI — the
-  first CI contact for the entire 44-commit range — caught two
+  first CI contact for the entire 42-commit held range — caught two
   platform-dependent defects no local run could see (local cbor2 is
   pure-Python on 3.14; the runner's is the C extension): (1) the compact
   ENCODE path handed hostile-depth structures to the backend before

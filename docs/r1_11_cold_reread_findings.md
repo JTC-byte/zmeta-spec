@@ -735,3 +735,15 @@ Command-loop pair (2026-07-27, post-v1.1.17) attack residuals:
   representability decision (doctrine R1-11-14/19), and
   `policy/lineage.yaml` `allowed_parent_event_types` has no COMMAND_EVENT
   entry (the command-type check lives in command-evidence policy only).
+
+Pre-cut review of the post-v1.1.17 range (2026-07-27, v1.1.18 cut):
+13 findings confirmed, 0 refuted, all closed before the cut — see the
+worklog entry for the full list. Register candidates left open from it:
+bounding `ValidationState.events` (behavior-visible: dedupe and lineage
+resolution read it, so it is a scoped wave, not a cut-time change); the
+compact encode/decode depth guards differing by one nesting level
+(encode counts the pre-encode structure, decode the compact wire form);
+`apply_command_evidence_policy_action` taking a policy argument it does
+not read (use limits reach the stamp via violation details); and the
+bladeRF adapter's unconditional `calibration_state: UNCALIBRATED`
+(kraken precedent, conservative direction, now noted in its README).

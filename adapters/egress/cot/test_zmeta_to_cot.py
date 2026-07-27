@@ -959,3 +959,19 @@ def test_how_pedigree_is_config_asserted_never_defaulted():
     asserted = dict(_TEST_CONFIG, how="m-g")
     root = ET.fromstring(zmeta_to_cot_module.zmeta_to_cot(event, cot_config=asserted))
     assert root.attrib["how"] == "m-g"
+
+
+def test_non_string_team_config_does_not_crash_the_projection():
+    # Pre-cut review: friendly_team_name/role reached _esc() without str(),
+    # so a YAML scalar that parses as a number or bool raised inside the
+    # projection and the gateway backstop dropped the whole event.
+    event = _ellipse_event()
+    event["payload"]["class"] = "a-f-G-U-C"
+    config = dict(_TEST_CONFIG, friendly_team_name=7, friendly_team_role=True)
+    xml_text = zmeta_to_cot_module.zmeta_to_cot(event, cot_config=config)
+    assert xml_text is not None
+    root = ET.fromstring(xml_text)
+    group = root.find("./detail/__group")
+    assert group is not None
+    assert group.attrib["name"] == "7"
+    assert group.attrib["role"] == "True"

@@ -17,11 +17,27 @@ from referencing.jsonschema import DRAFT202012
 # Bound on the command-evidence index a ValidationState keeps (event_id ->
 # event_type + adjudicated prohibited uses). The index exists so a
 # COMMAND_EVENT's lineage citations can be checked against what the gateway
-# actually saw upstream; sender-controlled cardinality must not grow gateway
-# memory without bound, so the index evicts oldest-first at this cap and an
+# actually saw upstream; the index evicts oldest-first at this cap and an
 # evicted parent resolves as UNRESOLVED — the honest disposition, never a
 # silent pass (policy/command-evidence.yaml#evidence_index_max_entries).
+#
+# Scope of the bound, stated honestly (pre-cut review): this caps THIS
+# index only. `ValidationState.events` in the same object is a plain dict
+# that retains full events and is not pruned, so a long-lived gateway
+# process is not bounded overall by this constant — capping the evidence
+# summary is a targeted limit on the new surface, not a memory guarantee
+# for the whole validation state. Bounding `events` is a separate,
+# behavior-visible change (dedupe and lineage resolution read it) and is
+# recorded as a register candidate rather than smuggled in here.
 DEFAULT_COMMAND_EVIDENCE_INDEX_MAX_ENTRIES = 4096
+
+# Internal marker (never policy or event vocabulary) recorded when a
+# parent's risk_adjudication is present but not the documented list shape,
+# so its labels cannot be read. Citations of such a parent take the
+# prohibited path: an unreadable label set may prohibit command basis, and
+# reading it as "says nothing" would be the exact laundering the
+# command-evidence check exists to prevent.
+_UNADJUDICABLE_RISK_SHAPE = "UNADJUDICABLE_RISK_SHAPE"
 
 
 class ValidationState:
@@ -110,6 +126,26 @@ class ValidationState:
                         code = record.get("reason_code")
                         if isinstance(code, str) and code.strip():
                             reason_codes.add(code.strip())
+                elif records is not None:  # noqa: E501 - see _UNADJUDICABLE_RISK_SHAPE
+                    # Present but not the documented list shape: the labels
+                    # cannot be read, so the evidence is UNADJUDICABLE, not
+                    # unlabeled. Recording it as clean would drop a
+                    # prohibition the producer may well have expressed
+                    # (pre-cut review). The sentinel makes every citation of
+                    # this parent take the prohibited path rather than pass.
+                    prohibited.add(_UNADJUDICABLE_RISK_SHAPE)
+        prior = self.command_evidence.get(event_id)
+        if isinstance(prior, dict):
+            # NEVER let a re-send downgrade what this gateway already
+            # observed (pre-cut review): duplicate suppression is
+            # time-bounded (EventDedupeCache TTL) while this index is only
+            # cardinality-bounded, so a clean copy of an already-seen
+            # event_id arriving after the dedupe window used to erase the
+            # recorded prohibition and let a citing command forward clean.
+            # Labels are sticky and unioned: a prohibition observed once
+            # stays observed for as long as the entry lives.
+            prohibited.update(prior.get("prohibited_uses") or ())
+            reason_codes.update(prior.get("risk_reason_codes") or ())
         self.command_evidence[event_id] = {
             "event_type": event_type,
             "prohibited_uses": tuple(sorted(prohibited)),
@@ -2122,6 +2158,91 @@ def lint_policy_risk_modes(policy):
                 ),
             }
         )
+    issues.extend(_lint_command_evidence_keys(command_evidence))
+    return issues
+
+
+# Every key the command-evidence enforcement reads. A knob the enforcement
+# consults through .get() with a permissive default fails OPEN on a typo -
+# `unresolved_parent_mod: reject` leaves the shipped `warn` in force with
+# every lint green - which is the exact class this module already refuses to
+# tolerate elsewhere ("a typo is the same fail-open as a wrong type").
+_COMMAND_EVIDENCE_KEYS = {
+    "enabled",
+    "require_evidence",
+    "require_evidence_task_types",
+    "require_evidence_mode",
+    "unresolved_parent_mode",
+    "parent_type_mismatch_mode",
+    "prohibited_use_mode",
+    "motivating_parent_event_types",
+    "command_basis_use_tokens",
+    "evidence_index_max_entries",
+    "use_limits",
+}
+
+_COMMAND_EVIDENCE_KEY_TYPES = {
+    "enabled": bool,
+    "require_evidence": bool,
+    "require_evidence_task_types": list,
+    "motivating_parent_event_types": list,
+    "command_basis_use_tokens": list,
+    "evidence_index_max_entries": int,
+    "use_limits": dict,
+}
+
+
+def _lint_command_evidence_keys(block):
+    """Report unknown or wrong-typed keys in the command-evidence block.
+
+    Pre-cut review finding: the block had mode-VALUE and wrapper-KEY lints
+    but nothing checking key NAMES or value TYPES, so a one-character typo
+    in any knob silently reverted that knob to its permissive shipped
+    default while `policy risk mode lint ok` still printed.
+    """
+    issues = []
+    if not isinstance(block, dict) or not block:
+        return issues
+    for key in sorted(block):
+        if key not in _COMMAND_EVIDENCE_KEYS:
+            issues.append(
+                {
+                    "code": "POLICY_PRODUCER_AUTHORITY_STRUCTURE",
+                    "path": f"command_evidence.{key}",
+                    "risk_dimension": "lineage",
+                    "reason_codes": ["LINEAGE_MISMATCH"],
+                    "message": (
+                        f"unknown command-evidence key {key!r}; the enforcement "
+                        "never reads it, so a misspelled knob leaves the shipped "
+                        "default in force with the rest of the lint green"
+                    ),
+                }
+            )
+            continue
+        expected = _COMMAND_EVIDENCE_KEY_TYPES.get(key)
+        if expected is None:
+            continue
+        value = block[key]
+        if expected is bool:
+            ok = isinstance(value, bool)
+        elif expected is int:
+            ok = isinstance(value, int) and not isinstance(value, bool)
+        else:
+            ok = isinstance(value, expected)
+        if not ok:
+            issues.append(
+                {
+                    "code": "POLICY_PRODUCER_AUTHORITY_STRUCTURE",
+                    "path": f"command_evidence.{key}",
+                    "risk_dimension": "lineage",
+                    "reason_codes": ["LINEAGE_MISMATCH"],
+                    "message": (
+                        f"command_evidence.{key} must be {expected.__name__}; got "
+                        f"{type(value).__name__}, which the enforcement reads as "
+                        "its permissive default"
+                    ),
+                }
+            )
     return issues
 
 
@@ -3906,6 +4027,12 @@ def validate_command_evidence(
             or _DEFAULT_COMMAND_BASIS_USE_TOKENS
         )
     }
+    # Evidence whose risk labels could not be READ blocks the command path
+    # regardless of which tokens a deployment configures: an unreadable
+    # label set may say anything, and reading it as "says nothing" is the
+    # laundering the whole check exists to prevent (pre-cut review). This
+    # is an internal marker, never policy or event vocabulary.
+    blocked_tokens.add(_UNADJUDICABLE_RISK_SHAPE)
 
     index = getattr(state, "command_evidence", None) if state is not None else None
     unresolved = []

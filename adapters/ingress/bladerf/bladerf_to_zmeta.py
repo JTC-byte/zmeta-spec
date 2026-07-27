@@ -256,16 +256,30 @@ def translate_detection(
             if key == "detection_id" or _finite_number(raw[key]):
                 features[key] = raw[key]
     for src_key, feat_key in _METADATA_FEATURES.items():
-        if meta.get(src_key) is not None:
-            features[feat_key] = meta[src_key]
+        value = meta.get(src_key)
+        if value is None:
+            continue
+        # Same value-honesty screen as the top-level features (pre-cut
+        # review): a non-finite numeric metadata value is not a
+        # measurement, so it is omitted rather than copied into features.
+        # Non-numeric metadata (identifiers, labels) passes through.
+        if isinstance(value, (int, float)) and not _finite_number(value):
+            continue
+        features[feat_key] = value
 
     # Frame-unlabeled native bearing: demote to explicitly named features; the
     # raw error bound declares no statistical metric, so no canonical bearing
     # and no quality.measurement_error is emitted (contract 6.4, AUTHORING
     # rule 2 + section 3 mirror case).
-    if raw.get("bearing_deg") is not None:
+    if raw.get("bearing_deg") is not None and _finite_number(raw["bearing_deg"]):
+        # The demoted native bearing is still a measurement claim, so it
+        # takes the same non-finite screen as every other feature: a NaN
+        # bearing is omitted, never carried under an explicitly-named
+        # field that implies a real observation (pre-cut review).
         features["native_bearing_deg"] = raw["bearing_deg"]
-        if raw.get("bearing_error_deg") is not None:
+        if raw.get("bearing_error_deg") is not None and _finite_number(
+            raw["bearing_error_deg"]
+        ):
             features["native_bearing_error_deg"] = raw["bearing_error_deg"]
 
     geo = _resolve_geo(

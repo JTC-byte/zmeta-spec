@@ -668,3 +668,130 @@ class CommandEvidenceGatewayTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class CommandEvidenceStickyLabelTest(unittest.TestCase):
+    """Pre-cut review findings: the evidence index must not be downgradable.
+
+    Duplicate suppression is TIME-bounded (EventDedupeCache TTL) while this
+    index is only CARDINALITY-bounded, so a clean copy of an already-seen
+    event_id arriving after the dedupe window used to overwrite the recorded
+    prohibition -- and the citing command then forwarded with no diagnostic
+    at all. Distinct from the banked VW-16 flood-eviction item, which
+    downgrades REJECT to unresolved-WARN and is closed by
+    unresolved_parent_mode: reject; this one downgraded REJECT to CLEAN and
+    survived that mitigation.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        cls.policy = validators.load_policy(ROOT / "policy")
+        cls.ce_policy = cls.policy["command_evidence"]
+        cls.severity_map = cls.policy["violation_severities"]
+
+    def check(self, event, state):
+        return validators.validate_command_evidence(
+            event, self.ce_policy, state=state, profile=None,
+            severity_map=self.severity_map,
+        )
+
+    def test_resent_clean_copy_cannot_erase_a_recorded_prohibition(self):
+        parent = track_state(risk_records=[COMMAND_PROHIBITING_RECORD])
+        parent_id = parent["event"]["event_id"]
+        state = recorded_state(parent)
+        ok, violations = self.check(command(parent_ids=[parent_id]), state)
+        self.assertFalse(ok)
+        self.assertEqual("LINEAGE_MISMATCH", violations[0]["code"])
+
+        # The attack: same event_id, no risk_adjudication at all.
+        clean_copy = track_state(event_id=parent_id)
+        self.assertNotIn("extensions", clean_copy["payload"])
+        state.record(clean_copy)
+
+        entry = state.command_evidence[parent_id]
+        self.assertIn("COMMAND_BASIS", entry["prohibited_uses"])
+        self.assertIn("AUTONOMY_TASKING", entry["prohibited_uses"])
+        self.assertIn("PRODUCER_NOT_ALLOWED", entry["risk_reason_codes"])
+
+        ok_after, violations_after = self.check(
+            command(parent_ids=[parent_id]), state
+        )
+        self.assertFalse(ok_after, "a re-send erased the recorded prohibition")
+        self.assertEqual("LINEAGE_MISMATCH", violations_after[0]["code"])
+
+    def test_labels_union_across_resends_rather_than_replace(self):
+        parent = track_state(risk_records=[COMMAND_PROHIBITING_RECORD])
+        parent_id = parent["event"]["event_id"]
+        state = recorded_state(parent)
+        other = copy.deepcopy(COMMAND_PROHIBITING_RECORD)
+        other["reason_code"] = "TIMING_STATUS_STALE"
+        other["prohibited_uses"] = ["FUSION_INPUT"]
+        state.record(track_state(event_id=parent_id, risk_records=[other]))
+        entry = state.command_evidence[parent_id]
+        self.assertEqual(
+            ("AUTONOMY_TASKING", "COMMAND_BASIS", "FUSION_INPUT"),
+            entry["prohibited_uses"],
+        )
+        self.assertEqual(
+            ("PRODUCER_NOT_ALLOWED", "TIMING_STATUS_STALE"),
+            entry["risk_reason_codes"],
+        )
+
+    def test_unreadable_risk_shape_is_unadjudicable_not_clean(self):
+        # A schema-legal non-list risk_adjudication (extensions is
+        # additionalProperties: true) used to have its labels silently
+        # dropped, so the parent recorded as unlabeled and citations passed.
+        parent = track_state()
+        parent_id = parent["event"]["event_id"]
+        parent["payload"]["extensions"] = {
+            "risk_adjudication": dict(COMMAND_PROHIBITING_RECORD)
+        }
+        state = recorded_state(parent)
+        self.assertEqual(
+            ("UNADJUDICABLE_RISK_SHAPE",),
+            state.command_evidence[parent_id]["prohibited_uses"],
+        )
+        ok, violations = self.check(command(parent_ids=[parent_id]), state)
+        self.assertFalse(ok)
+        self.assertEqual("LINEAGE_MISMATCH", violations[0]["code"])
+
+
+class CommandEvidenceKeyLintTest(unittest.TestCase):
+    """A typo in any knob must not silently revert it to the shipped default.
+
+    Pre-cut review: the block had mode-VALUE and wrapper-KEY lints but
+    nothing checking key NAMES or value TYPES.
+    """
+
+    def lint(self, block):
+        return [
+            issue
+            for issue in validators.lint_policy_risk_modes({"command_evidence": block})
+            if issue["path"].startswith("command_evidence.")
+        ]
+
+    def test_misspelled_mode_key_is_reported(self):
+        issues = self.lint({"unresolved_parent_mod": "reject"})
+        self.assertEqual(1, len(issues), issues)
+        self.assertEqual("command_evidence.unresolved_parent_mod", issues[0]["path"])
+        self.assertIn("unknown command-evidence key", issues[0]["message"])
+        self.assertEqual("lineage", issues[0]["risk_dimension"])
+
+    def test_wrong_typed_knob_is_reported(self):
+        issues = self.lint({"require_evidence": "true"})
+        self.assertEqual(1, len(issues), issues)
+        self.assertIn("must be bool", issues[0]["message"])
+
+    def test_wrong_typed_list_and_int_knobs_are_reported(self):
+        self.assertIn(
+            "must be list",
+            self.lint({"motivating_parent_event_types": "FUSION_EVENT"})[0]["message"],
+        )
+        self.assertIn(
+            "must be int",
+            self.lint({"evidence_index_max_entries": "4096"})[0]["message"],
+        )
+
+    def test_shipped_policy_passes_the_key_lint(self):
+        shipped = validators.load_policy(ROOT / "policy")["command_evidence"]
+        self.assertEqual([], self.lint(shipped))

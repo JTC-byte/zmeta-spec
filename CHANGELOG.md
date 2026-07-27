@@ -2,13 +2,27 @@
 
 ## [Unreleased]
 
+(Nothing yet — the next work lands here.)
+
+## [1.1.18] - 2026-07-27
+
+> The event-readiness cut: everything published in v1.1.17 plus the
+> post-release hardening, the bladeRF reference adapter, the deployment
+> verification and quickstart, the UxS command-loop pair, and the
+> pre-cut review's 13 closed findings. Checksums-only, consistent with
+> v1.1.5 onward.
+
+
 - 2026-07-27 (post-v1.1.17, later) — bladeRF reference ingress adapter
   (`adapters/ingress/bladerf/`, commit `71f8e18` plus this registration
   follow-up): the merged `edge-comms-bladerf` mapping pack now has its
   runnable reference implementation, authored along the documented
   `adapters/AUTHORING.md` path as the repo's timed receipt that the
   guide takes a new RF sensor from recorded output to a verified
-  adapter in one sitting (zero-shot author ~40 min, independent
+  adapter in one sitting (**~13 min zero-shot authoring by external
+  wall-clock, ~25 min for the full verified cycle**; the ~40 min
+  figure some records first carried was the authoring agent's own
+  effort estimate, superseded by the measured receipt), independent
   adversarial attack — verdict CLEAN, one value-honesty finding —
   hardened and pinned same-sitting), and pinned to the pack's two
   real-capture fixture pairs (colocated tests reproduce both

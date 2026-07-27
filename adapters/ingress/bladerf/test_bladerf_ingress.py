@@ -445,3 +445,32 @@ def test_zero_bandwidth_stays_valid_fft_convention():
     event = translate(raw, SCHEMA_ID, platform_id=PLATFORM_ID)[0]
     assert event["payload"]["features"]["bandwidth_hz"] == 0.0
     VALIDATOR.validate(event)
+
+
+def test_non_finite_bearing_and_metadata_are_omitted_not_demoted():
+    # Pre-cut review: the finite screen covered the top-level and required
+    # feature arms but not the bearing-demotion or metadata-whitelist arms,
+    # so a NaN bearing still landed in features under an explicitly-named
+    # field implying a real observation.
+    raw, _ = _load("case-02-cband-fft")
+    raw = copy.deepcopy(raw)
+    raw["bearing_deg"] = float("nan")
+    raw["metadata"]["uas_heading_deg"] = float("inf")
+    event = translate(raw, SCHEMA_ID, platform_id=PLATFORM_ID)[0]
+    features = event["payload"]["features"]
+    assert "native_bearing_deg" not in features
+    assert not any(
+        isinstance(value, float) and value != value for value in features.values()
+    )
+    assert not any(
+        isinstance(value, float) and value in (float("inf"), float("-inf"))
+        for value in features.values()
+    )
+    VALIDATOR.validate(event)
+
+
+def test_finite_bearing_and_metadata_still_travel():
+    # Non-vacuity: the screen must not have disabled the demotion path.
+    raw, _ = _load("case-02-cband-fft")
+    event = translate(copy.deepcopy(raw), SCHEMA_ID, platform_id=PLATFORM_ID)[0]
+    assert "native_bearing_deg" in event["payload"]["features"]

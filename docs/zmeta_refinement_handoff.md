@@ -50,6 +50,27 @@ CR-13/14/15/23/24/25 + verifier register candidates in H1-04/06), the
 compact-clause governed wave, then the v1.1.17 cut (A-12/A-29); the
 TIME_STATUS enum lands at that cut per decision.
 
+**Update 2026-07-27 (post-publish, LATEST) — EVENT-READINESS QUEUE CLOSED
+OUT; v1.1.18 CUT PREPARED.** Three further waves landed after the bladeRF
+block below, each attacked at landing and CI-green: `b6af2ff`
+kernel-adjacent residuals (VW-01 naive-ts seam incl. a pre-existing silent
+freshness fail-open; H1-07 plain-`cbor` envelope → CHANGED); `bbc40e2`
+virtual-Pi verification (Docker x86 + arm64 under QEMU — contract hashes
+byte-identical across architectures), the gateway `cot.config`
+pass-through knob, and `docs/zmeta_two_node_quickstart.md`; `568a20c` the
+UxS command-loop pair (`policy/command-evidence.yaml` + gateway
+enforcement so commands citing fusion/inference parents are checked
+against upstream use limits; `docs/zmeta_track_lifecycle_pattern.md`
+expressing the lifecycle in current vocabulary, roadmap candidate still
+RESERVED). A bounded four-lens pre-cut review of the whole post-v1.1.17
+range then found and closed 13 verified findings — including a re-send
+that could erase a recorded command prohibition, a typo-fails-open gap in
+the new policy block, non-finite leaks on two bladeRF feature arms, and a
+broken port in the quickstart's wire path. **Remaining event items need
+hardware/access only:** real-Pi throughput, TAK display validation (the
+`cot.config` knob is ready), SAPIENT live-enclave, and the SITL gate that
+precedes live GCS tasking.
+
 **Update 2026-07-27 (post-publish) — BLADERF REFERENCE ADAPTER LANDED
 (`71f8e18` + registration follow-up).** The worklog resume note's
 maintainer-directed "NEXT" item is done: the merged
@@ -355,7 +376,7 @@ Current stack status:
   bearing/heading fields unless callers explicitly assert `TRUE_NORTH`;
   unasserted native values remain auditable under explicitly named
   non-canonical fields.
-- Use tag `v1.1.17` for current formal release assets/checksums (PUBLISHED 2026-07-27). Use tag
+- Use tag `v1.1.18` for current formal release assets/checksums (cut 2026-07-27). Use tag `v1.1.17` for the prior published baseline. Use tag
   `v1.1.15` for the SAPIENT-bridge baseline and `v1.1.14` for the
   audit-driven honesty-hardening baseline.
 - Use current `main` for the latest integration baseline with bearing-frame

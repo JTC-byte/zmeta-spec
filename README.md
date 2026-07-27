@@ -1,4 +1,4 @@
-# ZMeta Specification (v1.0 Locked, current release v1.1.17)
+# ZMeta Specification (v1.0 Locked, current release v1.1.18)
 
 ## Overview
 - ZMeta is a transport-agnostic, event-based metadata standard for resilient ISR.
@@ -93,8 +93,8 @@ contribute one.
 
 ## Current Release
 
-- Current release: `v1.1.17`
-- Release notes and assets: <https://github.com/JTC-byte/zmeta-spec/releases/tag/v1.1.17>
+- Current release: `v1.1.18`
+- Release notes and assets: <https://github.com/JTC-byte/zmeta-spec/releases/tag/v1.1.18>
 - Release focus: the first external real-capture corpus —
   `adapters/mapping-packs/edge-comms-bladerf/` (PR #7), two real
   bladeRF / ROS2 EW `rf_detection` flight captures paired with
@@ -110,7 +110,7 @@ contribute one.
 - Experimental extension: `schema/zmeta-event-1.1.0.schema.json` is provided for proposed
   compatibility testing only; v1.1.0-only fields are not part of the locked v1.0 contract.
 
-## v1.1.17 Integration Notes
+## v1.1.18 Integration Notes
 
 - New corpus for RF adapter authors:
   `adapters/mapping-packs/edge-comms-bladerf/` pairs two real bladeRF
@@ -125,8 +125,8 @@ contribute one.
   (`quality.bearing_frame: TRUE_NORTH` + `quality.heading_source`) for
   deployments that can assert their heading reference, mirroring the
   kraken reference adapter.
-- `tools/check_compat.py` gains the `v1.1.17` target; current-facing
-  docs re-baseline to the v1.1.17 release manifest.
+- `tools/check_compat.py` gains the `v1.1.18` target; current-facing
+  docs re-baseline to the v1.1.18 release manifest.
 
 ## v1.1.15 Integration Notes
 
@@ -394,7 +394,7 @@ python tools/run_gateway.py --profile H
 python tools/udp_receiver.py
 python tools/udp_sender.py --file examples/zmeta-command-examples.jsonl
 python tools/replay.py --file examples/zmeta-command-examples.jsonl --delay-ms 200
-python tools/check_compat.py legacy-events.jsonl --target v1.1.17
+python tools/check_compat.py legacy-events.jsonl --target v1.1.18
 python tools/validate.py --file examples/zmeta-command-examples.jsonl --profile H
 python tools/check_adapter.py --events my-adapter-output.jsonl --fixtures my-fixtures.jsonl
 python tools/validate_conformance.py --strict
@@ -459,10 +459,10 @@ Deployment helpers:
 - Config templates: `configs/edge-config.json`, `configs/gateway-config.json`
 - Docker Compose: `deploy/edge/docker-compose.yml`, `deploy/gateway/docker-compose.yml`
 - Bundle builders:
-    - `python release/build_mvp_packages.py --version v1.1.17` produces `zmeta-edge-v1.1.17.zip` and `zmeta-gateway-v1.1.17.zip`
-    - `python release/build_release_bundle.py --version 1.1.17` produces `zmeta-v1.1.17-dist.zip`
-    - `python tools/build_release_package.py --manifest release/zmeta-release-manifest.yaml --output-dir release/package-v1.1.17 --release-id zmeta-v1.1.17 --release-state formal_release --no-signatures --release-notes release/RELEASE_NOTES_v1.1.17.md` builds formal package metadata without creating signatures. `--release-notes` is mandatory for `formal_release`: omit it and the unpopulated notes template is copied verbatim, which `tools/validate_release_package.py` refuses with `RELEASE_PACKAGE_NOTES_PLACEHOLDER`.
-    - `python release/sign_release_artifacts.py --version v1.1.17 --write-checksums --sign --target all` signs release assets with detached PGP signatures when an approved signing key is available.
+    - `python release/build_mvp_packages.py --version v1.1.18` produces `zmeta-edge-v1.1.18.zip` and `zmeta-gateway-v1.1.18.zip`
+    - `python release/build_release_bundle.py --version 1.1.18` produces `zmeta-v1.1.18-dist.zip`
+    - `python tools/build_release_package.py --manifest release/zmeta-release-manifest.yaml --output-dir release/package-v1.1.18 --release-id zmeta-v1.1.18 --release-state formal_release --no-signatures --release-notes release/RELEASE_NOTES_v1.1.18.md` builds formal package metadata without creating signatures. `--release-notes` is mandatory for `formal_release`: omit it and the unpopulated notes template is copied verbatim, which `tools/validate_release_package.py` refuses with `RELEASE_PACKAGE_NOTES_PLACEHOLDER`.
+    - `python release/sign_release_artifacts.py --version v1.1.18 --write-checksums --sign --target all` signs release assets with detached PGP signatures when an approved signing key is available.
 
 ## Deployment Checklist (Compact)
 

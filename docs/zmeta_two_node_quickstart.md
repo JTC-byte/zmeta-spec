@@ -40,8 +40,17 @@ locked kernel, and forwards **compact Profile L** — the bandwidth shape
 
 ```bash
 cd deploy/edge
-# edit ../../configs/edge-config.json first: set forward.host to the GCS
-# (or next-hop) address -- the placeholder is GATEWAY_HOST
+# Edit ../../configs/edge-config.json FIRST -- two fields, both required:
+#   forward.host : the GCS (or next-hop) address; the shipped placeholder
+#                  is the literal string GATEWAY_HOST, which resolves to
+#                  nothing
+#   forward.port : 5555, NOT the shipped 5556
+# Why the port edit: the shipped 5556 is the LOCAL-CONSUMER port (what a
+# gateway forwards to on its own host, where tools/udp_receiver.py sits).
+# The GCS gateway LISTENS on 5555, and deploy/gateway/docker-compose.yml
+# publishes 5555/udp and 6969/udp only -- so edge datagrams sent to
+# GCS:5556 arrive nowhere, silently. Node-to-node always targets the
+# receiving node's listen port.
 docker compose up -d
 docker compose logs -f   # wait for: gateway listening on 0.0.0.0:5555
 ```
@@ -76,9 +85,20 @@ docker compose up -d
 ```
 
 The stock `configs/gateway-config.json` is the receive shape: Profile H,
+listening on **5555** (this is the port the edge node must forward to),
 `input_encoding: auto` (accepts the edge's compact datagrams directly),
-JSON out to local consumers on 5556, CoT out to `cot.host:cot.port`
-(default 127.0.0.1:6969 — point it at your TAK input).
+JSON out to local consumers on **5556** (same-host consumers: your fusion
+process, `tools/udp_receiver.py`, the SAPIENT/JREAP projections), CoT out
+to `cot.host:cot.port` (default 127.0.0.1:6969 — point it at your TAK
+input).
+
+Port summary, because the two 555x numbers are easy to transpose:
+
+| Port | Who binds it | Who sends to it |
+|---|---|---|
+| 5555/udp | both gateways (`listen`) | the upstream node — adapter → edge, edge → GCS |
+| 5556/udp | nothing (a destination) | each gateway's own `forward`, for **same-host** consumers |
+| 6969/udp | your TAK/COP input | the GCS gateway's CoT egress |
 
 **To see error ellipses and position pedigree on TAK, you must assert your
 position source.** The projection never stamps `geopointsrc`/`altsrc`/`how`
@@ -110,12 +130,16 @@ JREAP/KLV.
 From the repo root on any host that can reach the nodes:
 
 ```bash
-# 1. watch what the GCS gateway forwards
-python tools/udp_receiver.py --host 0.0.0.0 --port 5556
+# 1. ON THE GCS HOST: watch what its gateway forwards to local consumers
+python tools/udp_receiver.py --host 127.0.0.1 --port 5556
 
-# 2. replay the example corpus into the EDGE node
+# 2. FROM ANYWHERE THAT CAN REACH THE EDGE: replay the example corpus in
 python tools/replay.py --file examples/zmeta-examples-1.0.jsonl --host <edge-host> --port 5555
 ```
+
+(Run step 1 on the GCS host itself: 5556 is that gateway's local-consumer
+forward, not a network-facing port. To sanity-check a single node before
+wiring two, replay into it and receive on the same machine.)
 
 What you should see:
 

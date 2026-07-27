@@ -118,7 +118,7 @@ def _current_release_target() -> str:
     """The manifest's release_id, so this test cannot pin a stale version.
 
     R1-11 verification pass 2: the target was hardcoded to v1.1.14 while the
-    manifest read v1.1.17, so a test named "accepts current release target"
+    manifest read v1.1.18, so a test named "accepts current release target"
     quietly stopped exercising the current release.
     """
     import yaml
