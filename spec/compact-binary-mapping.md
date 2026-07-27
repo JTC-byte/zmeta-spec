@@ -241,6 +241,103 @@ NOT be converted to decimal string keys because that loses the distinction
 between a future compact assignment such as key `99` and a producer that
 intentionally sent the string key `"99"`.
 
+## Value Model, Tags, and Expansion Bound (Fail Closed)
+
+*(Normative. Doctrine entries R1-11-02, R1-11-03, and R1-11-18, adjudicated
+2026-07-27.)*
+
+The compact mapping accepts **only the canonical JSON value model**, carried
+in the wire representations this document defines. Concretely, a compact
+datagram expands to exactly: maps, arrays, UTF-8 text, byte strings (defined
+by this mapping only as the transport form of UUID values), integers in the
+CBOR 64-bit range `[-(2**64), 2**64 - 1]`, finite IEEE 754 floats, booleans,
+and null. Map keys are integers (assigned by the tables in this document) or
+text (canonical JSON fields and namespaced extensions). Anything else has no
+canonical expansion and MUST be refused with an explicit diagnostic — on
+encode (see Scope) and equally on decode. A decoder MUST NOT partially
+interpret a construct this mapping does not define: repairing,
+reinterpreting, or silently dropping wire content fabricates canonical
+content the producer never sent. In particular, a non-text map key MUST NOT
+be converted to a text key (the integer half of this rule is stated under
+Unknown Integer Keys; it applies to every non-text key type).
+
+### No tags
+
+Compact v1 defines **no CBOR tags** (major type 6). A conforming decoder
+MUST refuse any tagged item with an explicit diagnostic naming the tag —
+never by discarding the tag and decoding the enclosed item, and never by
+reading the tag's argument as a literal value. The CBOR value-sharing tags
+28 (`shareable`) and 29 (`sharedref`) are the motivating case: the same
+11-byte datagram `d81ca16473656c66d81d00` used to decode to `{"self": 0}` on
+one conforming node (tag discarded, tag 29's argument read as an integer)
+and to a self-referential map on another (sharing honoured) — one datagram,
+two meanings, which is precisely the failure this format exists to prevent.
+
+The reference fallback decoder (`zmeta_cbor.py`) enforces this at parse
+time. A decoder built on a CBOR layer that interprets tags before handing
+back the result (the `cbor2` fallback) cannot see every tag, so it MUST
+refuse every tag footprint that survives interpretation:
+
+- any container reachable more than once, including cycles — value sharing
+  (tags 28/29); a tree decode can never produce one, so this refuses nothing
+  honest;
+- any integer outside the CBOR 64-bit range — bignum tags 2/3; this mapping
+  defines no bignum tag;
+- any non-finite float — in the wire model by type, outside it by value
+  (RFC 8259 has no encoding for it);
+- any value outside the wire value model above (tag-produced objects such as
+  sets, timestamps, decimals, or tag wrappers).
+
+The reference implementation of this scan is `zmeta_compact.decode_event`
+(invoked by `zmeta_compact.loads` and by the gateway compact ingress), which
+refuses with `CompactUnrepresentableError`. Known residual, stated so nobody
+mistakes the fallback for full parse-time enforcement: a tag the underlying
+CBOR layer collapses into an in-model value before the mapping can see it
+(for example tag 2 wrapping a small integer) is undetectable
+post-interpretation; the parse-time refusal in `zmeta_cbor.py` is the
+conforming behavior, and the footprint scan is the strongest enforcement an
+interpreting layer admits.
+
+### Declared expansion bound
+
+CBOR value sharing lets a few hundred wire bytes describe a structure whose
+expansion is astronomically larger than the datagram. Refusing tags 28/29
+closes that door, but a decoder MUST NOT rely on refusal alone: it MUST
+enforce a declared expansion bound on the number of nodes a datagram expands
+to (containers plus values, map keys uncounted), and beyond the bound it
+MUST refuse with an explicit diagnostic naming the bound rather than
+materializing the expansion.
+
+- The declared default is **1,048,576 (2\*\*20) expanded nodes**
+  (`zmeta_compact.DEFAULT_MAX_EXPANDED_NODES`), overridable per decode via
+  the `max_expanded_nodes` keyword on `zmeta_compact.loads` and
+  `zmeta_compact.decode_event`.
+- The bound is computable in linear time even for a shared DAG: a memoized
+  walk (expanded count per distinct container) never re-walks a shared
+  subtree, so an implementation that stages sharing detection after
+  expansion counting can still refuse cheaply. The reference decoder refuses
+  sharing outright, so its count is the plain node count, and the count is
+  checked before a container's children are traversed.
+- The default is deliberately aligned with the fallback decoder's 1 MiB
+  message limit (`zmeta_cbor.DEFAULT_MAX_MESSAGE_BYTES`): every decoded node
+  costs at least one wire byte, so only value sharing (refused above) or an
+  oversized datagram on a decode path without a byte limit (the `cbor2`
+  fallback has none of its own) can reach the bound. It therefore refuses no
+  honest event a conforming consumer could decode.
+
+### Declared nesting maximum
+
+The compact wire model is bounded at **64 nesting levels** (the datagram's
+top-level map is depth 0), matching the fallback decoder's default
+`max_depth`. A deeper datagram is not representable in compact v1 and MUST
+be refused at decode with an explicit diagnostic. Before this was a mapping
+rule, a 65–400 deep datagram encoded on a `cbor2`-only node and refused on
+every `zmeta_cbor` consumer — representability depended on the local
+install, which the Scope section forbids. Because encoders verify through
+the real serialization boundary (encode, decode, compare — see Scope), this
+decode-side rule also makes encoders refuse events that would exceed the
+depth, on either backend.
+
 ## Compatibility
 
 - The compact mapping is **wire-level only**.

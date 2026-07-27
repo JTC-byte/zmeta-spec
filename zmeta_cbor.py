@@ -7,19 +7,19 @@ CBOR key ordering so equivalent objects produce stable bytes. Decoding enforces
 default message, item, container, and nesting limits for untrusted network input.
 
 Anything outside that supported set is REFUSED on decode rather than
-reinterpreted (see `_decode_simple`) -- inventing a plausible value for a
-representation this profile never defined is how one datagram comes to mean
-two different things on two conforming nodes.
+reinterpreted (see `_decode_simple` and the major type 6 arm) -- inventing a
+plausible value for a representation this profile never defined is how one
+datagram comes to mean two different things on two conforming nodes.
 
-KNOWN GAP, deliberately left open: CBOR major type 6 (tags) is still decoded
-transparently -- the tag number is read and discarded and the tagged item is
-returned, so `c2 41 05` (tag 2, bignum 5) yields `b'\\x05'` here and the
-integer `5` under cbor2. Closing it is R1-11 audit finding A-08 and doctrine
-review log entry R1-11-02: the remedy is a normative clause in
-`spec/compact-binary-mapping.md` saying which tags a conforming decoder must
-reject, which is a governed Class B change. Do not close it here without that
-clause -- a decoder stricter than the written mapping is its own
-interoperability failure.
+That includes CBOR major type 6 (tags), refused since the normative clause
+landed in `spec/compact-binary-mapping.md` ("Value Model, Tags, and
+Expansion Bound", doctrine entries R1-11-02/03/18, adjudicated 2026-07-27).
+This decoder used to read and discard the tag number and return the tagged
+item, so `c2 41 05` (tag 2, bignum 5) yielded `b'\\x05'` here and the
+integer `5` under cbor2, and `d81d00` (tag 29, sharedref 0) yielded the
+literal integer `0` here and a shared reference under cbor2 -- one datagram,
+two meanings. A tag this profile never defined now refuses at parse, naming
+the tag.
 """
 
 from __future__ import annotations
@@ -197,15 +197,17 @@ def _decode(
                 raise ValueError("CBOR map key is not hashable") from exc
         return mapping, index
     if major == 6:
-        # tag; ignore and decode tagged item
-        _tag, index = _read_uint(data, index, addl)
-        return _decode(
-            data,
-            index,
-            depth=depth + 1,
-            max_item_bytes=max_item_bytes,
-            max_container_items=max_container_items,
-            max_depth=max_depth,
+        # Tags are refused, never partially interpreted. Discarding the tag
+        # and decoding the enclosed item read tag 29's argument as a literal
+        # integer while cbor2 built a shared reference from the same bytes:
+        # one datagram, two meanings (R1-11-02). The compact mapping defines
+        # no tags (spec/compact-binary-mapping.md, "Value Model, Tags, and
+        # Expansion Bound"), so no tagged datagram has a canonical expansion.
+        tag, index = _read_uint(data, index, addl)
+        raise ValueError(
+            f"unsupported CBOR tag {tag}: this profile defines no tags "
+            "(spec/compact-binary-mapping.md), so a tagged item is refused "
+            "rather than reinterpreted"
         )
     if major == 7:
         return _decode_simple(data, index, addl)

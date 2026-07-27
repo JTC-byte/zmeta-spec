@@ -555,10 +555,15 @@ def _find_unrepresentable(value: Any, path: str = "$"):
                value-sharing tags let a few hundred wire bytes expand into a
                structure with exponentially many paths.
 
-    A bound was the alternative and is rejected: any node budget refuses some
-    large-but-honest event, and discarding good data is not a safe default.
-    Skipping only what is provably redundant refuses nothing that is
-    representable.
+    A bound was the alternative and is rejected FOR THIS SCAN: any node
+    budget refuses some large-but-honest event, and discarding good data is
+    not a safe default; the memo already makes the walk linear in distinct
+    containers, so no bound is needed to terminate. The DECODE side is a
+    different question with a different answer: the mapping now declares an
+    expansion bound there (DEFAULT_MAX_EXPANDED_NODES, R1-11-18, adjudicated
+    2026-07-27), because a consumer must never materialize an expansion it
+    cannot afford, and an event whose expansion exceeds what a conforming
+    consumer will decode is not deliverable anyway.
 
     A reference cycle has no finite CBOR encoding, so it is unrepresentable
     and is refused HERE, by the mapping. Left to the backend the caller gets
@@ -616,8 +621,20 @@ def _find_unrepresentable(value: Any, path: str = "$"):
             continue
         if current is None or isinstance(current, _JSON_SCALARS):
             # Non-finite floats are the one scalar that is in the JSON value
-            # model by type and outside it by value; _semantic_difference
-            # names them by path, so do not duplicate the check here.
+            # model by type and outside it by value. They are refused HERE,
+            # before any bytes exist, so the diagnostic names the CANONICAL
+            # path the producer-side operator filters on; the decode-side
+            # scan (_refuse_unexpandable) would otherwise refuse them during
+            # the round-trip with a compact-integer-key path instead.
+            # _semantic_difference keeps its own check as defence in depth
+            # for direct callers.
+            if isinstance(current, float) and not math.isfinite(current):
+                raise CompactUnrepresentableError(
+                    f"compact cannot encode {_joined_path(link)}: non-finite "
+                    f"float {current!r} has no canonical JSON form "
+                    "(RFC 8259), so no ZMeta encoding can carry it honestly; "
+                    "the producer must emit a finite number"
+                )
             continue
         if isinstance(current, int):
             if not _CBOR_INT_MIN <= current <= _CBOR_INT_MAX:
@@ -635,6 +652,140 @@ def _find_unrepresentable(value: Any, path: str = "$"):
             "value"
         )
     return None
+
+
+# Decode-side enforcement of the same rule (spec/compact-binary-mapping.md,
+# "Value Model, Tags, and Expansion Bound"; doctrine R1-11-02/03/18,
+# adjudicated 2026-07-27). The preferred backend (zmeta_cbor) refuses every
+# tag at parse, but the cbor2 fallback interprets tags BEFORE this mapping
+# can see them: value-sharing tags 28/29 arrive as containers reachable more
+# than once (or as cycles), bignum tags 2/3 as integers outside the 64-bit
+# range, and other tags as non-JSON objects. Those footprints are refused
+# here, at the mapping layer, so a datagram means the same thing -- or
+# refuses the same way -- on both supported installs.
+#
+# The expansion bound exists because value sharing lets a few hundred wire
+# bytes describe a structure astronomically larger than the datagram, and
+# because the cbor2 fallback has no message-size limit of its own (the
+# zmeta_cbor backend caps messages at 1 MiB). Refusing sharing closes the
+# front door; the bound is the declared guarantee that a decoder never
+# materializes an expansion it cannot afford, whatever the door. The default
+# is deliberately aligned with the 1 MiB message limit: every decoded node
+# costs at least one wire byte, so no honest datagram a conforming consumer
+# could decode is refused by it.
+DEFAULT_MAX_EXPANDED_NODES = 1_048_576  # 2**20
+
+# The mapping's declared nesting maximum (R1-11-03). Matches the fallback
+# decoder's default max_depth: before this was a mapping-level rule, a
+# 65..400-deep datagram encoded on a cbor2-only node and refused on every
+# zmeta_cbor consumer -- representability depended on the local install.
+COMPACT_MAX_DEPTH = 64
+
+
+def _refuse_unexpandable(compact: Any, max_expanded_nodes: int | None) -> None:
+    """Refuse any decoded compact structure outside the wire value model.
+
+    Runs on every decode (decode_event calls it first), on the DECODED
+    object rather than the wire bytes, because that is the only place the
+    cbor2 fallback's tag interpretation can still be seen. Refusals:
+
+      * a container reachable more than once, including cycles -- the
+        footprint of CBOR value sharing (tags 28/29); a tree decode can
+        never produce one, so nothing honest is refused;
+      * expanded node count beyond `max_expanded_nodes` (containers plus
+        values, map keys uncounted), refused BEFORE the offending
+        container's children are pushed, not after materializing them;
+      * nesting beyond COMPACT_MAX_DEPTH (root at depth 0), mirroring
+        zmeta_cbor's decode-side accounting;
+      * integers outside the CBOR 64-bit range (bignum tags 2/3);
+      * non-finite floats (in the wire model by type, outside it by value);
+      * map keys that are not integers or text;
+      * any value outside the wire model: map, array, text, bytes
+        (the transport form of UUIDs), 64-bit integer, finite float,
+        boolean, null.
+
+    Iterative for the same reason as _find_unrepresentable: this walk runs
+    on sender-controlled structure and must not tie the process stack to it.
+    Termination is by construction -- every container is visited at most
+    once because a revisit refuses.
+    """
+    if max_expanded_nodes is not None and max_expanded_nodes < 0:
+        raise ValueError("max_expanded_nodes must be non-negative or None")
+    stack = [(compact, ("$", None), 0)]
+    seen: set = set()
+    nodes = 1
+    while stack:
+        current, link, depth = stack.pop()
+        if depth > COMPACT_MAX_DEPTH:
+            raise CompactUnrepresentableError(
+                f"compact decode refused at {_joined_path(link)}: nesting "
+                "depth exceeds the compact mapping's declared maximum of "
+                f"{COMPACT_MAX_DEPTH}"
+            )
+        if isinstance(current, (dict, list)):
+            marker = id(current)
+            if marker in seen:
+                raise CompactUnrepresentableError(
+                    f"compact decode refused at {_joined_path(link)}: this "
+                    "container is reachable more than once, which is value "
+                    "sharing (CBOR tags 28/29); the compact mapping defines "
+                    "no tags and no sharing, so the datagram has no single "
+                    "canonical expansion"
+                )
+            seen.add(marker)
+            nodes += len(current)
+            if max_expanded_nodes is not None and nodes > max_expanded_nodes:
+                raise CompactUnrepresentableError(
+                    "compact decode refused: the datagram expands to more "
+                    f"than {max_expanded_nodes} nodes (max_expanded_nodes="
+                    f"{max_expanded_nodes}); refusing to materialize the "
+                    "expansion"
+                )
+            if isinstance(current, dict):
+                for key, item in current.items():
+                    if isinstance(key, bool) or not isinstance(key, (int, str)):
+                        raise CompactUnrepresentableError(
+                            f"compact decode refused at {_joined_path(link)}: "
+                            f"the map key {key!r} is a {type(key).__name__}; "
+                            "compact map keys are integers (assigned by this "
+                            "mapping) or text, and fabricating a text key "
+                            "from anything else names a field the producer "
+                            "never sent"
+                        )
+                    stack.append((item, (f".{key}", link), depth + 1))
+            else:
+                for index in range(len(current) - 1, -1, -1):
+                    stack.append(
+                        (current[index], (f"[{index}]", link), depth + 1)
+                    )
+            continue
+        if current is None or isinstance(current, (str, bytes, bytearray)):
+            continue
+        if isinstance(current, bool):
+            continue
+        if isinstance(current, float):
+            if not math.isfinite(current):
+                raise CompactUnrepresentableError(
+                    f"compact decode refused at {_joined_path(link)}: "
+                    f"non-finite float {current!r} has no canonical JSON "
+                    "form (RFC 8259), so this datagram cannot expand to a "
+                    "canonical envelope"
+                )
+            continue
+        if isinstance(current, int):
+            if not _CBOR_INT_MIN <= current <= _CBOR_INT_MAX:
+                raise CompactUnrepresentableError(
+                    f"compact decode refused at {_joined_path(link)}: "
+                    f"integer {current} is outside the CBOR 64-bit range "
+                    "and this mapping defines no bignum tag"
+                )
+            continue
+        raise CompactUnrepresentableError(
+            f"compact decode refused at {_joined_path(link)}: a "
+            f"{type(current).__name__} is not a value the compact wire "
+            "model defines (map, array, text, bytes, 64-bit integer, "
+            "finite float, boolean, null); refusing to reinterpret it"
+        )
 
 
 def _encode_compact_bytes(compact: Dict[int, Any]) -> bytes:
@@ -745,8 +896,14 @@ def dumps(event: Dict[str, Any]) -> bytes:
 
 
 def loads(data: bytes, **decode_limits) -> Dict[str, Any]:
+    # max_expanded_nodes is a MAPPING limit enforced by decode_event, not a
+    # CBOR-layer knob, so it is peeled off here and works on either backend
+    # (the remaining decode_limits still require zmeta_cbor).
+    max_expanded_nodes = decode_limits.pop(
+        "max_expanded_nodes", DEFAULT_MAX_EXPANDED_NODES
+    )
     compact = _decode_cbor(data, **decode_limits)
-    return decode_event(compact)
+    return decode_event(compact, max_expanded_nodes=max_expanded_nodes)
 
 
 def is_compact(obj: Any) -> bool:
@@ -786,9 +943,20 @@ def encode_event(event: Dict[str, Any]) -> Dict[int, Any]:
     return out
 
 
-def decode_event(compact: Dict[int, Any]) -> Dict[str, Any]:
+def decode_event(
+    compact: Dict[int, Any],
+    *,
+    max_expanded_nodes: int | None = DEFAULT_MAX_EXPANDED_NODES,
+) -> Dict[str, Any]:
     if not isinstance(compact, dict):
         raise ValueError("compact shape must be a map")
+    # The fail-closed scan runs HERE rather than only in loads() because
+    # the gateway compact ingress calls decode_event directly on whatever
+    # its CBOR layer produced (gateway._decode_message), and on a
+    # cbor2-only install that object can carry tag footprints -- shared or
+    # cyclic containers, out-of-range integers, non-JSON values -- that
+    # this mapping must refuse, never partially interpret.
+    _refuse_unexpandable(compact, max_expanded_nodes)
     _reject_unknown_integer_keys(compact, set(TOP_KEYS.values()), "top-level")
 
     event: Dict[str, Any] = {"zmeta_version": "1.0"}

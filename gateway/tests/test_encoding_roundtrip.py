@@ -71,7 +71,10 @@ def test_cbor_rejects_deep_nesting():
 
 
 def test_cbor_rejects_deep_tag_nesting():
-    with pytest.raises(ValueError, match="max_depth"):
+    # Since the R1-11-02 fail-closed clause (2026-07-27) tags are refused
+    # outright at parse - the mapping defines none - so the depth guard
+    # never sees a tag chain. The refusal must name the tag, not the depth.
+    with pytest.raises(ValueError, match="unsupported CBOR tag"):
         zmeta_cbor.loads(b"\xc0\xc0\xc0\xc0\xf6", max_depth=3)
 
 

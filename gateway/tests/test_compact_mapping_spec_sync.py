@@ -40,6 +40,7 @@ Every check asserts a non-vacuity floor before it asserts anything else.
 """
 
 import ast
+import inspect
 import re
 import sys
 import unittest
@@ -49,6 +50,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
+import zmeta_cbor  # noqa: E402
 import zmeta_compact  # noqa: E402
 
 MAPPING_SPEC = ROOT / "spec" / "compact-binary-mapping.md"
@@ -473,6 +475,124 @@ class ScopeSectionMustsTest(unittest.TestCase):
         with self.assertRaises(zmeta_compact.CompactUnrepresentableError) as ctx:
             zmeta_compact.dumps(event)
         self.assertIn("error_ellipse_m", str(ctx.exception))
+
+
+class ValueModelSectionSyncTest(unittest.TestCase):
+    """The WAVE S clause (R1-11-02/03/18, adjudicated 2026-07-27): the spec's
+    "Value Model, Tags, and Expansion Bound" section and the decode-side
+    enforcement must not drift apart.
+
+    Same discipline as ScopeSectionMustsTest: every normative MUST is pinned
+    to both its sentence and its behaviour, and every number the spec
+    declares is asserted equal to the constant the code enforces, so neither
+    side can move alone. The spec must not promise anything the code does not
+    do, and vice versa.
+    """
+
+    _HEADING = "## Value Model, Tags, and Expansion Bound (Fail Closed)"
+
+    def setUp(self):
+        self.text = MAPPING_SPEC.read_text(encoding="utf-8")
+        start = self.text.find(self._HEADING)
+        self.assertNotEqual(
+            -1,
+            start,
+            f"compact-binary-mapping.md no longer has a '{self._HEADING}' "
+            "section; the fail-closed decode clause (doctrine R1-11-02/03/18) "
+            "is stated there",
+        )
+        end = self.text.find("\n## ", start + len(self._HEADING))
+        self.section = self.text[start : end if end != -1 else len(self.text)]
+
+    def _normalize(self, text: str) -> str:
+        return " ".join(text.split())
+
+    def test_no_tags_must_is_stated_and_kept(self):
+        self.assertIn(
+            "A conforming decoder MUST refuse any tagged item",
+            self._normalize(self.section),
+            "the section no longer states the refuse-all-tags MUST",
+        )
+        # Tags 28/29 are the named motivating case.
+        self.assertIn("28", self.section)
+        self.assertIn("29", self.section)
+        # Behaviour, parse-time half: the fallback decoder names the tag.
+        with self.assertRaises(ValueError) as ctx:
+            zmeta_cbor.loads(bytes.fromhex("d81d00"))
+        self.assertIn("unsupported CBOR tag 29", str(ctx.exception))
+        # Behaviour, post-interpretation half: the mapping refuses the
+        # sharing footprint even when the CBOR layer expanded it silently.
+        shared = {"n": 1}
+        with self.assertRaises(zmeta_compact.CompactUnrepresentableError) as ctx:
+            zmeta_compact.decode_event({1: 1, 4: {"a": shared, "b": shared}})
+        self.assertIn("value sharing (CBOR tags 28/29)", str(ctx.exception))
+
+    def test_expansion_bound_must_is_stated_and_kept(self):
+        self.assertIn(
+            "MUST enforce a declared expansion bound",
+            self._normalize(self.section),
+            "the section no longer states the expansion-bound MUST",
+        )
+        # The number the spec declares is the number the code enforces.
+        self.assertEqual(2**20, zmeta_compact.DEFAULT_MAX_EXPANDED_NODES)
+        self.assertIn(
+            f"{zmeta_compact.DEFAULT_MAX_EXPANDED_NODES:,}",
+            self.section,
+            "the section no longer names the default expansion bound the "
+            "reference decoder enforces",
+        )
+        self.assertIn("DEFAULT_MAX_EXPANDED_NODES", self.section)
+        self.assertIn("max_expanded_nodes", self.section)
+        # The knob the spec points implementers at exists on both entries.
+        self.assertIn(
+            "max_expanded_nodes",
+            inspect.signature(zmeta_compact.decode_event).parameters,
+        )
+        # Behaviour: beyond the bound is an explicit refusal naming it.
+        wire = zmeta_compact.dumps(_v1_0_event())
+        with self.assertRaises(zmeta_compact.CompactUnrepresentableError) as ctx:
+            zmeta_compact.loads(wire, max_expanded_nodes=8)
+        self.assertIn("max_expanded_nodes=8", str(ctx.exception))
+        # ...and the default bound accepts the honest datagram (the bound is
+        # sized so it refuses no event a conforming consumer could decode).
+        self.assertEqual("1.0", zmeta_compact.loads(wire)["zmeta_version"])
+
+    def test_nesting_maximum_is_stated_and_matches_the_fallback_decoder(self):
+        self.assertEqual(zmeta_cbor.DEFAULT_MAX_DEPTH, zmeta_compact.COMPACT_MAX_DEPTH)
+        self.assertIn(
+            f"{zmeta_compact.COMPACT_MAX_DEPTH} nesting levels",
+            self._normalize(self.section),
+            "the section no longer declares the mapping's nesting maximum",
+        )
+        # Behaviour: depth beyond the declared maximum refuses at the
+        # mapping layer (this is the R1-11-03 divergence window, closed).
+        chain = current = {}
+        for _ in range(zmeta_compact.COMPACT_MAX_DEPTH + 16):
+            child = {}
+            current["d"] = child
+            current = child
+        with self.assertRaises(zmeta_compact.CompactUnrepresentableError) as ctx:
+            zmeta_compact.decode_event({1: 1, 4: chain})
+        self.assertIn(
+            f"declared maximum of {zmeta_compact.COMPACT_MAX_DEPTH}",
+            str(ctx.exception),
+        )
+
+    def test_wire_value_model_refusals_are_stated_and_kept(self):
+        # The section states the decode-side value model; the scan keeps it.
+        self.assertIn(
+            "MUST refuse every tag footprint that survives interpretation",
+            self._normalize(self.section),
+        )
+        with self.assertRaises(zmeta_compact.CompactUnrepresentableError) as ctx:
+            zmeta_compact.decode_event({1: 1, 4: {"n": 2**70}})
+        self.assertIn("outside the CBOR 64-bit range", str(ctx.exception))
+        with self.assertRaises(zmeta_compact.CompactUnrepresentableError) as ctx:
+            zmeta_compact.decode_event({1: 1, 4: {"x": float("nan")}})
+        self.assertIn("non-finite float", str(ctx.exception))
+        with self.assertRaises(zmeta_compact.CompactUnrepresentableError) as ctx:
+            zmeta_compact.decode_event({1: 1, 4: {1.5: "x"}})
+        self.assertIn("map key 1.5", str(ctx.exception))
 
 
 class MatcherSelfTest(unittest.TestCase):

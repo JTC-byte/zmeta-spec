@@ -1274,9 +1274,11 @@ class CborDecodeDoesNotFabricateTest(unittest.TestCase):
     canonical value that a consumer could not tell apart from one a producer
     meant to send.
 
-    The third -- tag transparency -- is deliberately NOT pinned here. It is
-    still live, it needs the governed clause R1-11-02 recommends, and pinning
-    the current behaviour would freeze the defect.
+    The third -- tag transparency -- was deliberately NOT pinned here while
+    it needed the governed clause R1-11-02 recommends. That clause landed
+    (spec/compact-binary-mapping.md "Value Model, Tags, and Expansion Bound",
+    adjudicated 2026-07-27), so tag refusal is now pinned below in
+    CompactWireDecodeFailClosedTest.
     """
 
     def test_undefined_is_refused_rather_than_decoded_as_null(self):
@@ -1300,6 +1302,281 @@ class CborDecodeDoesNotFabricateTest(unittest.TestCase):
         self.assertEqual(
             1.0, zmeta_cbor_module.loads(bytes.fromhex("fb3ff0000000000000"))
         )
+
+
+class CompactWireDecodeFailClosedTest(unittest.TestCase):
+    """WAVE S (doctrine R1-11-02/03/18, adjudicated 2026-07-27): the compact
+    DECODE path accepts only the canonical value model, fail closed.
+
+    Encode has enforced the value-model allowlist since B-01/R2-04; decode
+    did not, and the two supported backends disagreed about what a tagged
+    datagram means. Red-first captures on the pre-change tree (2026-07-27,
+    all through the public APIs):
+
+      * the 11-byte value-sharing datagram d81ca16473656c66d81d00 decoded to
+        {'self': 0} through zmeta_cbor (tag 28 discarded, tag 29's argument
+        read as a literal integer) and to a self-referential dict through
+        cbor2 -- one datagram, two meanings;
+      * a 46-byte shared-DAG compact datagram was ACCEPTED by
+        zmeta_compact.loads on BOTH backends, expanding to
+        {'a': {'n': 1}, 'b': 4} (a fabricated integer where the shared
+        reference sat) under zmeta_cbor and to two shared dicts under cbor2;
+      * a 41-byte datagram decoded to a CYCLIC envelope on the cbor2 backend;
+      * zmeta_compact.loads(..., max_expanded_nodes=8) raised TypeError --
+        no expansion bound existed anywhere on the decode path;
+      * a 1 MiB datagram materialized a 1,048,578-item envelope through the
+        cbor2 backend, which has no message-size limit of its own;
+      * a float map key on the wire was silently stringified ('1.5' -> "1.5")
+        by decode_event, fabricating a field name the producer never sent.
+
+    The enforcement seam is zmeta_compact.decode_event, because that is what
+    the gateway compact ingress calls (gateway._decode_cbor -> decode_event
+    never goes through loads).
+    """
+
+    _v1_0_state = CompactFailClosedTest._v1_0_state
+    _both_cbor_backends = CompactFailClosedTest._both_cbor_backends
+
+    # tag28({"self": tag29(0)}) -- the R1-11-02 exhibit.
+    _SHARING_DATAGRAM = bytes.fromhex("d81ca16473656c66d81d00")
+
+    # --- tags are refused at parse by the fallback decoder ------------------
+
+    def test_tags_are_refused_at_parse_naming_the_tag(self):
+        cases = (
+            ("d81ca16473656c66d81d00", 28),  # shareable wrapping a map
+            ("d81d00", 29),                  # sharedref, argument 0
+            ("c24105", 2),                   # bignum 5 (used to decode b'\x05')
+            ("c11a514b67b0", 1),             # epoch datetime tag
+        )
+        for wire, tag in cases:
+            with self.subTest(wire=wire, tag=tag):
+                with self.assertRaises(ValueError) as ctx:
+                    zmeta_cbor_module.loads(bytes.fromhex(wire))
+                self.assertIn(f"unsupported CBOR tag {tag}", str(ctx.exception))
+        # Non-vacuity: the same map WITHOUT the tags still decodes.
+        self.assertEqual(
+            {"self": 0}, zmeta_cbor_module.loads(bytes.fromhex("a16473656c6600"))
+        )
+
+    # --- value sharing refuses on BOTH backends ------------------------------
+
+    def test_the_r1_11_02_exhibit_refuses_on_both_backends(self):
+        # Pre-change this datagram meant two different things (docstring).
+        # Now no packet exists for the two consumers to disagree about.
+        for backend in self._both_cbor_backends():
+            with self.subTest(backend=backend):
+                with self.assertRaises(ValueError) as ctx:
+                    zmeta_compact.loads(self._SHARING_DATAGRAM)
+                self.assertIn("28", str(ctx.exception))
+
+    def test_shared_dag_datagram_refuses_on_both_backends(self):
+        if zmeta_compact.cbor2 is None:  # pragma: no cover - optional dep
+            self.skipTest("cbor2 not installed")
+        shared = {"n": 1}
+        wire = zmeta_compact.cbor2.dumps(
+            {1: 1, 4: {"extensions": {"vendor": {"a": shared, "b": shared}}}},
+            value_sharing=True,
+        )
+        expected = {
+            # The parse-time refusal names the tag it hit.
+            "zmeta_cbor": "unsupported CBOR tag 28",
+            # The post-interpretation scan names the construct's footprint.
+            "cbor2": "value sharing (CBOR tags 28/29)",
+        }
+        for backend in self._both_cbor_backends():
+            with self.subTest(backend=backend):
+                with self.assertRaises(ValueError) as ctx:
+                    zmeta_compact.loads(wire)
+                self.assertIn(expected[backend], str(ctx.exception))
+
+    def test_cyclic_datagram_refuses_instead_of_materializing_a_cycle(self):
+        # 41 wire bytes used to decode to an envelope whose vendor blob
+        # referred to itself -- an object no downstream JSON path can even
+        # serialize, delivered as a "canonical" envelope.
+        if zmeta_compact.cbor2 is None:  # pragma: no cover - optional dep
+            self.skipTest("cbor2 not installed")
+        vendor = {}
+        vendor["self"] = vendor
+        wire = zmeta_compact.cbor2.dumps(
+            {1: 1, 4: {"extensions": {"vendor": vendor}}}, value_sharing=True
+        )
+        original = zmeta_compact.zmeta_cbor
+        zmeta_compact.zmeta_cbor = None
+        try:
+            with self.assertRaises(
+                zmeta_compact.CompactUnrepresentableError
+            ) as ctx:
+                zmeta_compact.loads(wire)
+        finally:
+            zmeta_compact.zmeta_cbor = original
+        self.assertIn("value sharing (CBOR tags 28/29)", str(ctx.exception))
+
+    def test_decode_event_is_the_enforcement_seam_the_gateway_uses(self):
+        # gateway._decode_message("compact") never calls loads(); it calls
+        # decode_event on whatever the CBOR layer produced. The refusal must
+        # therefore live in decode_event itself.
+        shared = {"n": 1}
+        with self.assertRaises(zmeta_compact.CompactUnrepresentableError) as ctx:
+            zmeta_compact.decode_event({1: 1, 4: {"a": shared, "b": shared}})
+        self.assertIn("value sharing (CBOR tags 28/29)", str(ctx.exception))
+        # Non-vacuity: the same shape with distinct containers decodes.
+        decoded = zmeta_compact.decode_event({1: 1, 4: {"a": {"n": 1}, "b": {"n": 1}}})
+        self.assertEqual({"a": {"n": 1}, "b": {"n": 1}}, decoded["payload"])
+
+    # --- the declared expansion bound ----------------------------------------
+
+    def test_decode_enforces_the_declared_expansion_bound(self):
+        self.assertEqual(2**20, zmeta_compact.DEFAULT_MAX_EXPANDED_NODES)
+        wire = zmeta_compact.dumps(self._v1_0_state())
+        for backend in self._both_cbor_backends():
+            with self.subTest(backend=backend):
+                # Same refusal, same diagnostic, either install.
+                with self.assertRaises(
+                    zmeta_compact.CompactUnrepresentableError
+                ) as ctx:
+                    zmeta_compact.loads(wire, max_expanded_nodes=8)
+                self.assertIn("max_expanded_nodes=8", str(ctx.exception))
+                # Non-vacuity: the default bound accepts the same datagram.
+                self.assertEqual(
+                    "1.0", zmeta_compact.loads(wire)["zmeta_version"]
+                )
+
+    def test_default_expansion_bound_refuses_a_giant_tree_on_the_unbounded_backend(self):
+        # zmeta_cbor refuses a >1 MiB datagram at max_bytes before any
+        # structure exists; cbor2 has no message limit, so the expansion
+        # bound is what stands between the wire and a 2**20+ node envelope.
+        if zmeta_compact.cbor2 is None:  # pragma: no cover - optional dep
+            self.skipTest("cbor2 not installed")
+        wire = zmeta_compact.cbor2.dumps({1: 1, 4: {"blob": [0] * (2**20 + 2)}})
+        with self.assertRaises(ValueError) as ctx:
+            zmeta_compact.loads(wire)
+        self.assertIn("max_bytes", str(ctx.exception))
+        original = zmeta_compact.zmeta_cbor
+        zmeta_compact.zmeta_cbor = None
+        try:
+            with self.assertRaises(
+                zmeta_compact.CompactUnrepresentableError
+            ) as ctx:
+                zmeta_compact.loads(wire)
+        finally:
+            zmeta_compact.zmeta_cbor = original
+        self.assertIn(
+            f"max_expanded_nodes={zmeta_compact.DEFAULT_MAX_EXPANDED_NODES}",
+            str(ctx.exception),
+        )
+
+    # --- the declared nesting maximum (R1-11-03) ------------------------------
+
+    def _chain_wire(self, depth):
+        chain = current = {}
+        for _ in range(depth - 1):
+            child = {}
+            current["d"] = child
+            current = child
+        return zmeta_cbor_module.dumps({1: 1, 4: chain})
+
+    def test_decode_depth_beyond_the_declared_maximum_refuses_on_both_backends(self):
+        # Pre-change, a depth-80 datagram refused under zmeta_cbor
+        # (max_depth 64) and DECODED under cbor2: the same divergence the
+        # docstring of zmeta_compact says must never exist, live in the
+        # 65..400 window (R1-11-03).
+        deep = self._chain_wire(80)
+        expected = {
+            "zmeta_cbor": "max_depth",
+            "cbor2": "declared maximum of 64",
+        }
+        for backend in self._both_cbor_backends():
+            with self.subTest(backend=backend):
+                with self.assertRaises(ValueError) as ctx:
+                    zmeta_compact.loads(deep)
+                self.assertIn(expected[backend], str(ctx.exception))
+        # Boundary non-vacuity: depth 64 (the declared maximum itself) still
+        # decodes on both backends -- the bound refuses beyond, not at.
+        at_limit = self._chain_wire(64)
+        for backend in self._both_cbor_backends():
+            with self.subTest(backend=backend, boundary=64):
+                decoded = zmeta_compact.loads(at_limit)
+                self.assertEqual("1.0", decoded["zmeta_version"])
+
+    # --- tag footprints that survive an interpreting CBOR layer --------------
+
+    def test_wire_tag_footprints_refuse_on_the_interpreting_backend(self):
+        # cbor2 interprets tags before the mapping can see them, so the scan
+        # refuses what survives: the bignum's out-of-range integer, the
+        # unknown tag's wrapper object, the set. zmeta_cbor refuses the same
+        # datagrams at parse, naming the tag.
+        if zmeta_compact.cbor2 is None:  # pragma: no cover - optional dep
+            self.skipTest("cbor2 not installed")
+        cbor2 = zmeta_compact.cbor2
+        cases = (
+            (
+                "bignum",
+                cbor2.dumps({1: 1, 4: {"n": 2**70}}, canonical=True),
+                "unsupported CBOR tag 2",
+                "outside the CBOR 64-bit range",
+            ),
+            (
+                "unknown tag",
+                cbor2.dumps({1: 1, 4: {"t": cbor2.CBORTag(1234, [1])}}),
+                "unsupported CBOR tag 1234",
+                "CBORTag",
+            ),
+            (
+                "set",
+                cbor2.dumps({1: 1, 4: {"s": {1}}}, canonical=True),
+                "unsupported CBOR tag 258",
+                "set",
+            ),
+        )
+        for label, wire, parse_refusal, scan_refusal in cases:
+            expected = {"zmeta_cbor": parse_refusal, "cbor2": scan_refusal}
+            for backend in self._both_cbor_backends():
+                with self.subTest(case=label, backend=backend):
+                    with self.assertRaises(ValueError) as ctx:
+                        zmeta_compact.loads(wire)
+                    self.assertIn(expected[backend], str(ctx.exception))
+
+    def test_non_finite_wire_floats_refuse_on_both_backends(self):
+        # No tag involved: CBOR carries NaN natively, canonical JSON cannot.
+        # Pre-change both backends delivered a NaN-bearing "canonical"
+        # envelope straight through loads().
+        wire = zmeta_cbor_module.dumps({1: 1, 4: {"x": float("nan")}})
+        for backend in self._both_cbor_backends():
+            with self.subTest(backend=backend):
+                with self.assertRaises(
+                    zmeta_compact.CompactUnrepresentableError
+                ) as ctx:
+                    zmeta_compact.loads(wire)
+                self.assertIn("non-finite float", str(ctx.exception))
+                self.assertIn("$.4.x", str(ctx.exception))
+
+    def test_non_canonical_wire_map_keys_refuse_instead_of_stringifying(self):
+        # Pre-change decode_event fabricated the field name "1.5" from a
+        # float wire key -- the exact conversion the Unknown Integer Keys
+        # clause forbids for integers, arriving through a different type.
+        wire = zmeta_cbor_module.dumps({1: 1, 4: {1.5: "x"}})
+        for backend in self._both_cbor_backends():
+            with self.subTest(backend=backend):
+                with self.assertRaises(
+                    zmeta_compact.CompactUnrepresentableError
+                ) as ctx:
+                    zmeta_compact.loads(wire)
+                self.assertIn("map key 1.5", str(ctx.exception))
+
+    def test_encode_refuses_non_finite_floats_with_the_canonical_path(self):
+        # The decode-side scan sees compact integer keys ("$.4.x"); the
+        # ENCODE side must keep naming the canonical path, because that is
+        # what the producer-side operator filters on. Guards the ordering:
+        # the encode-path refusal fires before the round-trip decode scan.
+        event = self._v1_0_state()
+        event.setdefault("payload", {}).setdefault("extensions", {})[
+            "vendor"
+        ] = {"snr_db": float("inf")}
+        with self.assertRaises(zmeta_compact.CompactUnrepresentableError) as ctx:
+            zmeta_compact.dumps(event)
+        self.assertIn("$.payload.extensions.vendor.snr_db", str(ctx.exception))
+        self.assertIn("non-finite float", str(ctx.exception))
 
 
 class CborValueSharingReachabilityTest(unittest.TestCase):
