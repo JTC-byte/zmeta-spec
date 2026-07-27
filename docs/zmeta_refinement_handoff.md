@@ -2,12 +2,33 @@
 
 ## RESUME QUEUE — read first (set 2026-07-22, before a ~3-day usage-limit wait)
 
-The R1-11 cycle is **concluded and HELD**: 27 commits ahead of `origin/main`,
-nothing pushed/tagged/signed, tree clean, battery green (kernel gate all flags,
-examples 51/51, pytest **1200 + 1021 subtests**). Six blockers closed and
-probe-verified (`docs/r1_11_closure_probe.py`, 17/17). No governed artifact was
-touched; no `reason_code` minted. The audit-wave cadence is now adopted
+The R1-11 cycle is **concluded and HELD**: the entire cycle sits ahead of
+`origin/main` — measure it live with `git log --oneline origin/main..HEAD`; a
+count frozen on this line went stale twice (CR-23). Nothing pushed, tagged, or
+signed; tree clean; battery green (kernel gate all flags, examples 51/51,
+pytest **1200 + 1021 subtests**). Six blockers closed and probe-verified
+(`docs/r1_11_closure_probe.py`, 17/17). The fix and disposition passes touched
+no governed artifact; the cycle's earlier waves **did** mint three additive
+`reason_code` enum entries (schema + policy, and +6/−1 in spec §5.3 — see
+"What was touched" below), so cycle-wide "no governed change" claims are false
+as written (CR-04). The audit-wave cadence is now adopted
 (`docs/zmeta_audit_playbook.md`) and governs what follows.
+
+**Update 2026-07-26 — P1 (refresh + cold re-read) is COMPLETE.** The battery
+was re-verified live, the doctrine-log numbering collision was fixed
+(`7eaea97`; entries now 21, addendum renumbered 15–21), and the held range was
+cold-read by nine independent lenses with adversarial verification of every
+finding: **30 distinct confirmed findings, RECORDED (not fixed) in
+`docs/r1_11_cold_reread_findings.md` — read it before P2.** Headlines: two new
+code MAJORs, both also live in published v1.1.16 (CR-01 SAPIENT ingress — a
+negative declared `maximum_latency` *narrows* `est_error_ms`, falsifying the
+widen-only property; CR-02 CoT egress — the horizontal ellipse `semi_minor` is
+stamped into `point@le`, a vertical-error field, fabricating vertical
+certainty); one records-integrity MAJOR (CR-03 — the 44 open sub-MAJOR
+findings and the round-3 attack results are recorded nowhere in the tree, so
+P4's input exists only as counts, not as a register); and a set of
+count/claim defects in the frozen cycle records (CR-04, CR-13..CR-15,
+CR-23..CR-25) left for a scoped records wave. The queue order below stands.
 
 **On resume, in priority order:**
 
@@ -31,9 +52,12 @@ touched; no `reason_code` minted. The audit-wave cadence is now adopted
    A-13 record anchor being half-anchored because `origin/main` is a moving ref.
    Risk is contained — the code is HELD and unpublished — so severity does not
    force it ahead of the doctrine bottleneck.
-4. **The 44 sub-MAJOR findings** (`docs/r1_11_fix_pass_findings.md`), worked as
-   scoped waves under the playbook (floor + one-third cap), **not** a marathon.
-   Many will be unblocked or reclassified by step 2.
+4. **The 44 sub-MAJOR findings**, worked as scoped waves under the playbook
+   (floor + one-third cap), **not** a marathon. Many will be unblocked or
+   reclassified by step 2. **CR-03 caveat:** these findings are *not* actually
+   itemized in `docs/r1_11_fix_pass_findings.md` (that register ends at round
+   2) — the round-3 results survive only as counts, so this step must begin by
+   reconstructing or re-deriving its own input.
 5. **The release cut — LAST.** Resolves A-12 (manifest divergence) and A-29
    (release-notes compatibility bullet), both cut-time-only. Rebuild the manifest
    under a **new** identity; never rewrite `release/SHA256SUMS_v1.1.16.txt`.
