@@ -2,6 +2,44 @@
 
 ## [Unreleased]
 
+- 2026-07-27 (post-v1.1.17, later) — bladeRF reference ingress adapter
+  (`adapters/ingress/bladerf/`, commit `71f8e18` plus this registration
+  follow-up): the merged `edge-comms-bladerf` mapping pack now has its
+  runnable reference implementation, authored along the documented
+  `adapters/AUTHORING.md` path as the repo's timed receipt that the
+  guide takes a new RF sensor from recorded output to a verified
+  adapter in one sitting (zero-shot author ~40 min, independent
+  adversarial attack — verdict CLEAN, one value-honesty finding —
+  hardened and pinned same-sitting), and pinned to the pack's two
+  real-capture fixture pairs (colocated tests reproduce both
+  `expected.json` outputs exactly, modulo the runtime-minted UUIDv7).
+  Honesty decisions carried as the pack governs: the frame-unlabeled
+  heading-derived bearing is demoted to `features.native_bearing_*` in
+  BOTH cases (contract 6.4 mirror case — no minted `TRUE_NORTH`), null /
+  null-island sensor positions refuse canonical geo with
+  `geo_status: UNAVAILABLE` (contract 6.8), the `spectrum_fft`
+  bin-width `bandwidth_hz` declared sentinel is documented in the
+  adapter README, no `quality.measurement_error` is minted from the raw
+  error bound, degraded timing stays visible, lineage is omit-or-stamp.
+  Fail-closed beyond the happy path: `timestamp_ms` is the only
+  `event.ts` authority (the paired `timestamp` rendering never rescues a
+  missing mapped source), unparseable/boolean timestamps, missing
+  required RF features, and a missing/null `platform_id` all refuse
+  rather than crash or coerce, non-dict `metadata` degrades honestly,
+  caller lineage ids and supplied timing pass through uncoerced. Eight
+  `bladerf-` harness fixtures (two emission pins incl. product
+  separation both directions, one caller-lineage transform pin, five
+  refusals — one per schema-required input). Non-finite values are
+  screened at the boundary per the attack finding (NaN/inf SNR refuses
+  the event; a non-finite coordinate refuses geo), red-first pinned.
+  This follow-up completes the Class C upstream set the commit
+  deferred: `adapters/README.md` table row (+ Reference legend widened
+  to real-capture corpora), pack README cross-link, manifest/claims
+  regenerated under the current identity (the documented next-cut
+  re-baseline pattern), and these records. Battery at completion:
+  kernel gate all flags exit 0, examples 51/51, adapter harness 48/48,
+  pytest 1377 + 1060 subtests, `check_compat --target v1.1.17`
+  0 failures (2 deliberate degraded-timing warnings).
 - 2026-07-27 (post-v1.1.17) — kernel-adjacent residuals closed, each
   red-first pinned and adversarially attacked: the validators'
   naive-timestamp arm (gate-clean naive shapes now refuse at the parse

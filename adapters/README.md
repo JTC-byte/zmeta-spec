@@ -41,17 +41,20 @@ or command safety.
 | [JREAP](ingress/jreap/) | Decoded JREAP/Link-style track dicts | STATE_EVENT (promotion) | Template |
 | [KLV](ingress/klv/) | MISB KLV metadata | OBSERVATION_EVENT (EO) | Template |
 | [SAPIENT](ingress/sapient/) | BSI Flex 335 v2.0 SapientMessage dicts (protobuf-JSON) | OBSERVATION_EVENT, INFERENCE_EVENT, STATE_EVENT (promotion), SYSTEM_EVENT | Reference |
+| [bladeRF EW](ingress/bladerf/) | edge-comms bladeRF / ROS2 EW `rf_detection` JSON (`edge-comms-bladerf` pack) | OBSERVATION_EVENT (RF) | Reference |
 | [Example-vendor](ingress/example-vendor/) | `example-vendor-pack` RF JSON | OBSERVATION_EVENT (RF) | Worked exercise |
 
 Status legend: **Production** — exercised against real sensor data;
 **Template** — copy-me starting point, structurally complete;
 **Reference** — complete implementation validated against the external
-standard's official tooling, not yet fielded against live hardware;
+standard's official tooling or a mapping pack's real-capture corpus, not
+yet fielded against live hardware;
 **Worked exercise** — teaching implementation paired with the authoring
 guide.
 
 Real raw→ZMeta corpus for adapter authors (bladeRF edge-comms detections):
-[`mapping-packs/edge-comms-bladerf/`](mapping-packs/edge-comms-bladerf/).
+[`mapping-packs/edge-comms-bladerf/`](mapping-packs/edge-comms-bladerf/);
+its reference implementation is [`ingress/bladerf/`](ingress/bladerf/).
 
 Each adapter implements the standard `detect()` / `translate()` / `validate()`
 pattern described in `ingress/template/README.md`.

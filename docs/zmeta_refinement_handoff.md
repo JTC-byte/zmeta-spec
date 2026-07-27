@@ -50,6 +50,26 @@ CR-13/14/15/23/24/25 + verifier register candidates in H1-04/06), the
 compact-clause governed wave, then the v1.1.17 cut (A-12/A-29); the
 TIME_STATUS enum lands at that cut per decision.
 
+**Update 2026-07-27 (post-publish) — BLADERF REFERENCE ADAPTER LANDED
+(`71f8e18` + registration follow-up).** The worklog resume note's
+maintainer-directed "NEXT" item is done: the merged
+`edge-comms-bladerf` pack has its runnable reference implementation at
+`adapters/ingress/bladerf/` — module + README + 67 colocated tests + 8
+`bladerf-` harness fixtures committed as `71f8e18` (zero-shot author
+**~13 min by the orchestrator's external wall-clock** (12:48->13:01),
+**~25 min for the full verified cycle** to 13:13; the agent's own
+~40 min is a subjective effort estimate, the wall-clock is the receipt.
+Independent adversarial attack CLEAN, the one
+value-honesty finding hardened + pinned); the follow-up carries the
+Class C registration set the commit deferred (adapters/README table
+row, pack cross-link, manifest/claims regenerated under the current
+identity — the A-12 interim pattern; next cut re-baselines — and these
+records). Battery at entry: kernel gate all flags exit 0, examples
+51/51, harness 48/48, pytest **1377 + 1060 subtests**,
+`check_compat --target v1.1.17` 0 failed. Whether the follow-up rides
+a cut is the maintainer's call. Details: worklog top bullet;
+`CHANGELOG.md` Unreleased.
+
 **On resume, in priority order:**
 
 1. **REFRESH first (now mandatory).** Re-orient on the repo + logs, then re-read

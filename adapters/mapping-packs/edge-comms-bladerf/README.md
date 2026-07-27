@@ -57,6 +57,12 @@ parent ids are available.
 2. Implement `detect` / `translate` / `validate` per `adapters/AUTHORING.md`.
 3. Diff your translator output against `tests/<case>/expected.json` (ignore
    generated `event_id` if you mint new UUIDv7s at runtime).
+
+Reference implementation: `adapters/ingress/bladerf/` carries out this
+mapping as runnable adapter code (colocated tests reproduce both expected
+outputs exactly; harness fixtures are the `bladerf-` entries in
+`conformance/adapter-harness/must-pass.jsonl`). Diff your own adapter
+against it the way `adapters/ingress/example-vendor/` pairs with its pack.
 4. Validate expected events:
 
 ```powershell

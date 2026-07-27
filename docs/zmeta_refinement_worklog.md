@@ -2,8 +2,52 @@
 
 ## Current Resume Note
 
-- Last updated: 2026-07-27 (cut prepared, HELD)
+- Last updated: 2026-07-27 (post-publish; bladeRF reference adapter landed)
 - Quick handoff: `docs/zmeta_refinement_handoff.md`
+- **2026-07-27 (post-publish, latest) — BLADERF REFERENCE ADAPTER LANDED
+  (the maintainer-directed "NEXT" item, timed).** The merged
+  `edge-comms-bladerf` pack now has its runnable reference
+  implementation at `adapters/ingress/bladerf/`, authored along the
+  documented path exactly (AUTHORING.md end-to-end -> pack primaries ->
+  contract 3.4/4.4/4.8/6/7.1/7.3/7.4 -> sibling references), as the
+  repo's receipt that the authoring guide takes a new RF sensor from
+  recorded output to a verified adapter in one sitting. **Timed receipt
+  (commit `71f8e18`), orchestrator external wall-clock: **~13 min
+  zero-shot authoring** (12:48->13:01), **~25 min full verified cycle**
+  to 13:13 (the agent self-estimated ~40 min of effort; the external
+  wall-clock is the honest receipt). Then an
+  independent adversarial attack (verdict CLEAN on the semantics; one
+  value-honesty finding — finite-blind geo/feature guards) and
+  same-sitting hardening.** The guide's "run this guide as a checklist"
+  step did real work: the in-sitting review caught four fail-closed
+  gaps before landing — an unmapped alternate `event.ts` source (the
+  `timestamp` rendering could rescue a missing `timestamp_ms`; now
+  mapped-source-only), crash-not-refusal arms (non-numeric/boolean
+  `timestamp_ms`, non-dict `metadata`, non-numeric geo), a
+  `platform_id` TypeError where a refusal belongs, and `str()`
+  coercion of caller lineage ids (now pass-through, schema rejects).
+  The `quality.geo_status AVAILABLE/UNAVAILABLE` convention was
+  verified against the SAPIENT reference + v1.1.0 quality vocabulary
+  before adoption, not assumed. Non-finite values are screened at the
+  boundary (NaN/inf SNR refuses the event; a non-finite coordinate
+  refuses geo; NaN `timestamp_ms` refuses), red-first pinned. Landed
+  together (Class C set): module + README (both declared conventions
+  documented: FFT bin-width `bandwidth_hz`, native-bearing demotion) +
+  67 colocated tests (both capture pairs reproduced exactly; one
+  refusal per schema-required field), 8 `bladerf-` harness fixtures,
+  README table row (Reference legend widened to real-capture corpora),
+  pack README cross-link, manifest/claims regenerated under the current
+  identity (A-12 interim pattern; next cut re-baselines). Evidence
+  (each run where it could fail): `pytest adapters/ingress/bladerf -q`
+  = 67 passed; `tools/validate.py --profile H --strict` on emitted
+  events = 2/2; `tools/check_compat.py --target v1.1.17` = 0 failed (2
+  deliberate `timing_quality_fallback` warnings); `tools/check_adapter.py
+  --fixtures` = lint + harness 48/48; kernel gate all flags exit 0;
+  examples 51/51; full pytest **1377 + 1060 subtests**;
+  `git diff --check` clean. Adapter core + fixtures committed as
+  `71f8e18`; this registration set (README row, pack cross-link,
+  manifest/claims, records) rides the follow-up commit — whether it
+  cuts is the maintainer's call per the commit=release policy.
 - **2026-07-27 (post-publish, later) — KERNEL-ADJACENT RESIDUALS CLOSED
   (VW-01, H1-07).** Scoped wave per the playbook (fix + attack per item).
   VW-01: naive-ts refused at `_parse_utc_z`/`_format_utc_z`; the attack
