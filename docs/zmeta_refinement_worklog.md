@@ -21,9 +21,12 @@
   overview, release/tools READMEs, guidance docs, CI target, compat
   TARGETS, manifest pins, signer example). Battery at hold: kernel gate
   all flags exit 0, examples 51/51, pytest **1284 + 1051 subtests**,
-  packet check max 150/240, checksums verified. **HELD for maintainer
-  review — tag/push/publish are the maintainer's.** Not exercised
-  locally: Docker build/run, GitHub CI (post-push).
+  packet check max 150/240, checksums verified. **PUBLISHED 2026-07-27 with explicit maintainer
+  direction after review**: `main` pushed (`09118b3..7302073`, the full
+  42-commit held range), annotated tag `v1.1.17` on `7302073`, GitHub
+  release live with all eight assets incl. `SHA256SUMS_v1.1.17.txt`.
+  Checksums-only. Not exercised locally: Docker build/run; CI runs
+  post-push (status recorded at publish in this note's session).
 - **2026-07-27 — HEALTH FIX WAVE + ADJUDICATION (resume session 2).**
   Maintainer adjudicated four decisions in-session (doctrine log
   "Adjudication pass"): governed vocabulary = the event model only;

@@ -105,7 +105,7 @@ sent the same cadence doctrine to codify.
 
 Status date: 2026-07-22
 
-Current release: **v1.1.17** (R1-11 full-cycle audit/hardening cut, 2026-07-27; prepared and HELD for maintainer review/tag/publish), following **v1.1.16** (P1-08, 2026-07-21) — the
+Current release: **v1.1.17** (R1-11 full-cycle audit/hardening cut, PUBLISHED 2026-07-27 after maintainer review), following **v1.1.16** (P1-08, 2026-07-21) — the
 edge-comms-bladerf external real-capture corpus cut (PR #7 merged with
 maintainer review fixes), following **v1.1.15** (P1-07, 2026-07-21;
 the SAPIENT/BSI Flex 335 mapping pack and reference adapters,
@@ -335,7 +335,7 @@ Current stack status:
   bearing/heading fields unless callers explicitly assert `TRUE_NORTH`;
   unasserted native values remain auditable under explicitly named
   non-canonical fields.
-- Use tag `v1.1.17` for current formal release assets/checksums (cut prepared 2026-07-27, HELD pending maintainer tag/publish; `v1.1.16` remains the latest PUBLISHED assets until then). Use tag
+- Use tag `v1.1.17` for current formal release assets/checksums (PUBLISHED 2026-07-27). Use tag
   `v1.1.15` for the SAPIENT-bridge baseline and `v1.1.14` for the
   audit-driven honesty-hardening baseline.
 - Use current `main` for the latest integration baseline with bearing-frame
@@ -381,15 +381,15 @@ Current stack status:
 
 Current release target:
 
-- Release URL (after publish): <https://github.com/JTC-byte/zmeta-spec/releases/tag/v1.1.17>
+- Release URL: <https://github.com/JTC-byte/zmeta-spec/releases/tag/v1.1.17>
 - Latest PUBLISHED release: <https://github.com/JTC-byte/zmeta-spec/releases/tag/v1.1.16>
-- Tag: `v1.1.17` (NOT yet created — the maintainer tags at publish; v1.1.16 was annotated on the P1-08 release commit; the commit
+- Tag: `v1.1.17` (annotated, on release commit `7302073`, PUBLISHED 2026-07-27 with all eight assets; v1.1.16 was annotated on the P1-08 release commit; the commit
   SHA, CI status, and asset list are recorded in the worklog P1-08
   publication note).
 - Previous releases: `v1.1.15` (SAPIENT bridge) and `v1.1.14` (R1-10
   hardening); their published assets, checksums, and release records
   are unchanged.
-- Signature status: v1.1.17 is prepared checksums-only per the
+- Signature status: v1.1.17 is published checksums-only per the
   maintainer's signing decision, consistent with v1.1.5 through
   v1.1.15; signing remains the maintainer's external process. Use
   `SHA256SUMS_<version>.txt`, the structured release manifest, and the
@@ -492,7 +492,7 @@ Resume Note.
   schema, vocabulary, version-dispatch, projection, risk, or command-authority
   changes are private dialect/fork work unless governed, versioned, documented,
   and backed by conformance evidence.
-- Current formal release is `v1.1.17` (cut prepared, publish pending); latest integration baseline is
+- Current formal release is `v1.1.17` (published 2026-07-27); latest integration baseline is
   current `main`.
 - v1.0 remains locked.
 - Do not add v1.1.0 or future concepts to v1.0.
