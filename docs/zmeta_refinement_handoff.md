@@ -15,11 +15,13 @@ touched; no `reason_code` minted. The audit-wave cadence is now adopted
    this session's ~27 commits with fresh eyes per the cadence — a cold reading
    catches what the author missed. This is P1 precisely because a 3-day gap is
    the ideal fresh-eyes window.
-2. **Adjudicate the 20 doctrine-log entries** (`docs/zmeta_doctrine_review_log.md`).
+2. **Adjudicate the 21 doctrine-log entries** (`docs/zmeta_doctrine_review_log.md`;
+   the addendum's seven were renumbered 15–21 on 2026-07-26 after a numbering
+   collision at 14 — the count was recorded as 20 before that).
    **Highest-leverage single item:** the "what counts as governed vocabulary"
-   boundary (R1-11-09/14/15) — it unblocks three otherwise-mechanical fixes and
+   boundary (R1-11-09/15/16) — it unblocks three otherwise-mechanical fixes and
    costs nothing to answer (a scope definition, not a semantic change). Then the
-   compact-mapping clause cluster (R1-11-02/03/17) — one decision resolving three
+   compact-mapping clause cluster (R1-11-02/03/18) — one decision resolving three
    entries and closing a real cross-backend interop hole. This is the bottleneck:
    the cut cannot proceed until it is settled, and it is uniquely the
    maintainer's to decide.

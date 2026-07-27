@@ -1795,8 +1795,9 @@ doctrinally correct action, not a concession.**
 - **No governed artifact modified anywhere in this cycle.**
   `spec/semantics-contract.md`, `schema/*.json`, `policy/violation-codes.yaml`
   and `policy/semantics.yaml` are untouched; no `reason_code` minted.
-- Twenty doctrine review log entries across two passes, all OPEN or HELD, none
-  decided inside a fix wave.
+- Twenty-one doctrine review log entries across two passes, all OPEN or HELD,
+  none decided inside a fix wave. (Recorded as twenty until 2026-07-26, when
+  renumbering the addendum exposed a duplicate R1-11-14 hiding one entry.)
 - Working tree clean. Nothing pushed, tagged, or signed.
 
 ### Carried forward for the maintainer
@@ -1808,7 +1809,7 @@ doctrinally correct action, not a concession.**
    moving ref, so the replacement figures go stale exactly as the originals did.
 2. **Forty-four further findings** at MODERATE and below, in
    `docs/r1_11_fix_pass_findings.md`.
-3. **Twenty doctrine entries** in `docs/zmeta_doctrine_review_log.md`. The
+3. **Twenty-one doctrine entries** in `docs/zmeta_doctrine_review_log.md`. The
    highest-leverage is not a kernel question: **"governed" has no defined
    boundary**, and it is now parking otherwise-mechanical fixes.
 4. **Deferred to the cut:** `A-12` (manifest divergence) and `A-29` (the

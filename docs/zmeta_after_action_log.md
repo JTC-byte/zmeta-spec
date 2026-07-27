@@ -91,7 +91,7 @@ be proven by reverting the fix and watching the specific assertion fail.
 
 No governed artifact — the locked semantics contract, the schemas, or the
 policy vocabulary — was modified anywhere in this cycle, and no diagnostic code
-was minted. Twenty points where the code or a proposed fix came under tension
+was minted. Twenty-one points where the code or a proposed fix came under tension
 with the guiding documents were recorded for separate adjudication in
 `docs/zmeta_doctrine_review_log.md`, including the cases the documents resolved
 cleanly. The release decision remains the maintainer's, and nothing in the

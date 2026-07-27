@@ -401,17 +401,22 @@ Same rule as above: **no governed artifact was modified** to produce any of
 them. Several are the same tension arriving from a new direction, which is
 exactly the pattern this log exists to make visible.
 
+*(Renumbered 2026-07-26: these seven were first recorded as R1-11-14..20,
+colliding with the first pass's R1-11-14 — they are now R1-11-15..21, and the
+log holds twenty-one entries, not the twenty the cycle records first counted.
+In-repo cross-references were swept in the same commit.)*
+
 | # | Tension | Gates | Status |
 |---|---|---|---|
-| R1-11-14 | `TIME_STATUS.state` is not enum-constrained while its two siblings are | 1, 3 | OPEN |
-| R1-11-15 | Adapter-declared vocabularies mirror governed enums by hand, unlinted | 1, 6 | OPEN |
-| R1-11-16 | Formal release identity has no stated grammar | 5 | OPEN |
-| R1-11-17 | Compact mapping declares no size or expansion bound | 4, 6 | OPEN |
-| R1-11-18 | `--strict` makes a deliberately tolerated warn unrepresentable | 2, 3 | OPEN |
-| R1-11-19 | Two conventions the new pins now enforce, chosen not discovered | 5, 7 | OPEN |
-| R1-11-20 | Illustrative-example currency policy left inconsistent | 7 | OPEN |
+| R1-11-15 | `TIME_STATUS.state` is not enum-constrained while its two siblings are | 1, 3 | OPEN |
+| R1-11-16 | Adapter-declared vocabularies mirror governed enums by hand, unlinted | 1, 6 | OPEN |
+| R1-11-17 | Formal release identity has no stated grammar | 5 | OPEN |
+| R1-11-18 | Compact mapping declares no size or expansion bound | 4, 6 | OPEN |
+| R1-11-19 | `--strict` makes a deliberately tolerated warn unrepresentable | 2, 3 | OPEN |
+| R1-11-20 | Two conventions the new pins now enforce, chosen not discovered | 5, 7 | OPEN |
+| R1-11-21 | Illustrative-example currency policy left inconsistent | 7 | OPEN |
 
-### R1-11-14 — `TIME_STATUS.state` is unconstrained by the schema · OPEN
+### R1-11-15 — `TIME_STATUS.state` is unconstrained by the schema · OPEN
 
 **This is why B-04 was invisible.** `$defs/SystemPayload` enum-constrains
 `state` on the `LINK_STATUS` and `TASK_ACK` branches, but the `TIME_STATUS`
@@ -429,7 +434,7 @@ enum-constrain `state` the way its siblings do. Class B. This is the clearest
 case in the log of a *missing* constraint rather than a contested one — the
 asymmetry between the three branches reads as an oversight, not a design.
 
-### R1-11-15 — Hand-mirrored vocabularies with no lint · OPEN
+### R1-11-16 — Hand-mirrored vocabularies with no lint · OPEN
 
 Three vocabularies now live in `mavlink_to_zmeta_template.py` duplicating
 governed enums by hand: `_LINK_STATUS_STATES` (pre-existing),
@@ -447,7 +452,7 @@ are subsets of the schema enums. Closes it for every adapter at once, costs
 nothing at runtime, and keeps the template dependency-free. Cheap and
 outer-ring — this one probably just wants doing.
 
-### R1-11-16 — Formal release identity has no stated grammar · OPEN
+### R1-11-17 — Formal release identity has no stated grammar · OPEN
 
 A-09 is closed to the letter of what `spec/release-hash-policy.md` already
 promises: a formal manifest can no longer keep the builder's *default*
@@ -461,7 +466,7 @@ clean.
 enforcement point is **the cut, not the committed manifest**. Note the shape:
 a validator can only ever enforce a rule the spec has stated.
 
-### R1-11-17 — No size or expansion bound in the compact mapping · OPEN
+### R1-11-18 — No size or expansion bound in the compact mapping · OPEN
 
 CBOR value sharing lets a small datagram expand enormously. Measured: an
 ~800-byte shared-DAG datagram costs 2.77 s inside `dumps()` before refusing at
@@ -480,7 +485,7 @@ events on cbor2-only installs — the same runtime posture change as R1-11-12.
 clause in `spec/compact-binary-mapping.md`, and answering them separately risks
 three inconsistent answers.
 
-### R1-11-18 — `--strict` makes a tolerated warn unrepresentable · OPEN
+### R1-11-19 — `--strict` makes a tolerated warn unrepresentable · OPEN
 
 The teaching corpus is validated with `--strict --require-all`, which means a
 condition the standard deliberately **tolerates as a warning** cannot be shown
@@ -493,7 +498,7 @@ example under a relaxed flag, or whether teaching-by-example is deliberately
 scoped to the pass/fail boundary. Gate 2 argues the former; gate 7 argues the
 latter. No change made.
 
-### R1-11-19 — Two conventions the new pins now enforce · OPEN
+### R1-11-20 — Two conventions the new pins now enforce · OPEN
 
 Listed so they are **chosen rather than discovered**, which is the whole point
 of writing them down before they harden:
@@ -511,7 +516,7 @@ of writing them down before they harden:
 Both are narrower than the surfaces they bind, and both were adopted by a pin
 rather than by a decision. **Endorse or loosen them deliberately.**
 
-### R1-11-20 — Illustrative-example currency policy · OPEN
+### R1-11-21 — Illustrative-example currency policy · OPEN
 
 `TRADEMARK.md:22,24` and `adapters/README.md` carry structurally identical
 release-named examples. The previous cycle re-baselined one and deliberately
