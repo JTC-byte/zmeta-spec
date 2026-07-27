@@ -4,12 +4,20 @@ Converts ZMeta STATE_EVENT track states into CoT v2.0 XML for TAK
 (ATAK, WinTAK, TAK Server) interoperability.
 
 Supports:
-  - CE/LE from geo.error_ellipse_m; when the event carries no uncertainty,
-    CoT's documented unknown-value convention (9999999.0) is emitted rather
-    than an invented accuracy figure. Absent geo.alt_m gets the same
-    treatment for point@hae - never a fabricated 0 m altitude claim
+  - CE from geo.error_ellipse_m semi_major (the conservative circular bound:
+    a circle of that radius covers the whole ellipse); when the event
+    carries no uncertainty, CoT's documented unknown-value convention
+    (9999999.0) is emitted rather than an invented accuracy figure. LE is
+    NEVER derived from the ellipse - CoT le is linear (vertical/HAE) error
+    and error_ellipse_m is purely horizontal, so le is always the unknown
+    convention unless the deployment overrides default_le with a real
+    vertical error model. Absent geo.alt_m gets the same treatment for
+    point@hae - never a fabricated 0 m altitude claim
   - Heading/speed track element (directional arrows on TAK map)
-  - PrecisionLocation for MIL-STD-2525 elliptical uncertainty
+  - PrecisionLocation for MIL-STD-2525 elliptical uncertainty, emitted only
+    when the config explicitly asserts geopointsrc/altsrc - the event model
+    carries no geo-source field, so source pedigree is never defaulted to
+    "GPS" on positions that may be RF-triangulated fusion products
   - ATAK team coloring (__group element) for friendly platforms
   - Hostile emitter callsign fallback logic
   - Persistent labels for hostile tracks
@@ -18,8 +26,11 @@ Supports:
   - Event-authoritative timestamps by default; explicit opt-in wall-clock
     replay-display mode (use_wall_clock=True) re-stamps CoT time to now so
     TAK shows fresh markers during historical replay (contract section 9.5).
-    An event with no ts is refused (returns None) unless wall-clock mode is
-    on - the adapter never fabricates freshness for malformed input
+    An event with no ts - or a ts that does not parse as an RFC3339
+    instant, which passes the schema gate because jsonschema does not
+    enforce format without a FormatChecker - is refused (returns None)
+    unless wall-clock mode is on - the adapter never fabricates freshness
+    for malformed input
 
 Source: Z-ISR zisr/transport/publisher.py (_builtin_zmeta_to_cot)
 """
@@ -55,9 +66,36 @@ STATE_PROHIBITED_PAYLOAD_FIELDS = {
 
 
 def _parse_utc(ts):
-    if ts.endswith("Z"):
-        ts = ts[:-1] + "+00:00"
-    return datetime.fromisoformat(ts).astimezone(timezone.utc)
+    """Parse an RFC3339/ISO-8601 `ts` to an aware UTC datetime, or None.
+
+    The schema types `event.ts` as `format: date-time`, but jsonschema does
+    not enforce `format` without an explicitly installed FormatChecker, so a
+    gate-clean event can still carry a string `fromisoformat` rejects (e.g.
+    "2026-07-27T99:99:99Z"). That used to escape this adapter as a raw
+    ValueError. The disposition for "this cannot be projected" is the
+    documented refusal signal (None) - the same one a missing ts gets -
+    never a fabricated timestamp and never a traceback out of the caller's
+    event loop (see _stale_time for the same rule on the stale arithmetic).
+    OverflowError covers astimezone() on edge-of-range instants; TypeError /
+    AttributeError cover a ts that is not a string at all; OSError covers
+    the platform delegate on hosts where a conversion is out of range.
+
+    A parse that yields a NAIVE datetime is refused outright: shapes like
+    "1969-12-31Z" or "2026-W01-1Z" satisfy the schema's `Z$` pattern yet
+    carry no offset after parsing, and `.astimezone()` on a naive datetime
+    asks the PLATFORM - silently reinterpreting the instant as host-local
+    time (a UTC claim the event never made) or raising OSError pre-epoch on
+    Windows. No offset, no instant.
+    """
+    try:
+        if ts.endswith("Z"):
+            ts = ts[:-1] + "+00:00"
+        parsed = datetime.fromisoformat(ts)
+        if parsed.tzinfo is None:
+            return None
+        return parsed.astimezone(timezone.utc)
+    except (ValueError, OverflowError, TypeError, AttributeError, OSError):
+        return None
 
 
 def _esc(text):
@@ -182,8 +220,17 @@ def zmeta_to_cot(event, cot_config=None):
                 carries no uncertainty (default 9999999.0, CoT's
                 unknown-value convention; override only when the
                 deployment has a real error model)
-            - default_le (float): Linear error metres when the event
-                carries no uncertainty (default 9999999.0, as above)
+            - default_le (float): Linear (vertical/HAE) error metres
+                (default 9999999.0, as above). Always the emitted le: the
+                event model carries no vertical-error field, and the
+                horizontal error ellipse must never masquerade as one
+            - geopointsrc (str): Position-source pedigree for
+                <precisionlocation> (e.g. "GPS"), asserted by the operator
+                who knows how the deployment derives positions. Default
+                None - the element is omitted rather than stamped with a
+                source the event never claimed
+            - altsrc (str): Altitude-source pedigree, same rule as
+                geopointsrc (default None - omitted, never defaulted)
             - friendly_team_name (str): ATAK team name (default "Cyan")
             - friendly_team_role (str): ATAK team role (default "Team Member")
             - use_wall_clock (bool): Explicit replay-display mode — re-stamp
@@ -198,9 +245,10 @@ def zmeta_to_cot(event, cot_config=None):
     Returns:
         CoT XML string, or None if the event cannot be converted (wrong
         event type, prohibited raw payload fields, missing geo/track_id,
-        missing event.ts outside wall-clock mode, any non-finite (NaN/inf)
-        number that would become a CoT attribute, or a validity window whose
-        stale timestamp is not representable - see _stale_time).
+        missing or unparseable event.ts outside wall-clock mode - see
+        _parse_utc, any non-finite (NaN/inf) number that would become a CoT
+        attribute, or a validity window whose stale timestamp is not
+        representable - see _stale_time).
     """
     if event.get("event", {}).get("event_type") != "STATE_EVENT":
         return None
@@ -273,6 +321,10 @@ def zmeta_to_cot(event, cot_config=None):
             # now-stamping path.
             return None
         time_obj = _parse_utc(ts)
+        if time_obj is None:
+            # Same refusal as a missing ts: an unparseable time claim is no
+            # time claim, and CoT time/start/stale cannot be derived from it.
+            return None
 
     default_valid_for_ms = cot_config.get("default_valid_for_ms", 300000)
     valid_for_ms = payload.get("valid_for_ms", default_valid_for_ms)
@@ -293,21 +345,30 @@ def zmeta_to_cot(event, cot_config=None):
     alt_m = geo.get("alt_m")
     hae = COT_UNKNOWN_ACCURACY if alt_m is None else alt_m
 
-    # Circular error / linear error resolution:
-    # 1. geo.error_ellipse_m semi_major/semi_minor — the only schema-valid
-    #    uncertainty source on geo (v1.1.0 $defs/geo; v1.0 geo carries none)
-    # 2. Config defaults — 9999999.0, CoT's unknown-value convention, unless
+    # Circular error resolution:
+    # 1. geo.error_ellipse_m semi_major — the only schema-valid uncertainty
+    #    source on geo (v1.1.0 $defs/geo; v1.0 geo carries none). semi_major
+    #    is the CONSERVATIVE circular bound: a circle of that radius covers
+    #    the whole ellipse, so ce never understates the horizontal error.
+    # 2. Config default — 9999999.0, CoT's unknown-value convention, unless
     #    the deployment overrides with a real error model
+    #
+    # le is NEVER derived from the ellipse (R1-11 CR-02). CoT point@le is
+    # LINEAR error — the vertical/HAE uncertainty — while error_ellipse_m is
+    # purely horizontal (contract section 21.2: orientation_deg is degrees
+    # true north; the schema carries no vertical-uncertainty field at all).
+    # Mapping semi_minor onto le told TAK "altitude known to ±semi_minor m",
+    # a vertical bound the event never claimed. Since the event model has no
+    # vertical error to project, le is always the adapter's unknown
+    # convention (default_le), ellipse or no ellipse.
     default_ce = cot_config.get("default_ce", COT_UNKNOWN_ACCURACY)
-    default_le = cot_config.get("default_le", COT_UNKNOWN_ACCURACY)
+    le = cot_config.get("default_le", COT_UNKNOWN_ACCURACY)
     error_ellipse = geo.get("error_ellipse_m")
 
     if error_ellipse and isinstance(error_ellipse, dict):
         ce = error_ellipse.get("semi_major", default_ce)
-        le = error_ellipse.get("semi_minor", default_le)
     else:
         ce = default_ce
-        le = default_le
 
     # Callsign with hostile emitter fallback: never show raw track IDs
     # on TAK for hostile markers. Use "RF Emitter" or "Detection" instead.
@@ -364,11 +425,32 @@ def zmeta_to_cot(event, cot_config=None):
         spd = f"{speed:.1f}" if speed is not None else "0.0"
         track_xml = f'\n    <track course="{course}" speed="{spd}" />'
 
-    # <precisionlocation> for MIL-STD-2525 elliptical uncertainty
+    # <precisionlocation> for MIL-STD-2525 elliptical uncertainty.
+    # geopointsrc/altsrc are source-provenance pedigree attributes TAK
+    # consumers read as "how this position/altitude was derived". The event
+    # model carries no geo-source field, so the adapter cannot know — the
+    # old unconditional geopointsrc="GPS" altsrc="GPS" stamped a GPS
+    # pedigree on positions that may be RF-triangulated fusion products
+    # (R1-11 CR-11). Refuse-or-omit: the element is emitted only when the
+    # operator's config explicitly asserts a source, and only the asserted
+    # attribute(s) are stamped. Nothing defaults to "GPS". The ellipse
+    # detail still projects unconditionally as the conservative point@ce
+    # above and as human-readable remarks text.
     precision_xml = ""
-    if error_ellipse and isinstance(error_ellipse, dict):
+    geopointsrc = cot_config.get("geopointsrc")
+    altsrc = cot_config.get("altsrc")
+    if (
+        error_ellipse
+        and isinstance(error_ellipse, dict)
+        and (geopointsrc is not None or altsrc is not None)
+    ):
+        src_attrs = ""
+        if geopointsrc is not None:
+            src_attrs += f' geopointsrc="{_esc(str(geopointsrc))}"'
+        if altsrc is not None:
+            src_attrs += f' altsrc="{_esc(str(altsrc))}"'
         precision_xml = (
-            f'\n    <precisionlocation geopointsrc="GPS" altsrc="GPS"'
+            f'\n    <precisionlocation{src_attrs}'
             f' ellipse_major="{error_ellipse.get("semi_major", 0):.1f}"'
             f' ellipse_minor="{error_ellipse.get("semi_minor", 0):.1f}"'
             f' ellipse_angle="{error_ellipse.get("orientation_deg", 0):.1f}" />'
@@ -395,9 +477,16 @@ def zmeta_to_cot(event, cot_config=None):
             '/Torch Drones/quadcopter.png" />'
         )
 
+    # CoT `how` is a position-derivation pedigree claim (m-g = machine/GPS
+    # derived). Same rule as geopointsrc/altsrc above: the event model
+    # carries no geo-source field, so `how` is emitted only when the
+    # deployment asserts one via cot_config - never a hardcoded "m-g" on
+    # positions that may be RF-triangulated fusion products.
+    how_value = cot_config.get("how")
+    how_attr = f' how="{_esc(str(how_value))}"' if how_value is not None else ""
     cot_xml = (
         f'<event version="2.0" type="{_esc(cot_type)}" uid="{_esc(track_id)}"'
-        f' time="{time_str}" start="{time_str}" stale="{stale_str}" how="m-g">\n'
+        f' time="{time_str}" start="{time_str}" stale="{stale_str}"{how_attr}>\n'
         f'  <point lat="{lat}" lon="{lon}" hae="{hae}" le="{le}" ce="{ce}" />\n'
         f"  <detail>\n"
         f'    <contact callsign="{_esc(callsign)}" />'

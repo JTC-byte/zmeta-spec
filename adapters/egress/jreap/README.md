@@ -19,6 +19,7 @@ Notes:
 | Condition | Disposition |
 |-----------|-------------|
 | Not a `STATE_EVENT` / `TRACK_STATE`, or missing `track_id`/`geo`/`ts`/`valid_for_ms` | refused |
+| `event.ts` unparseable or not UTC-convertible (non-string, calendar/clock-invalid, or a naive pre-1970 instant the platform rejects) | refused — the schema's `utcDateTime` enforces only a trailing `Z` (`format: date-time` is advisory without an RFC 3339 checker), so `"2026-02-30T00:00:00Z"` arrives gate-clean; the timestamp keys both `timestamp` and `stale_time`, and a substituted instant would be a freshness claim the event never made |
 | Non-finite (`NaN`/`inf`) number anywhere in the projected track | refused — a consumer would plot a symbol at a non-position, and the JSON handed to it would not be RFC 8259 |
 | `time + valid_for_ms` not representable as a datetime | refused — `payload.valid_for_ms` is `{"type": "integer", "minimum": 1}` with no upper bound, so the kernel forwards windows the `datetime` module cannot express (`10**400` ms, `10**15` ms, or an ordinary 300 000 ms window on `ts="9999-12-31T23:59:59Z"`) |
 

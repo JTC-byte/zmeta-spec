@@ -89,13 +89,19 @@ def duration_ms(duration):
     """Convert a SAPIENT Registration.Duration dict to milliseconds.
 
     Returns None when units are unknown/unspecified, the value is not
-    numeric, or the SCALED result is not finite — a duration is never
-    guessed. The scale is a product: a NaN on the wire survives every
-    multiplication, and a value near the float64 ceiling in seconds/days
-    overflows to inf. Either way the declaration is unresolvable, which
-    is the same disposition as unresolvable units — and returning it
-    would push a non-finite est_error_ms into every event this node
-    produces.
+    numeric, or the SCALED result is not finite or is strictly negative —
+    a duration is never guessed. The scale is a product: a NaN on the wire
+    survives every multiplication, and a value near the float64 ceiling in
+    seconds/days overflows to inf. Either way the declaration is
+    unresolvable, which is the same disposition as unresolvable units —
+    and returning it would push a non-finite est_error_ms into every event
+    this node produces. A NEGATIVE duration is unresolvable for the same
+    reason with the opposite polarity: elapsed time cannot be negative
+    (a capture-before-send latency bound is physically impossible), and
+    returning it would SUBTRACT from every est_error_ms it widens — the
+    one direction an uncertainty term must never move. Zero stays valid:
+    "no gap worth declaring" is an expressible measurement, a negative
+    gap is not.
 
     Returning None here is NOT the whole disposition. None is also what an
     absent declaration yields, and those two states are not the same: see
@@ -121,6 +127,11 @@ def duration_ms(duration):
         # ``RegistrationStore.ingest`` for the whole node.
         return None
     if not math.isfinite(scaled):
+        return None
+    if scaled < 0:
+        # Strictly negative only: 0.0 (and -0.0, which is not < 0) resolve.
+        # The check runs on the SCALED value, but every factor above is
+        # positive, so the sign it sees is the sign the producer declared.
         return None
     return scaled
 
@@ -222,6 +233,23 @@ class RegistrationStore:
                     ),
                     "settle_time_ms": duration_ms(mode.get("settle_time")),
                     "tracking_type": enum_tail(mode.get("tracking_type"), "TRACKING_TYPE_"),
+                }
+            elif mode.get("maximum_latency") is not None:
+                # A latency DECLARATION under an unusable mode_name must not
+                # vanish: the node said something about its timing and the
+                # adapter could not attribute it. A resolvable bound still
+                # widens via the no-mode fallback; a broken one poisons
+                # latency_unresolved - never a silent drop. The tuple key
+                # cannot collide with a real wire mode_name (always a
+                # string), so a sender naming a mode "__unnamed_mode_0"
+                # can neither shadow nor be shadowed by this entry.
+                declared_latency = mode.get("maximum_latency")
+                latency_ms = duration_ms(declared_latency)
+                modes[("__unnamed__", len(modes))] = {
+                    "maximum_latency_ms": latency_ms,
+                    "maximum_latency_unresolved": latency_ms is None,
+                    "settle_time_ms": None,
+                    "tracking_type": None,
                 }
             for detection_definition in mode.get("detection_definition") or []:
                 if not isinstance(detection_definition, dict):
@@ -330,7 +358,8 @@ class RegistrationStore:
         ``max_latency_ms`` returns None for two very different states: the
         node never declared a latency bound at all, and the node declared
         one this store could not resolve (unknown units, a NaN or
-        overflowing value, an integer with no float64 form). Collapsing
+        overflowing value, an integer with no float64 form, a negative
+        duration). Collapsing
         them is a laundering: a consumer of ``max_latency_ms`` alone widens
         by nothing in both cases, so the node with the BROKEN declaration
         ships a TIGHTER timestamp-error bound than the node with a sane

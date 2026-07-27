@@ -151,6 +151,41 @@ def test_non_finite_valid_for_ms_refuses_rather_than_crashing_the_coercion():
         assert zmeta_state_to_jreap_track_json(event) is None, value
 
 
+def test_unparseable_ts_refuses_instead_of_raising():
+    # Banked R1-11 MAJOR (fix-pass carry-forward): the schema's utcDateTime
+    # enforces only `"pattern": "Z$"` — `format: date-time` is advisory
+    # because no RFC 3339 format checker is installed — so a Z-suffixed but
+    # unparseable ts is gate-clean, and _parse_utc raised ValueError out of
+    # the public entry point on it. The documented disposition for a field
+    # this projection cannot honestly use is the None refusal, never a raise
+    # and never a substituted timestamp.
+    for ts in (
+        "2026-02-30T00:00:00Z",  # calendar-invalid: February 30th
+        "2026-07-27T25:61:61Z",  # clock-invalid: hour 25
+        "not-a-dateZ",  # junk wearing the trailing Z the pattern wants
+    ):
+        event = _track_state_event()
+        event["event"]["ts"] = ts
+        assert zmeta_state_to_jreap_track_json(event) is None, ts
+    # Attribution control: the identical event with a parseable ts still
+    # projects, so the refusals above are the ts and nothing else.
+    result = zmeta_state_to_jreap_track_json(_track_state_event())
+    assert result["timestamp"] == "2025-01-17T15:20:00Z"
+
+
+def test_embedder_reachable_ts_shapes_refuse_not_raise():
+    # Not gate-clean (the Z$ pattern blocks both), but this adapter has no
+    # non-test caller — embedders hand it events directly, and the None
+    # contract is what the README tells them to handle. A naive pre-epoch
+    # instant raises OSError(EINVAL) out of .astimezone() on Windows (the
+    # arm the SAPIENT twins already carry), and a non-string ts raised
+    # AttributeError off .endswith.
+    for ts in ("1969-12-31T23:59:59", 12345):
+        event = _track_state_event()
+        event["event"]["ts"] = ts
+        assert zmeta_state_to_jreap_track_json(event) is None, repr(ts)
+
+
 def test_large_but_representable_stale_still_projects():
     # Proportionality: refuse the window datetime cannot express, not every
     # window that looks big.
@@ -159,3 +194,15 @@ def test_large_but_representable_stale_still_projects():
     result = zmeta_state_to_jreap_track_json(event)
     assert result is not None
     assert result["stale_time"].startswith("3024-")
+
+
+def test_gate_clean_naive_shapes_refuse_not_localize():
+    # Attack-pass completion (2026-07-27): "1969-12-31Z" / "2026-W01-1Z"
+    # pass the schema's Z$ pattern yet parse NAIVE; pre-fix they reached
+    # the platform delegate (OSError pre-epoch on Windows) or were
+    # silently reinterpreted as host-local time - a fabricated instant on
+    # the wire. Refusal is None, per the documented contract.
+    for ts in ("1969-12-31Z", "2026-W01-1Z"):
+        event = _track_state_event()
+        event["event"]["ts"] = ts
+        assert zmeta_state_to_jreap_track_json(event) is None

@@ -53,7 +53,9 @@ def test_zmeta_to_cot_maps_state_event():
     assert root.tag == "event"
     assert root.attrib["uid"] == "track-001"
     assert root.attrib["type"] == "a-f-G-U-C"
-    assert root.attrib["how"] == "m-g"
+    # `how` is a derivation-pedigree claim; unasserted it is OMITTED, never
+    # defaulted to "m-g" (attack-pass completion, 2026-07-27).
+    assert "how" not in root.attrib
 
     # Verify timestamps are derived from the event ts, not wall clock
     expected_stale = _expected_stale("2025-01-17T14:30:05Z", 1500)
@@ -138,7 +140,9 @@ def test_zmeta_to_cot_hostile_callsign_fallback():
 
 
 def test_zmeta_to_cot_error_ellipse():
-    """Error ellipse should map to CE/LE and precisionlocation."""
+    """Error ellipse maps to a conservative circular CE only; LE is never
+    derived from the horizontal ellipse, and no precisionlocation is emitted
+    without a caller-asserted source (CR-02 / CR-11 pins below)."""
     event = {
         "event": {
             "event_type": "STATE_EVENT",
@@ -164,11 +168,9 @@ def test_zmeta_to_cot_error_ellipse():
     root = ET.fromstring(xml_text)
     point = root.find("point")
     assert point.attrib["ce"] == "150.0"
-    assert point.attrib["le"] == "80.0"
+    assert point.attrib["le"] == "9999999.0"
 
-    precision = root.find(".//precisionlocation")
-    assert precision is not None
-    assert precision.attrib["ellipse_major"] == "150.0"
+    assert root.find(".//precisionlocation") is None
 
 
 def test_zmeta_to_cot_heading_speed():
@@ -311,7 +313,8 @@ def test_zmeta_to_cot_default_path_unknown_accuracy():
 
 
 def test_zmeta_to_cot_default_path_maps_error_ellipse():
-    """No config: real error_ellipse_m still maps to CE/LE."""
+    """No config: real error_ellipse_m still maps to a conservative CE;
+    LE stays the unknown convention (the ellipse is purely horizontal)."""
     event = {
         "event": {
             "event_type": "STATE_EVENT",
@@ -335,7 +338,7 @@ def test_zmeta_to_cot_default_path_maps_error_ellipse():
     root = ET.fromstring(xml_text)
     point = root.find("point")
     assert point.attrib["ce"] == "42.0"
-    assert point.attrib["le"] == "17.0"
+    assert point.attrib["le"] == "9999999.0"
 
 
 def test_zmeta_to_cot_absent_altitude_emits_unknown_convention():
@@ -786,3 +789,173 @@ def test_zmeta_to_cot_still_projects_a_large_but_representable_stale():
     xml_text = zmeta_to_cot_module.zmeta_to_cot(event, cot_config=_TEST_CONFIG)
     assert xml_text is not None
     assert 'stale="3024-05-20T15:20:00' in xml_text
+
+
+# R1-11 cold re-read: CR-02 (semi_minor -> point@le fabricated a vertical
+# bound the event never claimed), CR-11 (unconditional geopointsrc="GPS"
+# altsrc="GPS" fabricated source pedigree on fusion products), and the banked
+# _parse_utc MAJOR (a gate-clean malformed ts escaped as a raw ValueError out
+# of an adapter whose documented failure signal is None).
+
+
+def _ellipse_event():
+    return {
+        "event": {
+            "event_type": "STATE_EVENT",
+            "event_subtype": "TRACK_STATE",
+            "ts": "2026-01-17T14:30:05Z",
+        },
+        "payload": {
+            "track_id": "emitter-01",
+            "class": "a-h-G",
+            "geo": {
+                "lat": 43.49, "lon": -112.04, "alt_m": 1500,
+                "error_ellipse_m": {
+                    "semi_major": 150.0,
+                    "semi_minor": 80.0,
+                    "orientation_deg": 45.0,
+                },
+            },
+            "valid_for_ms": 60000,
+        },
+    }
+
+
+def test_zmeta_to_cot_never_derives_le_from_the_horizontal_ellipse():
+    # CR-02. CoT point@le is LINEAR error - the vertical/HAE uncertainty -
+    # while contract section 21.2 defines error_ellipse_m as purely
+    # horizontal (orientation_deg is degrees true north; the schema carries
+    # no vertical-uncertainty field at all). semi_minor -> le told TAK
+    # "altitude known to +/-80 m" - certainty the source never had.
+    xml_text = zmeta_to_cot_module.zmeta_to_cot(_ellipse_event(), cot_config=_TEST_CONFIG)
+    assert xml_text is not None
+    point = ET.fromstring(xml_text).find("point")
+    assert point.attrib["ce"] == "150.0"  # conservative circular bound
+    assert point.attrib["le"] == "9999999.0"  # unknown convention, never 80.0
+
+
+def test_zmeta_to_cot_ellipse_le_comes_only_from_the_deployment_model():
+    # default_le is the deployment's characterized vertical error model. An
+    # ellipse on the event must not displace it: the ellipse carries no
+    # vertical information at all.
+    config = dict(_TEST_CONFIG)
+    config["default_le"] = 42.5
+    xml_text = zmeta_to_cot_module.zmeta_to_cot(_ellipse_event(), cot_config=config)
+    assert xml_text is not None
+    assert ET.fromstring(xml_text).find("point").attrib["le"] == "42.5"
+
+
+def test_zmeta_to_cot_omits_precisionlocation_without_an_asserted_source():
+    # CR-11. geopointsrc/altsrc are pedigree attributes TAK reads as "how
+    # this position/altitude was derived". The event model carries no
+    # geo-source field, so absent an explicit operator assertion the element
+    # is omitted (refuse-or-omit) - an RF-triangulated fusion product must
+    # never arrive wearing a GPS badge.
+    xml_text = zmeta_to_cot_module.zmeta_to_cot(_ellipse_event(), cot_config=_TEST_CONFIG)
+    assert xml_text is not None
+    assert ET.fromstring(xml_text).find(".//precisionlocation") is None
+    assert "GPS" not in xml_text
+    assert "geopointsrc" not in xml_text
+
+
+def test_zmeta_to_cot_precisionlocation_carries_only_the_asserted_source():
+    # A deployment that knows how its positions are derived asserts it in
+    # config; the attributes carry exactly the asserted strings, never a
+    # substituted default.
+    config = dict(_TEST_CONFIG)
+    config["geopointsrc"] = "RF-TRIANGULATION"
+    config["altsrc"] = "BARO"
+    xml_text = zmeta_to_cot_module.zmeta_to_cot(_ellipse_event(), cot_config=config)
+    assert xml_text is not None
+    precision = ET.fromstring(xml_text).find(".//precisionlocation")
+    assert precision is not None
+    assert precision.attrib["geopointsrc"] == "RF-TRIANGULATION"
+    assert precision.attrib["altsrc"] == "BARO"
+    assert precision.attrib["ellipse_major"] == "150.0"
+    assert precision.attrib["ellipse_minor"] == "80.0"
+    assert precision.attrib["ellipse_angle"] == "45.0"
+
+
+def test_zmeta_to_cot_precisionlocation_partial_assertion_stamps_one_source():
+    # Asserting the position source says nothing about the altitude source;
+    # the unasserted attribute is omitted, not defaulted.
+    config = dict(_TEST_CONFIG)
+    config["geopointsrc"] = "GPS"
+    xml_text = zmeta_to_cot_module.zmeta_to_cot(_ellipse_event(), cot_config=config)
+    assert xml_text is not None
+    precision = ET.fromstring(xml_text).find(".//precisionlocation")
+    assert precision is not None
+    assert precision.attrib["geopointsrc"] == "GPS"
+    assert "altsrc" not in precision.attrib
+
+
+def test_zmeta_to_cot_no_precisionlocation_without_an_ellipse():
+    # Boundary pin (passes before and after the CR-11 fix): the element
+    # exists to carry the ellipse; an asserted source with no ellipse has
+    # nothing to attach to.
+    event = _ellipse_event()
+    del event["payload"]["geo"]["error_ellipse_m"]
+    config = dict(_TEST_CONFIG)
+    config["geopointsrc"] = "GPS"
+    config["altsrc"] = "GPS"
+    xml_text = zmeta_to_cot_module.zmeta_to_cot(event, cot_config=config)
+    assert xml_text is not None
+    assert ET.fromstring(xml_text).find(".//precisionlocation") is None
+
+
+# Banked _parse_utc MAJOR: jsonschema does not enforce format: date-time
+# without an installed FormatChecker, so a hostile-but-gate-clean event.ts
+# reaches _parse_utc, and the ValueError used to escape the adapter.
+
+_UNPARSEABLE_TS = (
+    "2026-07-27T99:99:99Z",  # field values out of range
+    "2026-02-30T12:00:00Z",  # day out of range for month
+    "not-a-timestamp",       # not a timestamp at all
+)
+
+
+def test_zmeta_to_cot_malformed_ts_refuses_instead_of_raising():
+    # Same refusal as a missing ts: an unparseable time claim is no time
+    # claim, and CoT time/start/stale cannot be derived from it. The
+    # valid-ts control run proves the None comes from the ts specifically.
+    assert zmeta_to_cot_module.zmeta_to_cot(_ellipse_event(), cot_config=_TEST_CONFIG) is not None
+    for ts in _UNPARSEABLE_TS:
+        event = _ellipse_event()
+        event["event"]["ts"] = ts
+        result = zmeta_to_cot_module.zmeta_to_cot(event, cot_config=_TEST_CONFIG)
+        assert result is None, (ts, result)
+
+
+def test_zmeta_to_cot_malformed_ts_still_projects_in_wall_clock_mode():
+    # Boundary pin: wall-clock replay mode never reads ts - now-stamping is
+    # its documented purpose (mirrors the missing-ts wall-clock test above).
+    event = _ellipse_event()
+    event["event"]["ts"] = "not-a-timestamp"
+    xml_text = zmeta_to_cot_module.zmeta_to_cot(event, cot_config={"use_wall_clock": True})
+    assert xml_text is not None
+
+
+def test_gate_clean_naive_ts_is_refused_not_localized():
+    # Attack-pass completion (2026-07-27): "1969-12-31Z" satisfies the
+    # schema's Z$ pattern (gate-clean) yet parses NAIVE on this
+    # interpreter; pre-fix .astimezone() asked the platform - OSError
+    # pre-epoch on Windows, silent host-local reinterpretation elsewhere.
+    # The refusal contract is None: never a traceback, never a shifted
+    # instant.
+    for ts in ("1969-12-31Z", "2026-W01-1Z"):
+        event = _ellipse_event()
+        event["event"]["ts"] = ts
+        assert zmeta_to_cot_module.zmeta_to_cot(event, cot_config=_TEST_CONFIG) is None
+
+
+def test_how_pedigree_is_config_asserted_never_defaulted():
+    # Attack-pass completion (2026-07-27): every event carried a hardcoded
+    # how="m-g" (machine/GPS-derived) - the CR-11 class at its last
+    # unmigrated site, a fabricated derivation pedigree on positions that
+    # may be RF-triangulated fusion products.
+    event = _ellipse_event()
+    root = ET.fromstring(zmeta_to_cot_module.zmeta_to_cot(event, cot_config=_TEST_CONFIG))
+    assert "how" not in root.attrib
+    asserted = dict(_TEST_CONFIG, how="m-g")
+    root = ET.fromstring(zmeta_to_cot_module.zmeta_to_cot(event, cot_config=asserted))
+    assert root.attrib["how"] == "m-g"

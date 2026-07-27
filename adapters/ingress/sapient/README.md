@@ -86,12 +86,17 @@ a resolvable latency — the maximum across declared modes applies
 **An unresolvable declaration is not the same as no declaration.** A node
 that declared a `maximum_latency` this adapter cannot resolve — unknown
 `Duration` units, a `NaN`/`Infinity` value, a value whose millisecond
-scaling overflows, or an integer with no float64 form — has told us its
-capture→send gap is bounded and left us unable to say by what. Skipping
-the widen and shipping the caller's bound unchanged would make that node
-publish a *tighter* `est_error_ms` than a node with a sane declaration
-(measured before this was closed: `0.5 s` declared → `505.0`, `NaN`
-declared → `5.0`). The worse the input, the cleaner the event — laundering.
+scaling overflows, an integer with no float64 form, or a strictly
+negative value (a capture-*before*-send bound is physically impossible;
+zero still resolves) — has told us its capture→send gap is bounded and
+left us unable to say by what. Skipping the widen and shipping the
+caller's bound unchanged would make that node publish a *tighter*
+`est_error_ms` than a node with a sane declaration (measured before this
+was closed: `0.5 s` declared → `505.0`, `NaN` declared → `5.0`). Worse
+still, a negative value used to *resolve* and be **added**, actively
+subtracting from the bound (measured: `-0.5 s` declared against a caller
+`5000.0` → `4500.0`, still `LOCKED`). The worse the input, the cleaner
+the event — laundering.
 
 So an unresolvable declaration degrades the event instead: `time_source`
 `UNKNOWN`, `sync_state` `UNSYNCED`, and `est_error_ms` the **wider** of the

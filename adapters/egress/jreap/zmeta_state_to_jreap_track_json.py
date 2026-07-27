@@ -69,9 +69,22 @@ def _has_non_finite(value):
 
 
 def _parse_utc(ts):
+    if not isinstance(ts, str):
+        # TypeError so the caller's documented None-refusal path handles a
+        # non-string ts; bare .endswith would raise AttributeError past it.
+        raise TypeError(f"ts must be a string, got {type(ts).__name__}")
     if ts.endswith("Z"):
         ts = ts[:-1] + "+00:00"
-    return datetime.fromisoformat(ts).astimezone(timezone.utc)
+    parsed = datetime.fromisoformat(ts)
+    if parsed.tzinfo is None:
+        # Gate-clean does not mean offset-carrying: "1969-12-31Z" and
+        # "2026-W01-1Z" satisfy the schema's `Z$` pattern yet parse NAIVE,
+        # and `.astimezone()` on a naive datetime asks the PLATFORM -
+        # silent host-local reinterpretation (a fabricated instant) or
+        # OSError pre-epoch on Windows. ValueError so the caller's
+        # documented None-refusal path handles it.
+        raise ValueError(f"ts parses without a UTC offset: {ts!r}")
+    return parsed.astimezone(timezone.utc)
 
 
 def _stale_time(time_dt, valid_for_ms):
@@ -105,9 +118,11 @@ def zmeta_state_to_jreap_track_json(event):
     """
     Convert a ZMeta STATE_EVENT/TRACK_STATE into a minimal tactical track JSON.
     Returns None if the input is not applicable: wrong event type/subtype,
-    missing track_id/geo/ts/valid_for_ms, a validity window whose stale
-    timestamp is not representable (see _stale_time), or any non-finite
-    (NaN/inf) number in the projected track.
+    missing track_id/geo/ts/valid_for_ms, a ts that is not a parseable
+    UTC-convertible instant (unparseable, non-string, or one the platform
+    cannot convert), a validity window whose stale timestamp is not
+    representable (see _stale_time), or any non-finite (NaN/inf) number in
+    the projected track.
     """
     if event.get("event", {}).get("event_type") != "STATE_EVENT":
         return None
@@ -123,7 +138,26 @@ def zmeta_state_to_jreap_track_json(event):
     if not track_id or not geo or not ts or valid_for_ms is None:
         return None
 
-    time_dt = _parse_utc(ts)
+    # Gate-clean does not mean parseable (banked R1-11 MAJOR): the schema's
+    # utcDateTime enforces only `"pattern": "Z$"` — `format: date-time` is
+    # advisory without an RFC 3339 format checker, and none is installed —
+    # so "2026-02-30T00:00:00Z" reaches this adapter schema-clean and raised
+    # ValueError out of the public entry point. Refusal, not repair: the
+    # timestamp keys both `timestamp` and `stale_time`, and a substituted
+    # instant would be a freshness claim the event never made.
+    #
+    # OSError is in the tuple for the same reason as the SAPIENT twins:
+    # `.astimezone()` delegates to the platform for a NAIVE datetime and
+    # raises OSError(EINVAL) on Windows for any pre-1970 instant.
+    # OverflowError: an offset can push the UTC conversion past
+    # datetime.min/max. Naive shapes CAN be gate-clean ("1969-12-31Z"
+    # satisfies the Z$ pattern yet parses offset-less), which is why
+    # _parse_utc refuses a naive result with a typed ValueError instead of
+    # ever letting it reach the platform delegate.
+    try:
+        time_dt = _parse_utc(ts)
+    except (ValueError, TypeError, OverflowError, OSError):
+        return None
     stale_dt = _stale_time(time_dt, valid_for_ms)
     if stale_dt is None:
         return None

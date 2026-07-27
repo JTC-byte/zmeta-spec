@@ -2061,6 +2061,7 @@ _SANE_TIMING = {"time_source": "GPS_PPS", "sync_state": "LOCKED", "est_error_ms"
         ("value is Infinity", {"value": float("inf")}),
         ("value has no float64 form", {"value": 10 ** 400}),
         ("units are undeclarable", {"value": 2.0, "units": "TIME_UNITS_FORTNIGHTS"}),
+        ("value is strictly negative", {"value": -0.5}),
     ],
 )
 def test_unresolvable_declared_latency_never_narrows_est_error_ms(label, latency_kwargs):
@@ -2115,6 +2116,62 @@ def test_declared_latency_states_are_not_collapsed_by_the_store():
     sane = _store(_latency_registration_msg(0.5))
     assert sane.max_latency_ms(NODE) == 500.0
     assert sane.latency_unresolved(NODE) is False
+
+
+def test_a_negative_declared_latency_is_unresolvable_not_a_narrowing():
+    # R1-11 CR-01: the SIGN member of the same unresolvable-declaration
+    # class. A negative maximum_latency is physically impossible (capture
+    # before send) — exactly the malformed-wire threat model this module
+    # states for itself — yet `duration_ms` guarded units, numeric-ness and
+    # finiteness, never sign, so the declaration resolved as a REAL latency
+    # and was ADDED. Measured before the fix, caller LOCKED at 5000.0 ms: a
+    # declared -0.5 s published est_error_ms 4500.0, narrower than the
+    # caller's own un-widened bound, sync_state still LOCKED, validate()
+    # "pass". The disposition is the same as NaN/overflow/unknown-units:
+    # unresolvable, degraded UNKNOWN/UNSYNCED, floored — never subtracted.
+    store = _store(_latency_registration_msg(-0.5))
+    assert store.max_latency_ms(NODE) is None
+    assert store.latency_unresolved(NODE) is True
+
+    timing = translate(
+        _detection_msg(), SCHEMA_ID, registration=store,
+        timing_quality={"time_source": "GPS_PPS", "sync_state": "LOCKED",
+                        "est_error_ms": 5000.0},
+    )[0]["payload"]["timing_quality"]
+    # max(caller 5000, unknown-clock fallback 60000) — never 4500.
+    assert timing["est_error_ms"] == 60000.0
+    assert timing["sync_state"] == "UNSYNCED"
+    assert timing["time_source"] == "UNKNOWN"
+
+
+def test_a_negative_declared_latency_cannot_eat_the_unknown_clock_floor():
+    # CR-01, the no-caller-timing half: with no timing_quality at all the
+    # labels are ALREADY UNKNOWN/UNSYNCED, so the number is the only channel
+    # left — a declared -55 s ate 55 s off the module's own 60000 ms
+    # unknown-clock floor (60000 -> 5000) with zero compensating loudness.
+    timing = translate(
+        _detection_msg(), SCHEMA_ID,
+        registration=_store(_latency_registration_msg(-55.0)),
+    )[0]["payload"]["timing_quality"]
+    assert timing["est_error_ms"] == 60000.0
+    assert timing["sync_state"] == "UNSYNCED"
+    assert timing["time_source"] == "UNKNOWN"
+
+
+def test_a_zero_declared_latency_stays_a_valid_resolvable_bound():
+    # The boundary of the sign guard: zero is a physically expressible
+    # declaration (no capture->send gap worth stating), so it must keep
+    # resolving — the guard is strictly-negative only, never "non-positive".
+    store = _store(_latency_registration_msg(0.0))
+    assert store.max_latency_ms(NODE) == 0.0
+    assert store.latency_unresolved(NODE) is False
+
+    timing = translate(
+        _detection_msg(), SCHEMA_ID, registration=store,
+        timing_quality=dict(_SANE_TIMING),
+    )[0]["payload"]["timing_quality"]
+    assert timing["est_error_ms"] == 5.0
+    assert timing["sync_state"] == "LOCKED"
 
 
 def test_a_resolvable_active_mode_is_not_degraded_by_another_broken_mode():
@@ -2389,6 +2446,7 @@ _BROKEN_LATENCY_DECLARATIONS = [
     ("value overflows the ms scale", {"broken_value": _BIG}),
     ("integer with no float64 form", {"broken_value": 10 ** 400}),
     ("undeclarable units", {"broken_value": 2.0, "units": "TIME_UNITS_FORTNIGHTS"}),
+    ("strictly negative value", {"broken_value": -0.5}),
 ]
 
 _CALLER_TIMINGS = [
@@ -2771,3 +2829,67 @@ def test_the_canonical_claim_guard_refuses_on_its_own_not_via_the_backstop(monke
     assert [entry["type"] for entry in native["native_classification"]] == [
         "UAV", "GROUND_VEHICLE"
     ]
+
+
+def test_unnamed_mode_latency_declaration_never_silently_drops():
+    # Attack-pass completion (2026-07-27): a maximum_latency declared in a
+    # mode_definition entry with no usable mode_name was skipped whole -
+    # no widen for a sane bound, no latency_unresolved for a broken one -
+    # while the named twin adjudicated both. Pin parity, both directions.
+    tq = {"time_source": "GPS_PPS", "sync_state": "LOCKED", "est_error_ms": 5000.0}
+
+    def _unnamed(msg):
+        del msg["registration"]["mode_definition"][0]["mode_name"]
+        return msg
+
+    named_sane = translate(
+        _detection_msg(), SCHEMA_ID,
+        registration=_store(_latency_registration_msg(0.5)),
+        timing_quality=dict(tq),
+    )[0]["payload"]["timing_quality"]
+    unnamed_sane = translate(
+        _detection_msg(), SCHEMA_ID,
+        registration=_store(_unnamed(_latency_registration_msg(0.5))),
+        timing_quality=dict(tq),
+    )[0]["payload"]["timing_quality"]
+    assert unnamed_sane == named_sane
+    assert unnamed_sane["est_error_ms"] == 5500.0
+
+    named_broken = translate(
+        _detection_msg(), SCHEMA_ID,
+        registration=_store(_latency_registration_msg(float("nan"))),
+        timing_quality=dict(tq),
+    )
+    unnamed_broken = translate(
+        _detection_msg(), SCHEMA_ID,
+        registration=_store(_unnamed(_latency_registration_msg(float("nan")))),
+        timing_quality=dict(tq),
+    )
+    assert [e["payload"]["timing_quality"] for e in unnamed_broken] == [
+        e["payload"]["timing_quality"] for e in named_broken
+    ]
+
+
+def test_wire_mode_named_like_the_synthetic_key_cannot_collide():
+    # Verifier finding (2026-07-27, introduced-by-batch, closed same day):
+    # the unnamed-mode entry first used a STRING synthetic key, so a wire
+    # mode literally named "__unnamed_mode_0" overwrote it - silently
+    # dropping the unnamed 9 s bound (the exact laundering the fix
+    # exists to prevent). The tuple key cannot equal any wire string.
+    tq = {"time_source": "GPS_PPS", "sync_state": "LOCKED", "est_error_ms": 5000.0}
+    msg = _latency_registration_msg(9.0)
+    del msg["registration"]["mode_definition"][0]["mode_name"]
+    msg["registration"]["mode_definition"].append(
+        {
+            "mode_name": "__unnamed_mode_0",
+            "maximum_latency": {"units": "TIME_UNITS_SECONDS", "value": 0.1},
+        }
+    )
+    timing = translate(
+        _detection_msg(), SCHEMA_ID,
+        registration=_store(msg),
+        timing_quality=dict(tq),
+    )[0]["payload"]["timing_quality"]
+    # max(9000, 100) widens by the unnamed bound; the string-key collision
+    # produced 5100.0 here.
+    assert timing["est_error_ms"] == 14000.0

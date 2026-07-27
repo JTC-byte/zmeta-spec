@@ -42,9 +42,9 @@ than published with a substituted default — a fallback to
 
 | Feature | Details |
 |---------|---------|
-| Error uncertainty | Resolves CE/LE from `geo.error_ellipse_m`; emits `9999999.0` (CoT's unknown-value convention) when the event carries no uncertainty |
+| Error uncertainty | Resolves CE from `geo.error_ellipse_m` `semi_major` (the conservative circular bound); emits `9999999.0` (CoT's unknown-value convention) when the event carries no uncertainty. LE is never derived from the horizontal ellipse — see the mapping table |
 | Heading/speed | `<track>` element renders directional arrows on TAK map |
-| Precision location | `<precisionlocation>` for MIL-STD-2525 elliptical uncertainty |
+| Precision location | `<precisionlocation>` for MIL-STD-2525 elliptical uncertainty — emitted only when the config asserts `geopointsrc`/`altsrc`; source pedigree is never defaulted to `"GPS"` |
 | Team coloring | `<__group>` element for ATAK friendly platform team panels |
 | Hostile labels | Persistent `<labels_on>` so CE readout is always visible |
 | Callsign fallback | Hostile emitters show "RF Emitter" / "Detection" instead of raw track IDs |
@@ -59,7 +59,7 @@ than published with a substituted default — a fallback to
 | `payload.track_id` | `uid` | |
 | `payload.class` | `type` | Falls back to `a-u-G` |
 | `payload.geo.lat/lon/alt_m` | `point lat/lon/hae` | Absent `alt_m` → `hae="9999999.0"` (CoT unknown-value convention — never a fabricated 0 m claim); a real `alt_m` of `0.0` passes through as `0.0` |
-| `payload.geo.error_ellipse_m` | `point ce/le` + `precisionlocation` | `semi_major` → `ce`, `semi_minor` → `le`; absent → `9999999.0` (CoT unknown-value convention) |
+| `payload.geo.error_ellipse_m` | `point ce` + `precisionlocation` | `semi_major` → `ce` as the **conservative circular bound** (a circle of radius `semi_major` covers the whole ellipse, so `ce` never understates the horizontal error); absent → `9999999.0` (CoT unknown-value convention). `le` is **never** derived from the ellipse: CoT `le` is linear (vertical/HAE) error, the contract's ellipse is purely horizontal (§21.2, orientation from true north), and the event model has no vertical-uncertainty field — so `le` is always `default_le` (`9999999.0` unless the deployment has a real vertical error model). `precisionlocation` is emitted only when a source is asserted (see Configuration) |
 | `payload.valid_for_ms` | `stale` | `time + valid_for_ms`; a sum `datetime` cannot represent refuses the event (`None`) rather than substituting the config default |
 | `payload.heading_deg` | `track course` | Frame-preserving: both are degrees true north (see below) |
 | `payload.speed_mps` | `track speed` | |
@@ -90,10 +90,13 @@ cot_config = {
     "default_type": "a-u-G",           # Default CoT type
     "default_valid_for_ms": 300000,     # 5 minute stale time
     "default_ce": 9999999.0,           # CE (m) when event has no uncertainty
-    "default_le": 9999999.0,           # LE (m) when event has no uncertainty
+    "default_le": 9999999.0,           # LE (m) — always the emitted le; see below
     "friendly_team_name": "Cyan",      # ATAK team color
     "friendly_team_role": "Team Member",
     "use_wall_clock": False,           # Opt-in replay-display mode (see below)
+    "geopointsrc": None,               # Position-source pedigree; None = omit
+    "how": None,                       # Event derivation pedigree (e.g. "m-g"); None = omit
+    "altsrc": None,                    # Altitude-source pedigree; None = omit
 }
 ```
 
@@ -103,13 +106,28 @@ unknown" instead of asserting a precision the event never carried
 (semantics contract sections 4.7 / 12.2: never invent precision). Deployments
 that have a real, characterized error model for their sensors may override
 `default_ce`/`default_le`; leaving the defaults in place is the honest choice
-everywhere else.
+everywhere else. Note that `default_le` is *always* the emitted `le`: the
+event model carries no vertical-error field, so there is nothing on the event
+that may honestly feed it (in particular not the horizontal error ellipse).
+
+**Source provenance.** `geopointsrc`/`altsrc` are the `<precisionlocation>`
+pedigree attributes TAK consumers read as "how this position/altitude was
+derived". No ZMeta field carries that claim, so the adapter cannot infer it —
+the element is emitted only when the operator's config explicitly asserts a
+source (and only the asserted attribute is stamped; asserting the position
+source says nothing about the altitude source). With neither asserted the
+element is omitted entirely and the ellipse projects as the conservative
+`point@ce` plus human-readable remarks text. An RF-triangulated fusion
+product must never arrive on TAK wearing a GPS badge.
 
 **Timestamps.** By default CoT `time`/`start` come from the event's `ts` —
 event time is authoritative, and replayed or stale data must not render as
-live (semantics contract section 9.5). An event with no `event.ts` is
-refused (the adapter returns `None`) rather than silently stamped with the
-current time — fabricating freshness for malformed input would launder it.
+live (semantics contract section 9.5). An event with no `event.ts` — or a
+`ts` that does not parse as an RFC3339 instant, which still passes the schema
+gate because jsonschema does not enforce `format: date-time` without an
+installed `FormatChecker` — is refused (the adapter returns `None`) rather
+than silently stamped with the current time or allowed to escape as a raw
+`ValueError` — fabricating freshness for malformed input would launder it.
 `use_wall_clock: True` is an explicit replay-display mode for operators who
 have deliberately selected replay and want TAK to show fresh markers; it
 re-stamps the CoT timestamps to the current time (including for events with
