@@ -20,11 +20,11 @@
   `adapters/AUTHORING.md` path as the repo's timed receipt that the
   guide takes a new RF sensor from recorded output to a verified
   adapter in one sitting (**~13 min zero-shot authoring by external
-  wall-clock, ~25 min for the full verified cycle**; the ~40 min
-  figure some records first carried was the authoring agent's own
-  effort estimate, superseded by the measured receipt), independent
-  adversarial attack — verdict CLEAN, one value-honesty finding —
-  hardened and pinned same-sitting), and pinned to the pack's two
+  wall-clock, ~25 min for the full verified cycle**; the ~40 min figure
+  some records first carried was the authoring agent's own effort
+  estimate, superseded by the measured receipt; independent adversarial
+  attack — verdict CLEAN, one value-honesty finding — hardened and
+  pinned same-sitting), and pinned to the pack's two
   real-capture fixture pairs (colocated tests reproduce both
   `expected.json` outputs exactly, modulo the runtime-minted UUIDv7).
   Honesty decisions carried as the pack governs: the frame-unlabeled

@@ -126,7 +126,7 @@ class ValidationState:
                         code = record.get("reason_code")
                         if isinstance(code, str) and code.strip():
                             reason_codes.add(code.strip())
-                elif records is not None:  # noqa: E501 - see _UNADJUDICABLE_RISK_SHAPE
+                elif records is not None:
                     # Present but not the documented list shape: the labels
                     # cannot be read, so the evidence is UNADJUDICABLE, not
                     # unlabeled. Recording it as clean would drop a
