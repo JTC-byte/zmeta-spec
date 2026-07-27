@@ -16,6 +16,19 @@
 > *(Banner realigned 2026-07-27 — cold re-read CR-13; the previous banner
 > froze the cycle at its pre-audit state.)*
 
+- 2026-07-27 — Governed waves per the maintainer adjudication (`40be64a`,
+  `2a00ef2`, `7027a55`): `spec/compact-binary-mapping.md` gains the
+  normative fail-closed value-model clause — no CBOR tags (28/29 named;
+  the 11-byte two-meanings exhibit now refuses identically on both
+  backends), a declared nesting maximum (64), and a declared expansion
+  bound (2^20 nodes, refusal never materializes the expansion) — with
+  spec-sync pins for every claim (doctrine R1-11-02/03/18 → CHANGED).
+  `schema/zmeta-event-1.1.0.schema.json` TIME_STATUS branch now
+  enum-constrains `payload.state` (LOCKED/HOLDOVER/UNSYNCED/UP/DEGRADED/
+  DOWN) like its siblings — the B-04 self-contradiction is schema-visible;
+  v1.0 untouched and pinned byte-identical; new bad-event fixture (corpus
+  30); vocabulary lint covers the mirror (doctrine R1-11-15 → MINTED).
+  Manifest/claims regenerated (v1.1.16 identity, explicit provenance).
 - 2026-07-27 — R1-11 health fix wave (`25bb5fa`, `ede9bb6`, `dcabcc8`):
   fielded-safety and command-path fixes from the cold re-read record, every
   fix red-first pinned and adversarially attacked. SAPIENT ingress: a

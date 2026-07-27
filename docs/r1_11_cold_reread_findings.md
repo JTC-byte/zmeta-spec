@@ -665,3 +665,24 @@ The wave itself is recorded in the worklog and CHANGELOG (commits
   A-23 guard's degraded-mode contract: tagless/shallow checkout yields
   `set()`, not None, silently treating a published version as unpublished.
   The CR-12 pin rework covers the test side; the tool-side contract remains.
+
+Governed-wave (2026-07-27) attack residuals, banked the same way:
+
+- **VW-10 (MINOR)** `zmeta_compact.decode_event` admits bytes values (the
+  wire model needs them for UUID transport), so stray bytes in a non-UUID
+  slot survive decode as Python bytes — refused later by any JSON
+  serializer downstream (fail-closed, but far from the seam).
+- **VW-11 (OBSERVATION, documented in spec)** on the interpreting cbor2
+  fallback, a tag that collapses into an in-model value before the mapping
+  can see it (tag 2 around a SMALL integer) is undetectable post-decode —
+  stated as a residual in the new spec section rather than hidden.
+- **VW-12 (OBSERVATION)** TIME_STATUS enum follow-ons: the vocabulary is a
+  dual-dialect union (sync trio + link-style trio) — a future consolidation
+  is a Class B candidate; `UNKNOWN` is excluded by the derivation rule while
+  both status siblings include it; the mavlink `_TIME_STATUS_STATE_SYNONYMS`
+  map's TARGETS are not lint-covered (the lint checks declared vocabularies).
+- **VW-13 (OBSERVATION)** `decode_event` now refuses shared-but-acyclic
+  PYTHON input from direct in-process callers (sharing is treated as the
+  tag-28/29 footprint, which a tree decode cannot produce). Correct for
+  every current caller; a future in-process caller passing a legitimately
+  shared tree must deep-copy first.

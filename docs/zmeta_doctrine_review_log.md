@@ -82,8 +82,8 @@ and `policy/semantics.yaml` are untouched across the entire fix pass.
 | # | Tension | Gates in play | Status |
 |---|---|---|---|
 | R1-11-01 | No governed reason code for a non-finite value | 1 vs 3 | OPEN |
-| R1-11-02 | CBOR value-sharing tags 28/29 undefined; backends disagree | 4, 6 | **DECIDED** |
-| R1-11-03 | Compact mapping declares no maximum nesting depth | 4, 6 | **DECIDED** |
+| R1-11-02 | CBOR value-sharing tags 28/29 undefined; backends disagree | 4, 6 | **CHANGED** |
+| R1-11-03 | Compact mapping declares no maximum nesting depth | 4, 6 | **CHANGED** |
 | R1-11-04 | `timing_quality` cannot say "bound unresolved" | 2, 3 | OPEN |
 | R1-11-05 | `TASK_ACK` has no `UNKNOWN` state | 1, 3 | **HELD** |
 | R1-11-06 | Adapter refusals are invisible to the wire | 3, 6 | OPEN |
@@ -130,7 +130,7 @@ The question is whether a consumer can *responsibly act* on `SCHEMA_INVALID` +
 `details.field` — if yes, the existing code suffices and the recommendation
 should be dropped.
 
-### R1-11-02 — CBOR value-sharing tags 28/29 undefined · **DECIDED 2026-07-27**
+### R1-11-02 — CBOR value-sharing tags 28/29 undefined · **CHANGED 2026-07-27**
 
 The same 11-byte payload `d81ca16473656c66d81d00` decodes to a genuinely
 self-referential dict under `cbor2`, and to `{'self': 0}` under `zmeta_cbor`
@@ -157,7 +157,7 @@ non-conforming and worth correcting; (2) then have the `cbor2` fallback reject
 such datagrams at the ingress boundary so the backends agree. Step 1 is
 normative MUST text — Class B.
 
-### R1-11-03 — Compact mapping declares no maximum nesting depth · **DECIDED 2026-07-27**
+### R1-11-03 — Compact mapping declares no maximum nesting depth · **CHANGED 2026-07-27**
 
 An event with extensions nested 65–400 deep **encodes** under `cbor2` and
 **refuses** under `zmeta_cbor` (`DEFAULT_MAX_DEPTH = 64`). A cbor2-backed node
@@ -408,15 +408,15 @@ In-repo cross-references were swept in the same commit.)*
 
 | # | Tension | Gates | Status |
 |---|---|---|---|
-| R1-11-15 | `TIME_STATUS.state` is not enum-constrained while its two siblings are | 1, 3 | **DECIDED** |
+| R1-11-15 | `TIME_STATUS.state` is not enum-constrained while its two siblings are | 1, 3 | **MINTED** |
 | R1-11-16 | Adapter-declared vocabularies mirror governed enums by hand, unlinted | 1, 6 | **CHANGED** |
 | R1-11-17 | Formal release identity has no stated grammar | 5 | OPEN |
-| R1-11-18 | Compact mapping declares no size or expansion bound | 4, 6 | **DECIDED** |
+| R1-11-18 | Compact mapping declares no size or expansion bound | 4, 6 | **CHANGED** |
 | R1-11-19 | `--strict` makes a deliberately tolerated warn unrepresentable | 2, 3 | OPEN |
 | R1-11-20 | Two conventions the new pins now enforce, chosen not discovered | 5, 7 | OPEN |
 | R1-11-21 | Illustrative-example currency policy left inconsistent | 7 | OPEN |
 
-### R1-11-15 — `TIME_STATUS.state` is unconstrained by the schema · **DECIDED 2026-07-27**
+### R1-11-15 — `TIME_STATUS.state` is unconstrained by the schema · **MINTED 2026-07-27**
 
 **This is why B-04 was invisible.** `$defs/SystemPayload` enum-constrains
 `state` on the `LINK_STATUS` and `TASK_ACK` branches, but the `TIME_STATUS`
@@ -466,7 +466,7 @@ clean.
 enforcement point is **the cut, not the committed manifest**. Note the shape:
 a validator can only ever enforce a rule the spec has stated.
 
-### R1-11-18 — No size or expansion bound in the compact mapping · **DECIDED 2026-07-27**
+### R1-11-18 — No size or expansion bound in the compact mapping · **CHANGED 2026-07-27**
 
 CBOR value sharing lets a small datagram expand enormously. Measured: an
 ~800-byte shared-DAG datagram costs 2.77 s inside `dumps()` before refusing at
@@ -567,10 +567,14 @@ the implementing wave lands.
    expansion bound — the walk's memo makes the expanded node count linear-time
    computable — refusing beyond it with an explicit diagnostic. Implementation
    is its own governed wave in `spec/compact-binary-mapping.md`; the entries go
-   CHANGED when it lands.
+   CHANGED when it lands. **Landed the same day** (`40be64a`): the normative
+   "Value Model, Tags, and Expansion Bound (Fail Closed)" section, enforced
+   on both backends and spec-sync-pinned. All three entries are CHANGED.
 3. **R1-11-15 `TIME_STATUS.state` — Class B enum approved; DECIDED.**
    Constrain to a declared vocabulary matching the sibling branches at the
    next cut, with fixtures and conformance evidence; goes MINTED when it lands.
+   **Landed the same day** (`2a00ef2`): v1.1.0-only enum, bad-event fixture,
+   red-first pins, v1.0 byte-identical and pinned so. MINTED.
 4. **Round-3 register loss (cold re-read CR-03; a records decision, not a
    doctrine entry) — the loss is recorded as final.** No reconstruction
    round; the findings re-derive from the tree via scoped waves. Recorded in
@@ -591,6 +595,7 @@ no governed artifact was modified to produce any of them.
 | H1-04 | Vocabulary lint: mandated-gate wiring and schema breadth | 6, 7 | OPEN |
 | H1-05 | CoT `how`/pedigree omission vs consumer expectations | 4 | OPEN |
 | H1-06 | `_normalized_uses` member-shape tolerance is mirrored in filter_risk | 3 | OPEN |
+| H1-07 | Gateway plain-`cbor` envelope ingress still interprets tags on cbor2-only installs | 4, 6 | OPEN |
 
 ### H1-01 — ADAPTER_VERSION bump discipline · OPEN
 
@@ -633,6 +638,16 @@ unasserted — honest, but some TAK-ecosystem consumers may expect `how` on
 every event. Validate against the real display tools at the field exercise;
 if a consumer chokes, the answer is a deployment config assertion, never a
 restored hardcoded default.
+
+### H1-07 — Plain-`cbor` envelope ingress vs the fail-closed clause · OPEN
+
+The new value-model clause is enforced at the COMPACT decode seam. The
+gateway's plain-`cbor` (non-compact) envelope path falls back to bare
+`cbor2.loads` on cbor2-only installs (`gateway/src/gateway.py:~1119`), so a
+tagged/shared datagram on that envelope is still interpreted there, while
+zmeta_cbor installs now refuse it — a refusal-vs-acceptance divergence one
+envelope over from the one just closed. Candidate for the next scoped wave
+together with VW-01 (the validators' naive-ts arm).
 
 ### H1-06 — Member-shape tolerance mirrored across two surfaces · OPEN
 
@@ -695,6 +710,11 @@ The discipline to *add* a rule is matched by the discipline to *retire* one.
 
 ## Archive
 
-Terminal tension entries and retired rules, one line each. Empty for now — the
-first entries reach the archive when a tension hits its third recurrence or a
-rule is scored out.
+Terminal tension entries and retired rules, one line each.
+
+First terminal entries recorded 2026-07-27: R1-11-02/03/18 (CHANGED — the
+compact fail-closed clause), R1-11-15 (MINTED — the TIME_STATUS enum),
+R1-11-09/16 (CHANGED — the vocabulary-boundary definition and its lint).
+Their full sections remain in place above for the v1.1.17 cut review; the
+archival sweep (one-line summaries here, sections removed) is deferred to
+the next doctrine review pass so the cut reviewer sees full context.
