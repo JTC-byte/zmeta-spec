@@ -968,7 +968,7 @@ this cycle stays local and unpublished.
 
 ### 1. Method and what it could not see
 
-This audit ran against the working tree at `eb41794` with `origin/main` at `09118b3` — 18 held commits, `git diff --shortstat origin/main..eb41794` = 77 files, +4920 / −392, nothing pushed, tagged, or signed. (The anchor is written as `eb41794`, not `HEAD`, on purpose: `HEAD` has moved since, so a `HEAD`-relative figure would misdescribe what this audit actually read.) It ran read-only: no file was created, edited, or deleted; no git write command, no manifest or package builder was executed.
+This audit ran against the working tree at `eb41794` with `origin/main` at `09118b3` — 18 held commits, `git diff --shortstat 09118b3..eb41794` = 77 files, +4920 / −392, nothing pushed, tagged, or signed. (The anchor is written as `eb41794`, not `HEAD`, on purpose: `HEAD` has moved since, so a `HEAD`-relative figure would misdescribe what this audit actually read.) It ran read-only: no file was created, edited, or deleted; no git write command, no manifest or package builder was executed.
 
 Eleven independent lenses were run over the range, each with a distinct surface: partial-application residue; commit-message-to-diff truth; the promotion/policy lint; the vocabulary and non-finite sinks; the release and compact guards; the doc-currency guards; the record counts and validation inventory; blind-by-construction self-checks; the locked semantics contract; the schema/policy governed surfaces; the three core modules (`zmeta_compact.py`, `gateway/src/gateway.py`, `gateway/src/validators.py`); the adapters; the tools/release machinery; the test suite's own quality; and the seven design gates. Every candidate finding was then put through three-lens adversarial refutation, where a refuter's default was "not a defect" and the burden sat on the finder. **35 candidates were killed. 28 survived.** The refuted list in section 4 is not decoration — it is the bar.
 
@@ -1526,7 +1526,7 @@ field or type minted.
 - **A-13 (record accuracy) — FIXED AT THE CLASS LEVEL, and the class is
   wider than the finding said.** Re-measured: the range has grown well past
   the frozen figure. At the audit anchor,
-  `git diff --shortstat origin/main..eb41794` = 77 files, +4920 / −392;
+  `git diff --shortstat 09118b3..eb41794` = 77 files, +4920 / −392;
   the same command against `HEAD` reports more, and the working tree more
   again. Keeping the number correct is not achievable — every
   record commit falsifies it, which is exactly why this recurred five times.

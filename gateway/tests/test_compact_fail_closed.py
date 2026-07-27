@@ -552,12 +552,16 @@ class CompactFailClosedTest(unittest.TestCase):
                         zmeta_compact.dumps(event)
 
     def test_backend_native_codec_errors_become_refusals(self):
-        # The guard names built-in exceptions, but cbor2's CBOREncodeError /
-        # CBORDecodeError descend from CBORError -> Exception and are NOT
-        # ValueError subclasses. Depth 500 is the window where that is the
-        # SOLE failure: past cbor2's own 400-item nesting ceiling, below the
-        # interpreter's recursion limit. Whether an event refuses honestly
-        # must not depend on which CBOR library happens to be installed.
+        # HISTORY NOTE (2026-07-27 post-release): the encode scan now
+        # refuses depth > COMPACT_MAX_DEPTH before any backend runs, so the
+        # depth-500 window this test was built around no longer reaches
+        # cbor2 at all -- the refusal below now comes from the mapping's
+        # declared maximum. The backend-error conversion guard remains as
+        # defence in depth; the pre-backend property itself is pinned by
+        # test_overdeep_event_refuses_before_any_backend_encoder_runs.
+        # Original premise: cbor2's CBOREncodeError / CBORDecodeError
+        # descend from CBORError -> Exception, NOT ValueError, and depth 500
+        # sat past cbor2's 400-item ceiling but below the interpreter limit.
         if zmeta_compact.cbor2 is None:  # pragma: no cover - optional dep
             self.skipTest("cbor2 not installed")
         self.assertLess(500, sys.getrecursionlimit())
@@ -573,16 +577,73 @@ class CompactFailClosedTest(unittest.TestCase):
         finally:
             zmeta_compact.zmeta_cbor = original
 
+    def test_overdeep_event_refuses_before_any_backend_encoder_runs(self):
+        # Post-release CI catch (2026-07-27, run 30280679492): a C-extension
+        # cbor2 backend recurses on sender-controlled nesting depth and
+        # SEGFAULTS the process (exit 139) where the pure-Python backends
+        # raise catchable errors -- so every pure-Python local run was green
+        # while the Linux runner died inside this file. The mapping's
+        # declared maximum is therefore enforced by the encode scan itself,
+        # and this pin proves NO backend is ever handed an over-deep
+        # structure: both backends are replaced by sentinels that fail the
+        # test if any of their attributes is invoked. Red-first: on the
+        # pre-guard code the walk reaches the backend and the sentinel
+        # fires.
+        calls = []
+
+        class _NeverInvoked:
+            def __getattr__(self, name):
+                def _boom(*args, **kwargs):
+                    calls.append(name)
+                    raise AssertionError(
+                        "backend invoked for an over-deep event"
+                    )
+
+                return _boom
+
+        original_cbor2 = zmeta_compact.cbor2
+        original_zc = zmeta_compact.zmeta_cbor
+        try:
+            zmeta_compact.cbor2 = _NeverInvoked()
+            zmeta_compact.zmeta_cbor = _NeverInvoked()
+            event = self._v1_0_state()
+            event.setdefault("payload", {}).setdefault("extensions", {})[
+                "vendor"
+            ] = _deep_chain(zmeta_compact.COMPACT_MAX_DEPTH + 10)
+            with self.assertRaises(
+                zmeta_compact.CompactUnrepresentableError
+            ) as ctx:
+                zmeta_compact.dumps(event)
+            self.assertIn("declared maximum", str(ctx.exception))
+            self.assertEqual(calls, [])
+        finally:
+            zmeta_compact.cbor2 = original_cbor2
+            zmeta_compact.zmeta_cbor = original_zc
+
     def test_unencodable_int_scan_survives_hostile_nesting_depth(self):
         # The mapping-limit scan runs on the encode path, in front of nothing
         # that can rescue it: it must not tie the process stack to
         # sender-controlled nesting depth (same rule as
         # validators._find_forbidden_key).
+        # Since the post-release depth guard (2026-07-27), hostile depth
+        # refuses at the declared maximum BEFORE the walk ever reaches the
+        # leaf -- the container itself is unrepresentable, so the leaf's
+        # own defect is moot. The survives-hostile-depth property this test
+        # pins is unchanged: no RecursionError, a typed refusal either way.
         depth = _hostile_depth()
         self.assertGreater(depth, sys.getrecursionlimit())
-        clean = _deep_chain(depth)
-        self.assertIsNone(zmeta_compact._find_unrepresentable(clean))
-        found = zmeta_compact._find_unrepresentable(_deep_chain(depth, leaf=2**70))
+        for leaf in (None, 2**70):
+            with self.subTest(leaf=leaf):
+                with self.assertRaises(
+                    zmeta_compact.CompactUnrepresentableError
+                ) as ctx:
+                    zmeta_compact._find_unrepresentable(_deep_chain(depth, leaf=leaf))
+                self.assertIn("declared maximum", str(ctx.exception))
+        # The oversized-int RETURN arm stays covered at legal depth: the
+        # range finding must still come back from the bottom of a chain the
+        # mapping can carry.
+        legal = _deep_chain(zmeta_compact.COMPACT_MAX_DEPTH - 8, leaf=2**70)
+        found = zmeta_compact._find_unrepresentable(legal)
         self.assertIsNotNone(found)
         self.assertIn("CBOR 64-bit range", found)
         # Lists are the other container the walk descends; depth is
@@ -592,10 +653,17 @@ class CompactFailClosedTest(unittest.TestCase):
             child = []
             current.append(child)
             current = child
-        self.assertIsNone(zmeta_compact._find_unrepresentable(deep_list))
+        with self.assertRaises(zmeta_compact.CompactUnrepresentableError) as ctx:
+            zmeta_compact._find_unrepresentable(deep_list)
+        self.assertIn("declared maximum", str(ctx.exception))
+        legal_list = current = []
+        for _ in range(zmeta_compact.COMPACT_MAX_DEPTH - 8):
+            child = []
+            current.append(child)
+            current = child
         current.append(2**70)
         self.assertIn(
-            "CBOR 64-bit range", zmeta_compact._find_unrepresentable(deep_list)
+            "CBOR 64-bit range", zmeta_compact._find_unrepresentable(legal_list)
         )
 
     def test_unencodable_int_scan_terminates_on_self_referential_structure(self):

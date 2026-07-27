@@ -572,15 +572,33 @@ def _find_unrepresentable(value: Any, path: str = "$"):
     CBOREncodeValueError -- and which one an operator sees would depend on the
     local install.
     """
-    stack = [(_ENTER, value, (path, None))]
+    stack = [(_ENTER, value, (path, None), 0)]
     on_path = set()
     scanned = set()
     while stack:
-        mode, current, link = stack.pop()
+        mode, current, link, depth = stack.pop()
         if mode is _LEAVE:
             on_path.discard(id(current))
             continue
         if isinstance(current, _JSON_CONTAINERS):
+            # The declared nesting maximum is a property of the MAPPING
+            # (spec: compact v1 cannot represent deeper), so it is enforced
+            # here on the encode path too -- BEFORE any backend serializer
+            # runs. This is not the rejected node budget from the paragraph
+            # above: a depth-65 event has no compact encoding at all, so
+            # refusing it discards nothing deliverable. Found the hard way
+            # (post-release CI, 2026-07-27): a C-extension cbor2 backend
+            # recurses on sender-controlled depth and SEGFAULTS the process
+            # where the pure-Python backends raise a catchable error -- the
+            # guard must fire before the structure ever reaches a backend.
+            if depth > COMPACT_MAX_DEPTH:
+                raise CompactUnrepresentableError(
+                    f"compact cannot encode {_joined_path(link)}: nesting "
+                    "depth exceeds the compact mapping's declared maximum "
+                    f"of {COMPACT_MAX_DEPTH}, so no conforming consumer "
+                    "could decode it; refused before any backend encoder "
+                    "runs"
+                )
             marker = id(current)
             if marker in on_path:
                 raise CompactUnrepresentableError(
@@ -594,7 +612,7 @@ def _find_unrepresentable(value: Any, path: str = "$"):
                 continue
             on_path.add(marker)
             scanned.add(marker)
-            stack.append((_LEAVE, current, link))
+            stack.append((_LEAVE, current, link, depth))
             if isinstance(current, dict):
                 # Keys are scanned as well as values -- the walk used to push
                 # values only, so nothing about a key was ever checked. A
@@ -614,10 +632,12 @@ def _find_unrepresentable(value: Any, path: str = "$"):
                             "event has no canonical envelope to decode back "
                             "to; the producer must emit string keys"
                         )
-                    stack.append((_ENTER, item, (f".{key}", link)))
+                    stack.append((_ENTER, item, (f".{key}", link), depth + 1))
             else:
                 for index in range(len(current) - 1, -1, -1):
-                    stack.append((_ENTER, current[index], (f"[{index}]", link)))
+                    stack.append(
+                        (_ENTER, current[index], (f"[{index}]", link), depth + 1)
+                    )
             continue
         if current is None or isinstance(current, _JSON_SCALARS):
             # Non-finite floats are the one scalar that is in the JSON value

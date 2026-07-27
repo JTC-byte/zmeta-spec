@@ -103,7 +103,7 @@
   `git diff --shortstat origin/main..HEAD` — no total is frozen here,
   because the range grows with every record commit and the frozen figure
   was falsified by the commit that wrote it (A-13); at the fresh audit's
-  anchor, `git diff --shortstat origin/main..eb41794` = 77 files,
+  anchor, `git diff --shortstat 09118b3..eb41794` = 77 files,
   +4920 / −392, over 18 commits. The
   record's "What was touched — validation inventory" maps it (governed
   surfaces first: `schema/`+`policy/` took only three additive
