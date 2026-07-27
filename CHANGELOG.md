@@ -40,6 +40,36 @@
   kernel gate all flags exit 0, examples 51/51, adapter harness 48/48,
   pytest 1377 + 1060 subtests, `check_compat --target v1.1.17`
   0 failures (2 deliberate degraded-timing warnings).
+- 2026-07-27 (post-v1.1.17, latest) — the UxS command-loop pair
+  (maintainer-directed; the GCS-tasking prerequisite from the 2026-07-17
+  fielding roadmap). NEW `policy/command-evidence.yaml` + gateway
+  enforcement: a COMMAND_EVENT citing motivating INFERENCE/FUSION/STATE
+  parents via existing `lineage.based_on` is checked against what the
+  gateway saw upstream — unknown/evicted parent → LINEAGE_PARENT_UNRESOLVED
+  (tunable), non-motivating parent type → LINEAGE_PARENT_TYPE_INVALID,
+  and a parent whose recorded `risk_adjudication` prohibits
+  COMMAND_BASIS/AUTONOMY_TASKING → LINEAGE_MISMATCH naming the parent,
+  the blocking uses, and the upstream reason codes: a quarantined or
+  degraded track can no longer silently become the basis of a retasking
+  order, and automation commands are auditable back to their evidence.
+  Zero minted vocabulary; bounded evidence index (4096, eviction =
+  unresolved, flood tradeoff documented in the policy file); bare
+  operator commands stay legal by default with a strict
+  `require_evidence` knob for gated automations; policy risk-mode and
+  document-structure lints cover the new block; refusals ride the
+  documented schema-valid SCHEMA_VIOLATION shape (a pre-existing
+  strict-mode escalation hole got the same guard in passing).
+  `docs/zmeta_track_lifecycle_pattern.md` (advisory) expresses track
+  new/active/stale/lost/merged/split/retired and the load-bearing
+  "command-grade track" criteria entirely in current vocabulary — NO
+  lifecycle vocabulary minted (the roadmap candidate stays reserved; its
+  evidence fields now record the 2026-07-17 deployment as tripwire leg
+  n=1 with the second leg awaited) — plus the fielding-gate ladder:
+  display now; GCS tasking behind the evidence check + a SITL
+  end-to-end pass; P2P retasking additionally behind authenticated
+  transport and lifecycle promotion. Doctrine H1-08 banked (wanted
+  evidence codes ride lineage codes pending the R1-11-01/-10 pattern).
+  Battery: pytest 1410 + 1070 subtests, kernel gate all flags exit 0.
 - 2026-07-27 (post-v1.1.17) — kernel-adjacent residuals closed, each
   red-first pinned and adversarially attacked: the validators'
   naive-timestamp arm (gate-clean naive shapes now refuse at the parse

@@ -40,10 +40,12 @@ from validators import (
     ValidationState,
     _find_non_finite,
     _is_non_finite_number,
+    apply_command_evidence_policy_action,
     apply_external_promotion_policy_action,
     apply_timing_freshness_degradation,
     load_policy,
     load_schema,
+    validate_command_evidence,
     validate_lineage,
     validate_profile,
     validate_producer_authority,
@@ -2220,6 +2222,42 @@ def process_message(
             ]
         warnings.extend(warns)
 
+    # Command-evidence lineage check: sits beside the other lineage-tier
+    # checks, sharing the same ValidationState the task_id/dedupe machinery
+    # below uses. When a COMMAND_EVENT cites motivating parents, the citations
+    # are checked against what this gateway saw upstream (bounded index).
+    ok, violations = validate_command_evidence(
+        instance,
+        policy.get("command_evidence", {}),
+        state=timing_state,
+        profile=profile,
+        severity_map=severity_map,
+    )
+    if violations:
+        apply_command_evidence_policy_action(
+            instance, violations, policy.get("command_evidence", {})
+        )
+        fails, warns = _split_violations(violations)
+        if fails:
+            violation = fails[0]
+            if metrics:
+                metrics.record_violation(violation["code"], event_id=event_id, producer=producer)
+            # The evidence-lineage reason codes are not in the deliberately
+            # task-limited TASK_ACK vocabulary, so this refusal rides the
+            # SCHEMA_VIOLATION shape (the documented force_schema_violation
+            # path); task correlation stays in details.task_id.
+            return [
+                build_violation_event(
+                    violation["code"],
+                    original=instance,
+                    details=violation.get("details"),
+                    contract_hashes=contract_hashes,
+                    stamp_contract_hash=stamp_contract_hash,
+                    force_schema_violation=True,
+                )
+            ]
+        warnings.extend(warns)
+
     ok, violations = validate_producer_authority(
         instance, policy.get("producer_authority", {}), severity_map
     )
@@ -2278,6 +2316,17 @@ def process_message(
         violation = warnings[0]
         if metrics:
             metrics.record_violation(violation["code"], event_id=event_id, producer=producer)
+        # A strict-mode refusal of a COMMAND_EVENT is emitted as a TASK_ACK,
+        # whose reason_code vocabulary is deliberately task-limited. A warn
+        # code outside that vocabulary (the command-evidence lineage codes
+        # make this reachable) must ride the SCHEMA_VIOLATION shape instead —
+        # otherwise the gateway's own diagnostic is schema-invalid on the
+        # wire, a refusal the consumer cannot validate.
+        task_ack_codes = (
+            policy.get("semantics", {})
+            .get("system_event", {})
+            .get("task_ack_allowed_reason_codes", [])
+        )
         return [
             build_violation_event(
                 violation["code"],
@@ -2285,6 +2334,7 @@ def process_message(
                 details=violation.get("details"),
                 contract_hashes=contract_hashes,
                 stamp_contract_hash=stamp_contract_hash,
+                force_schema_violation=violation["code"] not in task_ack_codes,
             )
         ]
 
@@ -2425,7 +2475,14 @@ def main():
     dedupe_cache = TaskDedupeCache()
     event_dedupe_cache = EventDedupeCache()
     task_ack_dedupe_cache = TaskAckDedupeCache()
-    validation_state = ValidationState()
+    command_evidence_cfg = policy.get("command_evidence", {})
+    validation_state = ValidationState(
+        command_evidence_max_entries=(
+            command_evidence_cfg.get("evidence_index_max_entries")
+            if isinstance(command_evidence_cfg, dict)
+            else None
+        )
+    )
     logger = None
     if settings["metrics_log_path"]:
         logger = MetricsLogger(

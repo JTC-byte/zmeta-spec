@@ -596,6 +596,7 @@ no governed artifact was modified to produce any of them.
 | H1-05 | CoT `how`/pedigree omission vs consumer expectations | 4 | OPEN |
 | H1-06 | `_normalized_uses` member-shape tolerance is mirrored in filter_risk | 3 | OPEN |
 | H1-07 | Gateway plain-`cbor` envelope ingress still interprets tags on cbor2-only installs | 4, 6 | **CHANGED** |
+| H1-08 | Command-evidence refusals ride lineage codes; TASK_ACK cannot name them | 1, 3 | OPEN |
 
 ### H1-01 — ADAPTER_VERSION bump discipline · OPEN
 
@@ -659,6 +660,21 @@ diagnostics. Residual siblings banked as VW-15 (the `auto` and `compact`
 branch call sites still reach bare `cbor2.loads` pre-decode on
 cbor2-only installs; resource-knob parity; the scanner-absent install
 combination).
+
+### H1-08 — Command-evidence refusals ride lineage codes · OPEN
+
+The command-evidence check (2026-07-27, maintainer-directed) reuses
+LINEAGE_MISMATCH / LINEAGE_PARENT_UNRESOLVED for its two new refusal
+conditions rather than minting COMMAND_EVIDENCE_* codes — correct under
+gate 1 and the R1-11-01 reuse doctrine, but the same watch applies: if an
+operator cannot filter "evidence prohibited for command basis" apart from
+generic lineage mismatches in practice, the code wants minting as Class B.
+Related seams, same entry: the TASK_ACK reason vocabulary is deliberately
+task-limited so evidence refusals ride the documented
+force_schema_violation SCHEMA_VIOLATION shape; and risk_dimension reuses
+'lineage' pending the R1-11-10 dimension-boundary question. Adjudicate
+together with R1-11-01/-10 when the pattern is visible — the multi-UxS
+event is the natural evidence window.
 
 ### H1-06 — Member-shape tolerance mirrored across two surfaces · OPEN
 

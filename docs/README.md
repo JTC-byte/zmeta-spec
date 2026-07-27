@@ -19,6 +19,8 @@ Advisory, current-facing documents for users of the standard:
   the locked vocabulary.
 - `zmeta_correlation_pattern.md` — cross-sensor correlation using existing
   vocabulary.
+- `zmeta_track_lifecycle_pattern.md` — track lifecycle and command-grade
+  track adjudication using existing vocabulary.
 - `zmeta_contract_to_stack_crosswalk.md` — where each contract rule is
   implemented and tested in the reference stack.
 - `zmeta_change_governance.md` — the change process for humans and AI agents

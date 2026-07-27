@@ -716,3 +716,22 @@ Kernel-residuals wave (2026-07-27, post-v1.1.17) closures and residue:
   three inconsistent naive-datetime doctrines (validators refuse,
   `adapters/ingress/time_utils` stamps UTC, the compact encoder refuses) —
   unify deliberately in a scoped wave.
+
+Command-loop pair (2026-07-27, post-v1.1.17) attack residuals:
+
+- **VW-16 (OBSERVATION, documented in policy)** — command-evidence
+  flood-eviction: under the reference `unresolved_parent_mode: warn`, an
+  automation flooding >4096 distinct events can evict a command-prohibited
+  parent from the bounded evidence index, downgrading its citation from
+  REJECT to unresolved-WARN. Documented as the mode tradeoff in
+  `policy/command-evidence.yaml`; strict deployments set `reject`.
+- **VW-17 (banked wants, doctrine H1-08)** — wanted-but-not-minted reason
+  codes for the two new refusal conditions (evidence-prohibited-for-command,
+  evidence-required-but-absent), currently riding LINEAGE_MISMATCH /
+  LINEAGE_PARENT_UNRESOLVED honestly; the TASK_ACK vocabulary cannot name an
+  evidence refusal (rides the documented force_schema_violation shape); and
+  `risk_dimension: lineage` reuse pending the R1-11-10 boundary question.
+  Also: a command-evidence corpus example awaits the strict-warn
+  representability decision (doctrine R1-11-14/19), and
+  `policy/lineage.yaml` `allowed_parent_event_types` has no COMMAND_EVENT
+  entry (the command-type check lives in command-evidence policy only).

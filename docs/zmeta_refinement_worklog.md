@@ -4,7 +4,28 @@
 
 - Last updated: 2026-07-27 (post-publish; bladeRF reference adapter landed)
 - Quick handoff: `docs/zmeta_refinement_handoff.md`
-- **2026-07-27 (post-publish, latest) — VIRTUAL-PI VERIFICATION, THE
+- **2026-07-27 (post-publish, latest) — THE COMMAND-LOOP PAIR LANDED
+  (maintainer-directed).** Wave A, attack verdict CLEAN: the
+  command-evidence lineage check — `policy/command-evidence.yaml` (S1-15
+  risk-model shape, lint-covered) + `validate_command_evidence` +
+  bounded ValidationState evidence index (4096, eviction=unresolved) +
+  gateway wiring beside the command machinery; refusals reuse
+  LINEAGE_MISMATCH / LINEAGE_PARENT_UNRESOLVED / LINEAGE_PARENT_TYPE_INVALID
+  (zero minted vocabulary), degrade stamps the S1-15 risk record, bare
+  commands default-legal, `require_evidence` strict knob for automations;
+  29 red-first pins. Wave B: `docs/zmeta_track_lifecycle_pattern.md`
+  expresses the lifecycle + command-grade criteria in current vocabulary
+  only; roadmap candidate stays RESERVED with evidence legs recorded
+  honestly (n=1 + awaited event); three attack doc-accuracy findings
+  fixed same-sitting (preset default boundary stated precisely,
+  per-code dispositions, policy enumeration). Banked: H1-08 (wanted
+  evidence codes), VW-16 (flood-eviction tradeoff, documented in
+  policy), VW-17 (seams). Battery: **1410 + 1070 subtests**, gate all
+  flags exit 0, risk-mode lint ok, roadmap validator ok, corpus 51/51.
+  Event queue: all agent-executable items DONE — remaining items await
+  hardware/access (real-Pi throughput, TAK display validation with the
+  cot.config knob, SAPIENT live-enclave, SITL end-to-end).
+- **2026-07-27 (post-publish) — VIRTUAL-PI VERIFICATION, THE
   cot.config KNOB, AND THE TWO-NODE QUICKSTART.** Docker build+run — the
   one checklist item the cut could not exercise — is now verified both
   ways: x86 native (stock compose, corpus replayed end-to-end,

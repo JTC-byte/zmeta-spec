@@ -1,0 +1,99 @@
+# Command-evidence lineage check (UxS command loop, GCS-originated tasking).
+#
+# A COMMAND_EVENT may CITE the inference/fusion evidence that motivated it via
+# the existing lineage vocabulary (lineage.based_on). This policy configures
+# how the gateway checks those citations against what it saw upstream, so a
+# retasking automation's command provably rests on evidence that permitted it:
+#
+#   - a cited parent the gateway never saw (or evicted from its bounded
+#     evidence index) -> LINEAGE_PARENT_UNRESOLVED per unresolved_parent_mode;
+#   - a cited parent whose event_type cannot motivate a command
+#     -> LINEAGE_PARENT_TYPE_INVALID per parent_type_mismatch_mode;
+#   - a cited parent whose risk_adjudication records carry a use limit
+#     prohibiting command basis (COMMAND_BASIS / AUTONOMY_TASKING)
+#     -> LINEAGE_MISMATCH per prohibited_use_mode.
+#
+# A bare command with NO cited parents stays legal by default: a human
+# operator's direct tasking has no fused parent. Deployments gating automation
+# set require_evidence: true (optionally scoped by task_type) so machine
+# retasking must cite its motivation. WHEN parents are cited, checking is
+# always on (subject to `enabled`).
+#
+# Modes are reject | warn | degrade. warn and degrade forward the command with
+# a loud, filterable diagnostic; degrade additionally stamps the command's own
+# payload.extensions.risk_adjudication with the use limits below, so a
+# downstream consumer (tools/filter_risk.py presets) can exclude it from
+# autonomy execution. ignore is not a legal mode for command risk
+# (tools/lint_policy_risk_modes.py flags it).
+command_evidence:
+  enabled: true
+
+  # Strict knob for deployments gating automation. Default OFF: the reference
+  # posture never refuses a bare operator command. Set true to require cited
+  # evidence; leave require_evidence_task_types empty to apply to every
+  # COMMAND_EVENT, or list task types (e.g. [GOTO, ORBIT]) to scope it.
+  require_evidence: false
+  require_evidence_task_types: []
+  require_evidence_mode: reject
+
+  # Cited parent not present in the gateway's bounded evidence index — never
+  # seen upstream, or evicted (see evidence_index_max_entries). The honest
+  # disposition is UNRESOLVED, never a silent pass.
+  # Flood-eviction tradeoff (attack-pass observation, 2026-07-27): under
+  # warn, an automation able to push >evidence_index_max_entries distinct
+  # events through the gateway can evict a previously-seen
+  # command-prohibited parent, downgrading its citation from the
+  # prohibited-use REJECT to an unresolved WARN. Deployments gating real
+  # automations should set reject here, which closes that window: an
+  # evicted (unknown) parent then refuses instead of warning.
+  unresolved_parent_mode: warn
+
+  # Cited parent whose event_type cannot stand as command motivation.
+  parent_type_mismatch_mode: reject
+
+  # Cited parent whose risk adjudication prohibits command basis. Reference
+  # conformance is strict: honoring an upstream blocked-from-command-basis
+  # label is the S1-15 promise; warn/degrade still emit diagnostics.
+  prohibited_use_mode: reject
+
+  # Event types that may motivate a command when cited (the maintainer's
+  # command-loop record: commands cite motivating inference/fusion parents;
+  # STATE_EVENT is the fused-track projection an operator acts on).
+  motivating_parent_event_types:
+    - INFERENCE_EVENT
+    - FUSION_EVENT
+    - STATE_EVENT
+
+  # Use tokens (same spelling as tools/filter_risk.py and the other policy
+  # packs) that block a cited parent from standing as command basis when they
+  # appear in that parent's risk_adjudication prohibited_uses.
+  command_basis_use_tokens:
+    - COMMAND_BASIS
+    - AUTONOMY_TASKING
+
+  # Bounded memory: the gateway records (event_id -> event_type + adjudicated
+  # prohibited uses) for command-evidence resolution. Sender-controlled
+  # cardinality must not grow gateway memory without bound, so the index is
+  # capped; oldest entries are evicted first, and an evicted parent resolves
+  # as UNRESOLVED — honest, never silent. Invalid or non-positive values fall
+  # back to the built-in default (4096).
+  evidence_index_max_entries: 4096
+
+  # Use limits stamped on soft-accepted commands (warn/degrade dispositions).
+  # An accepted-but-shaky command may still be displayed and alerted on; it
+  # must not feed unattended autonomy execution.
+  use_limits:
+    warn:
+      allowed_uses:
+        - DISPLAY
+        - LOCAL_AWARENESS
+        - ALERTING
+      prohibited_uses:
+        - AUTONOMY_TASKING
+    degrade:
+      allowed_uses:
+        - DISPLAY
+        - LOCAL_AWARENESS
+        - ALERTING
+      prohibited_uses:
+        - AUTONOMY_TASKING

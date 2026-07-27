@@ -9,7 +9,7 @@
 # authority stays in spec/semantics-contract.md.
 
 roadmap_version: 1
-last_updated: "2026-07-08"
+last_updated: "2026-07-27"
 source_plan: docs/s1_11_future_versioned_semantic_branch_roadmap_plan.md
 evidence_bar: >
   Promotion from reserved/proposed into a named version branch requires the
@@ -193,7 +193,19 @@ candidates:
     registry_refs: [TRACK_NEW, TRACK_ACTIVE, TRACK_STALE, TRACK_LOST, TRACK_MERGED, TRACK_SPLIT, TRACK_RETIRED]
     depends_on: []
     required_surfaces: default
-    promotion_evidence: []
+    promotion_evidence:
+      - >
+        2026-07-17 maintainer-directed UxS command-loop fielding roadmap
+        (docs/zmeta_refinement_worklog.md): a fielded UxS deployment whose
+        platform-to-platform retasking phase names track-lifecycle promotion
+        as a prerequisite (display loop fieldable now; GCS tasking gates on
+        the command-evidence check plus a SITL end-to-end pass). Counted as
+        tripwire evidence leg n=1 of the two-implementation bar.
+      - >
+        2026-07 status: a second independent multi-UxS deployment leg is
+        anticipated and awaited; promotion is explicitly not-now until it
+        lands AND demonstrates lifecycle needs beyond the advisory
+        current-vocabulary expressions.
     tripwires:
       - >
         Meets the promotion evidence bar; note the advisory correlation
@@ -203,7 +215,13 @@ candidates:
     recommendation: >
       Plan after projection and lineage coverage remain stable; merge/split
       must be representable without mutating old events.
-    notes: Lineage rules for merge/split; gateway dedupe interaction.
+    notes: >
+      Lineage rules for merge/split; gateway dedupe interaction. Advisory
+      current-vocabulary expression: docs/zmeta_track_lifecycle_pattern.md
+      (2026-07-27) covers new/active/stale/lost/retired/merged/split and
+      command-grade adjudication with existing vocabulary, labels, and
+      tooling; the tripwire's "beyond that pattern" bar applies to that
+      document as well.
 
   - id: compute-elasticity
     display_name: Compute elasticity / degradation state

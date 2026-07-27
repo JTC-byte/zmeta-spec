@@ -537,3 +537,11 @@ The pattern is the alphabet doing its job: fusion creates identity,
 inference claims association, observations stay honest facts, state
 projects belief, and policy enforces the boundaries in between. Nothing new
 was needed -- which is the interoperability guarantee working as designed.
+
+## 8. Related Pattern: Track Lifecycle
+
+The lifecycle of the identities this pattern creates -- new, active, stale,
+lost, merged/split, retired, and the command-grade adjudication that decides
+whether a track may motivate tasking -- is expressed, likewise without new
+vocabulary, in `docs/zmeta_track_lifecycle_pattern.md`. Its merge/split
+section cites Section 4 of this document rather than restating it.

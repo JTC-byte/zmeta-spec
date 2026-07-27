@@ -1,6 +1,6 @@
 import json
 import math
-from collections import deque
+from collections import OrderedDict, deque
 from collections.abc import Mapping, Sequence
 from collections.abc import Set as AbstractSet
 from decimal import Decimal
@@ -14,14 +14,35 @@ from referencing import Registry, Resource
 from referencing.jsonschema import DRAFT202012
 
 
+# Bound on the command-evidence index a ValidationState keeps (event_id ->
+# event_type + adjudicated prohibited uses). The index exists so a
+# COMMAND_EVENT's lineage citations can be checked against what the gateway
+# actually saw upstream; sender-controlled cardinality must not grow gateway
+# memory without bound, so the index evicts oldest-first at this cap and an
+# evicted parent resolves as UNRESOLVED — the honest disposition, never a
+# silent pass (policy/command-evidence.yaml#evidence_index_max_entries).
+DEFAULT_COMMAND_EVIDENCE_INDEX_MAX_ENTRIES = 4096
+
+
 class ValidationState:
-    def __init__(self):
+    def __init__(self, command_evidence_max_entries=None):
         self.timing_sources = set()
         self.latest_timing = {}
         self.events = {}
         self.event_ids = set()
         self.command_task_ids = set()
         self.task_ack_keys = set()
+        try:
+            cap = int(command_evidence_max_entries)
+        except (TypeError, ValueError):
+            cap = 0
+        if cap <= 0:
+            # A mangled cap must not silently disable resolution (everything
+            # would report unresolved) or unbound the index; fall back loud
+            # in documentation, quiet in behavior: the shipped default.
+            cap = DEFAULT_COMMAND_EVIDENCE_INDEX_MAX_ENTRIES
+        self.command_evidence_max_entries = cap
+        self.command_evidence = OrderedDict()
 
     def has_timing(self, event):
         return self.get_timing(event)[1] is not None
@@ -46,6 +67,7 @@ class ValidationState:
                 "event_subtype": event_block.get("event_subtype"),
                 "event": event,
             }
+            self._record_command_evidence(event_id, event_type, payload)
         if event_type == "COMMAND_EVENT" and isinstance(payload, dict):
             task_id = payload.get("task_id")
             if task_id:
@@ -59,6 +81,43 @@ class ValidationState:
 
     def get_event(self, event_id):
         return self.events.get(event_id)
+
+    def _record_command_evidence(self, event_id, event_type, payload):
+        """Record the bounded summary the command-evidence check reads.
+
+        Only what the check needs is kept: the parent's event_type (can it
+        motivate a command at all?) and the use tokens its risk_adjudication
+        records prohibit, with the reason codes that carried them (so a
+        refusal can name the upstream adjudication it is honoring). The full
+        token set is stored rather than a pre-filtered command subset, so a
+        policy change to command_basis_use_tokens applies honestly to
+        evidence recorded before it.
+        """
+        prohibited = set()
+        reason_codes = set()
+        if isinstance(payload, dict):
+            extensions = payload.get("extensions")
+            if isinstance(extensions, dict):
+                records = extensions.get("risk_adjudication")
+                if isinstance(records, list):
+                    for record in records:
+                        if not isinstance(record, dict):
+                            continue
+                        tokens = _list_values(record.get("prohibited_uses"))
+                        if not tokens:
+                            continue
+                        prohibited.update(token.upper() for token in tokens)
+                        code = record.get("reason_code")
+                        if isinstance(code, str) and code.strip():
+                            reason_codes.add(code.strip())
+        self.command_evidence[event_id] = {
+            "event_type": event_type,
+            "prohibited_uses": tuple(sorted(prohibited)),
+            "risk_reason_codes": tuple(sorted(reason_codes)),
+        }
+        self.command_evidence.move_to_end(event_id)
+        while len(self.command_evidence) > self.command_evidence_max_entries:
+            self.command_evidence.popitem(last=False)
 
     def record_timing(self, event):
         event_block = event.get("event", {}) if isinstance(event, dict) else {}
@@ -134,6 +193,10 @@ def load_policy(policy_dir):
     timing_freshness_cfg = (
         load_yaml(timing_freshness_path) if timing_freshness_path.exists() else {}
     )
+    command_evidence_path = policy_dir / "command-evidence.yaml"
+    command_evidence_cfg = (
+        load_yaml(command_evidence_path) if command_evidence_path.exists() else {}
+    )
     codes_cfg = load_yaml(policy_dir / "violation-codes.yaml")
     severity_map = {}
     for item in codes_cfg.get("violation_codes", []):
@@ -149,6 +212,7 @@ def load_policy(policy_dir):
         "producer_authority": producer_authority_cfg.get("producer_authority", producer_authority_cfg),
         "lineage": lineage_cfg.get("lineage", lineage_cfg),
         "timing_freshness": timing_freshness_cfg.get("timing_freshness", timing_freshness_cfg),
+        "command_evidence": command_evidence_cfg.get("command_evidence", command_evidence_cfg),
         "violation_codes": codes_cfg.get("violation_codes", []),
         "violation_severities": severity_map,
     }
@@ -1744,6 +1808,10 @@ _POLICY_BLOCK_RISK = {
         ["TIMING_STATUS_HOLDOVER_NON_MONOTONIC"],
     ),
     "lineage": ("lineage", ["LINEAGE_PARENT_UNRESOLVED"]),
+    "command_evidence": (
+        "lineage",
+        ["LINEAGE_PARENT_UNRESOLVED", "LINEAGE_PARENT_TYPE_INVALID", "LINEAGE_MISMATCH"],
+    ),
     "producer_authority": ("external_promotion", ["PRODUCER_NOT_ALLOWED"]),
     "producer_authority.external_state_promotion": (
         "external_promotion",
@@ -1931,6 +1999,49 @@ def lint_policy_risk_modes(policy):
             lineage,
             "parent_type_mismatch_mode",
             ["LINEAGE_PARENT_TYPE_INVALID"],
+            "lineage",
+        )
+    )
+
+    # Command-evidence: the command-tier sibling of the lineage checks above.
+    # ignore is never legal here — a command resting on unresolved, wrong-type,
+    # or command-prohibited evidence is material command risk at every profile.
+    command_evidence = _mapping_or_empty(
+        policy, "command_evidence", "command_evidence", _block_issue
+    )
+    entries.extend(
+        _policy_mode_entries(
+            "command_evidence",
+            command_evidence,
+            "require_evidence_mode",
+            ["LINEAGE_MISMATCH"],
+            "lineage",
+        )
+    )
+    entries.extend(
+        _policy_mode_entries(
+            "command_evidence",
+            command_evidence,
+            "unresolved_parent_mode",
+            ["LINEAGE_PARENT_UNRESOLVED"],
+            "lineage",
+        )
+    )
+    entries.extend(
+        _policy_mode_entries(
+            "command_evidence",
+            command_evidence,
+            "parent_type_mismatch_mode",
+            ["LINEAGE_PARENT_TYPE_INVALID"],
+            "lineage",
+        )
+    )
+    entries.extend(
+        _policy_mode_entries(
+            "command_evidence",
+            command_evidence,
+            "prohibited_use_mode",
+            ["LINEAGE_MISMATCH"],
             "lineage",
         )
     )
@@ -2606,8 +2717,22 @@ def lint_routing_producer_enforcement_structure(policy):
 # empty routing.yaml is not equivalent to anything legal: it silently empties
 # every routing gate and must still be reported.
 _POLICY_DOCUMENT_WRAPPERS = {
-    "producer-authority.yaml": ("producer_authority", "external_promotion", True),
-    "routing.yaml": ("routing", "routing", False),
+    # filename: (wrapper key, risk_dimension, absence_is_legal, reason codes
+    # the gate this document configures refuses under — so a mangled wrapper
+    # is filterable by the same codes as the enforcement it disables).
+    "producer-authority.yaml": (
+        "producer_authority",
+        "external_promotion",
+        True,
+        ["PRODUCER_NOT_ALLOWED"],
+    ),
+    "routing.yaml": ("routing", "routing", False, ["PRODUCER_NOT_ALLOWED"]),
+    "command-evidence.yaml": (
+        "command_evidence",
+        "lineage",
+        True,
+        ["LINEAGE_PARENT_UNRESOLVED", "LINEAGE_PARENT_TYPE_INVALID", "LINEAGE_MISMATCH"],
+    ),
 }
 
 
@@ -2616,19 +2741,21 @@ def lint_policy_document_structure(policy_dir):
     issues = []
     directory = Path(policy_dir)
 
-    def _issue(path, risk_dimension, message):
+    def _issue(path, risk_dimension, message, reason_codes):
         issues.append(
             {
                 "code": "POLICY_PRODUCER_AUTHORITY_STRUCTURE",
                 "path": path,
                 "risk_dimension": risk_dimension,
-                "reason_codes": ["PRODUCER_NOT_ALLOWED"],
+                "reason_codes": list(reason_codes),
                 "message": message,
             }
         )
 
     for filename in sorted(_POLICY_DOCUMENT_WRAPPERS):
-        wrapper, risk_dimension, absence_is_legal = _POLICY_DOCUMENT_WRAPPERS[filename]
+        wrapper, risk_dimension, absence_is_legal, reason_codes = _POLICY_DOCUMENT_WRAPPERS[
+            filename
+        ]
         path = directory / filename
         if not path.exists():
             # An absent document is the documented "no policy of this kind"
@@ -2643,6 +2770,7 @@ def lint_policy_document_structure(policy_dir):
                 risk_dimension,
                 f"{filename} is not parseable YAML, so the whole gate it "
                 f"carries is unreadable: {exc}",
+                reason_codes,
             )
             continue
         if absence_is_legal and not document:
@@ -2657,6 +2785,7 @@ def lint_policy_document_structure(policy_dir):
                 "loader falls back to its permissive default and the gate this "
                 "file configures is not applied at all — a one-character typo "
                 "in this key is invisible to every in-memory check",
+                reason_codes,
             )
     return issues
 
@@ -3640,6 +3769,236 @@ def validate_lineage(event, lineage_policy, state=None, profile=None, severity_m
             violations.append(violation)
 
     return _finish(violations)
+
+
+# Command-evidence lineage check (UxS command loop, GCS-originated tasking;
+# maintainer record 2026-07-17). A COMMAND_EVENT may cite its motivating
+# inference/fusion parents via the EXISTING lineage vocabulary
+# (lineage.based_on); this check makes the citation auditable: the command
+# provably rests on evidence the gateway saw and whose adjudicated use limits
+# permitted command basis. Every reason code below is pre-existing governed
+# vocabulary; the conditions are reported under the closest honest code:
+#   - never seen / evicted        -> LINEAGE_PARENT_UNRESOLVED
+#   - type cannot motivate        -> LINEAGE_PARENT_TYPE_INVALID
+#   - use limits prohibit command -> LINEAGE_MISMATCH (the citation
+#     mismatches the cited evidence's adjudicated permitted uses; a
+#     condition-specific code would be a governed Class B mint — escalated,
+#     not assumed)
+# A bare command with NO citations stays legal unless the deployment enables
+# the require_evidence knob: a human operator's direct tasking has no fused
+# parent, and refusing it by default would break every fielded display loop.
+_COMMAND_EVIDENCE_POLICY_REF = "policy/command-evidence.yaml"
+# reject/warn/degrade only. "ignore" is not a legal mode for command risk —
+# lint_policy_risk_modes flags it, and an illegal value falls back to the
+# per-check default rather than silently widening acceptance.
+_COMMAND_EVIDENCE_MODES = {"reject", "warn", "degrade"}
+_COMMAND_EVIDENCE_CODES = {
+    "LINEAGE_PARENT_UNRESOLVED",
+    "LINEAGE_PARENT_TYPE_INVALID",
+    "LINEAGE_MISMATCH",
+}
+_DEFAULT_MOTIVATING_PARENT_EVENT_TYPES = ("INFERENCE_EVENT", "FUSION_EVENT", "STATE_EVENT")
+# Same spelling as tools/filter_risk.py and the shipped policy packs — a
+# parallel spelling here would split the use-token vocabulary.
+_DEFAULT_COMMAND_BASIS_USE_TOKENS = ("COMMAND_BASIS", "AUTONOMY_TASKING")
+
+
+def _command_evidence_mode(policy, key, profile, default):
+    value = policy.get(key, default) if isinstance(policy, dict) else default
+    if isinstance(value, dict):
+        value = value.get(profile, value.get("default", default))
+    mode = str(value or default).strip().lower()
+    if mode not in _COMMAND_EVIDENCE_MODES:
+        return default
+    return mode
+
+
+def validate_command_evidence(
+    event, command_evidence_policy, state=None, profile=None, severity_map=None
+):
+    # Same destroyed-block posture as validate_lineage: a non-mapping block
+    # cannot say `enabled: false`, so it runs the built-in per-check defaults
+    # and every diagnostic names the broken policy. An absent file loads as
+    # `{}` — a mapping — and keeps the same defaults silently (legal).
+    block_error = None
+    if not isinstance(command_evidence_policy, dict):
+        block_error = (
+            "the command_evidence policy block must be a mapping; got "
+            f"{type(command_evidence_policy).__name__}, so the built-in "
+            "per-check defaults were applied "
+            "(policy/command-evidence.yaml#command_evidence)"
+        )
+        command_evidence_policy = {}
+    elif command_evidence_policy.get("enabled", True) is False:
+        return True, []
+
+    event_block = event.get("event", {}) if isinstance(event, dict) else {}
+    if event_block.get("event_type") != "COMMAND_EVENT":
+        return True, []
+    payload = event.get("payload", {}) if isinstance(event, dict) else {}
+    if not isinstance(payload, dict):
+        payload = {}
+    event_profile = _profile_for_event(event, profile)
+    task_id = payload.get("task_id")
+    task_type = payload.get("task_type")
+    cited = sorted(set(_lineage_based_on(event)))
+    violations = []
+
+    def _finish():
+        if block_error is not None:
+            for entry in violations:
+                details = entry.get("details")
+                if isinstance(details, dict):
+                    details.setdefault("policy_error", block_error)
+        return not any(v.get("severity") == "fail" for v in violations), violations
+
+    def _emit(code, message, mode_key, default_mode, extra):
+        mode = _command_evidence_mode(
+            command_evidence_policy, mode_key, event_profile, default_mode
+        )
+        details = {
+            "event_id": event_block.get("event_id"),
+            "event_type": "COMMAND_EVENT",
+            "task_id": task_id,
+            "task_type": task_type,
+            "profile": event_profile,
+        }
+        details.update(extra)
+        if mode == "degrade":
+            details["action"] = "degrade"
+        violation = _mode_violation(
+            code,
+            message,
+            mode,
+            details,
+            severity_map=severity_map,
+            risk_dimension="lineage",
+            policy=command_evidence_policy,
+            policy_ref=f"{_COMMAND_EVIDENCE_POLICY_REF}#{mode_key}",
+        )
+        if violation:
+            violations.append(violation)
+
+    if not cited:
+        # Bare commands are legal by default (direct operator tasking).
+        # WHEN the strict knob is on, absence of citations mismatches the
+        # lineage the policy requires.
+        require = command_evidence_policy.get("require_evidence", False) is True
+        scoped = set(_list_values(command_evidence_policy.get("require_evidence_task_types")))
+        if require and (not scoped or str(task_type or "") in scoped):
+            _emit(
+                "LINEAGE_MISMATCH",
+                "COMMAND_EVENT cites no motivating evidence in lineage.based_on "
+                "and policy requires evidence for this task_type",
+                "require_evidence_mode",
+                "reject",
+                {"require_evidence_task_types": sorted(scoped)},
+            )
+        return _finish()
+
+    motivating = set(
+        _list_values(command_evidence_policy.get("motivating_parent_event_types"))
+    ) or set(_DEFAULT_MOTIVATING_PARENT_EVENT_TYPES)
+    blocked_tokens = {
+        token.upper()
+        for token in (
+            _list_values(command_evidence_policy.get("command_basis_use_tokens"))
+            or _DEFAULT_COMMAND_BASIS_USE_TOKENS
+        )
+    }
+
+    index = getattr(state, "command_evidence", None) if state is not None else None
+    unresolved = []
+    invalid = []
+    prohibited = []
+    for parent_id in cited:
+        entry = index.get(parent_id) if index is not None else None
+        if entry is None:
+            # Never seen upstream, evicted from the bounded index, or no
+            # index at all — every flavour is the same honest answer: this
+            # citation cannot be resolved here.
+            unresolved.append(parent_id)
+            continue
+        parent_type = entry.get("event_type")
+        if parent_type not in motivating:
+            invalid.append({"event_id": parent_id, "event_type": parent_type})
+            continue
+        blocking = sorted(set(entry.get("prohibited_uses") or ()) & blocked_tokens)
+        if blocking:
+            item = {
+                "event_id": parent_id,
+                "event_type": parent_type,
+                "prohibited_command_uses": blocking,
+            }
+            codes = sorted(set(entry.get("risk_reason_codes") or ()))
+            if codes:
+                item["risk_reason_codes"] = codes
+            prohibited.append(item)
+
+    if unresolved:
+        _emit(
+            "LINEAGE_PARENT_UNRESOLVED",
+            "COMMAND_EVENT cites motivating evidence that is not available in "
+            "the gateway's bounded evidence index",
+            "unresolved_parent_mode",
+            "warn",
+            {"unresolved": unresolved},
+        )
+    if invalid:
+        _emit(
+            "LINEAGE_PARENT_TYPE_INVALID",
+            "COMMAND_EVENT cites a parent whose event_type cannot motivate a command",
+            "parent_type_mismatch_mode",
+            "reject",
+            {
+                "invalid_parents": invalid,
+                "motivating_parent_event_types": sorted(motivating),
+            },
+        )
+    if prohibited:
+        _emit(
+            "LINEAGE_MISMATCH",
+            "COMMAND_EVENT cites evidence whose risk adjudication prohibits "
+            "command basis",
+            "prohibited_use_mode",
+            "reject",
+            {
+                "prohibited_parents": prohibited,
+                "command_basis_use_tokens": sorted(blocked_tokens),
+            },
+        )
+    return _finish()
+
+
+def apply_command_evidence_policy_action(event, violations, command_evidence_policy):
+    """Stamp a degrade-accepted command with its risk adjudication.
+
+    No confidence math: a command has no fused confidence to reduce, so the
+    degradation IS the label — the risk_adjudication record carrying the
+    policy's use limits (AUTONOMY_TASKING prohibited in the reference file),
+    which downstream consumers (tools/filter_risk.py presets) act on. warn
+    and reject dispositions stamp nothing: warn forwards the command
+    unmodified beside its diagnostic, reject never forwards it.
+    """
+    if not isinstance(event, dict):
+        return False
+    changed = False
+    for violation in violations or []:
+        if not isinstance(violation, dict):
+            continue
+        if violation.get("code") not in _COMMAND_EVIDENCE_CODES:
+            continue
+        details = violation.get("details", {})
+        if not isinstance(details, dict):
+            continue
+        if details.get("action") != "degrade":
+            continue
+        if not str(details.get("policy_ref") or "").startswith(_COMMAND_EVIDENCE_POLICY_REF):
+            # The lineage codes are shared with validate_lineage; only this
+            # check's own violations may stamp the command.
+            continue
+        changed = _append_risk_adjudication(event, violation) or changed
+    return changed
 
 
 def validate_producer_authority(event, authority_policy, severity_map=None):
