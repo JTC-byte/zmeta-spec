@@ -4,7 +4,33 @@
 
 - Last updated: 2026-07-27 (post-publish; bladeRF reference adapter landed)
 - Quick handoff: `docs/zmeta_refinement_handoff.md`
-- **2026-07-27 (post-publish, latest) — BLADERF REFERENCE ADAPTER LANDED
+- **2026-07-27 (post-publish, latest) — VIRTUAL-PI VERIFICATION, THE
+  cot.config KNOB, AND THE TWO-NODE QUICKSTART.** Docker build+run — the
+  one checklist item the cut could not exercise — is now verified both
+  ways: x86 native (stock compose, corpus replayed end-to-end,
+  violations=0) and **arm64 under QEMU emulation as the virtual Pi**
+  (deps install from wheels, gateway starts, corpus forwarded clean, and
+  the schema/policy/semantics/contract hashes are BYTE-IDENTICAL to the
+  x86 run — the interop guarantee demonstrated across architectures).
+  Platform pins ran on arm64: 98 + 232 subtests green; one failure was
+  environmental only (a test wants a scratch dir under the read-only
+  deployment mount). Honest scope notes: cbor2 resolves to its
+  pure-Python build on that wheel set (the C-extension class stays
+  covered by Linux x86 CI), and real-Pi throughput awaits hardware.
+  NEW KNOB (outer-ring, red-first pinned in
+  gateway/tests/test_gateway_cot_config.py): the gateway config's
+  `cot.config` block now passes deployment-asserted projection knobs
+  (geopointsrc/altsrc/how, team names, default_ce/le) through to
+  zmeta_to_cot — previously the serve loop called the projection bare,
+  so no deployment could EVER assert a pedigree and the
+  `<precisionlocation>` ellipse detail was unreachable (found while
+  writing the quickstart; the TAK-ellipse story depends on it).
+  Unasserted stays omitted — the honest default is unchanged.
+  `docs/zmeta_two_node_quickstart.md` (advisory) ties it together:
+  topology, both node configs, the wire check, hash-match rule, the
+  honesty-signal cheat-sheet, and the per-team pre-event checklist.
+  Battery: pytest **1381 + 1060 subtests**, kernel gate all flags exit 0.
+- **2026-07-27 (post-publish) — BLADERF REFERENCE ADAPTER LANDED
   (the maintainer-directed "NEXT" item, timed).** The merged
   `edge-comms-bladerf` pack now has its runnable reference
   implementation at `adapters/ingress/bladerf/`, authored along the

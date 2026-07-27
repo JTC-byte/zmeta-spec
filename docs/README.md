@@ -10,6 +10,9 @@ Advisory, current-facing documents for users of the standard:
 - `zmeta_professional_overview.md` — the narrative overview of what ZMeta is,
   how the stack fits together, and the operating model. Start here when
   evaluating.
+- `zmeta_two_node_quickstart.md` — sensor-edge to COP in two gateway
+  containers (edge/Pi ingress → compact wire → GCS egress), with the
+  honesty-signal cheat-sheet for field debugging
 - `zmeta_mqtt_binding_guidance.md` — carrying ZMeta over MQTT honestly
   (topic shape, retain/tombstone, command traffic).
 - `zmeta_vocabulary_crosswalk.md` — mapping common deployment concepts onto

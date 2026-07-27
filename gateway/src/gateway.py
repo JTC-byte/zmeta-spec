@@ -1525,6 +1525,7 @@ def build_settings(root, args, config):
         "emit_cot": False,
         "cot_host": "127.0.0.1",
         "cot_port": 6969,
+        "cot_config": None,
         "schema_path": root / "schema" / "zmeta-event-1.0.schema.json",
         "policy_dir": root / "policy",
         "input_encoding": "json",
@@ -1556,6 +1557,16 @@ def build_settings(root, args, config):
         _apply_address(config.get("listen"), "listen_host", "listen_port", settings)
         _apply_address(config.get("forward"), "forward_host", "forward_port", settings)
         _apply_address(config.get("cot"), "cot_host", "cot_port", settings)
+        cot_block = config.get("cot")
+        if isinstance(cot_block, dict) and isinstance(cot_block.get("config"), dict):
+            # Deployment-asserted CoT projection knobs (geopointsrc /
+            # altsrc / how pedigrees, team names, default_ce/le, ...),
+            # passed through verbatim to zmeta_to_cot. Unasserted pedigrees
+            # stay OMITTED - the honest default - so a deployment that
+            # wants <precisionlocation> ellipse detail or a `how` attribute
+            # on TAK must assert its position source here, never have it
+            # fabricated for them (CR-11 / H1-05).
+            settings["cot_config"] = dict(cot_block["config"])
         if "emit_cot" in config:
             settings["emit_cot"] = bool(config["emit_cot"])
         if "schema_path" in config:
@@ -2576,7 +2587,9 @@ def main():
                 if sent and metrics:
                     metrics.record_forwarded()
                 if settings["emit_cot"]:
-                    cot_xml = zmeta_to_cot(outgoing)
+                    cot_xml = zmeta_to_cot(
+                        outgoing, cot_config=settings.get("cot_config")
+                    )
                     if cot_xml:
                         cot_payload = cot_xml.encode("utf-8")
                         _check_datagram_size(
