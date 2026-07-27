@@ -686,3 +686,33 @@ Governed-wave (2026-07-27) attack residuals, banked the same way:
   tag-28/29 footprint, which a tree decode cannot produce). Correct for
   every current caller; a future in-process caller passing a legitimately
   shared tree must deep-copy first.
+
+Kernel-residuals wave (2026-07-27, post-v1.1.17) closures and residue:
+
+- **VW-01 CLOSED** — the validators' naive-timestamp arm: `_parse_utc_z`
+  refuses naive parses (its documented cannot-parse signal), `_format_utc_z`
+  refuses naive datetimes, and — after the attack pass caught the first fix
+  routing naive statuses into a silent fail-open arm — `record_timing` now
+  refuses to record a TIME_STATUS whose own ts cannot be ordered, keeping
+  the source on the existing loud MISSING disposition. This also closed the
+  pre-existing arm where any gate-clean-but-unparseable recorded status made
+  the freshness gate silently fail-open for that source.
+- **VW-14 (MODERATE, banked)** — two siblings of the same shape remain: the
+  EVENT-side ts arm still passes freshness silently (`(True, [])`) when the
+  event's own ts is unparseable — a loud diagnostic wants a reason-code
+  decision (R1-11-01 family, governed-adjacent); and schema strictness for
+  `ts` is environment-dependent (jsonschema's `date-time` format is a no-op
+  without the optional `rfc3339-validator` package — the same
+  behavior-depends-on-installed-backend class as the cbor2 lesson). The
+  candidate fix is the anchored RFC3339 pattern already in-repo as
+  `zmeta_compact._UTC_TS_RE`, but tightening `utcDateTime` is a governed
+  schema decision.
+- **VW-15 (MODERATE, banked)** — H1-07 siblings: the `auto` and `compact`
+  envelope branches still call bare `_decode_cbor` (no pre-decode depth
+  bound on cbor2-only installs before the scan/decode_event run);
+  resource-bound knobs (max_bytes/items) differ across backends inside the
+  fixed seam; the zmeta_cbor-present/zmeta_compact-absent install combo
+  shifts non-finite refusal downstream to semantics; and the repo now holds
+  three inconsistent naive-datetime doctrines (validators refuse,
+  `adapters/ingress/time_utils` stamps UTC, the compact encoder refuses) —
+  unify deliberately in a scoped wave.

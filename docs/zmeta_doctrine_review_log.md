@@ -595,7 +595,7 @@ no governed artifact was modified to produce any of them.
 | H1-04 | Vocabulary lint: mandated-gate wiring and schema breadth | 6, 7 | OPEN |
 | H1-05 | CoT `how`/pedigree omission vs consumer expectations | 4 | OPEN |
 | H1-06 | `_normalized_uses` member-shape tolerance is mirrored in filter_risk | 3 | OPEN |
-| H1-07 | Gateway plain-`cbor` envelope ingress still interprets tags on cbor2-only installs | 4, 6 | OPEN |
+| H1-07 | Gateway plain-`cbor` envelope ingress still interprets tags on cbor2-only installs | 4, 6 | **CHANGED** |
 
 ### H1-01 — ADAPTER_VERSION bump discipline · OPEN
 
@@ -639,7 +639,7 @@ every event. Validate against the real display tools at the field exercise;
 if a consumer chokes, the answer is a deployment config assertion, never a
 restored hardcoded default.
 
-### H1-07 — Plain-`cbor` envelope ingress vs the fail-closed clause · OPEN
+### H1-07 — Plain-`cbor` envelope ingress vs the fail-closed clause · **CHANGED 2026-07-27**
 
 The new value-model clause is enforced at the COMPACT decode seam. The
 gateway's plain-`cbor` (non-compact) envelope path falls back to bare
@@ -648,6 +648,17 @@ tagged/shared datagram on that envelope is still interpreted there, while
 zmeta_cbor installs now refuse it — a refusal-vs-acceptance divergence one
 envelope over from the one just closed. Candidate for the next scoped wave
 together with VW-01 (the validators' naive-ts arm).
+
+**CHANGED same day:** `_decode_cbor_envelope` is now the plain-`cbor`
+ingress seam — zmeta_cbor when present, else cbor2 with a probed
+`max_depth` knob, plus the same fail-closed value-model scan the compact
+envelope runs, and a hard refusal when neither scanner is importable.
+Both envelopes now refuse tags/sharing/non-finite/over-deep input
+identically on both backends; refusals surface as counted SCHEMA_INVALID
+diagnostics. Residual siblings banked as VW-15 (the `auto` and `compact`
+branch call sites still reach bare `cbor2.loads` pre-decode on
+cbor2-only installs; resource-knob parity; the scanner-absent install
+combination).
 
 ### H1-06 — Member-shape tolerance mirrored across two surfaces · OPEN
 

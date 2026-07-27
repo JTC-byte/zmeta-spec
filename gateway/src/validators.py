@@ -70,6 +70,16 @@ class ValidationState:
             if isinstance(metrics, dict):
                 status = dict(metrics)
                 status["_event_ts"] = event_block.get("ts")
+                if _parse_utc_z(status["_event_ts"]) is None:
+                    # A TIME_STATUS whose own ts cannot be parsed to an
+                    # aware instant cannot honestly stand as a source's
+                    # "latest": it cannot be ordered against anything, and
+                    # recording it converted the hard TIMING_STATUS_MISSING
+                    # refusal into a silent clean pass for that source
+                    # (attack finding, 2026-07-27). Not recording keeps the
+                    # source on the existing loud MISSING disposition - no
+                    # new vocabulary, no silent participation.
+                    return
                 for key in _source_keys(event):
                     self.timing_sources.add(key)
                     current = self.latest_timing.get(key)
@@ -543,16 +553,37 @@ def _find_non_finite_confidence(event):
 
 
 def _parse_utc_z(value):
+    """Parse a trailing-Z UTC timestamp; None is the cannot-parse signal.
+
+    A parse that yields a NAIVE datetime is a failed parse. Python's
+    ``fromisoformat`` accepts date-only and ISO-week shapes and silently
+    ignores the appended ``+00:00`` ("1969-12-31Z" and "2026-W01-1Z" satisfy
+    the schema's ``Z$`` gate yet parse with ``tzinfo=None`` on 3.14). Letting
+    a naive value out of this seam poisons every downstream comparison and
+    subtraction with mixed naive/aware TypeError, which the receive loop's
+    last-resort guard turns into a whole dropped datagram (VW-01). Refusing
+    here routes gate-clean-but-naive shapes down the same arm every caller
+    already has for an unparseable timestamp.
+    """
     if not isinstance(value, str) or not value.endswith("Z"):
         return None
     try:
-        return datetime.fromisoformat(value[:-1] + "+00:00")
+        parsed = datetime.fromisoformat(value[:-1] + "+00:00")
     except ValueError:
         return None
+    if parsed.tzinfo is None:
+        return None
+    return parsed
 
 
 def _format_utc_z(value):
+    # A naive datetime is refused, not reinterpreted: .astimezone() on a
+    # naive value asks the PLATFORM (silent host-local reinterpretation, or
+    # OSError pre-epoch on Windows). tzinfo.utcoffset(None-returning) is the
+    # stdlib definition of naive, so both shapes take the refusal arm.
     if not isinstance(value, datetime):
+        return None
+    if value.tzinfo is None or value.tzinfo.utcoffset(value) is None:
         return None
     value = value.astimezone(timezone.utc)
     if value.microsecond:

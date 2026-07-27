@@ -525,16 +525,30 @@ class NonFiniteCborBackendTest(unittest.TestCase):
                 self.assertEqual(
                     "SCHEMA_INVALID", out[0]["payload"]["metrics"]["reason_code"]
                 )
-                # The refusal has to name where it was, or it is not usable.
-                self.assertIn("samples", out[0]["payload"]["metrics"]["field"])
+                # Since the fail-closed value-model clause (2026-07-27,
+                # spec/compact-binary-mapping.md) these shapes refuse at
+                # the DECODE seam on every backend, not at the downstream
+                # value gate - but the property this pin guards is
+                # unchanged: the refusal has to name where or what it
+                # refused, or it is not usable by an operator.
+                error = out[0]["payload"]["metrics"].get("error", "")
+                self.assertTrue(
+                    "samples" in error
+                    or "tag" in error
+                    or "wire value model" in error
+                    or "non-finite" in error,
+                    f"refusal names neither place nor cause: {error!r}",
+                )
                 json.dumps(out[0], allow_nan=False)
 
     def test_a_clean_cbor_container_still_passes(self):
-        # The refusal must be about non-finite values, not about sets or tags.
+        # The refusal must be about the wire value model, not about
+        # containers as such. (A tag-258 set used to be the "clean" control
+        # here; under the 2026-07-27 value-model clause every tag refuses
+        # at decode, so the clean control is a genuinely canonical
+        # container.)
         event = _state_event()
-        event["payload"]["extensions"]["acme.telemetry"]["samples"] = cbor2.CBORTag(
-            258, [1.0, 2.0]
-        )
+        event["payload"]["extensions"]["acme.telemetry"]["samples"] = [1.0, 2.0]
         out = self._process_cbor2(event)
         self.assertEqual("STATE_EVENT", out[0]["event"]["event_type"])
 

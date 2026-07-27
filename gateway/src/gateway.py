@@ -1119,6 +1119,85 @@ def _decode_cbor(message):
     return cbor2.loads(message)
 
 
+# H1-07 (docs/zmeta_doctrine_review_log.md, Cycle H1): the fail-closed value
+# model of spec/compact-binary-mapping.md ("Value Model, Tags, and Expansion
+# Bound") applies to ANY CBOR ingress, not only the compact envelope. The
+# preferred backend (zmeta_cbor) refuses tags, over-deep nesting, and
+# oversized messages at parse, but the cbor2 fallback interprets tags before
+# the gateway can see them: value-sharing tags 28/29 arrive as containers
+# reachable more than once (or as cycles), bignum tags 2/3 as integers
+# outside the 64-bit range. Pre-fix, a tagged or 65..400-deep datagram on
+# the plain-cbor envelope was accepted on a cbor2-only install and refused
+# on a zmeta_cbor install -- one datagram, two meanings, decided by the
+# local install, one envelope over from the seam the compact clause closed.
+#
+# The pre-decode depth bound below exists because cbor2.loads recurses on
+# wire nesting BEFORE any post-decode scan can run, and on the C-extension
+# builds that recursion past cbor2's own guard is a crash, not a catchable
+# error. Whether the installed cbor2 exposes the max_depth knob is PROBED
+# once, never guessed from version strings, because behavior must not
+# depend on which cbor2 backend or release is installed. Where the knob is
+# absent (cbor2 < 6), no pre-decode bound is possible on that path and the
+# residual is cbor2's internal nesting guard; the post-decode scan still
+# refuses everything it survives.
+def _cbor2_loads_supports_max_depth():
+    if cbor2 is None:
+        return False
+    try:
+        cbor2.loads(b"\x01", max_depth=8)  # 0x01 is the CBOR integer 1
+    except TypeError:
+        return False
+    except Exception:  # pragma: no cover - a cbor2 that cannot decode an int
+        return False
+    return True
+
+
+_CBOR2_LOADS_MAX_DEPTH = _cbor2_loads_supports_max_depth()
+
+
+def _decode_cbor_envelope(message):
+    """Decode a plain-cbor ingress datagram under the canonical value model.
+
+    _decode_cbor stays the raw codec shim; this is the ingress seam. The
+    value-model scan (zmeta_compact._refuse_unexpandable, the same one the
+    compact envelope runs in decode_event) runs on the DECODED object on
+    BOTH backends -- zmeta_cbor refuses every tag at parse but carries NaN
+    natively, so scanning only the fallback would leave the two envelopes
+    divergent in the other direction. A refusal raises, which the caller
+    (process_message) surfaces as a counted SCHEMA_INVALID diagnostic --
+    loud, never a silent drop.
+    """
+    _require_cbor()
+    if zmeta_cbor is not None:
+        decoded = zmeta_cbor.loads(message)
+    elif zmeta_compact is None:
+        # Bare-cbor2 install with no scanner importable: fail closed. Bare
+        # cbor2.loads would silently interpret tags the canonical event
+        # model does not define, and nothing on this install can tell a
+        # clean datagram from a tagged one after the fact.
+        raise ValueError(
+            "cbor ingress refused: neither zmeta_cbor nor zmeta_compact is "
+            "importable, so the fail-closed value-model scan "
+            "(spec/compact-binary-mapping.md, 'Value Model, Tags, and "
+            "Expansion Bound') cannot run; refusing rather than "
+            "interpreting CBOR tags the canonical event model does not "
+            "define"
+        )
+    elif _CBOR2_LOADS_MAX_DEPTH:
+        # Same limit the scan and zmeta_cbor declare (accept sets verified
+        # identical at the 64/65 boundary), enforced at parse so hostile
+        # wire depth is refused before a C-extension decoder can recurse
+        # on it.
+        decoded = cbor2.loads(message, max_depth=zmeta_compact.COMPACT_MAX_DEPTH)
+    else:  # pragma: no cover - cbor2 without the max_depth knob
+        decoded = cbor2.loads(message)
+    if zmeta_compact is not None:
+        zmeta_compact._refuse_unexpandable(
+            decoded, zmeta_compact.DEFAULT_MAX_EXPANDED_NODES
+        )
+    return decoded
+
+
 def _encode_cbor(obj):
     _require_cbor()
     if zmeta_cbor is not None:
@@ -1135,7 +1214,7 @@ def _decode_message(message, input_encoding):
         text = message.decode("utf-8")
         return json.loads(text)
     if input_encoding == "cbor":
-        return _decode_cbor(message)
+        return _decode_cbor_envelope(message)
     if input_encoding == "compact":
         _require_compact()
         compact_obj = _decode_cbor(message)

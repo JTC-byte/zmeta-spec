@@ -2,7 +2,17 @@
 
 ## [Unreleased]
 
-(Nothing yet — the next work lands here.)
+- 2026-07-27 (post-v1.1.17) — kernel-adjacent residuals closed, each
+  red-first pinned and adversarially attacked: the validators'
+  naive-timestamp arm (gate-clean naive shapes now refuse at the parse
+  seam; an unorderable TIME_STATUS is never recorded, so its source
+  keeps the loud MISSING disposition instead of a silent clean pass —
+  closing a pre-existing fail-open the attack pass surfaced), and the
+  plain-`cbor` envelope ingress (the same fail-closed value-model scan
+  as the compact envelope, on both backends, with a probed pre-decode
+  depth bound — doctrine H1-07 → CHANGED). Two legacy pins updated to
+  the 2026-07-27 clause semantics; residual siblings banked as
+  VW-14/VW-15.
 
 ## [1.1.17] - 2026-07-27
 

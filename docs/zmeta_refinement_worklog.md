@@ -4,6 +4,23 @@
 
 - Last updated: 2026-07-27 (cut prepared, HELD)
 - Quick handoff: `docs/zmeta_refinement_handoff.md`
+- **2026-07-27 (post-publish, later) — KERNEL-ADJACENT RESIDUALS CLOSED
+  (VW-01, H1-07).** Scoped wave per the playbook (fix + attack per item).
+  VW-01: naive-ts refused at `_parse_utc_z`/`_format_utc_z`; the attack
+  pass caught the first fix converting a loud crash into silent
+  participation in a PRE-EXISTING fail-open (any unparseable recorded
+  TIME_STATUS made freshness silently pass for that source) — repaired at
+  the record seam: unorderable statuses are never recorded, the source
+  keeps the loud MISSING arm. H1-07 → CHANGED: `_decode_cbor_envelope`
+  runs the fail-closed value-model scan on the plain-`cbor` envelope on
+  both backends, pre-decode depth bound probed (never version-guessed);
+  two legacy pins updated to clause semantics with their locatability
+  property preserved. Banked: VW-14 (event-side silent freshness arm +
+  env-dependent `date-time` gate strictness), VW-15 (auto/compact-branch
+  bare pre-decode, resource-knob parity, scanner-absent combo, three
+  inconsistent naive-datetime doctrines repo-wide). Battery: pytest
+  **1310 + 1060 subtests**, kernel gate all flags exit 0. NEXT (maintainer
+  direction): the bladeRF reference adapter, timed, per AUTHORING.md.
 - **2026-07-27 (post-publish) — v1.1.17 PUBLISHED; two CI hotfixes; CI
   GREEN.** Release published with explicit maintainer direction (tag on
   `7302073`, eight assets, checksums-only). The release commit's CI — the
