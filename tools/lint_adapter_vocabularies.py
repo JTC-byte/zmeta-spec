@@ -43,6 +43,7 @@ GOVERNED_SCHEMA_FILES = (
 # adapter mirror is one more tuple here.
 _MAVLINK = "adapters/ingress/mavlink/mavlink_to_zmeta_template.py"
 _SYSTEM = "$defs/SystemPayload"
+_SCHEMA_1_1_0 = "schema/zmeta-event-1.1.0.schema.json"
 MIRROR_REGISTRY = (
     (_MAVLINK, "_LINK_STATUS_STATES",
      f"{_SYSTEM}/allOf[system_type=LINK_STATUS]/then/properties/state/enum"),
@@ -52,7 +53,24 @@ MIRROR_REGISTRY = (
      f"{_SYSTEM}/allOf[system_type=TASK_ACK]/then/properties/state/enum"),
     (_MAVLINK, "_TASK_ACK_REASON_CODES",
      f"{_SYSTEM}/allOf[system_type=TASK_ACK]/then/properties/metrics/properties/reason_code/enum"),
+    # R1-11-15: the TIME_STATUS payload.state enum landed in v1.1.0 with
+    # this row. The mirror is the template's declared severity ordering (a
+    # dict); its vocabulary is its keys.
+    (_MAVLINK, "_TIME_STATUS_STATE_SEVERITY",
+     f"{_SYSTEM}/allOf[system_type=TIME_STATUS]/then/properties/state/enum"),
 )
+
+# Per-row schema scope. Rows absent here are held against every schema in
+# GOVERNED_SCHEMA_FILES; a row listed here is held against exactly the
+# schemas it names. Needed the first time a governed enum exists in one
+# schema version only: the locked v1.0 TIME_STATUS branch constrains
+# metrics alone, so under v1.0 there is no state enum for the pointer to
+# resolve (and any mirror is trivially a subset of an unconstrained field).
+# Keyed by (adapter, constant) so MIRROR_REGISTRY keeps its three-element
+# row shape.
+MIRROR_SCHEMA_SCOPE = {
+    (_MAVLINK, "_TIME_STATUS_STATE_SEVERITY"): (_SCHEMA_1_1_0,),
+}
 
 _BRANCH_SELECTOR = re.compile(r"^allOf\[system_type=([A-Za-z0-9_]+)\]$")
 
@@ -162,6 +180,15 @@ def load_mirror_constant(adapter_path: Path, constant: str) -> tuple[str, ...]:
         raise LintError(
             f"{adapter_path}: {constant} is not a literal vocabulary: {exc}"
         ) from exc
+    # A severity ordering ({token: rank}) declares its vocabulary as its
+    # keys; the ranks are adapter-local comparison weights, not tokens.
+    if isinstance(value, dict):
+        if not value or not all(isinstance(member, str) for member in value):
+            raise LintError(
+                f"{adapter_path}: {constant} must map non-empty string "
+                "tokens when it is a dict vocabulary"
+            )
+        return tuple(value)
     if (
         not isinstance(value, (tuple, list))
         or not value
@@ -230,8 +257,23 @@ def run(*, quiet: bool = False) -> int:
             for name in GOVERNED_SCHEMA_FILES
         }
         for adapter, constant, pointer in MIRROR_REGISTRY:
+            schema_scope = MIRROR_SCHEMA_SCOPE.get(
+                (adapter, constant), GOVERNED_SCHEMA_FILES
+            )
+            unknown = [
+                name for name in schema_scope
+                if name not in GOVERNED_SCHEMA_FILES
+            ]
+            if unknown or not schema_scope:
+                # A scope naming an ungoverned schema (or nothing) would
+                # quietly exempt the row - refuse loudly instead.
+                raise LintError(
+                    f"registry row {constant}: schema scope must name "
+                    f"governed schemas only and be non-empty, got "
+                    f"{schema_scope!r}"
+                )
             mirror_values = load_mirror_constant(ROOT / adapter, constant)
-            for schema_name in GOVERNED_SCHEMA_FILES:
+            for schema_name in schema_scope:
                 enum_values = resolve_enum_pointer(schemas[schema_name], pointer)
                 issues = issues + check_mirror_subset(
                     adapter=adapter,

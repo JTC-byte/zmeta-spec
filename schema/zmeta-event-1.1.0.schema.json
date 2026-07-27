@@ -1613,6 +1613,10 @@
           "then": {
             "required": ["metrics"],
             "properties": {
+              "state": {
+                "type": "string",
+                "enum": ["LOCKED", "HOLDOVER", "UNSYNCED", "UP", "DEGRADED", "DOWN"]
+              },
               "metrics": {
                 "type": "object",
                 "required": ["time_source", "sync_state", "est_error_ms", "last_sync_ts"],

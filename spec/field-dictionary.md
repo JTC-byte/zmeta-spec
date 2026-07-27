@@ -83,6 +83,11 @@ Common fields:
 `TIME_STATUS` metrics (required):
 - `time_source`, `sync_state`, `est_error_ms`, `last_sync_ts`.
 - `est_error_ms` is the worst-case absolute timestamp error upper bound.
+- `state` (v1.1.0 only): enum `LOCKED`, `HOLDOVER`, `UNSYNCED`, `UP`,
+  `DEGRADED`, `DOWN` — the Class B constraint adopted 2026-07-27 (doctrine
+  R1-11-15), matching the sibling-branch pattern so a self-contradicting
+  timing event is visible to the kernel. The locked v1.0 branch constrains
+  `metrics` only and leaves `state` a free string.
 
 `SCHEMA_VIOLATION` metrics:
 - `reason_code`, `original_event_id`, optional `path`, `error`.
