@@ -667,8 +667,8 @@ git log --oneline --reverse origin/main..HEAD -- <path>   # per-file history
 Every count that remains in this section is a **historical measurement
 anchored to `eb41794`** — the commit the fresh audit froze at — not a claim
 about `HEAD`. The anchor is immutable, so those numbers stay true:
-`git diff --shortstat origin/main..eb41794` → 77 files, +4920 / −392, over
-18 commits. Reproduce with `git diff --shortstat origin/main..eb41794`.
+`git diff --shortstat 09118b3..eb41794` → 77 files, +4920 / −392, over
+18 commits. Reproduce with `git diff --shortstat 09118b3..eb41794` (09118b3 = origin/main at measurement; the literal base survives the push that will move `origin/main` — A-13 closure 2026-07-27).
 
 ### Governed surfaces — check these first
 
@@ -689,7 +689,7 @@ files moved.
 
 ### Code surfaces
 
-File counts below are `git diff --name-only origin/main..eb41794 -- <area>`
+File counts below are `git diff --name-only 09118b3..eb41794 -- <area>`
 at the audit anchor.
 
 | Area | Files | Commits | Why touched |
@@ -1043,7 +1043,7 @@ Derived from code. 41 rows. Non-PRESENT rows are flagged and carried into A-28.
 
 ### 3. Findings
 
-28 findings survived three-lens refutation. Numbered in severity order.
+28 findings survived three-lens refutation. *(Correction 2026-07-27, cold re-read CR-25: the numbered list below runs A-01..A-30 — thirty entries; treat the enumeration, not this count, as ground truth. No stated count reconciles the disposition's “91 findings” input either.)* Numbered in severity order.
 
 #### MAJOR
 
@@ -1423,7 +1423,7 @@ by revert-simulation. All six reproduced exactly as the audit described. Every
 wave left the battery green.
 
 A read-only adversarial pass then attacked all six new guards and returned
-**30 residual findings, 8 MAJOR**, against a tree that was fully green
+**30 residual findings, 8 MAJOR** *(correction 2026-07-27, cold re-read CR-14: the register itemizes **ten** round-1 MAJORs, R1-01..R1-10)*, against a tree that was fully green
 (pytest 896 + 716 subtests at that point). Three shapes, all of them ones this
 repository has already recorded about itself:
 
@@ -1470,7 +1470,7 @@ no audit finding.
 
 ### Why the pass stopped here
 
-Round 1: 6 fixes gave 30 residuals / 8 MAJOR. Round 2: 6 remediations gave 32
+Round 1: 6 fixes gave 30 residuals / 8 MAJOR *(ten by the register's own itemization — CR-14 correction 2026-07-27; the corrected count only strengthens this section's argument)*. Round 2: 6 remediations gave 32
 findings / 4 MAJOR. Severity is converging; **count is not.**
 
 The decisive signal is not the arithmetic but the *character* of what remains.
@@ -1496,7 +1496,7 @@ hand over the state.**
 | B-04 | `adapters/ingress/mavlink/mavlink_to_zmeta_template.py:60` | **yes** | The TIME_STATUS carried-verdict guard whitelists two literals rather than a vocabulary - `LOCKED`, `NOMINAL`, and even `UP ` with one trailing space override the derived verdict. |
 
 Twenty-eight further findings at MODERATE and below are recorded in the run
-artifacts. **Fourteen of the thirty-two are introduced-by-remediation**, which
+artifacts. **Fourteen of the thirty-two are introduced-by-remediation** *(correction 2026-07-27, cold re-read CR-15: the register's own classification and the round table both count **eighteen**)*, which
 is the number that should drive the next decision.
 
 ### State at hand-over
@@ -1800,6 +1800,7 @@ doctrinally correct action, not a concession.**
 - Battery: kernel gate all flags exit 0, examples 51/51 strict, **pytest 1200
   passed + 1021 subtests** (cycle start: 785 + 316). Manifest regenerated.
 - **No governed artifact modified anywhere in this cycle.**
+  *(CR-04 correction 2026-07-27: true of the fix and disposition passes only — the cycle's earlier waves DID mint three additive `reason_code` enum entries in schema/policy and +6/−1 in contract §5.3, as this record's own "What was touched" inventory states. The claim below is scoped to the passes.)*
   `spec/semantics-contract.md`, `schema/*.json`, `policy/violation-codes.yaml`
   and `policy/semantics.yaml` are untouched; no `reason_code` minted.
 - Twenty-one doctrine review log entries across two passes, all OPEN or HELD,

@@ -74,7 +74,9 @@ TIME_STATUS enum lands at that cut per decision.
    A-13 record anchor being half-anchored because `origin/main` is a moving ref.
    Risk is contained — the code is HELD and unpublished — so severity does not
    force it ahead of the doctrine bottleneck. *(UPDATE 2026-07-27: `_parse_utc`
-   CLOSED as a class — `25bb5fa`/`ede9bb6`; A-13 moves to the records wave.)*
+   CLOSED as a class — `25bb5fa`/`ede9bb6`; A-13 CLOSED by the records wave —
+   figures anchored to the literal base `09118b3`, pin extended to verify
+   literal-base ranges. Both MAJORs are now closed.)*
 4. **The 44 sub-MAJOR findings**, worked as scoped waves under the playbook
    (floor + one-third cap), **not** a marathon. Many will be unblocked or
    reclassified by step 2. **CR-03 caveat:** these findings are *not* actually
@@ -133,7 +135,7 @@ diff — *resume from the tree, never from the transcript.*
 The range keeps growing, so no total is frozen here (A-13: the figure that
 used to sit on this line was falsified by the commit that wrote it, twice
 over). For reference, at the fresh audit's anchor:
-`git diff --shortstat origin/main..eb41794` = 77 files, +4920 / −392, over
+`git diff --shortstat 09118b3..eb41794` = 77 files, +4920 / −392, over
 18 commits.
 The record's "What was touched — validation inventory" section maps it —
 governed surfaces first (`schema/` and `policy/` took only three additive

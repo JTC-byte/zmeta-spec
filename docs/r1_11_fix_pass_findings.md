@@ -14,7 +14,10 @@ artifacts that produced them are session-scoped and do not survive.
 - **The `_parse_utc` carried-forward MAJOR is CLOSED as a class** (health wave
   `25bb5fa`/`ede9bb6`): CoT, JREAP, and the SAPIENT egress twins refuse
   gate-clean unparseable and NAIVE timestamps per their documented contracts.
-  The `A-13` anchor MAJOR remains open (records wave).
+  **The `A-13` anchor MAJOR is CLOSED by the 2026-07-27 records wave**: every
+  frozen diff figure now anchors to the literal base `09118b3` (origin/main at
+  measurement, immune to the push), and the anchored-totals pin verifies
+  literal-base figures the same as origin/main ones.
 - **Cold re-read findings fixed by the health wave** (`25bb5fa`/`ede9bb6`/
   `dcabcc8`): CR-01, CR-02, CR-05, CR-06, CR-08, CR-09, CR-10, CR-11, CR-12,
   CR-16, plus the unblocked R2-30 skip-reason token and the R1-11-16

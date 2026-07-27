@@ -614,3 +614,54 @@ READ IN FULL: gateway/src/gateway.py (all 2532 lines — the non-finite marker/_
 - **x-committruth**: READ: all 30 commit messages in origin/main..HEAD (09118b3..7eaea97) with full bodies; name-status/diffs for 74d92e1, c1eb9d0, 05ad9a8, 1c78a85 (via 02cb688..1c78a85), c54215a, and every post-c54215a records commit (path-level verification of every "records only" claim — all check out). Read in the CURRENT tree: docs/zmeta_doctrine_review_log.md (complete, 21 entries verified = 14 + 7, statuses match "all OPEN or HELD"), docs/zmeta_audit_playbook.md (complete), docs/zmeta_after_action_log.md (complete), docs/zmeta_refinement_handoff.md (resume queue + HOLD sections), docs/r1_11_fix_pass_findings.md (header, all 62 finding headings, disposition table), docs/r1_11_full_stack_audit.md (structu…
 - **x-pins**: COLD RE-READ of held range origin/main..HEAD (30 commits, HEAD 7eaea97), weighted to post-eb41794 work as directed. READ: all 30 commit messages plus per-commit inspection of 74d92e1/c1eb9d0/05ad9a8 (the governed-file diffs), 1c78a85, c54215a (full message + stat), 8955974, and the five records commits after it via the current tree. Records read: docs/r1_11_full_stack_audit.md (Verdict, HOLD state, validation inventory incl. the governed-surfaces table, fresh-audit findings A-01..A-16 in full and A-17..A-29 summaries, fix-pass and disposition sections in full); docs/r1_11_fix_pass_findings.md (all 62 headings, R1-01..R1-16 bodies, disposition trailer); docs/zmeta_doctrine_review_log.md (bot…
 - **x-halfapplied**: READ: all 30 held commits origin/main..HEAD (7eaea97 tip), messages + key diffs for post-eb41794 commits (02cb688, 1c78a85, a3c4c51, 6adbf9f, 4f071df, c54215a, 8955974, b1e5b69, 98bff42, 35f603c, d77ad9e, 7eaea97). Records read: docs/r1_11_full_stack_audit.md (verdict, verification pass 1+2, interruption ledger, Step 0 map, fresh-audit findings A-01..A-30, fix-pass, disposition, carried-forward), docs/r1_11_fix_pass_findings.md (all 62 headers, R1-01..R1-16 full text, disposition footer), docs/zmeta_doctrine_review_log.md (all 21 entries + lifecycle), docs/zmeta_after_action_log.md (full), docs/zmeta_audit_playbook.md (full), docs/zmeta_refinement_handoff.md, docs/zmeta_refinement_worklog.m…
+
+
+---
+
+## Appendix — health-wave verifier register candidates (2026-07-27)
+
+Banked by the fix wave's attackers and the independent completion verifier.
+All below the fix floor or deferred with reason; none is silently dropped.
+The wave itself is recorded in the worklog and CHANGELOG (commits
+`25bb5fa`/`ede9bb6`/`dcabcc8`/`151adb6`).
+
+- **VW-01 (MODERATE)** `gateway/src/validators.py:545,573` — `_parse_utc_z`
+  parses gate-clean naive shapes without refusal; `_should_replace_timing_status`
+  then raises TypeError on mixed naive/aware `_event_ts` values, and the
+  freshness subtraction has the same arm. Function-level confirmed; full-loop
+  reachability plausible (likely contained by the per-datagram last-resort
+  except — crash becomes a dropped datagram). The same class the health wave
+  closed in four adapters, at the kernel's own door. Candidate next wave.
+- **VW-02 (MODERATE)** both SAPIENT egress modules — a non-dict `payload` or
+  non-dict `event` block raises AttributeError past the documented contracts
+  (the detection docstring promises "never raises"). Same shape as the fixed
+  `target_geo` member, one level up.
+- **VW-03 (MODERATE, deferred with reason)** — member-level restriction shapes
+  fail open in `_normalized_uses`: `{"prohibited_uses": [("COALITION_EXPORT",)]}`
+  or `[b"COALITION_EXPORT"]` coerce to never-matching tokens and export clean.
+  Deliberately mirrored from `tools/filter_risk.py` `_list_values`, so the fix
+  must move BOTH surfaces together (doctrine H1-06).
+- **VW-04 (MINOR)** ingress templates (`cot`, `jreap`) `_compute_valid_for_ms`
+  — mixed naive/aware start/stale raises TypeError.
+- **VW-05 (MINOR)** vocabulary-lint blind spots — rebindings inside `if`/`try`
+  bodies and tuple-target assignments are invisible to the top-level AST scan;
+  an AugAssign followed by a clean literal rebinding over-refuses.
+- **VW-06 (MINOR)** mavlink ingress — a message-carried non-string `link_id`
+  is replaced by the adapter default identity (a carried identity dropped
+  silently); a blank-string `reason_code` refuses as out-of-vocabulary instead
+  of reading as absent, diverging from the blank-state rule four lines away.
+- **VW-07 (OBSERVATION)** mavlink ingress — wrong-typed carried link
+  measurements (`latency_ms='42'`/`True`) pass the None-only presence guard
+  and emit schema-invalid for the gateway to refuse; TASK_ACK `task_id`/
+  `original_event_id` emit verbatim (integer task_id → schema-invalid).
+  Fail-closed downstream, but a loud ingress refusal would match the branch's
+  own rule.
+- **VW-08 (OBSERVATION)** mavlink egress pin pair cannot distinguish
+  `is not None` gating from truthiness gating — a regression to `if priority:`
+  would silently drop present-but-falsy priorities with both pins green.
+- **VW-09 (OBSERVATION)** JREAP `_stale_time` int() coercion accepts bytes
+  `valid_for_ms` (schema-blocked; embedder-reachable only).
+- **CR-22 (MINOR, still open)** `release/sign_release_artifacts.py:27` — the
+  A-23 guard's degraded-mode contract: tagless/shallow checkout yields
+  `set()`, not None, silently treating a published version as unpublished.
+  The CR-12 pin rework covers the test side; the tool-side contract remains.

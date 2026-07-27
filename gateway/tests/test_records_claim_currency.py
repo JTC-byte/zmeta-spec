@@ -136,8 +136,11 @@ def test_record_diff_totals_are_not_attributed_to_a_moving_ref():
 # a `git show <sha> --stat` per-commit figure, and the A-13 finding's own
 # quotation of the wrong figure it exists to document. A check that cries
 # wolf on a correct record is worse than one with a stated blind spot.
+# A-13 closure (2026-07-27): a literal-SHA base is accepted alongside
+# origin/main, so records can anchor figures to a base that survives the
+# push that moves origin/main - and those figures stay verified here.
 _COMMAND_TOTAL = re.compile(
-    r"git diff --shortstat origin/main\.\.([0-9a-f]{7,40})`?\s*[=→:-]*\s*"
+    r"git diff --shortstat (origin/main|[0-9a-f]{7,40})\.\.([0-9a-f]{7,40})`?\s*[=→:-]*\s*"
     r"(\d+) files?,?\s*\+(\d+)\s*/\s*[-−–]\s*(\d+)"
 )
 
@@ -158,11 +161,11 @@ def test_anchored_diff_totals_still_measure_what_they_claim():
 
     checked = 0
     for path in _markdown_surfaces():
-        for anchor, files, ins, dels in anchored_totals(
+        for base, anchor, files, ins, dels in anchored_totals(
             path.read_text(encoding="utf-8")
         ):
             proc = subprocess.run(
-                ["git", "diff", "--shortstat", f"origin/main..{anchor}"],
+                ["git", "diff", "--shortstat", f"{base}..{anchor}"],
                 cwd=ROOT, capture_output=True, text=True,
             )
             if proc.returncode != 0:
@@ -171,7 +174,7 @@ def test_anchored_diff_totals_still_measure_what_they_claim():
                 import pytest
 
                 pytest.skip(
-                    f"cannot resolve origin/main..{anchor} in this checkout "
+                    f"cannot resolve {base}..{anchor} in this checkout "
                     f"({proc.stderr.strip()[:120]}); anchored-total correctness "
                     "not verified here"
                 )
@@ -182,7 +185,7 @@ def test_anchored_diff_totals_still_measure_what_they_claim():
             assert got, f"unparsed shortstat for {anchor}: {proc.stdout!r}"
             assert (files, ins, dels) == got.groups(), (
                 f"{path.relative_to(ROOT).as_posix()} states "
-                f"{files} files, +{ins}/-{dels} for origin/main..{anchor}, but "
+                f"{files} files, +{ins}/-{dels} for {base}..{anchor}, but "
                 f"git measures {got.group(1)} files, +{got.group(2)}/-{got.group(3)}"
             )
             checked += 1

@@ -32,7 +32,7 @@ release still HELD; a formalized audit cadence adopted for future cycles.**
 ### What happened
 
 A prior cycle's own two verification passes had declared its work done. A fresh
-full-stack audit of that held work found **six MAJOR blockers** it had missed —
+full-stack audit of that held work found **six MAJOR blockers** *(CR-24 correction 2026-07-27: the audit record grades one of the six MODERATE — “six blockers” is right, uniform MAJOR is not)* it had missed —
 non-finite values reaching the wire and CoT/TAK egress, a receive-loop crash
 class, an authorization lint that passed a malformed policy, and a MAVLink
 altitude fabrication — several of them defects that had survived multiple prior
@@ -91,7 +91,7 @@ be proven by reverting the fix and watching the specific assertion fail.
 
 No governed artifact — the locked semantics contract, the schemas, or the
 policy vocabulary — was modified anywhere in this cycle, and no diagnostic code
-was minted. Twenty-one points where the code or a proposed fix came under tension
+was minted. *(CR-04 correction 2026-07-27: true of the fix and disposition passes only — the cycle's earlier waves minted three additive `reason_code` enum entries in schema/policy and +6/−1 in contract §5.3; the public claim must scope to the passes.)* Twenty-one points where the code or a proposed fix came under tension
 with the guiding documents were recorded for separate adjudication in
 `docs/zmeta_doctrine_review_log.md`, including the cases the documents resolved
 cleanly. The release decision remains the maintainer's, and nothing in the

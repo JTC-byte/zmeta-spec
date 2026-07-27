@@ -2,22 +2,19 @@
 
 ## [Unreleased]
 
-> **HOLD (2026-07-22).** The R1-11 cycle below is complete and frozen
-> pending a fresh full-stack audit; the release decision is open. The whole
-> cycle (`118f0b9`..`HEAD`, last code commit `6ea9888`) is local and
-> unpushed — nothing here has reached a consumer, and the published v1.1.16
-> assets remain the only downstream truth. The cycle ran across four usage-limit-interrupted
-> sessions; the interruption ledger, the residue checks already run, and a
-> targeted checklist for the audit are in `docs/r1_11_full_stack_audit.md`
-> ("HOLD state" and "Execution continuity").
->
-> **Update 2026-07-26:** the fresh audit, its six-blocker fix pass, the
-> disposition pass, and the resume queue's P1 cold re-read have since run
-> inside the held range (`docs/r1_11_full_stack_audit.md`,
-> `docs/r1_11_cold_reread_findings.md`); this banner's bullet list below
-> still describes only the pre-audit waves (banked as CR-13 for the
-> records wave), and the release decision remains open behind the
-> doctrine adjudication.
+> **HOLD — release pending (v1.1.17 recommended).** Everything under
+> [Unreleased] is local and unpushed: the R1-11 pre-audit waves (the
+> bullet list at the bottom of this section), the fresh full-stack audit
+> and its six-blocker fix pass, the disposition pass, the 2026-07-26 cold
+> re-read, and the 2026-07-27 health fix wave (dated bullets directly
+> below). Nothing has reached a consumer; the published v1.1.16 assets
+> remain the only downstream truth. Execution history and the
+> interruption ledger: `docs/r1_11_full_stack_audit.md`; current state:
+> the resume queue in `docs/zmeta_refinement_handoff.md`. The next cut
+> resolves the in-repo manifest divergence (A-12) under the new identity;
+> published `SHA256SUMS_v1.1.16.txt` is never rewritten.
+> *(Banner realigned 2026-07-27 — cold re-read CR-13; the previous banner
+> froze the cycle at its pre-audit state.)*
 
 - 2026-07-27 — R1-11 health fix wave (`25bb5fa`, `ede9bb6`, `dcabcc8`):
   fielded-safety and command-path fixes from the cold re-read record, every
