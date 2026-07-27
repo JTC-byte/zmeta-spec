@@ -163,6 +163,15 @@ Formalized from what demonstrably worked across R1-09, R1-10 and R1-11:
    reach a forced terminal decision after recurring (working value: three
    times), then archive. A log that only grows is a swamp. Lifecycle and scoring
    are defined in `docs/zmeta_doctrine_review_log.md` (Lifecycle).
+9. **Scale verification to the pass, not the habit.** Heavy multi-agent
+   fan-outs — independent lenses, adversarial refutation panels — are reserved
+   for the passes where they are load-bearing: fresh audits, the refresh
+   tier's fresh-eyes re-reads, and pre-cut verification. Records work, scoped
+   fix waves, and adjudication support run lean. Adopted 2026-07-26 by
+   maintainer direction, after the first refresh-tier run proved both halves:
+   the heavy pass caught what three author-rounds missed, and it consumed most
+   of a plan session window in ~35 minutes — well-placed there, ruinous as a
+   default.
 
 ## How this feeds the self-healing automation
 
@@ -200,3 +209,11 @@ full audits:
   real drift is seen. The first few runs are deliberately watched for this.
 - Whether the kernel wave (W1) should fix everything rather than stop at the
   MODERATE floor, given it is small, locked, and drift-intolerant.
+
+**First firing (2026-07-26, refresh tier):** validated. The mandated cold
+re-read of the R1-11 held range — nine lenses, adversarial verification —
+confirmed 30 distinct findings the cycle's own author-passes had missed,
+including two code MAJORs also present in the published v1.1.16 assets and
+one records-integrity MAJOR (`docs/r1_11_cold_reread_findings.md`). The catch
+happened exactly where the cadence predicted: on cold context, after a gap.
+Cost observation from the same run produced discipline 9.

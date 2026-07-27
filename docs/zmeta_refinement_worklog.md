@@ -2,8 +2,41 @@
 
 ## Current Resume Note
 
-- Last updated: 2026-07-22
+- Last updated: 2026-07-26
 - Quick handoff: `docs/zmeta_refinement_handoff.md`
+- **2026-07-26 — R1-11 resume queue P1 COMPLETE (refresh + cold re-read);
+  next is P2, the maintainer's doctrine adjudication.** Battery re-verified
+  live (kernel gate all flags exit 0, examples 51/51 strict, pytest 1200
+  passed + 1021 subtests). `7eaea97` closed the doctrine-log numbering
+  collision (the disposition addendum had restarted at 14; renumbered
+  15–21, cross-references swept — the log holds **21** tensions, and the
+  adjudication clusters are now R1-11-09/15/16 (governed-vocabulary
+  boundary) and R1-11-02/03/18 (compact-mapping clause)). `e524c8c`
+  recorded the cold re-read: nine independent lenses (the six playbook
+  wave surfaces plus commit-truth, vacuous-pin, and half-applied-fix),
+  adversarial verification of every candidate, three-lens panels for
+  MAJORs — 48 candidates, 47 confirmed, 1 refuted, merged to **30
+  distinct findings in `docs/r1_11_cold_reread_findings.md`, RECORDED not
+  fixed** (the round-3 stop decision and the P2 bottleneck stand).
+  Headlines: **CR-01 MAJOR** — SAPIENT ingress, a negative declared
+  `maximum_latency` *narrows* `est_error_ms` (sign member of the
+  R1-03/B-03 class, unswept, **also live in published v1.1.16**);
+  **CR-02 MAJOR** — CoT egress stamps the horizontal ellipse `semi_minor`
+  into `point@le`, fabricating vertical certainty (**also live in
+  v1.1.16**); **CR-03 MAJOR** — the 44 open sub-MAJOR and round-3 attack
+  findings are recorded nowhere in the tree (the fix-pass register ends
+  at round 2), so queue item P4 must reconstruct its own input; **CR-04**
+  — the cycle-wide "no governed artifact touched / no `reason_code`
+  minted" claim is false as written (three additive reason codes were
+  minted by the early waves) — the live handoff surface is corrected; the
+  frozen records keep their count/claim defects banked (CR-13..15,
+  CR-23..25) for a scoped records wave. Completeness critic's top gap:
+  the ~7.8k lines of new test mass were deep-read below 15% — candidate
+  surface for the next scoped wave. Process note (maintainer direction
+  2026-07-26): ultracode stays on with lean-vs-heavy judgment delegated —
+  heavy fan-outs reserved for passes where independent eyes are
+  load-bearing (fresh audits, fresh-eyes re-reads, pre-cut verification);
+  records work and scoped waves run lean.
 - **HOLD (2026-07-22): the R1-11 cycle is COMPLETE and FROZEN pending a
   fresh full-stack audit.** Held range `118f0b9`..`HEAD` — the entire
   cycle, none of it pushed (`git log --oneline origin/main..HEAD` gives

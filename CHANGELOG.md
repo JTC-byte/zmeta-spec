@@ -10,6 +10,28 @@
 > sessions; the interruption ledger, the residue checks already run, and a
 > targeted checklist for the audit are in `docs/r1_11_full_stack_audit.md`
 > ("HOLD state" and "Execution continuity").
+>
+> **Update 2026-07-26:** the fresh audit, its six-blocker fix pass, the
+> disposition pass, and the resume queue's P1 cold re-read have since run
+> inside the held range (`docs/r1_11_full_stack_audit.md`,
+> `docs/r1_11_cold_reread_findings.md`); this banner's bullet list below
+> still describes only the pre-audit waves (banked as CR-13 for the
+> records wave), and the release decision remains open behind the
+> doctrine adjudication.
+
+- 2026-07-26 — R1-11 resume P1, records only (`7eaea97`, `e524c8c`): the
+  doctrine-log disposition addendum renumbered 15–21, closing a
+  duplicate-ID collision at R1-11-14 (the log holds 21 entries; every
+  prior count of 20 was a miscount caused by the collision); the
+  fresh-eyes cold re-read of the held range recorded **30 confirmed
+  findings** in `docs/r1_11_cold_reread_findings.md` — two code MAJORs
+  also present in published v1.1.16 (SAPIENT negative-latency narrowing,
+  CoT `semi_minor`→`point@le` vertical-certainty fabrication), one
+  records-integrity MAJOR (the round-3 findings were never persisted),
+  and 27 further — recorded, not fixed; the handoff resume surface was
+  corrected (live-measure directive replacing a twice-stale frozen count,
+  honestly-scoped governed-change claim, CR-03 caveat on the P4 queue
+  item).
 
 - R1-11 full stack audit (findings record
   `docs/r1_11_full_stack_audit.md`: 1 MAJOR, 11 MODERATE, 4 MINOR,

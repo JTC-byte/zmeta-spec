@@ -96,3 +96,24 @@ with the guiding documents were recorded for separate adjudication in
 `docs/zmeta_doctrine_review_log.md`, including the cases the documents resolved
 cleanly. The release decision remains the maintainer's, and nothing in the
 cycle has been published.
+
+### Addendum — first live run of the refresh tier (2026-07-26)
+
+The cadence this AAR produced fired for the first time: the mandated
+fresh-eyes cold re-read of the held range ran after a three-day gap — nine
+independent lenses over the wave partition plus the cycle's own failure-mode
+lenses, adversarial verification of every candidate. It confirmed **30
+distinct findings the cycle's author-passes had missed**, including two code
+MAJORs that also exist in the published v1.1.16 assets (SAPIENT
+negative-latency narrowing; CoT lateral-to-vertical error projection) and one
+records-integrity MAJOR — the round-3 findings were never persisted, so the
+open backlog existed only as counts. Findings record:
+`docs/r1_11_cold_reread_findings.md`; landed with the doctrine-log
+numbering-collision fix as `7eaea97` and `e524c8c`.
+
+Verdict: the tier works as designed — the catch happened exactly where this
+AAR predicted it would, on cold context. The run also taught a cost lesson:
+the heavy fan-out consumed most of a plan session window in about 35 minutes.
+Well-placed for this pass, ruinous as a default — adopted by maintainer
+direction as playbook discipline 9 (heavy verification only where independent
+eyes are load-bearing; everything else runs lean).
