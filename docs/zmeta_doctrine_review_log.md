@@ -842,6 +842,95 @@ than another cycle of watching.
 
 ---
 
+## Cycle A1 — 2026-07-28 (first cooperative-broadcast adapter)
+
+Raised by building the ADS-B ingress adapter against real `dump1090` shapes,
+ahead of a live RTL-SDR test. All three are cases where **a real thing cannot
+be said in the current alphabet**, so an adapter author's only options are to
+fabricate or to discard. None is an ADS-B quirk; each has at least one other
+instance, which is what keeps a fix from being an accommodation for one source.
+
+| # | Tension | Gates in play | Status |
+|---|---|---|---|
+| A1-01 | RF minimum features assume a calibrated receiver | 1, 3 | OPEN |
+| A1-02 | All-or-nothing geo discards good 2-D positions | 1, 2, 3 | OPEN |
+| A1-03 | Translation provenance is unsayable for an original observation | 3, 5 | OPEN |
+
+### A1-01 — `power_dbm` assumes a calibrated receiver · OPEN
+
+Semantics-contract 7.4 makes `power_dbm` a **required** RF minimum feature.
+`dump1090` reports `rssi` in **dBFS** — relative to the receiver's full scale,
+dependent on antenna and gain chain, not convertible to absolute dBm without a
+calibration the message never carries. So an RF-modality ADS-B observation must
+either fabricate the field or refuse every event.
+
+**Second instance, already shipped:** `adapters/ingress/kraken/kraken_to_zmeta.py:160`
+writes `"power_dbm": rssi_db`, where its own input documentation
+(`:8`, `:93`) calls field 3 "RSSI dB" — an uncalibrated relative value from the
+KrakenSDR DoA chain. This is **not** adapter carelessness: the spec leaves no
+third option. The gap manifests as a defect in every adapter that meets it.
+
+Maintainer's field observation, recorded because it bounds the severity: the
+kraken path translates, fuses and maps correctly in TAK today. Within one
+deployment everyone knows the source and treats the number consistently. The
+cost appears only when a second sensor's power meets it in the same consumer,
+where `-40` from a calibrated receiver and `-40` from kraken are not the same
+physical quantity — i.e. it works right up until interoperability happens,
+which is the one scenario ZMeta exists for.
+
+**Recommendation:** not a new subtype. `RF_ADSB`/`RF_KRAKEN` per sensor family
+is a dictionary, and gate 1 forbids it. The alphabet-shaped fix is a
+**declaration of reference** — power says whether it is absolute dBm,
+full-scale dBFS, or relative dB — exactly as `bearing.frame` declares
+`TRUE_NORTH` and `quality.calibration_state` declares `UNCALIBRATED`. One
+optional discriminator covers every SDR ever made. **Constrain the meaning,
+not the source.**
+
+The ADS-B adapter ships on v1.0 using `NETWORK` modality to avoid the
+fabrication. That is a WORKAROUND, not a design — ADS-B is RF — and it is
+recorded as such in the adapter README.
+
+### A1-02 — All-or-nothing geo discards good 2-D positions · OPEN
+
+`payload.geo` requires `alt_m` (contract 6.8). A large share of ADS-B targets
+report only `alt_baro`, a pressure altitude referenced to 1013.25 hPa, which is
+not a height above the ellipsoid and is not convertible without local QNH. The
+horizontal fix is good; the standard cannot carry it.
+
+**The sharper instance is AIS:** a vessel has no meaningful altitude *ever*, so
+ZMeta cannot canonically carry an AIS position at all. Ground radar and most DF
+systems are likewise 2-D. This is a whole class of sensors, not an edge case.
+
+**Recommendation:** again a declaration rather than a subtype — geo declares
+its **dimensionality**, the way `geo_status` already declares availability.
+
+**Whether it matters is a field question.** It is entirely possible no consumer
+misses the dropped positions, and that is cheaper to discover than to argue.
+
+### A1-03 — Translation provenance is unsayable for an original observation · OPEN
+
+`lineage` requires `based_on` with `minItems: 1`, and `transform` lives inside
+it. An original observation has no ZMeta parent, so an adapter cannot record
+*"this was translated from dump1090 aircraft.json@1.0"* canonically — precisely
+where adapters live. Expressible as a native feature, so this is a minor gap
+rather than a headline, but it is the same shape as the two above.
+
+### The proposed experiment (maintainer, 2026-07-28)
+
+Use the **canonical / experimental schema split** as it was designed to be
+used: leave v1.0 locked, add the candidate discriminators to the v1.1.0
+experimental branch and the extension registry, and have the ADS-B adapter emit
+either by flag. The same capture, two encodings, decided by what downstream
+consumers actually want rather than by argument.
+
+The promotion bar is 2+ independent implementations. **A1-01 already clears it**
+(kraken and ADS-B, both in-repo). **A1-02 has one**; AIS on the same RTL-SDR
+dongle is the natural second — no extra hardware, genuinely independent sensor
+family, and the strongest possible case since altitude is meaningless rather
+than merely missing.
+
+---
+
 ## Lifecycle — these logs terminate, they do not accumulate
 
 The value of this log is the pattern over time. But a log that only ever grows
