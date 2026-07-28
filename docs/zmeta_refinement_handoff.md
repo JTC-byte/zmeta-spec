@@ -29,6 +29,25 @@ adapter conformance 51/51, pytest 1468 + 1070 subtests, both lints clean,
   required verbatim. The rule that tried to judge whether prose described the
   right release was removed after failing twice; see below.
 
+### Recommendation on the tag
+
+Tag it. The code has been stable across three separate verification rounds and
+the remaining findings have shifted almost entirely to prose, which the new
+checks now cover. An untagged release accumulates unreconciled drift, and that
+drift was the defect this cycle hit four times. A pinned version is also what
+the ADS-B tester needs, rather than an instruction to clone `main`. None of the
+open items below blocks a tag; all are recorded with recommendations.
+
+### First action next session
+
+A documentation voice pass, starting with `README.md`. An outside reader found
+it reads as machine-written; the identified tells are heavy em-dash use and a
+rhetorical, catch-phrase tone. Aim for flat declarative technical prose. This
+is a voice pass only. The README's structure and content were reworked
+deliberately last cycle and both are sound. `docs/zmeta_live_test_checklist.md`
+and `adapters/ingress/adsb/README.md` are written in the same voice and are the
+next candidates.
+
 ### The four decisions waiting on the maintainer
 
 1. **Tag v1.1.19, or keep going.** Everything but tag/sign/upload is done.

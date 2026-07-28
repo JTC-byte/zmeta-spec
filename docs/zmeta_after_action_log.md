@@ -227,3 +227,97 @@ cold re-read record, and the handoff — not in this entry, and not only in
 commit messages. *(Corrected 2026-07-28: this became false during the v1.1.19
 cut — see the CHANGELOG's [1.1.19] entries. It is true again as of that
 reconciliation.)*
+
+---
+
+## The v1.1.19 cycle — 2026-07-28
+
+### What happened
+
+The cycle opened on a report from outside. A fielded deployment advancing its
+ZMeta pin found that the published v1.1.17 and v1.1.18 trees carried a README
+bullet asserting "No schema, policy, or event-vocabulary changes," which was
+true of v1.1.16 and false of both releases that inherited it.
+
+The fix for that defect became the cycle's main lesson. A content-currency
+guard was built, and an independent panel showed it accepted the exact bullet
+it was written to reject after two one-word edits. A redesign followed, and a
+second panel found four more defects in it. The rule that tried to judge
+whether prose described the right release was then removed rather than patched
+a third time, because judging that is not reliably machine-checkable. What
+survives is the part two panels confirmed sound: a governance sentence computed
+from the release manifest and required verbatim.
+
+Six independent panels ran across the cycle. The findings that mattered most
+came from the lens with the least obvious value, a first-run walkthrough of the
+documented getting-started path. It found that the stock two-node deployment
+delivered zero events, that the "adapter in about an hour" claim contained an
+undocumented 30 to 90 minute wall, that contract hashes differed between
+Windows and Linux clones of the same commit in two independent ways, and that
+the documented development install produced a broken environment. All were
+long-standing. The hash defect dated to the repository's first commit.
+
+An ADS-B ingress adapter was then built against real decoder output. It shipped
+on the locked kernel with nothing minted, and produced three findings recorded
+as doctrine-log cycle A1: places where a real thing cannot be expressed in the
+current alphabet, each with a second instance elsewhere in the repository.
+
+### What it cost, and where
+
+Rework concentrated in one place. The content guard went through three designs.
+Nothing else in the cycle went round more than once, and no test, fixture or
+conformance expectation regressed at any point.
+
+The distinction that explains it: work driven by an observed failure converged,
+because the defect pool was finite and each fix was verifiable by re-running
+the thing that failed. Work driven by an anticipated failure did not. Every
+long-standing defect found in this cycle came from the first kind. Every round
+of rework came from the second.
+
+A second pattern accounted for most of the late findings. Claims about the code
+lived in three or four documents and were corrected in one or two. At one point
+three places in a single commit carried three different counts of the same
+quantity. The verification pass on the closeout found the same shape recurring
+inside the closeout that had recorded it as a watch item.
+
+### The finding worth carrying forward
+
+Every valuable finding in this cycle came from outside the working loop: a
+downstream consumer advancing a pin, independent reviewers, a first-run
+walkthrough, and a reader's reaction to the README's writing style. None came
+from re-reading work already done, and a great deal of re-reading was done.
+
+The governance apparatus was measuring itself. It is well developed, and it did
+not surface any of the defects above. Contact with use did.
+
+### What changed as a result
+
+- **Playbook discipline 10**, adopted by maintainer direction: validate the
+  assumption live before hardening it, and where that is impossible, record the
+  question rather than build the defence. `docs/zmeta_live_test_checklist.md`
+  holds those questions in a form a deployment can answer, including whether
+  anyone needs calibrated power and whether anyone misses the positions the
+  standard currently discards.
+- **When a claim enumerates, generate it.** Applied to the governance sentence
+  and the dist bundle's tool list. A third candidate, the conformance flag
+  list, remains hand-typed.
+- **Documentation claims are bound to the tree by test** where the failure was
+  dangerous. A check now requires any document naming a config file and a
+  profile to agree with that file. It found a fifth instance on its first run
+  that neither the author nor an independent reviewer had found by reading.
+
+### Governance
+
+The locked v1.0 kernel is unchanged and nothing was minted. Three alphabet gaps
+were recorded with recommendations and left for maintainer adjudication. The
+recommendation in each case is a declaration rather than a new subtype:
+constrain the meaning of a datum, not the category of its source.
+
+One tension is recorded here rather than in the doctrine log because it
+concerns the log itself. The governance apparatus grew again this cycle: three
+new doctrine entries, a new discipline, a new standing artifact, two new
+checks. The project's stated goal is a small alphabet that can be adopted
+quickly, and design gate 7 binds the guiding documents as much as the kernel.
+The apparatus is now large relative to the thing it governs, and the Lifecycle
+rules exist for exactly this. They may warrant firing more aggressively than
+the recurrence threshold strictly requires.
