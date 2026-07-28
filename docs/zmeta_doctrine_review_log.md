@@ -739,6 +739,109 @@ egress and operator tooling adjudicate the same labels differently.
 
 ---
 
+## Cycle P2 — 2026-07-27 (downstream consumer report)
+
+Seeded by a fielded consumer's pin-advance review rather than by an internal
+audit. Findings in this exchange are numbered `P2-NN`, so doctrine entries take
+the `P2-DN` form to keep the two namespaces apart.
+
+| # | Tension | Gates in play | Status |
+|---|---|---|---|
+| P2-D1 | A verification that cannot fail is recorded as verification | 3, 5, 7 | **CHANGED** |
+
+### P2-D1 — A verification that cannot fail is recorded as verification · **CHANGED 2026-07-27**
+
+**The tension is not that vacuous pins happen. It is that discipline 5 already
+forbids them and they kept happening — seven times, across three surfaces,
+while the rule was in force and being cited.** A doctrine that is stated,
+believed, quoted in commit messages, and still violated at this rate is not a
+discipline problem. It is a rule with no mechanism, and that is a governance
+defect rather than an execution one.
+
+**The recorded instances.** All are in-repo findings, not recollection:
+
+| # | Instance | Mechanism of vacuity | Where |
+|---|---|---|---|
+| 1 | A-02 pin: `_assert_clean` satisfied by an empty event list; 7 of 13 parametrized cases pass with the fix reverted | **Post-condition satisfiable by nothing** | `r1_11_fix_pass_findings.md` R1-04 (MAJOR) |
+| 2 | `test_risk_mode_lint_survives_a_mangled_block` asserts only "did not raise"; 5 of 15 subtests exercise no touched path | **Asserts non-crash, not the post-condition** | `r1_11_fix_pass_findings.md` R2-18 (introduced by remediation) |
+| 3 | First A-14 unhashable-guard pin: `assertFalse(ok)` passes on the reverted tree | **A different gate refuses first** | `r1_11_full_stack_audit.md:1771` |
+| 4 | Arm 3 of the *replacement* trigger-polarity pin, same shape | **A different gate refuses first** | Cold re-read CR-16 (MODERATE) |
+| 5 | NaN-confidence pin blind by construction — all 15 tests call `process_message` without `timing_state`, skipping the block entirely | **Named path unreachable from the test** | `r1_11_fix_pass_findings.md:172,528` |
+| 6 | Adapter harness passes a fixture with rich expectations **all unevaluated** when the adapter returns `[]` | **Shipped tooling; defeats the harness README's own "rather than pass vacuously" promise** | `r1_11_full_stack_audit.md` R11-08 |
+| 7 | Live red-first probe run by hand: a `str.replace` whose anchor did not match, so it mutated nothing and "proved" the guard fired | **Mutation never applied** | This session, 2026-07-27 |
+
+Adjacent, same family, worth naming because it shows the class is not
+test-specific: jsonschema `minimum`/`maximum` are **no-ops against NaN**
+(R11-04), so a schema constraint that reads as a bound enforces nothing on the
+one value it most needs to; and an audit finding's own evidence was once a
+`git diff` over a **gitignored** directory, which is empty by construction and
+therefore proves whatever the author hoped (`r1_11_full_stack_audit.md:1298`).
+Instance 4 is the sharpest single fact: it is a vacuous pin **inside the fix
+for a vacuous pin**, found only by a later fresh-eyes pass.
+
+**Why the existing rule did not hold.** Discipline 5 says *"proven by
+revert-simulation with a specific assertion — watch it fail on the reverted
+tree."* Read closely, that is an instruction to perform a **session act** and
+then attest to it. Three properties follow, and all three are the failure:
+
+- **Ephemeral.** The reverted tree exists for seconds in one author's working
+  copy. Nothing re-runs it. A pin that was genuinely non-vacuous in March can
+  become vacuous in July — a new gate lands upstream of it and starts refusing
+  first — and no signal fires, because the proof was never a thing that runs.
+- **Author-attested.** The evidence a reader inherits is prose in a commit
+  message. Discipline 6 (*author is not grader*) is enforced for closure
+  probes and not for pin quality, which is the same claim class.
+- **Unverified at the mutation step.** Nothing checked that the revert or the
+  doctoring actually changed anything — instance 7 exactly.
+
+This is a **gate 5 problem** and naming it that way is what makes it
+tractable: *structure is authoritative, free-text is a human projection.* The
+repo already applies that to event data and refuses to let load-bearing
+meaning live only in `remarks`. A pin's non-vacuity is load-bearing meaning,
+and it has been living only in remarks.
+
+**Rejected on measurement, recorded so it is not re-proposed.** A static lint
+for "test functions containing no assertion" looks attractive and is not
+viable: measured across the suite it flags **39 of 1310** functions, and
+spot-checking shows the overwhelming majority delegate to asserting helpers
+(`self.check_container(...)` in `test_policy_shape_fail_closed.py` is the
+representative shape). At that signal-to-noise it would be ignored within a
+cycle, and an ignored lint is worse than none because it launders coverage.
+Full mutation testing over 1310 tests was not pursued for the gate 7 reason:
+the cost is real, the noise is high, and the failure has a cheaper structural
+fix.
+
+**What changed.** `docs/zmeta_audit_playbook.md` discipline 5 now requires the
+demonstration to be **an artifact in the repo rather than an act in a
+session** — a paired check that constructs the bad state and asserts the guard
+reports it, living beside the guard and re-running in CI. That converts an
+author-attested past-tense claim into a present-tense structural one, which is
+the only form that survives the guard's surroundings changing underneath it.
+
+The supporting primitive is `gateway/tests/vacuity.py`: `mutate()` refuses a
+substitution that changes nothing, so instance 7's shape raises instead of
+passing quietly. It is deliberately small — one hole, closed mechanically —
+and it is itself pinned in both directions, because a helper that exists to
+refuse meaningless proofs is the bottom of the stack with no outer guard.
+
+**Deliberately NOT changed, and the honest limit of this.** Nothing here
+detects mechanisms 1–5 automatically. A paired demonstration is still written
+by the same author who wrote the guard, so instance 4 — a vacuous pin inside
+the fix for a vacuous pin — would still be possible; what changes is that the
+bad state is now *executable and permanent*, so a later reader or fresh-eyes
+pass can interrogate it instead of re-deriving it. The remaining exposure is
+the same one the cold re-read named: **~7.8k lines of pre-existing test mass
+with under 15% deep-read coverage**, written before any of this applied. Those
+pins are not retro-fitted and should not be assumed non-vacuous. That is a
+scoped wave, not a sweep, and it is the natural next use of the pin-quality
+lens.
+
+**Occurrence count: 7 (threshold is 3).** Reaching a terminal status was
+overdue by four instances, which is itself the argument for the change rather
+than another cycle of watching.
+
+---
+
 ## Lifecycle — these logs terminate, they do not accumulate
 
 The value of this log is the pattern over time. But a log that only ever grows

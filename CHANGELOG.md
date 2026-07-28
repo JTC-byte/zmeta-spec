@@ -102,6 +102,37 @@
   while adding the export pointer, and the same machine-invisible prose
   staleness as P2-01: every hash and version pin stayed green while the
   human-readable index of the pack sat two files behind.
+- 2026-07-27 — **doctrine: a verification that cannot fail is not a
+  verification** (doctrine log **P2-D1**, terminal status CHANGED). The
+  tension is not that vacuous pins happen; it is that playbook discipline 5
+  already forbade them and seven still occurred, across three surfaces —
+  five test pins (one of them *inside the fix for* another), the adapter
+  harness's own vacuous-pass in shipped tooling, and a hand-run red-first
+  probe this session whose substitution never matched, so it mutated nothing
+  and reported success. A rule stated, believed, and quoted while being
+  violated at that rate is a rule with no mechanism. Root cause named as a
+  gate-5 problem: discipline 5 required a **session act** — revert something,
+  watch it go red, attest to it in a commit message — so the proof was
+  ephemeral (nothing re-runs it, and a pin honest in March goes vacuous in
+  July when a new gate lands upstream and refuses first, with no signal),
+  author-attested (discipline 6 was never applied to this claim class), and
+  never checked that the mutation applied. Discipline 5 now requires the
+  demonstration to be **an artifact in the repo, not an act in a session**: a
+  paired check that builds the bad state and asserts the guard reports it,
+  beside the guard, re-running in CI. Supporting primitive
+  `gateway/tests/vacuity.py::mutate` refuses a substitution that changes
+  nothing, and is itself pinned in both directions. The release-focus checks
+  gained a live demonstration that swaps the shipped stale bullet into the
+  real README in memory, so the pin proves it reaches that file rather than
+  only an embedded copy. **Rejected on measurement and recorded so it is not
+  re-proposed:** a static "test asserts nothing" lint flags 39 of 1310
+  functions, nearly all legitimate delegation to asserting helpers — an
+  ignored lint launders coverage. **Honest limit:** none of this detects the
+  other five mechanisms automatically, and ~7.8k lines of pre-2026-07-27 test
+  mass are not retro-fitted and must not be assumed non-vacuous. The rule 5
+  scoring row in the playbook, which read "validated; the rate is falling",
+  is corrected in place — the rate was not falling, the class was being
+  counted on one surface only.
 
 ## [1.1.18] - 2026-07-27
 

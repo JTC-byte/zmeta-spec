@@ -40,6 +40,8 @@ from pathlib import Path
 
 import yaml
 
+from vacuity import mutate
+
 
 ROOT = Path(__file__).resolve().parents[2]
 MANIFEST_PATH = ROOT / "release" / "zmeta-release-manifest.yaml"
@@ -580,6 +582,53 @@ def test_release_focus_content_rule_catches_the_carried_forward_bullet():
     assert anchors_introduced_by(live, notes, version), (
         "the live release-focus bullet does not pass the same rule the stale "
         "one fails; the two directions must separate or the check is noise"
+    )
+
+
+def test_release_focus_pins_demonstrate_red_against_the_live_readme():
+    """Demonstrate the red state against the REAL file, not only a copy.
+
+    The fixture above is the stale bullet as it shipped, and pinning against
+    it proves the rule rejects that text. It does not prove the rule reaches
+    the live README -- a future restructure could move or rename the bullet
+    and leave the fixture test passing against nothing while the live check
+    silently stops finding anything to examine.
+
+    So this swaps the shipped stale bullet into the live file's own structure,
+    in memory, and asserts both checks go red. `mutate` refuses a no-op, which
+    is the specific way the first hand-run version of this probe proved
+    nothing (doctrine log P2-D1).
+    """
+    version = manifest_release_version()
+    notes = release_notes_by_version()
+    text = _read("README.md")
+    live_block = readme_release_focus_block(text)
+    assert live_block, "README.md '- Release focus:' bullet not found"
+
+    doctored = mutate(
+        text,
+        live_block,
+        _STALE_FOCUS_BLOCK_AT_v1_1_18_TAG,
+        what="swap the live release-focus bullet for the one that shipped stale in the v1.1.18 tag",
+    )
+    bad_block = readme_release_focus_block(doctored)
+    assert bad_block, (
+        "the doctored README no longer yields a release-focus bullet; the "
+        "demonstration is malformed and would prove nothing"
+    )
+
+    assert anchors_introduced_by(bad_block, notes, version) == [], (
+        "the carried-forward bullet passes the anchor rule when substituted into "
+        "the live README; the content pin does not actually reach this file"
+    )
+    unsupported = [
+        claim
+        for claim in governance_claims(bad_block)
+        if claim not in _normalize_ws(notes.get(version, ""))
+    ]
+    assert unsupported == ["No schema, policy, or event-vocabulary changes"], (
+        f"the governance-claim check did not flag the false claim when substituted "
+        f"into the live README; got {unsupported}"
     )
 
 

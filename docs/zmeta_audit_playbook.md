@@ -159,10 +159,24 @@ Formalized from what demonstrably worked across R1-09, R1-10 and R1-11:
    self-reported green.
 4. **The attack pass is load-bearing, not ceremonial.** It caught every
    introduced defect the green battery did not.
-5. **No vacuous pins.** Every pin is proven by revert-simulation *with a
-   specific assertion* — watch it fail on the reverted tree, on the exact
-   claim, not on `assertFalse(ok)`. Four vacuous pins slipped through R1-11
-   before this was enforced.
+5. **No vacuous pins — and the proof ships with the pin.** Every pin asserts
+   the *specific* claim, never a bare `assertFalse(ok)` that some other gate
+   could satisfy. **Amended 2026-07-27 (doctrine log P2-D1): the
+   demonstration must be an artifact in the repo, not an act in a session.**
+   Write a paired check that constructs the bad state and asserts the guard
+   reports it, beside the guard, re-running in CI — a synthetic fixture, a
+   doctored copy of the real content, a temporary root. Watching it go red in
+   your working copy and saying so in the commit message is the practice this
+   replaces: it is ephemeral (nothing re-runs it, so a pin that was honest in
+   March goes vacuous in July when a new gate lands upstream of it and
+   refuses first — with no signal), author-attested (discipline 6 applies to
+   this claim class too), and it never verified the mutation applied at all.
+   Use `gateway/tests/vacuity.py::mutate` when doctoring text — it refuses a
+   substitution that changes nothing, which is precisely how one hand-run
+   probe reported success having mutated nothing. **Seven instances across
+   tests, shipped tooling, and audit evidence forced this**, including one
+   vacuous pin inside the fix for a vacuous pin. Pre-2026-07-27 pins are not
+   retro-fitted and must not be assumed non-vacuous.
 6. **Author is not grader.** Closure is verified by a probe written by one
    party and executed by another (`docs/r1_11_closure_probe.py`).
 7. **No minting; log the collision.** A fix that wants a governed change
@@ -237,7 +251,7 @@ Reconstructed at review time from the record, per the doctrine log's Lifecycle
 | 2. Resume from the tree | 5 days | Fired at the post-cut sweep | **Prevented harm.** Verifying the tree after interrupted edits found two defects (a stranded parenthesis, a stray lint directive) that no test could see. |
 | 3. Verify the battery yourself | 5 days | Every wave | Validated. Agent-reported green was wrong at least twice (stale manifest hashes both times). |
 | 4. Attack pass is load-bearing | 5 days | Every fix wave | **Prevented harm repeatedly** — and its limit was measured this cycle: three defects still reached the cut, which is what the amended pre-cut tier now covers. |
-| 5. No vacuous pins | 5 days | Fired (CR-16, the fifth of the cycle) | Validated; the rate is falling. |
+| 5. No vacuous pins | 5 days | Fired (CR-16, the fifth of the cycle) | ~~Validated; the rate is falling.~~ **Corrected 2026-07-27 — this score was wrong.** A sixth instance appeared the same day (a hand-run red-first probe whose substitution did not match, so it mutated nothing and reported success), and re-counting the class across *all* surfaces rather than tests alone put it at **seven**: shipped tooling (the adapter harness's own vacuous-pass) and audit evidence (a `git diff` over a gitignored path) belong to it too. The rate was not falling; the class was under-counted because only test-side instances were being tallied. **Rule AMENDED, not retired — the demonstration must now ship with the pin.** See doctrine log P2-D1. |
 | 6. Author is not grader | 5 days | Every wave (separate attacker/verifier agents) | Validated. |
 | 7. No minting; log the collision | 5 days | Fired continuously | **Validated hard.** Across ~33k inserted lines the only governed additions were the ones the maintainer adjudicated in a separate pass. |
 | 8. Audit the doctrine | 5 days | Fired at this closeout | Validated on first use: the log's own N=3 rule forced three entries to terminal status that would otherwise have drifted. |
@@ -249,6 +263,17 @@ whether that tier keeps catching attack-survivors or whether the rate falls to
 zero (either result is informative). (b) The one-third cap has never fired;
 if it still has not fired after several more cycles, ask whether the floor and
 the small-wave discipline are doing all the work and the cap is documentation.
+(c) **The scoring pass itself is a claim and can be wrong.** Rule 5 was scored
+"validated, the rate is falling" here and was corrected the same day on new
+evidence. The lesson is not that the scoring is unreliable — it is that a
+score derived from *one surface's* instances will read as improvement when the
+class is simply being counted narrowly. Score a rule against every surface its
+failure mode can appear on, not just the one it was written for.
+
+**Amendment log for this table.** Rule 5 amended 2026-07-27 (demonstration
+must ship with the pin — doctrine log P2-D1). Recorded here rather than by
+rewriting the header summary above, which describes what the original pass
+concluded and should stay as it was written.
 
 **First firing (2026-07-26, refresh tier):** validated. The mandated cold
 re-read of the R1-11 held range — nine lenses, adversarial verification —
