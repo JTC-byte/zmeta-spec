@@ -62,7 +62,23 @@ max 150/240.
    R1-11-07 HELD-FIRM. Nineteen further tensions remain OPEN by design.
 7. **The SAPIENT follow-ups** (Task ingress needs command-safety escalation;
    the harness registration entry point).
-8. **Re-homed from the R1-10 second-glance register** at the 2026-07-27
+8. **Extend the currency guard from version literals to content** (scoped,
+   evidenced, ~1 session). `gateway/tests/test_release_currency.py` pins
+   version *literals*, so the README's release-focus and integration-notes
+   prose carried v1.1.16 content through two cuts with the guard green — the
+   2026-07-27 closeout caught it by reading, which is the manual sweep that
+   does not scale with contributors. Candidate assertions: the current-release
+   prose must change in the same commit range as a version bump, and/or
+   headline phrases from `release/RELEASE_NOTES_v<current>.md` must appear in
+   the README's focus bullet. This is the highest-leverage records item
+   because it converts a recurring human sweep into a test. Rationale in the
+   after-action log's closeout discussion; deliberately the ONLY doctrine/SOP
+   change proposed out of that discussion — the introduction-rate concern was
+   already treated by the playbook (the worst wave this cycle introduced one
+   MODERATE across nine clusters), and the bus-factor question wants evidence
+   from strangers using the repo rather than more documentation written by
+   the people who already know it.
+9. **Re-homed from the R1-10 second-glance register** at the 2026-07-27
    retention pass, so archival cannot bury them: the pre-existing worktree at
    `.tmp/review-pr-2` (branch `review/pr2-frame-fixes`) is still present and
    its keep-or-prune is a maintainer call; the `.gitattributes` LF-normalization
