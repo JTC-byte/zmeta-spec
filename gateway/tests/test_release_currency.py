@@ -497,6 +497,7 @@ def compat_target_literals(text: str) -> list[str]:
 COMPAT_TARGET_CARRIERS = (
     "README.md",
     "adapters/README.md",
+    "adapters/ingress/adsb/README.md",
     "tools/README.md",
     ".github/workflows/ci.yml",
 )
@@ -586,8 +587,14 @@ def _tracked_files(patterns: tuple[str, ...]) -> set[str]:
     """
     import subprocess
 
+    # --cached lists tracked files; --others adds untracked ones and
+    # --exclude-standard drops anything gitignored. Tracked-only was the first
+    # fix, for a gitignored LOCAL_NOTES.md that made this pass on CI and fail
+    # locally -- and it traded that for the mirror defect: a NEW file is
+    # invisible until it is staged, so the battery went green locally and CI
+    # failed on the commit. This sees both and still ignores gitignored files.
     result = subprocess.run(
-        ["git", "ls-files", "-z", *patterns],
+        ["git", "ls-files", "-z", "--cached", "--others", "--exclude-standard", *patterns],
         cwd=ROOT,
         capture_output=True,
         text=True,
