@@ -1,6 +1,6 @@
 # ZMeta Adapter Authoring Guide
 
-Status: current-main advisory (Class A). Non-normative — if anything here
+Status: current-main advisory (Class A). Non-normative: if anything here
 conflicts with `spec/semantics-contract.md`, the canonical schemas, or
 `policy/`, those win (authority stack: `docs/zmeta_change_governance.md`).
 
@@ -34,15 +34,16 @@ detections, DoA solutions, PSD sweeps, decoded telemetry dicts, parsed track
 reports. The DSP, decoder, or inference stage that produces those runs
 upstream of ZMeta. On the ingress side this repository intentionally ships
 no raw-IQ, SigMF, or pcap handling and no CoT-XML, MISB 4609, or Link-16
-decoders — the CoT/KLV/JREAP ingress templates take pre-parsed dicts, and
+decoders. The CoT/KLV/JREAP ingress templates take pre-parsed dicts, and
 literal raw IQ support is recorded future work. (Egress differs:
 `adapters/egress/cot/` is a real CoT v2.0 XML encoder.) Link raw captures
-with `payload.data_ref` pointer metadata (semantics contract Appendix A) —
-never carry raw payload data in-event.
+with `payload.data_ref` pointer metadata (semantics contract Appendix A).
+Never carry raw payload data in-event.
 
 ## 2. Choose The Layer
 
-Emit at the layer of what your input IS, never the layer you wish it were
+Emit at the layer that describes what your input is, never the layer you wish
+it were
 (contract 4.4: no layer may collapse into another). Full mapping table:
 `adapters/README.md`. Nearest reference implementation to copy:
 
@@ -65,7 +66,7 @@ Emit at the layer of what your input IS, never the layer you wish it were
 
 External-promotion metadata is caller-owned end-to-end: `loop_status` (the
 reflection-check verdict) must arrive message-carried or caller-supplied and
-is NEVER defaulted by an adapter — the check is a verification the adapter
+is NEVER defaulted by an adapter. The check is a verification the adapter
 does not perform, so stamping its verdict would fabricate evidence (contract
 4.5.1; ratified in the SAPIENT pack and enforced by every promotion
 template). Promotion dicts are allowlisted to the enumerated promotion
@@ -78,11 +79,11 @@ Worked full chains to pattern-match against:
 genuine chained `lineage.based_on` ids.
 
 Which lineage pattern to copy: `lineage.transform` stamps a translation or
-promotion step — an adapter converting a native message records
+promotion step. An adapter converting a native message records
 `translate:<schema_id>@<adapter_version>`, external-state promotion records
 `promote:*`. Native ZMeta producers emitting original observations perform
 no such step and carry no transform (an original reading with no ZMeta
-parent omits `lineage` entirely) — that is why the RF chain's events carry
+parent omits `lineage` entirely). That is why the RF chain's events carry
 only genuine `based_on` links while the EO chain's INFERENCE event, produced
 by the eo-cv translator from a native detection, carries `transform` too.
 The harness defaults `require_lineage_transform: true` because adapter
@@ -91,7 +92,7 @@ output normally IS a translation step; a fixture legitimately sets it
 
 Worked exercise: `adapters/ingress/example-vendor/` is a complete small
 adapter implementing the `adapters/mapping-packs/example-vendor-pack`
-declarative mapping to this guide's requirements — build your own against the
+declarative mapping to this guide's requirements. Build your own against the
 same pack first if you want a known-good diff.
 
 ## 3. The Non-Negotiables
@@ -121,17 +122,17 @@ same pack first if you want a known-good diff.
    INFERENCE/FUSION/STATE and prohibited for OBSERVATION/COMMAND/SYSTEM.
 8. **STATE carries no raw artifacts** (contract 7.7): no `features`,
    `raw_features`, `modality`, `measurement(s)`, `t_start`/`t_end`,
-   `data_ref(s)` — enforced recursively. **COMMAND carries no altitude**
+   `data_ref(s)`, enforced recursively. **COMMAND carries no altitude**
    (contract 7.8), requires `requires_deconfliction: true`, a TTL
    (`valid_for_ms`), and an idempotent `task_id`.
 9. **Units and geodesy** (contract 6): WGS-84, meters HAE, degrees true
    north, m/s, UTC RFC3339 `Z` timestamps. Canonical geo is all-or-nothing;
-   omit missing values — never zero-fill (no `(0,0,0)` sentinels).
+   omit missing values rather than zero-filling them (no `(0,0,0)` sentinels).
 10. **Schema minimums are per-subtype.** The locked schema defines required
     feature sets per event family and modality (for example, RF observation
     features require `center_freq_hz`, `bandwidth_hz`, AND `power_dbm`).
     Read your subtype's schema block before deciding any input field is
-    optional — requiredness comes from the schema, never from what a sample
+    optional. Requiredness comes from the schema, never from what a sample
     input happens to carry. A reading missing a required field is refused,
     not emitted schema-invalid.
 
@@ -141,12 +142,12 @@ satisfy the schema-required RF feature set with the documented
 `bandwidth_hz: 0.0` sentinel (the kraken, moth, and signalhunter READMEs
 document it), and FFT-derived detections that measure an analysis window
 rather than emitter bandwidth may report the documented FFT-bin-width
-convention (the edge-comms-bladerf pack documents it). Both are DECLARED
-sentinels — fixed, documented, consumer-visible conventions — not invented
-measurements, and any adapter using one must document it in its own README.
+convention (the edge-comms-bladerf pack documents it). Both are declared
+sentinels: fixed, documented, consumer-visible conventions rather than invented
+measurements. Any adapter using one must document it in its own README.
 A frame-unlabeled native bearing is the mirror case: never promote it to
 canonical `payload.bearing` with a minted `TRUE_NORTH` assertion the
-producer did not make — keep it in explicitly named
+producer did not make. Keep it in explicitly named
 `features.native_bearing_*` fields until a producer frame assertion exists
 (the edge-comms-bladerf pack models this demotion). Inventing measurement
 values (default bearings, error bounds, power levels, positions) remains
@@ -166,12 +167,12 @@ prohibited by rules 3, 9, and 10.
 - Fail closed. Return nothing on ambiguous or unmappable input and emit a
   `SYSTEM_EVENT`/`SCHEMA_VIOLATION` diagnostic for deterministic failures.
 - Vendor quirks belong in adapter-local code, a mapping pack
-  (`adapters/mapping-packs/` — declarative documentation plus test samples;
+  (`adapters/mapping-packs/`: declarative documentation plus test samples;
   no runtime engine executes `mapping.yaml`), or namespaced payload
   extensions. They must not alter event meaning, units, lineage, authority,
   or command safety.
 
-## 5. Validate — The Ladder
+## 5. Validate: The Ladder
 
 Run from the repository root, narrowest first:
 
@@ -211,11 +212,11 @@ JSON Schema for fixture lines lives at
 fixture line against it before execution (an unknown expectation key is a
 caught typo, not a silent no-op), and `tools/check_adapter.py --fixtures`
 runs the same lint at author time. `result: "events"` fixtures require an
-`event_count` pin — without one, a refusing adapter returning `[]` would
+`event_count` pin. Without one, a refusing adapter returning `[]` would
 satisfy every expectation vacuously. Fixture `args`/`kwargs` are JSON only:
 adapters whose entry points take constructed objects (e.g. the SAPIENT
-`RegistrationStore`) cannot exercise those paths through the harness —
-cover them in colocated pytest instead and say so in the pack README:
+`RegistrationStore`) cannot exercise those paths through the harness.
+Cover them in colocated pytest instead and say so in the pack README:
 
 | Key | Meaning |
 | --- | --- |
@@ -235,7 +236,7 @@ cover them in colocated pytest instead and say so in the pack README:
 | `source_producer` | Exact `source.producer` match. |
 | `required_paths` / `forbidden_paths` | Dotted paths that must / must not resolve. |
 | `expected_values` | Dotted path -> exact value pins. Numeric tolerance 1e-6; booleans never match non-booleans; a missing path is its own failure. |
-| `event_count` | Exact number of events the callable must return. REQUIRED alongside `expect.events`; applies to both result kinds. `0` pins a fail-closed refusal the way the other keys pin emission — a `result: "events"` callable must return `[]`, and a single-event callable registers refusal by returning `None` (counted as zero events). A `result: "event"` fixture without `event_count` implicitly expects exactly one event. Write one refusal fixture per schema-required input field. |
+| `event_count` | Exact number of events the callable must return. REQUIRED alongside `expect.events`; applies to both result kinds. `0` pins a fail-closed refusal the way the other keys pin emission: a `result: "events"` callable must return `[]`, and a single-event callable registers refusal by returning `None` (counted as zero events). A `result: "event"` fixture without `event_count` implicitly expects exactly one event. Write one refusal fixture per schema-required input field. |
 | `utc_z_paths` | Paths that must be UTC `Z` timestamps (default `["event.ts"]`). |
 | `require_lineage_transform` | Default `true` for non-SYSTEM events; set `false` for original observations that legitimately omit lineage. |
 | `lineage_transform_prefix` | Required prefix for `lineage.transform` (for example `promote:`). |
@@ -247,12 +248,12 @@ cover them in colocated pytest instead and say so in the pack README:
 Schema validity is not authorization. Your `source.producer` and
 `source.node_role` must be allowed for the family you emit
 (`policy/roles.yaml`, `policy/producer-authority.yaml`). The reference
-producer names are examples — deployments narrow them to local ids. External
+producer names are examples, and deployments narrow them to local ids. External
 tactical ingress producers additionally carry the per-producer
 `external_state_promotion` requirements in that file.
 
-**Name your producer to match a reference wildcard, or ladder steps 2-4 will
-fail with `PRODUCER_NOT_ALLOWED` before you get to anything interesting.** The
+Name your producer to match a reference wildcard. If you do not, ladder steps
+2-4 fail with `PRODUCER_NOT_ALLOWED` before any semantic check runs. The
 policy pack is governed and hash-pinned, so editing it in a clone is exactly
 what `AGENTS.md` tells you not to do; renaming your producer is the supported
 move. The reference patterns:
@@ -268,10 +269,10 @@ move. The reference patterns:
 | `state-projector-*` | STATE projection |
 | `mavlink-*` | MAVLink bridges |
 
-So `acme-doa` fails and `rf-sensor-acme` passes, with nothing else changed.
+`acme-doa` fails and `rf-sensor-acme` passes, with nothing else changed.
 Note that `adapters/ingress/example-vendor/` is individually allowlisted in the
 reference policy, so the worked example passes where a new adapter under a new
-name will not — do not read its success as proof your naming is fine.
+name will not. Do not read its success as proof your naming is fine.
 
 ## 8. Definition Of Done
 
@@ -295,13 +296,13 @@ name will not — do not read its success as proof your naming is fine.
   question; never guess a mapping to make output appear.
 - Do not redefine locked surfaces (event vocabulary, version dispatch,
   required fields, units, lineage/confidence meaning, promotion evidence,
-  command safety) — see `AGENTS.md` downstream-clone rules. Local changes to
+  command safety). See `AGENTS.md` downstream-clone rules. Local changes to
   those surfaces create a private dialect.
 - Work from the repository root; keep adapters importable as packages; run
   the ladder exactly as written before claiming the adapter is done.
 
 Four failure modes proven by this guide's first external review pass
-(2026-07-16) — each escaped an author whose schema validation was green:
+(2026-07-16). Each escaped an author whose schema validation was green:
 
 - **Author from primaries, not summaries.** When your artifact mirrors or
   cites a file (a reference adapter, a schema block), open that file and
@@ -309,14 +310,14 @@ Four failure modes proven by this guide's first external review pass
   docstrings that secondhand summaries drop, and schema validation cannot
   catch dialect drift in free-form fields.
 - **Prove fail-closed claims with refusing inputs.** For every field the
-  schema requires, write the test where it is missing and assert refusal —
-  one per required field, not one sampled field. Green-path validation
+  schema requires, write the test where it is missing and assert refusal,
+  one per required field rather than one sampled field. Green-path validation
   alone let a teaching adapter emit schema-invalid events on the exact rule
   it taught.
 - **Run this guide as a checklist against your own adapter** before calling
   it done. An exemplar that violates the rule it teaches fails review.
 - **Record validation evidence exactly.** Name the command and target you
-  actually ran, invoked in a state where it can fail — a diff check is
+  actually ran, invoked in a state where it can fail. A diff check is
   `git diff --check <base>...HEAD`, not a bare clean-worktree check that
   can never trip. A false validation claim in a commit message is an
   evidence-integrity defect, not a formatting nit.

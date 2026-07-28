@@ -24,7 +24,7 @@ observation time windows, or raw data references. Traceability belongs in
 `lineage.based_on` and `lineage.transform`, and it must be real: the caller
 supplies `state["based_on"]` (parent ZMeta event ids, UUIDv7) or
 `state["source_zmeta_event_id"]`. Without one of those the translator refuses
-to emit — a lineage parent is never fabricated. The SYSTEM_EVENT builders
+to emit; a lineage parent is never fabricated. The SYSTEM_EVENT builders
 (`translate_link_status`, `translate_time_status`) omit lineage unless the
 caller passes `based_on` (SYSTEM_EVENT lineage is optional).
 
@@ -46,7 +46,7 @@ MAVLink state template uses `payload.extensions.external_promotion` only as
 policy-scoped boundary evidence for the promotion decision; it does not carry
 raw telemetry or reinterpret state. `loop_status` must arrive in the decoded
 telemetry dict: the reflection check is a verification the template never
-performs, so its verdict is never self-asserted — a message without it
+performs, so its verdict is never self-asserted, and a message without it
 refuses the promotion (returns None; contract 4.5.1, same rule as the
 SAPIENT ingress).
 
@@ -108,7 +108,7 @@ event = translate_platform_state(
   pre-lock "null island" signature). Canonical `geo` is all-or-nothing
   (semantics contract 6.8: "If any of `lat`, `lon`, or `alt_m` is missing,
   omit `geo` entirely. Missing values MUST be omitted, not zero-filled"), and
-  the v1.0 schema requires `payload.geo` on `TRACK_STATE` — so a state without
+  the v1.0 schema requires `payload.geo` on `TRACK_STATE`, so a state without
   a complete usable position must not be emitted rather than defaulted to
   `(0, 0, 0)`. A fabricated `alt_m: 0.0` is not harmless padding: CoT egress
   re-projects it as a concrete `hae="0.0"` altitude claim, and deconfliction,
@@ -119,7 +119,7 @@ event = translate_platform_state(
   anti-fabrication pattern (convert or refuse, never invent).
 - The same rule applies to every other never-reported value, not only to
   `geo` and not only to numbers. Every scalar this adapter emits is either a
-  value the telemetry carried or a constant declared — with its reason — in
+  value the telemetry carried or a constant declared, with its reason, in
   the provenance sweeps in `test_mavlink_ingress.py`, which are path-scoped
   (a constant is authorised at one path, not as a literal everywhere) and
   cover strings and categorical verdicts, not only numerics:
@@ -127,14 +127,14 @@ event = translate_platform_state(
     a stationary platform;
   - an unreported `gps_fix_type` / `satellites_visible` omits
     `payload.quality.gps_fix_type` / `.satellites_visible` rather than
-    restating "no GPS / 0 satellites" — while still driving the conservative
+    restating "no GPS / 0 satellites", while still driving the conservative
     confidence floor, `geo_status: STALE` and the null-island refusal, so the
     omission only ever degrades the event;
   - `decode_attitude()` decodes an unreported axis to explicit `None`, not to
     0.0° (a measured level attitude) and not to an omitted key. An omitted key
     would leave the *previous* message's roll in the accumulating state dict
     below, and the translator would then publish it as a current reading with
-    no per-field staleness marker — stale-presented-as-current is the same
+    no per-field staleness marker. Stale-presented-as-current is the same
     class as fabricated-as-measured. `decode_global_position_int()` already
     clobbers for the same reason;
   - `decode_gps_raw_int()` omits unreported fix quality and drops the MAVLink
@@ -144,8 +144,8 @@ event = translate_platform_state(
     `battery_remaining = -1`) so neither becomes a 0 V flat battery nor a
     65.535 V reading;
   - every one of those sentinels is guarded on the **translator** side as well,
-    because a state dict — and every `translate_link_status()` keyword — can be
-    assembled by any bridge, so a decoder-only guard is half a guard. The full
+    because a state dict, and every `translate_link_status()` keyword, can be
+    assembled by any bridge, so a decoder-only guard covers half the paths. The full
     family, enumerated from the emitted fields rather than from the decoders:
     `satellites_visible` / `rc_rssi` / RADIO_STATUS `rssi` all carry MAVLink's
     uint8 "Values: [0-254], UINT8_MAX: invalid/unknown" convention and drop
@@ -153,8 +153,8 @@ event = translate_platform_state(
     observed); `battery_voltage` drops the UINT16_MAX sentinel in volts
     (`65.535`, what a bridge that divides before handing over produces) as well
     as a non-positive value; `battery_remaining_pct` drops `-1`; and a heading
-    outside 0–360 — commonly `655.35`, the `hdg = UINT16_MAX` sentinel divided
-    by 100 — is dropped from both destinations rather than clamped, since the
+    outside 0–360, commonly `655.35`, which is the `hdg = UINT16_MAX` sentinel
+    divided by 100, is dropped from both destinations rather than clamped, since the
     canonical `payload.heading_deg` is schema-bounded but the non-canonical
     `quality.mavlink_hdg_frame_unknown_deg` is not. Nothing is clamped: a clamp
     would invent a measurement at the top of the scale;
@@ -164,7 +164,7 @@ event = translate_platform_state(
     them, rather than reporting a perfect link the node never measured;
     `battery_voltage`, `battery_pct` and `rc_rssi` are omitted when
     unreported;
-  - `payload.state` — the field a consumer reads before any metric — is never
+  - `payload.state`, the field a consumer reads before any metric, is never
     hard-coded either. `translate_link_status()` takes a caller-supplied
     `state` and defaults to the schema's own `UNKNOWN`, not `UP`: measuring
     latency is not the same as adjudicating link health, and every measured
@@ -172,13 +172,13 @@ event = translate_platform_state(
     additionally require `reason_code`, and an out-of-vocabulary state is
     refused rather than emitted schema-invalid. `reason_code` gets the same
     treatment as `state` and not merely a presence check: an out-of-vocabulary
-    code is refused, and a code supplied under `state="UP"` is refused too — a
+    code is refused, and a code supplied under `state="UP"` is refused too, because a
     healthy link with a cause of degradation contradicts itself in the field
     the operator reads first, and which half the caller meant is not
     adjudicable here. `UNKNOWN` may still carry a cause, because "I measured
     this and I am not adjudicating health" is an honest pair;
   - `translate_time_status()` requires caller-supplied `est_error_ms` and
-    `last_sync_ts` and raises `ValueError` without them — a `0.0` timing
+    `last_sync_ts` and raises `ValueError` without them. A `0.0` timing
     error asserts a perfect clock in the very field consumers read to decide
     how far to trust the timeline, and a defaulted `last_sync_ts` asserts a
     sync that just happened;
@@ -188,18 +188,18 @@ event = translate_platform_state(
     block can never sit under a `SYNCED` state. A carried verdict is honoured
     only when it is *more* conservative than the derived one, compared on a
     declared severity ordering (`UP` < `DEGRADED` < `DOWN`, with `SYNCED` as a
-    spelling of `UP`) and after whitespace/case normalisation — `"UP "` renders
+    spelling of `UP`) and after whitespace/case normalisation, since `"UP "` renders
     as `UP` in every UI, so it must not escape the comparison. A carried value
     outside that ordering (`LOCKED`, `NOMINAL`, a raw numeric code) is
     **refused**, not published and not silently replaced by the derived
     verdict: an unrankable label may be *more* degraded than the derivation,
     and quietly emitting the derived verdict over it would launder in the
-    other direction. An absent or blank verdict is not an unrankable one — it
+    other direction. An absent or blank verdict is not an unrankable one. It
     means the message said nothing about clock health, and takes the derived
     verdict;
   - `mavlink_decoded_to_zmeta_system_events()` refuses a TASK_ACK whose
     message carries no acknowledgement verdict rather than reporting
-    `RECEIVED` — a commander reads that as the vehicle having taken the task,
+    `RECEIVED`, which a commander reads as as the vehicle having taken the task,
     and the v1.0 TASK_ACK state vocabulary offers no "unknown" member to
     degrade into. Presence is tested by carrier key (`state` / `mission_state`
     / `ack`), never by truthiness: `MAV_MISSION_ACCEPTED` and
@@ -210,18 +210,17 @@ event = translate_platform_state(
     codes are refused rather than mapped: `0` means ACCEPTED under
     `MISSION_ACK.type` and `COMMAND_ACK.result` but UNKNOWN under
     `MISSION_CURRENT.mission_state`, and the decoded dict does not say which
-    enum it came from — the bridge holds the message type, so the bridge maps
-    the code. Guessing an acceptance is the one direction that must never be
-    guessed;
+    enum it came from. The bridge holds the message type, so the bridge maps
+    the code; an acceptance must never be guessed;
   - the five negative TASK_ACK verdicts (`REJECTED` / `FAILED` / `CANCELLED`
     / `EXPIRED` / `DUPLICATE_IGNORED`) carry the `metrics.reason_code` the
     v1.0 schema requires on exactly those states: the message's own when it
     carried a member of the schema's 12-value TASK_ACK reason vocabulary,
     else the code that restates the verdict itself (`TASK_REJECTED`,
-    `TASK_FAILED`, `TASK_CANCELLED`, `TASK_EXPIRED`, `TASK_DUPLICATE` — the
-    same pairing the SAPIENT ingress makes). A restatement, not a diagnosis:
-    it adds no cause the message did not carry. A message-carried
-    `reason_code` is never silently dropped — an out-of-vocabulary one is
+    `TASK_FAILED`, `TASK_CANCELLED`, `TASK_EXPIRED`, `TASK_DUPLICATE`), the
+    same pairing the SAPIENT ingress makes. That is a restatement rather than a diagnosis: it adds no cause the message
+    did not carry. A message-carried
+    `reason_code` is never silently dropped: an out-of-vocabulary one is
     refused, and one carried under a clean verdict (`RECEIVED` / `ACCEPTED` /
     `EXECUTING` / `COMPLETED`) is refused as self-contradictory, since the
     v1.0 reason vocabulary is causes of non-execution;
@@ -229,12 +228,12 @@ event = translate_platform_state(
     schema shape it emits, instead of leaving the whole advertised message
     family to be refused at the gateway: `latency_ms`, `packet_loss_pct` and
     `throughput_bps` are message-carried and refused when absent (never
-    fabricated — same rule as `translate_link_status()`); `link_id` is the
+    fabricated, the same rule as `translate_link_status()`); `link_id` is the
     message's own or the declared `edge-comms-<platform_id>` default (an
     identifier the adapter assigns, not a measurement it invents); a carried
     `state` / `link_state` is normalised onto the v1.0
     `UP`/`DEGRADED`/`DOWN`/`UNKNOWN` vocabulary and refused when
-    uninterpretable — never forwarded verbatim — while an absent or blank
+    uninterpretable rather than forwarded verbatim, while an absent or blank
     verdict stays the honest `UNKNOWN`; and `reason_code` follows the same
     vocabulary / required-under-`DEGRADED`-`DOWN` / no-cause-under-`UP` rules
     as `translate_link_status()`.

@@ -10,16 +10,16 @@ protos). Status: Reference.
 
 One `SapientMessage` as a Python dict decoded from protobuf-JSON. Both
 lowerCamelCase and snake_case keys are accepted (all keys are normalized to
-snake_case recursively; values — including enum strings — are untouched).
+snake_case recursively; values, including enum strings, are untouched).
 Enum values must be proto value-name strings (long form
 `LOCATION_DATUM_WGS84_E` or short form `WGS84_E`); integer enum encodings
 are not decoded and resolve as unknown (fail closed).
 
 Envelope requirements (whole-message refusal when violated):
 
-- `timestamp` (RFC3339 string or protobuf `{seconds, nanos}` dict) —
-  missing/unparseable refuses the message.
-- `node_id` — null/missing refuses the message; identity is never
+- `timestamp` (RFC3339 string or protobuf `{seconds, nanos}` dict).
+  Missing or unparseable refuses the message.
+- `node_id`: null or missing refuses the message; identity is never
   fabricated.
 - Exactly one known `content` oneof branch must be present.
 
@@ -33,9 +33,9 @@ Envelope requirements (whole-message refusal when violated):
 | `alert` | `INFERENCE_EVENT` / `ANOMALY` | 1.0 |
 | `task_ack` | `SYSTEM_EVENT` / `TASK_ACK` | 1.0 |
 | `error` | `SYSTEM_EVENT` / `SCHEMA_VIOLATION` | 1.0 |
-| `registration` | no events — feeds the caller's `RegistrationStore` | — |
-| `registration_ack`, `alert_ack` | no events (ack loops terminate here) | — |
-| `task` | no events — SAPIENT→`COMMAND_EVENT` ingress is **out of scope** in v1 (command safety: `requires_deconfliction` cannot be fabricated by an adapter; see `AGENTS.md` command-safety limits) | — |
+| `registration` | no events; feeds the caller's `RegistrationStore` | n/a |
+| `registration_ack`, `alert_ack` | no events (ack loops terminate here) | n/a |
+| `task` | no events; SAPIENT→`COMMAND_EVENT` ingress is **out of scope** in v1 (command safety: `requires_deconfliction` cannot be fabricated by an adapter; see `AGENTS.md` command-safety limits) | n/a |
 
 Detection event order: observation first, then classification inferences
 (input order), behaviour inferences, and the detection-existence claim last.
@@ -50,14 +50,14 @@ capture is a first-class pack component: feed every `Registration` to a
 store to `translate()`, which ingests registration content itself) and pass
 that store to every `translate()` call.
 
-What the store resolves — and what its absence costs:
+What the store resolves, and what its absence costs:
 
 | Declaration | Enables | Without it |
 |---|---|---|
 | `node_definition` node types | Observation modality (CAMERA→EO, ACOUSTIC→ACOUSTIC, CYBER→NETWORK) and fusion-node detection | No modality: no observation |
 | signal-category units (`centre_frequency`/`start_frequency`/`stop_frequency` in Hz/MHz/GHz, `amplitude` in dBm) | Canonical RF features | Whole `signal` block extension-only; no RF observation |
 | `config_data` manufacturer/model (+`software_version`, else `"unknown"`) | `payload.model` for inference events | No inference events (model identity is never fabricated, contract 7.5); native classification stays in the vendor extension |
-| `maximum_latency` per mode | `est_error_ms` timing widen | Never declared: no widen (only the fallback bound). Declared but **unresolvable**: degraded timing, see below — never a silent no-widen |
+| `maximum_latency` per mode | `est_error_ms` timing widen | Never declared: no widen (only the fallback bound). Declared but **unresolvable**: degraded timing, see below. Never a silent no-widen |
 | `velocity_type` ENU units (m/s or km/h) | `features.velocity_enu_mps` | `enu_velocity` extension-only |
 | `geometric_error` "Standard Deviation" in metres | `quality.measurement_error` from `x/y/z_error` | Errors stay raw in the vendor extension |
 
@@ -67,7 +67,7 @@ scale.
 
 A `detection_report` with **no registration at all** is fully refused:
 no node type (no modality), no units (no canonical RF), no model (no
-inference) — nothing can be honestly emitted.
+inference). Nothing can be honestly emitted.
 
 ### Timing (send-time widen)
 
@@ -76,48 +76,48 @@ inherits the unmeasured capture→send gap. Every payload-bearing operational
 event carries `payload.timing_quality`:
 `coerce_timing_quality()` supplies the deliberately degraded
 `UNKNOWN`/`UNSYNCED` fallback, then `est_error_ms` is widened by the
-registration-declared `maximum_latency` — **including when the caller
-supplies its own `timing_quality`** — because that latency is real even
+registration-declared `maximum_latency`, including when the caller
+supplies its own `timing_quality`, because that latency is real even
 with a good clock. `active_mode` scopes the widen to one mode's
-declaration; when `None` — or when the name matches no declared mode with
-a resolvable latency — the maximum across declared modes applies
+declaration; when `None`, or when the name matches no declared mode with
+a resolvable latency, the maximum across declared modes applies
 (conservative: a mismatched mode name never shrinks the claimed error).
 
-**An unresolvable declaration is not the same as no declaration.** A node
-that declared a `maximum_latency` this adapter cannot resolve — unknown
+An unresolvable declaration is handled differently from an absent one. A node
+that declared a `maximum_latency` this adapter cannot resolve (unknown
 `Duration` units, a `NaN`/`Infinity` value, a value whose millisecond
 scaling overflows, an integer with no float64 form, or a strictly
-negative value (a capture-*before*-send bound is physically impossible;
-zero still resolves) — has told us its capture→send gap is bounded and
+negative value, since a capture-before-send bound is physically impossible;
+zero still resolves) has told us its capture→send gap is bounded and
 left us unable to say by what. Skipping the widen and shipping the
 caller's bound unchanged would make that node publish a *tighter*
 `est_error_ms` than a node with a sane declaration (measured before this
-was closed: `0.5 s` declared → `505.0`, `NaN` declared → `5.0`). Worse
-still, a negative value used to *resolve* and be **added**, actively
+was closed: `0.5 s` declared → `505.0`, `NaN` declared → `5.0`). A negative
+value also used to resolve and be added, actively
 subtracting from the bound (measured: `-0.5 s` declared against a caller
-`5000.0` → `4500.0`, still `LOCKED`). The worse the input, the cleaner
-the event — laundering.
+`5000.0` → `4500.0`, still `LOCKED`). In both cases the worse the input, the
+cleaner the event, which is laundering.
 
-So an unresolvable declaration degrades the event instead: `time_source`
+An unresolvable declaration therefore degrades the event instead: `time_source`
 `UNKNOWN`, `sync_state` `UNSYNCED`, and `est_error_ms` the **wider** of the
 normally-widened bound and the module's unknown-clock fallback. The event
-is still emitted — one malformed mode declaration must not zero every event
-from that node forever — but its timing is explicitly untrustworthy and
+is still emitted, because one malformed mode declaration must not zero every
+event from that node forever, but its timing is explicitly untrustworthy and
 filterable, and consumers read `est_error_ms` together with `sync_state`
 (contract 5.3), never as a standalone bound. A caller `est_error_ms` that
 is *already* non-finite is left alone and refused whole at the emit
 boundary; it is never replaced with a clean default.
 
-**The degradation is a floor over the normal widen, never a substitute for
-it.** `max_latency_ms()` skips only the modes it could not resolve, so a
+The degradation is a floor over the normal widen rather than a substitute for
+it. `max_latency_ms()` skips only the modes it could not resolve, so a
 node that declares one sane mode and one broken one still has a real,
-resolvable cross-mode bound — and that bound is folded in first, with the
+resolvable cross-mode bound, and that bound is folded in first, with the
 unknown-clock fallback applied on top. Degrading *before* widening threw
 that surviving term away and made the broken node publish the **tighter**
 number: measured, with no caller timing, sane-mode-only `60500.0` against
 sane-plus-broken `60000.0`, `sync_state` identical in both. Since the widen
 is unaffected by a mode the store could not resolve, adding a broken
-declaration can now only ever widen what the node publishes — the
+declaration can now only ever widen what the node publishes. That is the
 monotonicity property, pinned directly in the colocated tests.
 
 Within the locked `timing_quality` vocabulary there is no way to say "the
@@ -158,8 +158,8 @@ tell the quiet node from the broken one.
   Amplitude with non-dBm or unknown units is **never** mapped to
   `power_dbm`. `bandwidth_hz` is stop−start when both edges resolve;
   otherwise the declared `0.0` "not measured" sentinel (same convention as
-  the kraken/moth/signalhunter adapters — a documented consumer-visible
-  marker, not an invented measurement). A band edge the producer **did**
+  the kraken/moth/signalhunter adapters: a documented consumer-visible
+  marker rather than an invented measurement). A band edge the producer **did**
   declare and this adapter could not resolve (unresolvable edge units, a
   non-numeric or unrepresentable edge, an overflowing difference, or a stop
   below the start) additionally keeps the whole raw `signal` block as
@@ -184,7 +184,7 @@ An observation is emitted only when an honest modality exists:
 | CAMERA | `EO` |
 | ACOUSTIC | `ACOUSTIC` |
 | CYBER | `NETWORK` |
-| RADAR / LIDAR / SEISMIC / CHEMICAL / other, without a resolvable signal block | **none** — documented degradation until the queued RADAR-family v1.x feature contracts land; inference events still emit if model identity and caller lineage exist |
+| RADAR / LIDAR / SEISMIC / CHEMICAL / other, without a resolvable signal block | **none**; documented degradation until the queued RADAR-family v1.x feature contracts land; inference events still emit if model identity and caller lineage exist |
 | Unregistered node | **none** |
 
 ### Refusal matrix (fail closed, never fabricate)
@@ -202,28 +202,28 @@ An observation is emitted only when an honest modality exists:
 | No model identity | no inference events; native claims extension-only |
 | No observation emitted and no caller `based_on` | no inference events (mandatory lineage is never invented, contract 4.8) |
 | Alert without model / confidence / caller `based_on` | refused |
-| Fusion-node detection without `promotion` kwarg | refused — never silently downgraded to an observation |
-| Promotion without caller-supplied `promotion["loop_status"]` | refused — the reflection check is a verification the adapter never performs, so its verdict is never self-asserted |
+| Fusion-node detection without `promotion` kwarg | refused; never silently downgraded to an observation |
+| Promotion without caller-supplied `promotion["loop_status"]` | refused; the reflection check is a verification the adapter never performs, so its verdict is never self-asserted |
 | Promotion without caller `based_on`, `detection_confidence`, or full canonical geo | refused |
-| Promotion dict carrying any key outside the enumerated promotion vocabulary | refused — promotion metadata never smuggles raw measurements or unenumerated keys into STATE (contract 4.5.1) |
-| `task_index` entry present but null/empty | refused — the TaskAck correlation is never fabricated (no `str(None)` coercion) |
-| Non-finite (NaN/inf) value on the wire | refused at the guard (canonical fields) or omitted from native pass-through blocks — never emitted |
+| Promotion dict carrying any key outside the enumerated promotion vocabulary | refused; promotion metadata never smuggles raw measurements or unenumerated keys into STATE (contract 4.5.1) |
+| `task_index` entry present but null/empty | refused; the TaskAck correlation is never fabricated (no `str(None)` coercion) |
+| Non-finite (NaN/inf) value on the wire | refused at the guard (canonical fields) or omitted from native pass-through blocks; never emitted |
 | Non-finite arithmetic PRODUCT from finite operands (unit scaling, radians->degrees, band-edge difference, latency widen) | that canonical field is not written and the raw block is preserved as provenance; guarding the operand is not enough, since `value * 1e6` and `math.degrees()` overflow to inf near the float64 ceiling and `inf % 360.0` is NaN |
-| Non-finite anywhere inside the canonical `claim` (e.g. a vendor `sub_class` taxonomy) | that inference entry refused — `claim` is canonical, so the vendor pass-through drop rule does not apply; the raw entry stays in `native_classification` |
-| Registration `Duration` whose scaled value is non-finite | treated as an unresolvable declaration (`None`), same as unknown units — never a non-finite `est_error_ms` on every event from that node |
-| Registration `maximum_latency` that is unresolvable for ANY reason | the event's timing degrades to `UNKNOWN`/`UNSYNCED` with the **wider** of the normally-widened bound and the unknown-clock fallback — the widen happens first, so the resolvable latency of the node's *other* modes is never discarded and a broken declaration can only ever widen the published `est_error_ms`, never tighten it (see Timing above) |
-| Integer literal with no float64 form (e.g. a 400-digit number) anywhere on the wire | that field refuses like any other unmappable value; `translate()` and `RegistrationStore.ingest()` never raise — `math.isfinite` raises `OverflowError` on such an int, and wire data must never crash the ingest loop |
+| Non-finite anywhere inside the canonical `claim` (e.g. a vendor `sub_class` taxonomy) | that inference entry refused; `claim` is canonical, so the vendor pass-through drop rule does not apply; the raw entry stays in `native_classification` |
+| Registration `Duration` whose scaled value is non-finite | treated as an unresolvable declaration (`None`), same as unknown units; never a non-finite `est_error_ms` on every event from that node |
+| Registration `maximum_latency` that is unresolvable for ANY reason | the event's timing degrades to `UNKNOWN`/`UNSYNCED` with the **wider** of the normally-widened bound and the unknown-clock fallback. The widen happens first, so the resolvable latency of the node's *other* modes is never discarded and a broken declaration can only ever widen the published `est_error_ms`, never tighten it (see Timing above) |
+| Integer literal with no float64 form (e.g. a 400-digit number) anywhere on the wire | that field refuses like any other unmappable value; `translate()` and `RegistrationStore.ingest()` never raise; `math.isfinite` raises `OverflowError` on such an int, and wire data must never crash the ingest loop |
 | Any value the producer DECLARED that reaches no canonical field | the raw block is preserved in the vendor extension, whatever the reason it did not map (non-numeric, no float64 form, unresolvable units, an overflowing product, an elevation with no azimuth, an error term with no canonical carrier). Presence drives preservation, not numeric-ness: a declared value that is deleted is indistinguishable from one the producer never sent, and that is the one thing provenance exists to prevent |
-| Non-finite dict KEY inside a verbatim vendor block | that entry is dropped from the provenance block; the event and every canonical field it resolved are still emitted — a defect confined to a pass-through blob never destroys the geo, bearing, RF features or classification around it |
-| Any non-finite surviving to the emit boundary | that event refused, and the refusal CASCADES to events citing it as `based_on` — a dependent must never assert lineage to an event that was not emitted (contract 4.8) |
-| TaskAck with unresolvable `task_id` (no `task_index` entry) | refused — the `original_event_id` correlation is never fabricated |
+| Non-finite dict KEY inside a verbatim vendor block | that entry is dropped from the provenance block; the event and every canonical field it resolved are still emitted; a defect confined to a pass-through blob never destroys the geo, bearing, RF features or classification around it |
+| Any non-finite surviving to the emit boundary | that event refused, and the refusal CASCADES to events citing it as `based_on`; a dependent must never assert lineage to an event that was not emitted (contract 4.8) |
+| TaskAck with unresolvable `task_id` (no `task_index` entry) | refused; the `original_event_id` correlation is never fabricated |
 | TaskAck `TASK_STATUS_UNSPECIFIED` | refused |
-| StatusReport `power` mapping to no metrics | no `PLATFORM_STATUS` (never padded); the raw `power` block moves to the `SENSOR_STATUS` vendor extension — refusing the event must not erase the declaration that produced it |
+| StatusReport `power` mapping to no metrics | no `PLATFORM_STATUS` (never padded); the raw `power` block moves to the `SENSOR_STATUS` vendor extension; refusing the event must not erase the declaration that produced it |
 | Non-TRUE / non-degrees field-of-view cone | `fov_deg` omitted; raw cone extension-only |
 | SAPIENT `task` content | no events (out of scope v1) |
 
 `Error` content maps to `SCHEMA_VIOLATION` with
-`metrics.original_event_id: "UNKNOWN"` — the documented gateway sentinel
+`metrics.original_event_id: "UNKNOWN"`, the documented gateway sentinel
 (`gateway/src/gateway.py`) for an unknowable original id; a synthesized
 correlation id is forbidden.
 
@@ -233,15 +233,15 @@ A detection from a fusion node (per registration `NODE_TYPE_FUSION_NODE`,
 or per the `promotion` kwarg when the node is not known as a sensor)
 promotes to `STATE_EVENT`/`TRACK_STATE` only with: caller-supplied
 `promotion` evidence metadata (reference policy
-`PROMOTE-SAPIENT-STATE-V1`) **including an explicit `loop_status`** — the
+`PROMOTE-SAPIENT-STATE-V1`) including an explicit `loop_status`. The
 reflection check is the caller's verification, never self-asserted by the
 adapter (this gateway's own SAPIENT egress makes a fusion node
-re-reporting an exported track a live reflection scenario) — caller
+re-reporting an exported track a live reflection scenario). It also requires caller
 `based_on` lineage, an explicit `detection_confidence` (used as-is, never
 increased), and full canonical geo. `track_id` is the SAPIENT `object_id` (permitted external track id in
 promoted state), `lineage.transform` is
 `promote:sapient@<version>:<policy_id>`, and the payload's vendor block
-carries compact native ids only — STATE never carries raw sensor features
+carries compact native ids only, because STATE never carries raw sensor features
 (contract 7.7). Registration knowledge wins: a registered non-fusion
 sensor node splits normally even when a `promotion` dict is supplied.
 
@@ -250,14 +250,14 @@ sensor node splits normally even when a `promotion` dict is supplied.
 Every payload-bearing event carries
 `payload.extensions["vendor.sapient"]` with the native ids/fields actually
 present (absent keys omitted): `report_id`, `object_id` (a
-NON-authoritative correlation hint — never a `track_id`), `task_id`,
+NON-authoritative correlation hint, never a `track_id`), `task_id`,
 `state`, `id`, `detection_confidence`, `prediction_location`,
 `associated_detection`, `derived_detection`, `associated_file`,
 `track_info`, `object_info`, plus unmappable blocks (`signal`,
-`signal_additional` — entries past the first when canonical RF features
-were mapped from `signal[0]` — `enu_velocity`, `location`,
+`signal_additional` (entries past the first when canonical RF features
+were mapped from `signal[0]`), `enu_velocity`, `location`,
 `range_bearing`, `node_location`, `coverage`, `obscuration`). Native classification/behaviour lists are preserved as
-`native_classification` / `native_behaviour` — deliberately renamed so the
+`native_classification` / `native_behaviour`, deliberately renamed so the
 observation denylist names (`confidence`, `classification`, `track_id`,
 `entity_class`, `label`) never appear as extension keys. Extensions are
 safe to ignore: nothing load-bearing lives only in the vendor block.
