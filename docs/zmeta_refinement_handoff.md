@@ -78,6 +78,31 @@ asserting each pattern matched exactly once, so a pattern that stopped matching
 halted the run instead of reporting success over an unedited file. That check
 caught nothing this time, which is the outcome it is supposed to have.
 
+**ADOPTED AS THE REPO STANDARD, 2026-07-28.** The maintainer approved the
+result and asked that this become the house voice: simple, clean, upfront and
+detailed, professional without sounding like a sales pitch. It is written into
+`CLAUDE.md` under "How we work here", with the specific tics to avoid, the
+warning against over-correcting into hedging or padding, and the two exceptions
+(quotations are copied exactly, process records are never restyled). `CLAUDE.md`
+was itself brought to the standard in the same commit, because a style rule
+stated in the one file that breaks it is the exemplar-violates-its-own-rule
+defect `adapters/AUTHORING.md` section 9 already names.
+
+**The one deferred piece, and one that is not deferred at all.** These are
+different cases and were briefly written up as one:
+
+- **Manifest-hashed but ungoverned: 5 dashes across 4 files** (`AGENTS.md` 1,
+  `docs/zmeta_change_governance.md` 2, `spec/release-hash-policy.md` 1,
+  `spec/future-branch-roadmap.md` 1). Skipped only because a comma is not worth
+  a manifest regeneration on its own. That cost goes to zero at the next cut,
+  when the manifest is rebuilt anyway, so folding them into the version bump is
+  the cheap moment. The other eight hashed files already carry none.
+- **Governed: 12 dashes, and they stay.** `spec/compact-binary-mapping.md` has
+  11 and `spec/semantics-contract.md` has 1. A prose edit to a governed artifact
+  is a governed change at any time, so the next cut does not make these cheaper.
+  They move only through the normal escalation, if ever. The house voice does not
+  override the change process.
+
 **The honest limit.** The countable tells were counted and are at zero. Whether
 the prose now reads as a person wrote it cannot be judged by its author, and an
 outside reader is what that claim needs. If the calibration is wrong in either
