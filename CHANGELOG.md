@@ -56,7 +56,7 @@
   errors.
 - 2026-07-28 — **PC-12 reversed on measurement.** The dist bundle briefly
   shipped no toolchain, on the premise that those tools import the reference
-  gateway; measured, that is true of 2 of 6, and removing the rest left dist
+  gateway; measured, that is true of 12 tools (8 of the 16 the manifest hashes), and removing the rest left dist
   unable to validate the hash manifest it still ships. dist keeps `tools/` and
   carries its own generated `BUNDLE_NOTES.md`. The edge/gateway bundles gained
   `release/zmeta-release-manifest.yaml`, without which both shipped bundle
@@ -89,8 +89,12 @@
   `tools/release_focus_facts.py` from the release manifest against the new
   committed `release/governed-baseline.yaml`, and must appear **verbatim**, an
   allowlist rather than a blocklist of phrasings (the B-01 lesson, reached
-  again by the same road); and the "introduced" rule reads real artifact paths
-  added or changed since the baseline, so a version literal cannot satisfy it.
+  again by the same road); The second rule, which tried to judge whether the
+  bullet named something this release introduced, was **removed** rather than
+  patched a third time — a version literal satisfied it, and with nothing added
+  it drew from the same set the mandatory sentence enumerates. The resulting
+  gap is deliberate and stated in the code: stale prose beside a true generated
+  sentence passes.
   Red-demonstrated against the panel's actual evasions. The baseline is
   committed rather than derived from git because CI checks out without tags,
   so a `git show v1.1.18:` comparison would have passed vacuously there —
@@ -113,7 +117,7 @@
   the shipped tooling consumes, and `release/governed-baseline.yaml`. Raising
   the coverage pin from directory to path granularity found three more gaps;
   fixing those found thirteen more, including the dist zip shipping
-  `validate_conformance.py` without the ten sub-validators its flags invoke.
+  `validate_conformance.py` without the nine sub-validators its flags invoke.
   The dist builder now copies the `spec` and `tools` trees rather than
   enumerating files, with a build-residue ignore.
 - 2026-07-28 — **known limitation, pre-existing, NOT closed:** those

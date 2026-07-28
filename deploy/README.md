@@ -10,7 +10,7 @@ Use them when you want a repeatable, containerized install on edge and gateway n
 - WSL2 enabled on Windows.
 - UDP ports open between edge and gateway.
 
-## Edge (Profile L relay)
+## Edge (relay)
 
 From repo root or bundle root:
 ```

@@ -42,6 +42,7 @@ or command safety.
 | [KLV](ingress/klv/) | MISB KLV metadata | OBSERVATION_EVENT (EO) | Template |
 | [SAPIENT](ingress/sapient/) | BSI Flex 335 v2.0 SapientMessage dicts (protobuf-JSON) | OBSERVATION_EVENT, INFERENCE_EVENT, STATE_EVENT (promotion), SYSTEM_EVENT | Reference |
 | [bladeRF EW](ingress/bladerf/) | edge-comms bladeRF / ROS2 EW `rf_detection` JSON (`edge-comms-bladerf` pack) | OBSERVATION_EVENT (RF) | Reference |
+| [ADS-B](ingress/adsb/) | `dump1090` / `readsb` `aircraft.json` (RTL-SDR, any decoder `adsbcot` supports) | OBSERVATION_EVENT (NETWORK) | Reference |
 | [Example-vendor](ingress/example-vendor/) | `example-vendor-pack` RF JSON | OBSERVATION_EVENT (RF) | Worked exercise |
 
 Status legend: **Production** — exercised against real sensor data;

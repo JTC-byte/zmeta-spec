@@ -62,7 +62,11 @@ the code** did not: every late defect was an enumeration or measurement written
 into prose without being run, and at one point three places carried three
 different counts of the same thing.
 
-**When a claim enumerates, generate it.** Applied in three places now: the
+**When a claim enumerates, generate it.** Applied in **two** places so far —
+the governance sentence and the dist bundle's tool list. The conformance flag
+list is still hand-typed prose that no generator writes and no test reads, and
+it already carries an enumeration error of its own; it is the obvious third
+candidate. (Superseded text follows.) The
 governance sentence, the conformance flag list, and the dist bundle's tool
 list. It is the one rule from this cycle that removes work rather than adding
 it.
@@ -418,7 +422,14 @@ Current stack status:
   bearing/heading fields unless callers explicitly assert `TRUE_NORTH`;
   unasserted native values remain auditable under explicitly named
   non-canonical fields.
-- Use tag `v1.1.19` for current formal release assets/checksums (cut 2026-07-27). Use tag `v1.1.17` for the prior published baseline. Use tag
+- Use tag `v1.1.19` for current formal release assets and checksums **once it
+  exists — it does not yet.** v1.1.19 is prepared, not published: no tag, no
+  signature, no upload. Until then `v1.1.18` is the published release and the
+  one to clone for byte-exact verification.
+  *This line is machine-pinned on its version literal only, so it went on
+  naming a tag that had never been created while the pin stayed green — the
+  prose-beside-a-pinned-literal blind spot this cycle was convened to fix,
+  found inside the record announcing the fix.* Use tag `v1.1.17` for the baseline before that. Use tag
   `v1.1.15` for the SAPIENT-bridge baseline and `v1.1.14` for the
   audit-driven honesty-hardening baseline.
 - Use current `main` for the latest integration baseline with bearing-frame

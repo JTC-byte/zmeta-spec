@@ -39,7 +39,7 @@ The maintained install templates live under `configs/`:
 - `configs/gateway-config.json` - Profile H gateway with validation and CoT
   emission enabled.
 - `configs/gateway-config-strict.json` - strict validation preset.
-- `configs/edge-config.json` - Profile L edge relay that forwards to a gateway.
+- `configs/edge-config.json` - Profile H edge relay that forwards to a gateway.
 - `configs/edge-config-profile-L-lean.json` - compact Profile L preset for
   constrained links.
 

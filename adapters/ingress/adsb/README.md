@@ -51,11 +51,12 @@ Native, explicitly named so nothing reads more into them than the data supports:
 `adsb_nac_v`, `adsb_sil`, `adsb_nic`, `adsb_downlink_hz`, `adsb_receiver_id`,
 and `adsb_lat_deg` / `adsb_lon_deg` when the position could not become canonical.
 
-## Two open questions this adapter raised
+## Three open questions this adapter raised
 
-Both are **standard-level questions, not adapter bugs**, and both are recorded
-in `docs/zmeta_doctrine_review_log.md`. Neither is settled. They are here
-because an adapter author meeting the same wall should know it is a known wall.
+All three are **standard-level questions, not adapter bugs**, and all three are
+recorded in `docs/zmeta_doctrine_review_log.md` as cycle A1. None is settled.
+They are here because an adapter author meeting the same wall should know it is
+a known wall.
 
 ### 1. Modality is `NETWORK`, and that is a workaround
 
@@ -93,7 +94,19 @@ at all. Ground radar and most DF systems are 2-D too.
 The candidate fix is again a declaration: geo declares its dimensionality,
 the way `geo_status` already declares availability.
 
-**Whether either matters is a field question**, not an argument to have here.
+### 3. Translation provenance cannot be recorded canonically
+
+`lineage` requires `based_on` with at least one real parent event id, and
+`transform` lives inside it. An original observation of a broadcast has no
+ZMeta parent, so this adapter cannot record that it translated
+`dump1090 aircraft.json` — precisely where adapters live. The harness fixtures
+therefore set `require_lineage_transform: false`.
+
+Expressible as a native feature, so a smaller gap than the two above. Listed
+because an adapter author hits it on their first harness run and should know it
+is a known wall, not a mistake in their fixture.
+
+**Whether any of these matter is a field question**, not an argument to have here.
 It is entirely possible nobody misses the dropped altitudes. That is what the
 live test is for.
 

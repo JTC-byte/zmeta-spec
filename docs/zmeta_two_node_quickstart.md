@@ -11,7 +11,7 @@ containers in this repository; nothing needs to be built.
 ```
  [sensor] --native--> [adapter] --ZMeta/JSON--> [EDGE gateway]      (sensor host / Raspberry Pi)
                                                      |
-                                          ZMeta compact (Profile L)
+                                            ZMeta compact (Profile H)
                                                      v
  (any relay node: forward the ZMeta datagram verbatim -- never translate)
                                                      v
@@ -35,8 +35,17 @@ Two rules carry the whole design:
 ## Node A — the sensor edge (host or Raspberry Pi)
 
 The edge gateway ingests adapter output (JSON), validates it against the
-locked kernel, and forwards **compact Profile L** — the bandwidth shape
-(measured max 150 bytes against a 240-byte budget for the Profile L corpus).
+locked kernel, and forwards **compact** datagrams.
+
+**Both stock nodes ship Profile H**, and they must match: profile validation is
+exact equality, so a mismatched pair drops 100% of traffic silently. H is the
+default because Profile L excludes `OBSERVATION_EVENT` — everything an ingress
+adapter emits — so an L node cannot carry sensor detections at all.
+
+Profile L remains the bandwidth shape for a constrained link (measured max 150
+bytes against a 240-byte budget for the L corpus). Choosing it is a deliberate
+decision that your edge sends STATE/SYSTEM/COMMAND rather than raw detections,
+and **both** nodes must be set to it.
 
 ```bash
 cd deploy/edge
@@ -56,7 +65,7 @@ docker compose logs -f   # wait for: gateway listening on 0.0.0.0:5555
 ```
 
 The stock `configs/edge-config.json` is already the sensor-side shape:
-Profile L, `input_encoding: auto` (JSON or compact in), compact out, CoT
+Profile H, `input_encoding: auto` (JSON or compact in), compact out, CoT
 off, failure-mode handling on.
 
 **Raspberry Pi / ARM64.** The compose files use the multi-arch

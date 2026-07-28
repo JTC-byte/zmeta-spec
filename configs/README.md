@@ -2,14 +2,19 @@
 
 These configs are intended to be edited and used directly by the edge/gateway services.
 
-- `edge-config.json` - Profile L edge relay (forward-only, no CoT emission).
+- `edge-config.json` - Profile H edge relay (forward-only, no CoT emission).
+  Profile H because L excludes `OBSERVATION_EVENT`, so an L node cannot carry
+  what an ingress adapter emits. Both nodes must share a profile: matching is
+  exact equality and a mismatch drops everything silently.
 - `edge-config-profile-L-lean.json` - Optional lean Profile L preset (compact + optional-field stripping).
 - `gateway-config.json` - Gateway validator + CoT emission.
 - `gateway-config-strict.json` - Strict validation preset (warnings treated as failures).
 
 When to use the lean Profile L config:
 - Use `edge-config-profile-L-lean.json` for bandwidth-constrained links where size budgets matter.
-- Use `edge-config.json` when you want full Profile L fidelity (e.g., keep confidence/lineage/data_ref).
+- Use `edge-config.json` for the default Profile H shape (keeps confidence/lineage/data_ref
+  and carries observations). Switching to a Profile L preset means the node no longer
+  accepts `OBSERVATION_EVENT`, and the far node must be set to L as well.
 
 Notes:
 - `schema_path` and `policy_dir` are resolved relative to the config file location.

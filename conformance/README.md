@@ -18,7 +18,7 @@
 > **From the dist bundle, `validate_conformance.py` does not run at all.** It
 > imports the reference gateway at module load and dist carries no `gateway/`.
 > dist is the specification distribution; its `BUNDLE_NOTES.md` says so and
-> names the two tools affected. `tools/validate_release_manifest.py` does run
+> lists the affected tools, generated from the tools themselves. `tools/validate_release_manifest.py` does run
 > there, and verifies the hash manifest dist ships.
 
 This folder contains a regression corpus for the canonical

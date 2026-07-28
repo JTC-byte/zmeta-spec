@@ -18,9 +18,14 @@ The rule this file implements, from the maintainer, 2026-07-28:
 > defect is certain or the cost of being wrong is high — but it is the
 > exception, not the default.
 
-So each item below is a **question with a yes/no answer a real deployment can
-give**, not a task. Answering "no, nobody cared" is a complete and valuable
+Sections A, B and D are **questions with a yes/no answer a real deployment can
+give**, not tasks. Answering "no, nobody cared" is a complete and valuable
 result: it closes the item and prevents work.
+
+Section C is different and is labelled as such: those are access-gated **tasks**
+carried from earlier cycles — things that simply cannot be done without
+hardware or live tooling. They are here because this is where a tester looks,
+not because they are discipline-10 deferrals.
 
 Record the answer inline, dated. Items that turn out to matter graduate to the
 handoff queue or the doctrine log with evidence attached.
@@ -56,11 +61,13 @@ change to the standard and none should move without field evidence.
 - [ ] **Stock profile choice.** Both nodes now ship Profile H so adapter
       observations flow. *Question:* does a real bandwidth-constrained link
       want L instead, and if so what does a team lose by having to choose?
-- [ ] **The five-minute wire check as written.** `maybe_log()` only fires on
-      the datagram path and resets its window, so a burst prints `recv=1` and
-      goes quiet — the quickstart's `recv=N ... fwd=N` line will not appear as
-      documented and reads as packet loss. *Question:* does this mislead a real
-      team, or does the far-consumer count suffice?
+- [ ] **The five-minute wire check as written.** The metrics line is emitted
+      only after `metrics_interval_sec` (30 s in the stock configs) has elapsed
+      on the datagram path, so a short replay prints **no metrics output at
+      all** — not a low count. The quickstart's `recv=N ... fwd=N` line will not
+      appear, and the documented check replays four events in under a second.
+      *Question:* does the absence mislead a real team, or does the
+      far-consumer count suffice?
 - [ ] **Two nodes on one host.** Both compose files publish `5555:5555/udp`, so
       the pair cannot come up unmodified on a single machine. *Question:* do
       teams actually co-host, or is the two-machine assumption fine?

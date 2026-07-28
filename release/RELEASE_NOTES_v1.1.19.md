@@ -83,14 +83,15 @@ bundle with the check green.
 
 The dist bundle keeps the full `tools/` tree. An earlier attempt in this cycle
 removed it on the premise that those tools import the reference gateway and
-could not run from dist — measurement showed that is true of exactly two of
-them, and removing the rest left dist unable to validate the hash manifest it
+could not run from dist — measurement showed that is true of 12 of
+them (8 of the 16 the manifest hashes), and removing the rest left dist unable to validate the hash manifest it
 still shipped, which `spec/release-hash-policy.md` (also in the bundle) tells
 deployments to do before startup. The real problem was never the tools: it was
 that dist ships the repository README, which describes a walkthrough dist
 cannot run. dist now carries its own **`BUNDLE_NOTES.md`** stating its scope
-and naming `validate_conformance.py` and `compute_contract_hash.py` as the two
-tools that need the reference gateway.
+and listing the tools that need the reference gateway — generated from the
+tools themselves rather than typed, after three places in one commit carried
+three different counts of it.
 
 Measured from an edge bundle, nine of ten conformance flags exit 0.
 `--conformance-classes` is repository-side by design: `conformance_classes.yaml`
@@ -118,11 +119,20 @@ authoritative and free text is a projection:
 - the governance sentence is **computed** from the release manifest against
   `release/governed-baseline.yaml` and must appear **verbatim**. It cannot be
   paraphrased, because an allowlist does not care how many phrasings exist.
-- the "introduced" rule reads **real artifact paths** added or changed since
-  the baseline release, so a version literal cannot satisfy it.
+The second rule — the one that tried to judge whether the bullet named
+something *this* release introduced — was **removed**, not patched. It failed
+twice: a version literal satisfied it, and when nothing was added it drew from
+the same set the mandatory sentence enumerates, so it found its own paths
+inside that sentence. Judging whether prose is about the right release is not
+reliably machine-checkable, and three rounds said so.
 
-Both are red-demonstrated against the exact inputs that defeated the first
-design. Four previously unpinned current-release literals are now covered —
+**The resulting coverage gap is deliberate and stated in the code:** a bullet
+whose prose describes an older release but which carries the correct generated
+sentence will pass. What is caught is a false governance claim, and a bullet
+that omits the sentence entirely.
+
+The surviving rule is red-demonstrated against the exact inputs that defeated
+the first design. Four previously unpinned current-release literals are now covered —
 the README title line, the CI workflow's compatibility target, the Tools
 block, and `release/README.md`'s worked example — plus `tools/README.md`'s
 worked commands. One was already wrong: `adapters/README.md` had been

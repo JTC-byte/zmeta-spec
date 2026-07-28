@@ -266,7 +266,7 @@ full audits:
 | 2. Resume from the tree | Fired repeatedly | Validated. Reviewers working against a concurrently-edited tree flagged it themselves; holding writes while a panel read the tree was the right call each time. |
 | 3. Verify the battery yourself | Every wave | **Prevented harm twice.** CI caught a carrier the local battery could not see, and one reviewer claim (a mutation-survival result) did not reproduce when I ran it — reported as measured rather than as received. |
 | 4. Attack pass is load-bearing | Every wave | Validated, and its limit re-measured: internal attack passes did not catch that the cycle's headline guard was defeatable by two one-word edits. |
-| 5. No vacuous pins; the demonstration ships with the pin | Fired (instance 8) | **Amended last cycle, and immediately tested by instance 8 — the guard written FOR that doctrine was itself vacuous.** The amendment held: the paired in-repo demonstration is what a later panel used to prove the replacement worked. |
+| 5. No vacuous pins; the demonstration ships with the pin | Fired (a further instance; the P2-D1 table stands at seven and was not extended) | **Amended last cycle, and immediately tested by instance 8 — the guard written FOR that doctrine was itself vacuous.** The amendment held: the paired in-repo demonstration is what a later panel used to prove the replacement worked. |
 | 6. Author is not grader | Fired at the pre-cut tier | **Validated decisively; the single strongest result of the cycle.** The author-run pre-cut review produced a cut I would have called ready. The independent panel then found the headline feature did not work, a silent-corruption bug that shipped through every green gate, bundle-coverage gaps, and stale records. Four author passes had not found any of it. |
 | 7. No minting; log the collision | Continuously | **Validated hard.** Three alphabet gaps found (cycle A1) and the locked kernel untouched; nothing minted, everything recorded with a recommendation. |
 | 8. Audit the doctrine | Fired at this closeout | Validated. Produced discipline 10 and this scoring pass. |
@@ -276,7 +276,7 @@ full audits:
 **Watch-items carried forward.** (a) The one-third introduction cap has still
 never fired — now several cycles without firing; ask again whether the severity
 floor and small-wave discipline are doing all the work. (b) **"When a claim
-enumerates, generate it"** is new and unscored: it removed a defect class three
+enumerates, generate it"** is new and unscored: it removed a defect class twice this cycle (the conformance flag list is a third candidate, still hand-typed)
 times this cycle, but it has not yet been tested by someone adding a fourth
 enumeration. Watch whether it is reached for, or forgotten. (c) The records
 surfaces still reconcile at points while commits land continuously — this

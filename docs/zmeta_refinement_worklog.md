@@ -60,7 +60,7 @@
   PC-10 and PC-11 surfaced while fixing the first nine), and an independent
   five-lens panel afterwards found the content guard itself did not work,
   two of them live defects: `adapters/README.md` had pointed at
-  `--target v1.1.16` for two releases, and the manifest hashed twelve
+  `--target v1.1.16` for two releases, and the manifest hashed eleven
   `export/policy` artifacts that NEITHER bundle builder carried. Four
   previously-unpinned current-release literals are now covered, including
   the README title line and the CI workflow's compat target. **PC-09 was CLOSED 2026-07-28** — this sentence recorded it as deferred and

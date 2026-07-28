@@ -42,6 +42,7 @@ the lexical one catches the prose sentence. Neither is a substitute for the
 manifest's ``known_open_issues``, which remains the authority.
 """
 
+import json
 import re
 from pathlib import Path
 
@@ -342,4 +343,94 @@ def test_checklist_still_requires_real_release_notes_on_a_formal_package():
     assert "RELEASE_PACKAGE_NOTES_PLACEHOLDER" in text, (
         "the checklist no longer names the code the validator refuses with, so "
         "a cutter who hits it has nothing to search for"
+    )
+
+
+# ---------------------------------------------------------------------------
+# A doc that names a shipped config and a profile must agree with the file.
+#
+# `configs/README.md` described `edge-config.json` as a "Profile L edge relay"
+# after the file had been changed to H. An operator following that line would
+# set the node back to L and reproduce the exact defect the change fixed: a
+# 100% silent drop, because profile matching is exact equality -- and L also
+# excludes OBSERVATION_EVENT, so no ingress adapter could point at it.
+#
+# It was found by an independent review AFTER a closeout that had already
+# corrected the sibling claims in two other files. That is the fourth instance
+# of one claim living in several places and being fixed in some of them, which
+# is why this is a check rather than another sweep.
+# ---------------------------------------------------------------------------
+
+_PROFILE_CLAIM = re.compile(r"\bProfile\s+([HML])\b")
+
+
+def _shipped_config_profiles() -> dict[str, str]:
+    profiles = {}
+    for path in sorted((ROOT / "configs").glob("*.json")):
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, UnicodeDecodeError):
+            continue
+        profile = data.get("profile")
+        if isinstance(profile, str):
+            profiles[path.name] = profile
+    return profiles
+
+
+def _profile_claims_in_docs():
+    """(doc, line_no, config_name, claimed_profile) for every co-mention.
+
+    Scoped to a single line naming BOTH a shipped config and a profile, which
+    is the shape that misled -- deliberately narrow, so prose discussing
+    profiles in general is untouched.
+    """
+    configs = _shipped_config_profiles()
+    for path in sorted(ROOT.rglob("*.md")):
+        rel = path.relative_to(ROOT).as_posix()
+        if any(part in rel for part in (".tmp/", "release/dist", "release/bundles",
+                                        "release/package-", "pytest-cache")):
+            continue
+        for number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+            claim = _PROFILE_CLAIM.search(line)
+            if not claim:
+                continue
+            for name in configs:
+                if name in line:
+                    yield rel, number, name, claim.group(1)
+
+
+def test_docs_do_not_misstate_a_shipped_config_profile():
+    configs = _shipped_config_profiles()
+    assert configs, "no shipped configs declare a profile; this check would be vacuous"
+
+    wrong = [
+        (doc, number, name, claimed, configs[name])
+        for doc, number, name, claimed in _profile_claims_in_docs()
+        if claimed != configs[name]
+    ]
+    assert wrong == [], (
+        "documents state a profile that disagrees with the shipped config: "
+        + "; ".join(
+            f"{doc}:{number} says {name} is Profile {claimed}, file says {actual}"
+            for doc, number, name, claimed, actual in wrong
+        )
+        + ". Profile matching is exact equality, so a reader who follows the doc "
+        "produces a pair that drops every event silently."
+    )
+
+
+def test_the_config_profile_check_would_catch_a_wrong_claim():
+    """Red demonstration against the real files, not a synthetic pair."""
+    configs = _shipped_config_profiles()
+    assert "edge-config.json" in configs
+    actual = configs["edge-config.json"]
+    wrong = "L" if actual != "L" else "H"
+    line = f"- `edge-config.json` - Profile {wrong} edge relay."
+
+    claim = _PROFILE_CLAIM.search(line)
+    assert claim and claim.group(1) == wrong
+    assert "edge-config.json" in line
+    assert claim.group(1) != actual, (
+        "the demonstration's doctored claim matches the real config, so it "
+        "proves nothing"
     )
