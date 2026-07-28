@@ -3,6 +3,41 @@
 ## Current Resume Note
 
 - Last updated: 2026-07-28 (v1.1.19 PREPARED — not tagged, not published)
+- **2026-07-28 — P2 + A1 CYCLE, v1.1.19 PREPARED, CLOSED OUT.** Opened by a
+  downstream consumer's pin-advance report (P2-01: a stale README release-focus
+  bullet asserting a governance negative that was false in two published tags)
+  and closed with the first cooperative-broadcast adapter. Four independent
+  panels ran across the cycle; a fifth pass verified the fourth's fixes.
+  **What the panels found that internal passes had not:** the content guard
+  built for P2-01 did not work — a carried-forward bullet passed both rules
+  after two one-word edits — and its replacement had four MAJORs of its own, so
+  the rule that tried to judge whether prose was about the right release was
+  **removed** rather than patched a third time. What survives is the part two
+  panels confirmed sound: a governance sentence COMPUTED from the manifest
+  against a committed `release/governed-baseline.yaml` and required verbatim.
+  **The first-run lens paid best**, and it is the one I would have skipped: the
+  documented two-node path delivered zero events (edge L, gateway H, exact
+  profile matching), the "adapter in about an hour" claim hid a 30–90 minute
+  producer-authority wall, contract hashes differed between Windows and Linux
+  clones **in two independent ways**, and `requirements-dev.txt` produced a
+  broken environment. All long-standing — the hash defect dates to the
+  repository's first day, 2026-01-17.
+  **Churn diagnosis, measured not asserted:** the code converged (no test,
+  fixture or conformance expectation regressed across the whole cycle); the
+  *claims about* the code did not. Every late-cycle defect was an enumeration
+  or measurement written into prose without being run — three separate places
+  once carried three different counts of the same thing. The durable rule that
+  came out of it: **when a claim enumerates, generate it.** Applied in three
+  places now (the governance sentence, the conformance flag list, the dist
+  bundle's tool list).
+  **ADS-B adapter landed** (`adapters/ingress/adsb/`, 17 tests, 3 fixtures)
+  and produced doctrine-log cycle **A1** — three alphabet gaps, each with a
+  second instance so no fix accommodates one source, and the shipped `kraken`
+  adapter shown to be laundering uncalibrated RSSI into `power_dbm` because the
+  spec leaves no third option. Recommendation for all: a declaration, not a
+  subtype. **Maintainer adopted playbook discipline 10** (validate before
+  hardening; otherwise write the question down) and
+  `docs/zmeta_live_test_checklist.md` now carries the deferred questions.
 - Quick handoff: `docs/zmeta_refinement_handoff.md`
 - **2026-07-27 — P2 CYCLE + v1.1.19 PREPARED.** Opened by a downstream
   consumer's pin-advance review, not by an internal pass. **P2-01**: the

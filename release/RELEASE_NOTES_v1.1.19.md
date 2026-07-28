@@ -7,23 +7,29 @@ guard rebuilt after the first one was defeated
 
 ## Summary
 
-v1.1.19 is a small release that took two rounds to get right, and the second
-round is the more useful story.
+v1.1.19 has two halves. One is an artifact: the governed policy, readable
+without a YAML parser. The other is what happened when the repository was
+pointed at a real deployment path for the first time in a while.
 
-One new artifact: `export/policy/*.json`, the governed policy verbatim, in a
-format a consumer outside the Python stack can read. It exists because a
-fielded deployment had been hand-copying governed data — not from
-carelessness, but because copying was the only path this repository offered.
+`export/policy/*.json` exists because a fielded deployment had been
+hand-copying governed data — not from carelessness, but because copying was
+the only path this repository offered.
 
-Everything else came from review. A downstream consumer reported a defect in
-our published records; an independent panel then found that the guard written
-to prevent that defect did not work, that the release bundles omitted files
-the manifest declared shipped, and that a policy file containing a YAML `.inf`
-would have shipped unparseable JSON with every gate green.
+The **ADS-B ingress adapter** (`adapters/ingress/adsb/`) is the first
+cooperative-broadcast adapter, built against real `dump1090` shapes ahead of a
+live RTL-SDR test. It is also the release's most useful failure report: it
+found three places where a real thing cannot be expressed in the current
+alphabet, each with an instance beyond ADS-B.
 
-No governed artifact changed in this release: schema, policy data, the
-semantic contract and the extension registry are byte-identical to
-zmeta-v1.1.18. The locked v1.0 kernel is unchanged.
+And a first-run review found the documented two-node deployment path could not
+deliver a single event, that the "adapter in about an hour" claim had a 30–90
+minute undocumented wall in it, and that contract hashes differed between
+Windows and Linux clones of the same commit — while the quickstart tells the
+operator to stop when they differ. All three were long-standing: the hash
+defect dates to the repository's first day.
+
+Governed artifacts changed in this release, relative to zmeta-v1.1.18: conformance/adapter-harness/must-pass.jsonl.
+The locked v1.0 kernel is unchanged.
 
 ## The governed policy, readable without a YAML parser
 
@@ -121,6 +127,48 @@ the README title line, the CI workflow's compatibility target, the Tools
 block, and `release/README.md`'s worked example — plus `tools/README.md`'s
 worked commands. One was already wrong: `adapters/README.md` had been
 pointing at `--target v1.1.16` for two releases.
+
+## ADS-B ingress adapter
+
+`adapters/ingress/adsb/` translates `dump1090` / `readsb` `aircraft.json` into
+`OBSERVATION_EVENT`s, for any decoder `adsbcot` supports. ADS-B is a good
+conformance target because it carries its own declared quality — `nac_p`,
+`nac_v`, `sil`, `nic` — so the honesty primitives are exercised against data
+that actually has them, continuously and for free.
+
+It refuses to invent three things:
+
+- **a position** — a Mode S target with no `lat`/`lon` is a real detection of a
+  real emitter, emitted positionless with `geo_status: UNAVAILABLE`;
+- **an altitude datum** — `alt_baro` is a pressure altitude referenced to
+  1013.25 hPa, not a height above the ellipsoid, and never becomes `alt_m`;
+- **a calibrated power** — `dump1090` reports dBFS, so `rssi` travels as
+  `rssi_dbfs` and never as `power_dbm`.
+
+NACp becomes a **declared** containment radius; when it is absent no bound is
+invented. The default producer matches a reference wildcard so an adapter
+author does not hit the producer-authority wall on their first run.
+
+### What it could not say
+
+Three gaps, recorded in `docs/zmeta_doctrine_review_log.md` as cycle A1 and
+**not** fixed here — the locked kernel is untouched and nothing was minted:
+
+1. **`power_dbm` assumes a calibrated receiver.** It is a required RF minimum
+   feature (contract 7.4), and every SDR-based sensor reports uncalibrated
+   relative power. The shipped `kraken` adapter already writes a value its own
+   documentation calls "RSSI dB" into `power_dbm`, because the specification
+   leaves no third option.
+2. **All-or-nothing `geo` discards good 2-D positions.** AIS is the sharper
+   case: a vessel has no meaningful altitude *ever*.
+3. **`lineage` requires `based_on`**, so an original observation cannot record
+   what format it was translated from.
+
+The recommendation for all three is a **declaration, not a new subtype** —
+power declares its reference, geo declares its dimensionality — the way
+`bearing.frame` already declares `TRUE_NORTH`. A subtype per sensor family
+would be a dictionary; a declaration is an alphabet. Whether any of it matters
+is a field question, and the live test is what answers it.
 
 ## Record correction: the published v1.1.17 and v1.1.18 READMEs
 

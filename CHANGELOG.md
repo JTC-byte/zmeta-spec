@@ -4,6 +4,73 @@
 
 ## [1.1.19] - 2026-07-28
 
+- 2026-07-28 — **ADS-B ingress adapter** (`adapters/ingress/adsb/`), the first
+  cooperative-broadcast adapter and the release's largest addition.
+  `dump1090`/`readsb` `aircraft.json` → `OBSERVATION_EVENT`, for any decoder
+  `adsbcot` supports. It refuses to invent three things: a position (a Mode S
+  target with no `lat`/`lon` is a real detection, emitted positionless), an
+  altitude datum (`alt_baro` is pressure altitude and never becomes `alt_m`),
+  and a calibrated power. NACp maps to a **declared** containment radius;
+  absent, no bound is invented. 17 unit tests, 3 harness fixtures, ladder
+  green, adapter conformance 51/51. Default producer `rf-sensor-adsb-01`
+  matches a reference wildcard so an author does not hit the producer-authority
+  wall on their first run.
+- 2026-07-28 — **doctrine log cycle A1**: three places where a real thing
+  cannot be said in the current alphabet, each with an instance beyond ADS-B so
+  no fix would be an accommodation for one source. **A1-01** `power_dbm` is a
+  required RF feature but `dump1090` reports dBFS — and
+  `kraken_to_zmeta.py:160` already writes `"power_dbm": rssi_db` where its own
+  docs call that field "RSSI dB", because the spec leaves no third option.
+  **A1-02** all-or-nothing `geo` discards good 2-D positions; AIS is sharper,
+  since a vessel has no meaningful altitude ever. **A1-03** `lineage` requires
+  `based_on`, so an original observation cannot record what it was translated
+  from. Recommendation for all three is a **declaration, not a subtype** —
+  constrain the meaning, not the source. The adapter's `NETWORK` modality is
+  labelled a workaround, not a design.
+- 2026-07-28 — the **stock two-node pair could not deliver one event**
+  (`c2668af`, corrected in `7422780`). Edge was Profile L, gateway Profile H,
+  and profile matching is exact equality, so the documented quickstart dropped
+  100% of traffic silently at the network layer. The first remedy set the
+  gateway to L — which is the one profile that excludes `OBSERVATION_EVENT`,
+  i.e. everything an ingress adapter emits, leaving no node an adapter author
+  could point at. Both nodes are now **H**, verified live: an observation is
+  accepted at H and refused at L and M.
+- 2026-07-28 — the **adapter-in-an-hour claim had a 30–90 minute wall**: a
+  correct adapter failed on `PRODUCER_NOT_ALLOWED` and the entire fix was
+  renaming the producer to match a wildcard, which nothing surfaced —
+  and the worked example readers are routed to is individually allowlisted, so
+  it passes where theirs will not. `AUTHORING.md` §7 now carries the wildcard
+  table and says so; the diagnostic names the policy file and the patterns; and
+  `tools/validate.py` prints violation messages, so the wall explains itself at
+  ladder step 2 rather than step 3.
+- 2026-07-28 — **contract hashes were platform-dependent** in two independent
+  ways: raw-byte reads (line endings) and `sorted(rglob("*"))` (case-insensitive
+  on Windows, byte-order on POSIX). The quickstart makes hash equality the
+  interoperability gate and says to STOP when they differ, so a Windows edge and
+  a Linux GCS running identical code were told to halt on a false signal. Both
+  closed; this tree now produces the same hashes measured in a Linux container.
+  A text-suffixed non-UTF-8 file falls back to raw bytes rather than aborting
+  gateway startup.
+- 2026-07-28 — `requirements-dev.txt` was one line (`pytest`) with no
+  `-r requirements.txt`, so the documented dev install produced 48 collection
+  errors.
+- 2026-07-28 — **PC-12 reversed on measurement.** The dist bundle briefly
+  shipped no toolchain, on the premise that those tools import the reference
+  gateway; measured, that is true of 2 of 6, and removing the rest left dist
+  unable to validate the hash manifest it still ships. dist keeps `tools/` and
+  carries its own generated `BUNDLE_NOTES.md`. The edge/gateway bundles gained
+  `release/zmeta-release-manifest.yaml`, without which both shipped bundle
+  builders could not start; nine of ten conformance flags now exit 0 from a
+  built edge bundle.
+- 2026-07-28 — the bundle-coverage pin now asserts against **built bundles**
+  rather than the builders' source text, which a plain `shutil.copytree` had
+  defeated; and `BUNDLE_NOTES.md`'s tool list is **generated** rather than
+  typed, after three places in one commit carried three different numbers.
+- 2026-07-28 — the compat-carrier check now enumerates tracked **and**
+  untracked-but-not-ignored files. Tracked-only could not see a new file until
+  it was staged, so the battery passed locally and CI failed on the commit —
+  the mirror of the gitignored-file defect that motivated tracked-only.
+
 - 2026-07-28 — **the first content-currency guard did not work and was
   replaced before release.** An independent five-lens panel run before tagging
   showed it passing a "Release focus" bullet carried forward wholesale from

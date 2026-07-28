@@ -1,33 +1,78 @@
 # ZMeta Refinement Handoff Notes
 
-## CURRENT STATE — read first (v1.1.19 prepared 2026-07-27)
+## CURRENT STATE — read first (closeout 2026-07-28)
 
-**`v1.1.19` is PREPARED, NOT PUBLISHED.** The tree carries the v1.1.19
-manifest, release notes, and re-baselined currency surfaces. **No tag, no
-signature, no asset upload has been made** — those are the maintainer's acts
-and none of them was performed. Until the tag exists, `v1.1.18` remains the
-latest published release.
+**`v1.1.19` is PREPARED, NOT PUBLISHED. No tag, no signature, no asset upload
+has been made** — those are the maintainer's acts and none was performed. Until
+the tag exists, `v1.1.18` remains the latest published release.
 
-The cut resolves the divergence that prompted it: `main`'s manifest had been
-declaring `release_id: zmeta-v1.1.18` / `formal_release` while describing 83
-artifacts across 20 groups against the published tag's 71 across 19 — a
-manifest describing a release that did not exist, and a live recurrence of
-the open R1-11-17 tension (a wrong-but-plausible identity validates clean).
+**Battery at closeout:** kernel gate all flags exit 0, strict examples 51/51,
+adapter conformance 51/51, pytest 1468 + 1070 subtests, both lints clean,
+`export_policy_json --check` clean, manifest rebuilt LAST and revalidated.
+`main` is pushed and CI green.
 
-**PC-09 — CLOSED 2026-07-28 (this entry superseded; kept for the trail).**
-The maintainer scoped it the same day and it shipped. Original statement: The release manifest hashes paths no
-downloadable bundle carries: the edge/gateway bundles omit `docs/`, and the
-dist zip omits `docs/` and `conformance/`. README.md tells downstream clone
-users to read `AGENTS.md` and `docs/zmeta_change_governance.md` before
-altering schema or policy — files their bundle does not contain. Not fixed
-inside the cut because adding `docs` wholesale would drag the process-record
-archive into a runtime package; the real question is which governance files
-belong in a deployment bundle, which also covers the hashed top-level
-`AGENTS.md`, `CONFORMANCE.md`, `IP_POLICY.md` and `TRADEMARK.md`. **Outcome:** every hashed artifact now ships in every bundle and the coverage
-pin runs with NO exception list. Two pre-existing limitations remain open and
-are recorded in the CHANGELOG, not here: the dist bundle's validators import
-`gateway/` which it does not carry, and `conformance_classes.yaml` references
-process records no bundle ships.
+### What v1.1.19 contains
+
+- **`export/policy/*.json`** — the governed policy as a verbatim JSON
+  projection, so a consumer outside the Python stack need not vendor a YAML
+  parser or hand-copy governed data. Built because a fielded deployment was
+  doing the latter.
+- **The ADS-B ingress adapter** (`adapters/ingress/adsb/`) — first
+  cooperative-broadcast adapter, and the release's most useful failure report.
+- **Field-readiness fixes** that a first-run review found: the stock two-node
+  path delivered zero events; the adapter-in-an-hour claim hid a 30–90 minute
+  producer-authority wall; contract hashes differed across platforms two
+  independent ways; the documented dev install was broken.
+- **Packaging** — every hashed artifact now ships in every bundle, asserted
+  against BUILT bundles rather than builder source.
+- **Content currency** — the release-focus governance sentence is computed and
+  required verbatim. The rule that tried to judge whether prose described the
+  right release was removed after failing twice; see below.
+
+### The four decisions waiting on the maintainer
+
+1. **Tag v1.1.19, or keep going.** Everything but tag/sign/upload is done.
+2. **Doctrine log cycle A1** — three alphabet gaps from the ADS-B adapter, each
+   with a second instance. The recommendation for all three is a *declaration,
+   not a subtype*. **A1-01 already clears the 2+ independent implementation
+   promotion bar** (kraken and ADS-B, both in-repo); A1-02 has one, and AIS on
+   the same RTL-SDR dongle is the natural second.
+3. **The experimental-split experiment** (maintainer's proposal, recorded in
+   the doctrine log): put the candidate discriminators in the v1.1.0
+   experimental branch, have the adapter emit either by flag, and let consumers
+   decide. Not started — v1.0 stays locked and nothing has been minted.
+4. **The `kraken` laundering** (`kraken_to_zmeta.py:160`). It works in the
+   field today and the spec leaves no honest alternative, so it is recorded
+   rather than patched. It resolves for free if A1-01 does.
+
+### What was deliberately NOT done, and why
+
+Per **playbook discipline 10**, adopted this cycle: hardening that cannot be
+live-validated is written down rather than built.
+`docs/zmeta_live_test_checklist.md` carries those questions in yes/no form —
+including whether anyone actually needs calibrated power, whether anyone misses
+the dropped 2-D positions, and whether anyone uses the dist bundle at all.
+**"Nobody cared" is a complete answer** and closes the item.
+
+### The lesson this cycle actually produced
+
+Four independent panels ran. The code converged — no test, fixture or
+conformance expectation regressed across the whole cycle. The **claims about
+the code** did not: every late defect was an enumeration or measurement written
+into prose without being run, and at one point three places carried three
+different counts of the same thing.
+
+**When a claim enumerates, generate it.** Applied in three places now: the
+governance sentence, the conformance flag list, and the dist bundle's tool
+list. It is the one rule from this cycle that removes work rather than adding
+it.
+
+The corollary, from the guard that failed twice: a rule that must judge whether
+prose *means* the right thing is not machine-checkable, and three rounds of
+evidence say attempts to make it so keep producing new holes. Compute the fact
+and require the generated text; do not parse the author.
+
+---
 
 ---
 

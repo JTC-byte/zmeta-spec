@@ -200,6 +200,25 @@ Formalized from what demonstrably worked across R1-09, R1-10 and R1-11:
    of a plan session window in ~35 minutes — well-placed there, ruinous as a
    default.
 
+10. **Validate before hardening; otherwise write the question down.**
+    Adopted 2026-07-28 by maintainer direction. A defence built against a
+    failure nobody has observed is speculation, and speculation has no
+    stopping point — one guard in the v1.1.19 cycle went through three designs
+    and two independent panels before that was recognised. So: **live-validate
+    the assumption before hardening it.** Where it cannot be live-validated,
+    record it in `docs/zmeta_live_test_checklist.md` as a yes/no question a
+    deployment can answer, and leave the code alone. Proactive hardening stays
+    available where the defect is certain or the cost of being wrong is high;
+    it is the exception, not the default. **"Nobody cared" is a complete
+    result** and closes the item.
+    The distinction that makes this operational: work driven by something
+    that actually broke converges, because the defect pool is finite and each
+    fix is verifiable by re-running it. Work driven by what might break does
+    not. In the v1.1.19 cycle every long-standing defect — a two-node path
+    that delivered nothing, an undocumented producer wall, platform-divergent
+    hashes dating to the repository's first day — came from the first kind,
+    and every round of rework came from the second.
+
 ## How this feeds the self-healing automation
 
 The playbook is the orchestration layer over the primitives the repo already
@@ -236,6 +255,34 @@ full audits:
   real drift is seen. The first few runs are deliberately watched for this.
 - Whether the kernel wave (W1) should fix everything rather than stop at the
   MODERATE floor, given it is small, locked, and drift-intolerant.
+
+## Rule scoring — 2026-07-28 (the v1.1.19 cycle)
+
+**No rule scored out; one added (10), one vindicated decisively (6).**
+
+| Rule / setting | Fired | Outcome |
+|---|---|---|
+| 1. Commit at every boundary | Continuously | Validated. A very long cycle with four panels and several reversals; nothing lost, every state recoverable. |
+| 2. Resume from the tree | Fired repeatedly | Validated. Reviewers working against a concurrently-edited tree flagged it themselves; holding writes while a panel read the tree was the right call each time. |
+| 3. Verify the battery yourself | Every wave | **Prevented harm twice.** CI caught a carrier the local battery could not see, and one reviewer claim (a mutation-survival result) did not reproduce when I ran it — reported as measured rather than as received. |
+| 4. Attack pass is load-bearing | Every wave | Validated, and its limit re-measured: internal attack passes did not catch that the cycle's headline guard was defeatable by two one-word edits. |
+| 5. No vacuous pins; the demonstration ships with the pin | Fired (instance 8) | **Amended last cycle, and immediately tested by instance 8 — the guard written FOR that doctrine was itself vacuous.** The amendment held: the paired in-repo demonstration is what a later panel used to prove the replacement worked. |
+| 6. Author is not grader | Fired at the pre-cut tier | **Validated decisively; the single strongest result of the cycle.** The author-run pre-cut review produced a cut I would have called ready. The independent panel then found the headline feature did not work, a silent-corruption bug that shipped through every green gate, bundle-coverage gaps, and stale records. Four author passes had not found any of it. |
+| 7. No minting; log the collision | Continuously | **Validated hard.** Three alphabet gaps found (cycle A1) and the locked kernel untouched; nothing minted, everything recorded with a recommendation. |
+| 8. Audit the doctrine | Fired at this closeout | Validated. Produced discipline 10 and this scoring pass. |
+| 9. Scale verification to the pass | Fired, with an error | **Partially failed, my error.** I cut a five-lens panel to three on a budget assumption that was wrong, and the maintainer corrected it. The lens I dropped and later restored (first-run experience) is the one that found the release's worst defect. Lesson recorded: scope a pass by whether independent eyes pay, never by a guess about budget. |
+| 10. Validate before hardening | Adopted this cycle | New. See the discipline and `docs/zmeta_live_test_checklist.md`. |
+
+**Watch-items carried forward.** (a) The one-third introduction cap has still
+never fired — now several cycles without firing; ask again whether the severity
+floor and small-wave discipline are doing all the work. (b) **"When a claim
+enumerates, generate it"** is new and unscored: it removed a defect class three
+times this cycle, but it has not yet been tested by someone adding a fourth
+enumeration. Watch whether it is reached for, or forgotten. (c) The records
+surfaces still reconcile at points while commits land continuously — this
+closeout found five unreconciled commits including the release's largest
+addition, which is the third instance this cycle. If it recurs again it wants a
+mechanism, not another sweep.
 
 ## Rule scoring — 2026-07-27 (the v1.1.17 / v1.1.18 cycle)
 
