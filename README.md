@@ -1,11 +1,67 @@
 # ZMeta Specification (v1.0 Locked, current release v1.1.18)
 
-## Overview
-- ZMeta is a transport-agnostic, event-based metadata standard for resilient ISR.
-- Designed to survive degraded and denied environments.
-- Separates observation, inference, fusion, state, and command semantics.
-- Adapt a sensor or system to ZMeta once and inherit interoperability with
-  every format ZMeta maps — no N×N point-to-point bridges.
+**Adapt a sensor to ZMeta once, and it speaks to everything ZMeta maps — no
+N×N point-to-point bridges.** ZMeta is a free, open, transport-agnostic
+semantic standard for resilient ISR: one honest event model that heterogeneous
+sensors, analytics, gateways, TAK clients, and mission systems can share
+without silently changing what the data means.
+
+![ZMeta at a glance: sensors collect, an edge adapter translates to OBSERVATION events, which become INFERENCE, FUSION, STATE, and COMMAND events, with a retask loop back to collection and SYSTEM events across every stage.](docs/img/c1-zmeta-at-a-glance.svg)
+
+### Why you should care
+
+- **Integrate once, not per pair.** Ten sensors and five consumers is fifty
+  brittle bridges — or fifteen adapters to one contract. Adapters are the
+  bounded work: writing one against `adapters/AUTHORING.md` is a
+  single-sitting task, and the repo ships worked references to copy.
+- **Honesty is enforced, not promised.** Uncertainty, provenance, lineage, and
+  timing quality travel *with* the data and are machine-checked. Degraded,
+  stale, or externally promoted data cannot be made to look clean — the
+  consumer adjudicates truth, never a black box.
+- **Built for the bad link.** Three export profiles thin data for bandwidth
+  without changing meaning; a Profile L state event fits in a tactical packet
+  budget (see the size comparison below).
+- **Layers keep their authority.** A line of bearing is not a track; a track
+  is not a command basis. Those distinctions are checkable, which is what
+  makes automated retasking auditable instead of hopeful.
+- **Nothing is locked to a vendor, a transport, or us.** Apache-2.0, a locked
+  v1.0 kernel, and governed change process — see `IP_POLICY.md`.
+
+### The semantic pipeline
+
+Each transition is a deliberate, evidence-bearing promotion: data moves to a
+higher-authority lane only when lineage, timing, and confidence support it.
+
+```mermaid
+flowchart LR
+  Obs["OBSERVATION_EVENT<br/>measured facts"]
+  Inf["INFERENCE_EVENT<br/>AI / analytic claim"]
+  Fus["FUSION_EVENT<br/>track identity"]
+  St["STATE_EVENT<br/>operator-facing track"]
+  Cmd["COMMAND_EVENT<br/>bounded mission intent"]
+  Sys["SYSTEM_EVENT<br/>health, timing, link, TASK_ACK"]
+
+  Obs -->|"derive (+ lineage)"| Inf
+  Inf -->|"contribute to"| Fus
+  Fus -->|"project"| St
+  St -->|"justify"| Cmd
+  Sys -.->|"status across every stage"| St
+```
+
+### Small enough for the tactical link
+
+![Bar chart comparing the byte size of one Profile L STATE_EVENT encoded as JSON, CBOR, compact CBOR, and protobuf.](docs/img/b3-encoding-sizes.svg)
+
+The same Profile L `STATE_EVENT` across four wire formats — every one decodes
+back to the identical canonical JSON. Encoding never creates authority: a
+compact packet is valid only if the decoded event passes the same schema,
+policy, and conformance checks a JSON event does.
+
+**→ The full picture in one document: [`docs/zmeta_professional_overview.md`](docs/zmeta_professional_overview.md)**
+— architecture, the six event families, adapters, gateway deployment, risk
+adjudication, AI provenance, and worked operational scenarios (RF detection
+through automated retasking, multi-node geolocation, GPS-denied operation).
+Start there if you are evaluating ZMeta rather than building against it.
 
 ## What ZMeta Is
 - A semantic contract
@@ -19,9 +75,19 @@
 - Not a video container
 - Not a replacement for MISB
 
+ZMeta does not replace CoT, MAVLink, JREAP, MISB, or vendor sensor formats. It
+gives them a shared vocabulary for what was observed, what was inferred, what
+was fused, what an operator should see, and what mission intent is being
+requested.
+
 ## See It Work In Ten Minutes
 
 Prereq: Python 3.11+ (no Docker needed for this path).
+
+> **Windows users:** enable long-path support once before cloning —
+> `git config --global core.longpaths true`. Without it, a clone into an
+> already-deep directory can fail checkout with `Filename too long` (Windows'
+> 260-character limit), which looks like a broken repository but is not.
 
 ```
 python -m pip install -r requirements.txt
@@ -55,9 +121,11 @@ Full walkthrough (Docker gateway, encodings, CoT emission):
 - **Integrating or deploying**: `spec/installation-guide.md` for a
   step-by-step install, `spec/quickstart.md` for the developer walkthrough,
   and the Deployment Checklist below for drift-locked production setups.
-- **Evaluating the standard**: `docs/zmeta_professional_overview.md`, then
-  `spec/semantics-contract.md` (normative), `spec/profile-compatibility.md`,
-  and `CONFORMANCE.md`.
+- **Evaluating the standard**: start with
+  [`docs/zmeta_professional_overview.md`](docs/zmeta_professional_overview.md)
+  — the single document that explains the whole stack, with diagrams and
+  worked scenarios — then `spec/semantics-contract.md` (normative),
+  `spec/profile-compatibility.md`, and `CONFORMANCE.md`.
 - **Building UIs or consumers**: `spec/field-dictionary.md`; encoding
   guidance in `spec/compact-binary-mapping.md` and
   `spec/protobuf-encoding.md`.
