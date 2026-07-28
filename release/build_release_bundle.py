@@ -45,6 +45,7 @@ def collect_sources(root, version):
         root / "zmeta_cbor.py",
         root / "zmeta_compact.py",
         root / "zmeta_proto.py",
+        root / "zmeta_uuid.py",
         root / "schema" / "README.md",
         root / "schema" / "zmeta-event.schema.json",
         root / "schema" / "zmeta-event-1.1.0.schema.json",
@@ -78,6 +79,39 @@ def collect_sources(root, version):
     return sources
 
 
+def tools_needing_the_gateway(root):
+    """Tool modules that load the reference gateway at import time.
+
+    DERIVED by reading the tools, not typed here. The first version of this
+    note enumerated them by hand and said "two". Measured: 12 of the tools
+    load the gateway, 8 of them among the 16 the manifest hashes, and 13 tools
+    fail from a dist bundle in total. That false list shipped inside the bundle
+    as the first thing a dist consumer reads, and three separate places carried
+    three different numbers.
+
+    Detection matches the actual failure mechanism: a module-level reference to
+    the `gateway` tree, which these tools resolve and `exec_module` at import.
+    """
+    found = []
+    for path in sorted((root / "tools").glob("*.py")):
+        for line in path.read_text(encoding="utf-8").splitlines():
+            if line[:1] in (" ", "\t", "#"):
+                continue
+            if '"gateway"' in line or "gateway/src" in line:
+                found.append(f"tools/{path.name}")
+                break
+    return found
+
+
+def render_bundle_notes(root):
+    """The dist bundle's scope note, with its tool list generated."""
+    needing = tools_needing_the_gateway(root)
+    listed = "\n".join(f"- `{name}`" for name in needing)
+    return DIST_BUNDLE_NOTES.replace("{{TOOLS_NEEDING_GATEWAY}}", listed).replace(
+        "{{COUNT}}", str(len(needing))
+    )
+
+
 DIST_BUNDLE_NOTES = """# What this bundle is
 
 `zmeta-vX.Y.Z-dist.zip` is the **specification distribution**: the semantic
@@ -86,15 +120,18 @@ corpus, the governance documents, examples, configs, and the spec-side tooling.
 
 **It is not the reference stack.** It does not carry `gateway/` or `adapters/`,
 so the repository README bundled here — written for a full clone — describes a
-walkthrough this bundle cannot run. Two shipped tools import the reference
-gateway at module load and will fail here for the same reason:
+walkthrough this bundle cannot run.
 
-- `tools/validate_conformance.py`
-- `tools/compute_contract_hash.py`
+{{COUNT}} shipped tools load the reference gateway at import time and therefore
+fail here. This list is generated from the tools themselves, not maintained by
+hand:
 
-Everything else in `tools/` runs standalone, including
-`tools/validate_release_manifest.py`, which verifies the hash manifest shipped
-alongside this file:
+{{TOOLS_NEEDING_GATEWAY}}
+
+Anything else that needs `gateway/` or `adapters/` will fail here for the same
+reason — take a runnable bundle instead. What DOES work is the manifest and
+package tooling, including `tools/validate_release_manifest.py`, which verifies
+the hash manifest shipped alongside this file:
 
     python tools/validate_release_manifest.py --manifest release/zmeta-release-manifest.yaml
 
@@ -194,7 +231,7 @@ def main():
     copy_tree(root / "examples", dist / "examples")
 
     (dist / "VERSION.txt").write_text(f"{version}\n", encoding="utf-8")
-    (dist / "BUNDLE_NOTES.md").write_text(DIST_BUNDLE_NOTES, encoding="utf-8")
+    (dist / "BUNDLE_NOTES.md").write_text(render_bundle_notes(root), encoding="utf-8")
 
     rel_paths = []
     for path in sorted(dist.rglob("*")):

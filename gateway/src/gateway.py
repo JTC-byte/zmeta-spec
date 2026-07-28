@@ -111,8 +111,13 @@ def utc_now():
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
 
 
+# Kept identical to tools/build_release_manifest.py::TEXT_SUFFIXES. The first
+# cut of this listed eight and the docstring claimed it matched the manifest's
+# thirteen; it did not. Same enumerate-without-checking mistake this hash fix
+# exists to correct.
 _HASH_TEXT_SUFFIXES = {
-    ".json", ".jsonl", ".md", ".proto", ".py", ".txt", ".yaml", ".yml",
+    ".cfg", ".csv", ".ini", ".json", ".jsonl", ".md", ".proto", ".ps1",
+    ".py", ".toml", ".txt", ".yaml", ".yml",
 }
 
 
@@ -127,13 +132,21 @@ def _canonical_bytes(path: Path) -> bytes:
     and reconcile versions when they differ -- so a Windows edge and a Linux
     GCS running identical code were told to halt on a false signal.
 
-    Matches the canonicalization the release manifest already uses
-    (`tools/build_release_manifest.py::canonical_file_bytes`), which is why
-    manifest validation was unaffected while this path was not.
+    Matches `tools/build_release_manifest.py::canonical_file_bytes`, including
+    its suffix set, which is why manifest validation was unaffected while this
+    path was not.
+
+    A text-suffixed file that is not valid UTF-8 falls back to raw bytes rather
+    than aborting. The first cut raised UnicodeDecodeError here and took gateway
+    startup down on a tree the previous code had hashed fine -- a hash function
+    is not the right place to enforce an encoding policy.
     """
     data = path.read_bytes()
     if path.suffix.lower() in _HASH_TEXT_SUFFIXES:
-        text = data.decode("utf-8")
+        try:
+            text = data.decode("utf-8")
+        except UnicodeDecodeError:
+            return data
         return text.replace("\r\n", "\n").replace("\r", "\n").encode("utf-8")
     return data
 
@@ -149,9 +162,19 @@ def _hash_file(path: Path) -> bytes:
 
 def _hash_dir(dir_path: Path) -> bytes:
     hasher = hashlib.sha256()
-    for path in sorted(dir_path.rglob("*")):
-        if not path.is_file():
-            continue
+    # Sort by the POSIX-relative path, not by Path. `sorted(rglob("*"))`
+    # compares platform-native Path objects, which order case-insensitively on
+    # Windows and by byte value on POSIX -- so `policy/README.md` lands first on
+    # Linux and sixth on Windows and the directory hash differs by platform.
+    # Line-ending canonicalization alone did NOT fix the cross-platform hash;
+    # this was the second, independent dependency four lines below it, and it is
+    # why the earlier claim that Windows now equalled Linux was false.
+    # tools/build_release_manifest.py::group_hash already sorts by as_posix().
+    files = sorted(
+        (path for path in dir_path.rglob("*") if path.is_file()),
+        key=lambda item: item.relative_to(dir_path).as_posix(),
+    )
+    for path in files:
         rel = path.relative_to(dir_path).as_posix()
         hasher.update(rel.encode("utf-8"))
         hasher.update(b"\0")

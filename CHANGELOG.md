@@ -15,9 +15,10 @@
   it, as did five further paraphrases the reviewer found in one pass. Both
   rules tried to infer truth from prose. The replacement follows
   design gate 5 (`CLAUDE.md`, advisory) — structure is authoritative, free
-  text is a projection. (The contract defines no numbered gates; citing it as
-  though it did is the same defect as the gate-4 miscitation above, created
-  while correcting it.): the governance sentence is **computed** by
+  text is a projection — note the citation: the design gates live in
+  `CLAUDE.md`, the contract defines no numbered gates, and citing it as though
+  it did is the same defect as the gate-4 miscitation above, created while
+  correcting it. The mechanism: the governance sentence is **computed** by
   `tools/release_focus_facts.py` from the release manifest against the new
   committed `release/governed-baseline.yaml`, and must appear **verbatim**, an
   allowlist rather than a blocklist of phrasings (the B-01 lesson, reached

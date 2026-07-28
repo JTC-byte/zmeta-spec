@@ -4182,11 +4182,22 @@ def validate_producer_authority(event, authority_policy, severity_map=None):
             return False, [
                 _violation(
                     "PRODUCER_NOT_ALLOWED",
-                    "producer does not match producer authority policy "
-                    "(policy/producer-authority.yaml); reference patterns "
-                    "include rf-sensor-*, eo-sensor-*, acoustic-sensor-*, "
-                    "classifier-*, detector-*, fusion-*, state-projector-*, "
-                    "mavlink-* -- see adapters/AUTHORING.md section 7",
+                    # F8: this arm is also reached when the policy's producers
+                    # table is malformed, in which case a correctly-named
+                    # producer was being told to rename itself. The naming
+                    # guidance only applies when the policy is intact.
+                    (
+                        "producer authority policy is malformed; the producer "
+                        "name is not the problem -- see details.policy_error"
+                    )
+                    if require_match_error is not None
+                    else (
+                        "producer does not match producer authority policy "
+                        "(policy/producer-authority.yaml); reference patterns "
+                        "include rf-sensor-*, eo-sensor-*, acoustic-sensor-*, "
+                        "classifier-*, detector-*, fusion-*, state-projector-*, "
+                        "mavlink-* -- see adapters/AUTHORING.md section 7"
+                    ),
                     details=details,
                     severity_map=severity_map,
                 )

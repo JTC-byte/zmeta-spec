@@ -362,10 +362,18 @@ def _built_bundle_files(kind: str) -> set[str]:
 
 
 def _cleanup_pin_builds() -> None:
+    """Remove only what this pin built.
+
+    The first version rmtree'd release/dist and release/bundles wholesale, so a
+    developer's existing build output vanished on any pytest run. Both are
+    gitignored so nothing tracked was at risk, but deleting someone else's work
+    is not this test's business.
+    """
     for path in (ROOT / "release").glob("*pintest*.zip"):
         path.unlink()
-    for name in ("dist", "bundles"):
-        shutil.rmtree(ROOT / "release" / name, ignore_errors=True)
+    for name in ("zmeta-edge", "zmeta-gateway"):
+        shutil.rmtree(ROOT / "release" / "bundles" / name, ignore_errors=True)
+    shutil.rmtree(ROOT / "release" / "dist", ignore_errors=True)
 
 
 # Two shipped tools cannot RUN from the dist bundle (they import the reference

@@ -34,6 +34,19 @@ def load_json(path):
         return json.load(handle)
 
 
+def _detail(violation):
+    """The violation's message, when it carries one worth showing.
+
+    Step 2 of the adapter ladder printed the reason_code alone, so an author
+    hitting PRODUCER_NOT_ALLOWED saw a bare code and nothing pointing at the
+    policy file, the reference wildcards, or AUTHORING.md section 7 -- while
+    step 3 printed the full message. The diagnostic that explains the wall
+    should reach the first step that hits it, not the third.
+    """
+    message = violation.get("message")
+    return "\n  " + message if message else ""
+
+
 def event_id_from_instance(instance):
     if isinstance(instance, dict):
         return instance.get("event", {}).get("event_id", "UNKNOWN")
@@ -92,7 +105,8 @@ def main():
         if violations:
             failed += 1
             event_id = event_id_from_instance(instance)
-            print(f"FAIL {violations[0]['code']} event_id={event_id}")
+            print(f"FAIL {violations[0]['code']} event_id={event_id}"
+                  + _detail(violations[0]))
             continue
 
         checks = [
@@ -129,11 +143,13 @@ def main():
                 if violation.get("severity") == "warn":
                     warnings += 1
                     warned_local = True
-                    print(f"WARN {violation['code']} event_id={event_id}")
+                    print(f"WARN {violation['code']} event_id={event_id}"
+                          + _detail(violation))
                 else:
                     failed += 1
                     failed_local = True
-                    print(f"FAIL {violation['code']} event_id={event_id}")
+                    print(f"FAIL {violation['code']} event_id={event_id}"
+                          + _detail(violation))
         if failed_local:
             continue
         state.record(instance)
