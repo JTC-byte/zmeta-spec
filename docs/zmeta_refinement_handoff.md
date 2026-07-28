@@ -111,64 +111,20 @@ cheap and uniform across all 40 files.
 
 ### NEW FINDING 2026-07-28: the kernel does not constrain `event.ts`
 
-Surfaced by the Praesens cross-repo exchange and then confirmed against our own
-stack. **Escalated, not fixed** — the candidate remedies are schema or policy,
-which design gate 6 sends to the maintainer.
+**Full record: `docs/zmeta_doctrine_review_log.md`, cycle X1, entry X1-01.**
+Reproduction, the vacuous-mitigation half, the four options and the sequencing
+live there and are not restated here on purpose — this finding is one fact and
+gets one home. (The consumer's own §9 lesson, adopted the hour it arrived:
+count where a moving fact is independently asserted; more than one is your
+future defect count.)
 
-**Reproduction, with a working control.** Take the shipped
-`examples/zmeta-examples-1.0.jsonl`, mutate only the STATE event's `event.ts`,
-run `python tools/validate.py --file <copy> --profile H --strict`:
-
-| `event.ts` | result |
-|---|---|
-| `2025-01-17T14:30:05Z` (unmutated control) | exit 0, 4/4 passed, no codes |
-| `2025-02-29T00:00:00Z` (non-leap Feb 29) | exit 0, 4/4 passed, no codes |
-| `2026-02-30T00:00:00Z` | exit 0, 4/4 passed, no codes |
-| `2026-13-01T00:00:00Z` (month 13) | exit 0, 4/4 passed, no codes |
-| `garbageZ` | exit 0, 4/4 passed, no codes |
-| `Z` | exit 0, 4/4 passed, no codes |
-
-**Why.** `utcDateTime` is `{"type":"string","format":"date-time","pattern":"Z$"}`.
-Under JSON Schema 2020-12 `format` is annotation-only; `pattern` is therefore
-the entire constraint, and it only requires a trailing `Z`.
-
-**The documented mitigation does not work.** `adapters/egress/cot/README.md` and
-`adapters/egress/jreap/README.md` both say the gate is loose "without an
-installed `FormatChecker`", implying installing one closes it. Measured:
-`jsonschema.FormatChecker()` does **not register `date-time` at all** unless the
-optional `rfc3339-validator` package is present, and `rfc3339-validator` is
-declared in **no** requirements file in this repo. An unregistered format
-silently conforms — `fc.conforms("garbageZ", "date-time")` returns `True`. So
-the mitigation named in our own docs is itself vacuous as shipped.
-
-**Severity: the honesty is real but it lives in the wrong layer.** The egress
-adapters do refuse (verified: the CoT adapter returns `None` for
-`2026-02-30T00:00:00Z`), so TAK is protected. What is unprotected is any
-consumer that validates an event, is told it is valid, and then reads `ts` to
-decide freshness, staleness, ordering or TTL. Contract §6 requires UTC RFC3339;
-the kernel does not enforce it, so the requirement lives in prose. That is a
-design-gate-5 inversion: the load-bearing constraint is free-text and the
-structure permits anything ending in `Z`.
-
-**Known three times locally, never escalated.** Both adapter READMEs and
-`docs/r1_11_full_stack_audit.md` each record it as a reason that component
-defends itself. No doctrine-log entry, no handoff item, no decision. Three
-independent local defences and no kernel question is the shape worth noticing.
-
-**Options, outer rings first:**
-1. Add `rfc3339-validator` and enable a format checker in the reference
-   validators. Non-governed, but it is a behaviour change: events that pass
-   today would newly fail, so it needs a conformance-impact pass.
-2. Tighten the `utcDateTime` `pattern` to a real RFC3339 regex. **Governed
-   schema change**, full escalation.
-3. Add a policy-layer semantic check. **Governed policy change.**
-4. Decide the current split is correct and document it: the kernel accepts,
-   the egress refuses. Cheapest, and it makes the prose match the structure.
-
-Praesens hit the same class from the other side and the exposed set there is
-precisely "day exceeds the length of a valid month", their lead case being
-`2025-02-29` — what an off-by-one leap calculation produces, which makes this a
-plausible third-party adapter bug rather than a contrived input.
+One-line status: the governed schema accepts any `event.ts` ending in `Z`,
+including `Z` itself; egress adapters refuse, consumers reading `ts` are
+unprotected; **escalated, not fixed**, because there is no observed failure
+(discipline 10). Sequencing: **tag v1.1.19 as-is — it stays a clean additive
+cut — and handle this in v1.1.20, which is then behaviour-changing rather than
+additive.** That distinction is what the fielded consumer's pin-advance review
+keys on, so it is worth more to them stated in advance than discovered in a diff.
 
 ### The four decisions waiting on the maintainer
 

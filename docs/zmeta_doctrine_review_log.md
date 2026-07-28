@@ -931,6 +931,99 @@ than merely missing.
 
 ---
 
+## Cycle X1 — 2026-07-28 (cross-repo exchange with the fielded consumer)
+
+Raised while checking whether the Praesens deployment's CoT egress had
+inherited this cycle's hardening. It had not, because it never had the defects;
+but their note on JSON Schema `format` semantics pointed at our own kernel.
+Confirmed independently on both stacks before being written down.
+
+| # | Tension | Gates in play | Status |
+|---|---|---|---|
+| X1-01 | The kernel does not constrain `event.ts` beyond a trailing `Z` | 3, 5, 6 | OPEN |
+
+### X1-01 — The kernel does not constrain `event.ts` · OPEN
+
+`utcDateTime` is `{"type":"string","format":"date-time","pattern":"Z$"}`. Under
+JSON Schema 2020-12 `format` is **annotation-only**, so `pattern` is the entire
+constraint and it requires only a trailing `Z`.
+
+**Reproduction (with a control, which is the load-bearing part).** Mutate only
+the STATE event's `event.ts` in `examples/zmeta-examples-1.0.jsonl`, then run
+`python tools/validate.py --file <copy> --profile H --strict`:
+
+| `event.ts` | result |
+|---|---|
+| unmutated control | exit 0, 4/4 passed, no diagnostics |
+| `2025-02-29T00:00:00Z` (non-leap Feb 29) | exit 0, accepted |
+| `2026-02-30T00:00:00Z` | exit 0, accepted |
+| `2026-13-01T00:00:00Z` | exit 0, accepted |
+| `garbageZ` | exit 0, accepted |
+| `Z` | exit 0, accepted |
+
+A single letter `Z` is a valid operational timestamp to this kernel. Confirmed
+independently by the consumer against their pinned v1.1.18 submodule.
+
+**The documented mitigation is vacuous.** `adapters/egress/cot/README.md` and
+`adapters/egress/jreap/README.md` both attribute the looseness to the absence of
+"an installed `FormatChecker`", which implies installing one closes it. It does
+not: `jsonschema.FormatChecker()` does not register `date-time` unless the
+optional `rfc3339-validator` package is present, that package is declared in no
+requirements file here, and an unregistered format silently conforms
+(`fc.conforms("garbageZ","date-time")` is `True`). Member of the P2-D1 class.
+
+**Why it is a gate-5 tension, not merely a gap.** Contract §6 requires UTC
+RFC3339. The requirement therefore lives in prose while the structure permits
+anything ending in `Z` — load-bearing meaning in free-text, which is the
+inversion gate 5 exists to prevent. The egress adapters do refuse (verified: the
+CoT adapter returns `None` for `2026-02-30T00:00:00Z`), so projections are
+protected. What is unprotected is any consumer that validates an event, is told
+it is valid, and then reads `ts` for freshness, staleness, ordering, or TTL.
+
+**Options, outer rings first.** (1) Add `rfc3339-validator` and enable format
+checking in the reference validators — non-governed, but behaviour-changing:
+events that pass today would newly fail, so it needs a conformance-impact pass
+and must ride a release deliberately. (2) Tighten the `utcDateTime` pattern to a
+real RFC3339 regex — governed schema change. (3) A policy-layer semantic check —
+governed policy change. (4) Decide the current split is correct and say so in
+the contract: the kernel accepts, the egress refuses. Cheapest, and it makes the
+prose match the structure.
+
+**Not fixed, deliberately.** Discipline 10: no observed failure. The consumer's
+production readback shows zero external producers, so no bad `ts` has ever been
+emitted at either end. Sequencing recorded: tag v1.1.19 as-is, which stays a
+clean additive cut; handle this in v1.1.20, which is then behaviour-changing
+rather than additive — a distinction the consumer's pin-advance review keys on.
+
+### The observation that found it, and a candidate rule
+
+This was already recorded **three times** in this repo — both adapter READMEs
+and `docs/r1_11_full_stack_audit.md` — each time as the reason that one
+component defends itself. Three independent local defences, three write-ups,
+and never once a kernel question.
+
+> **A fact known only where it is worked around is not a decision anybody has
+> taken.**
+
+The consumer generalised it better than the original, and against their own
+earlier heuristic (which counted duplicated *facts*):
+
+> **When the same workaround appears in more than one component, the thing being
+> worked around is an undecided question, not a local quirk.**
+
+Two instances so far, from opposite directions: one gap defended in three places
+here, one fact maintained in six places there. Both are duplication substituting
+for a decision, and in both cases the duplication is what hid the need for one.
+
+**Recorded as a candidate, deliberately NOT minted as a playbook discipline.**
+The v1.1.19 after-action already flags that the apparatus grew by three doctrine
+entries, a discipline, a standing artifact and two checks in one cycle, and that
+gate 7 binds the guiding documents as much as the kernel. "Log freely, change
+rarely" applies here: let it earn promotion by recurrence rather than by seeming
+good on the day it was written.
+
+---
+
 ## Lifecycle — these logs terminate, they do not accumulate
 
 The value of this log is the pattern over time. But a log that only ever grows
