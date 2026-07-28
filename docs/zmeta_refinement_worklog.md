@@ -43,6 +43,22 @@
   A-13 and A-12/A-29 with the roll-forward pattern named; and this
   worklog took the retention pass below. Battery unchanged and green
   throughout: **1420 + 1070 subtests**, gate all flags exit 0.
+  **README pass after the closeout (`a8fcc7b`, `4cb3f3c`, both CI green):**
+  front-loaded the value proposition with the three graphics that already
+  existed in `docs/img/` but were reachable only from inside the
+  professional overview (now linked directly for evaluators); reordered to
+  pitch → field evidence → framing → proof → routing → reference; merged the
+  two duplicate quickstart blocks; and moved six historical per-release
+  Integration Notes sections verbatim to `CHANGELOG.md` — they were 39% of
+  the README and sat between the pitch and all reference material (598 → 395
+  lines, nothing lost, links and images verified). Added the one-time Windows
+  long-paths fix after a test clone into a deep path failed checkout on the
+  260-character limit; the repo's own deepest path is 79 chars, so normal
+  clone locations have headroom. That test also settled a question worth
+  recording: **a fresh clone of `main` runs clean for a new user** — the
+  in-repo manifest is regenerated to be self-consistent with `main`, so the
+  earlier "deploy from the tag" guidance was over-cautious and is retracted;
+  the tag matters only for byte-exact verification against published assets.
 - **2026-07-27 (post-publish) — PRE-CUT REVIEW + v1.1.18 CUT.**
   Bounded four-lens fresh-eyes review of the whole post-v1.1.17 range
   (9 commits, 33 files) at release stakes, every finding independently

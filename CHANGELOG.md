@@ -13,6 +13,27 @@
   recurrence-threshold decisions put to the maintainer, playbook rule
   scoring, handoff restructure and retention pass, and the
   finding-record dispositions.
+- 2026-07-27 (post-closeout) — README front matter and structure
+  (`a8fcc7b`, `4cb3f3c`). It now leads with the value proposition — the
+  adapt-once thesis, the "ZMeta at a glance" graphic, five reasons to care,
+  the semantic-pipeline diagram, and the encoding-size chart — with a direct
+  pointer to `docs/zmeta_professional_overview.md` for evaluators. All three
+  visuals already existed in `docs/img/` and were reachable only from deep
+  inside that overview; none was newly drawn or duplicated. Reordered to
+  pitch → field evidence → what it is/isn't → design goals → the ten-minute
+  proof → role routing → reference, and the two duplicate quickstart blocks
+  merged into one. Six historical per-release Integration Notes sections
+  (v1.1.11–v1.1.16) moved verbatim into this file under **Historical
+  Integration Notes** — they were 39% of the README and sat between the pitch
+  and every piece of reference material. Net 598 → 395 lines with nothing
+  lost. Also documents the one-time Windows fix
+  (`git config --global core.longpaths true`): a clone into an already-deep
+  directory can fail checkout on the 260-character path limit, which reads as
+  a broken repository rather than a local setting. Verified alongside it that
+  a fresh clone of `main` runs clean for a new user (1420 tests, gate exit 0,
+  manifest validates, examples 51/51) — so no clone-a-tag instruction is
+  needed for ordinary use; the tag matters only for byte-exact verification
+  against published assets.
 
 ## [1.1.18] - 2026-07-27
 
