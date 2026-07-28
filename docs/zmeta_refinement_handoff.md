@@ -103,7 +103,8 @@ max 150/240.
    bullet asserts *"No schema, policy, or event-vocabulary changes"* — true
    of v1.1.16, **false of both v1.1.17 and v1.1.18**, which between them
    added three `reason_code` values to the locked v1.0 schema, the
-   `TIME_STATUS.state` enum, two policy files, 148 normative lines to the
+   `TIME_STATUS.state` enum, amendments to two pre-existing policy files
+   (neither added), 148 normative lines to the
    compact mapping, and `policy/command-evidence.yaml`. A stale paragraph
    became a false governance claim in two published tags, aimed at exactly
    the reader who most needs it to be true: one deciding whether a pin

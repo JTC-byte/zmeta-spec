@@ -9,10 +9,17 @@
 > bundle reports `CONFORMANCE_PATH_MISSING` for those references. That is
 > expected and is not a defect in the bundle or in the corpus.
 >
-> Everything else in this pack runs anywhere: `--strict`,
-> `--profile-projection`, `--extension-negative`, `--precision-policy`,
-> `--bad-events` and `--adapter-harness` all pass from a bundle. Run the
-> class check from a clone.
+> **From an edge or gateway bundle, every other flag passes** — measured, all
+> ten: `--strict`, `--profile-projection`, `--extension-registry`,
+> `--encoding-negative`, `--precision-policy`, `--release-manifest`,
+> `--release-package`, `--bad-events`, `--adapter-harness` exit 0;
+> `--conformance-classes` is the only one that does not.
+>
+> **From the dist bundle, `validate_conformance.py` does not run at all.** It
+> imports the reference gateway at module load and dist carries no `gateway/`.
+> dist is the specification distribution; its `BUNDLE_NOTES.md` says so and
+> names the two tools affected. `tools/validate_release_manifest.py` does run
+> there, and verifies the hash manifest dist ships.
 
 This folder contains a regression corpus for the canonical
 version-discriminated schema plus policy pack:

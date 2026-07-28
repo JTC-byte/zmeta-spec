@@ -14,8 +14,10 @@
   phrasing, so *"Schema, policy, and event vocabulary are unchanged"* evaded
   it, as did five further paraphrases the reviewer found in one pass. Both
   rules tried to infer truth from prose. The replacement follows
-  semantics-contract gate 5 — structure is authoritative, free text is a
-  projection: the governance sentence is **computed** by
+  design gate 5 (`CLAUDE.md`, advisory) — structure is authoritative, free
+  text is a projection. (The contract defines no numbered gates; citing it as
+  though it did is the same defect as the gate-4 miscitation above, created
+  while correcting it.): the governance sentence is **computed** by
   `tools/release_focus_facts.py` from the release manifest against the new
   committed `release/governed-baseline.yaml`, and must appear **verbatim**, an
   allowlist rather than a blocklist of phrasings (the B-01 lesson, reached

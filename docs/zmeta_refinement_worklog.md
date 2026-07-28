@@ -2,7 +2,7 @@
 
 ## Current Resume Note
 
-- Last updated: 2026-07-27 (v1.1.19 PREPARED — not tagged, not published)
+- Last updated: 2026-07-28 (v1.1.19 PREPARED — not tagged, not published)
 - Quick handoff: `docs/zmeta_refinement_handoff.md`
 - **2026-07-27 — P2 CYCLE + v1.1.19 PREPARED.** Opened by a downstream
   consumer's pin-advance review, not by an internal pass. **P2-01**: the
@@ -16,7 +16,9 @@
   `policy_json_export` manifest group — built because that consumer had been
   hand-mirroring the §7.7 STATE denylist for want of any other option.
   **P2-D1** (`508aafe`): seven instances of the vacuous-verification class
-  across tests, shipped tooling and audit evidence forced playbook discipline
+  (five test pins, one in shipped tooling, one hand-run probe; the
+  audit-evidence case is adjacent to the class, not one of the seven) forced
+  playbook discipline
   5 to change — a guard's red demonstration must now be an artifact in the
   repo, not a session act; `gateway/tests/vacuity.py` supports it. The
   **pre-cut whole-range review** then produced **eleven** findings (PC-01..11;
@@ -26,7 +28,9 @@
   `--target v1.1.16` for two releases, and the manifest hashed twelve
   `export/policy` artifacts that NEITHER bundle builder carried. Four
   previously-unpinned current-release literals are now covered, including
-  the README title line and the CI workflow's compat target. **PC-09 is
+  the README title line and the CI workflow's compat target. **PC-09 was CLOSED 2026-07-28** — this sentence recorded it as deferred and
+  was missed by the first correction pass, which is the sibling-claim defect
+  the second panel named. Original statement: **PC-09 is
   deferred to the maintainer**: the bundles omit `docs/` (and the dist zip
   also omits `conformance/`) though both are hashed, and README directs
   bundle users to governance docs their bundle does not contain — a

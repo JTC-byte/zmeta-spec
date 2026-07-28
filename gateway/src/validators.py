@@ -4182,7 +4182,11 @@ def validate_producer_authority(event, authority_policy, severity_map=None):
             return False, [
                 _violation(
                     "PRODUCER_NOT_ALLOWED",
-                    "producer does not match producer authority policy",
+                    "producer does not match producer authority policy "
+                    "(policy/producer-authority.yaml); reference patterns "
+                    "include rf-sensor-*, eo-sensor-*, acoustic-sensor-*, "
+                    "classifier-*, detector-*, fusion-*, state-projector-*, "
+                    "mavlink-* -- see adapters/AUTHORING.md section 7",
                     details=details,
                     severity_map=severity_map,
                 )

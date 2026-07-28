@@ -326,96 +326,150 @@ def _covered(path: str, bundle_paths: set[str]) -> bool:
     return any(path == item or path.startswith(item + "/") for item in bundle_paths)
 
 
-def _mvp_bundle_paths() -> set[str]:
-    text = (ROOT / "release" / "build_mvp_packages.py").read_text(encoding="utf-8")
-    block = re.search(r"COMMON_PATHS\s*=\s*\[(.*?)\n\]", text, re.DOTALL)
-    assert block, "release/build_mvp_packages.py COMMON_PATHS not found"
-    return set(re.findall(r'"([^"]+)"', block.group(1)))
+def _built_bundle_files(kind: str) -> set[str]:
+    """Repo-relative paths a bundle ACTUALLY emits, from a real build.
 
+    Reads the built artifact, not the builder's source. The previous version
+    regexed `copy_tree(root / "X")` out of the source and treated the root as
+    blanket coverage, which a review defeated two ways: a plain
+    `shutil.copytree` line shipped 40 `tools/` files past the prohibition, and
+    a missing source tree silently produced a thin bundle while the pin stayed
+    green. Both are the same defect -- asserting about source text instead of
+    about the thing that ships.
 
-def _dist_bundle_paths() -> set[str]:
-    """Exact paths the dist builder emits.
-
-    `collect_sources` is CALLED rather than parsed -- it returns real paths, so
-    the check cannot drift from the builder's actual behaviour the way a regex
-    over its source would. Only the `copy_tree` directory roots are read from
-    source, and those are single unambiguous segments.
+    Builds go to gitignored paths under `release/`, the same ones CI's release
+    smoke uses.
     """
-    spec = importlib.util.spec_from_file_location(
-        "zmeta_build_release_bundle", ROOT / "release" / "build_release_bundle.py"
+    version = "vpintest"
+    script = "build_mvp_packages.py" if kind != "dist" else "build_release_bundle.py"
+    arg = version if kind != "dist" else "0.0.0-pintest"
+    result = subprocess.run(
+        [sys.executable, f"release/{script}", "--version", arg],
+        cwd=ROOT, capture_output=True, text=True,
     )
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
+    assert result.returncode == 0, f"{script} failed: {result.stdout}{result.stderr}"
 
-    paths = {
-        src.relative_to(ROOT).as_posix()
-        for src in module.collect_sources(ROOT, "0.0.0")
+    if kind == "dist":
+        root = ROOT / "release" / "dist"
+    else:
+        root = ROOT / "release" / "bundles" / f"zmeta-{kind}"
+    assert root.is_dir(), f"bundle tree not produced at {root}"
+    return {
+        path.relative_to(root).as_posix()
+        for path in root.rglob("*")
+        if path.is_file()
     }
-    text = (ROOT / "release" / "build_release_bundle.py").read_text(encoding="utf-8")
-    paths |= set(re.findall(r'copy_tree\(root / "([^"]+)"', text))
-    return paths
+
+
+def _cleanup_pin_builds() -> None:
+    for path in (ROOT / "release").glob("*pintest*.zip"):
+        path.unlink()
+    for name in ("dist", "bundles"):
+        shutil.rmtree(ROOT / "release" / name, ignore_errors=True)
+
+
+# Two shipped tools cannot RUN from the dist bundle (they import the reference
+# gateway at module load and dist carries no gateway/). They are still SHIPPED,
+# because the manifest hashes them and a bundle that omits hashed artifacts
+# cannot validate the manifest it carries -- which is what removing them broke.
+# The honest fix is the bundle's own BUNDLE_NOTES.md saying which two, not a
+# silently thinner zip.
+DIST_TOOLS_THAT_NEED_THE_GATEWAY = {
+    "tools/validate_conformance.py",
+    "tools/compute_contract_hash.py",
+}
 
 
 def test_release_bundles_carry_every_hashed_artifact():
     """A manifest that hashes a path no bundle carries is a claim it cannot back.
 
-    PC-08 found `export/policy/*.json` hashed and absent from both builders.
-    PC-09 then found the same for the governance documents that keep a
-    downstream implementation from becoming a private dialect -- `AGENTS.md`
-    among them, while README.md tells clone users to read it. Both are closed,
-    so this check now runs with NO exception list: every hashed artifact is
-    carried by both bundle families, and any future gap is a failure rather
-    than an entry on a tolerated-omissions list.
+    Asserted against BUILT bundles. PC-08 found `export/policy/*.json` hashed
+    and absent from both builders; PC-09 found the same for the governance
+    documents that keep a downstream implementation from becoming a private
+    dialect. The MVP bundles must carry every hashed artifact with no
+    exceptions. The dist bundle carries every hashed artifact except the tools
+    it deliberately omits, and that omission is asserted in both directions
+    against what actually ships.
     """
-    hashed = _hashed_artifact_paths()
-    assert hashed, "no hashed artifacts found; this check would be vacuous"
+    try:
+        hashed = _hashed_artifact_paths()
+        assert hashed, "no hashed artifacts found; this check would be vacuous"
 
-    mvp = _mvp_bundle_paths()
-    mvp_missing = sorted(path for path in hashed if not _covered(path, mvp))
-    assert mvp_missing == [], (
-        f"release/build_mvp_packages.py omits {mvp_missing}, which the release "
-        f"manifest hashes as part of the release. The edge and gateway bundles "
-        f"would ship without files the manifest declares shipped."
-    )
+        for kind in ("edge", "gateway"):
+            files = _built_bundle_files(kind)
+            missing = sorted(path for path in hashed if path not in files)
+            assert missing == [], (
+                f"the {kind} bundle omits {missing}, which the release manifest "
+                f"hashes as part of the release. It would ship without files the "
+                f"manifest declares shipped."
+            )
 
-    # The dist bundle has a DECLARED narrower scope: it is the spec
-    # distribution, not the reference stack, and carries no toolchain (PC-12).
-    # That is asserted in both directions -- everything else must be present,
-    # and no tool source may be present -- so the exclusion stays a stated
-    # scope rather than becoming a tolerated gap that quietly widens.
-    dist = _dist_bundle_paths()
-    expected_in_dist = {path for path in hashed if not path.startswith("tools/")}
-    dist_missing = sorted(path for path in expected_in_dist if not _covered(path, dist))
-    assert dist_missing == [], (
-        f"release/build_release_bundle.py omits {dist_missing}, which the release "
-        f"manifest hashes as part of the release; the dist zip would not carry them."
-    )
-    tool_paths = sorted(path for path in dist if path.startswith("tools"))
-    assert tool_paths == [], (
-        f"the dist bundle carries tool source {tool_paths}. It is the spec "
-        f"distribution and ships no toolchain: those tools import the reference "
-        f"gateway at module load, which this bundle does not carry, so they would "
-        f"fail on import for whoever ran them first."
-    )
+        dist = _built_bundle_files("dist")
+        dist_missing = sorted(path for path in hashed if path not in dist)
+        assert dist_missing == [], (
+            f"the dist bundle omits {dist_missing}, which the release manifest "
+            f"hashes. A bundle that omits hashed artifacts cannot validate the "
+            f"manifest it ships."
+        )
+        assert DIST_TOOLS_THAT_NEED_THE_GATEWAY <= dist, (
+            "the tools that need the gateway are hashed and must still ship; "
+            "BUNDLE_NOTES.md is what tells the reader they cannot run here"
+        )
+        assert "BUNDLE_NOTES.md" in dist, (
+            "the dist bundle ships the repository README, which describes a "
+            "walkthrough this bundle cannot run; BUNDLE_NOTES.md is the scope note"
+        )
+    finally:
+        _cleanup_pin_builds()
 
 
-def test_bundle_coverage_pin_notices_a_dropped_root():
-    """Red demonstration: the pin must fail when a builder drops a hashed root.
+def test_the_dist_bundle_can_verify_the_manifest_it_ships():
+    """A bundle carrying a hash manifest must be able to check it.
 
-    Discipline 5 as amended -- the proof that this catches the PC-08 shape
-    lives here and re-runs, rather than being a claim in a commit message.
+    This is the property removing all six tools broke: the dist still shipped
+    the manifest, and `spec/release-hash-policy.md` -- also in the bundle --
+    tells deployments to validate it before startup, which had become
+    impossible from that bundle.
     """
-    hashed = _hashed_artifact_paths()
-    dropped = "AGENTS.md"
-    assert dropped in hashed, (
-        f"{dropped!r} is no longer a hashed artifact; pick another for this "
-        f"demonstration or it proves nothing"
-    )
-    full = _mvp_bundle_paths()
-    assert _covered(dropped, full), f"{dropped} is not carried, so the demonstration is moot"
-    crippled = full - {dropped}
-    missing = sorted(path for path in hashed if not _covered(path, crippled))
-    assert missing == [dropped], (
-        f"removing {dropped} from the builder's path set was not detected as missing; "
-        f"got {missing}"
-    )
+    try:
+        _built_bundle_files("dist")
+        dist = ROOT / "release" / "dist"
+        result = subprocess.run(
+            [sys.executable, "tools/validate_release_manifest.py",
+             "--manifest", "release/zmeta-release-manifest.yaml"],
+            cwd=dist, capture_output=True, text=True,
+        )
+        assert result.returncode == 0, (
+            "the dist bundle cannot validate the manifest it ships:\n"
+            + result.stdout + result.stderr
+        )
+    finally:
+        _cleanup_pin_builds()
+
+
+def test_bundle_coverage_pin_notices_a_dropped_artifact():
+    """Red demonstration against a BUILT bundle, not a source-text claim.
+
+    The previous version mutated a set parsed out of the builder's source, so
+    it never exercised the thing that ships. A review then defeated the source
+    approach two ways -- a plain shutil.copytree shipped 40 tools past the
+    prohibition, and a vanished source tree produced a thin bundle -- both with
+    the pin green.
+    """
+    try:
+        hashed = _hashed_artifact_paths()
+        files = _built_bundle_files("edge")
+        dropped = "AGENTS.md"
+        assert dropped in hashed and dropped in files, (
+            f"{dropped} is not a hashed artifact carried by the edge bundle; "
+            f"pick another for this demonstration or it proves nothing"
+        )
+        crippled = files - {dropped}
+        missing = sorted(path for path in hashed if path not in crippled)
+        assert missing == [dropped], (
+            f"removing {dropped} from a built bundle was not detected; got {missing}"
+        )
+    finally:
+        _cleanup_pin_builds()
+
+

@@ -188,11 +188,9 @@ nodes.
   `policy/*.yaml`, hash-pinned and carried in the release bundles, built by
   `tools/export_policy_json.py` because a fielded deployment had been
   hand-copying governed data for want of any other option. Alongside it, the
-  release-currency guard gained content checks — this bullet must name
-  something the release actually introduced, and the governance sentence
-  below is generated from the manifest rather than written, so it cannot be
-  paraphrased into something untrue.
-  No governed artifact changed in this release: schema, policy data, the semantic contract and the extension registry are byte-identical to zmeta-v1.1.18.
+  governance sentence below is generated from the release manifest rather
+  than written, so it cannot be paraphrased into something untrue.
+  No governed artifact changed in this release: the semantic contract, the schemas, policy data, the extension registry, the conformance corpora and the encoding projections are byte-identical to zmeta-v1.1.18.
   The locked v1.0 kernel is unchanged.
 - Normative contract: v1.0 locked semantic contract, canonical version-discriminated
   JSON schema, v1.0 JSON schema, and policy pack.

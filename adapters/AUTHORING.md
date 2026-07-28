@@ -251,6 +251,28 @@ producer names are examples — deployments narrow them to local ids. External
 tactical ingress producers additionally carry the per-producer
 `external_state_promotion` requirements in that file.
 
+**Name your producer to match a reference wildcard, or ladder steps 2-4 will
+fail with `PRODUCER_NOT_ALLOWED` before you get to anything interesting.** The
+policy pack is governed and hash-pinned, so editing it in a clone is exactly
+what `AGENTS.md` tells you not to do; renaming your producer is the supported
+move. The reference patterns:
+
+| Pattern | For |
+|---|---|
+| `rf-sensor-*` | RF detection / DoA / spectrum |
+| `eo-sensor-*`, `eo-cv-*` | EO/IR imagers and CV detectors |
+| `acoustic-sensor-*` | acoustic |
+| `packet-analyzer-*` | comms/packet analysis |
+| `classifier-*`, `detector-*` | inference producers |
+| `fusion-*` | fusion producers |
+| `state-projector-*` | STATE projection |
+| `mavlink-*` | MAVLink bridges |
+
+So `acme-doa` fails and `rf-sensor-acme` passes, with nothing else changed.
+Note that `adapters/ingress/example-vendor/` is individually allowlisted in the
+reference policy, so the worked example passes where a new adapter under a new
+name will not — do not read its success as proof your naming is fine.
+
 ## 8. Definition Of Done
 
 - The validation ladder is green, including the full kernel gate.

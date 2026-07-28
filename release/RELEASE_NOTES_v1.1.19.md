@@ -69,20 +69,27 @@ list:
 - `release/governed-baseline.yaml`, so a consumer can verify the governance
   claim below rather than trust it.
 
-**The dist bundle no longer ships a toolchain.** It is the spec
-distribution — schema, governed policy, the JSON export, the conformance
-corpus, the governance documents — and the validators it used to carry could
-never run from it: they import the reference gateway at module load and this
-bundle does not contain it. Shipping a toolchain that cannot start is worse
-than shipping none, because running it is the first thing a new user does.
-Take the edge or gateway bundle, or clone, if you want the tools. The bundle
-coverage test now asserts that scope in both directions.
+**Every bundle now carries every artifact the manifest hashes, and the
+coverage test asserts it against BUILT bundles rather than the builders'
+source text.** That matters: the source-text version could be defeated by a
+plain `shutil.copytree`, and a vanished source tree produced a silently thin
+bundle with the check green.
 
-`validate_conformance.py --conformance-classes` is a **repository-side**
-check. `conformance_classes.yaml` cites maintainer process records as its
-evidence, and bundles ship the governance documents but not the record
-archive, so that one flag reports missing paths from inside a bundle. Every
-other conformance flag passes from a bundle. Documented in
+The dist bundle keeps the full `tools/` tree. An earlier attempt in this cycle
+removed it on the premise that those tools import the reference gateway and
+could not run from dist — measurement showed that is true of exactly two of
+them, and removing the rest left dist unable to validate the hash manifest it
+still shipped, which `spec/release-hash-policy.md` (also in the bundle) tells
+deployments to do before startup. The real problem was never the tools: it was
+that dist ships the repository README, which describes a walkthrough dist
+cannot run. dist now carries its own **`BUNDLE_NOTES.md`** stating its scope
+and naming `validate_conformance.py` and `compute_contract_hash.py` as the two
+tools that need the reference gateway.
+
+Measured from an edge bundle, nine of ten conformance flags exit 0.
+`--conformance-classes` is repository-side by design: `conformance_classes.yaml`
+cites maintainer process records as class evidence, and bundles ship the
+governance documents but not the record archive. Documented in
 `conformance/README.md`.
 
 ## Current-facing claims are machine-checked
@@ -99,7 +106,7 @@ number, and the governance-claim check knew exactly one phrasing, so
 "Schema, policy, and event vocabulary are unchanged" evaded it. Two one-word
 edits passed a bullet carried forward wholesale.
 
-The replacement follows the contract's own rule that structure is
+The replacement follows design gate 5 (`CLAUDE.md`, advisory) — structure is
 authoritative and free text is a projection:
 
 - the governance sentence is **computed** from the release manifest against

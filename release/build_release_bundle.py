@@ -78,6 +78,41 @@ def collect_sources(root, version):
     return sources
 
 
+DIST_BUNDLE_NOTES = """# What this bundle is
+
+`zmeta-vX.Y.Z-dist.zip` is the **specification distribution**: the semantic
+contract, schemas, governed policy and its JSON projection, the conformance
+corpus, the governance documents, examples, configs, and the spec-side tooling.
+
+**It is not the reference stack.** It does not carry `gateway/` or `adapters/`,
+so the repository README bundled here — written for a full clone — describes a
+walkthrough this bundle cannot run. Two shipped tools import the reference
+gateway at module load and will fail here for the same reason:
+
+- `tools/validate_conformance.py`
+- `tools/compute_contract_hash.py`
+
+Everything else in `tools/` runs standalone, including
+`tools/validate_release_manifest.py`, which verifies the hash manifest shipped
+alongside this file:
+
+    python tools/validate_release_manifest.py --manifest release/zmeta-release-manifest.yaml
+
+## If you want to run something
+
+Take `zmeta-edge-vX.Y.Z.zip` or `zmeta-gateway-vX.Y.Z.zip` for a runnable
+deployment, or clone the repository for development. Those carry the gateway,
+the adapters, and the full conformance toolchain.
+
+## One flag is repository-only by design
+
+`validate_conformance.py --conformance-classes` cites maintainer process
+records as its class evidence. Bundles ship the governance documents but not
+the process-record archive, so that flag reports missing paths from any
+bundle. It is not a corrupt download. See `conformance/README.md`.
+"""
+
+
 def write_manifest(dist, rel_paths):
     manifest_path = dist / "MANIFEST.txt"
     manifest_lines = sorted(rel_paths + ["MANIFEST.txt"])
@@ -94,7 +129,10 @@ def _ignore_build_residue(_dir, names):
 
 def copy_tree(src, dest):
     if not src.is_dir():
-        return
+        # M6: this used to return silently, so a moved or missing tree produced
+        # a quietly thin bundle -- the export directory could vanish and every
+        # gate stayed green. A source tree that is not there is a build error.
+        raise FileNotFoundError(f"bundle source tree missing: {src}")
     shutil.copytree(src, dest, dirs_exist_ok=True, ignore=_ignore_build_residue)
 
 
@@ -136,23 +174,27 @@ def main():
     copy_tree(root / "policy", dist / "policy")
     copy_tree(root / "export", dist / "export")
     copy_tree(root / "conformance", dist / "conformance")
-    # PC-09/PC-12: `spec` is copied whole rather than enumerated, because the
-    # enumeration drifted silently every time a spec file was added.
+    # PC-09/PC-12: whole trees, not enumerated files -- the enumeration drifted
+    # silently every time a spec file or validator was added.
     #
-    # `tools` is deliberately NOT copied. The dist bundle is the SPEC
-    # DISTRIBUTION -- schema, governed policy, the JSON export, the conformance
-    # corpus, the governance documents. It is not the reference stack. Shipping
-    # the validators here never worked: they load `gateway/src/validators.py` at
-    # import time and this bundle does not carry `gateway/`, so every one of
-    # them failed on import from the dist zip. Shipping a toolchain that cannot
-    # start is worse than not shipping one, because the first thing a new user
-    # does is run it. Consumers who want the toolchain take the edge or gateway
-    # bundle, or clone the repo.
+    # PC-12 REVERSED on measurement. It first removed `tools` entirely, on the
+    # premise that these validators import the reference gateway at module load
+    # and this bundle carries no `gateway/`. A later review measured it: that is
+    # true of exactly TWO of them (`validate_conformance.py`,
+    # `compute_contract_hash.py`); the other fourteen run standalone. Worse, the
+    # manifest hashes sixteen `tools/` paths, so a dist without them could not
+    # validate the hash manifest it still shipped -- and
+    # `spec/release-hash-policy.md`, also in this bundle, tells deployments to
+    # validate before startup. The real complaint was never the tools; it was a
+    # bundle whose README promised a walkthrough it could not run. That is a
+    # documentation problem and BUNDLE_NOTES.md below is the fix.
     copy_tree(root / "spec", dist / "spec")
+    copy_tree(root / "tools", dist / "tools")
     copy_tree(root / "configs", dist / "configs")
     copy_tree(root / "examples", dist / "examples")
 
     (dist / "VERSION.txt").write_text(f"{version}\n", encoding="utf-8")
+    (dist / "BUNDLE_NOTES.md").write_text(DIST_BUNDLE_NOTES, encoding="utf-8")
 
     rel_paths = []
     for path in sorted(dist.rglob("*")):

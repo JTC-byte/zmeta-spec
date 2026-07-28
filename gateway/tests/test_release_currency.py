@@ -681,40 +681,38 @@ def test_pc_pins_demonstrate_red_on_a_superseded_literal():
 
 
 # ---------------------------------------------------------------------------
-# Content currency, SECOND DESIGN (P2-01, redesigned after the v1.1.19 pre-cut
-# review defeated the first one).
+# Content currency, THIRD DESIGN. Narrowed, after the second was reviewed.
 #
-# THE FIRST DESIGN DID NOT WORK, and how it failed is the point. Two rules
-# tried to infer truth from prose:
+# Design 1 inferred truth from prose and was defeated by two one-word edits.
+# Design 2 computed the truth correctly and then handed the DECISION back to
+# two prose-shaped rules. A second independent panel found four MAJORs in it,
+# and three of the four were properties of one rule -- the "bullet must name
+# something this release introduced" rule:
 #
-#   * "the bullet must name something this release introduced" was implemented
-#     as "a backticked string present in the current release notes and in no
-#     earlier notes". Backticking the version number satisfied it. So did
-#     `policy/*.yaml`, which predates the release by many cuts.
-#   * "a governance claim must be carried by the notes" was a regex that knew
-#     one phrasing. "Schema, policy, and event vocabulary are unchanged" evaded
-#     it, as did five other natural paraphrases, and the matcher's own fixture
-#     blessed the whole "unchanged" family by construction.
+#   * when a release adds nothing, `introduced` fell through to `changed`,
+#     which is exactly the set the mandatory sentence enumerates. The rule
+#     then found its own paths inside the sentence the other rule had just
+#     forced into the block. The two rules stopped being independent, and a
+#     pure-amendment cut -- the highest-stakes kind -- is precisely that shape.
+#   * `release/governed-baseline.yaml` is itself a hashed artifact, so
+#     regenerating it changes its bytes every cut: a permanent free pass.
+#   * substring matching cannot tell naming from DENYING. "Nothing here
+#     touches `tools/export_policy_json.py`" satisfied it. That is PC-10
+#     recurring on the other rule.
 #
-# Together they passed a bullet carried forward WHOLESALE from v1.1.16 -- the
-# exact defect the pins exist for -- after two one-word edits.
+# THE RULE IS GONE rather than patched. It was trying to judge whether prose
+# is about the right release, which is not reliably machine-checkable, and
+# three rounds of evidence say attempts to make it so keep producing new
+# holes. What remains is the part two panels have now confirmed sound: the
+# governance sentence is COMPUTED and must appear VERBATIM -- an allowlist,
+# so paraphrase count does not matter.
 #
-# The redesign follows semantics-contract gate 5: structure is authoritative,
-# free text is a projection. A release's governance status is load-bearing
-# data, so it is COMPUTED from the manifest against a committed baseline,
-# rendered into one canonical sentence, and the document must carry that
-# sentence verbatim. That is an ALLOWLIST. A blocklist of forbidden phrasings
-# must be re-derived every time somebody writes a new one -- the B-01 lesson
-# from the compact mapping, arrived at again by the same road.
-#
-# The "introduced" rule now reads real artifact paths added or changed since
-# the baseline release, so a version literal cannot satisfy it.
-#
-# STATED LIMIT, so this is not mistaken for total coverage: if an author keeps
-# the generated sentence AND writes a contradicting paraphrase beside it, the
-# contradiction ships. This catches the defect that actually occurred -- a
-# wholesale carried-forward bullet, where the generated sentence is absent --
-# not an author deliberately writing two conflicting statements.
+# WHAT IS THEREFORE NOT COVERED, stated plainly rather than implied: a bullet
+# whose prose describes an older release but which carries the correct
+# generated sentence will pass. The guard catches a FALSE governance claim and
+# a bullet that omits the sentence entirely; it does not catch stale prose
+# sitting beside a true sentence. That is a real gap and it is deliberate --
+# the alternative is a fourth prose rule.
 # ---------------------------------------------------------------------------
 
 import sys
@@ -731,55 +729,19 @@ def _normalize_ws(text: str) -> str:
 
 
 def readme_release_focus_block(text: str) -> str | None:
-    """The '- Release focus:' bullet body.
-
-    Bounded by the next top-level bullet OR the next heading. The first cut
-    stopped only at '- ', so moving the bullet to the end of its list made the
-    block swallow the following section heading and the prose under it, which
-    would leave the content rules evaluating unrelated text.
-    """
+    """The '- Release focus:' bullet body, bounded by the next bullet or heading."""
     match = re.search(
         r"^- Release focus:(.*?)(?=^- |^#|\Z)", text, re.MULTILINE | re.DOTALL
     )
     return match.group(1) if match else None
 
 
-def paths_named_in(block: str, candidates: set[str]) -> list[str]:
-    """Which of `candidates` the block actually names.
-
-    Substring rather than token matching: these are paths written inside prose
-    and code spans. A path is a concrete thing that either appears or does
-    not, unlike the previous rule's "any backticked string" -- which a version
-    number satisfied.
-    """
-    return sorted(path for path in candidates if path in block)
-
-
 _STALE_FOCUS_BLOCK_AT_v1_1_18_TAG = """ the first external real-capture corpus,
   `adapters/mapping-packs/edge-comms-bladerf/` (PR #7), two real
   bladeRF / ROS2 EW `rf_detection` flight captures paired with
-  schema-valid RF `OBSERVATION_EVENT` expected outputs, merged after
-  adversarial review with maintainer honesty fixes (a frame-unlabeled
-  heading-derived bearing demoted to explicitly named native features
-  per contract 6.4; an unasserted statistical metric dropped;
-  timestamp-source provenance preserved; pack mapping reconciled with
-  its fixtures). No schema, policy, or event-vocabulary changes; the
-  locked v1.0 kernel's semantics are unchanged.
+  schema-valid RF `OBSERVATION_EVENT` expected outputs. No schema, policy, or
+  event-vocabulary changes; the locked v1.0 kernel's semantics are unchanged.
 """
-
-
-def test_readme_release_focus_names_something_this_release_touched():
-    block = readme_release_focus_block(_read("README.md"))
-    assert block, "README.md '- Release focus:' bullet not found"
-    introduced = facts.introduced_paths(facts.load_baseline(), facts.load_manifest())
-    assert introduced, "nothing added or changed since the baseline; check would be vacuous"
-    named = paths_named_in(block, introduced)
-    assert named, (
-        f"README.md release-focus bullet names none of the {len(introduced)} artifact "
-        f"paths this release added or changed. A bullet carried forward from an "
-        f"earlier cut cannot name any of them, which is exactly the defect this "
-        f"catches. Name at least one, e.g. {sorted(introduced)[0]}."
-    )
 
 
 def test_readme_release_focus_carries_the_generated_governance_sentence():
@@ -794,31 +756,15 @@ def test_readme_release_focus_carries_the_generated_governance_sentence():
     )
 
 
-def test_content_rules_reject_the_attacks_that_defeated_the_first_design():
-    """Red demonstration against the panel's ACTUAL evasions, not invented ones.
+def test_the_generated_sentence_cannot_be_paraphrased():
+    """Red demonstration against the paraphrases that defeated design 1.
 
-    Every input below passed the first design. All must fail this one.
+    An allowlist does not care how many phrasings exist, which is the whole
+    reason for generating the sentence instead of matching prose.
     """
-    baseline, manifest = facts.load_baseline(), facts.load_manifest()
-    introduced = facts.introduced_paths(baseline, manifest)
-    sentence = _normalize_ws(facts.governance_sentence(baseline, manifest))
-    version = manifest_release_version()
-
-    # Attack 1: the carried-forward bullet with the two one-word edits that
-    # defeated the first design -- a reworded claim and a backticked version.
-    attacked = _STALE_FOCUS_BLOCK_AT_v1_1_18_TAG.replace(
-        "No schema, policy, or event-vocabulary changes;",
-        "Schema, policy, and event vocabulary are unchanged;",
-    ) + "  See `" + version + "`.\n"
-    assert paths_named_in(attacked, introduced) == [], (
-        "a backticked version literal is again satisfying the introduced rule"
+    sentence = _normalize_ws(
+        facts.governance_sentence(facts.load_baseline(), facts.load_manifest())
     )
-    assert sentence not in _normalize_ws(attacked), (
-        "the carried-forward bullet is being credited with the generated sentence"
-    )
-
-    # Attack 2: every paraphrase the reviewer found. None may substitute for
-    # the generated sentence. This is what an allowlist buys.
     for paraphrase in (
         "None of the schema, policy, or event-vocabulary changed.",
         "Neither the schema nor the policy pack changed.",
@@ -827,37 +773,44 @@ def test_content_rules_reject_the_attacks_that_defeated_the_first_design():
         "Nothing in the schema, policy, or event vocabulary changed.",
         "This cut mints no new reason codes.",
         "No schema, policy, or event-vocabulary changes.",
+        "Schema, policy, and event vocabulary are unchanged.",
     ):
         assert sentence not in _normalize_ws(paraphrase), (
             "paraphrase accepted as the generated sentence: " + repr(paraphrase)
         )
 
-    # Attack 3: a scoped claim must not license an unscoped one. The old carry
-    # check was a substring test, so notes saying "no governed change IN THE
-    # ADAPTERS" licensed a bare "no governed change" in the README.
+    # the carried-forward bullet, which is the defect itself
+    assert sentence not in _normalize_ws(_STALE_FOCUS_BLOCK_AT_v1_1_18_TAG), (
+        "the carried-forward bullet is being credited with the generated sentence"
+    )
+    # a scoped variant must not satisfy an unscoped claim
     scoped = sentence.replace("in this release", "in the gateway adapters")
-    assert scoped != sentence
-    assert sentence not in _normalize_ws(scoped), "a scoped variant still matches"
-
-    # The live bullet must pass the same rules these attacks fail.
-    live = readme_release_focus_block(_read("README.md"))
-    assert paths_named_in(live, introduced), "the live bullet fails the introduced rule"
-    assert sentence in _normalize_ws(live), "the live bullet lacks the generated sentence"
+    assert scoped != sentence and sentence not in _normalize_ws(scoped)
 
 
-def test_governance_sentence_tracks_the_actual_governed_state():
-    """The sentence must be derived, not decorative.
+def test_governance_sentence_is_derived_from_the_manifest():
+    """The sentence must track the governed state, in BOTH directions.
 
-    If a governed artifact's hash moves, the sentence must change -- otherwise
-    the README could carry a stale-but-verbatim sentence forever and the
-    allowlist would be pinning a fossil.
+    Deliberately written so it does not self-invalidate on a governed release:
+    design 2 asserted "No governed artifact changed" is in the live sentence,
+    which would go red -- with a message asserting the opposite of the truth --
+    the first time a cut legitimately changed governed data. Under cut pressure
+    the obvious fix is to delete the assert, which would remove the only proof
+    that the sentence is derived rather than decorative.
     """
     baseline, manifest = facts.load_baseline(), facts.load_manifest()
-    clean = facts.governance_sentence(baseline, manifest)
-    assert "No governed artifact changed" in clean, (
-        "this release is governed-clean by independent check; the sentence should say so"
-    )
+    live = facts.governance_sentence(baseline, manifest)
+    changes = facts.governed_changes(baseline, manifest)
 
+    # whichever state the tree is actually in, the sentence must say so
+    if changes:
+        assert "Governed artifacts changed" in live
+        for path in changes:
+            assert path in live, f"{path} changed but is not named in the sentence"
+    else:
+        assert "No governed artifact changed" in live
+
+    # and moving a governed hash must move the sentence
     doctored = dict(manifest)
     doctored["artifact_hashes"] = [
         dict(entry, hash="sha256:deadbeef")
@@ -866,18 +819,61 @@ def test_governance_sentence_tracks_the_actual_governed_state():
         for entry in manifest["artifact_hashes"]
     ]
     moved = facts.governance_sentence(baseline, doctored)
-    assert moved != clean, "moving the locked v1.0 schema hash did not change the sentence"
-    assert "schema/zmeta-event-1.0.schema.json" in moved, (
-        "the changed governed artifact is not named in the sentence: " + moved
+    assert moved != live, "moving the locked v1.0 schema hash did not change the sentence"
+    assert "schema/zmeta-event-1.0.schema.json" in moved
+
+
+def test_a_deleted_governed_artifact_is_visible():
+    """Design 2 could not see deletions at all: added was new-minus-old and
+    changed iterated the new set, so dropping a governed file reported clean."""
+    baseline, manifest = facts.load_baseline(), facts.load_manifest()
+    doctored = dict(manifest)
+    doctored["artifact_hashes"] = [
+        entry for entry in manifest["artifact_hashes"] if entry["path"] != "policy/lineage.yaml"
+    ]
+    assert "policy/lineage.yaml" in facts.governed_changes(baseline, doctored), (
+        "a deleted governed policy file is invisible to the governance sentence"
     )
 
 
-def test_baseline_is_present_and_describes_a_published_release():
+def test_every_manifest_group_is_classified_as_governed_or_not():
+    """A new artifact group must not default to ungoverned.
+
+    Design 2 classified by path prefix and was narrower than the manifest's own
+    definition: `configs/policy-variants/*.yaml` feed `policy_bundle_hash` yet
+    were called ungoverned, and `zmeta_compact.py` sits in
+    `encoding_projection_specs` beside governed specs, so a codec change that
+    altered wire behaviour reported clean.
+    """
+    manifest = facts.load_manifest()
+    groups = set(manifest["artifact_groups"])
+    unclassified = sorted(groups - facts.GOVERNED_GROUPS - facts.UNGOVERNED_GROUPS)
+    assert unclassified == [], (
+        f"artifact groups classified as neither governed nor ungoverned: {unclassified}"
+    )
+    assert facts.governed_paths(manifest), "no governed paths resolved; check would be vacuous"
+
+    # the two specific escapes the panel found must now be governed
+    governed = facts.governed_paths(manifest)
+    for path in ("configs/policy-variants/producer-authority.strict.yaml", "zmeta_compact.py"):
+        assert path in governed, f"{path} is still classified ungoverned"
+
+
+def test_baseline_names_the_immediately_previous_published_release():
+    """A stale baseline makes every comparison quietly wrong.
+
+    Design 2 only checked baseline != current, so a two-releases-stale baseline
+    passed and the whole release-focus bullet would have survived the next cut
+    unedited -- the same defect class one release later. Nothing regenerated
+    the baseline either; that is now a step in RELEASE_CHECKLIST.md.
+    """
     baseline = facts.load_baseline()
-    assert baseline["baseline_release_id"].startswith("zmeta-v")
-    assert baseline["artifact_hashes"], "baseline records no artifacts"
-    current = facts.load_manifest()["release_id"]
-    assert baseline["baseline_release_id"] != current, (
-        "the baseline names the CURRENT release (" + current + "); it must name the "
-        "previously published one, or every comparison is trivially empty"
+    expected = facts.expected_baseline_release()
+    assert expected, "no published release notes older than current; check would be vacuous"
+    assert baseline["baseline_release_id"] == expected, (
+        f"release/governed-baseline.yaml names {baseline['baseline_release_id']}, but the "
+        f"newest published release before this one is {expected}. Regenerate it:\n"
+        f"  python tools/release_focus_facts.py --write-baseline "
+        f"--from-manifest <that release's manifest>"
     )
+    assert baseline["artifact_hashes"], "baseline records no artifacts"

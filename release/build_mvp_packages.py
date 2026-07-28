@@ -138,6 +138,11 @@ COMMON_PATHS = [
     "release/RELEASE_NOTES_TEMPLATE.md",
     "release/RELEASE_PACKAGE_README.md",
     "release/governed-baseline.yaml",
+    # M7: both bundle builders above ship in this bundle and neither starts
+    # without the manifest they derive their version from, and --release-manifest
+    # / --release-package both fail without it. The manifest cannot hash itself,
+    # so the coverage pin could never have caught this omission.
+    "release/zmeta-release-manifest.yaml",
 ]
 
 

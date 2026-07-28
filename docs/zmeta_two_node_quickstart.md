@@ -134,7 +134,7 @@ From the repo root on any host that can reach the nodes:
 python tools/udp_receiver.py --host 127.0.0.1 --port 5556
 
 # 2. FROM ANYWHERE THAT CAN REACH THE EDGE: replay the example corpus in
-python tools/replay.py --file examples/zmeta-examples-1.0.jsonl --host <edge-host> --port 5555
+python tools/replay.py --file examples/zmeta-profile-L-examples.jsonl --host <edge-host> --port 5555
 ```
 
 (Run step 1 on the GCS host itself: 5556 is that gateway's local-consumer

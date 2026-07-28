@@ -111,12 +111,39 @@ def utc_now():
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
 
 
+_HASH_TEXT_SUFFIXES = {
+    ".json", ".jsonl", ".md", ".proto", ".py", ".txt", ".yaml", ".yml",
+}
+
+
+def _canonical_bytes(path: Path) -> bytes:
+    """File bytes with line endings normalized for text files.
+
+    Without this the runtime contract hash is line-ending dependent. Git for
+    Windows ships `core.autocrlf=true` system-wide and this repo has no
+    `.gitattributes`, so a Windows clone and a Linux clone of the SAME commit
+    produced four different hashes. `docs/zmeta_two_node_quickstart.md` makes
+    hash equality the interoperability gate and instructs the operator to stop
+    and reconcile versions when they differ -- so a Windows edge and a Linux
+    GCS running identical code were told to halt on a false signal.
+
+    Matches the canonicalization the release manifest already uses
+    (`tools/build_release_manifest.py::canonical_file_bytes`), which is why
+    manifest validation was unaffected while this path was not.
+    """
+    data = path.read_bytes()
+    if path.suffix.lower() in _HASH_TEXT_SUFFIXES:
+        text = data.decode("utf-8")
+        return text.replace("\r\n", "\n").replace("\r", "\n").encode("utf-8")
+    return data
+
+
 def _hash_file(path: Path) -> bytes:
     hasher = hashlib.sha256()
     rel = path.name
     hasher.update(rel.encode("utf-8"))
     hasher.update(b"\0")
-    hasher.update(path.read_bytes())
+    hasher.update(_canonical_bytes(path))
     return hasher.digest()
 
 
@@ -128,7 +155,7 @@ def _hash_dir(dir_path: Path) -> bytes:
         rel = path.relative_to(dir_path).as_posix()
         hasher.update(rel.encode("utf-8"))
         hasher.update(b"\0")
-        hasher.update(path.read_bytes())
+        hasher.update(_canonical_bytes(path))
         hasher.update(b"\0")
     return hasher.digest()
 

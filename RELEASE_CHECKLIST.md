@@ -6,6 +6,13 @@ Use this as the template for each release.
 - [ ] Change class identified and documented in handoff/worklog
 - [ ] Semantic contract finalized for target version
 - [ ] Contract hash recomputed
+- [ ] **Governed baseline regenerated BEFORE the version bump**, from the
+      manifest as it stands for the PREVIOUS release:
+      `python tools/release_focus_facts.py --write-baseline --from-manifest release/zmeta-release-manifest.yaml`
+      Order matters: run it before the release identity is bumped, or the
+      baseline snapshots the new tree under the previous id and reports a
+      governed change as clean. `gateway/tests/test_release_currency.py` pins that the baseline
+      names the immediately previous published release.
 - [ ] Release manifest built and validated
 - [ ] Release package templates or generated package output validated
 - [ ] Schema validates against examples
