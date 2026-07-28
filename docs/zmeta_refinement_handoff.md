@@ -45,24 +45,44 @@ tells are heavy em-dash use and a rhetorical, catch-phrase tone. The target is
 flat declarative technical prose. This is a voice pass only. The README's
 structure and content were reworked deliberately last cycle and both are sound.
 
-**`README.md` is DONE (`595e386`, 2026-07-28).** Em dashes 15 to 0, bold spans
-21 to 17, the arrow glyph removed, inversion-for-emphasis rewritten as direct
-statement, and two fragment headings reworded. No structure, ordering, facts or
-claims changed, and the file is 24 words longer rather than shorter. Every
-pinned surface verified intact: the H1 release literal, the "Current release"
-line, the generated governance sentence carried verbatim, the bundle-builder
-literals, and the worked `--target`. The root README is not hashed in the
-release manifest, so nothing needed regenerating.
+**COMPLETE for its scope, 2026-07-28, in three commits: `595e386` (README),
+`287209d` (docs index, authoring guide, three densest adapter READMEs),
+`a6a4383` (every remaining current-facing document).** 40 files, 300 em dashes
+down to 1, plus the rhetorical constructions: inversion for emphasis, bold carrying
+sentence rhythm rather than marking a scanning point, punchy fragments, and
+metaphors standing in for statements. No structure, ordering, facts, claims or
+code changed anywhere in the pass. The README is 24 words longer, so this was
+not compression wearing a voice-pass label.
 
-**Still to do:** `docs/zmeta_live_test_checklist.md` and
-`adapters/ingress/adsb/README.md` are written in the same voice. Beyond those,
-`docs/zmeta_professional_overview.md`, `spec/quickstart.md` and
-`adapters/AUTHORING.md` are the current-facing surfaces most likely to carry
-the same habits.
+**Scope was set by measurement, and the exclusions are by category rather than
+by omission.** Counting em-dash density across every markdown file put
+`docs/README.md` worst in the repository at 52 per thousand words and showed
+`docs/zmeta_professional_overview.md` already effectively clean at 0.5, the
+opposite of what this handoff predicted. Deliberately untouched, holding about
+1900 dashes between them:
 
-The honest limit on the README result: the countable tells were counted, but
-whether the prose now reads as a person wrote it cannot be judged by its
-author. That is the one claim here needing an outside reader.
+- the three governed markdown files, since a prose edit to a governed artifact
+  is a governed change;
+- the twelve manifest-hashed files, where a comma would force a manifest
+  regeneration for no reader benefit;
+- process records, since rewriting them falsifies what was true when they were
+  written (the exclusion `test_release_currency.py` already documents);
+- `CLAUDE.md`, which is agent guidance written in a directive voice on purpose.
+
+One in-scope dash survives, inside the maintainer's quoted rule in
+`docs/zmeta_live_test_checklist.md`. Rewriting a quotation would misreport what
+was said.
+
+**Method note worth reusing.** Every substitution ran through a script
+asserting each pattern matched exactly once, so a pattern that stopped matching
+halted the run instead of reporting success over an unedited file. That check
+caught nothing this time, which is the outcome it is supposed to have.
+
+**The honest limit.** The countable tells were counted and are at zero. Whether
+the prose now reads as a person wrote it cannot be judged by its author, and an
+outside reader is what that claim needs. If the calibration is wrong in either
+direction, over-corrected into flatness or still too rhetorical, the fix is
+cheap and uniform across all 40 files.
 
 ### The four decisions waiting on the maintainer
 
