@@ -14,7 +14,8 @@ artifacts across 20 groups against the published tag's 71 across 19 — a
 manifest describing a release that did not exist, and a live recurrence of
 the open R1-11-17 tension (a wrong-but-plausible identity validates clean).
 
-**Deferred to the maintainer — PC-09.** The release manifest hashes paths no
+**PC-09 — CLOSED 2026-07-28 (this entry superseded; kept for the trail).**
+The maintainer scoped it the same day and it shipped. Original statement: The release manifest hashes paths no
 downloadable bundle carries: the edge/gateway bundles omit `docs/`, and the
 dist zip omits `docs/` and `conformance/`. README.md tells downstream clone
 users to read `AGENTS.md` and `docs/zmeta_change_governance.md` before
@@ -22,9 +23,11 @@ altering schema or policy — files their bundle does not contain. Not fixed
 inside the cut because adding `docs` wholesale would drag the process-record
 archive into a runtime package; the real question is which governance files
 belong in a deployment bundle, which also covers the hashed top-level
-`AGENTS.md`, `CONFORMANCE.md`, `IP_POLICY.md` and `TRADEMARK.md`. Recorded in
-`gateway/tests/test_release_manifest.py` as documented omissions so the guard
-still catches a NEW one.
+`AGENTS.md`, `CONFORMANCE.md`, `IP_POLICY.md` and `TRADEMARK.md`. **Outcome:** every hashed artifact now ships in every bundle and the coverage
+pin runs with NO exception list. Two pre-existing limitations remain open and
+are recorded in the CHANGELOG, not here: the dist bundle's validators import
+`gateway/` which it does not carry, and `conformance_classes.yaml` references
+process records no bundle ships.
 
 ---
 
@@ -184,7 +187,11 @@ max 150/240.
 
 **Banked register candidates** live in `docs/r1_11_cold_reread_findings.md`
 (CR ledger + VW-01..17) and the doctrine log. Nothing is recorded only in a
-commit message.
+commit message. *(Re-checked 2026-07-28 and it had become FALSE: an entire
+commit's findings, PC-10, PC-11, and the author-graded-review caveat were
+commit-message-only until an independent panel found them. All are now in the
+CHANGELOG. A tripwire sentence only works if somebody re-checks it — that is
+the lesson, not the sentence.)*
 
 ### The lesson worth carrying forward
 

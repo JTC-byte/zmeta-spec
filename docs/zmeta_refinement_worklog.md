@@ -19,7 +19,9 @@
   across tests, shipped tooling and audit evidence forced playbook discipline
   5 to change — a guard's red demonstration must now be an artifact in the
   repo, not a session act; `gateway/tests/vacuity.py` supports it. The
-  **pre-cut whole-range review** then produced nine findings (PC-01..09),
+  **pre-cut whole-range review** then produced **eleven** findings (PC-01..11;
+  PC-10 and PC-11 surfaced while fixing the first nine), and an independent
+  five-lens panel afterwards found the content guard itself did not work,
   two of them live defects: `adapters/README.md` had pointed at
   `--target v1.1.16` for two releases, and the manifest hashed twelve
   `export/policy` artifacts that NEITHER bundle builder carried. Four

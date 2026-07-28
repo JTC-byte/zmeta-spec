@@ -60,7 +60,7 @@ def test_release_manifest_yaml_loads():
     assert isinstance(data, dict)
     assert data["release_id"] == "zmeta-v1.1.19"
     assert data["release_status"] == "formal_release"
-    assert data["release_date"] == "2026-07-27"
+    assert data["release_date"] == "2026-07-28"
 
 
 def test_required_top_level_fields_exist():

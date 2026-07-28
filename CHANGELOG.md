@@ -2,7 +2,80 @@
 
 ## [Unreleased]
 
-## [1.1.19] - 2026-07-27
+## [1.1.19] - 2026-07-28
+
+- 2026-07-28 — **the first content-currency guard did not work and was
+  replaced before release.** An independent five-lens panel run before tagging
+  showed it passing a "Release focus" bullet carried forward wholesale from
+  v1.1.16 — the exact defect it existed for — after two one-word edits.
+  Backticking the version number satisfied "names something this release
+  introduced", because the rule was really "a backticked string in the current
+  notes and no earlier notes"; and the governance-claim check knew one
+  phrasing, so *"Schema, policy, and event vocabulary are unchanged"* evaded
+  it, as did five further paraphrases the reviewer found in one pass. Both
+  rules tried to infer truth from prose. The replacement follows
+  semantics-contract gate 5 — structure is authoritative, free text is a
+  projection: the governance sentence is **computed** by
+  `tools/release_focus_facts.py` from the release manifest against the new
+  committed `release/governed-baseline.yaml`, and must appear **verbatim**, an
+  allowlist rather than a blocklist of phrasings (the B-01 lesson, reached
+  again by the same road); and the "introduced" rule reads real artifact paths
+  added or changed since the baseline, so a version literal cannot satisfy it.
+  Red-demonstrated against the panel's actual evasions. The baseline is
+  committed rather than derived from git because CI checks out without tags,
+  so a `git show v1.1.18:` comparison would have passed vacuously there —
+  the same failure class again. **Stated limit:** an author who keeps the
+  generated sentence and writes a contradicting paraphrase beside it still
+  ships the contradiction.
+- 2026-07-28 — **`tools/export_policy_json.py` now passes `allow_nan=False`.**
+  A YAML `.inf` or `.nan` in any policy file emitted bare `Infinity`, which is
+  not JSON — `JSON.parse` throws on the whole file — while every gate stayed
+  green, because Python reads `Infinity` back as `float('inf')` and the
+  verbatim pin, the freshness pin and the manifest hash all agreed the file
+  was fine. Silent corruption aimed exactly at the non-Python consumer the
+  artifact exists for. Found independently by two reviewers; it was the only
+  silent member of the class.
+- 2026-07-28 — PC-09 **closed, not deferred** (superseding the deferral
+  recorded a commit earlier). Every hashed artifact now ships in every bundle
+  with no exception list: the declared `process_governance` group (`AGENTS.md`
+  first among them — `README.md` tells clone users to read it and no bundle
+  contained it), the conformance corpus in the dist zip, the release templates
+  the shipped tooling consumes, and `release/governed-baseline.yaml`. Raising
+  the coverage pin from directory to path granularity found three more gaps;
+  fixing those found thirteen more, including the dist zip shipping
+  `validate_conformance.py` without the ten sub-validators its flags invoke.
+  The dist builder now copies the `spec` and `tools` trees rather than
+  enumerating files, with a build-residue ignore.
+- 2026-07-28 — **known limitation, pre-existing, NOT closed:** those
+  sub-validators import the reference gateway at module load and the dist
+  bundle still does not carry `gateway/`, so running them from the dist zip
+  fails on import. Recorded rather than fixed inside a cut; the edge and
+  gateway bundles are unaffected. Same for `conformance/conformance_classes.yaml`,
+  which references five `docs/` process records a bundle deliberately does not
+  ship, so `--conformance-classes` fails inside every bundle.
+- 2026-07-28 — findings **PC-10** and **PC-11**, previously in commit messages
+  only. PC-10: the governance-claim check could not tell quoting from
+  asserting, so the notes' own corrective quotation of the false v1.1.16 claim
+  would have licensed the README to assert it. PC-11: `tools/README.md`'s
+  worked release commands were unpinned, went stale during the cut, and were
+  caught only because another pin counts how many current-facing formal builds
+  it can see and refuses to run on fewer than four. Both fixed; the pre-cut
+  review produced **eleven** findings, not the nine recorded earlier.
+- 2026-07-28 — doc-claim corrections found by the panel: `export/README.md`,
+  `tools/export_policy_json.py` and this file cited *"semantics-contract gate
+  4"*, but the design gates live in `CLAUDE.md`, which is advisory and
+  non-normative — an advisory doc cited as normative, inside the artifact whose
+  premise is that governed sources are authoritative. `README.md` routed
+  readers to integration notes for "v1.1.11 through v1.1.18" when v1.1.17's
+  section was overwritten by the v1.1.18 cut and never archived. The errata
+  below said v1.1.17 "added two policy files" when it **amended** two existing
+  ones — an overstatement inside an errata about overstatement.
+- 2026-07-28 — **process note, recorded because the decision to tag depends on
+  it.** The v1.1.19 pre-cut review was initially run by the author over his own
+  range, which meets the cut tier's coverage but not playbook discipline 6
+  (author is not grader). The independent panel that followed found the guard
+  failure, the silent `Infinity` corruption, the bundle-coverage gaps and the
+  stale records above — none of which the author's own two passes had caught.
 
 > The consumer-access and verification-integrity cut. One new artifact —
 > the governed policy as verbatim JSON, for consumers that cannot read
@@ -52,7 +125,8 @@
   that inherited it. v1.1.17 added `ENCODING_UNSUPPORTED`,
   `BEARING_FRAME_UNLABELED`, and `NON_FINITE_CONFIDENCE` to the **locked v1.0
   schema's** `reason_code` enum, the `TIME_STATUS.state` enum to the v1.1.0
-  schema, `policy/semantics.yaml` and `policy/violation-codes.yaml` entries,
+  schema, amendments to `policy/semantics.yaml` and
+  `policy/violation-codes.yaml` (both pre-existing; neither added),
   and 148 normative lines to `spec/compact-binary-mapping.md`; v1.1.18 added
   `policy/command-evidence.yaml`. Each tagged tree's own
   `release/RELEASE_NOTES_v<version>.md` is accurate, so the tagged v1.1.18
@@ -88,7 +162,7 @@
   renamed, filtered, or interpreted — produced by
   `tools/export_policy_json.py` and hash-pinned in the release manifest under
   the new `policy_json_export` artifact group. Authority is one-directional
-  per contract gate 4: `policy/*.yaml` remains the source of truth, a
+  per design gate 4 (`CLAUDE.md`, advisory): `policy/*.yaml` remains the source of truth, a
   hand-edited JSON file is a stale file rather than policy, and `--check`
   fails on it. Motivated by P2-01's second finding: a fielded consumer was
   mirroring the semantics-contract §7.7 STATE denylist in TypeScript and

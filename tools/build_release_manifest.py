@@ -263,6 +263,7 @@ def artifact_groups(root: Path = ROOT, *, include_tool_source: bool = True) -> d
                 "release/RELEASE_NOTES_TEMPLATE.md",
                 "release/ATTESTATION_TEMPLATE.yaml",
                 "release/RELEASE_PACKAGE_README.md",
+                "release/governed-baseline.yaml",
                 "tools/build_release_package.py",
                 "tools/validate_release_package.py",
             ],

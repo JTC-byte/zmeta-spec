@@ -52,6 +52,7 @@ def collect_sources(root, version):
         root / "release" / "README.md",
         root / "release" / "zmeta-release-manifest.yaml",
         root / "release" / "RELEASE_PACKAGE_README.md",
+        root / "release" / "governed-baseline.yaml",
         root / "release" / "RELEASE_NOTES_TEMPLATE.md",
         root / "release" / "ATTESTATION_TEMPLATE.yaml",
         root / "release" / "sign_release_artifacts.py",

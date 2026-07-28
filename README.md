@@ -185,15 +185,15 @@ nodes.
 - Release focus: **consumer access and verification integrity.** The
   governed policy is now readable without a YAML parser:
   `export/policy/*.json` is a generated, verbatim projection of
-  `policy/*.yaml`, hash-pinned and carried in the release bundles, built
-  because a fielded deployment had been hand-copying governed data for
-  want of any other option (`tools/export_policy_json.py`). Alongside it,
-  this repository's current-facing claims are machine-checked rather than
-  trusted: the bullet you are reading must now name something this release
-  introduced, and may not assert a governance claim its own release notes
-  do not make. No schema, policy data, or event-vocabulary changes;
-  `policy/README.md` gained a pointer to the projection. The locked v1.0
-  kernel is unchanged.
+  `policy/*.yaml`, hash-pinned and carried in the release bundles, built by
+  `tools/export_policy_json.py` because a fielded deployment had been
+  hand-copying governed data for want of any other option. Alongside it, the
+  release-currency guard gained content checks — this bullet must name
+  something the release actually introduced, and the governance sentence
+  below is generated from the manifest rather than written, so it cannot be
+  paraphrased into something untrue.
+  No governed artifact changed in this release: schema, policy data, the semantic contract and the extension registry are byte-identical to zmeta-v1.1.18.
+  The locked v1.0 kernel is unchanged.
 - Normative contract: v1.0 locked semantic contract, canonical version-discriminated
   JSON schema, v1.0 JSON schema, and policy pack.
 - Experimental extension: `schema/zmeta-event-1.1.0.schema.json` is provided for proposed
@@ -224,7 +224,9 @@ nodes.
 - `tools/check_compat.py` gains the `v1.1.19` target; current-facing docs
   re-baseline to the v1.1.19 release manifest.
 
-Integration notes for earlier releases (v1.1.11 through v1.1.18) are in
+Integration notes for earlier releases (v1.1.11 through v1.1.18, except
+v1.1.17, whose section was overwritten by the v1.1.18 cut and never
+archived) are in
 [`CHANGELOG.md`](CHANGELOG.md), alongside the full change history for
 each version.
 

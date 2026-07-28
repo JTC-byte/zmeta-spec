@@ -2,7 +2,7 @@ manifest_version: 1
 release_id: zmeta-v1.1.19
 release_name: ZMeta v1.1.19
 release_status: formal_release
-release_date: '2026-07-27'
+release_date: '2026-07-28'
 zmeta_versions:
   normative:
   - '1.0'
@@ -28,8 +28,8 @@ bad_event_corpus_hash: sha256:f839d7fb4a0ab127c95c7e904b00ee44284d6c1a1218158d11
 adapter_conformance_hash: sha256:ad22755451b61409343a4a5e6136c1915ea5bcff9fa2526d1d04fb4f4f8aff5d
 encoding_projection_specs_hash: sha256:bb605812a12900c50e74c3fcee8d1ff640bf4f4e3d5456f50cd8f4180286fb14
 process_governance_hash: sha256:2736079f0162f72c26e87b130900e53ca8dad903b11123874f2b21e7b8f389fb
-release_bundle_hash: sha256:ca153178bf8ca7bd13bd66ea351b5f705e77ab9e1d2d7842b3f54de9c0c56239
-release_manifest_hash: sha256:0bb8f4169054f4ba4762b0f2fca7e56c3224236bfa73dc7052147167a93b07c4
+release_bundle_hash: sha256:7bc6a53ea0c4c7935e62498cd2694d48e02f24fd4e5eedec5616d09cdadf0cb5
+release_manifest_hash: sha256:96dbe7dfce9f7cd8bf9a7160cd09d0d6b8ae63b3ea729a59ac7f6c6834e1a767
 artifact_hashes:
 - path: AGENTS.md
   group: process_governance
@@ -239,6 +239,10 @@ artifact_hashes:
   group: release_packaging
   hash: sha256:085a7808594e8d4070fd73af6f7bf19c61fd1656b26d9a8779040f0b77abcc47
   canonicalization: text_lf
+- path: release/governed-baseline.yaml
+  group: release_packaging
+  hash: sha256:fe3446a62a54836cd0441292d7e6319623908e7b26d464ecda6c6e3053fbd816
+  canonicalization: text_lf
 - path: schema/proto/zmeta_event_v1.proto
   group: encoding_projection_specs
   hash: sha256:abc128fa2dc0058624bc654b422e8b0c7a045aac83e6a71d644a8ccca6672d82
@@ -289,7 +293,7 @@ artifact_hashes:
   canonicalization: text_lf
 - path: tools/build_release_manifest.py
   group: release_tools
-  hash: sha256:e622e28b74446cb64e9125347a824b3a16f18cb25e633f58bc922bfec7af013c
+  hash: sha256:e00484c20ac6a26d063be0d7d328262aa6cc5d9ffaac4c8f040a9e74f305db1b
   canonicalization: text_lf
 - path: tools/build_release_package.py
   group: release_packaging
@@ -301,7 +305,7 @@ artifact_hashes:
   canonicalization: text_lf
 - path: tools/export_policy_json.py
   group: policy_json_export
-  hash: sha256:d52a9d1f95b6f0e2faad37a6548bf08b4d635c70d8cf72f6e09862d81ae61040
+  hash: sha256:2bb355a3317c2f62670368df3c46c213e5c8047398ecb1ec86514bfcce290432
   canonicalization: text_lf
 - path: tools/filter_risk.py
   group: conformance_tools
@@ -407,7 +411,7 @@ artifact_groups:
     - export/policy/timing-freshness.json
     - export/policy/violation-codes.json
     - tools/export_policy_json.py
-    hash: sha256:072e76f1a84a315861432e23a29cd553363405d3e441e5169dac7e7210ea96df
+    hash: sha256:2be27d29115d9fc4fb25fd01cffbeaa6d0e1e8faf20f2c3d32a66b6bdb8c10b1
   extension_registry:
     description: Machine-readable extension and reserved-vocabulary registry.
     paths:
@@ -502,17 +506,18 @@ artifact_groups:
     - release/ATTESTATION_TEMPLATE.yaml
     - release/RELEASE_NOTES_TEMPLATE.md
     - release/RELEASE_PACKAGE_README.md
+    - release/governed-baseline.yaml
     - spec/release-signing-attestation.md
     - tools/build_release_package.py
     - tools/validate_release_package.py
-    hash: sha256:cfd395d5cc3db7474e6ed5a5938d670b4f13775e4b69ad92db7581deeb91ac01
+    hash: sha256:166221f0136b300604514612383f2bb271b78b2400a07ab62ed26c7c08ed87dd
   release_tools:
     description: Release hash build and validation tooling.
     paths:
     - tools/build_release_manifest.py
     - tools/compute_contract_hash.py
     - tools/validate_release_manifest.py
-    hash: sha256:b18d644fa2795a9765abe9df6043b346894995bfd8b7afd4af319927c711a3f6
+    hash: sha256:2e6a7a484d30ee8c16b2f6ffbd01f3238bc54aaac52098c012b5bd4d008fad1b
   conformance_tools:
     description: Conformance validators included in the reference baseline.
     paths:

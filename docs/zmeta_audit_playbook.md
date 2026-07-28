@@ -173,8 +173,9 @@ Formalized from what demonstrably worked across R1-09, R1-10 and R1-11:
    this claim class too), and it never verified the mutation applied at all.
    Use `gateway/tests/vacuity.py::mutate` when doctoring text — it refuses a
    substitution that changes nothing, which is precisely how one hand-run
-   probe reported success having mutated nothing. **Seven instances across
-   tests, shipped tooling, and audit evidence forced this**, including one
+   probe reported success having mutated nothing. **Seven instances forced this** — five test pins, one in shipped
+   tooling, and one hand-run probe; the audit-evidence case is logged as
+   adjacent to the class, not one of the seven (doctrine log P2-D1), including one
    vacuous pin inside the fix for a vacuous pin. Pre-2026-07-27 pins are not
    retro-fitted and must not be assumed non-vacuous.
 6. **Author is not grader.** Closure is verified by a probe written by one

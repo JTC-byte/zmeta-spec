@@ -19,7 +19,8 @@ This projection removes the reason to copy. It is:
   renamed, filtered, flattened, merged, or interpreted. `yaml.safe_load` of
   the source and `json.load` of the export compare equal, and a test pins
   that per file.
-- ONE-DIRECTIONAL IN AUTHORITY, per semantics-contract gate 4. Authority runs
+- ONE-DIRECTIONAL IN AUTHORITY, per design gate 4 (CLAUDE.md, advisory).
+  Authority runs
   YAML -> JSON and never back. A JSON file edited by hand is not policy; it
   is a stale file, and the freshness pin fails on it.
 
@@ -82,8 +83,22 @@ def export_relpath(source: Path, root: Path = ROOT) -> str:
 
 
 def render_json(data: object) -> str:
-    """Deterministic JSON text: sorted keys, 2-space indent, trailing LF."""
-    return json.dumps(data, indent=2, sort_keys=True, ensure_ascii=False) + "\n"
+    """Deterministic JSON text: sorted keys, 2-space indent, trailing LF.
+
+    `allow_nan=False` is load-bearing, not hygiene. Python's json emits bare
+    `Infinity` / `NaN` for non-finite floats, which are **not JSON** -- a
+    browser or Worker calling `JSON.parse` throws on the whole file, which is
+    precisely the consumer this artifact exists for. And it fails SILENTLY
+    through every gate: Python's parser reads `Infinity` back to `float('inf')`
+    and `inf == inf`, so the verbatim pin, the freshness pin and the manifest
+    hash all agree the file is good while it is unreadable off-Python.
+
+    A YAML `.inf` or `.nan` in any policy file now raises here instead. Two
+    independent reviewers found this the same day; it was the only silent
+    member of the class (dates, sets, non-string keys, binary and recursive
+    anchors all already fail loud).
+    """
+    return json.dumps(data, indent=2, sort_keys=True, ensure_ascii=False, allow_nan=False) + "\n"
 
 
 def build_exports(root: Path = ROOT) -> dict[str, str]:

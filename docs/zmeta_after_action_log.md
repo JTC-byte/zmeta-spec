@@ -70,8 +70,13 @@ trap this cycle exists to warn against.
 Honesty about the method: four test "pins" written this cycle initially
 asserted nothing — they passed even with the fix they guarded reverted — and
 were caught and rewritten. Two fixes closed a defect by introducing a quieter
-one and had to be re-done. These are why the playbook now requires every pin to
+one and had to be re-done. These are why the playbook required every pin to
 be proven by reverting the fix and watching the specific assertion fail.
+*(Corrected 2026-07-28: that formulation was RETIRED by doctrine-log P2-D1 —
+it describes a session act, which is precisely why it failed seven times. The
+current rule is that a guard's red demonstration must be an artifact in the
+repository, re-running in CI. Left in place with this note rather than
+rewritten, per this log's dated-correction convention.)*
 
 ### What changed as a result
 
@@ -219,4 +224,6 @@ protocol this log exists to enforce. Both releases are published
 checksums-only. Open tensions, deferred findings, and the items that remain
 gated on hardware or live tooling are recorded in the doctrine review log, the
 cold re-read record, and the handoff — not in this entry, and not only in
-commit messages.
+commit messages. *(Corrected 2026-07-28: this became false during the v1.1.19
+cut — see the CHANGELOG's [1.1.19] entries. It is true again as of that
+reconciliation.)*

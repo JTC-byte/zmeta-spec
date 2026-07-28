@@ -678,114 +678,84 @@ def test_pc_pins_demonstrate_red_on_a_superseded_literal():
 
 
 # ---------------------------------------------------------------------------
-# Content currency (P2-01)
+
+
+# ---------------------------------------------------------------------------
+# Content currency, SECOND DESIGN (P2-01, redesigned after the v1.1.19 pre-cut
+# review defeated the first one).
 #
-# Everything above pins version LITERALS. The README's release-focus bullet
-# carries no literal, so it went on describing v1.1.16's release -- the
-# external bladeRF capture corpus -- through both the v1.1.17 and v1.1.18 cuts
-# with every pin above green. The 2026-07-27 closeout caught it by reading,
-# which is the manual sweep that does not scale with contributors.
+# THE FIRST DESIGN DID NOT WORK, and how it failed is the point. Two rules
+# tried to infer truth from prose:
 #
-# It is not cosmetic. The copied sentence asserts "No schema, policy, or
-# event-vocabulary changes", which was true of v1.1.16 and false of both cuts
-# that inherited it: v1.1.17 added three reason codes to the LOCKED v1.0
-# schema, the TIME_STATUS.state enum, two policy files, and 148 normative
-# lines to the compact mapping; v1.1.18 added policy/command-evidence.yaml.
-# A downstream consumer advancing a pin reads that sentence and concludes its
-# revalidation layer needs no work -- which is exactly how the defect
-# surfaced, reported by an outside consumer advancing their own pin rather
-# than by us.
+#   * "the bullet must name something this release introduced" was implemented
+#     as "a backticked string present in the current release notes and in no
+#     earlier notes". Backticking the version number satisfied it. So did
+#     `policy/*.yaml`, which predates the release by many cuts.
+#   * "a governance claim must be carried by the notes" was a regex that knew
+#     one phrasing. "Schema, policy, and event vocabulary are unchanged" evaded
+#     it, as did five other natural paraphrases, and the matcher's own fixture
+#     blessed the whole "unchanged" family by construction.
 #
-# The release notes are the authoritative description of what a cut changed
-# (the tagged v1.1.18 tree is self-contradictory: its notes are correct and
-# its README is not), so both checks below anchor the README to them.
+# Together they passed a bullet carried forward WHOLESALE from v1.1.16 -- the
+# exact defect the pins exist for -- after two one-word edits.
+#
+# The redesign follows semantics-contract gate 5: structure is authoritative,
+# free text is a projection. A release's governance status is load-bearing
+# data, so it is COMPUTED from the manifest against a committed baseline,
+# rendered into one canonical sentence, and the document must carry that
+# sentence verbatim. That is an ALLOWLIST. A blocklist of forbidden phrasings
+# must be re-derived every time somebody writes a new one -- the B-01 lesson
+# from the compact mapping, arrived at again by the same road.
+#
+# The "introduced" rule now reads real artifact paths added or changed since
+# the baseline release, so a version literal cannot satisfy it.
+#
+# STATED LIMIT, so this is not mistaken for total coverage: if an author keeps
+# the generated sentence AND writes a contradicting paraphrase beside it, the
+# contradiction ships. This catches the defect that actually occurred -- a
+# wholesale carried-forward bullet, where the generated sentence is absent --
+# not an author deliberately writing two conflicting statements.
 # ---------------------------------------------------------------------------
 
+import sys
 
-def readme_release_focus_block(text: str) -> str | None:
-    """The '- Release focus:' bullet body, up to the next top-level bullet."""
-    match = re.search(r"^- Release focus:(.*?)(?=^- |\Z)", text, re.MULTILINE | re.DOTALL)
-    return match.group(1) if match else None
+_TOOLS = ROOT / "tools"
+if str(_TOOLS) not in sys.path:
+    sys.path.insert(0, str(_TOOLS))
 
-
-def prose_anchors(block: str) -> list[str]:
-    """Backticked identifiers in a block: paths, filenames, field names.
-
-    Backticks are the discriminator that keeps this check out of natural-
-    language matching. A release focus names the artifacts it shipped, and
-    those are written as code spans throughout these documents.
-    """
-    return sorted(set(re.findall(r"`([^`\n]+)`", block)))
-
-
-def release_notes_by_version() -> dict[str, str]:
-    """Every published release-notes file, keyed by its version tag."""
-    return {
-        match.group(1): path.read_text(encoding="utf-8")
-        for path in (ROOT / "release").glob("RELEASE_NOTES_v*.md")
-        if (match := re.search(r"RELEASE_NOTES_(v[\d.]+)\.md", path.name))
-    }
-
-
-def anchors_introduced_by(block: str, notes: dict[str, str], version: str) -> list[str]:
-    """Anchors named by this release's notes and by no earlier release's notes.
-
-    Deliberately NOT "every anchor must appear in the current notes". A focus
-    bullet may honestly refer backwards -- v1.1.18's names the
-    `TIME_STATUS.state` enum it inherited from v1.1.17 -- and that reference
-    is true. The obligation is the positive one: the bullet must name at
-    least one thing THIS release introduced, which is what "release focus"
-    means and what a wholesale copy of an older bullet cannot satisfy.
-    """
-    current = notes.get(version, "")
-    superseded = [text for name, text in notes.items() if name != version]
-    return [
-        anchor
-        for anchor in prose_anchors(block)
-        if anchor in current and not any(anchor in text for text in superseded)
-    ]
+import release_focus_facts as facts  # noqa: E402
 
 
 def _normalize_ws(text: str) -> str:
     return " ".join(text.split())
 
 
-def notes_assertions(text: str) -> str:
-    """Release-notes text with quoted spans removed, whitespace-normalized.
+def readme_release_focus_block(text: str) -> str | None:
+    """The '- Release focus:' bullet body.
 
-    **A claim the notes QUOTE is not a claim the notes MAKE.** PC-10, found by
-    the v1.1.19 pre-cut review when this check's own red demonstration stopped
-    going red: v1.1.19's notes reproduce v1.1.16's false claim verbatim in
-    order to correct it, and matching against the raw text let that quotation
-    license the README to assert the very thing the notes were disowning.
-
-    Quotes may span lines, so newlines are permitted inside a quoted span;
-    the length bound keeps an unbalanced quote from swallowing the document.
+    Bounded by the next top-level bullet OR the next heading. The first cut
+    stopped only at '- ', so moving the bullet to the end of its list made the
+    block swallow the following section heading and the prose under it, which
+    would leave the content rules evaluating unrelated text.
     """
-    without_quotes = re.sub(r'["“”][^"“”]{0,300}["“”]', " ", text)
-    return _normalize_ws(without_quotes)
+    match = re.search(
+        r"^- Release focus:(.*?)(?=^- |^#|\Z)", text, re.MULTILINE | re.DOTALL
+    )
+    return match.group(1) if match else None
 
 
-# A negative governance claim: "No schema, policy, or event-vocabulary
-# changes". Sentence-bounded by construction -- the character class cannot
-# cross a period or semicolon -- so it cannot staple two sentences together.
-# `\bNo\b` rather than `No` so "Nothing previously valid becomes invalid",
-# the standing first line of every Integration Notes section, is not a claim.
-_GOVERNANCE_NEGATIVE = re.compile(
-    r"\bNo\b[^.;]*?\b(?:schema|policy|event[- ]vocabulary|vocabular(?:y|ies)|reason_code)\b[^.;]*",
-    re.IGNORECASE,
-)
+def paths_named_in(block: str, candidates: set[str]) -> list[str]:
+    """Which of `candidates` the block actually names.
+
+    Substring rather than token matching: these are paths written inside prose
+    and code spans. A path is a concrete thing that either appears or does
+    not, unlike the previous rule's "any backticked string" -- which a version
+    number satisfied.
+    """
+    return sorted(path for path in candidates if path in block)
 
 
-def governance_claims(block: str) -> list[str]:
-    """Whitespace-normalized negative governance claims made in a block."""
-    return [_normalize_ws(match.group(0)) for match in _GOVERNANCE_NEGATIVE.finditer(block)]
-
-
-# The release-focus bullet as it stood in the published v1.1.18 tag, verbatim.
-# This is the defect itself, kept as the fixture both matchers are pinned
-# against, so neither can be reduced to something that would have let it pass.
-_STALE_FOCUS_BLOCK_AT_v1_1_18_TAG = """ the first external real-capture corpus —
+_STALE_FOCUS_BLOCK_AT_v1_1_18_TAG = """ the first external real-capture corpus,
   `adapters/mapping-packs/edge-comms-bladerf/` (PR #7), two real
   bladeRF / ROS2 EW `rf_detection` flight captures paired with
   schema-valid RF `OBSERVATION_EVENT` expected outputs, merged after
@@ -798,189 +768,116 @@ _STALE_FOCUS_BLOCK_AT_v1_1_18_TAG = """ the first external real-capture corpus �
 """
 
 
-def test_readme_release_focus_describes_the_current_release():
-    version = manifest_release_version()
+def test_readme_release_focus_names_something_this_release_touched():
     block = readme_release_focus_block(_read("README.md"))
     assert block, "README.md '- Release focus:' bullet not found"
-    notes = release_notes_by_version()
-    assert version in notes, (
-        f"release/RELEASE_NOTES_{version}.md not found; the release-focus "
-        f"content pin has nothing to anchor against"
-    )
-    introduced = anchors_introduced_by(block, notes, version)
-    assert introduced, (
-        f"README.md release-focus bullet names nothing introduced by {version}. "
-        f"Every backticked artifact in it is either absent from "
-        f"release/RELEASE_NOTES_{version}.md or was already named by an earlier "
-        f"release, which is the signature of a focus bullet carried forward "
-        f"from a previous cut. Rewrite it to describe {version}."
+    introduced = facts.introduced_paths(facts.load_baseline(), facts.load_manifest())
+    assert introduced, "nothing added or changed since the baseline; check would be vacuous"
+    named = paths_named_in(block, introduced)
+    assert named, (
+        f"README.md release-focus bullet names none of the {len(introduced)} artifact "
+        f"paths this release added or changed. A bullet carried forward from an "
+        f"earlier cut cannot name any of them, which is exactly the defect this "
+        f"catches. Name at least one, e.g. {sorted(introduced)[0]}."
     )
 
 
-def test_release_focus_content_rule_catches_the_carried_forward_bullet():
-    """Red-first pin: the rule must reject the block that actually shipped.
+def test_readme_release_focus_carries_the_generated_governance_sentence():
+    block = readme_release_focus_block(_read("README.md"))
+    assert block, "README.md '- Release focus:' bullet not found"
+    sentence = facts.governance_sentence(facts.load_baseline(), facts.load_manifest())
+    assert _normalize_ws(sentence) in _normalize_ws(block), (
+        f"README.md release-focus bullet does not carry the generated governance "
+        f"sentence verbatim. It is computed from the release manifest against "
+        f"release/governed-baseline.yaml and must not be paraphrased:\n\n  {sentence}\n\n"
+        f"Print it with `python tools/release_focus_facts.py`."
+    )
 
-    Without this the check above could be satisfied by any bullet mentioning
-    any current path, and a future simplification of `anchors_introduced_by`
-    would have no signal. Four pins in the R1-11 cycle turned out to be
-    vacuous -- passing on the reverted tree because some other gate refused
-    -- so the fixture here is the real defect, not a synthetic one.
+
+def test_content_rules_reject_the_attacks_that_defeated_the_first_design():
+    """Red demonstration against the panel's ACTUAL evasions, not invented ones.
+
+    Every input below passed the first design. All must fail this one.
     """
+    baseline, manifest = facts.load_baseline(), facts.load_manifest()
+    introduced = facts.introduced_paths(baseline, manifest)
+    sentence = _normalize_ws(facts.governance_sentence(baseline, manifest))
     version = manifest_release_version()
-    notes = release_notes_by_version()
 
-    stale = anchors_introduced_by(_STALE_FOCUS_BLOCK_AT_v1_1_18_TAG, notes, version)
-    assert stale == [], (
-        f"the carried-forward v1.1.16 bullet is being credited with introducing "
-        f"{stale} in {version}; the content rule no longer catches the defect it "
-        f"exists for"
+    # Attack 1: the carried-forward bullet with the two one-word edits that
+    # defeated the first design -- a reworded claim and a backticked version.
+    attacked = _STALE_FOCUS_BLOCK_AT_v1_1_18_TAG.replace(
+        "No schema, policy, or event-vocabulary changes;",
+        "Schema, policy, and event vocabulary are unchanged;",
+    ) + "  See `" + version + "`.\n"
+    assert paths_named_in(attacked, introduced) == [], (
+        "a backticked version literal is again satisfying the introduced rule"
+    )
+    assert sentence not in _normalize_ws(attacked), (
+        "the carried-forward bullet is being credited with the generated sentence"
     )
 
+    # Attack 2: every paraphrase the reviewer found. None may substitute for
+    # the generated sentence. This is what an allowlist buys.
+    for paraphrase in (
+        "None of the schema, policy, or event-vocabulary changed.",
+        "Neither the schema nor the policy pack changed.",
+        "Zero schema, policy, or vocabulary changes.",
+        "The schema, policy pack, and event vocabulary are unchanged.",
+        "Nothing in the schema, policy, or event vocabulary changed.",
+        "This cut mints no new reason codes.",
+        "No schema, policy, or event-vocabulary changes.",
+    ):
+        assert sentence not in _normalize_ws(paraphrase), (
+            "paraphrase accepted as the generated sentence: " + repr(paraphrase)
+        )
+
+    # Attack 3: a scoped claim must not license an unscoped one. The old carry
+    # check was a substring test, so notes saying "no governed change IN THE
+    # ADAPTERS" licensed a bare "no governed change" in the README.
+    scoped = sentence.replace("in this release", "in the gateway adapters")
+    assert scoped != sentence
+    assert sentence not in _normalize_ws(scoped), "a scoped variant still matches"
+
+    # The live bullet must pass the same rules these attacks fail.
     live = readme_release_focus_block(_read("README.md"))
-    assert anchors_introduced_by(live, notes, version), (
-        "the live release-focus bullet does not pass the same rule the stale "
-        "one fails; the two directions must separate or the check is noise"
-    )
+    assert paths_named_in(live, introduced), "the live bullet fails the introduced rule"
+    assert sentence in _normalize_ws(live), "the live bullet lacks the generated sentence"
 
 
-def test_release_focus_pins_demonstrate_red_against_the_live_readme():
-    """Demonstrate the red state against the REAL file, not only a copy.
+def test_governance_sentence_tracks_the_actual_governed_state():
+    """The sentence must be derived, not decorative.
 
-    The fixture above is the stale bullet as it shipped, and pinning against
-    it proves the rule rejects that text. It does not prove the rule reaches
-    the live README -- a future restructure could move or rename the bullet
-    and leave the fixture test passing against nothing while the live check
-    silently stops finding anything to examine.
-
-    So this swaps the shipped stale bullet into the live file's own structure,
-    in memory, and asserts both checks go red. `mutate` refuses a no-op, which
-    is the specific way the first hand-run version of this probe proved
-    nothing (doctrine log P2-D1).
+    If a governed artifact's hash moves, the sentence must change -- otherwise
+    the README could carry a stale-but-verbatim sentence forever and the
+    allowlist would be pinning a fossil.
     """
-    version = manifest_release_version()
-    notes = release_notes_by_version()
-    text = _read("README.md")
-    live_block = readme_release_focus_block(text)
-    assert live_block, "README.md '- Release focus:' bullet not found"
-
-    doctored = mutate(
-        text,
-        live_block,
-        _STALE_FOCUS_BLOCK_AT_v1_1_18_TAG,
-        what="swap the live release-focus bullet for the one that shipped stale in the v1.1.18 tag",
-    )
-    bad_block = readme_release_focus_block(doctored)
-    assert bad_block, (
-        "the doctored README no longer yields a release-focus bullet; the "
-        "demonstration is malformed and would prove nothing"
+    baseline, manifest = facts.load_baseline(), facts.load_manifest()
+    clean = facts.governance_sentence(baseline, manifest)
+    assert "No governed artifact changed" in clean, (
+        "this release is governed-clean by independent check; the sentence should say so"
     )
 
-    assert anchors_introduced_by(bad_block, notes, version) == [], (
-        "the carried-forward bullet passes the anchor rule when substituted into "
-        "the live README; the content pin does not actually reach this file"
-    )
-    unsupported = [
-        claim
-        for claim in governance_claims(bad_block)
-        if claim not in notes_assertions(notes.get(version, ""))
+    doctored = dict(manifest)
+    doctored["artifact_hashes"] = [
+        dict(entry, hash="sha256:deadbeef")
+        if entry["path"] == "schema/zmeta-event-1.0.schema.json"
+        else entry
+        for entry in manifest["artifact_hashes"]
     ]
-    assert unsupported == ["No schema, policy, or event-vocabulary changes"], (
-        f"the governance-claim check did not flag the false claim when substituted "
-        f"into the live README; got {unsupported}"
+    moved = facts.governance_sentence(baseline, doctored)
+    assert moved != clean, "moving the locked v1.0 schema hash did not change the sentence"
+    assert "schema/zmeta-event-1.0.schema.json" in moved, (
+        "the changed governed artifact is not named in the sentence: " + moved
     )
 
 
-def test_readme_release_focus_governance_claim_is_carried_by_release_notes():
-    """A governance claim in the README must be one its release notes make.
-
-    This is the clause that made the stale bullet dangerous rather than
-    untidy. The README is a projection; `release/RELEASE_NOTES_v<current>.md`
-    is the authoritative statement of what a cut changed. A claim the notes
-    do not make is one nobody verified against the actual diff.
-    """
-    version = manifest_release_version()
-    block = readme_release_focus_block(_read("README.md"))
-    assert block, "README.md '- Release focus:' bullet not found"
-    notes = release_notes_by_version()
-    current = notes_assertions(notes.get(version, ""))
-    unsupported = [claim for claim in governance_claims(block) if claim not in current]
-    assert unsupported == [], (
-        f"README.md release-focus makes governance claims {unsupported} that "
-        f"release/RELEASE_NOTES_{version}.md does not make. Either the claim is "
-        f"stale (carried from an earlier release whose notes did make it) or it "
-        f"is new and unverified. The release notes are authoritative."
-    )
-
-
-def test_a_quoted_claim_in_the_notes_does_not_license_the_readme():
-    """PC-10 red demonstration: quoting a claim is not making it.
-
-    v1.1.19's notes reproduce v1.1.16's false claim verbatim so they can
-    correct it. Before this rule that quotation satisfied the carry check,
-    which would have let the README assert the very thing the notes were
-    disowning — the guard licensing the defect it exists to catch.
-
-    Pinned in both directions, plus a liveness assertion: if the notes ever
-    stop quoting the claim, this demonstration is no longer describing a real
-    situation and says so rather than passing quietly.
-    """
-    claim = "No schema, policy, or event-vocabulary changes"
-    quoting = f'The published tree asserts *"{claim}."* That is false for both.'
-    asserting = f"{claim}; the locked v1.0 kernel is unchanged."
-
-    assert claim not in notes_assertions(quoting), (
-        "a merely-quoted claim is being read as one the notes make"
-    )
-    assert claim in notes_assertions(asserting), (
-        "an asserted claim is being stripped as though it were quoted"
-    )
-
-    version = manifest_release_version()
-    raw = release_notes_by_version().get(version, "")
-    assert claim in _normalize_ws(raw), (
-        f"release/RELEASE_NOTES_{version}.md no longer quotes the corrected claim, so "
-        f"this demonstration has drifted from the situation it documents"
-    )
-    assert claim not in notes_assertions(raw), (
-        "the live notes' quotation of the false claim is still being read as an "
-        "assertion; PC-10 has regressed"
-    )
-
-
-def test_governance_claim_matcher_is_pinned():
-    """The claim check is only as good as this matcher -- pin both directions.
-
-    The live check above is currently vacuous by design: v1.1.18's focus
-    bullet makes no negative governance claim, so there is nothing to carry.
-    That is the correct state and it is also exactly how a matcher rots
-    unnoticed, so the matcher is exercised here against doctored text.
-    """
-    must_catch = [
-        # the claim that shipped stale in two tags, in its wrapped form
-        "its fixtures). No schema, policy, or event-vocabulary changes; the\n  locked v1.0 kernel's semantics are unchanged.",
-        "No schema or event-vocabulary changes.",
-        "no policy changes in this release",
-        "No reason_code was minted.",
-        "No new vocabularies were added.",
-    ]
-    for text in must_catch:
-        assert governance_claims(text), f"governance claim slipped through: {text!r}"
-
-    must_not_catch = [
-        # the standing Integration Notes opener -- 'No' inside a word
-        "Nothing previously valid becomes invalid.",
-        # honest positive statements about the same subjects
-        "The locked v1.0 kernel is unchanged.",
-        "This release adds policy/command-evidence.yaml.",
-        # sentence-bounded: a 'No' clause must not reach across punctuation
-        "No fixtures changed. The schema gained three reason codes.",
-    ]
-    for text in must_not_catch:
-        assert not governance_claims(text), f"false positive on: {text!r}"
-
-    # And the real fixture must produce exactly the claim that was false.
-    claims = governance_claims(_STALE_FOCUS_BLOCK_AT_v1_1_18_TAG)
-    assert claims == ["No schema, policy, or event-vocabulary changes"], (
-        f"the stale bullet's governance claim is no longer extracted as expected; "
-        f"got {claims}"
+def test_baseline_is_present_and_describes_a_published_release():
+    baseline = facts.load_baseline()
+    assert baseline["baseline_release_id"].startswith("zmeta-v")
+    assert baseline["artifact_hashes"], "baseline records no artifacts"
+    current = facts.load_manifest()["release_id"]
+    assert baseline["baseline_release_id"] != current, (
+        "the baseline names the CURRENT release (" + current + "); it must name the "
+        "previously published one, or every comparison is trivially empty"
     )

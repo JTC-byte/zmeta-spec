@@ -24,7 +24,7 @@ of its export compare equal. Nothing is renamed, filtered, flattened, merged,
 or interpreted, and `gateway/tests/test_policy_json_export.py` pins that per
 file along with freshness and both directions of coverage.
 
-**Authority is one-directional**, per semantics-contract gate 4: it runs
+**Authority is one-directional**, per design gate 4 (`CLAUDE.md`, advisory): it runs
 `policy/*.yaml` → `export/policy/*.json` and never back. Editing a JSON file
 here does not change policy — it produces a stale file, and the freshness pin
 fails on it. Change the YAML and regenerate.

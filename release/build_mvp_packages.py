@@ -137,6 +137,7 @@ COMMON_PATHS = [
     "release/ATTESTATION_TEMPLATE.yaml",
     "release/RELEASE_NOTES_TEMPLATE.md",
     "release/RELEASE_PACKAGE_README.md",
+    "release/governed-baseline.yaml",
 ]
 
 
