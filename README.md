@@ -1,31 +1,33 @@
 # ZMeta Specification (v1.0 Locked, current release v1.1.19)
 
-**Adapt a sensor to ZMeta once, and it speaks to everything ZMeta maps — no
-N×N point-to-point bridges.** ZMeta is a free, open, transport-agnostic
-semantic standard for resilient ISR: one honest event model that heterogeneous
-sensors, analytics, gateways, TAK clients, and mission systems can share
-without silently changing what the data means.
+ZMeta is a free, open, transport-agnostic semantic standard for resilient ISR.
+It defines one honest event model that heterogeneous sensors, analytics,
+gateways, TAK clients, and mission systems can share without silently changing
+what the data means. A sensor is adapted to ZMeta once and then interoperates
+with everything else ZMeta maps, which removes the need for N×N point-to-point
+bridges.
 
 ![ZMeta at a glance: sensors collect, an edge adapter translates to OBSERVATION events, which become INFERENCE, FUSION, STATE, and COMMAND events, with a retask loop back to collection and SYSTEM events across every stage.](docs/img/c1-zmeta-at-a-glance.svg)
 
-### Why you should care
+### What ZMeta provides
 
-- **Integrate once, not per pair.** Ten sensors and five consumers is fifty
-  brittle bridges — or fifteen adapters to one contract. Adapters are the
-  bounded work: writing one against `adapters/AUTHORING.md` is a
-  single-sitting task, and the repo ships worked references to copy.
-- **Honesty is enforced, not promised.** Uncertainty, provenance, lineage, and
-  timing quality travel *with* the data and are machine-checked. Degraded,
-  stale, or externally promoted data cannot be made to look clean — the
-  consumer adjudicates truth, never a black box.
-- **Built for the bad link.** Three export profiles thin data for bandwidth
-  without changing meaning; a Profile L state event fits in a tactical packet
-  budget (see the size comparison below).
-- **Layers keep their authority.** A line of bearing is not a track; a track
-  is not a command basis. Those distinctions are checkable, which is what
-  makes automated retasking auditable instead of hopeful.
-- **Nothing is locked to a vendor, a transport, or us.** Apache-2.0, a locked
-  v1.0 kernel, and governed change process — see `IP_POLICY.md`.
+- **Integration cost scales with the number of sources.** Ten sensors and five
+  consumers require fifty point-to-point bridges, or fifteen adapters to a
+  single contract. Writing an adapter against `adapters/AUTHORING.md` is a
+  single-sitting task, and the repository ships worked references to copy.
+- **Honesty is machine-checked.** Uncertainty, provenance, lineage, and timing
+  quality travel with the data and are validated against policy. Degraded,
+  stale, or externally promoted data cannot be made to look clean, so the
+  consumer adjudicates truth rather than a black box.
+- **Degraded links are a design case.** Three export profiles thin data for
+  bandwidth without changing meaning, and a Profile L state event fits within
+  a tactical packet budget. The size comparison below shows the encodings.
+- **Each layer keeps its own authority.** A line of bearing is not a track,
+  and a track is not sufficient basis for a command. Those distinctions are
+  machine-checkable, which is what makes automated retasking auditable.
+- **No lock-in to a vendor, a transport, or this project.** Apache-2.0
+  licensing, a locked v1.0 kernel, and a governed change process. See
+  `IP_POLICY.md`.
 
 ### The semantic pipeline
 
@@ -48,26 +50,26 @@ flowchart LR
   Sys -.->|"status across every stage"| St
 ```
 
-### Small enough for the tactical link
+### Encoding size on a tactical link
 
 ![Bar chart comparing the byte size of one Profile L STATE_EVENT encoded as JSON, CBOR, compact CBOR, and protobuf.](docs/img/b3-encoding-sizes.svg)
 
-The same Profile L `STATE_EVENT` across four wire formats — every one decodes
-back to the identical canonical JSON. Encoding never creates authority: a
-compact packet is valid only if the decoded event passes the same schema,
-policy, and conformance checks a JSON event does.
+The chart shows the same Profile L `STATE_EVENT` in four wire formats. All four
+decode back to the identical canonical JSON. Encoding does not create
+authority: a compact packet is valid only if the decoded event passes the same
+schema, policy, and conformance checks that a JSON event does.
 
-**→ The full picture in one document: [`docs/zmeta_professional_overview.md`](docs/zmeta_professional_overview.md)**
-— architecture, the six event families, adapters, gateway deployment, risk
-adjudication, AI provenance, and worked operational scenarios (RF detection
-through automated retasking, multi-node geolocation, GPS-denied operation).
-Start there if you are evaluating ZMeta rather than building against it.
+[`docs/zmeta_professional_overview.md`](docs/zmeta_professional_overview.md)
+covers the whole stack in one document: architecture, the six event families,
+adapters, gateway deployment, risk adjudication, AI provenance, and worked
+operational scenarios including RF detection through automated retasking,
+multi-node geolocation, and GPS-denied operation. Start there if you are
+evaluating ZMeta rather than building against it.
 
 ## ZMeta In The Field
 
-The reference stack is extracted from fielded deployments, not designed on
-paper. The ingress adapters marked "Production" in `adapters/README.md` came
-from:
+The reference stack is extracted from fielded deployments. The ingress adapters
+marked "Production" in `adapters/README.md` came from:
 
 - a hosted EO/CV integration deployment: fixed-camera detections build a full
   local `OBSERVATION -> INFERENCE -> FUSION -> STATE` chain on the edge,
@@ -78,9 +80,9 @@ from:
   RF-over-MAVLink, and SignalHunter PSD-sweep sensors feeding RF
   `OBSERVATION_EVENT` lines of bearing into downstream fusion.
 
-Deployment reports — what mapped cleanly and what did not — are the
-standard's primary evidence stream (see the promotion evidence bar in
-`spec/extension-registry.md`). Open a deployment field report issue to
+Deployment reports are the standard's primary evidence stream, covering what
+mapped cleanly and what did not. The promotion evidence bar is defined in
+`spec/extension-registry.md`. Open a deployment field report issue to
 contribute one.
 
 ## What ZMeta Is
@@ -110,10 +112,11 @@ requested.
 
 Prereq: Python 3.11+ (no Docker needed for this path).
 
-> **Windows users:** enable long-path support once before cloning —
+> **Windows users:** enable long-path support once before cloning, with
 > `git config --global core.longpaths true`. Without it, a clone into an
-> already-deep directory can fail checkout with `Filename too long` (Windows'
-> 260-character limit), which looks like a broken repository but is not.
+> already-deep directory can fail checkout with `Filename too long`, which is
+> the Windows 260-character path limit. The symptom looks like a corrupt
+> clone, but the cause is the path length.
 
 ```
 python -m pip install -r requirements.txt
@@ -161,9 +164,9 @@ nodes.
   step-by-step install, `spec/quickstart.md` for the developer walkthrough,
   and the Deployment Checklist below for drift-locked production setups.
 - **Evaluating the standard**: start with
-  [`docs/zmeta_professional_overview.md`](docs/zmeta_professional_overview.md)
-  — the single document that explains the whole stack, with diagrams and
-  worked scenarios — then `spec/semantics-contract.md` (normative),
+  [`docs/zmeta_professional_overview.md`](docs/zmeta_professional_overview.md),
+  the single document that explains the whole stack with diagrams and worked
+  scenarios, then `spec/semantics-contract.md` (normative),
   `spec/profile-compatibility.md`, and `CONFORMANCE.md`.
 - **Building UIs or consumers**: `spec/field-dictionary.md`; encoding
   guidance in `spec/compact-binary-mapping.md` and
@@ -182,13 +185,13 @@ nodes.
 
 - Current release: `v1.1.19`
 - Release notes and assets: <https://github.com/JTC-byte/zmeta-spec/releases/tag/v1.1.19>
-- Release focus: **consumer access and verification integrity, plus the
-  first cooperative-broadcast adapter.** The governed policy is now readable
-  without a YAML parser (`export/policy/*.json`, generated by
-  `tools/export_policy_json.py`), and an ADS-B ingress adapter
-  (`adapters/ingress/adsb/`) translates `dump1090` / `readsb` snapshots into
-  ZMeta while refusing to invent a position, an altitude datum, or a
-  calibrated power it does not have.
+- Release focus: consumer access and verification integrity, plus the first
+  cooperative-broadcast adapter. The governed policy is now readable without a
+  YAML parser: `export/policy/*.json` is generated by
+  `tools/export_policy_json.py`. An ADS-B ingress adapter
+  (`adapters/ingress/adsb/`) translates `dump1090` and `readsb` snapshots into
+  ZMeta, and declines to emit a position, an altitude datum, or a calibrated
+  power value it does not have.
   Governed artifacts changed in this release, relative to zmeta-v1.1.18: conformance/adapter-harness/must-pass.jsonl.
   The locked v1.0 kernel is unchanged.
 - Normative contract: v1.0 locked semantic contract, canonical version-discriminated
@@ -203,19 +206,19 @@ nodes.
   changed in this release.
 - **Reading the governed policy without a YAML parser:**
   `export/policy/*.json` is a generated, verbatim JSON projection of
-  `policy/*.yaml` — same names, same data. It ships in the release bundles
-  and every file is hashed in the release manifest, so you can verify what
-  you fetched. Regenerate with `python tools/export_policy_json.py`; verify
-  with `--check`.
+  `policy/*.yaml`, with the same names and the same data. It ships in the
+  release bundles and every file is hashed in the release manifest, so you can
+  verify what you fetched. Regenerate with `python tools/export_policy_json.py`;
+  verify with `--check`.
 - **If you hand-maintain a copy of the governed vocabularies**, consume this
   instead and regenerate on each version advance, rather than re-verifying an
   alignment by hand. `policy/*.yaml` stays the source of truth: editing the
   JSON changes nothing and fails `--check`.
 - **Record correction for v1.1.17 and v1.1.18.** Both published trees carry a
   README "Release focus" bullet held over from v1.1.16 that asserts *"No
-  schema, policy, or event-vocabulary changes"* — false for both. Each tag's
-  own `release/RELEASE_NOTES_v<version>.md` is accurate. **Treat the release
-  notes, not the README, as the record of what a cut changed.** Published
+  schema, policy, or event-vocabulary changes"*, which is false for both. Each
+  tag's own `release/RELEASE_NOTES_v<version>.md` is accurate. The release
+  notes, not the README, are the record of what a cut changed. Published
   checksums are immutable and were not rewritten; full errata in
   [`CHANGELOG.md`](CHANGELOG.md).
 - `tools/check_compat.py` gains the `v1.1.19` target; current-facing docs
@@ -233,14 +236,14 @@ each version.
 - `examples/` Sample payloads and usage patterns.
 - `conformance/` Must-pass/must-fail regression corpus.
 - `policy/` Policy language and enforcement guidance.
-- `export/` Derived, non-authoritative projections of governed artifacts —
-  currently `export/policy/*.json`, a verbatim JSON rendering of
+- `export/` Derived, non-authoritative projections of governed artifacts.
+  Currently `export/policy/*.json`, a verbatim JSON rendering of
   `policy/*.yaml` for consumers that cannot read YAML. Generated and
   hash-pinned; never edited by hand. See `export/README.md`.
 - `gateway/` Reference gateway implementation and tests.
 - `adapters/` Ingress and egress adapter patterns and templates.
 - `tools/` Utilities for validation and development workflows.
-- `docs/` Advisory guidance plus maintainer process records — see
+- `docs/` Advisory guidance plus maintainer process records. See
   `docs/README.md` for which is which.
 - `AGENTS.md`, `docs/zmeta_change_governance.md` Human and AI agent change
   governance, process limits, documentation requirements, and release workflow.
