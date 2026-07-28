@@ -2,9 +2,48 @@
 
 ## Current Resume Note
 
-- Last updated: 2026-07-27 (post-publish; bladeRF reference adapter landed)
+- Last updated: 2026-07-27 (v1.1.18 PUBLISHED; session closeout complete)
 - Quick handoff: `docs/zmeta_refinement_handoff.md`
-- **2026-07-27 (post-publish, latest) — PRE-CUT REVIEW + v1.1.18 CUT.**
+- **2026-07-27 — v1.1.18 PUBLISHED + SESSION CLOSEOUT.** Publication
+  facts (previously recorded only in commit messages — the CR-03 class):
+  annotated tag `v1.1.18` on release commit `157d41f`, pushed with
+  `main`; GitHub release live with all **eight** assets
+  (`zmeta-v1.1.18-dist.zip`, edge, gateway, release-package,
+  `zmeta-release-manifest.yaml`, `RELEASE_NOTES_v1.1.18.md`,
+  `VALIDATION_REPORT_v1.1.18.md`, `SHA256SUMS_v1.1.18.txt`);
+  **checksums-only** per the standing signing decision (consistent
+  v1.1.5 onward); **CI green on BOTH the tag and `main` runs** — a first
+  for this cycle, v1.1.17 having gone red on publish. Post-tag:
+  `dd5def7` swept the interruption-affected edits and closed two
+  cosmetic defects (a stranded parenthesis in the CHANGELOG entry, a
+  stray lint directive in `validators.py`), regenerating
+  manifest/claims — so `main` diverges from the published v1.1.18
+  assets by design (A-12 roll-forward pattern; **deploy from the tag**).
+  **CLOSEOUT (this bullet's commit):** a four-lens read of every
+  standing record produced 36 actions, all applied — the AAR gained its
+  cycle entry; the doctrine log's lifecycle fired for the first time
+  (eight terminal entries archived to one-liners, the legend reconciled
+  with the Lifecycle vocabulary, and three tensions at the N=3
+  recurrence threshold forced out of indefinite OPEN and put to the
+  maintainer: R1-11-07 → HELD-FIRM, R1-11-01/H1-08 and R1-11-14/19
+  escalated); the playbook gained a full rule-scoring block (no rule
+  scored out; the one-third cap has never fired and is named as a
+  watch-item) and the cut tier was amended to a whole-range fresh-eyes
+  review on the evidence that three pre-cut findings survived their own
+  per-wave attacks; README's release focus and integration notes were
+  rewritten (they had carried **v1.1.16 content verbatim** through two
+  cuts — invisible to the currency guard, which pins version literals
+  only, and the v1.1.16 text is now re-homed under its own heading);
+  the CHANGELOG gained the waves it was missing (both CI hotfixes, the
+  ARM64/Docker verification, the `cot.config` knob, the quickstart, the
+  pre-cut review) plus the v1.1.17 publication note; the cold re-read
+  record gained the honest CR-01..30 disposition ledger (10 fixed / 1
+  adjudicated final / 8 records-corrected / 2 closed at closeout / 9
+  open by design) that existed nowhere before; the audit record closed
+  A-13 and A-12/A-29 with the roll-forward pattern named; and this
+  worklog took the retention pass below. Battery unchanged and green
+  throughout: **1420 + 1070 subtests**, gate all flags exit 0.
+- **2026-07-27 (post-publish) — PRE-CUT REVIEW + v1.1.18 CUT.**
   Bounded four-lens fresh-eyes review of the whole post-v1.1.17 range
   (9 commits, 33 files) at release stakes, every finding independently
   verified: **13 confirmed, 0 refuted**, all closed before the cut. Three
@@ -860,14 +899,25 @@
   no pytest pin. (b) signalhunter residuals (flagged in the fix-pass
   entry above). (c) a pre-existing worktree at `.tmp/review-pr-2`
   (branch `review/pr2-frame-fixes`) — outside the canonical tree,
-  keep-or-prune is a maintainer call. (d) `.gitattributes` LF
+  keep-or-prune is a maintainer call. *(Still open 2026-07-27: the
+  worktree still exists; re-homed to the handoff's live maintainer
+  queue so it is not buried by archival.)* (d) `.gitattributes` LF
   normalization would retire the CRLF materialization class (container
   hash prints, historical checksum-entry caveat) — governance-adjacent
   because it changes working-copy bytes for hashed files; escalated,
   not applied. (e) the worklog resume note is growing and the archive
   policy covers completed task sections only — a retention-policy
   extension for superseded resume-note bullets is a maintainer
-  decision. (f) UxS command-loop fielding roadmap (maintainer
+  decision. **RESOLVED 2026-07-27 (maintainer-directed at closeout:
+  "do any updates, edits and pruning needed"): the policy is extended
+  to cover superseded resume-note bullets of COMPLETED, PUBLISHED
+  cycles — append-moved VERBATIM to
+  `docs/zmeta_refinement_worklog_archive.md`, never deleted, never
+  summarized away.** Two guards, both from this cycle's own lessons:
+  a bullet is only movable once its cycle is published (so no live
+  context is archived), and any still-open pointer inside a bullet is
+  re-homed to the handoff's live queue BEFORE the move (so archiving
+  never buries an open item — the CR-03 class in reverse). (f) UxS command-loop fielding roadmap (maintainer
   discussion, 2026-07-17): display loop fieldable now; GCS-originated
   tasking needs the command-evidence lineage check (commands citing
   motivating inference/fusion parents, gateway-checked against
@@ -875,7 +925,14 @@
   platform-to-platform retasking additionally needs authenticated
   transport (deployment-side) and the track-lifecycle promotion (this
   deployment is the roadmap tripwire evidence); the v1.1.0 adoption
-  session should take the command-loop evidence as input.
+  session should take the command-loop evidence as input. *(Status
+  2026-07-27: the command-evidence lineage check SHIPPED in v1.1.18
+  (`policy/command-evidence.yaml` + gateway enforcement), and the
+  track-lifecycle work landed as a current-vocabulary pattern doc with
+  the roadmap candidate deliberately left RESERVED — the multi-UxS
+  deployment is the awaited second evidence leg. Still open and
+  re-homed to the handoff's live queue: the SITL end-to-end gate and
+  authenticated transport, both deployment-side.)*
 - R1-10 (2026-07-17): **v1.1.14 released** (maintainer-directed,
   agent-executed) — the audit-driven honesty hardening cut, run
   strictly per RELEASE_CHECKLIST. Content: the seven R1-10 fix-pass

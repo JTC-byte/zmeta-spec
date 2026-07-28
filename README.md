@@ -95,16 +95,19 @@ contribute one.
 
 - Current release: `v1.1.18`
 - Release notes and assets: <https://github.com/JTC-byte/zmeta-spec/releases/tag/v1.1.18>
-- Release focus: the first external real-capture corpus —
-  `adapters/mapping-packs/edge-comms-bladerf/` (PR #7), two real
-  bladeRF / ROS2 EW `rf_detection` flight captures paired with
-  schema-valid RF `OBSERVATION_EVENT` expected outputs, merged after
-  adversarial review with maintainer honesty fixes (a frame-unlabeled
-  heading-derived bearing demoted to explicitly named native features
-  per contract 6.4; an unasserted statistical metric dropped;
-  timestamp-source provenance preserved; pack mapping reconciled with
-  its fixtures). No schema, policy, or event-vocabulary changes; the
-  locked v1.0 kernel's semantics are unchanged.
+- Release focus: **deployment readiness.** A working reference ingress
+  adapter for real RF capture data (`adapters/ingress/bladerf/`), the
+  gateway container verified on x86-64 and ARM64 with byte-identical
+  contract hashes, a two-node sensor-edge-to-COP quickstart
+  (`docs/zmeta_two_node_quickstart.md`), a deployment-asserted CoT
+  pedigree knob so TAK can receive `<precisionlocation>` detail without
+  anything being fabricated, and the command-evidence gate
+  (`policy/command-evidence.yaml`) that lets an operator's retasking
+  automation cite the fused track it acted on — and lets the gateway
+  refuse when that evidence was never permitted to justify a command.
+  Ships with v1.1.17's honesty hardening (the compact fail-closed value
+  model, the `TIME_STATUS.state` enum, the timestamp and CBOR-envelope
+  seams). The locked v1.0 kernel is unchanged.
 - Normative contract: v1.0 locked semantic contract, canonical version-discriminated
   JSON schema, v1.0 JSON schema, and policy pack.
 - Experimental extension: `schema/zmeta-event-1.1.0.schema.json` is provided for proposed
@@ -112,7 +115,42 @@ contribute one.
 
 ## v1.1.18 Integration Notes
 
-- New corpus for RF adapter authors:
+- **Nothing previously valid becomes invalid.** v1.0 and v1.1.0
+  producers and consumers need no change.
+- **Deploying two nodes:** start at `docs/zmeta_two_node_quickstart.md`.
+  It carries the port topology (both gateways listen on 5555; 5556 is
+  each gateway's own local-consumer forward — the transposition that
+  silently drops traffic), the five-minute wire check, and the rule that
+  the four startup hash lines must match across nodes.
+- **To see error ellipses on TAK**, the deployment must assert its
+  position-source pedigree in the gateway config's `cot.config` block
+  (`geopointsrc` / `altsrc` / `how`). Unasserted means omitted:
+  `<precisionlocation>` detail and the `how` attribute are never stamped
+  from a source the event did not claim.
+- **`policy/command-evidence.yaml` is new and optional.** An absent file
+  is a legal deployment and the shipped defaults refuse nothing that was
+  previously accepted — a direct operator command with no cited parents
+  stays legal. Deployments gating *automations* set `require_evidence`.
+- **Writing an adapter:** `adapters/AUTHORING.md`, with
+  `adapters/ingress/bladerf/` as the worked RF reference against a real
+  capture corpus and `adapters/ingress/example-vendor/` as the teaching
+  one. `tools/lint_adapter_vocabularies.py` holds adapter vocabulary
+  mirrors to the governed schema enums.
+- **CBOR wire peers:** datagrams that previously decoded differently
+  depending on which CBOR library an install happened to have — tagged,
+  value-shared, over-deep, or over-expanding — now refuse identically
+  with explicit diagnostics, on both the compact and plain-`cbor`
+  envelopes.
+- **v1.1.0 `TIME_STATUS` producers:** `payload.state` is now
+  enum-constrained (`LOCKED`/`HOLDOVER`/`UNSYNCED`/`UP`/`DEGRADED`/
+  `DOWN`). Map or omit values outside it. The locked v1.0 branch is
+  unchanged.
+- `tools/check_compat.py` gains the `v1.1.18` target; current-facing
+  docs re-baseline to the v1.1.18 release manifest.
+
+## v1.1.16 Integration Notes
+
+- Corpus for RF adapter authors:
   `adapters/mapping-packs/edge-comms-bladerf/` pairs two real bladeRF
   detections with expected ZMeta output, demonstrating the refusal
   doctrine on real data — geo omitted for null and zero-island sensor
@@ -120,13 +158,13 @@ contribute one.
   both cases because the native bearing is heading-derived with no
   producer frame assertion (values travel as
   `features.native_bearing_deg`/`native_bearing_error_deg`), degraded
-  timing fallback carried explicitly, no fabricated lineage.
+  timing fallback carried explicitly, no fabricated lineage. Its
+  reference implementation shipped in v1.1.18 as
+  `adapters/ingress/bladerf/`.
 - The pack README documents the frame-provenance route
   (`quality.bearing_frame: TRUE_NORTH` + `quality.heading_source`) for
   deployments that can assert their heading reference, mirroring the
   kraken reference adapter.
-- `tools/check_compat.py` gains the `v1.1.18` target; current-facing
-  docs re-baseline to the v1.1.18 release manifest.
 
 ## v1.1.15 Integration Notes
 

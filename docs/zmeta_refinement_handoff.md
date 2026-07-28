@@ -1,212 +1,90 @@
 # ZMeta Refinement Handoff Notes
 
-## RESUME QUEUE — read first (set 2026-07-22, before a ~3-day usage-limit wait)
+## CURRENT STATE — read first (closeout 2026-07-27)
 
-The R1-11 cycle is **concluded and HELD**: the entire cycle sits ahead of
-`origin/main` — measure it live with `git log --oneline origin/main..HEAD`; a
-count frozen on this line went stale twice (CR-23). Nothing pushed, tagged, or
-signed; tree clean; battery green (kernel gate all flags, examples 51/51,
-pytest **1200 + 1021 subtests**). Six blockers closed and probe-verified
-(`docs/r1_11_closure_probe.py`, 17/17). The fix and disposition passes touched
-no governed artifact; the cycle's earlier waves **did** mint three additive
-`reason_code` enum entries (schema + policy, and +6/−1 in spec §5.3 — see
-"What was touched" below), so cycle-wide "no governed change" claims are false
-as written (CR-04). The audit-wave cadence is now adopted
-(`docs/zmeta_audit_playbook.md`) and governs what follows.
+**The R1-11 cycle is CLOSED and published. Two releases shipped 2026-07-27:
+`v1.1.17` (the R1-11 audit/hardening cut, tag on `7302073`) and `v1.1.18`
+(the event-readiness cut, tag on `157d41f`). Both checksums-only, both CI
+green, `main` pushed and in sync with `origin`.** Nothing is held; there is
+no frozen range.
 
-**Update 2026-07-26 — P1 (refresh + cold re-read) is COMPLETE.** The battery
-was re-verified live, the doctrine-log numbering collision was fixed
-(`7eaea97`; entries now 21, addendum renumbered 15–21), and the held range was
-cold-read by nine independent lenses with adversarial verification of every
-finding: **30 distinct confirmed findings, RECORDED (not fixed) in
-`docs/r1_11_cold_reread_findings.md` — read it before P2.** Headlines: two new
-code MAJORs, both also live in published v1.1.16 (CR-01 SAPIENT ingress — a
-negative declared `maximum_latency` *narrows* `est_error_ms`, falsifying the
-widen-only property; CR-02 CoT egress — the horizontal ellipse `semi_minor` is
-stamped into `point@le`, a vertical-error field, fabricating vertical
-certainty); one records-integrity MAJOR (CR-03 — the 44 open sub-MAJOR
-findings and the round-3 attack results are recorded nowhere in the tree, so
-P4's input exists only as counts, not as a register); and a set of
-count/claim defects in the frozen cycle records (CR-04, CR-13..CR-15,
-CR-23..CR-25) left for a scoped records wave. The queue order below stands.
+**Current release: `v1.1.18`.** Clone the **tag** for deployment — the
+published `SHA256SUMS_v1.1.18.txt` matches the tagged tree. `main` carries
+post-tag commits (`dd5def7` cosmetic sweep, plus this closeout), so it
+diverges from the published assets by design; published checksums are
+immutable and the next cut re-baselines the manifest (the documented A-12
+roll-forward pattern).
 
-**Update 2026-07-27 — HEALTH FIX WAVE COMPLETE (P3 and most CR code
-findings).** Four maintainer adjudications taken in-session (doctrine log,
-"Adjudication pass"): **governed vocabulary = the event model only**; the
-compact **fail-closed clause approved** (its own governed wave pending);
-`TIME_STATUS.state` **Class B enum approved** for the next cut; the round-3
-register loss **recorded as final** (re-derive by waves). Three code commits
-landed per the playbook (fix → attack → completion → independent verify):
-`25bb5fa` (CR-01, CR-02, the `_parse_utc` MAJOR closed as a CLASS — naive +
-OSError arms, SAPIENT twins included — and CR-11 plus the hardcoded
-`how="m-g"` site), `ede9bb6` (CR-05/06/08/09/10 + class completions),
-`dcabcc8` (CR-12 CI-safe pin, CR-16 de-vacuoused, the R1-11-16 vocabulary
-lint, unblocked R2-30; `metrics_sink_gap` pinned). Every fix red-first
-pinned; introduced-at-MODERATE+ across the whole batch: **1**, fixed
-same-day — the one-third cap held. Battery: gate all flags exit 0, examples
-51/51, pytest **1262 + 1021 subtests**, vocabulary lint ok. Six new tensions
-banked (H1-01..06). **Remaining before the cut:** the records wave (A-13 +
-CR-13/14/15/23/24/25 + verifier register candidates in H1-04/06), the
-compact-clause governed wave, then the v1.1.17 cut (A-12/A-29); the
-TIME_STATUS enum lands at that cut per decision.
+**Battery at closeout:** kernel gate all flags exit 0, strict examples 51/51,
+pytest 1420 + 1070 subtests, adapter harness 48/48, policy risk-mode and
+adapter-vocabulary lints and the roadmap validator clean, Profile L packet
+max 150/240.
 
-**Update 2026-07-27 (post-publish, LATEST) — EVENT-READINESS QUEUE CLOSED
-OUT; v1.1.18 CUT PREPARED.** Three further waves landed after the bladeRF
-block below, each attacked at landing and CI-green: `b6af2ff`
-kernel-adjacent residuals (VW-01 naive-ts seam incl. a pre-existing silent
-freshness fail-open; H1-07 plain-`cbor` envelope → CHANGED); `bbc40e2`
-virtual-Pi verification (Docker x86 + arm64 under QEMU — contract hashes
-byte-identical across architectures), the gateway `cot.config`
-pass-through knob, and `docs/zmeta_two_node_quickstart.md`; `568a20c` the
-UxS command-loop pair (`policy/command-evidence.yaml` + gateway
-enforcement so commands citing fusion/inference parents are checked
-against upstream use limits; `docs/zmeta_track_lifecycle_pattern.md`
-expressing the lifecycle in current vocabulary, roadmap candidate still
-RESERVED). A bounded four-lens pre-cut review of the whole post-v1.1.17
-range then found and closed 13 verified findings — including a re-send
-that could erase a recorded command prohibition, a typo-fails-open gap in
-the new policy block, non-finite leaks on two bladeRF feature arms, and a
-broken port in the quickstart's wire path. **Remaining event items need
-hardware/access only:** real-Pi throughput, TAK display validation (the
-`cot.config` knob is ready), SAPIENT live-enclave, and the SITL gate that
-precedes live GCS tasking.
+### What this cycle delivered
 
-**Update 2026-07-27 (post-publish) — BLADERF REFERENCE ADAPTER LANDED
-(`71f8e18` + registration follow-up).** The worklog resume note's
-maintainer-directed "NEXT" item is done: the merged
-`edge-comms-bladerf` pack has its runnable reference implementation at
-`adapters/ingress/bladerf/` — module + README + 67 colocated tests + 8
-`bladerf-` harness fixtures committed as `71f8e18` (zero-shot author
-**~13 min by the orchestrator's external wall-clock** (12:48->13:01),
-**~25 min for the full verified cycle** to 13:13; the agent's own
-~40 min is a subjective effort estimate, the wall-clock is the receipt.
-Independent adversarial attack CLEAN, the one
-value-honesty finding hardened + pinned); the follow-up carries the
-Class C registration set the commit deferred (adapters/README table
-row, pack cross-link, manifest/claims regenerated under the current
-identity — the A-12 interim pattern; next cut re-baselines — and these
-records). Battery at entry: kernel gate all flags exit 0, examples
-51/51, harness 48/48, pytest **1377 + 1060 subtests**,
-`check_compat --target v1.1.17` 0 failed. Whether the follow-up rides
-a cut is the maintainer's call. Details: worklog top bullet;
-`CHANGELOG.md` Unreleased.
+- **v1.1.17** — the R1-11 audit's full closure: the health fix wave (three
+  MAJORs including two live in published v1.1.16 — a SAPIENT latency
+  declaration that could *narrow* an uncertainty bound, and a CoT projection
+  putting horizontal error into a vertical-error field), the records wave,
+  and two maintainer-adjudicated governed waves (the compact fail-closed
+  value-model clause; the `TIME_STATUS.state` Class B enum).
+- **v1.1.18** — event readiness: the bladeRF reference ingress adapter,
+  container verification on x86-64 and ARM64 (contract hashes byte-identical
+  across architectures), the two-node quickstart, the `cot.config` pedigree
+  knob, the command-evidence gate, and the track-lifecycle pattern expressed
+  in current vocabulary with no vocabulary minted.
 
-**On resume, in priority order:**
+### Live queue — everything agent-executable is done
 
-1. **REFRESH first (now mandatory).** Re-orient on the repo + logs, then re-read
-   this session's ~27 commits with fresh eyes per the cadence — a cold reading
-   catches what the author missed. This is P1 precisely because a 3-day gap is
-   the ideal fresh-eyes window.
-2. **Adjudicate the 21 doctrine-log entries** (`docs/zmeta_doctrine_review_log.md`;
-   the addendum's seven were renumbered 15–21 on 2026-07-26 after a numbering
-   collision at 14 — the count was recorded as 20 before that).
-   **Highest-leverage single item:** the "what counts as governed vocabulary"
-   boundary (R1-11-09/15/16) — it unblocks three otherwise-mechanical fixes and
-   costs nothing to answer (a scope definition, not a semantic change). Then the
-   compact-mapping clause cluster (R1-11-02/03/18) — one decision resolving three
-   entries and closing a real cross-backend interop hole. This is the bottleneck:
-   the cut cannot proceed until it is settled, and it is uniquely the
-   maintainer's to decide. *(UPDATE 2026-07-27: six adjudicated — 09/16 CHANGED,
-   02/03/15/18 DECIDED; see the log's Adjudication pass. Fifteen R1-11 entries
-   remain OPEN, plus six new H1 tensions from the health wave.)*
-3. **The 2 open MAJOR**, as one small scoped wave (reproduce-then-fix, floor =
-   MAJOR/MODERATE): `_parse_utc` still raising out of CoT/JREAP on a gate-clean
-   `ts` (the "no change needed" *verdict* was the defect, not the code); and the
-   A-13 record anchor being half-anchored because `origin/main` is a moving ref.
-   Risk is contained — the code is HELD and unpublished — so severity does not
-   force it ahead of the doctrine bottleneck. *(UPDATE 2026-07-27: `_parse_utc`
-   CLOSED as a class — `25bb5fa`/`ede9bb6`; A-13 CLOSED by the records wave —
-   figures anchored to the literal base `09118b3`, pin extended to verify
-   literal-base ranges. Both MAJORs are now closed.)*
-4. **The 44 sub-MAJOR findings**, worked as scoped waves under the playbook
-   (floor + one-third cap), **not** a marathon. Many will be unblocked or
-   reclassified by step 2. **CR-03 caveat:** these findings are *not* actually
-   itemized in `docs/r1_11_fix_pass_findings.md` (that register ends at round
-   2) — the round-3 results survive only as counts, so this step must begin by
-   reconstructing or re-deriving its own input.
-5. **The release cut — LAST.** Resolves A-12 (manifest divergence) and A-29
-   (release-notes compatibility bullet), both cut-time-only. Rebuild the manifest
-   under a **new** identity; never rewrite `release/SHA256SUMS_v1.1.16.txt`.
-   Tag / push / sign / upload are the maintainer's alone.
-   *(UPDATE 2026-07-27: PREPARED AND HELD — the v1.1.17 cut is built and
-   committed: manifest under the new identity with explicit provenance
-   (A-12 resolved), RELEASE_NOTES_v1.1.17 / VALIDATION_REPORT_v1.1.17
-   written (A-29 covered in the Compatibility section), dist/edge/gateway
-   bundles and the release package built, `SHA256SUMS_v1.1.17.txt`
-   generated and verified, doc-currency re-baselined across every
-   enumerated surface, battery 1284 + 1051 green. Awaiting maintainer
-   review; tag / push / publish are the maintainer's alone.)*
+**Gated on hardware or access (not on work):**
 
-Full cycle detail: `docs/r1_11_full_stack_audit.md` (audit + fix-pass +
-disposition records), `docs/r1_11_fix_pass_findings.md` (all 62 findings),
-`docs/zmeta_after_action_log.md` (the R1-11 AAR). Companion stack Praesens was
-sent the same cadence doctrine to codify.
+1. **Real-Pi throughput** — a five-minute replay smoke when hardware arrives.
+   Build, dependency resolution, startup, and semantics are already verified
+   under ARM64 emulation; only throughput is unmeasured.
+2. **TAK/COP display validation** with live tooling. The `cot.config`
+   pedigree knob that enables `<precisionlocation>` detail is shipped and
+   pinned but has never rendered on a real COP.
+3. **SAPIENT live-enclave** validation against the official BSI Flex 335
+   harness and multi-node routing (recorded not-exercised since v1.1.15).
+4. **The SITL end-to-end gate** — the maintainer's own stated precondition
+   for live GCS-originated tasking. The command-evidence check is its
+   repo-side prerequisite, not a substitute.
+
+**Maintainer decisions, none blocking:**
+
+5. **The v1.1.0 adoption decision** (fourteen experimental concepts) — see the
+   Next Work Queue below. The multi-UxS event is the second evidence leg the
+   promotion bar wants.
+6. **Three doctrine tensions at the recurrence threshold**, put to the
+   maintainer at this closeout rather than left to drift: the reuse-vs-mint
+   class (R1-11-01 with H1-08), the tolerated-warn corpus question
+   (R1-11-14, with R1-11-19 merged into it), and — already decided —
+   R1-11-07 HELD-FIRM. Nineteen further tensions remain OPEN by design.
+7. **The SAPIENT follow-ups** (Task ingress needs command-safety escalation;
+   the harness registration entry point).
+8. **Re-homed from the R1-10 second-glance register** at the 2026-07-27
+   retention pass, so archival cannot bury them: the pre-existing worktree at
+   `.tmp/review-pr-2` (branch `review/pr2-frame-fixes`) is still present and
+   its keep-or-prune is a maintainer call; the `.gitattributes` LF-normalization
+   decision remains escalated-not-applied (it would retire the CRLF
+   materialization class but changes working-copy bytes for hashed files); and
+   the deployment-side halves of the UxS command loop — authenticated transport
+   and the SITL gate — remain open (items 1–4 above cover the gated work).
+
+**Banked register candidates** live in `docs/r1_11_cold_reread_findings.md`
+(CR ledger + VW-01..17) and the doctrine log. Nothing is recorded only in a
+commit message.
+
+### The lesson worth carrying forward
+
+An interruption once left a **half-applied two-layer fix** that looked
+complete and was caught only by reading the working diff. The interruption
+ledger and the full execution continuity record live in
+`docs/r1_11_full_stack_audit.md` ("HOLD state" / "Execution continuity").
+**Resume from the tree, never from the transcript.** This closeout applied
+the same rule to its own edits and found two defects no test could see.
 
 ---
-
-Status date: 2026-07-22
-
-Current release: **v1.1.17** (R1-11 full-cycle audit/hardening cut, PUBLISHED 2026-07-27 after maintainer review), following **v1.1.16** (P1-08, 2026-07-21) — the
-edge-comms-bladerf external real-capture corpus cut (PR #7 merged with
-maintainer review fixes), following **v1.1.15** (P1-07, 2026-07-21;
-the SAPIENT/BSI Flex 335 mapping pack and reference adapters,
-wire-validated against official Dstl tooling) and **v1.1.14**
-(R1-10, 2026-07-17; the audit-driven honesty hardening cut). All
-checksums-only; signing remains the maintainer's external process.
-Details in the worklog P1-08/P1-07/R1-10 entries and the release notes
-per version. Current main additionally carries the R1-11 full-stack
-audit findings record, its seven fix-pass waves, and **both post-fix
-verification passes** (worklog R1-11 entries; findings record
-`docs/r1_11_full_stack_audit.md`).
-
-**HOLD (2026-07-22). The R1-11 cycle is COMPLETE and FROZEN pending a
-fresh full-stack audit.** Held range `118f0b9`..`HEAD` — the entire
-cycle, none of it pushed; run `git log --oneline origin/main..HEAD` for
-the live set (last code commit `6ea9888`; anything after it is records
-only). Tree clean; nothing pushed, tagged, or signed, so no consumer has
-seen any of it and the published v1.1.16 assets remain the only
-downstream truth. **NEXT: the fresh
-audit, then the maintainer release-cut decision** (v1.1.17 recommended
-— the cycle includes a MAJOR honesty fix, two MAJOR crash classes, a
-MAJOR cross-backend laundering/interop hole, and two Class B vocabulary
-batches). The queued v1.1.0 adoption-decision session follows.
-
-The cycle was executed across four sessions broken by usage limits,
-plus a model switch and a full chat reset. **Read the "HOLD state" and
-"Execution continuity" sections of the findings record before auditing
-or releasing** — they carry the interruption ledger, the residue checks
-already run, and a targeted checklist for the fresh audit. Headline
-from that record: one interruption left a **half-applied two-layer
-fix** that looked complete and was caught only by reading the working
-diff — *resume from the tree, never from the transcript.*
-
-**What was touched:** measure it — `git diff --shortstat origin/main..HEAD`.
-The range keeps growing, so no total is frozen here (A-13: the figure that
-used to sit on this line was falsified by the commit that wrote it, twice
-over). For reference, at the fresh audit's anchor:
-`git diff --shortstat 09118b3..eb41794` = 77 files, +4920 / −392, over
-18 commits.
-The record's "What was touched — validation inventory" section maps it —
-governed surfaces first (`schema/` and `policy/` took only three additive
-`reason_code` enum entries; `spec/semantics-contract.md` took +6/−1 lines
-in §5.3), then code, tests, regenerated artifacts, and records. The
-manifest and conformance claims are **build outputs**, so verify them by
-regenerating and diffing rather than reading. "Order of events" in the
-same record gives the chronology with the interruption points marked.
-
-**The audit's first deliverable is "Step 0" in that record: a finding →
-code → test map, 17 rows (`V1-01`..`V1-03`, `V2-01`..`V2-14`).** It does
-not exist yet, it must be derived from the code rather than copied from
-the record, and every later check depends on it — a row that cannot be
-filled is a live finding, not a documentation gap.
-
-Note that current main diverges from the published v1.1.16 SHA256SUMS
-manifest/package pins because the fix-pass and verification-pass
-commits regenerate the manifest under the v1.1.16 identity; published
-checksums stay immutable and the next release cut resolves the
-divergence.
-
-This note is the quick resume point for the current ZMeta refinement effort. Recent session records and the deferred issue register are in `docs/zmeta_refinement_worklog.md`; completed task sections S0-01..R1-05 are archived verbatim in `docs/zmeta_refinement_worklog_archive.md`.
 
 ## Current Position
 
@@ -422,24 +300,24 @@ Current stack status:
 
 Current release target:
 
-- Release URL: <https://github.com/JTC-byte/zmeta-spec/releases/tag/v1.1.17>
-- Latest PUBLISHED release: <https://github.com/JTC-byte/zmeta-spec/releases/tag/v1.1.16>
-- Tag: `v1.1.17` (annotated, on release commit `7302073`, PUBLISHED 2026-07-27 with all eight assets; v1.1.16 was annotated on the P1-08 release commit; the commit
-  SHA, CI status, and asset list are recorded in the worklog P1-08
-  publication note).
-- Previous releases: `v1.1.15` (SAPIENT bridge) and `v1.1.14` (R1-10
-  hardening); their published assets, checksums, and release records
-  are unchanged.
-- Signature status: v1.1.17 is published checksums-only per the
+- Release URL: <https://github.com/JTC-byte/zmeta-spec/releases/tag/v1.1.18>
+- Tag: `v1.1.18` (annotated, on release commit `157d41f`, published
+  2026-07-27 with all eight assets including `SHA256SUMS_v1.1.18.txt`;
+  CI green on both the tag and `main` runs).
+- Previous releases: `v1.1.17` (R1-11 audit/hardening cut, tag on
+  `7302073`, published the same day), `v1.1.16` (edge-comms bladeRF
+  corpus), `v1.1.15` (SAPIENT bridge). Their published assets,
+  checksums, and release records are unchanged and immutable.
+- Signature status: `v1.1.18` is published checksums-only per the
   maintainer's signing decision, consistent with v1.1.5 through
-  v1.1.15; signing remains the maintainer's external process. Use
-  `SHA256SUMS_<version>.txt`, the structured release manifest, and the
-  release package checksum file for integrity verification.
-- Post-release main note: the R1-11 fix-pass commits regenerate the
-  in-repo manifest and package under the v1.1.16 identity, so current
-  main diverges from the published v1.1.16 SHA256SUMS manifest/package
-  pins (published checksums are immutable; resolution is the next
-  release cut — see AGENTS.md Release Limits).
+  v1.1.17; signing remains the maintainer's external process. Verify
+  with `SHA256SUMS_<version>.txt`, the structured release manifest, and
+  the release package checksum file.
+- Post-release main note: post-tag commits regenerate the in-repo
+  manifest under the current identity, so `main` diverges from the
+  published `v1.1.18` manifest/package pins. Published checksums are
+  immutable; the next cut resolves it. This is the documented A-12
+  roll-forward pattern, not a defect — **deploy from the tag.**
 
 ## Key Docs
 
@@ -533,7 +411,7 @@ Resume Note.
   schema, vocabulary, version-dispatch, projection, risk, or command-authority
   changes are private dialect/fork work unless governed, versioned, documented,
   and backed by conformance evidence.
-- Current formal release is `v1.1.17` (published 2026-07-27); latest integration baseline is
+- Current formal release is `v1.1.18` (published 2026-07-27); latest integration baseline is
   current `main`.
 - v1.0 remains locked.
 - Do not add v1.1.0 or future concepts to v1.0.
@@ -731,9 +609,13 @@ entries):
 
 ## Next Work Queue
 
-1. **R1-11 full-stack audit — NEXT WORK ITEM (maintainer decision
-   2026-07-21: run a full audit, not a scoped one, as the next thing;
-   decision CLOSED)**
+1. **R1-11 full-stack audit — ✅ COMPLETE (closed 2026-07-27).** The audit
+   ran, its findings were worked across the health/records/governed waves,
+   and the cycle published as `v1.1.17` then `v1.1.18`. Findings record:
+   `docs/r1_11_full_stack_audit.md`; the fresh-eyes re-read and its
+   disposition ledger: `docs/r1_11_cold_reread_findings.md`. The history
+   below is retained for provenance only.
+   *(original entry follows)*
    - History: the R1-10 cycle (audit + fix pass + verification audit +
      v1.1.14) completed 2026-07-17 and left open whether a fresh
      full-stack audit runs before the backlog resumes. The maintainer
@@ -769,7 +651,10 @@ entries):
    - Everything below this item is queued behind the R1-11 audit.
 
 1a. **Queued (maintainer direction 2026-07-21): two adapter work
-   items behind R1-11**
+   items behind R1-11** — *(status 2026-07-27: the **bladeRF ingress adapter
+   is DONE** — `adapters/ingress/bladerf/`, commit `71f8e18`, shipped in
+   v1.1.18 with 67 colocated tests and 8 harness fixtures. The SAPIENT
+   follow-ups below remain the surviving item.)*
    - **bladeRF ingress adapter** implementing the merged
      `edge-comms-bladerf` mapping pack (PR #7): detect/translate/
      validate per `adapters/AUTHORING.md`, the pack's two real-capture
@@ -911,8 +796,9 @@ entries):
 
 ## Verification State
 
-Most recent validation: the v1.1.16 (P1-08) release validation record lives
-in `release/VALIDATION_REPORT_v1.1.16.md` and the worklog P1-08 entry
+Most recent validation: the v1.1.18 release validation record lives
+in `release/VALIDATION_REPORT_v1.1.18.md` (v1.1.17's is the prior
+generation) and the worklog v1.1.18 cut/publication entry
 (`docs/zmeta_refinement_worklog.md`); the v1.1.15 and v1.1.14 records live
 in their respective `release/VALIDATION_REPORT_*.md` files and worklog
 entries. The single block below is retained as the most recent full command

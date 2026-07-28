@@ -65,9 +65,16 @@ Three kinds of entry are in scope:
 - A tension doctrine settled cleanly, where the tension itself is worth
   revisiting later.
 
-Statuses: **OPEN** (awaiting adjudication) · **HELD** (doctrine reviewed and
-upheld) · **CHANGED** (a guiding document was amended) · **DROPPED**
-(recommendation withdrawn).
+Statuses: **OPEN** (awaiting adjudication) · **DECIDED** (the maintainer has
+set direction; terminal when the implementing wave lands) · **CHANGED** (a
+guiding document was amended) · **MINTED** (a governed change was made) ·
+**HELD-FIRM** (doctrine upheld as final — re-open only on genuinely new
+evidence) · **DROPPED** (recommendation withdrawn).
+
+*(Reconciled 2026-07-27: this legend and the Lifecycle section had drifted —
+the legend said "HELD", the Lifecycle names HELD-FIRM/MINTED as terminal, and
+the adjudication pass introduced DECIDED. Pre-lifecycle **HELD** ≡
+**HELD-FIRM**. The terminal set is CHANGED / MINTED / HELD-FIRM / DROPPED.)*
 
 ---
 
@@ -87,7 +94,7 @@ and `policy/semantics.yaml` are untouched across the entire fix pass.
 | R1-11-04 | `timing_quality` cannot say "bound unresolved" | 2, 3 | OPEN |
 | R1-11-05 | `TASK_ACK` has no `UNKNOWN` state | 1, 3 | **HELD** |
 | R1-11-06 | Adapter refusals are invisible to the wire | 3, 6 | OPEN |
-| R1-11-07 | `bandwidth_hz: 0.0` sentinel is a documented convention | 3 | OPEN |
+| R1-11-07 | `bandwidth_hz: 0.0` sentinel is a documented convention | 3 | **HELD-FIRM** |
 | R1-11-08 | CoT `error_ellipse` zero defaults | 3, 4 | OPEN |
 | R1-11-09 | New `metrics_sink_gap` JSONL record type | 1, 6 | **CHANGED** |
 | R1-11-10 | `risk_dimension: routing` — existing vocabulary or new? | 1 | OPEN |
@@ -129,6 +136,23 @@ downgrade non-finite refusals with it.
 The question is whether a consumer can *responsibly act* on `SCHEMA_INVALID` +
 `details.field` — if yes, the existing code suffices and the recommendation
 should be dropped.
+
+**Occurrence count 3 reached 2026-07-27 — the lifecycle now forces a terminal
+decision, and it is the maintainer's.** The reuse-vs-mint class has now taken
+pressure three times: (1) this entry (non-finite refusals riding
+`SCHEMA_INVALID`); (2) R2-30, the CoT skip-reason token, resolved outer-ring
+by the 2026-07-27 vocabulary-boundary adjudication; (3) **H1-08** —
+command-evidence refusals riding `LINEAGE_MISMATCH` /
+`LINEAGE_PARENT_UNRESOLVED`, plus the TASK_ACK vocabulary being unable to name
+an evidence refusal at all. Each reuse was individually correct under gate 1;
+the question the threshold forces is whether the *accumulation* has degraded
+the filterability gate 3 exists to protect. **Deliberately NOT decided inside
+this closeout** (the protocol forbids deciding a governance question inside
+the pass that surfaced it): the decision is either MINT the narrow codes
+(`NON_FINITE_VALUE`, and a command-evidence pair) as one Class B batch, or
+HELD-FIRM on reuse with the reasoning recorded once so the class stops being
+re-litigated. The multi-UxS event is the natural evidence window — an operator
+who cannot filter these apart in the field settles it either way.
 
 ### R1-11-02 — CBOR value-sharing tags 28/29 undefined · **CHANGED 2026-07-27**
 
@@ -230,7 +254,7 @@ embedding an adapter without the gateway.
 **Open question:** should ingress refusals be a filterable bucket rather than
 an absence? That needs a governed diagnostic code. Interacts with R1-11-01.
 
-### R1-11-07 — `bandwidth_hz: 0.0` sentinel convention · OPEN
+### R1-11-07 — `bandwidth_hz: 0.0` sentinel convention · **HELD-FIRM 2026-07-27**
 
 Three adapters (`kraken:159`, `moth:176,362,453`, `signalhunter:387`) emit
 `bandwidth_hz: 0.0` as a "not measured" sentinel. **This is the same
@@ -247,7 +271,20 @@ unmeasurable quantity should be omitted, not reported as zero.
 now been closed in moth (R1-10), signalhunter (R1-11 wave 3) and MAVLink
 (R1-11 wave 6) while this documented convention survived each time.
 
-### R1-11-08 — CoT `error_ellipse` zero defaults · OPEN
+### R1-11-08 — CoT `error_ellipse` zero defaults · OPEN (rescoped 2026-07-27)
+
+**Rescope and anchor refresh (cold re-read CR-20 + the health wave).** The
+line anchors this entry originally carried matched no committed tree. Half the
+tension is now closed: the point-level `ce`/`le` defaults were fixed by the
+health wave (CR-02 — `le` no longer inherits the horizontal ellipse) and by
+the `cot.config` knob, which makes the defaults deployment-asserted rather
+than fabricated. **The surviving member** is the zero-filled
+`ellipse_major`/`ellipse_minor`/`ellipse_angle` in the `<precisionlocation>`
+detail when a partial ellipse is present, plus the remarks free-text twin —
+`adapters/egress/cot/zmeta_to_cot.py` (search `ellipse_major=`). That is what
+stays OPEN.
+
+
 
 `zmeta_to_cot.py:235-237, 268-270` use `error_ellipse.get("semi_major", 0)`,
 rendering `ellipse_major="0.0"` — a **sub-metre precision claim on an ATAK
@@ -412,7 +449,7 @@ In-repo cross-references were swept in the same commit.)*
 | R1-11-16 | Adapter-declared vocabularies mirror governed enums by hand, unlinted | 1, 6 | **CHANGED** |
 | R1-11-17 | Formal release identity has no stated grammar | 5 | OPEN |
 | R1-11-18 | Compact mapping declares no size or expansion bound | 4, 6 | **CHANGED** |
-| R1-11-19 | `--strict` makes a deliberately tolerated warn unrepresentable | 2, 3 | OPEN |
+| R1-11-19 | *(merged into R1-11-14 — same tension, counted once)* | 2, 3 | MERGED |
 | R1-11-20 | Two conventions the new pins now enforce, chosen not discovered | 5, 7 | OPEN |
 | R1-11-21 | Illustrative-example currency policy left inconsistent | 7 | OPEN |
 
@@ -486,6 +523,21 @@ clause in `spec/compact-binary-mapping.md`, and answering them separately risks
 three inconsistent answers.
 
 ### R1-11-19 — `--strict` makes a tolerated warn unrepresentable · OPEN
+### → MERGED INTO R1-11-14 (2026-07-27)
+
+**This is R1-11-14, recorded twice.** Cold re-read CR-27 flagged the
+duplication; the records wave did not close it, so it is closed here. The two
+entries are the same tension arriving from the first pass and the disposition
+pass, and later records already cite them jointly ("doctrine R1-11-14/19").
+**They count as ONE tension in any tally**, and its occurrence count is 3
+(first pass, disposition pass, and the VW-17 citation when the command-evidence
+corpus example could not be written). The body below is retained for its
+distinct framing; the live entry is R1-11-14. The threshold decision is the
+maintainer's, same shape as R1-11-01 above: either a warn-expectations
+mechanism for the teaching corpus, or HELD-FIRM that teaching-by-example is
+deliberately scoped to the pass/fail boundary.
+
+
 
 The teaching corpus is validated with `--strict --require-all`, which means a
 condition the standard deliberately **tolerates as a warning** cannot be shown
@@ -737,11 +789,41 @@ The discipline to *add* a rule is matched by the discipline to *retire* one.
 
 ## Archive
 
-Terminal tension entries and retired rules, one line each.
+Terminal tension entries and retired rules, one line each. Full bodies live in
+git history; the one-liner plus its commit is what a later reader needs.
 
-First terminal entries recorded 2026-07-27: R1-11-02/03/18 (CHANGED — the
-compact fail-closed clause), R1-11-15 (MINTED — the TIME_STATUS enum),
-R1-11-09/16 (CHANGED — the vocabulary-boundary definition and its lint).
-Their full sections remain in place above for the v1.1.17 cut review; the
-archival sweep (one-line summaries here, sections removed) is deferred to
-the next doctrine review pass so the cut reviewer sees full context.
+**Swept 2026-07-27** (the deferral above was anchored to the cut review; both
+v1.1.17 and v1.1.18 have shipped, so it is spent). Eight terminal entries:
+
+- **R1-11-02 — CHANGED** (`40be64a`): CBOR value-sharing tags 28/29 were
+  undefined and the two reference backends disagreed about the same datagram;
+  the fail-closed value-model clause refuses all tags by name, closing the
+  cross-backend divergence and the receive-loop hang class with it.
+- **R1-11-03 — CHANGED** (`40be64a`): the compact mapping declared no maximum
+  nesting depth; it now declares 64, enforced identically on both backends
+  (and, after the post-release hotfix `8175aa7`, before any backend encoder
+  runs).
+- **R1-11-05 — HELD-FIRM**: `TASK_ACK` has no `UNKNOWN` state, and does not
+  need one — an ack whose verdict is unknown is an ack that has not happened.
+  Upheld at first pass; nothing since has pressed it.
+- **R1-11-09 — CHANGED** (adjudication 2026-07-27): a new `metrics_sink_gap`
+  JSONL record type was parked on "is this governed vocabulary?"; the boundary
+  decision (governed = the event model only) made it outer-ring, and it shipped
+  with pin coverage.
+- **R1-11-15 — MINTED** (`2a00ef2`): `TIME_STATUS.state` was the only
+  SystemPayload branch without an enum — which is why B-04 was invisible. Class
+  B enum added to v1.1.0 with fixtures; v1.0 untouched and pinned byte-identical.
+- **R1-11-16 — CHANGED** (`dcabcc8`): adapter-declared vocabularies mirrored
+  governed enums by hand with no lint; `tools/lint_adapter_vocabularies.py` now
+  holds every registered mirror to its schema enum. It would have caught
+  CR-05/06 mechanically.
+- **R1-11-18 — CHANGED** (`40be64a`): the compact mapping declared no size or
+  expansion bound; it now declares 2^20 expanded nodes, refused before the
+  expansion is materialized.
+- **H1-07 — CHANGED** (`b6af2ff`): the plain-`cbor` envelope still interpreted
+  tags on cbor2-only installs, one envelope over from the clause that closed the
+  compact path; both envelopes now refuse identically, with a probed pre-decode
+  depth bound.
+
+Retired rules: none yet. No playbook discipline has scored out (see the
+playbook's Status scoring blocks).

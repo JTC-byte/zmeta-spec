@@ -1,8 +1,50 @@
 # R1-11 Cold Re-Read Findings — 2026-07-26
 
-**Refresh-tier record (playbook cadence). Advisory / non-normative. Findings are
-RECORDED, not fixed** — the resume-queue order stands: doctrine adjudication (P2)
-remains the bottleneck, and no fix wave was opened by this pass.
+**Refresh-tier record (playbook cadence). Advisory / non-normative. Findings
+were RECORDED, not fixed by this pass** — the resume-queue order stood at the
+time, and no fix wave was opened by the re-read itself.
+
+> **Disposition ledger added 2026-07-27 (closeout).** That statement was true
+> when written; fix waves have since run, and both v1.1.17 and v1.1.18 have
+> published. The tally below is the single honest statement of where all
+> thirty findings stand — previously their statuses were real but scattered
+> across four files, which is the CR-03 defect class applied to this record
+> itself.
+
+## Disposition of CR-01..CR-30 (as of the 2026-07-27 closeout)
+
+**Fixed in code — 10.** CR-01 (SAPIENT negative-latency narrowing), CR-02
+(CoT horizontal ellipse into the vertical-error field), CR-05 and CR-06
+(MAVLink LINK_STATUS / TASK_ACK schema-invalid emissions), CR-08 (fabricated
+mission-intent priority), CR-09 (dropped export prohibition), CR-10
+(`_contains_altitude` recursion and Mapping blindness), CR-11 (fabricated GPS
+pedigree), CR-12 (CI-red release-signing pin), CR-16 (vacuous trigger-polarity
+arm) — health wave `25bb5fa` / `ede9bb6` / `dcabcc8`, shipped in v1.1.17.
+
+**Adjudicated final — 1.** CR-03 (the round-3 findings were never persisted):
+the maintainer recorded the loss as final; the set re-derives from the tree
+through scoped waves rather than a reconstruction round. Recorded in the
+fix-pass register's Status block.
+
+**Records corrected — 8.** CR-04 (the cycle-wide "no governed artifact"
+claim), CR-07 (the stale "Round 2 undispositioned" line), CR-13 (the frozen
+CHANGELOG HOLD banner), CR-14 (8-vs-10 round-1 MAJORs), CR-15 (14-vs-18
+introduced-by-remediation), CR-23 (the frozen commit count), CR-24 (the "six
+MAJOR blockers" grading), CR-25 (28-vs-30 findings) — records wave `ae42a4d`,
+each as a dated correction rather than a silent rewrite.
+
+**Closed later in the cycle — 2.** CR-20 (R1-11-08's stale line anchors) and
+CR-27 (R1-11-14 and R1-11-19 held as two unlinked entries of one tension) were
+both dispositioned in the doctrine log at this closeout — anchors refreshed and
+the entry rescoped; the duplicate merged and counted once.
+
+**Open by design — 9**, all below the fix floor and all banked in the appendix
+or the doctrine log: CR-17, CR-18, CR-19, CR-21, CR-22, CR-26, CR-28, CR-29,
+CR-30. None is a fielded-safety item; each is a register candidate for a
+future scoped wave.
+
+*(10 + 1 + 8 + 2 + 9 = 30.)*
+
 
 ## Method and scope
 

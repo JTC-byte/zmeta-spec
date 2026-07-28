@@ -1818,7 +1818,13 @@ doctrinally correct action, not a concession.**
    *(Update 2026-07-27: the `_parse_utc` MAJOR is CLOSED as a class — CoT,
    JREAP, and the SAPIENT egress twins now refuse gate-clean unparseable AND
    naive timestamps per their documented contracts; commits
-   `25bb5fa`/`ede9bb6`, every pin red-first verified. `A-13` remains open.)*
+   `25bb5fa`/`ede9bb6`, every pin red-first verified.)*
+   *(Further update 2026-07-27, closeout: **`A-13` is also CLOSED** — the
+   records wave `ae42a4d` re-anchored every frozen diff figure to the literal
+   base `09118b3` and extended the anchored-totals pin to verify literal-base
+   ranges. The pin then fired as designed the moment the push moved
+   `origin/main`, catching three remaining unanchored sites. Both
+   carried-forward MAJORs are closed.)*
 2. **Forty-four further findings** at MODERATE and below, in
    `docs/r1_11_fix_pass_findings.md`. *(Update 2026-07-27: cold re-read CR-03
    established these are NOT itemized in that register — it ends at round 2,
@@ -1831,3 +1837,10 @@ doctrinally correct action, not a concession.**
    boundary**, and it is now parking otherwise-mechanical fixes.
 4. **Deferred to the cut:** `A-12` (manifest divergence) and `A-29` (the
    Compatibility bullet naming the three added reason codes).
+   *(Closed 2026-07-27: both resolved at the v1.1.17 cut (`7302073`) — the
+   manifest was rebuilt under the new identity with explicit provenance, and
+   the release notes carry the Compatibility section. Note the pattern rather
+   than the instance: post-release commits regenerate the in-repo manifest
+   under the current identity, so the divergence re-accrues and is resolved
+   again at each cut. It re-accrued after v1.1.18 via the post-cut sweep
+   `dd5def7` and will resolve at the next cut.)*

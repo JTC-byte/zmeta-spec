@@ -97,6 +97,13 @@ with the guiding documents were recorded for separate adjudication in
 cleanly. The release decision remains the maintainer's, and nothing in the
 cycle has been published.
 
+*(Dated correction 2026-07-27: the held cycle was published as **v1.1.17** on
+2026-07-27 after maintainer review, and **v1.1.18** followed the same day. The
+"nothing has been published" statement above was true when written and is
+retained as the record of that moment. The two code MAJORs the refresh-tier
+addendum below reports as live in the published v1.1.16 assets are fixed in
+v1.1.17.)*
+
 ### Addendum — first live run of the refresh tier (2026-07-26)
 
 The cadence this AAR produced fired for the first time: the mandated
@@ -117,3 +124,99 @@ the heavy fan-out consumed most of a plan session window in about 35 minutes.
 Well-placed for this pass, ruinous as a default — adopted by maintainer
 direction as playbook discipline 9 (heavy verification only where independent
 eyes are load-bearing; everything else runs lean).
+
+---
+
+## R1-11 closeout and the event-readiness cycle — 2026-07-27
+
+**Outcome: the held cycle published as v1.1.17, an event-readiness cycle
+published as v1.1.18 the same day, and the audit cadence proved itself at all
+three tiers — including its own limit.**
+
+### What happened
+
+The R1-11 cycle had been complete and frozen for days, waiting on decisions
+only the maintainer could make. Those were taken in a single sitting, and the
+consequences ran: the vocabulary-boundary question (which had been parking
+otherwise-mechanical fixes) resolved to "governed means the event model," the
+compact fail-closed clause was approved and written into the mapping spec, and
+a Class B schema constraint was approved for the branch whose missing enum had
+made a whole class of self-contradicting timing events invisible.
+
+Two defects the fresh-eyes re-read had found were fixed and are worth naming,
+because both were live in already-published assets: an ingress path where a
+malformed latency declaration could *narrow* an uncertainty bound rather than
+widen it, and a projection that put a horizontal error measurement into a
+field consumers read as vertical accuracy. Neither was theoretical; both would
+have shown an operator a track that looked better-known than it was.
+
+The second half of the cycle was deployment readiness rather than semantics: a
+reference adapter built against real capture data, containers verified on two
+processor architectures, a two-node deployment guide, and the command-evidence
+gate — the piece that lets an operator's retasking automation cite the fused
+track that motivated it, and lets the gateway refuse when that evidence was
+never permitted to justify a command.
+
+### What it cost, in shape
+
+Two releases in one day is not the shape to plan for. It happened because the
+first cut was the end of a long-held cycle and the second was a distinct body
+of work that had no reason to wait behind it. The cost was concentrated in
+re-verification: every cut re-runs the whole battery, re-baselines the
+current-facing documents, and regenerates hashed artifacts, and doing that
+twice in a day is most of a session on its own.
+
+The other cost was self-inflicted and instructive. The first release's own
+commit went red in continuous integration on two platform-dependent defects
+that no local run could see, because the local interpreter and the build
+machine resolve a codec dependency differently. Both were fixed within
+fifteen minutes, but the lesson is structural: a long-held range accumulates
+platform risk invisibly, because it never touches the one environment that
+differs from the author's.
+
+### Why the process, not just the result, is the lesson
+
+The adversarial attack pass after every fix set has been this repository's
+most load-bearing discipline. This cycle measured its limit precisely. Before
+the second cut, a fresh-eyes review read the whole post-release range as one
+surface and found thirteen further defects — and **three of them had already
+survived their own wave's adversarial attack**. Each of the three was an
+interaction that no single wave could see from inside itself: a fail-open
+created by two bounds of different kinds meeting, a configuration typo that
+reverted a knob to its permissive default with every lint green, and a value
+screen applied to some emission paths but not their siblings.
+
+That is not a failure of the attack pass. It is the discovery that
+per-change review and whole-range review catch different classes, and that a
+release cut needs both. The playbook's cut tier now says so explicitly.
+
+One more result belongs in the record because it is uncomfortable: a
+deployment guide written in this cycle documented a wire path that could not
+work — two nodes configured exactly as written would have passed nothing
+between them. It was caught by the pre-cut review, not by any test, and it
+had never been executed end to end by anyone. **A document that has never
+been run is a hypothesis.**
+
+### What changed as a result
+
+- **The cut tier is now a whole-range fresh-eyes review**, at release stakes,
+  rather than a replay of the wave passes.
+- **The doctrine log's lifecycle fired for the first time**: eight terminal
+  entries were archived to one-liners, and three tensions that had recurred to
+  the threshold were forced out of indefinite OPEN status and put to the
+  maintainer as decisions rather than left to drift.
+- **Every standing rule was scored** against this cycle's record (playbook,
+  "Rule scoring"). None scored out; the one that has never fired is named as a
+  watch-item rather than quietly kept.
+
+### Governance
+
+The locked v1.0 kernel is unchanged. The governed changes in this cycle — a
+normative clause in the compact mapping and one additive Class B schema
+constraint in the experimental v1.1.0 branch — were each adjudicated by the
+maintainer in a pass separate from the work that surfaced them, which is the
+protocol this log exists to enforce. Both releases are published
+checksums-only. Open tensions, deferred findings, and the items that remain
+gated on hardware or live tooling are recorded in the doctrine review log, the
+cold re-read record, and the handoff — not in this entry, and not only in
+commit messages.

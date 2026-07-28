@@ -2,7 +2,17 @@
 
 ## [Unreleased]
 
-(Nothing yet — the next work lands here.)
+- 2026-07-27 (post-cut) — `dd5def7`: post-cut sweep of the edits made
+  during interruption-affected stretches; two cosmetic defects closed (a
+  stranded parenthesis in this file's v1.1.18 entry, a stray lint
+  directive in `gateway/src/validators.py`), manifest and claims
+  regenerated. The published v1.1.18 assets carry the pre-sweep bytes;
+  the fix rolls forward from main per the released-assets rule.
+- 2026-07-27 (closeout) — records closeout: after-action entry for the
+  cycle, doctrine-log archival sweep (eight terminal entries) and three
+  recurrence-threshold decisions put to the maintainer, playbook rule
+  scoring, handoff restructure and retention pass, and the
+  finding-record dispositions.
 
 ## [1.1.18] - 2026-07-27
 
@@ -13,6 +23,40 @@
 > v1.1.5 onward.
 
 
+- 2026-07-27 (post-v1.1.17) — two CI hotfixes on the release commit, both
+  platform-dependent and invisible to a local run whose `cbor2` resolves
+  pure-Python: `8175aa7` makes the compact encode path enforce the declared
+  nesting maximum **before any backend encoder runs** (a C-extension backend
+  recurses on sender-controlled depth and aborted the process where the
+  pure-Python backends raise catchably — shipped gateway/edge bundles were
+  unaffected, since they bundle and prefer `zmeta_cbor`), and `1fb6fa3` makes
+  the v1.0 byte-identity pin EOL-agnostic (it hashed raw checkout bytes, which
+  differ under autocrlf, so it held on exactly one platform).
+- 2026-07-27 — deployment verification and the CoT pedigree knob (`bbc40e2`):
+  the stock compose files were built and run on x86-64 and on ARM64 under
+  emulation — dependencies resolve, the gateway processes the example corpus
+  with zero violations, and the schema/policy/semantics/contract hashes are
+  byte-identical across architectures. The gateway config's `cot.config` block
+  now passes deployment-asserted projection knobs (`geopointsrc`/`altsrc`/
+  `how`, team names, error defaults) through to the CoT projection; previously
+  the serve loop called it bare, so **no deployment could ever assert a
+  position pedigree** and the `<precisionlocation>` ellipse detail was
+  unreachable. Unasserted still means omitted. Adds
+  `docs/zmeta_two_node_quickstart.md` (sensor edge to COP in two stock
+  containers, with the honesty-signal field-debugging cheat-sheet).
+- 2026-07-27 (pre-cut) — a fresh-eyes review of the whole post-v1.1.17 range
+  found 13 verified findings, all closed before the cut; three had survived
+  their own per-wave adversarial attacks. Closed here: a re-sent copy of an
+  already-seen event could **erase a recorded command prohibition** (recorded
+  evidence labels are now sticky — unioned, never downgraded — and an
+  unreadable risk shape blocks citation rather than reading as unlabeled); the
+  command-evidence policy block had no key-name or value-type lint, so a
+  one-character typo reverted a knob to its permissive default with every lint
+  green; the bladeRF non-finite screen missed the bearing-demotion and metadata
+  arms; the two-node quickstart documented a wire path that could not work
+  (the edge forwards to 5556 while the GCS gateway listens on 5555); CoT
+  team-name config values could crash the projection; and three records claims
+  were corrected.
 - 2026-07-27 (post-v1.1.17, later) — bladeRF reference ingress adapter
   (`adapters/ingress/bladerf/`, commit `71f8e18` plus this registration
   follow-up): the merged `edge-comms-bladerf` mapping pack now has its
@@ -98,8 +142,11 @@
 
 ## [1.1.17] - 2026-07-27
 
-> Cut prepared 2026-07-27 and HELD for maintainer review; tag, push, and
-> publish are the maintainer's. This release carries the entire held
+> **PUBLISHED 2026-07-27** with explicit maintainer direction after review:
+> annotated tag `v1.1.17` on release commit `7302073`, main pushed, GitHub
+> release with all eight assets, checksums-only. *(This blockquote was
+> written at cut time and said "HELD for maintainer review"; the dated
+> correction is kept rather than the sentence rewritten.)* This release carries the entire held
 > R1-11 cycle and its resume work: the pre-audit waves (bullet list at
 > the end of this section), the fresh full-stack audit and six-blocker
 > fix pass, the disposition pass, the 2026-07-26 cold re-read, the

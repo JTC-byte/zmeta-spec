@@ -61,6 +61,18 @@ continuous passes are what make the large one cheap.
   already reviewed each change as it landed: the full audit confirms an
   already-reviewed stack rather than discovering an unreviewed one.
 
+  **For a release cut, this tier runs as a fresh-eyes review of the entire
+  post-previous-cut range as ONE surface, at release stakes** — not as six
+  wave passes replayed. The question is not "is each wave sound" (the attack
+  passes answered that as each landed) but "what does a cold reader see across
+  the joins, and would any of it mislead a release decision or a downstream
+  consumer?" Adopted 2026-07-27 on evidence: the v1.1.18 pre-cut review found
+  13 verified findings in nine already-attacked commits, and **three of them
+  had survived their own per-wave adversarial attacks** — a fail-open created
+  by the interaction between a time-bounded cache and a cardinality-bounded
+  index, a typo-fails-open gap in a new policy block, and a screen applied to
+  some emit arms but not others. None was visible from inside a single wave.
+
 The failure this prevents is R1-11's: a whole cycle of change reaching a single
 audit at once, with no continuous review behind it. We generally stay within a
 scope and do not jump around, so "touch everything recently changed" stays
@@ -209,6 +221,34 @@ full audits:
   real drift is seen. The first few runs are deliberately watched for this.
 - Whether the kernel wave (W1) should fix everything rather than stop at the
   MODERATE floor, given it is small, locked, and drift-intolerant.
+
+## Rule scoring — 2026-07-27 (the v1.1.17 / v1.1.18 cycle)
+
+Reconstructed at review time from the record, per the doctrine log's Lifecycle
+("Rules"). **No rule scored out; one was amended, one added.**
+
+| Rule / setting | Age | Fired | Outcome |
+|---|---|---|---|
+| Three-tier cadence | 5 days | **All three tiers fired** | Validated. Refresh caught 30; the pre-cut range review caught 13 (3 of them attack-survivors); this closeout caught 36 records actions. Each tier caught what the tier below it structurally could not. |
+| Six-wave partition | 5 days | Used to scope every wave this cycle | Held. Not re-cut. The pre-cut tier now runs the range as one surface (above), which is a tier change, not a partition change. |
+| Severity floor (MAJOR/MODERATE) | 5 days | Every fix wave | Validated. The deferred tail stayed deferred and stayed recorded; nothing below the floor was fixed inline, and the banked items (VW-01..17) are re-derivable. |
+| One-third introduction cap | 5 days | Measured every wave; **never tripped** | Validated by not needing to fire: the worst wave introduced 1 MODERATE-or-above across nine clusters. That is the cap working as a discipline, not a dead rule — the measurement is what kept the batches small. |
+| 1. Commit at every boundary | 5 days | Continuously | Validated. Two publishes, several interruptions, zero lost work. |
+| 2. Resume from the tree | 5 days | Fired at the post-cut sweep | **Prevented harm.** Verifying the tree after interrupted edits found two defects (a stranded parenthesis, a stray lint directive) that no test could see. |
+| 3. Verify the battery yourself | 5 days | Every wave | Validated. Agent-reported green was wrong at least twice (stale manifest hashes both times). |
+| 4. Attack pass is load-bearing | 5 days | Every fix wave | **Prevented harm repeatedly** — and its limit was measured this cycle: three defects still reached the cut, which is what the amended pre-cut tier now covers. |
+| 5. No vacuous pins | 5 days | Fired (CR-16, the fifth of the cycle) | Validated; the rate is falling. |
+| 6. Author is not grader | 5 days | Every wave (separate attacker/verifier agents) | Validated. |
+| 7. No minting; log the collision | 5 days | Fired continuously | **Validated hard.** Across ~33k inserted lines the only governed additions were the ones the maintainer adjudicated in a separate pass. |
+| 8. Audit the doctrine | 5 days | Fired at this closeout | Validated on first use: the log's own N=3 rule forced three entries to terminal status that would otherwise have drifted. |
+| 9. Scale verification to the pass | 1 day | Fired every task since adoption | Validated. Heavy for audits/re-reads/pre-cut; lean for records and scoped waves. |
+
+**Watch-items carried forward.** (a) The attack pass cannot see cross-wave
+interactions — measured, and now covered by the amended pre-cut tier; watch
+whether that tier keeps catching attack-survivors or whether the rate falls to
+zero (either result is informative). (b) The one-third cap has never fired;
+if it still has not fired after several more cycles, ask whether the floor and
+the small-wave discipline are doing all the work and the cap is documentation.
 
 **First firing (2026-07-26, refresh tier):** validated. The mandated cold
 re-read of the R1-11 held range — nine lenses, adversarial verification —
