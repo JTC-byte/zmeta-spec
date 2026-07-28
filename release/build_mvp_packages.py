@@ -113,11 +113,30 @@ COMMON_PATHS = [
     "zmeta_cbor.py",
     "zmeta_compact.py",
     "zmeta_proto.py",
+    # PC-09: the declared process_governance group ships with every bundle.
+    # These are the documents that keep a downstream implementation from
+    # becoming a private dialect by accident -- AGENTS.md most of all. Listed
+    # file by file rather than adding `docs`, which would pull the whole
+    # process-record archive into a runtime package.
+    "AGENTS.md",
+    "CONFORMANCE.md",
+    "CONTRIBUTING.md",
+    "IP_POLICY.md",
+    "TRADEMARK.md",
+    "docs/zmeta_change_governance.md",
+    "docs/zmeta_defensive_publication.md",
     "deploy/README.md",
     "release/README.md",
     "release/build_mvp_packages.py",
     "release/build_release_bundle.py",
     "release/sign_release_artifacts.py",
+    # The bundles already ship the release tooling above; these are the
+    # templates that tooling consumes, and they are hashed in the manifest.
+    # Shipping the tools without them was the same PC-08 shape: the manifest
+    # declared them part of the release and no bundle carried them.
+    "release/ATTESTATION_TEMPLATE.yaml",
+    "release/RELEASE_NOTES_TEMPLATE.md",
+    "release/RELEASE_PACKAGE_README.md",
 ]
 
 

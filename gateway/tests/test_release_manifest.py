@@ -315,78 +315,74 @@ def test_optional_release_manifest_conformance_flag_passes():
 # ---------------------------------------------------------------------------
 
 
-def _hashed_artifact_roots() -> set[str]:
-    """Top-level directories the release manifest claims are part of the release."""
+def _hashed_artifact_paths() -> set[str]:
+    """Every repo-relative path the release manifest claims is part of the release."""
     manifest = yaml.safe_load(MANIFEST_PATH.read_text(encoding="utf-8"))
-    roots = set()
-    for entry in manifest["artifact_hashes"]:
-        head = entry["path"].split("/")[0]
-        if "." not in head:  # a directory, not a top-level file
-            roots.add(head)
-    return roots
+    return {entry["path"] for entry in manifest["artifact_hashes"]}
 
 
-def _mvp_common_paths() -> set[str]:
+def _covered(path: str, bundle_paths: set[str]) -> bool:
+    """True when a bundle carries this artifact, as a file or under a directory."""
+    return any(path == item or path.startswith(item + "/") for item in bundle_paths)
+
+
+def _mvp_bundle_paths() -> set[str]:
     text = (ROOT / "release" / "build_mvp_packages.py").read_text(encoding="utf-8")
-    block = re.search(r"COMMON_PATHS\s*=\s*\[(.*?)\]", text, re.DOTALL)
+    block = re.search(r"COMMON_PATHS\s*=\s*\[(.*?)\n\]", text, re.DOTALL)
     assert block, "release/build_mvp_packages.py COMMON_PATHS not found"
-    return {item.split("/")[0] for item in re.findall(r'"([^"]+)"', block.group(1))}
+    return set(re.findall(r'"([^"]+)"', block.group(1)))
 
 
-def _dist_bundle_roots() -> set[str]:
+def _dist_bundle_paths() -> set[str]:
+    """Exact paths the dist builder emits.
+
+    `collect_sources` is CALLED rather than parsed -- it returns real paths, so
+    the check cannot drift from the builder's actual behaviour the way a regex
+    over its source would. Only the `copy_tree` directory roots are read from
+    source, and those are single unambiguous segments.
+    """
+    spec = importlib.util.spec_from_file_location(
+        "zmeta_build_release_bundle", ROOT / "release" / "build_release_bundle.py"
+    )
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+
+    paths = {
+        src.relative_to(ROOT).as_posix()
+        for src in module.collect_sources(ROOT, "0.0.0")
+    }
     text = (ROOT / "release" / "build_release_bundle.py").read_text(encoding="utf-8")
-    trees = set(re.findall(r'copy_tree\(root / "([^"]+)"', text))
-    files = {item.split("/")[0] for item in re.findall(r'root / "([^"]+)"', text)}
-    return trees | files
+    paths |= set(re.findall(r'copy_tree\(root / "([^"]+)"', text))
+    return paths
 
 
-# PC-09, found by the pin below and DEFERRED rather than fixed inside a cut.
-# The edge/gateway bundles omit `docs/`, which the manifest hashes for two
-# governance files (`zmeta_change_governance.md`,
-# `zmeta_defensive_publication.md`) -- and README.md tells downstream clone
-# users to read both before altering schema or policy. So a bundle directs its
-# reader to files it does not contain.
-#
-# Not fixed here because the fix is a judgement, not a mechanism: adding
-# `docs` wholesale would drag the entire process-record archive into a runtime
-# deployment package, so the real question is which governance files belong in
-# a deployment bundle at all -- which also covers the top-level AGENTS.md,
-# CONFORMANCE.md, IP_POLICY.md and TRADEMARK.md, hashed and equally absent.
-# Maintainer scope call, recorded in the handoff.
-#
-# Listed here rather than dropped from the check so the guard still catches a
-# NEW omission, which is the regression this exists for.
-_MVP_KNOWN_OMISSIONS = {"docs"}
+def test_release_bundles_carry_every_hashed_artifact():
+    """A manifest that hashes a path no bundle carries is a claim it cannot back.
 
-# The dist zip enumerates files individually and carries neither the
-# conformance corpus nor the governance docs, both hashed. Same PC-09
-# question, same reason for not answering it inside a cut.
-_DIST_KNOWN_OMISSIONS = {"docs", "conformance"}
+    PC-08 found `export/policy/*.json` hashed and absent from both builders.
+    PC-09 then found the same for the governance documents that keep a
+    downstream implementation from becoming a private dialect -- `AGENTS.md`
+    among them, while README.md tells clone users to read it. Both are closed,
+    so this check now runs with NO exception list: every hashed artifact is
+    carried by both bundle families, and any future gap is a failure rather
+    than an entry on a tolerated-omissions list.
+    """
+    hashed = _hashed_artifact_paths()
+    assert hashed, "no hashed artifacts found; this check would be vacuous"
 
-
-def test_release_bundles_carry_every_hashed_artifact_root():
-    hashed = _hashed_artifact_roots()
-    assert hashed, "no hashed artifact roots found; this check would be vacuous"
-
-    mvp_missing = sorted(hashed - _mvp_common_paths() - _MVP_KNOWN_OMISSIONS)
+    mvp = _mvp_bundle_paths()
+    mvp_missing = sorted(path for path in hashed if not _covered(path, mvp))
     assert mvp_missing == [], (
-        f"release/build_mvp_packages.py COMMON_PATHS omits {mvp_missing}, which the "
-        f"release manifest hashes as part of the release. The edge and gateway bundles "
+        f"release/build_mvp_packages.py omits {mvp_missing}, which the release "
+        f"manifest hashes as part of the release. The edge and gateway bundles "
         f"would ship without files the manifest declares shipped."
     )
-    assert _MVP_KNOWN_OMISSIONS <= hashed, (
-        f"a documented MVP omission is no longer a hashed artifact root; prune "
-        f"_MVP_KNOWN_OMISSIONS so it cannot silence a real finding"
-    )
 
-    dist_missing = sorted(hashed - _dist_bundle_roots() - _DIST_KNOWN_OMISSIONS)
+    dist = _dist_bundle_paths()
+    dist_missing = sorted(path for path in hashed if not _covered(path, dist))
     assert dist_missing == [], (
         f"release/build_release_bundle.py omits {dist_missing}, which the release "
         f"manifest hashes as part of the release; the dist zip would not carry them."
-    )
-    assert _DIST_KNOWN_OMISSIONS <= hashed, (
-        "a documented dist omission is no longer a hashed artifact root; prune "
-        "_DIST_KNOWN_OMISSIONS so it cannot silence a real finding"
     )
 
 
@@ -396,13 +392,17 @@ def test_bundle_coverage_pin_notices_a_dropped_root():
     Discipline 5 as amended -- the proof that this catches the PC-08 shape
     lives here and re-runs, rather than being a claim in a commit message.
     """
-    hashed = _hashed_artifact_roots()
-    dropped = "export"
+    hashed = _hashed_artifact_paths()
+    dropped = "AGENTS.md"
     assert dropped in hashed, (
-        f"{dropped!r} is no longer a hashed artifact root; pick another root for this "
+        f"{dropped!r} is no longer a hashed artifact; pick another for this "
         f"demonstration or it proves nothing"
     )
-    crippled = _mvp_common_paths() - {dropped}
-    assert sorted(hashed - crippled - _MVP_KNOWN_OMISSIONS) == [dropped], (
-        "removing a hashed root from the builder's path set was not detected as missing"
+    full = _mvp_bundle_paths()
+    assert _covered(dropped, full), f"{dropped} is not carried, so the demonstration is moot"
+    crippled = full - {dropped}
+    missing = sorted(path for path in hashed if not _covered(path, crippled))
+    assert missing == [dropped], (
+        f"removing {dropped} from the builder's path set was not detected as missing; "
+        f"got {missing}"
     )

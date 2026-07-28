@@ -34,6 +34,14 @@ def collect_sources(root, version):
     optional = [
         root / "README.md",
         root / "CHANGELOG.md",
+        # PC-09: the declared process_governance group.
+        root / "AGENTS.md",
+        root / "CONFORMANCE.md",
+        root / "CONTRIBUTING.md",
+        root / "IP_POLICY.md",
+        root / "TRADEMARK.md",
+        root / "docs" / "zmeta_change_governance.md",
+        root / "docs" / "zmeta_defensive_publication.md",
         root / "zmeta_cbor.py",
         root / "zmeta_compact.py",
         root / "zmeta_proto.py",
@@ -81,10 +89,18 @@ def write_manifest(dist, rel_paths):
     manifest_path.write_text("\n".join(manifest_lines) + "\n", encoding="utf-8")
 
 
+def _ignore_build_residue(_dir, names):
+    return {
+        name
+        for name in names
+        if name in ("__pycache__", ".pytest_cache") or name.endswith((".pyc", ".pyo"))
+    }
+
+
 def copy_tree(src, dest):
     if not src.is_dir():
         return
-    shutil.copytree(src, dest, dirs_exist_ok=True)
+    shutil.copytree(src, dest, dirs_exist_ok=True, ignore=_ignore_build_residue)
 
 
 def parse_args():
@@ -124,6 +140,15 @@ def main():
 
     copy_tree(root / "policy", dist / "policy")
     copy_tree(root / "export", dist / "export")
+    copy_tree(root / "conformance", dist / "conformance")
+    # PC-09: whole trees, not enumerated files. The dist bundle shipped
+    # `validate_conformance.py` while omitting the ten sub-validators its own
+    # flags invoke, so the entry point it distributed could not run -- and the
+    # enumeration drifted every time a validator or spec file was added,
+    # silently. Copying the directories makes coverage self-maintaining, which
+    # is the only version of this that survives the next addition.
+    copy_tree(root / "spec", dist / "spec")
+    copy_tree(root / "tools", dist / "tools")
     copy_tree(root / "configs", dist / "configs")
     copy_tree(root / "examples", dist / "examples")
 
