@@ -123,6 +123,7 @@ def main():
         shutil.copy2(src, dest)
 
     copy_tree(root / "policy", dist / "policy")
+    copy_tree(root / "export", dist / "export")
     copy_tree(root / "configs", dist / "configs")
     copy_tree(root / "examples", dist / "examples")
 

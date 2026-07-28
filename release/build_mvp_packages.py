@@ -97,6 +97,7 @@ def parse_args() -> argparse.Namespace:
 COMMON_PATHS = [
     "schema",
     "policy",
+    "export",
     "spec",
     "adapters",
     "tools",

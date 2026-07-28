@@ -36,6 +36,7 @@ can be exercised against doctored copies without touching the real files.
 """
 
 import re
+from fnmatch import fnmatch
 from pathlib import Path
 
 import yaml
@@ -357,6 +358,28 @@ def test_change_governance_worked_commands_match_manifest():
     )
 
 
+def test_tools_readme_worked_commands_match_manifest():
+    # PC-11 (v1.1.19 pre-cut): the fourth member of the worked-command family.
+    # README, the installation guide and the governance doc were pinned;
+    # tools/README.md carries the same `build_release_package.py` formal-build
+    # line and was not. It went stale during this very cut and was caught only
+    # because a DIFFERENT pin counts how many current-facing formal builds it
+    # can see and refuses to run on fewer than four — the stale file dropped
+    # out of that count instead of being flagged directly.
+    version = manifest_release_version()
+    text = _read("tools/README.md")
+    blocks = re.findall(r"```[a-z]*\n(.*?)```", text, re.DOTALL)
+    release_blocks = [b for b in blocks if "build_release_package.py" in b or "build_mvp_packages.py" in b]
+    assert release_blocks, "tools/README.md worked release-command block not found"
+    stale = []
+    for block in release_blocks:
+        stale.extend(_stale_version_literals(block, version))
+    assert stale == [], (
+        f"tools/README.md worked commands carry stale version literals {stale}; "
+        f"re-baseline them to {version}"
+    )
+
+
 def test_signer_version_help_example_matches_manifest():
     # R1-11 A-28. RELEASE_CHECKLIST.md's doc-currency pass already names this
     # file as a surface to re-baseline, so the obligation exists either way;
@@ -436,6 +459,225 @@ def test_handoff_use_tag_pointer_matches_manifest():
 
 
 # ---------------------------------------------------------------------------
+# Unpinned current-release literals found by the v1.1.19 pre-cut range review
+# (PC-01..04). Everything above pins a surface someone once noticed going
+# stale. These four were never noticed, and one of them degrades verification
+# rather than prose:
+#
+# - the README's TITLE LINE, which is the single most-read current-release
+#   claim in the repository and was anchored by nothing;
+# - `.github/workflows/ci.yml`'s `--target` literal. A cut that forgets it
+#   leaves CI testing migration compatibility against the PREVIOUS release
+#   while reporting green — a guard that quietly stops guarding, which is the
+#   P2-D1 class arriving in CI configuration rather than in a test;
+# - the README Tools block's own `--target`, a sibling of the bundle-builders
+#   block that was pinned while this one was not;
+# - `release/README.md`'s worked example version.
+# ---------------------------------------------------------------------------
+
+
+def readme_title_release(text: str) -> str | None:
+    """The version named in the README's H1, which is line 1 of the repo."""
+    match = re.search(
+        r"^# ZMeta Specification \(v1\.0 Locked, current release (v\d+\.\d+\.\d+)\)",
+        text,
+        re.MULTILINE,
+    )
+    return match.group(1) if match else None
+
+
+def compat_target_literals(text: str) -> list[str]:
+    """Every `--target vX.Y.Z` literal in a file."""
+    return re.findall(r"--target (v\d+\.\d+\.\d+)", text)
+
+
+# Every file carrying a worked `--target`. Enumerated rather than globbed so a
+# new carrier is a deliberate addition; the completeness of the list is itself
+# checked below.
+COMPAT_TARGET_CARRIERS = (
+    "README.md",
+    "adapters/README.md",
+    "tools/README.md",
+    ".github/workflows/ci.yml",
+)
+
+
+def test_readme_title_line_names_the_current_release():
+    version = manifest_release_version()
+    named = readme_title_release(_read("README.md"))
+    assert named, (
+        "README.md H1 no longer matches the pinned "
+        "'# ZMeta Specification (v1.0 Locked, current release vX.Y.Z)' shape"
+    )
+    assert named == version, (
+        f"README.md title line names {named}, but the release manifest says {version}. "
+        f"This is the first line of the repository and the most-read current-release "
+        f"claim in it."
+    )
+
+
+def test_every_compat_target_literal_matches_manifest():
+    version = manifest_release_version()
+    stale = {}
+    for path in COMPAT_TARGET_CARRIERS:
+        found = [item for item in compat_target_literals(_read(path)) if item != version]
+        if found:
+            stale[path] = found
+    assert stale == {}, (
+        f"worked `--target` literals name superseded releases {stale}; re-baseline to "
+        f"{version}. In .github/workflows/ci.yml this is not cosmetic — a stale target "
+        f"means CI keeps checking migration compatibility against the previous release "
+        f"and still reports green."
+    )
+
+
+# Narrative surfaces name past releases legitimately, and re-baselining them
+# would falsify history rather than keep it current. Two families, both with a
+# reason that is not "it was inconvenient":
+#
+# - `CHANGELOG.md` and the frozen per-release records under `release/`
+#   (RELEASE_NOTES_v*, VALIDATION_REPORT_v*) describe a specific past release.
+#   `CHANGELOG.md` carries `--target v1.1.17` in a historical entry.
+# - everything `docs/README.md` itself classifies as a process record.
+#
+# The docs half is DERIVED from that file rather than restated here, so a doc
+# reclassified for readers is reclassified for this guard in the same edit.
+# Hand-maintaining a second copy of a classification the repo already
+# publishes is the exact defect P2-01 was about.
+_FROZEN_RELEASE_RECORD_PATTERNS = (
+    "release/RELEASE_NOTES_v*.md",
+    "release/VALIDATION_REPORT_v*.md",
+)
+_NARRATIVE_FILES = ("CHANGELOG.md",)
+
+
+def docs_process_records() -> tuple[str, ...]:
+    """Doc paths the repo's own `docs/README.md` calls process records.
+
+    Returns fnmatch patterns — the classification legitimately uses wildcards
+    (`s1_*.md`, `r1_*.md`) for the dated per-task record families.
+    """
+    text = _read("docs/README.md")
+    section = re.search(r"^## Process records.*?(?=^## |\Z)", text, re.MULTILINE | re.DOTALL)
+    assert section, (
+        "docs/README.md no longer has a '## Process records' section; this guard "
+        "derives its exclusions from that classification and cannot proceed without it"
+    )
+    names = re.findall(r"`([A-Za-z0-9_*.-]+\.md)`", section.group(0))
+    assert names, "docs/README.md process-records section names no files"
+    return tuple(f"docs/{name}" for name in names)
+
+
+def _is_narrative(path: str) -> bool:
+    if path in _NARRATIVE_FILES:
+        return True
+    patterns = _FROZEN_RELEASE_RECORD_PATTERNS + docs_process_records()
+    return any(fnmatch(path, pattern) for pattern in patterns)
+
+
+def _tracked_files(patterns: tuple[str, ...]) -> set[str]:
+    """Repo-tracked paths matching git pathspecs.
+
+    Tracked, not globbed. The first version of the check below walked the
+    working tree and picked up `LOCAL_NOTES.md`, which is gitignored — so it
+    failed on a maintainer's machine and would have passed on CI, where the
+    file does not exist. An environment-dependent guard is a guard that
+    reports on the wrong thing.
+    """
+    import subprocess
+
+    result = subprocess.run(
+        ["git", "ls-files", "-z", *patterns],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+    )
+    assert result.returncode == 0, (
+        f"git ls-files failed, so tracked-file enumeration is unavailable and this "
+        f"check cannot mean anything: {result.stderr.strip()}"
+    )
+    return {item for item in result.stdout.split("\0") if item}
+
+
+def test_compat_target_carrier_list_is_complete():
+    """A new file with a worked `--target` must not escape the pin above.
+
+    The same failure the release-context doc list already had: a guard that
+    covers some members of a family does not protect the family.
+    """
+    candidates = _tracked_files(("*.md", ".github/workflows/*.yml"))
+    assert candidates, "no tracked candidates found; this check would be vacuous"
+    carriers = {
+        path
+        for path in candidates
+        if not _is_narrative(path)
+        and compat_target_literals((ROOT / path).read_text(encoding="utf-8"))
+    }
+    assert carriers == set(COMPAT_TARGET_CARRIERS), (
+        f"files carrying a worked `--target` have drifted from the pinned list; "
+        f"found {sorted(carriers)}, pinned {sorted(COMPAT_TARGET_CARRIERS)}. Add a new "
+        f"carrier to COMPAT_TARGET_CARRIERS, or to the narrative exclusions if it "
+        f"legitimately names past releases."
+    )
+
+
+def test_release_readme_example_version_matches_manifest():
+    version = manifest_release_version()
+    examples = re.findall(r"e\.g\. `(v\d+\.\d+\.\d+)`", _read("release/README.md"))
+    assert examples, "release/README.md worked-example version no longer present"
+    stale = [item for item in examples if item != version]
+    assert stale == [], (
+        f"release/README.md worked example names {stale}; re-baseline to {version}"
+    )
+
+
+def test_pc_pins_demonstrate_red_on_a_superseded_literal():
+    """Red demonstration for all four, per the amended discipline 5.
+
+    Each pin is shown failing on content doctored to the previous release,
+    using the real files so the demonstration cannot pass against a shape the
+    live documents no longer have. `mutate` refuses a no-op.
+    """
+    version = manifest_release_version()
+    superseded = superseded_release_versions(version)
+    assert superseded, "no superseded release to doctor with; the demonstration would be vacuous"
+    older = superseded[-1]
+
+    title_text = _read("README.md")
+    doctored = mutate(
+        title_text,
+        f"current release {version})",
+        f"current release {older})",
+        what="roll the README title line back one release",
+    )
+    assert readme_title_release(doctored) == older, (
+        "the title-line matcher does not see a rolled-back version, so the pin "
+        "could not catch one"
+    )
+
+    ci_text = _read(".github/workflows/ci.yml")
+    doctored_ci = mutate(
+        ci_text,
+        f"--target {version}",
+        f"--target {older}",
+        what="roll the CI compat target back one release",
+    )
+    assert compat_target_literals(doctored_ci) == [older], (
+        "the compat-target matcher does not see a rolled-back CI target"
+    )
+
+    release_readme = _read("release/README.md")
+    doctored_rr = mutate(
+        release_readme,
+        f"e.g. `{version}`",
+        f"e.g. `{older}`",
+        what="roll the release/README example back one release",
+    )
+    assert re.findall(r"e\.g\. `(v\d+\.\d+\.\d+)`", doctored_rr) == [older]
+
+
+# ---------------------------------------------------------------------------
 # Content currency (P2-01)
 #
 # Everything above pins version LITERALS. The README's release-focus bullet
@@ -506,6 +748,22 @@ def anchors_introduced_by(block: str, notes: dict[str, str], version: str) -> li
 
 def _normalize_ws(text: str) -> str:
     return " ".join(text.split())
+
+
+def notes_assertions(text: str) -> str:
+    """Release-notes text with quoted spans removed, whitespace-normalized.
+
+    **A claim the notes QUOTE is not a claim the notes MAKE.** PC-10, found by
+    the v1.1.19 pre-cut review when this check's own red demonstration stopped
+    going red: v1.1.19's notes reproduce v1.1.16's false claim verbatim in
+    order to correct it, and matching against the raw text let that quotation
+    license the README to assert the very thing the notes were disowning.
+
+    Quotes may span lines, so newlines are permitted inside a quoted span;
+    the length bound keeps an unbalanced quote from swallowing the document.
+    """
+    without_quotes = re.sub(r'["“”][^"“”]{0,300}["“”]', " ", text)
+    return _normalize_ws(without_quotes)
 
 
 # A negative governance claim: "No schema, policy, or event-vocabulary
@@ -624,7 +882,7 @@ def test_release_focus_pins_demonstrate_red_against_the_live_readme():
     unsupported = [
         claim
         for claim in governance_claims(bad_block)
-        if claim not in _normalize_ws(notes.get(version, ""))
+        if claim not in notes_assertions(notes.get(version, ""))
     ]
     assert unsupported == ["No schema, policy, or event-vocabulary changes"], (
         f"the governance-claim check did not flag the false claim when substituted "
@@ -644,13 +902,48 @@ def test_readme_release_focus_governance_claim_is_carried_by_release_notes():
     block = readme_release_focus_block(_read("README.md"))
     assert block, "README.md '- Release focus:' bullet not found"
     notes = release_notes_by_version()
-    current = _normalize_ws(notes.get(version, ""))
+    current = notes_assertions(notes.get(version, ""))
     unsupported = [claim for claim in governance_claims(block) if claim not in current]
     assert unsupported == [], (
         f"README.md release-focus makes governance claims {unsupported} that "
         f"release/RELEASE_NOTES_{version}.md does not make. Either the claim is "
         f"stale (carried from an earlier release whose notes did make it) or it "
         f"is new and unverified. The release notes are authoritative."
+    )
+
+
+def test_a_quoted_claim_in_the_notes_does_not_license_the_readme():
+    """PC-10 red demonstration: quoting a claim is not making it.
+
+    v1.1.19's notes reproduce v1.1.16's false claim verbatim so they can
+    correct it. Before this rule that quotation satisfied the carry check,
+    which would have let the README assert the very thing the notes were
+    disowning — the guard licensing the defect it exists to catch.
+
+    Pinned in both directions, plus a liveness assertion: if the notes ever
+    stop quoting the claim, this demonstration is no longer describing a real
+    situation and says so rather than passing quietly.
+    """
+    claim = "No schema, policy, or event-vocabulary changes"
+    quoting = f'The published tree asserts *"{claim}."* That is false for both.'
+    asserting = f"{claim}; the locked v1.0 kernel is unchanged."
+
+    assert claim not in notes_assertions(quoting), (
+        "a merely-quoted claim is being read as one the notes make"
+    )
+    assert claim in notes_assertions(asserting), (
+        "an asserted claim is being stripped as though it were quoted"
+    )
+
+    version = manifest_release_version()
+    raw = release_notes_by_version().get(version, "")
+    assert claim in _normalize_ws(raw), (
+        f"release/RELEASE_NOTES_{version}.md no longer quotes the corrected claim, so "
+        f"this demonstration has drifted from the situation it documents"
+    )
+    assert claim not in notes_assertions(raw), (
+        "the live notes' quotation of the false claim is still being read as an "
+        "assertion; PC-10 has regressed"
     )
 
 

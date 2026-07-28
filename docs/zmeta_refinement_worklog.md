@@ -2,8 +2,33 @@
 
 ## Current Resume Note
 
-- Last updated: 2026-07-27 (v1.1.18 PUBLISHED; session closeout complete)
+- Last updated: 2026-07-27 (v1.1.19 PREPARED — not tagged, not published)
 - Quick handoff: `docs/zmeta_refinement_handoff.md`
+- **2026-07-27 — P2 CYCLE + v1.1.19 PREPARED.** Opened by a downstream
+  consumer's pin-advance review, not by an internal pass. **P2-01**: the
+  published v1.1.17 and v1.1.18 trees carry a README release-focus bullet
+  held over from v1.1.16 asserting "No schema, policy, or event-vocabulary
+  changes" — false for both. Errata recorded; published checksums untouched;
+  the currency guard now pins release-focus CONTENT, not only version
+  literals (`bdd02a5`, `05106b8`). **Item 10 shipped** (`31ac80e`):
+  `export/policy/*.json`, a verbatim JSON projection of the governed policy
+  with `tools/export_policy_json.py`, hash-pinned under a new
+  `policy_json_export` manifest group — built because that consumer had been
+  hand-mirroring the §7.7 STATE denylist for want of any other option.
+  **P2-D1** (`508aafe`): seven instances of the vacuous-verification class
+  across tests, shipped tooling and audit evidence forced playbook discipline
+  5 to change — a guard's red demonstration must now be an artifact in the
+  repo, not a session act; `gateway/tests/vacuity.py` supports it. The
+  **pre-cut whole-range review** then produced nine findings (PC-01..09),
+  two of them live defects: `adapters/README.md` had pointed at
+  `--target v1.1.16` for two releases, and the manifest hashed twelve
+  `export/policy` artifacts that NEITHER bundle builder carried. Four
+  previously-unpinned current-release literals are now covered, including
+  the README title line and the CI workflow's compat target. **PC-09 is
+  deferred to the maintainer**: the bundles omit `docs/` (and the dist zip
+  also omits `conformance/`) though both are hashed, and README directs
+  bundle users to governance docs their bundle does not contain — a
+  packaging-scope judgement, not a mechanism.
 - **2026-07-27 — v1.1.18 PUBLISHED + SESSION CLOSEOUT.** Publication
   facts (previously recorded only in commit messages — the CR-03 class):
   annotated tag `v1.1.18` on release commit `157d41f`, pushed with

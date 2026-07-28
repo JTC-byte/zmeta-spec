@@ -1,7 +1,7 @@
 # ZMeta Professional Overview
 
 Status: advisory overview for engineers, operators, and leadership.
-Current release context: ZMeta v1.1.18.
+Current release context: ZMeta v1.1.19.
 
 This document explains what ZMeta is, why it exists, how the reference stack
 works, and what operational workflows it enables. It is not the normative

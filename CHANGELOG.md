@@ -2,6 +2,17 @@
 
 ## [Unreleased]
 
+## [1.1.19] - 2026-07-27
+
+> The consumer-access and verification-integrity cut. One new artifact —
+> the governed policy as verbatim JSON, for consumers that cannot read
+> YAML — and the guards that answer why several current-facing claims in
+> this repository were wrong while every check was green. Both came from
+> outside: a fielded deployment advancing its ZMeta pin reported a defect
+> in our published records, and the same review surfaced the reason it had
+> been hand-copying governed data. No schema, policy data, or
+> event-vocabulary changes; the locked v1.0 kernel is unchanged.
+
 - 2026-07-27 (post-cut) — `dd5def7`: post-cut sweep of the edits made
   during interruption-affected stretches; two cosmetic defects closed (a
   stranded parenthesis in this file's v1.1.18 entry, a stray lint
@@ -1318,6 +1329,41 @@
 Per-release integration guidance, moved verbatim from `README.md` at the
 2026-07-27 closeout so the README leads with what the standard is rather than
 with release archaeology. Current-release notes stay in `README.md`.
+
+### v1.1.18 Integration Notes
+
+- **Nothing previously valid becomes invalid.** v1.0 and v1.1.0
+  producers and consumers need no change.
+- **Deploying two nodes:** start at `docs/zmeta_two_node_quickstart.md`.
+  It carries the port topology (both gateways listen on 5555; 5556 is
+  each gateway's own local-consumer forward — the transposition that
+  silently drops traffic), the five-minute wire check, and the rule that
+  the four startup hash lines must match across nodes.
+- **To see error ellipses on TAK**, the deployment must assert its
+  position-source pedigree in the gateway config's `cot.config` block
+  (`geopointsrc` / `altsrc` / `how`). Unasserted means omitted:
+  `<precisionlocation>` detail and the `how` attribute are never stamped
+  from a source the event did not claim.
+- **`policy/command-evidence.yaml` is new and optional.** An absent file
+  is a legal deployment and the shipped defaults refuse nothing that was
+  previously accepted — a direct operator command with no cited parents
+  stays legal. Deployments gating *automations* set `require_evidence`.
+- **Writing an adapter:** `adapters/AUTHORING.md`, with
+  `adapters/ingress/bladerf/` as the worked RF reference against a real
+  capture corpus and `adapters/ingress/example-vendor/` as the teaching
+  one. `tools/lint_adapter_vocabularies.py` holds adapter vocabulary
+  mirrors to the governed schema enums.
+- **CBOR wire peers:** datagrams that previously decoded differently
+  depending on which CBOR library an install happened to have — tagged,
+  value-shared, over-deep, or over-expanding — now refuse identically
+  with explicit diagnostics, on both the compact and plain-`cbor`
+  envelopes.
+- **v1.1.0 `TIME_STATUS` producers:** `payload.state` is now
+  enum-constrained (`LOCKED`/`HOLDOVER`/`UNSYNCED`/`UP`/`DEGRADED`/
+  `DOWN`). Map or omit values outside it. The locked v1.0 branch is
+  unchanged.
+- `tools/check_compat.py` gains the `v1.1.18` target; current-facing
+  docs re-baseline to the v1.1.18 release manifest.
 
 ### v1.1.16 Integration Notes
 

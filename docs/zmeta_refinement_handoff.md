@@ -1,6 +1,34 @@
 # ZMeta Refinement Handoff Notes
 
-## CURRENT STATE — read first (closeout 2026-07-27)
+## CURRENT STATE — read first (v1.1.19 prepared 2026-07-27)
+
+**`v1.1.19` is PREPARED, NOT PUBLISHED.** The tree carries the v1.1.19
+manifest, release notes, and re-baselined currency surfaces. **No tag, no
+signature, no asset upload has been made** — those are the maintainer's acts
+and none of them was performed. Until the tag exists, `v1.1.18` remains the
+latest published release.
+
+The cut resolves the divergence that prompted it: `main`'s manifest had been
+declaring `release_id: zmeta-v1.1.18` / `formal_release` while describing 83
+artifacts across 20 groups against the published tag's 71 across 19 — a
+manifest describing a release that did not exist, and a live recurrence of
+the open R1-11-17 tension (a wrong-but-plausible identity validates clean).
+
+**Deferred to the maintainer — PC-09.** The release manifest hashes paths no
+downloadable bundle carries: the edge/gateway bundles omit `docs/`, and the
+dist zip omits `docs/` and `conformance/`. README.md tells downstream clone
+users to read `AGENTS.md` and `docs/zmeta_change_governance.md` before
+altering schema or policy — files their bundle does not contain. Not fixed
+inside the cut because adding `docs` wholesale would drag the process-record
+archive into a runtime package; the real question is which governance files
+belong in a deployment bundle, which also covers the hashed top-level
+`AGENTS.md`, `CONFORMANCE.md`, `IP_POLICY.md` and `TRADEMARK.md`. Recorded in
+`gateway/tests/test_release_manifest.py` as documented omissions so the guard
+still catches a NEW one.
+
+---
+
+## Previous state (closeout 2026-07-27)
 
 **The R1-11 cycle is CLOSED and published. Two releases shipped 2026-07-27:
 `v1.1.17` (the R1-11 audit/hardening cut, tag on `7302073`) and `v1.1.18`
@@ -337,7 +365,7 @@ Current stack status:
   bearing/heading fields unless callers explicitly assert `TRUE_NORTH`;
   unasserted native values remain auditable under explicitly named
   non-canonical fields.
-- Use tag `v1.1.18` for current formal release assets/checksums (cut 2026-07-27). Use tag `v1.1.17` for the prior published baseline. Use tag
+- Use tag `v1.1.19` for current formal release assets/checksums (cut 2026-07-27). Use tag `v1.1.17` for the prior published baseline. Use tag
   `v1.1.15` for the SAPIENT-bridge baseline and `v1.1.14` for the
   audit-driven honesty-hardening baseline.
 - Use current `main` for the latest integration baseline with bearing-frame
