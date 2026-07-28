@@ -34,6 +34,37 @@
   manifest validates, examples 51/51) — so no clone-a-tag instruction is
   needed for ordinary use; the tag matters only for byte-exact verification
   against published assets.
+- 2026-07-27 (errata, P2-01) — **the published `v1.1.17` and `v1.1.18` trees
+  carry a stale README "Release focus" bullet.** It describes v1.1.16's
+  external bladeRF capture corpus and asserts "No schema, policy, or
+  event-vocabulary changes" — true of v1.1.16, and false of both releases
+  that inherited it. v1.1.17 added `ENCODING_UNSUPPORTED`,
+  `BEARING_FRAME_UNLABELED`, and `NON_FINITE_CONFIDENCE` to the **locked v1.0
+  schema's** `reason_code` enum, the `TIME_STATUS.state` enum to the v1.1.0
+  schema, `policy/semantics.yaml` and `policy/violation-codes.yaml` entries,
+  and 148 normative lines to `spec/compact-binary-mapping.md`; v1.1.18 added
+  `policy/command-evidence.yaml`. Each tagged tree's own
+  `release/RELEASE_NOTES_v<version>.md` is accurate, so the tagged v1.1.18
+  tree contradicts itself — **the release notes, not the README, are the
+  authoritative record of what a cut changed.** `main` has been correct since
+  the post-closeout README pass (`a8fcc7b`); the published assets and their
+  checksums are immutable and are not rewritten, per the released-assets
+  rule. A consumer advancing a pin across these releases must re-derive any
+  hand-maintained copy of the governed vocabularies rather than trust that
+  sentence — which is how the defect surfaced: it was reported by a
+  downstream consumer advancing its own pin, not found here.
+- 2026-07-27 — the release-currency guard now pins CONTENT, not only version
+  literals (`gateway/tests/test_release_currency.py`, live-queue item 8 and
+  the direct P2-01 remediation). Two checks: the README release-focus bullet
+  must name at least one backticked artifact that the current release's notes
+  introduce and no earlier release's notes mention — a bullet copied forward
+  wholesale cannot satisfy that, while an honest backward reference such as
+  v1.1.18's mention of the inherited `TIME_STATUS.state` enum still can — and
+  any negative governance claim it makes must appear verbatim in those same
+  notes. Both are pinned red-first against the carried-forward bullet exactly
+  as it shipped in the v1.1.18 tag, kept in the test as its fixture, because
+  four pins earlier in this cycle proved vacuous when some other gate was
+  doing the refusing. Prose staleness was machine-invisible; it no longer is.
 
 ## [1.1.18] - 2026-07-27
 

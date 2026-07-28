@@ -24,6 +24,13 @@ and the worklog archive). Those entries narrate past sessions, so
 historical version text in them is legitimate and pinning it would force
 rewriting history on every release.
 
+Beyond literals, one CONTENT pin (P2-01, at the end of this file): the
+README's release-focus bullet must actually describe the current release,
+and any governance claim it makes must be carried by that release's notes.
+A version literal is machine-visible and a paragraph of prose is not, which
+is how the focus bullet described v1.1.16 through two later cuts with every
+literal pin above green.
+
 Each check helper takes the file text as an argument so the assertion logic
 can be exercised against doctored copies without touching the real files.
 """
@@ -423,4 +430,215 @@ def test_handoff_use_tag_pointer_matches_manifest():
     assert match.group(1) == version, (
         f"docs/zmeta_refinement_handoff.md 'Use tag' points at {match.group(1)}, "
         f"expected {version}"
+    )
+
+
+# ---------------------------------------------------------------------------
+# Content currency (P2-01)
+#
+# Everything above pins version LITERALS. The README's release-focus bullet
+# carries no literal, so it went on describing v1.1.16's release -- the
+# external bladeRF capture corpus -- through both the v1.1.17 and v1.1.18 cuts
+# with every pin above green. The 2026-07-27 closeout caught it by reading,
+# which is the manual sweep that does not scale with contributors.
+#
+# It is not cosmetic. The copied sentence asserts "No schema, policy, or
+# event-vocabulary changes", which was true of v1.1.16 and false of both cuts
+# that inherited it: v1.1.17 added three reason codes to the LOCKED v1.0
+# schema, the TIME_STATUS.state enum, two policy files, and 148 normative
+# lines to the compact mapping; v1.1.18 added policy/command-evidence.yaml.
+# A downstream consumer advancing a pin reads that sentence and concludes its
+# revalidation layer needs no work -- which is exactly how the defect
+# surfaced, reported by an outside consumer advancing their own pin rather
+# than by us.
+#
+# The release notes are the authoritative description of what a cut changed
+# (the tagged v1.1.18 tree is self-contradictory: its notes are correct and
+# its README is not), so both checks below anchor the README to them.
+# ---------------------------------------------------------------------------
+
+
+def readme_release_focus_block(text: str) -> str | None:
+    """The '- Release focus:' bullet body, up to the next top-level bullet."""
+    match = re.search(r"^- Release focus:(.*?)(?=^- |\Z)", text, re.MULTILINE | re.DOTALL)
+    return match.group(1) if match else None
+
+
+def prose_anchors(block: str) -> list[str]:
+    """Backticked identifiers in a block: paths, filenames, field names.
+
+    Backticks are the discriminator that keeps this check out of natural-
+    language matching. A release focus names the artifacts it shipped, and
+    those are written as code spans throughout these documents.
+    """
+    return sorted(set(re.findall(r"`([^`\n]+)`", block)))
+
+
+def release_notes_by_version() -> dict[str, str]:
+    """Every published release-notes file, keyed by its version tag."""
+    return {
+        match.group(1): path.read_text(encoding="utf-8")
+        for path in (ROOT / "release").glob("RELEASE_NOTES_v*.md")
+        if (match := re.search(r"RELEASE_NOTES_(v[\d.]+)\.md", path.name))
+    }
+
+
+def anchors_introduced_by(block: str, notes: dict[str, str], version: str) -> list[str]:
+    """Anchors named by this release's notes and by no earlier release's notes.
+
+    Deliberately NOT "every anchor must appear in the current notes". A focus
+    bullet may honestly refer backwards -- v1.1.18's names the
+    `TIME_STATUS.state` enum it inherited from v1.1.17 -- and that reference
+    is true. The obligation is the positive one: the bullet must name at
+    least one thing THIS release introduced, which is what "release focus"
+    means and what a wholesale copy of an older bullet cannot satisfy.
+    """
+    current = notes.get(version, "")
+    superseded = [text for name, text in notes.items() if name != version]
+    return [
+        anchor
+        for anchor in prose_anchors(block)
+        if anchor in current and not any(anchor in text for text in superseded)
+    ]
+
+
+def _normalize_ws(text: str) -> str:
+    return " ".join(text.split())
+
+
+# A negative governance claim: "No schema, policy, or event-vocabulary
+# changes". Sentence-bounded by construction -- the character class cannot
+# cross a period or semicolon -- so it cannot staple two sentences together.
+# `\bNo\b` rather than `No` so "Nothing previously valid becomes invalid",
+# the standing first line of every Integration Notes section, is not a claim.
+_GOVERNANCE_NEGATIVE = re.compile(
+    r"\bNo\b[^.;]*?\b(?:schema|policy|event[- ]vocabulary|vocabular(?:y|ies)|reason_code)\b[^.;]*",
+    re.IGNORECASE,
+)
+
+
+def governance_claims(block: str) -> list[str]:
+    """Whitespace-normalized negative governance claims made in a block."""
+    return [_normalize_ws(match.group(0)) for match in _GOVERNANCE_NEGATIVE.finditer(block)]
+
+
+# The release-focus bullet as it stood in the published v1.1.18 tag, verbatim.
+# This is the defect itself, kept as the fixture both matchers are pinned
+# against, so neither can be reduced to something that would have let it pass.
+_STALE_FOCUS_BLOCK_AT_v1_1_18_TAG = """ the first external real-capture corpus —
+  `adapters/mapping-packs/edge-comms-bladerf/` (PR #7), two real
+  bladeRF / ROS2 EW `rf_detection` flight captures paired with
+  schema-valid RF `OBSERVATION_EVENT` expected outputs, merged after
+  adversarial review with maintainer honesty fixes (a frame-unlabeled
+  heading-derived bearing demoted to explicitly named native features
+  per contract 6.4; an unasserted statistical metric dropped;
+  timestamp-source provenance preserved; pack mapping reconciled with
+  its fixtures). No schema, policy, or event-vocabulary changes; the
+  locked v1.0 kernel's semantics are unchanged.
+"""
+
+
+def test_readme_release_focus_describes_the_current_release():
+    version = manifest_release_version()
+    block = readme_release_focus_block(_read("README.md"))
+    assert block, "README.md '- Release focus:' bullet not found"
+    notes = release_notes_by_version()
+    assert version in notes, (
+        f"release/RELEASE_NOTES_{version}.md not found; the release-focus "
+        f"content pin has nothing to anchor against"
+    )
+    introduced = anchors_introduced_by(block, notes, version)
+    assert introduced, (
+        f"README.md release-focus bullet names nothing introduced by {version}. "
+        f"Every backticked artifact in it is either absent from "
+        f"release/RELEASE_NOTES_{version}.md or was already named by an earlier "
+        f"release, which is the signature of a focus bullet carried forward "
+        f"from a previous cut. Rewrite it to describe {version}."
+    )
+
+
+def test_release_focus_content_rule_catches_the_carried_forward_bullet():
+    """Red-first pin: the rule must reject the block that actually shipped.
+
+    Without this the check above could be satisfied by any bullet mentioning
+    any current path, and a future simplification of `anchors_introduced_by`
+    would have no signal. Four pins in the R1-11 cycle turned out to be
+    vacuous -- passing on the reverted tree because some other gate refused
+    -- so the fixture here is the real defect, not a synthetic one.
+    """
+    version = manifest_release_version()
+    notes = release_notes_by_version()
+
+    stale = anchors_introduced_by(_STALE_FOCUS_BLOCK_AT_v1_1_18_TAG, notes, version)
+    assert stale == [], (
+        f"the carried-forward v1.1.16 bullet is being credited with introducing "
+        f"{stale} in {version}; the content rule no longer catches the defect it "
+        f"exists for"
+    )
+
+    live = readme_release_focus_block(_read("README.md"))
+    assert anchors_introduced_by(live, notes, version), (
+        "the live release-focus bullet does not pass the same rule the stale "
+        "one fails; the two directions must separate or the check is noise"
+    )
+
+
+def test_readme_release_focus_governance_claim_is_carried_by_release_notes():
+    """A governance claim in the README must be one its release notes make.
+
+    This is the clause that made the stale bullet dangerous rather than
+    untidy. The README is a projection; `release/RELEASE_NOTES_v<current>.md`
+    is the authoritative statement of what a cut changed. A claim the notes
+    do not make is one nobody verified against the actual diff.
+    """
+    version = manifest_release_version()
+    block = readme_release_focus_block(_read("README.md"))
+    assert block, "README.md '- Release focus:' bullet not found"
+    notes = release_notes_by_version()
+    current = _normalize_ws(notes.get(version, ""))
+    unsupported = [claim for claim in governance_claims(block) if claim not in current]
+    assert unsupported == [], (
+        f"README.md release-focus makes governance claims {unsupported} that "
+        f"release/RELEASE_NOTES_{version}.md does not make. Either the claim is "
+        f"stale (carried from an earlier release whose notes did make it) or it "
+        f"is new and unverified. The release notes are authoritative."
+    )
+
+
+def test_governance_claim_matcher_is_pinned():
+    """The claim check is only as good as this matcher -- pin both directions.
+
+    The live check above is currently vacuous by design: v1.1.18's focus
+    bullet makes no negative governance claim, so there is nothing to carry.
+    That is the correct state and it is also exactly how a matcher rots
+    unnoticed, so the matcher is exercised here against doctored text.
+    """
+    must_catch = [
+        # the claim that shipped stale in two tags, in its wrapped form
+        "its fixtures). No schema, policy, or event-vocabulary changes; the\n  locked v1.0 kernel's semantics are unchanged.",
+        "No schema or event-vocabulary changes.",
+        "no policy changes in this release",
+        "No reason_code was minted.",
+        "No new vocabularies were added.",
+    ]
+    for text in must_catch:
+        assert governance_claims(text), f"governance claim slipped through: {text!r}"
+
+    must_not_catch = [
+        # the standing Integration Notes opener -- 'No' inside a word
+        "Nothing previously valid becomes invalid.",
+        # honest positive statements about the same subjects
+        "The locked v1.0 kernel is unchanged.",
+        "This release adds policy/command-evidence.yaml.",
+        # sentence-bounded: a 'No' clause must not reach across punctuation
+        "No fixtures changed. The schema gained three reason codes.",
+    ]
+    for text in must_not_catch:
+        assert not governance_claims(text), f"false positive on: {text!r}"
+
+    # And the real fixture must produce exactly the claim that was false.
+    claims = governance_claims(_STALE_FOCUS_BLOCK_AT_v1_1_18_TAG)
+    assert claims == ["No schema, policy, or event-vocabulary changes"], (
+        f"the stale bullet's governance claim is no longer extracted as expected; "
+        f"got {claims}"
     )

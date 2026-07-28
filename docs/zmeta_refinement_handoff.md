@@ -62,22 +62,31 @@ max 150/240.
    R1-11-07 HELD-FIRM. Nineteen further tensions remain OPEN by design.
 7. **The SAPIENT follow-ups** (Task ingress needs command-safety escalation;
    the harness registration entry point).
-8. **Extend the currency guard from version literals to content** (scoped,
-   evidenced, ~1 session). `gateway/tests/test_release_currency.py` pins
-   version *literals*, so the README's release-focus and integration-notes
-   prose carried v1.1.16 content through two cuts with the guard green — the
-   2026-07-27 closeout caught it by reading, which is the manual sweep that
-   does not scale with contributors. Candidate assertions: the current-release
-   prose must change in the same commit range as a version bump, and/or
-   headline phrases from `release/RELEASE_NOTES_v<current>.md` must appear in
-   the README's focus bullet. This is the highest-leverage records item
-   because it converts a recurring human sweep into a test. Rationale in the
-   after-action log's closeout discussion; deliberately the ONLY doctrine/SOP
-   change proposed out of that discussion — the introduction-rate concern was
-   already treated by the playbook (the worst wave this cycle introduced one
-   MODERATE across nine clusters), and the bus-factor question wants evidence
-   from strangers using the repo rather than more documentation written by
-   the people who already know it.
+8. **Extend the currency guard from version literals to content — DONE
+   2026-07-27, and it stopped being a records-hygiene item before it was
+   built.** The queued rationale was that the guard pins version *literals*,
+   so the README's release-focus prose carried v1.1.16 content through two
+   cuts with every pin green and only a human reading caught it. What
+   arrived next was the consequence: **P2-01**, reported by a downstream
+   consumer advancing its ZMeta pin, who found that the carried-forward
+   bullet asserts *"No schema, policy, or event-vocabulary changes"* — true
+   of v1.1.16, **false of both v1.1.17 and v1.1.18**, which between them
+   added three `reason_code` values to the locked v1.0 schema, the
+   `TIME_STATUS.state` enum, two policy files, 148 normative lines to the
+   compact mapping, and `policy/command-evidence.yaml`. A stale paragraph
+   became a false governance claim in two published tags, aimed at exactly
+   the reader who most needs it to be true: one deciding whether a pin
+   advance requires re-deriving a hand-maintained vocabulary copy.
+   Implemented as two checks anchored to `release/RELEASE_NOTES_v<current>.md`
+   — the authoritative record of what a cut changed — rather than to commit
+   ranges, so they hold in a fresh clone: the focus bullet must name at least
+   one artifact that release introduced, and any negative governance claim it
+   makes must appear in those notes. Both pinned red-first against the real
+   shipped bullet. Errata for the two tags is in the CHANGELOG; published
+   assets and checksums are immutable and were not touched.
+   **The transferable lesson: version literals were machine-visible and the
+   claim they sat next to was not, and the claim was the load-bearing part.**
+   Worth asking of the other release-facing surfaces before the next cut.
 9. **Re-homed from the R1-10 second-glance register** at the 2026-07-27
    retention pass, so archival cannot bury them: the pre-existing worktree at
    `.tmp/review-pr-2` (branch `review/pr2-frame-fixes`) is still present and
