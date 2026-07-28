@@ -38,15 +38,31 @@ drift was the defect this cycle hit four times. A pinned version is also what
 the ADS-B tester needs, rather than an instruction to clone `main`. None of the
 open items below blocks a tag; all are recorded with recommendations.
 
-### First action next session
+### The documentation voice pass
 
-A documentation voice pass, starting with `README.md`. An outside reader found
-it reads as machine-written; the identified tells are heavy em-dash use and a
-rhetorical, catch-phrase tone. Aim for flat declarative technical prose. This
-is a voice pass only. The README's structure and content were reworked
-deliberately last cycle and both are sound. `docs/zmeta_live_test_checklist.md`
-and `adapters/ingress/adsb/README.md` are written in the same voice and are the
-next candidates.
+An outside reader found the README reads as machine-written; the identified
+tells are heavy em-dash use and a rhetorical, catch-phrase tone. The target is
+flat declarative technical prose. This is a voice pass only. The README's
+structure and content were reworked deliberately last cycle and both are sound.
+
+**`README.md` is DONE (`595e386`, 2026-07-28).** Em dashes 15 to 0, bold spans
+21 to 17, the arrow glyph removed, inversion-for-emphasis rewritten as direct
+statement, and two fragment headings reworded. No structure, ordering, facts or
+claims changed, and the file is 24 words longer rather than shorter. Every
+pinned surface verified intact: the H1 release literal, the "Current release"
+line, the generated governance sentence carried verbatim, the bundle-builder
+literals, and the worked `--target`. The root README is not hashed in the
+release manifest, so nothing needed regenerating.
+
+**Still to do:** `docs/zmeta_live_test_checklist.md` and
+`adapters/ingress/adsb/README.md` are written in the same voice. Beyond those,
+`docs/zmeta_professional_overview.md`, `spec/quickstart.md` and
+`adapters/AUTHORING.md` are the current-facing surfaces most likely to carry
+the same habits.
+
+The honest limit on the README result: the countable tells were counted, but
+whether the prose now reads as a person wrote it cannot be judged by its
+author. That is the one claim here needing an outside reader.
 
 ### The four decisions waiting on the maintainer
 
