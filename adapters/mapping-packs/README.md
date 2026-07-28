@@ -9,7 +9,7 @@ Mapping packs describe how to translate vendor payloads into ZMeta v1.0.
 A mapping pack is a *declarative description plus test evidence*: field maps,
 enum translations, unit conversions, and input/expected-output samples. This
 repository does **not** ship a runtime engine that executes `mapping.yaml`
-automatically — translation runs in adapter code (see
+automatically. Translation runs in adapter code (see
 `adapters/ingress/template/`), and the pack's `tests/` samples are the
 conformance evidence that the adapter implements the pack faithfully.
 `tools/install_mapping_pack.py` copies and registers a pack; it does not make
@@ -25,7 +25,7 @@ vendor:acme_rf:v1
 ```
 
 Store `schema_id` in `pack.json`. The directory name is the `pack_slug`: a
-filesystem-safe, lowercase, hyphenated slug — the shipped exemplar
+filesystem-safe, lowercase, hyphenated slug. The shipped exemplar
 `example-vendor-pack` (`schema_id: vendor:example_rf:v1`,
 `pack_slug: example-vendor-pack`) is the pattern to copy. Keep slugs to
 lowercase letters, digits, and hyphens; the colon-separated `schema_id` is

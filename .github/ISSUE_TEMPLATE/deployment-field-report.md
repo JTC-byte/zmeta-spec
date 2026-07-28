@@ -1,6 +1,6 @@
 ---
 name: Deployment field report
-about: Tell us how ZMeta behaved in a real deployment — this is the standard's primary evidence stream
+about: Tell us how ZMeta behaved in a real deployment. This is the standard's primary evidence stream
 title: "[field] "
 labels: field-telemetry
 ---
@@ -23,11 +23,11 @@ encodings, egress targets)
 you, validators that surprised you)
 
 
-**Evidence** (event counts, validator output, fixture files — whatever you
+**Evidence** (event counts, validator output, fixture files, whatever you
 can share)
 
 
 <!-- Field evidence like this feeds the extension-registry promotion
-     evidence bar — see spec/extension-registry.md for the full bar and its
+     evidence bar; see spec/extension-registry.md for the full bar and its
      conditions. Evidence is necessary, not sufficient, for any core
      change. -->

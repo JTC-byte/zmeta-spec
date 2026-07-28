@@ -21,8 +21,8 @@ ZMeta shape and honesty rules.
 
 | Case | Native product | Center freq | Notes |
 | --- | --- | --- | --- |
-| `tests/case-01-vhf-orbit/` | `sdr/orbit_spectrum` | 138.2 MHz | `bearing_source: none` — canonical bearing omitted |
-| `tests/case-02-cband-fft/` | `spectrum_fft` | 5.2475 GHz | `bearing_source: heading_at_peak` — native bearing kept in features; canonical bearing omitted (no frame assertion, see below) |
+| `tests/case-01-vhf-orbit/` | `sdr/orbit_spectrum` | 138.2 MHz | `bearing_source: none`; canonical bearing omitted |
+| `tests/case-02-cband-fft/` | `spectrum_fft` | 5.2475 GHz | `bearing_source: heading_at_peak`; native bearing kept in features; canonical bearing omitted (no frame assertion, see below) |
 
 Sensor geo on this flight was unavailable (null or null-island). Expected
 events omit `payload.geo` and set `quality.geo_status: UNAVAILABLE` rather
@@ -31,8 +31,8 @@ than inventing coordinates (contract 6.8).
 Canonical bearing is omitted in BOTH cases (maintainer review, PR #7):
 the native bearing is heading-derived (uas heading plus a fixed antenna
 offset) and the source's `heading_source: "interpolated"` names a
-sampling method, not a reference frame — nothing in the capture asserts
-true north. Per contract 6.4 and `adapters/AUTHORING.md` rule 2 the
+sampling method rather than a reference frame, and nothing in the capture
+asserts true north. Per contract 6.4 and `adapters/AUTHORING.md` rule 2 the
 values travel as `features.native_bearing_deg` /
 `features.native_bearing_error_deg` (the raw error bound declares no
 statistical metric, so no `quality.measurement_error` is claimed). A
@@ -44,7 +44,7 @@ Two native conventions worth knowing: case-02's `bandwidth_hz: 7500.0`
 is the FFT bin width (`sample_rate_hz / fft_size`), a resolution
 artifact the source reports rather than a measured emitter bandwidth;
 and `features.timestamp_source` preserves whether `event.ts` came from
-embedded telemetry (case-02) or adapter receive time (case-01 — the
+embedded telemetry (case-02) or adapter receive time (case-01, where the
 degraded 60 s `est_error_ms` bound covers that path).
 
 Original detections have no ZMeta parent, so expected events omit `lineage`

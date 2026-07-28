@@ -9,7 +9,7 @@ labels: adapter-authoring
 
 
 **What are you adapting?** (sensor or format, and what stage of output it
-emits — detections, DoA, PSD, decoded telemetry, parsed tracks)
+emits: detections, DoA, PSD, decoded telemetry, parsed tracks)
 
 
 **Which step failed or was unclear?** (orientation / layer choice /

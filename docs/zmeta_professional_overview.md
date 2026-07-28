@@ -554,12 +554,12 @@ not rewrite risky data into clean data.
 the locked v1.0 schema kernel, and that placement is deliberate, not an
 oversight. Their enforcement home is the policy packs (`policy/*.yaml`), the
 reference validators, the profile-projection preservation catalog, and the
-kernel-conformance gates — not JSON Schema. This keeps the locked kernel
+kernel-conformance gates, not JSON Schema. This keeps the locked kernel
 small and stable while the honesty semantics stay normative in the contract
 (Sections 4.5.1 and 2.5) and machine-checked in conformance. The practical
 consequence: a producer can emit a schema-valid event that omits or corrupts
-these blocks, and it is *policy validation and conformance evidence* — not
-schema rejection — that catches it. Deployments that need the guarantee must
+these blocks, and it is *policy validation and conformance evidence*, not
+schema rejection, that catches it. Deployments that need the guarantee must
 therefore run policy validation, not schema validation alone. Promoting these
 primitives into schema-level vocabulary is tracked as an evidence-gated
 future-branch candidate in `spec/future-branch-roadmap.yaml`; it is not

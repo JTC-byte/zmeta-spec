@@ -13,7 +13,7 @@ Common files:
 - `zmeta-eo-chain-examples.jsonl` worked EO full chain
   (`OBSERVATION_EVENT -> INFERENCE_EVENT -> FUSION_EVENT -> STATE_EVENT` with
   genuine chained `lineage.based_on` ids; companion to the RF chain in the
-  core examples — see `adapters/AUTHORING.md`)
+  core examples; see `adapters/AUTHORING.md`)
 
 Core examples show the intended event flow:
 - RF measurements are `OBSERVATION_EVENT`.

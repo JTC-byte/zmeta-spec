@@ -4,10 +4,10 @@ Status: reference / teaching. This is the runnable answer key for the
 authoring guide (`adapters/AUTHORING.md`): it implements the declarative
 `adapters/mapping-packs/example-vendor-pack` mapping as real adapter code.
 Per `adapters/mapping-packs/README.md`, no runtime engine executes
-`mapping.yaml` — the pack describes the field mapping; hand-written adapter
+`mapping.yaml`; the pack describes the field mapping; hand-written adapter
 code like this carries it out.
 
-Input (schema_id `vendor:example_rf:v1`): a flat JSON RF reading —
+Input (schema_id `vendor:example_rf:v1`): a flat JSON RF reading:
 `{platform_id, sensor_id, ts, lat, lon, alt_m, center_freq_hz, bandwidth_hz,
 power_dbm}`. Output: one `OBSERVATION_EVENT` / `RF`.
 
@@ -21,8 +21,8 @@ exactly the gap a new author must close:
   `coerce_timing_quality()` fallback unless the caller supplies real
   GPS/NTP/PTP metadata;
 - a fresh UUIDv7 `event_id` per emission;
-- fail-closed refusal (empty list) on missing required keys — including
-  `bandwidth_hz`, which the RF minimum feature set (contract 7.4) requires —
+- fail-closed refusal (empty list) on missing required keys (including
+  `bandwidth_hz`, which the RF minimum feature set (contract 7.4) requires)
   or an unparseable timestamp; never a guessed default, never a
   schema-invalid emission;
 - no `profile` stamp: profile is gateway-added export metadata
@@ -43,4 +43,4 @@ From the repository root:
 python -m pytest adapters/ingress/example-vendor -q
 ```
 
-Follow the same ladder for your own adapter — see `adapters/AUTHORING.md`.
+Follow the same ladder for your own adapter; see `adapters/AUTHORING.md`.

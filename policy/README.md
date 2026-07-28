@@ -20,7 +20,7 @@ drives reference enforcement behavior.
 ## Reading this pack without a YAML parser
 
 `export/policy/*.json` is a generated, verbatim JSON projection of every file
-above — same names, same data, nothing renamed or interpreted. It exists so a
+above, with the same names and the same data, nothing renamed or interpreted. It exists so a
 consumer outside the Python stack does not have to vendor a YAML parser or,
 as has happened in the field, hand-copy the rules into its own source.
 
@@ -56,8 +56,8 @@ Notes:
   `must_pass_through`, `allowed_producers`) express the intended command
   topology, but v1.0 enforcement flattens all three into a single
   origin-name allowlist (`gateway/src/validators.py::_is_comms_producer`).
-  Per-event transit-path verification is not possible in v1.0 — events carry
-  no route metadata — so the machine check is origin gating, not path
+  Per-event transit-path verification is not possible in v1.0, because events carry
+  no route metadata, so the machine check is origin gating, not path
   verification.
 - `semantics.yaml` enforces TASK_ACK lifecycle rules (required metrics, allowed states,
   and reason_code requirements), LINK_STATUS health metrics, and SCHEMA_VIOLATION
@@ -115,13 +115,13 @@ Notes:
   Three further structural checks close the same defect at the levels a
   key-by-key check cannot reach:
   - the BLOCK itself. `producer_authority:` or `routing:` with nothing under
-    it is reported, not skipped over — the container that holds the keys is
+    it is reported rather than skipped over; the container that holds the keys is
     subject to the same mangle as the keys.
   - the ENTRIES of every event-type list
     (`require_match_for_event_types`, `require_allowlist_for_event_types`,
     `allowed_event_types`, `forbidden_event_types`). An entry that is a
-    well-formed string but not an event type the schema declares —
-    `STATE_EVEN`, `state_event` — can never match, so it drops silently out
+    well-formed string but not an event type the schema declares
+    (`STATE_EVEN`, `state_event`) can never match, so it drops silently out
     of the gate exactly like a non-string entry. The event-type vocabulary is
     read from `schema/*.schema.json`, never restated in the validator.
     `allowed_event_subtypes` entries are deliberately not checked this way:
@@ -141,7 +141,7 @@ Notes:
   same reason. A `routing`, `producer_authority`, `producers`, or per-producer
   rule block that is present but not a mapping, and a producer rule whose
   event-type list has collapsed to "no constraint", are refused with a
-  `policy_error` detail naming the file and key — never read as "no policy" and
+  `policy_error` detail naming the file and key. It is never read as "no policy" and
   never raised as an `AttributeError` the receive loop reports as
   `INTERNAL_ERROR`. A refusal caused by broken policy always says so. A bare
   scalar (`allowed_event_types: FUSION_EVENT`) is read as a one-item list and

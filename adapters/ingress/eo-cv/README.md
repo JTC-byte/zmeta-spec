@@ -42,8 +42,8 @@ The `payload.claim.geo_source` field records which tier was used:
 `"detection"`, `"fc_fallback"`, or `"unavailable"`.
 
 Canonical geo is all-or-nothing (contract 6.8): a resolved position missing
-any of `lat`, `lon`, or `alt_m` — for example a detection GPS with no
-`altitude` — is omitted entirely rather than zero-filled, with
+any of `lat`, `lon`, or `alt_m` (for example a detection GPS with no
+`altitude`) is omitted entirely rather than zero-filled, with
 `geo_source: "unavailable"`.
 
 ### Key mappings
@@ -51,7 +51,7 @@ any of `lat`, `lon`, or `alt_m` — for example a detection GPS with no
 | CV field | ZMeta field | Notes |
 |----------|-------------|-------|
 | class_name | `payload.claim.label` | Semantic classification |
-| confidence | top-level `confidence` | Required — refused when absent, null, or non-numeric; numeric values subject to `confidence_floor` filter |
+| confidence | top-level `confidence` | Required; refused when absent, null, or non-numeric; numeric values subject to `confidence_floor` filter |
 | gps | `payload.claim.geo` | Destructured from [lat, lon] array |
 | bbox | `payload.claim.bbox` | Detected object box; not an EO observation `roi_px` |
 | track_id | `payload.claim.source_object_id` | Source tracker/object ID, not ZMeta `track_id` |

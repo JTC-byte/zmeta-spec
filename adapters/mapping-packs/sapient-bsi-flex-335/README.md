@@ -4,8 +4,8 @@ Status: reference. `schema_id: vendor:sapient_bsi335:v2`,
 `pack_slug: sapient-bsi-flex-335`, version 1.0.0.
 
 This pack is the *declarative description plus test evidence* for
-translating SAPIENT — the UK's BSI Flex 335 autonomous-sensor interface,
-v2.0 protobuf definitions — to and from ZMeta v1.x. Per
+translating SAPIENT, the UK's BSI Flex 335 autonomous-sensor interface
+(v2.0 protobuf definitions), to and from ZMeta v1.x. Per
 `adapters/mapping-packs/README.md` no runtime engine executes
 `mapping.yaml`: the runnable translation lives in
 `adapters/ingress/sapient/` and `adapters/egress/sapient/`, and this
@@ -22,7 +22,7 @@ One SAPIENT DetectionReport fuses fact and opinion in a single message;
 ZMeta forbids that collapse (contract 4.4). The heart of this pack is the
 un-collapse: one report becomes 0..1 `OBSERVATION_EVENT` (measured
 facts), 0..n `INFERENCE_EVENT` (classification/behaviour opinions with
-model identity and confidence), or — for fusion nodes — one gated
+model identity and confidence), or, for fusion nodes, one gated
 `STATE_EVENT` promotion. `object_id` rides none of these as identity: it
 is a sensor-local, NON-authoritative correlation hint preserved in the
 vendor extension (`track_id` is fusion-node authority; the sole
@@ -41,7 +41,7 @@ treats registration capture as a first-class component
   Registration feeds the per-node RegistrationStore only.
 - Registration-declared units (`units.yaml`) gate canonical mapping of
   `signal[]` and `enu_velocity`. **No captured registration means no
-  canonical mapping** — those blocks are preserved verbatim in the
+  canonical mapping**, and those blocks are preserved verbatim in the
   vendor extension and the canonical features are omitted, never guessed
   (contract 6.7).
 - Inference events require the registration model identity
@@ -49,7 +49,7 @@ treats registration capture as a first-class component
   registration means no inference events. The native classification and
   behaviour lists are always preserved verbatim in the observation's
   vendor extension (under `native_classification` /
-  `native_behaviour` — the literal key `classification` is
+  `native_behaviour`, since the literal key `classification` is
   schema-denylisted on observations); on the no-model path that
   extension residue is their only carrier.
 - Location and range-bearing coordinates are self-describing on the wire
@@ -61,7 +61,7 @@ treats registration capture as a first-class component
 not capture time. `event.ts` inherits that unmeasured latency, so the
 adapter widens `timing_quality.est_error_ms` by the registration
 `maximum_latency` for the node (mode-conservative maximum when the
-active mode is unknown) — including on caller-supplied timing quality.
+active mode is unknown), including on caller-supplied timing quality.
 The default fallback remains the deliberately degraded
 `UNKNOWN`/`UNSYNCED` from `coerce_timing_quality()`; SAPIENT carries no
 timing-quality content of its own, so nothing ever maps to a clean sync
@@ -70,13 +70,13 @@ state.
 ## Canonical-geo eligibility matrix
 
 Canonical `geo` is emitted only when ALL of the following hold
-(contract 6.1/6.2/6.8 — all-or-nothing, WGS-84, meters HAE):
+(contract 6.1/6.2/6.8: all-or-nothing, WGS-84, meters HAE):
 
 | Condition | Eligible | Otherwise |
 | --- | --- | --- |
 | `coordinate_system` | `LAT_LNG_DEG_M`, or `LAT_LNG_RAD_M` (radians converted to degrees) | `UTM_M` / unspecified: extension-only, `omitted_reason` `UTM_UNSUPPORTED` / `COORDINATE_SYSTEM_UNSPECIFIED` |
 | `datum` | `WGS84_E` (ellipsoid = HAE) | `WGS84_G` geoid: extension-only, `omitted_reason` `GEOID_DATUM`; unspecified: extension-only, `omitted_reason` `DATUM_UNSPECIFIED` |
-| altitude | explicit `z` present | extension-only, `omitted_reason` `NO_ALTITUDE` — never zero-filled |
+| altitude | explicit `z` present | extension-only, `omitted_reason` `NO_ALTITUDE`; never zero-filled |
 | zero-fill | `(lat, lon) != (0, 0)` | extension-only, `omitted_reason` `ZERO_FILL_SUSPECT` |
 
 An ineligible location is preserved verbatim (native dict plus the
@@ -86,10 +86,10 @@ contract 21.1 vocabulary) so the geo omission stays visible.
 
 Bearings follow contract 6.4: only `RANGE_BEARING_DATUM_TRUE` becomes
 canonical `payload.bearing` (+ `quality.bearing_frame: "TRUE_NORTH"`).
-Magnetic/grid/platform datums — grid being SAPIENT's recommended default,
-so conversion debt is the *common* case — stay in explicitly named
+Magnetic/grid/platform datums stay in explicitly named
 non-canonical `features.bearing_native_deg` / `bearing_native_el_deg` /
-`bearing_native_datum` fields.
+`bearing_native_datum` fields. Grid is SAPIENT's recommended default, so
+conversion debt is the common case rather than the exception.
 
 ## Refusal matrix
 
@@ -108,7 +108,7 @@ defaulted into validity.
 | Bearing datum not TRUE | no canonical bearing; `bearing_native_*` features |
 | No registration model identity | no inference events (natives preserved in vendor extension) |
 | Classification/behaviour entry without confidence | that entry refused (contract 8.1) |
-| Fusion-node detection without caller `promotion` evidence | refuse (contract 4.5.1 — never silently downgraded to observation) |
+| Fusion-node detection without caller `promotion` evidence | refuse (contract 4.5.1; never silently downgraded to observation) |
 | Fusion-node `promotion` without caller `loop_status` | refuse (the reflection check is the caller's verification; the adapter never self-asserts its verdict) |
 | Fusion-node detection without `detection_confidence` or eligible geo | refuse promotion (STATE requires confidence and geo; never invented, never increased) |
 | Alert without model identity, confidence, or caller `based_on` parents | refuse (InferencePayload requires model, confidence, and real parent lineage) |
@@ -117,15 +117,15 @@ defaulted into validity.
 | Egress: COMMAND_EVENT without `requires_deconfliction: true` | return None |
 | Egress: COMMAND task type with no honest SAPIENT verb (ORBIT/HOLD/SEARCH_BOX/LOITER/SCAN_RF/RETURN_TO_BASE/LAND) | return None (documented residue) |
 | Egress: TRACK_TARGET without a `track_to_object` mapping | return None |
-| Egress: Task `task_id` not a ULID | return None (the idempotency key is minted by the SAPIENT-bridged command producer; the adapter never rewrites it — a derived id would break idempotent re-issue and TaskAck correlation) |
-| Egress: STATE `track_id` not a ULID and not resolved by the caller's `object_map` to a valid ULID | return None (`object_id` is caller-owned identity continuity — deployment state; the adapter never mints a fresh identity per report) |
+| Egress: Task `task_id` not a ULID | return None (the idempotency key is minted by the SAPIENT-bridged command producer; the adapter never rewrites it, because a derived id would break idempotent re-issue and TaskAck correlation) |
+| Egress: STATE `track_id` not a ULID and not resolved by the caller's `object_map` to a valid ULID | return None (`object_id` is caller-owned identity continuity, which is deployment state; the adapter never mints a fresh identity per report) |
 | Egress: STATE quarantined, or `prohibited_uses` covering the export path | return None; exportable warn/degrade events are labeled via `object_info` self-labels instead (label-don't-launder) |
 
 Altitude never crosses into SAPIENT Task locations (contract 7.8), and
-egress envelope timestamps are always the ZMeta `event.ts` — a
+egress envelope timestamps are always the ZMeta `event.ts`; a
 translate-time wall clock would be a fabricated timestamp. Egress
 SapientMessage ids are ULIDs (proto `is_ulid`; Apex `strictIdFormat`,
-on by default, rejects violations — verified live against Apex v4.2.0):
+on by default, rejects violations, verified live against Apex v4.2.0):
 `report_id` is adapter-derived with its 48-bit timestamp component
 sourced from `event.ts` (never the wall clock); `object_id` and
 `task_id` are caller-owned per the refusal rows above.
@@ -163,7 +163,7 @@ and deliberately NOT solved in this pack:
    adapter.
 2. **Track-lifecycle vocabulary** (reserved roadmap candidate): SAPIENT
    contributes a persistent `object_id` plus a free-text `state` ("e.g.
-   object lost") — real but thin evidence; preserved as
+   object lost"), which is real but thin evidence; preserved as
    `vendor.sapient.state` residue meanwhile.
 3. **Tasking verbs**: LOOK_AT pointing cues, multi-waypoint patrol,
    detection/classification threshold and report-rate tuning have no
@@ -218,7 +218,7 @@ configuration, Python 3.11 + protobuf 4.25.1):
   to schema-valid ZMeta events with correct units, layer splits,
   timing widen, and refusal behavior. Zero findings.
 - Live loop: a local Apex v4.2.0 instance accepted Registration
-  (acknowledged) and egress DetectionReports as-is — stored with no
+  (acknowledged) and egress DetectionReports as-is, stored with no
   error records and no SAPIENT Error replies.
 
 Not exercised, recorded honestly: the C# BSI Flex 335 v2 test harness

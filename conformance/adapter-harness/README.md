@@ -39,7 +39,7 @@ rejects it) rather than pass vacuously. If `expect.events` is longer than the
 returned event list even with a matching count, the harness reports the
 surplus as its own failure.
 
-`event_count` is also the refusal register — `event_count: 0` pins a
+`event_count` is also the refusal register: `event_count: 0` pins a
 fail-closed refusal for both result kinds. A `result: "events"` callable must
 return `[]`; a `result: "event"` (single-event) callable registers refusal by
 returning `None`, which the harness counts as zero events. A single-event

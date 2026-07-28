@@ -114,8 +114,8 @@ pass. That validity condition is an attestation model: the claimant attests
 that the required commands ran and passed. The claims validator
 (`tools/validate_conformance_classes.py`) checks claim structure, class
 claimability, and the required-command strings recorded for each claimed
-class — and, with `--verify-contract-hash`, the recorded contract hash
-against the release manifest — but it does not execute the tests itself.
+class, and, with `--verify-contract-hash`, the recorded contract hash
+against the release manifest. It does not execute the tests itself.
 Captured test-output artifacts and execution-verified claims are Future Work
 (see below).
 

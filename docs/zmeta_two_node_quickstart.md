@@ -1,4 +1,4 @@
-# ZMeta Two-Node Quickstart — Sensor Edge to COP
+# ZMeta Two-Node Quickstart: Sensor Edge to COP
 
 **Advisory (Docs/advisory change class). Non-normative.** The fastest path
 from "a sensor emitting native records" to "honest tracks on a COP":
@@ -21,26 +21,26 @@ containers in this repository; nothing needs to be built.
                                      (fusion, SAPIENT egress, tools)
 ```
 
-Two rules carry the whole design:
+Two rules govern the whole design:
 
 1. **The canonical ZMeta event is the source of truth; every egress is a
    lossy projection** (design gate 4). Translate to CoT/SAPIENT only at the
-   node that consumes it. A relay that "helpfully" translates mid-path
+   node that consumes it. A relay that translates mid-path
    destroys authority for every node downstream.
 2. **Nothing is fabricated.** Every honesty behavior in this guide
    (omitted pedigrees, refused geo, degraded-timing labels) is the system
-   working, not breaking. The observability table at the end says where to
-   look instead of guessing.
+   working as designed. The observability table at the end says where to
+   look for each one.
 
-## Node A — the sensor edge (host or Raspberry Pi)
+## Node A: the sensor edge (host or Raspberry Pi)
 
 The edge gateway ingests adapter output (JSON), validates it against the
 locked kernel, and forwards **compact** datagrams.
 
 **Both stock nodes ship Profile H**, and they must match: profile validation is
 exact equality, so a mismatched pair drops 100% of traffic silently. H is the
-default because Profile L excludes `OBSERVATION_EVENT` — everything an ingress
-adapter emits — so an L node cannot carry sensor detections at all.
+default because Profile L excludes `OBSERVATION_EVENT`, which is everything an ingress
+adapter emits, so an L node cannot carry sensor detections at all.
 
 Profile L remains the bandwidth shape for a constrained link (measured max 150
 bytes against a 240-byte budget for the L corpus). Choosing it is a deliberate
@@ -73,11 +73,11 @@ off, failure-mode handling on.
 Verified 2026-07-27 under QEMU arm64 emulation (`--platform linux/arm64`):
 all dependencies install from wheels, the gateway starts and processes the
 example corpus with zero violations, and the schema/policy/semantics/
-contract hashes printed at startup are **byte-identical to the x86 run** —
-same kernel, any architecture. (On that wheel set, `cbor2` resolves to its
+contract hashes printed at startup are byte-identical to the x86 run:
+the same kernel on any architecture. (On that wheel set, `cbor2` resolves to its
 pure-Python build; both codec backends are first-class and cross-pinned in
 the test suite.) Real-hardware throughput on a Pi is the one thing
-emulation does not measure — re-run the replay smoke below when hardware
+emulation does not measure; re-run the replay smoke below when hardware
 arrives.
 
 Point your adapter at the edge gateway: `--host 127.0.0.1 --port 5555`
@@ -86,7 +86,7 @@ one-sitting exercise documented in `adapters/AUTHORING.md`; the
 `adapters/ingress/bladerf/` reference plus its mapping pack is the worked
 RF example, and `adapters/ingress/example-vendor/` is the teaching one.
 
-## Node B — the GCS / consumption edge
+## Node B: the GCS / consumption edge
 
 ```bash
 cd deploy/gateway
@@ -98,20 +98,20 @@ listening on **5555** (this is the port the edge node must forward to),
 `input_encoding: auto` (accepts the edge's compact datagrams directly),
 JSON out to local consumers on **5556** (same-host consumers: your fusion
 process, `tools/udp_receiver.py`, the SAPIENT/JREAP projections), CoT out
-to `cot.host:cot.port` (default 127.0.0.1:6969 — point it at your TAK
+to `cot.host:cot.port` (default 127.0.0.1:6969; point it at your TAK
 input).
 
 Port summary, because the two 555x numbers are easy to transpose:
 
 | Port | Who binds it | Who sends to it |
 |---|---|---|
-| 5555/udp | both gateways (`listen`) | the upstream node — adapter → edge, edge → GCS |
+| 5555/udp | both gateways (`listen`) | the upstream node: adapter → edge, edge → GCS |
 | 5556/udp | nothing (a destination) | each gateway's own `forward`, for **same-host** consumers |
 | 6969/udp | your TAK/COP input | the GCS gateway's CoT egress |
 
 **To see error ellipses and position pedigree on TAK, you must assert your
 position source.** The projection never stamps `geopointsrc`/`altsrc`/`how`
-it cannot prove — unasserted, the `<precisionlocation>` ellipse detail and
+it cannot prove. Unasserted, the `<precisionlocation>` ellipse detail and
 `how` attribute are *omitted by design*, and tracks still render with the
 conservative circular error. The deployment operator, who knows how the
 node derives positions, asserts it in the config:
@@ -125,7 +125,7 @@ node derives positions, asserts it in the config:
 ```
 
 If a track's position is an RF-triangulated fusion product rather than a
-GPS fix, do **not** assert `"GPS"` — that is exactly the lie the omission
+GPS fix, do not assert `"GPS"`. That is the false claim the omission
 default exists to prevent.
 
 **SAPIENT egress** is adapter-level, not gateway-built-in: consume the
@@ -158,20 +158,20 @@ What you should see:
   when CoT is on.
 - **The four hash lines printed by both gateways match.** That is the
   interoperability contract made visible: if the hashes differ, the nodes
-  are not speaking the same governed kernel — stop and reconcile versions
+  are not speaking the same governed kernel. Stop and reconcile versions
   before anything else.
 
 ## Reading the honesty signals (field debugging cheat-sheet)
 
 | You see | It means | It is |
 |---|---|---|
-| `violations=N` climbing | events refused by schema/policy, each with a reason code | the gate working — inspect the SYSTEM_EVENT diagnostics on the output |
+| `violations=N` climbing | events refused by schema/policy, each with a reason code | the gate working; inspect the SYSTEM_EVENT diagnostics on the output |
 | `cot_skipped` with `NON_FINITE_VALUE` | a value-honesty refusal (NaN/inf) filtered apart from the generic bucket | working |
 | `cot_skipped` with `MISSING_GEO` | tracks without a usable position are not drawn as if they had one | working |
 | `timing_fallback=N` | events arrived without clock-sync metadata; uncertainty widened, labeled UNSYNCED | honest degradation, not loss |
-| no ellipse detail on TAK | `geopointsrc`/`altsrc` not asserted in `cot.config` | the omission default — assert it if (and only if) it is true |
-| no bearing on a track you expected one for | the adapter demoted a frame-unlabeled bearing to native features (contract 6.4) | working — assert the frame at the producer if it is provable |
-| an adapter emitting nothing for a record | fail-closed refusal on an unmappable/unavailable datum | working — the adapter's colocated tests enumerate its refusal reasons |
+| no ellipse detail on TAK | `geopointsrc`/`altsrc` not asserted in `cot.config` | the omission default; assert it if (and only if) it is true |
+| no bearing on a track you expected one for | the adapter demoted a frame-unlabeled bearing to native features (contract 6.4) | working; assert the frame at the producer if it is provable |
+| an adapter emitting nothing for a record | fail-closed refusal on an unmappable/unavailable datum | working; the adapter's colocated tests enumerate its refusal reasons |
 
 ## Pre-event checklist per team
 

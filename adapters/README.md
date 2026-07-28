@@ -45,12 +45,12 @@ or command safety.
 | [ADS-B](ingress/adsb/) | `dump1090` / `readsb` `aircraft.json` (RTL-SDR, any decoder `adsbcot` supports) | OBSERVATION_EVENT (NETWORK) | Reference |
 | [Example-vendor](ingress/example-vendor/) | `example-vendor-pack` RF JSON | OBSERVATION_EVENT (RF) | Worked exercise |
 
-Status legend: **Production** — exercised against real sensor data;
-**Template** — copy-me starting point, structurally complete;
-**Reference** — complete implementation validated against the external
+Status legend: **Production**: exercised against real sensor data.
+**Template**: copy-me starting point, structurally complete.
+**Reference**: complete implementation validated against the external
 standard's official tooling or a mapping pack's real-capture corpus, not
-yet fielded against live hardware;
-**Worked exercise** — teaching implementation paired with the authoring
+yet fielded against live hardware.
+**Worked exercise**: teaching implementation paired with the authoring
 guide.
 
 Real raw→ZMeta corpus for adapter authors (bladeRF edge-comms detections):

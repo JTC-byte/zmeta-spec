@@ -1,6 +1,6 @@
 ---
 name: General question or report
-about: Anything the structured intake templates don't fit — questions, typos, CI or tooling problems
+about: Anything the structured intake templates don't fit, such as questions, typos, CI or tooling problems
 title: "[general] "
 labels: question
 ---

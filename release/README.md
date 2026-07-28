@@ -29,7 +29,7 @@ python release/sign_release_artifacts.py --version <version> --write-checksums -
 
 The `zmeta-release-package-<version>.zip` asset is built automatically from
 `release/package-<version>` by `sign_release_artifacts.py --write-checksums`
-when it is missing — never assemble it by hand.
+when it is missing. Never assemble it by hand.
 
 The release package builder defaults to no-signature mode. It does not create a
 git tag, call GPG/cosign/minisign, or generate detached signatures unless a

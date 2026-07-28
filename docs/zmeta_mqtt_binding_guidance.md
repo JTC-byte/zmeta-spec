@@ -34,7 +34,7 @@ Two framing rules govern everything below:
 
 1. **The envelope is authoritative; the topic is a routing convenience.**
    Consumers derive meaning from `event.event_type`, `event.event_subtype`,
-   and the validated payload — never from the topic string. If a topic and its
+   and the validated payload, never from the topic string. If a topic and its
    envelope disagree, the envelope wins and the message should be treated as
    suspect.
 2. **Broker mechanics never relax kernel semantics.** Retained messages, QoS
@@ -96,7 +96,7 @@ and carry no semantics.
 ### Choosing the entity-scoped identifier
 
 - `observation/*`: the producing sensor or platform identifier
-  (`source.sensor_id` or `source.platform_id`). Never a track identifier —
+  (`source.sensor_id` or `source.platform_id`). Never a track identifier:
   observation payloads prohibit track identity, and only fusion-authorized
   producers create `track_id` (contract Sections 7.4, 7.6, 13.1). Do not use
   the topic to smuggle an identity claim the payload is forbidden to carry.
@@ -216,7 +216,7 @@ That is the entire meaning of a tombstone in this binding: **broker hygiene**.
   signal (Section 7.9 prohibits that reuse).
 
 The safe consumer interpretation of a tombstone is "no retained snapshot is
-available on this topic" — nothing more.
+available on this topic", and nothing more.
 
 ## Command Traffic Over MQTT
 
@@ -264,8 +264,8 @@ QoS affects delivery probability and duplication, never meaning.
 ## Legacy and Non-ZMeta Topic Paths
 
 Brokers in real deployments also carry non-ZMeta traffic: vendor telemetry,
-CoT-over-MQTT bridges, autopilot streams, and legacy flat hierarchies —
-fielded deployments report `tracks/`, `sensors/`, `commands/`, `tasks/`, and
+CoT-over-MQTT bridges, autopilot streams, and legacy flat hierarchies.
+Fielded deployments report `tracks/`, `sensors/`, `commands/`, `tasks/`, and
 `status/` trees (upstream PR #4 telemetry). Treat every such path as a
 **separate ingress adapter boundary**, never as an alternate ZMeta dialect,
 and do not mint new ZMeta traffic under those legacy roots:

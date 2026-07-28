@@ -5,7 +5,7 @@ projections of governed artifacts, provided so a consumer can read them
 without vendoring a parser for the source format. The governed source always
 wins.
 
-## `export/policy/` — the governed policy, as JSON
+## `export/policy/`: the governed policy, as JSON
 
 A verbatim JSON projection of `policy/*.yaml`, one file per source file, same
 name, same data.
@@ -19,20 +19,20 @@ name, same data.
 | Provenance | `export/policy/index.json` (source path and LF-normalized SHA-256 per file) |
 | Hash-pinned in | `release/zmeta-release-manifest.yaml`, group `policy_json_export` |
 
-**Verbatim means verbatim.** `yaml.safe_load()` of a source and `json.load()`
+The projection is exact. `yaml.safe_load()` of a source and `json.load()`
 of its export compare equal. Nothing is renamed, filtered, flattened, merged,
 or interpreted, and `gateway/tests/test_policy_json_export.py` pins that per
 file along with freshness and both directions of coverage.
 
 **Authority is one-directional**, per design gate 4 (`CLAUDE.md`, advisory): it runs
 `policy/*.yaml` → `export/policy/*.json` and never back. Editing a JSON file
-here does not change policy — it produces a stale file, and the freshness pin
+here does not change policy; it produces a stale file, and the freshness pin
 fails on it. Change the YAML and regenerate.
 
 ### Why this exists
 
 ZMeta's governed policy shipped only as YAML, so a consumer outside the
-Python stack — a Cloudflare Worker, a browser client, an embedded gateway —
+Python stack (a Cloudflare Worker, a browser client, an embedded gateway)
 had two choices: vendor a YAML parser alongside the raw files, or hand-copy
 the parts it needed into its own source. Hand-copying is what happened. A
 fielded deployment was mirroring the semantics-contract §7.7 STATE denylist
@@ -40,13 +40,13 @@ in TypeScript and re-verifying the alignment **by hand at every version
 advance** (P2-01, 2026-07-27).
 
 That is a private dialect forming around the honesty primitives, and the
-burden grows with every consumer. Copying is not a discipline problem; it was
-the only option we offered. This removes the reason to copy.
+burden grows with every consumer. Copying was the only option the project
+offered. This directory removes the reason to copy.
 
 ### What it is not
 
-Not a curated bundle. Merging the schema's controlled vocabularies in
-alongside the policy data would mean deciding what a consumer needs — a
+This is not a curated bundle. Merging the schema's controlled vocabularies in
+alongside the policy data would mean deciding what a consumer needs. That is a
 judgement, and therefore a third thing that can drift from both parents.
 Consumers that need the schema enums should read the schemas, which are
 already JSON.
@@ -56,6 +56,6 @@ already JSON.
 Pin a release, take `export/policy/` from that tag, and verify each file
 against its `artifact_hashes` entry in `release/zmeta-release-manifest.yaml`
 (SHA-256 over LF-normalized bytes). If you also read `policy/*.yaml`
-directly, prefer the YAML — it is the source, and these files are only ever
+directly, prefer the YAML, which is the source, and these files are only ever
 as current as the last regeneration, which the test suite enforces but a
 hand-carried copy of this directory does not.

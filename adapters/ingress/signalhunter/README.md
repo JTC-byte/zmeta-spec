@@ -19,7 +19,7 @@ These synthetic LOBs carry large angular error (default 75 deg) but converge
 through WLS fusion when many observations accumulate.
 
 Because the bearing is the geodesic travel direction (or its reverse) between
-two GPS fixes, it is degrees true north by construction — no heading
+two GPS fixes, it is degrees true north by construction, and no heading
 compensation is involved. Events therefore assert frame provenance per
 semantics contract section 6.4: `quality.bearing_frame = "TRUE_NORTH"` and
 `quality.heading_source = "GPS_COURSE"`.
@@ -35,7 +35,7 @@ Binary `.bin` capture files with:
 
 `OBSERVATION_EVENT` with `event_subtype: RF`, `modality: RF`.
 
-`features.bandwidth_hz` is set to `0.0` — a declared sentinel meaning
+`features.bandwidth_hz` is set to `0.0`, a declared sentinel meaning
 "emitter bandwidth not measured", not a zero-hertz measurement. The
 SignalHunter is a receiver-class sensor: peak detection localizes a single
 PSD bin, and the device reports receiver sweep bandwidth, not emitter

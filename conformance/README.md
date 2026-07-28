@@ -2,14 +2,14 @@
 
 > **`--conformance-classes` is a repository-side check, not a bundle-side one.**
 > `conformance_classes.yaml` cites maintainer process records under `docs/` as
-> its evidence entries — that is what conformance-class evidence *is*, a link
+> its evidence entries. That is what conformance-class evidence *is*: a link
 > back to the audit that established the class. Release bundles deliberately
 > ship the governance documents but not the process-record archive, so running
 > `validate_conformance.py --conformance-classes` from inside an unpacked
 > bundle reports `CONFORMANCE_PATH_MISSING` for those references. That is
 > expected and is not a defect in the bundle or in the corpus.
 >
-> **From an edge or gateway bundle, every other flag passes** — measured, all
+> **From an edge or gateway bundle, every other flag passes**, measured, all
 > ten: `--strict`, `--profile-projection`, `--extension-registry`,
 > `--encoding-negative`, `--precision-policy`, `--release-manifest`,
 > `--release-package`, `--bad-events`, `--adapter-harness` exit 0;

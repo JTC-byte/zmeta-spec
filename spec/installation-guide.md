@@ -227,7 +227,7 @@ python tools/validate_release_package.py --manifest release/zmeta-release-manife
 `--release-notes` is required whenever `--release-state formal_release` is
 used. Without it the builder copies `release/RELEASE_NOTES_TEMPLATE.md`
 verbatim, and the validator on the next line refuses the result with
-`RELEASE_PACKAGE_NOTES_PLACEHOLDER` — a formal package must not ship
+`RELEASE_PACKAGE_NOTES_PLACEHOLDER`, because a formal package must not ship
 unpopulated notes. `RELEASE_CHECKLIST.md` carries the same step for cuts.
 
 Generated bundles, package directories, and zip files are ignored local outputs

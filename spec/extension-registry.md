@@ -226,18 +226,18 @@ branch, the record must document both of the following in its rationale,
 notes, or referenced evidence:
 
 1. **Independent demonstrated need.** At least two independent
-   implementations or deployments — not derived from the same codebase,
-   vendor, or organization — demonstrating the same need. A single
+   implementations or deployments, not derived from the same codebase,
+   vendor, or organization, demonstrating the same need. A single
    deployment's need is served in place by namespaced extensions, policy,
    profiles, adapter mappings, or advisory binding guidance; the registry
    entry holds the name so later promotion stays collision-safe.
 2. **A concrete failure condition.** At least one documented failure
    condition from `spec/semantics-contract.md` Section 2.6 (Core Semantic
-   Change Threshold) — divergent interpretation between compliant
+   Change Threshold): divergent interpretation between compliant
    implementations, silent meaning laundering, degraded data masquerading as
    clean state, unauditable command basis, or projection hiding material
-   degradation — that policy, configuration, profiles, adapter mappings, and
-   namespaced extensions cannot solve.
+   degradation. The condition must be one that policy, configuration,
+   profiles, adapter mappings, and namespaced extensions cannot solve.
 
 External contributions are treated as field telemetry: harvest the
 requirement, re-derive the solution from the locked kernel outward, and do
