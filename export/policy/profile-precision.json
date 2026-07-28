@@ -1,0 +1,337 @@
+{
+  "field_families": {
+    "confidence_quality": {
+      "behavior": "preserve_or_round_down",
+      "paths": [
+        "confidence"
+      ]
+    },
+    "display_strings": {
+      "behavior": "preserve_or_cataloged_omission",
+      "paths": [
+        "payload.class",
+        "payload.source_summary"
+      ]
+    },
+    "geospatial": {
+      "behavior": "deterministic_conservative_quantization",
+      "paths": [
+        "payload.geo.lat",
+        "payload.geo.lon",
+        "payload.geo.alt_m",
+        "payload.target_geo.lat",
+        "payload.target_geo.lon"
+      ]
+    },
+    "immutable_identity": {
+      "behavior": "preserve_exactly",
+      "paths": [
+        "zmeta_version",
+        "event.event_id",
+        "event.event_type",
+        "event.event_subtype",
+        "event.ts",
+        "source.platform_id",
+        "source.node_role",
+        "source.producer",
+        "lineage.based_on",
+        "lineage.transform",
+        "payload.track_id",
+        "payload.modality",
+        "payload.inference_type",
+        "payload.task_type",
+        "payload.system_type"
+      ]
+    },
+    "motion_direction": {
+      "behavior": "deterministic_conservative_quantization",
+      "paths": [
+        "payload.heading_deg",
+        "payload.speed_mps",
+        "payload.bearing.az_deg",
+        "payload.bearing.el_deg"
+      ]
+    },
+    "rf_measurement": {
+      "behavior": "preserve_units_quantize_with_tolerance",
+      "paths": [
+        "payload.features.center_freq_hz",
+        "payload.features.bandwidth_hz",
+        "payload.features.power_dbm"
+      ]
+    },
+    "time_ttl": {
+      "behavior": "ttl_down_error_up",
+      "paths": [
+        "payload.valid_for_ms",
+        "payload.timing_quality.est_error_ms",
+        "payload.quality.timing_quality.est_error_ms",
+        "payload.metrics.est_error_ms"
+      ]
+    }
+  },
+  "immutable_paths": [
+    "zmeta_version",
+    "event.event_id",
+    "event.event_type",
+    "event.event_subtype",
+    "event.ts",
+    "source.platform_id",
+    "source.node_role",
+    "source.producer",
+    "lineage.based_on",
+    "lineage.transform",
+    "payload.track_id",
+    "payload.modality",
+    "payload.inference_type",
+    "payload.task_type",
+    "payload.system_type"
+  ],
+  "notes": [
+    "Reference defaults require mission review before operational use.",
+    "Precision policy is profile/export policy and does not change JSON Schema.",
+    "Compact CBOR and protobuf remain encoding projections only.",
+    "Source-limited precision must be declared in fixtures or mission policy; the validator must not invent precision."
+  ],
+  "packet_budget_guidance": {
+    "optimization_order": [
+      "validate_source",
+      "select_profile",
+      "omit_cataloged_optional_fields",
+      "apply_conservative_quantization",
+      "validate_projection_and_precision_policy",
+      "measure_packet_size",
+      "reject_or_omit_if_budget_still_fails"
+    ],
+    "required_paths_must_not_be_stripped": [
+      "zmeta_version",
+      "event.event_id",
+      "event.event_type",
+      "event.event_subtype",
+      "event.ts",
+      "source.platform_id",
+      "source.node_role",
+      "source.producer",
+      "payload.track_id",
+      "payload.valid_for_ms",
+      "confidence",
+      "lineage.based_on",
+      "payload.timing_quality",
+      "payload.task_id",
+      "payload.task_type",
+      "payload.requires_deconfliction",
+      "payload.system_type"
+    ],
+    "status": "reference_guidance"
+  },
+  "policy_name": "ZMeta Profile Precision Reference Conformance Policy",
+  "policy_status": "reference_conformance_default",
+  "policy_version": 1,
+  "precision_ceilings": {
+    "H": {
+      "default": "preserve"
+    },
+    "L": {
+      "confidence": {
+        "max_decimal_places": 1,
+        "rounding_mode": "floor"
+      },
+      "payload.bearing.az_deg": {
+        "quantization_step": 5,
+        "rounding_mode": "nearest_grid"
+      },
+      "payload.bearing.el_deg": {
+        "quantization_step": 5,
+        "rounding_mode": "nearest_grid"
+      },
+      "payload.geo.alt_m": {
+        "quantization_step": 5,
+        "rounding_mode": "nearest_grid"
+      },
+      "payload.geo.lat": {
+        "max_decimal_places": 4,
+        "rounding_mode": "truncate_decimals",
+        "utility_floor_decimal_places": 3
+      },
+      "payload.geo.lon": {
+        "max_decimal_places": 4,
+        "rounding_mode": "truncate_decimals",
+        "utility_floor_decimal_places": 3
+      },
+      "payload.heading_deg": {
+        "quantization_step": 5,
+        "rounding_mode": "nearest_grid"
+      },
+      "payload.metrics.est_error_ms": {
+        "quantization_step": 100,
+        "rounding_mode": "ceil"
+      },
+      "payload.quality.timing_quality.est_error_ms": {
+        "quantization_step": 100,
+        "rounding_mode": "ceil"
+      },
+      "payload.speed_mps": {
+        "quantization_step": 1,
+        "rounding_mode": "nearest_grid"
+      },
+      "payload.target_geo.lat": {
+        "command_geometry": true,
+        "max_decimal_places": 5,
+        "rounding_mode": "truncate_decimals",
+        "utility_floor_decimal_places": 5
+      },
+      "payload.target_geo.lon": {
+        "command_geometry": true,
+        "max_decimal_places": 5,
+        "rounding_mode": "truncate_decimals",
+        "utility_floor_decimal_places": 5
+      },
+      "payload.timing_quality.est_error_ms": {
+        "quantization_step": 100,
+        "rounding_mode": "ceil"
+      },
+      "payload.valid_for_ms": {
+        "quantization_step": 1000,
+        "rounding_mode": "floor"
+      }
+    },
+    "M": {
+      "confidence": {
+        "max_decimal_places": 2,
+        "rounding_mode": "floor"
+      },
+      "payload.bearing.az_deg": {
+        "quantization_step": 1,
+        "rounding_mode": "nearest_grid"
+      },
+      "payload.bearing.el_deg": {
+        "quantization_step": 1,
+        "rounding_mode": "nearest_grid"
+      },
+      "payload.features.bandwidth_hz": {
+        "max_delta": 50,
+        "quantization_step": 100,
+        "rounding_mode": "nearest_grid"
+      },
+      "payload.features.center_freq_hz": {
+        "max_delta": 50,
+        "quantization_step": 100,
+        "rounding_mode": "nearest_grid"
+      },
+      "payload.features.power_dbm": {
+        "max_delta": 0.05,
+        "quantization_step": 0.1,
+        "rounding_mode": "nearest_grid"
+      },
+      "payload.geo.alt_m": {
+        "quantization_step": 1,
+        "rounding_mode": "nearest_grid"
+      },
+      "payload.geo.lat": {
+        "max_decimal_places": 5,
+        "rounding_mode": "truncate_decimals",
+        "utility_floor_decimal_places": 4
+      },
+      "payload.geo.lon": {
+        "max_decimal_places": 5,
+        "rounding_mode": "truncate_decimals",
+        "utility_floor_decimal_places": 4
+      },
+      "payload.heading_deg": {
+        "quantization_step": 1,
+        "rounding_mode": "nearest_grid"
+      },
+      "payload.metrics.est_error_ms": {
+        "quantization_step": 10,
+        "rounding_mode": "ceil"
+      },
+      "payload.quality.timing_quality.est_error_ms": {
+        "quantization_step": 10,
+        "rounding_mode": "ceil"
+      },
+      "payload.speed_mps": {
+        "quantization_step": 0.1,
+        "rounding_mode": "nearest_grid"
+      },
+      "payload.timing_quality.est_error_ms": {
+        "quantization_step": 10,
+        "rounding_mode": "ceil"
+      },
+      "payload.valid_for_ms": {
+        "quantization_step": 100,
+        "rounding_mode": "floor"
+      }
+    }
+  },
+  "profiles": {
+    "H": {
+      "default_behavior": "preserve_source_precision",
+      "description": "Full-fidelity profile. No forced quantization unless a mission-reviewed override applies."
+    },
+    "L": {
+      "default_behavior": "coarse_conservative_quantization",
+      "description": "Low-bandwidth profile that prioritizes required state, system, command, lineage, timing, confidence, and packet budget."
+    },
+    "M": {
+      "default_behavior": "moderate_conservative_quantization",
+      "description": "Moderate export ceiling for constrained IP workflows."
+    }
+  },
+  "requires_mission_review": true,
+  "rounding_modes": {
+    "ceil": {
+      "description": "Round toward higher numeric value; used for uncertainty/error bounds."
+    },
+    "floor": {
+      "description": "Round toward lower numeric value; used for confidence and TTL."
+    },
+    "nearest_grid": {
+      "description": "Project to a deterministic grid with bounded deviation."
+    },
+    "preserve": {
+      "description": "Preserve source value exactly."
+    },
+    "reject_if_below_utility_floor": {
+      "description": "Reject same-event projection when the projected value is too coarse to remain useful."
+    },
+    "truncate_decimals": {
+      "description": "Remove decimal detail without increasing precision."
+    }
+  },
+  "unit_locked_paths": [
+    "payload.geo.alt_m",
+    "payload.target_geo.alt_m",
+    "payload.heading_deg",
+    "payload.speed_mps",
+    "payload.bearing.az_deg",
+    "payload.bearing.el_deg",
+    "payload.valid_for_ms",
+    "payload.timing_quality.est_error_ms",
+    "payload.quality.timing_quality.est_error_ms",
+    "payload.metrics.est_error_ms",
+    "payload.features.center_freq_hz",
+    "payload.features.bandwidth_hz",
+    "payload.features.power_dbm"
+  ],
+  "utility_floors": {
+    "H": {
+      "preserve_source_precision_by_default": true
+    },
+    "L": {
+      "command_target_geo_decimal_places": 5,
+      "confidence_required": true,
+      "lineage_required": true,
+      "state_geo_decimal_places": 3,
+      "timing_quality_or_time_status_required": true,
+      "valid_for_ms_required": true
+    },
+    "M": {
+      "observation_rf_features_required_when_observation_exported": true,
+      "state_geo_decimal_places": 4
+    },
+    "source_limited_precision_requires_fixture_ack": true
+  },
+  "zmeta_versions": [
+    "1.0"
+  ]
+}

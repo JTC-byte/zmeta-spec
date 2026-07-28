@@ -136,6 +136,13 @@ def artifact_groups(root: Path = ROOT, *, include_tool_source: bool = True) -> d
             "description": "Release-included policy YAML and policy variant baselines.",
             "paths": _glob("policy/*.yaml", root) + _glob("configs/policy-variants/*.yaml", root),
         },
+        "policy_json_export": {
+            "description": (
+                "Derived verbatim JSON projection of the governed policy YAML, with the "
+                "generator that defines it. Not authoritative: policy_bundle is the source."
+            ),
+            "paths": _glob("export/policy/*.json", root) + ["tools/export_policy_json.py"],
+        },
         "extension_registry": {
             "description": "Machine-readable extension and reserved-vocabulary registry.",
             "paths": ["spec/extension-registry.yaml"],

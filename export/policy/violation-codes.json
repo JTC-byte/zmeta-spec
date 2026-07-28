@@ -1,0 +1,232 @@
+{
+  "violation_codes": [
+    {
+      "code": "SCHEMA_INVALID",
+      "severity": "fail"
+    },
+    {
+      "code": "VERSION_SEMANTICS_MISMATCH",
+      "severity": "fail"
+    },
+    {
+      "code": "EVENT_SUBTYPE_MISMATCH",
+      "severity": "fail"
+    },
+    {
+      "code": "EVENT_TYPE_NOT_ALLOWED_FOR_ROLE",
+      "severity": "fail"
+    },
+    {
+      "code": "EVENT_TYPE_NOT_ALLOWED_FOR_PROFILE",
+      "severity": "fail"
+    },
+    {
+      "code": "COMMAND_NOT_DECONFLICTED",
+      "severity": "fail"
+    },
+    {
+      "code": "COMMAND_HAS_ALTITUDE",
+      "severity": "fail"
+    },
+    {
+      "code": "INVALID_COMMAND_GEOMETRY",
+      "severity": "fail"
+    },
+    {
+      "code": "COMMAND_TASK_TYPE_INVALID",
+      "severity": "fail"
+    },
+    {
+      "code": "OBSERVATION_HAS_IDENTITY",
+      "severity": "fail"
+    },
+    {
+      "code": "OBSERVATION_HAS_CLASSIFICATION",
+      "severity": "fail"
+    },
+    {
+      "code": "INFERENCE_HAS_TRACK_ID",
+      "severity": "fail"
+    },
+    {
+      "code": "INFERENCE_HAS_FUSION_STATE",
+      "severity": "fail"
+    },
+    {
+      "code": "STATE_HAS_RAW_FEATURES",
+      "severity": "fail"
+    },
+    {
+      "code": "INVALID_QUALITY_UNITS",
+      "severity": "fail"
+    },
+    {
+      "code": "INVALID_QUALITY_BEARING_FRAME",
+      "severity": "fail"
+    },
+    {
+      "code": "INVALID_QUALITY_HEADING_SOURCE",
+      "severity": "fail"
+    },
+    {
+      "code": "INVALID_MODALITY_FEATURES",
+      "severity": "fail"
+    },
+    {
+      "code": "INVALID_GEO_FIELD",
+      "severity": "fail"
+    },
+    {
+      "code": "GEO_ZERO_FILL_SUSPECTED",
+      "severity": "warn"
+    },
+    {
+      "code": "BEARING_FRAME_UNLABELED",
+      "severity": "warn"
+    },
+    {
+      "code": "NON_FINITE_CONFIDENCE",
+      "severity": "fail"
+    },
+    {
+      "code": "ENCODING_UNSUPPORTED",
+      "severity": "fail"
+    },
+    {
+      "code": "INVALID_TIME_FORMAT",
+      "severity": "fail"
+    },
+    {
+      "code": "RF_WINDOW_PAIRING_INVALID",
+      "severity": "fail"
+    },
+    {
+      "code": "RF_WINDOW_MIDPOINT_INVALID",
+      "severity": "fail"
+    },
+    {
+      "code": "LINEAGE_MISMATCH",
+      "severity": "fail"
+    },
+    {
+      "code": "LINEAGE_PAYLOAD_BASED_ON_NOT_SUBSET",
+      "severity": "fail"
+    },
+    {
+      "code": "LINEAGE_FUSION_MEMBERS_NOT_IN_BASED_ON",
+      "severity": "warn"
+    },
+    {
+      "code": "LINEAGE_PARENT_UNRESOLVED",
+      "severity": "warn"
+    },
+    {
+      "code": "LINEAGE_PARENT_TYPE_INVALID",
+      "severity": "fail"
+    },
+    {
+      "code": "SCHEMA_VIOLATION_MISSING_REASON_CODE",
+      "severity": "fail"
+    },
+    {
+      "code": "SCHEMA_VIOLATION_MISSING_ORIGINAL_EVENT_ID",
+      "severity": "fail"
+    },
+    {
+      "code": "SCHEMA_VIOLATION_INVALID_REASON_CODE",
+      "severity": "fail"
+    },
+    {
+      "code": "TASK_ACK_MISSING_TASK_ID",
+      "severity": "fail"
+    },
+    {
+      "code": "TASK_ACK_MISSING_REQUIRED_FIELD",
+      "severity": "fail"
+    },
+    {
+      "code": "TASK_ACK_MISSING_ORIGINAL_EVENT_ID",
+      "severity": "fail"
+    },
+    {
+      "code": "TASK_ACK_MISSING_REASON_CODE",
+      "severity": "fail"
+    },
+    {
+      "code": "TASK_ACK_INVALID_STATE",
+      "severity": "fail"
+    },
+    {
+      "code": "TASK_ACK_INVALID_REASON_CODE",
+      "severity": "fail"
+    },
+    {
+      "code": "LINK_STATUS_MISSING_REQUIRED_FIELD",
+      "severity": "fail"
+    },
+    {
+      "code": "LINK_STATUS_INVALID_STATE",
+      "severity": "fail"
+    },
+    {
+      "code": "LINK_STATUS_MISSING_REASON_CODE",
+      "severity": "fail"
+    },
+    {
+      "code": "LINK_STATUS_INVALID_REASON_CODE",
+      "severity": "fail"
+    },
+    {
+      "code": "SENSOR_STATUS_STATE_MISMATCH",
+      "severity": "fail"
+    },
+    {
+      "code": "PLATFORM_STATUS_POWER_MISSING",
+      "severity": "fail"
+    },
+    {
+      "code": "PRODUCER_NOT_ALLOWED",
+      "severity": "fail"
+    },
+    {
+      "code": "PROFILE_MISMATCH",
+      "severity": "fail"
+    },
+    {
+      "code": "TIMING_STATUS_MISSING",
+      "severity": "fail"
+    },
+    {
+      "code": "TIMING_STATUS_STALE",
+      "severity": "fail"
+    },
+    {
+      "code": "TIMING_STATUS_AGE_NEGATIVE",
+      "severity": "warn"
+    },
+    {
+      "code": "TIMING_STATUS_UNSYNCED",
+      "severity": "warn"
+    },
+    {
+      "code": "TIMING_STATUS_HOLDOVER_NON_MONOTONIC",
+      "severity": "warn"
+    },
+    {
+      "code": "RF_WINDOW_MIDPOINT_MISMATCH",
+      "severity": "fail"
+    },
+    {
+      "code": "EVENT_DUPLICATE",
+      "severity": "fail"
+    },
+    {
+      "code": "TASK_DUPLICATE",
+      "severity": "fail"
+    },
+    {
+      "code": "TASK_ACK_DUPLICATE",
+      "severity": "fail"
+    }
+  ]
+}

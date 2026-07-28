@@ -1,0 +1,61 @@
+{
+  "timing_freshness": {
+    "degrade": {
+      "confidence_reduction_factor": 2.0
+    },
+    "enabled": true,
+    "holdover_est_error_monotonic": {
+      "enabled": true,
+      "mode": "warn"
+    },
+    "max_negative_age_ms": {
+      "H": 1000,
+      "L": 5000,
+      "M": 2000
+    },
+    "max_timing_status_age_ms": {
+      "H": 10000,
+      "L": 60000,
+      "M": 30000
+    },
+    "mode": "reject",
+    "negative_age_mode": "warn",
+    "source_identity": {
+      "optional_fields": [
+        "source.sensor_id"
+      ],
+      "required_fields": [
+        "source.platform_id",
+        "source.producer"
+      ]
+    },
+    "use_limits": {
+      "degrade": {
+        "allowed_uses": [
+          "DISPLAY",
+          "LOCAL_AWARENESS",
+          "ALERTING"
+        ],
+        "prohibited_uses": [
+          "FUSION_INPUT",
+          "STATE_UPDATE",
+          "COMMAND_BASIS",
+          "AUTONOMY_TASKING"
+        ]
+      },
+      "warn": {
+        "allowed_uses": [
+          "DISPLAY",
+          "LOCAL_AWARENESS",
+          "ALERTING",
+          "FUSION_INPUT",
+          "STATE_UPDATE"
+        ],
+        "prohibited_uses": [
+          "COMMAND_BASIS",
+          "AUTONOMY_TASKING"
+        ]
+      }
+    }
+  }
+}

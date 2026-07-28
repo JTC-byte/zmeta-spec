@@ -1,0 +1,475 @@
+{
+  "producer_authority": {
+    "enabled": true,
+    "external_state_promotion": {
+      "allowed_lineage_status_by_profile": {
+        "H": [
+          "RESOLVED",
+          "EXTERNAL_SOURCE"
+        ],
+        "L": [
+          "RESOLVED",
+          "EXTERNAL_SOURCE",
+          "UNRESOLVED_PROFILED"
+        ],
+        "M": [
+          "RESOLVED",
+          "EXTERNAL_SOURCE",
+          "UNRESOLVED_PROFILED"
+        ]
+      },
+      "allowed_loop_statuses": [
+        "CHECKED_NOT_REFLECTION"
+      ],
+      "allowed_origin_kinds": [
+        "EXTERNAL_REPORT",
+        "LOSSY_PROJECTION"
+      ],
+      "always_reject_loop_risk": true,
+      "degrade": {
+        "confidence_reduction_factor": 2.0,
+        "valid_for_ms_reduction_factor": 2.0
+      },
+      "enabled": true,
+      "loop_risk_statuses": [
+        "REFLECTION_DETECTED",
+        "LOOP_SUSPECTED"
+      ],
+      "max_freshness_ms_by_profile": {
+        "H": 60000,
+        "L": 60000,
+        "M": 60000
+      },
+      "metadata_path": "payload.extensions.external_promotion",
+      "mode": "reject",
+      "quarantine": {
+        "confidence_cap": 0.25,
+        "valid_for_ms_cap": 1000
+      },
+      "required_fields_by_profile": {
+        "H": [
+          "state_category",
+          "origin_kind",
+          "projection_id",
+          "promotion_policy_id",
+          "trust_ref",
+          "lineage_status",
+          "loop_status",
+          "confidence_basis",
+          "source_event_uid",
+          "freshness_ms"
+        ],
+        "L": [
+          "state_category",
+          "promotion_policy_id",
+          "trust_ref",
+          "lineage_status",
+          "loop_status"
+        ],
+        "M": [
+          "state_category",
+          "origin_kind",
+          "projection_id",
+          "promotion_policy_id",
+          "trust_ref",
+          "lineage_status",
+          "loop_status",
+          "confidence_basis"
+        ]
+      },
+      "required_lineage_transform_prefixes": [
+        "promote:"
+      ],
+      "required_state_category": "PROMOTED_EXTERNAL_STATE",
+      "required_trust_ref_prefixes": [
+        "producer-authority:",
+        "trust-policy:"
+      ],
+      "source_event_uid_required_statuses": [
+        "EXTERNAL_SOURCE"
+      ],
+      "use_limits": {
+        "degrade": {
+          "allowed_uses": [
+            "DISPLAY",
+            "LOCAL_AWARENESS",
+            "ALERTING"
+          ],
+          "prohibited_uses": [
+            "FUSION_INPUT",
+            "STATE_UPDATE",
+            "COMMAND_BASIS",
+            "AUTONOMY_TASKING"
+          ]
+        },
+        "quarantine": {
+          "allowed_uses": [
+            "DISPLAY",
+            "AAR_ONLY",
+            "DEBUG_ONLY"
+          ],
+          "prohibited_uses": [
+            "FUSION_INPUT",
+            "STATE_UPDATE",
+            "COALITION_EXPORT",
+            "COMMAND_BASIS",
+            "AUTONOMY_TASKING"
+          ]
+        },
+        "warn": {
+          "allowed_uses": [
+            "DISPLAY",
+            "LOCAL_AWARENESS",
+            "ALERTING"
+          ],
+          "prohibited_uses": [
+            "COMMAND_BASIS",
+            "AUTONOMY_TASKING"
+          ]
+        }
+      }
+    },
+    "producers": {
+      "acoustic-sensor": {
+        "allowed_event_types": [
+          "OBSERVATION_EVENT",
+          "SYSTEM_EVENT"
+        ]
+      },
+      "acoustic-sensor-*": {
+        "allowed_event_types": [
+          "OBSERVATION_EVENT",
+          "SYSTEM_EVENT"
+        ]
+      },
+      "autonomy": {
+        "allowed_event_types": [
+          "SYSTEM_EVENT"
+        ]
+      },
+      "autopilot": {
+        "allowed_event_types": [
+          "SYSTEM_EVENT"
+        ]
+      },
+      "classifier-*": {
+        "allowed_event_types": [
+          "INFERENCE_EVENT",
+          "SYSTEM_EVENT"
+        ]
+      },
+      "comms-deconfliction-*": {
+        "allowed_event_types": [
+          "COMMAND_EVENT",
+          "SYSTEM_EVENT"
+        ]
+      },
+      "cot-ingress": {
+        "allowed_event_types": [
+          "STATE_EVENT",
+          "SYSTEM_EVENT"
+        ],
+        "external_state_promotion": {
+          "allowed_confidence_basis": [
+            "EXPLICIT_EXTERNAL_CONFIDENCE",
+            "FUSION_BACKED_CONFIDENCE"
+          ],
+          "allowed_projection_ids": [
+            "cot"
+          ],
+          "approved_policy_ids": [
+            "PROMOTE-COT-STATE-V1"
+          ],
+          "required": true
+        }
+      },
+      "detector-*": {
+        "allowed_event_types": [
+          "INFERENCE_EVENT",
+          "SYSTEM_EVENT"
+        ]
+      },
+      "eo-camera": {
+        "allowed_event_types": [
+          "OBSERVATION_EVENT",
+          "SYSTEM_EVENT"
+        ]
+      },
+      "eo-cv-*": {
+        "allowed_event_types": [
+          "INFERENCE_EVENT",
+          "SYSTEM_EVENT"
+        ]
+      },
+      "eo-cv-adapter": {
+        "allowed_event_types": [
+          "INFERENCE_EVENT",
+          "SYSTEM_EVENT"
+        ]
+      },
+      "eo-sensor-*": {
+        "allowed_event_types": [
+          "OBSERVATION_EVENT",
+          "SYSTEM_EVENT"
+        ]
+      },
+      "example-vendor": {
+        "allowed_event_types": [
+          "OBSERVATION_EVENT",
+          "SYSTEM_EVENT"
+        ]
+      },
+      "flir-sensor": {
+        "allowed_event_types": [
+          "OBSERVATION_EVENT",
+          "SYSTEM_EVENT"
+        ]
+      },
+      "fusion-*": {
+        "allowed_event_types": [
+          "FUSION_EVENT",
+          "STATE_EVENT",
+          "SYSTEM_EVENT"
+        ]
+      },
+      "fusion-engine": {
+        "allowed_event_types": [
+          "FUSION_EVENT",
+          "STATE_EVENT",
+          "SYSTEM_EVENT"
+        ]
+      },
+      "gateway-*": {
+        "allowed_event_types": [
+          "SYSTEM_EVENT"
+        ]
+      },
+      "jreap-ingress": {
+        "allowed_event_types": [
+          "STATE_EVENT",
+          "SYSTEM_EVENT"
+        ],
+        "external_state_promotion": {
+          "allowed_confidence_basis": [
+            "EXPLICIT_EXTERNAL_CONFIDENCE",
+            "FUSION_BACKED_CONFIDENCE"
+          ],
+          "allowed_projection_ids": [
+            "jreap"
+          ],
+          "approved_policy_ids": [
+            "PROMOTE-JREAP-STATE-V1"
+          ],
+          "required": true
+        }
+      },
+      "klv-ingress": {
+        "allowed_event_types": [
+          "OBSERVATION_EVENT",
+          "SYSTEM_EVENT"
+        ]
+      },
+      "klv:*": {
+        "allowed_event_types": [
+          "OBSERVATION_EVENT",
+          "SYSTEM_EVENT"
+        ]
+      },
+      "kraken-sdr": {
+        "allowed_event_types": [
+          "OBSERVATION_EVENT",
+          "SYSTEM_EVENT"
+        ]
+      },
+      "krakensdr-*": {
+        "allowed_event_types": [
+          "OBSERVATION_EVENT",
+          "SYSTEM_EVENT"
+        ]
+      },
+      "krakensdr-adapter": {
+        "allowed_event_types": [
+          "OBSERVATION_EVENT",
+          "SYSTEM_EVENT"
+        ]
+      },
+      "mavlink": {
+        "allowed_event_types": [
+          "STATE_EVENT",
+          "SYSTEM_EVENT"
+        ],
+        "external_state_promotion": {
+          "allowed_confidence_basis": [
+            "GPS_FIX_CONFIDENCE"
+          ],
+          "allowed_projection_ids": [
+            "mavlink"
+          ],
+          "approved_policy_ids": [
+            "PROMOTE-MAVLINK-STATE-V1"
+          ],
+          "required": true
+        }
+      },
+      "mavlink-*": {
+        "allowed_event_types": [
+          "STATE_EVENT",
+          "SYSTEM_EVENT"
+        ],
+        "external_state_promotion": {
+          "allowed_confidence_basis": [
+            "GPS_FIX_CONFIDENCE"
+          ],
+          "allowed_projection_ids": [
+            "mavlink"
+          ],
+          "approved_policy_ids": [
+            "PROMOTE-MAVLINK-STATE-V1"
+          ],
+          "required": true
+        }
+      },
+      "mavlink-adapter": {
+        "allowed_event_types": [
+          "STATE_EVENT",
+          "SYSTEM_EVENT"
+        ],
+        "external_state_promotion": {
+          "allowed_confidence_basis": [
+            "GPS_FIX_CONFIDENCE"
+          ],
+          "allowed_projection_ids": [
+            "mavlink"
+          ],
+          "approved_policy_ids": [
+            "PROMOTE-MAVLINK-STATE-V1"
+          ],
+          "required": true
+        }
+      },
+      "moth-*": {
+        "allowed_event_types": [
+          "OBSERVATION_EVENT",
+          "SYSTEM_EVENT"
+        ]
+      },
+      "moth-adapter": {
+        "allowed_event_types": [
+          "OBSERVATION_EVENT",
+          "SYSTEM_EVENT"
+        ]
+      },
+      "onboard-camera": {
+        "allowed_event_types": [
+          "OBSERVATION_EVENT",
+          "SYSTEM_EVENT"
+        ]
+      },
+      "packet-analyzer": {
+        "allowed_event_types": [
+          "OBSERVATION_EVENT",
+          "SYSTEM_EVENT"
+        ]
+      },
+      "packet-analyzer-*": {
+        "allowed_event_types": [
+          "OBSERVATION_EVENT",
+          "SYSTEM_EVENT"
+        ]
+      },
+      "retasking-engine": {
+        "allowed_event_types": [
+          "COMMAND_EVENT",
+          "SYSTEM_EVENT"
+        ]
+      },
+      "rf-sensor": {
+        "allowed_event_types": [
+          "OBSERVATION_EVENT",
+          "SYSTEM_EVENT"
+        ]
+      },
+      "rf-sensor-*": {
+        "allowed_event_types": [
+          "OBSERVATION_EVENT",
+          "SYSTEM_EVENT"
+        ]
+      },
+      "sapient-ingress": {
+        "allowed_event_types": [
+          "OBSERVATION_EVENT",
+          "INFERENCE_EVENT",
+          "STATE_EVENT",
+          "SYSTEM_EVENT"
+        ],
+        "external_state_promotion": {
+          "allowed_confidence_basis": [
+            "EXPLICIT_EXTERNAL_CONFIDENCE",
+            "FUSION_BACKED_CONFIDENCE"
+          ],
+          "allowed_projection_ids": [
+            "sapient"
+          ],
+          "approved_policy_ids": [
+            "PROMOTE-SAPIENT-STATE-V1"
+          ],
+          "required": true
+        }
+      },
+      "sensor-mgr": {
+        "allowed_event_types": [
+          "SYSTEM_EVENT"
+        ]
+      },
+      "sensorops": {
+        "allowed_event_types": [
+          "OBSERVATION_EVENT",
+          "STATE_EVENT",
+          "COMMAND_EVENT",
+          "SYSTEM_EVENT"
+        ]
+      },
+      "signalhunter-*": {
+        "allowed_event_types": [
+          "OBSERVATION_EVENT",
+          "SYSTEM_EVENT"
+        ]
+      },
+      "signalhunter-adapter": {
+        "allowed_event_types": [
+          "OBSERVATION_EVENT",
+          "SYSTEM_EVENT"
+        ]
+      },
+      "state-projector-*": {
+        "allowed_event_types": [
+          "STATE_EVENT",
+          "SYSTEM_EVENT"
+        ]
+      },
+      "torch": {
+        "allowed_event_types": [
+          "INFERENCE_EVENT",
+          "FUSION_EVENT",
+          "STATE_EVENT"
+        ],
+        "forbidden_event_types": [
+          "COMMAND_EVENT"
+        ]
+      },
+      "zmeta-gateway": {
+        "allowed_event_types": [
+          "SYSTEM_EVENT"
+        ]
+      }
+    },
+    "require_match_for_event_types": [
+      "OBSERVATION_EVENT",
+      "INFERENCE_EVENT",
+      "FUSION_EVENT",
+      "STATE_EVENT",
+      "COMMAND_EVENT",
+      "SYSTEM_EVENT"
+    ]
+  }
+}

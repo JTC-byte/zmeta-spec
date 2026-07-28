@@ -10,10 +10,25 @@ Files:
 - `lineage.yaml` context-aware lineage consistency rules
 - `timing-freshness.yaml` runtime TIME_STATUS freshness rules
 - `routing.yaml` routing/source constraints
+- `command-evidence.yaml` upstream use-limit checks for commands citing lineage evidence
+- `profile-precision.yaml` reference profile precision and quantization defaults
 - `violation-codes.yaml` reason codes with severity tiers (advisory for reference implementations)
 
 Normative compliance is defined by the semantic contract and schema; this policy pack
 drives reference enforcement behavior.
+
+## Reading this pack without a YAML parser
+
+`export/policy/*.json` is a generated, verbatim JSON projection of every file
+above — same names, same data, nothing renamed or interpreted. It exists so a
+consumer outside the Python stack does not have to vendor a YAML parser or,
+as has happened in the field, hand-copy the rules into its own source.
+
+**The YAML here is the source of truth.** The projection is one-directional:
+editing a JSON file does not change policy, it produces a stale file that
+`python tools/export_policy_json.py --check` fails on. Regenerate with
+`python tools/export_policy_json.py` whenever a file above changes; the test
+suite enforces it either way. See `export/README.md`.
 
 Rule-class posture:
 - `LOCKED` semantics are not policy knobs. Policy must not make invalid event

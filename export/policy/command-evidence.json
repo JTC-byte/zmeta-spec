@@ -1,0 +1,43 @@
+{
+  "command_evidence": {
+    "command_basis_use_tokens": [
+      "COMMAND_BASIS",
+      "AUTONOMY_TASKING"
+    ],
+    "enabled": true,
+    "evidence_index_max_entries": 4096,
+    "motivating_parent_event_types": [
+      "INFERENCE_EVENT",
+      "FUSION_EVENT",
+      "STATE_EVENT"
+    ],
+    "parent_type_mismatch_mode": "reject",
+    "prohibited_use_mode": "reject",
+    "require_evidence": false,
+    "require_evidence_mode": "reject",
+    "require_evidence_task_types": [],
+    "unresolved_parent_mode": "warn",
+    "use_limits": {
+      "degrade": {
+        "allowed_uses": [
+          "DISPLAY",
+          "LOCAL_AWARENESS",
+          "ALERTING"
+        ],
+        "prohibited_uses": [
+          "AUTONOMY_TASKING"
+        ]
+      },
+      "warn": {
+        "allowed_uses": [
+          "DISPLAY",
+          "LOCAL_AWARENESS",
+          "ALERTING"
+        ],
+        "prohibited_uses": [
+          "AUTONOMY_TASKING"
+        ]
+      }
+    }
+  }
+}

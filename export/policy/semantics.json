@@ -1,0 +1,202 @@
+{
+  "semantics": {
+    "command_event": {
+      "dedupe_key": "task_id",
+      "payload_must_not_contain": [
+        "alt",
+        "alt_m",
+        "altitude",
+        "altitude_m",
+        "alt_hae_m",
+        "alt_msl_m",
+        "agl_m",
+        "target_alt_m",
+        "target_altitude"
+      ],
+      "requires_deconfliction": true
+    },
+    "inference_event": {
+      "payload_must_not_contain": [
+        "track_id",
+        "members",
+        "estimated_state"
+      ]
+    },
+    "observation_event": {
+      "payload_must_not_contain": [
+        "track_id",
+        "entity_class",
+        "classification",
+        "label",
+        "class_name",
+        "confidence"
+      ],
+      "rf_window_midpoint_tolerance_ms": 1
+    },
+    "state_event": {
+      "payload_must_not_contain": [
+        "features",
+        "raw_features",
+        "modality",
+        "measurement",
+        "measurements",
+        "t_start",
+        "t_end",
+        "data_ref",
+        "data_refs"
+      ]
+    },
+    "system_event": {
+      "link_status_allowed_reason_codes": [
+        "LINK_LOSS",
+        "LOW_RSSI",
+        "HIGH_LATENCY",
+        "HIGH_PACKET_LOSS",
+        "LOW_THROUGHPUT",
+        "INTERFERENCE",
+        "JAMMED",
+        "BACKHAUL_DOWN",
+        "NO_ROUTE",
+        "CONFIG_ERROR",
+        "POWER_SAVE",
+        "UNKNOWN_CAUSE"
+      ],
+      "link_status_allowed_states": [
+        "UP",
+        "DEGRADED",
+        "DOWN",
+        "UNKNOWN"
+      ],
+      "link_status_reason_code_required_states": [
+        "DEGRADED",
+        "DOWN"
+      ],
+      "link_status_required_metrics_fields": [
+        "link_id",
+        "latency_ms",
+        "packet_loss_pct",
+        "throughput_bps"
+      ],
+      "schema_violation_allowed_reason_codes": [
+        "SCHEMA_INVALID",
+        "VERSION_SEMANTICS_MISMATCH",
+        "EVENT_SUBTYPE_MISMATCH",
+        "EVENT_TYPE_NOT_ALLOWED_FOR_ROLE",
+        "EVENT_TYPE_NOT_ALLOWED_FOR_PROFILE",
+        "COMMAND_NOT_DECONFLICTED",
+        "COMMAND_HAS_ALTITUDE",
+        "INVALID_COMMAND_GEOMETRY",
+        "COMMAND_TASK_TYPE_INVALID",
+        "OBSERVATION_HAS_IDENTITY",
+        "OBSERVATION_HAS_CLASSIFICATION",
+        "INFERENCE_HAS_TRACK_ID",
+        "INFERENCE_HAS_FUSION_STATE",
+        "STATE_HAS_RAW_FEATURES",
+        "INVALID_QUALITY_UNITS",
+        "INVALID_QUALITY_BEARING_FRAME",
+        "INVALID_QUALITY_HEADING_SOURCE",
+        "INVALID_MODALITY_FEATURES",
+        "INVALID_GEO_FIELD",
+        "GEO_ZERO_FILL_SUSPECTED",
+        "ENCODING_UNSUPPORTED",
+        "BEARING_FRAME_UNLABELED",
+        "NON_FINITE_CONFIDENCE",
+        "INVALID_TIME_FORMAT",
+        "RF_WINDOW_PAIRING_INVALID",
+        "RF_WINDOW_MIDPOINT_INVALID",
+        "LINEAGE_MISMATCH",
+        "LINEAGE_PAYLOAD_BASED_ON_NOT_SUBSET",
+        "LINEAGE_FUSION_MEMBERS_NOT_IN_BASED_ON",
+        "LINEAGE_PARENT_UNRESOLVED",
+        "LINEAGE_PARENT_TYPE_INVALID",
+        "SCHEMA_VIOLATION_MISSING_REASON_CODE",
+        "SCHEMA_VIOLATION_MISSING_ORIGINAL_EVENT_ID",
+        "SCHEMA_VIOLATION_INVALID_REASON_CODE",
+        "TASK_ACK_MISSING_TASK_ID",
+        "TASK_ACK_MISSING_REQUIRED_FIELD",
+        "TASK_ACK_MISSING_ORIGINAL_EVENT_ID",
+        "TASK_ACK_MISSING_REASON_CODE",
+        "TASK_ACK_INVALID_STATE",
+        "TASK_ACK_INVALID_REASON_CODE",
+        "LINK_STATUS_MISSING_REQUIRED_FIELD",
+        "LINK_STATUS_INVALID_STATE",
+        "LINK_STATUS_MISSING_REASON_CODE",
+        "LINK_STATUS_INVALID_REASON_CODE",
+        "SENSOR_STATUS_STATE_MISMATCH",
+        "PLATFORM_STATUS_POWER_MISSING",
+        "PRODUCER_NOT_ALLOWED",
+        "PROFILE_MISMATCH",
+        "TIMING_STATUS_MISSING",
+        "TIMING_STATUS_STALE",
+        "TIMING_STATUS_AGE_NEGATIVE",
+        "TIMING_STATUS_UNSYNCED",
+        "TIMING_STATUS_HOLDOVER_NON_MONOTONIC",
+        "RF_WINDOW_MIDPOINT_MISMATCH",
+        "EVENT_DUPLICATE",
+        "TASK_DUPLICATE",
+        "TASK_ACK_DUPLICATE"
+      ],
+      "schema_violation_required_metrics_fields": [
+        "reason_code",
+        "original_event_id"
+      ],
+      "task_ack_allowed_reason_codes": [
+        "SCHEMA_INVALID",
+        "EVENT_TYPE_NOT_ALLOWED_FOR_ROLE",
+        "EVENT_TYPE_NOT_ALLOWED_FOR_PROFILE",
+        "PRODUCER_NOT_ALLOWED",
+        "COMMAND_NOT_DECONFLICTED",
+        "COMMAND_HAS_ALTITUDE",
+        "TASK_DUPLICATE",
+        "TASK_EXPIRED",
+        "TASK_CANCELLED",
+        "TASK_FAILED",
+        "TASK_ABORTED",
+        "TASK_REJECTED"
+      ],
+      "task_ack_allowed_states": [
+        "RECEIVED",
+        "ACCEPTED",
+        "REJECTED",
+        "EXECUTING",
+        "COMPLETED",
+        "FAILED",
+        "CANCELLED",
+        "EXPIRED",
+        "DUPLICATE_IGNORED"
+      ],
+      "task_ack_reason_code_required_states": [
+        "REJECTED",
+        "FAILED",
+        "CANCELLED",
+        "EXPIRED",
+        "DUPLICATE_IGNORED"
+      ],
+      "task_ack_required_metrics_fields": [
+        "task_id",
+        "original_event_id"
+      ]
+    },
+    "timing_quality": {
+      "per_event_paths": [
+        "payload.timing_quality",
+        "payload.quality.timing_quality",
+        "payload.quality"
+      ],
+      "required": true,
+      "required_event_types": [
+        "OBSERVATION_EVENT",
+        "INFERENCE_EVENT",
+        "FUSION_EVENT",
+        "STATE_EVENT",
+        "COMMAND_EVENT"
+      ],
+      "required_fields": [
+        "time_source",
+        "sync_state",
+        "est_error_ms",
+        "last_sync_ts"
+      ]
+    }
+  }
+}

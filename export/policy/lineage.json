@@ -1,0 +1,42 @@
+{
+  "lineage": {
+    "allowed_parent_event_types": {
+      "FUSION_EVENT": [
+        "OBSERVATION_EVENT",
+        "INFERENCE_EVENT",
+        "FUSION_EVENT"
+      ],
+      "INFERENCE_EVENT": [
+        "OBSERVATION_EVENT"
+      ],
+      "STATE_EVENT": [
+        "FUSION_EVENT",
+        "STATE_EVENT"
+      ]
+    },
+    "enabled": true,
+    "fusion_members_in_lineage_mode": "warn",
+    "parent_type_mismatch_mode": "reject",
+    "payload_based_on_subset_mode": "reject",
+    "unresolved_parent_mode": {
+      "H": "warn",
+      "L": "ignore",
+      "M": "warn"
+    },
+    "use_limits": {
+      "warn": {
+        "allowed_uses": [
+          "DISPLAY",
+          "LOCAL_AWARENESS",
+          "ALERTING",
+          "FUSION_INPUT",
+          "STATE_UPDATE"
+        ],
+        "prohibited_uses": [
+          "COMMAND_BASIS",
+          "AUTONOMY_TASKING"
+        ]
+      }
+    }
+  }
+}

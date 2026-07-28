@@ -245,6 +245,10 @@ each version.
 - `examples/` Sample payloads and usage patterns.
 - `conformance/` Must-pass/must-fail regression corpus.
 - `policy/` Policy language and enforcement guidance.
+- `export/` Derived, non-authoritative projections of governed artifacts —
+  currently `export/policy/*.json`, a verbatim JSON rendering of
+  `policy/*.yaml` for consumers that cannot read YAML. Generated and
+  hash-pinned; never edited by hand. See `export/README.md`.
 - `gateway/` Reference gateway implementation and tests.
 - `adapters/` Ingress and egress adapter patterns and templates.
 - `tools/` Utilities for validation and development workflows.

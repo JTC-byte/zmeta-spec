@@ -1,0 +1,60 @@
+{
+  "authority": "policy/*.yaml is the source of truth. This directory is a derived, verbatim JSON projection of it and is never edited by hand.",
+  "canonicalization": "sorted keys, 2-space indent, LF newlines, UTF-8, trailing newline",
+  "generated_by": "tools/export_policy_json.py",
+  "regenerate": "python tools/export_policy_json.py",
+  "source_hash_canonicalization": "text_lf, matching release manifest file hashes",
+  "sources": [
+    {
+      "export": "export/policy/command-evidence.json",
+      "source": "policy/command-evidence.yaml",
+      "source_sha256": "sha256:aecc54aee447f21866a26f2d30b53b4edd5b3742514e85dac6208eee86807184"
+    },
+    {
+      "export": "export/policy/lineage.json",
+      "source": "policy/lineage.yaml",
+      "source_sha256": "sha256:cbabca448f478c9051b8d24ae38a09bfebe0297f76bfd373485361d549ba94d7"
+    },
+    {
+      "export": "export/policy/producer-authority.json",
+      "source": "policy/producer-authority.yaml",
+      "source_sha256": "sha256:d1ed35df46863b4f908c41a833403a21bff0ec9803e55a0db6b307ec457ee145"
+    },
+    {
+      "export": "export/policy/profile-precision.json",
+      "source": "policy/profile-precision.yaml",
+      "source_sha256": "sha256:e5c5544e9489ad27219a52de3bb4cab5ae71f3a216d2ce5af78c17b655b1d5cb"
+    },
+    {
+      "export": "export/policy/profiles.json",
+      "source": "policy/profiles.yaml",
+      "source_sha256": "sha256:e45555013347b80157437aba35493c9430ac758690026d81aca889301ce4bfab"
+    },
+    {
+      "export": "export/policy/roles.json",
+      "source": "policy/roles.yaml",
+      "source_sha256": "sha256:7e274c3fac81ae2f8bac96bb3f0260a1ce034919e69359b54c270c8a8492af2b"
+    },
+    {
+      "export": "export/policy/routing.json",
+      "source": "policy/routing.yaml",
+      "source_sha256": "sha256:5ea05c34cd25defe9ebf1ab74c8a836f9a48e86340cc0ee42f996d8f33109ae2"
+    },
+    {
+      "export": "export/policy/semantics.json",
+      "source": "policy/semantics.yaml",
+      "source_sha256": "sha256:7309d8d94c5bc38738d8de58763e5ce5335e8b56faf7dcda962ab9f5678a9f5c"
+    },
+    {
+      "export": "export/policy/timing-freshness.json",
+      "source": "policy/timing-freshness.yaml",
+      "source_sha256": "sha256:5a3102b5eae5c6577f6f7fffecd864efde10c63cf125ac7e9f5220b2d50fe348"
+    },
+    {
+      "export": "export/policy/violation-codes.json",
+      "source": "policy/violation-codes.yaml",
+      "source_sha256": "sha256:5dd4e1be591f1efe04d3165f243f0e7d2dfdae6abbb65f1f273a952d9b8f2774"
+    }
+  ],
+  "verify": "python tools/export_policy_json.py --check"
+}

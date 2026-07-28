@@ -71,6 +71,37 @@
   as it shipped in the v1.1.18 tag, kept in the test as its fixture, because
   four pins earlier in this cycle proved vacuous when some other gate was
   doing the refusing. Prose staleness was machine-invisible; it no longer is.
+- 2026-07-27 — **the governed policy is now readable without a YAML parser.**
+  `export/policy/*.json` is a generated, verbatim JSON projection of
+  `policy/*.yaml` — one file per source, same name, same data, nothing
+  renamed, filtered, or interpreted — produced by
+  `tools/export_policy_json.py` and hash-pinned in the release manifest under
+  the new `policy_json_export` artifact group. Authority is one-directional
+  per contract gate 4: `policy/*.yaml` remains the source of truth, a
+  hand-edited JSON file is a stale file rather than policy, and `--check`
+  fails on it. Motivated by P2-01's second finding: a fielded consumer was
+  mirroring the semantics-contract §7.7 STATE denylist in TypeScript and
+  re-verifying that alignment by hand at every version advance. Copying was
+  not a discipline failure — vendoring a YAML parser or hand-copying were the
+  only two options this repo offered a non-Python consumer, and a hand-copy
+  of governed data is a private dialect forming around the honesty
+  primitives. Deliberately not a curated bundle: folding the schema's
+  controlled vocabularies in alongside would mean judging what a consumer
+  needs, creating a third artifact that can drift from both parents.
+  `policy_bundle_hash` is unchanged by the addition, which is the invariant
+  that keeps a derived artifact from perturbing a governed one. Pinned by
+  `gateway/tests/test_policy_json_export.py`: freshness, per-file semantic
+  equality against the YAML, coverage in both directions, agreement between
+  the generator's hash function and the manifest's, and manifest pinning —
+  with the drift pins exercised against a synthetic repo root, so they are
+  known to fail on the bad state rather than only observed to pass on the
+  good one.
+- 2026-07-27 — `policy/README.md` now names `command-evidence.yaml` and
+  `profile-precision.yaml`, and a test pins that list against the directory.
+  Both were governed files the pack's own file list did not mention — found
+  while adding the export pointer, and the same machine-invisible prose
+  staleness as P2-01: every hash and version pin stayed green while the
+  human-readable index of the pack sat two files behind.
 
 ## [1.1.18] - 2026-07-27
 
