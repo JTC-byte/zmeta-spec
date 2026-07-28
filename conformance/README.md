@@ -1,5 +1,19 @@
 # Conformance Pack
 
+> **`--conformance-classes` is a repository-side check, not a bundle-side one.**
+> `conformance_classes.yaml` cites maintainer process records under `docs/` as
+> its evidence entries — that is what conformance-class evidence *is*, a link
+> back to the audit that established the class. Release bundles deliberately
+> ship the governance documents but not the process-record archive, so running
+> `validate_conformance.py --conformance-classes` from inside an unpacked
+> bundle reports `CONFORMANCE_PATH_MISSING` for those references. That is
+> expected and is not a defect in the bundle or in the corpus.
+>
+> Everything else in this pack runs anywhere: `--strict`,
+> `--profile-projection`, `--extension-negative`, `--precision-policy`,
+> `--bad-events` and `--adapter-harness` all pass from a bundle. Run the
+> class check from a clone.
+
 This folder contains a regression corpus for the canonical
 version-discriminated schema plus policy pack:
 

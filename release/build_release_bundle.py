@@ -69,12 +69,6 @@ def collect_sources(root, version):
         root / "spec" / "release-hash-policy.md",
         root / "spec" / "release-signing-attestation.md",
         root / "spec" / "README.md",
-        root / "tools" / "build_release_manifest.py",
-        root / "tools" / "validate_release_manifest.py",
-        root / "tools" / "build_release_package.py",
-        root / "tools" / "validate_release_package.py",
-        root / "tools" / "compute_contract_hash.py",
-        root / "tools" / "validate_conformance.py",
         root / "release" / f"VALIDATION_REPORT_v{version}.md",
     ]
     for path in optional:
@@ -142,14 +136,19 @@ def main():
     copy_tree(root / "policy", dist / "policy")
     copy_tree(root / "export", dist / "export")
     copy_tree(root / "conformance", dist / "conformance")
-    # PC-09: whole trees, not enumerated files. The dist bundle shipped
-    # `validate_conformance.py` while omitting the ten sub-validators its own
-    # flags invoke, so the entry point it distributed could not run -- and the
-    # enumeration drifted every time a validator or spec file was added,
-    # silently. Copying the directories makes coverage self-maintaining, which
-    # is the only version of this that survives the next addition.
+    # PC-09/PC-12: `spec` is copied whole rather than enumerated, because the
+    # enumeration drifted silently every time a spec file was added.
+    #
+    # `tools` is deliberately NOT copied. The dist bundle is the SPEC
+    # DISTRIBUTION -- schema, governed policy, the JSON export, the conformance
+    # corpus, the governance documents. It is not the reference stack. Shipping
+    # the validators here never worked: they load `gateway/src/validators.py` at
+    # import time and this bundle does not carry `gateway/`, so every one of
+    # them failed on import from the dist zip. Shipping a toolchain that cannot
+    # start is worse than not shipping one, because the first thing a new user
+    # does is run it. Consumers who want the toolchain take the edge or gateway
+    # bundle, or clone the repo.
     copy_tree(root / "spec", dist / "spec")
-    copy_tree(root / "tools", dist / "tools")
     copy_tree(root / "configs", dist / "configs")
     copy_tree(root / "examples", dist / "examples")
 

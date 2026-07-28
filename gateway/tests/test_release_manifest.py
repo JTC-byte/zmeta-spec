@@ -378,11 +378,24 @@ def test_release_bundles_carry_every_hashed_artifact():
         f"would ship without files the manifest declares shipped."
     )
 
+    # The dist bundle has a DECLARED narrower scope: it is the spec
+    # distribution, not the reference stack, and carries no toolchain (PC-12).
+    # That is asserted in both directions -- everything else must be present,
+    # and no tool source may be present -- so the exclusion stays a stated
+    # scope rather than becoming a tolerated gap that quietly widens.
     dist = _dist_bundle_paths()
-    dist_missing = sorted(path for path in hashed if not _covered(path, dist))
+    expected_in_dist = {path for path in hashed if not path.startswith("tools/")}
+    dist_missing = sorted(path for path in expected_in_dist if not _covered(path, dist))
     assert dist_missing == [], (
         f"release/build_release_bundle.py omits {dist_missing}, which the release "
         f"manifest hashes as part of the release; the dist zip would not carry them."
+    )
+    tool_paths = sorted(path for path in dist if path.startswith("tools"))
+    assert tool_paths == [], (
+        f"the dist bundle carries tool source {tool_paths}. It is the spec "
+        f"distribution and ships no toolchain: those tools import the reference "
+        f"gateway at module load, which this bundle does not carry, so they would "
+        f"fail on import for whoever ran them first."
     )
 
 

@@ -69,12 +69,21 @@ list:
 - `release/governed-baseline.yaml`, so a consumer can verify the governance
   claim below rather than trust it.
 
-The dist bundle also shipped `validate_conformance.py` without the ten
-sub-validators its own flags invoke. Those now ship. **Known limitation,
-pre-existing and not closed in this release:** those validators import the
-reference gateway at module load, and the dist bundle still does not carry
-`gateway/`, so running them from the dist zip fails on import. The edge and
-gateway bundles are unaffected. Tracked for the next cut.
+**The dist bundle no longer ships a toolchain.** It is the spec
+distribution — schema, governed policy, the JSON export, the conformance
+corpus, the governance documents — and the validators it used to carry could
+never run from it: they import the reference gateway at module load and this
+bundle does not contain it. Shipping a toolchain that cannot start is worse
+than shipping none, because running it is the first thing a new user does.
+Take the edge or gateway bundle, or clone, if you want the tools. The bundle
+coverage test now asserts that scope in both directions.
+
+`validate_conformance.py --conformance-classes` is a **repository-side**
+check. `conformance_classes.yaml` cites maintainer process records as its
+evidence, and bundles ship the governance documents but not the record
+archive, so that one flag reports missing paths from inside a bundle. Every
+other conformance flag passes from a bundle. Documented in
+`conformance/README.md`.
 
 ## Current-facing claims are machine-checked
 
