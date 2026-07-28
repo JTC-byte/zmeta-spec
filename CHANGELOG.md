@@ -1190,3 +1190,213 @@
 
 ## [1.0.0]
 - Initial public release of the ZMeta specification
+
+---
+
+## Historical Integration Notes
+
+Per-release integration guidance, moved verbatim from `README.md` at the
+2026-07-27 closeout so the README leads with what the standard is rather than
+with release archaeology. Current-release notes stay in `README.md`.
+
+### v1.1.16 Integration Notes
+
+- Corpus for RF adapter authors:
+  `adapters/mapping-packs/edge-comms-bladerf/` pairs two real bladeRF
+  detections with expected ZMeta output, demonstrating the refusal
+  doctrine on real data — geo omitted for null and zero-island sensor
+  positions (`geo_status: UNAVAILABLE`), canonical bearing omitted in
+  both cases because the native bearing is heading-derived with no
+  producer frame assertion (values travel as
+  `features.native_bearing_deg`/`native_bearing_error_deg`), degraded
+  timing fallback carried explicitly, no fabricated lineage. Its
+  reference implementation shipped in v1.1.18 as
+  `adapters/ingress/bladerf/`.
+- The pack README documents the frame-provenance route
+  (`quality.bearing_frame: TRUE_NORTH` + `quality.heading_source`) for
+  deployments that can assert their heading reference, mirroring the
+  kraken reference adapter.
+
+### v1.1.15 Integration Notes
+
+- New mapping pack `adapters/mapping-packs/sapient-bsi-flex-335/`
+  (schema_id `vendor:sapient_bsi335:v2`) plus reference adapters:
+  `adapters/ingress/sapient/` translates SapientMessage protobuf-JSON
+  dicts (DetectionReport → OBSERVATION + per-claim INFERENCE with
+  registration-derived model identity; fusion-node reports → STATE
+  promotion under caller-owned `external_promotion` metadata;
+  StatusReport → SENSOR_STATUS/PLATFORM_STATUS on the 1.1.0 branch;
+  TaskAck → TASK_ACK; Error → SCHEMA_VIOLATION), and
+  `adapters/egress/sapient/` projects COMMAND_EVENT → Task
+  (GOTO/TRACK_TARGET/CHANGE_SENSOR_MODE only; altitude structurally
+  excluded) and STATE_EVENT → DetectionReport with
+  `zmeta.risk`/`zmeta.timing_quality` self-labels.
+- Registration capture is the units-and-error codex: signal and
+  velocity values reach canonical fields only through
+  registration-resolved units; unregistered nodes refuse detection
+  translation. Send-time timestamps widen `est_error_ms` by the
+  registered per-mode `maximum_latency`.
+- SAPIENT id discipline on egress: DetectionReport `report_id` is a
+  ULID minted from the event's own timestamp; `object_id` and Task
+  `task_id` are validated ULIDs (caller-owned `object_map` for native
+  track ids; SAPIENT-bridged command producers mint ULID task ids).
+- SAPIENT Task ingress (external DMMs tasking ZMeta platforms) is
+  deliberately out of scope for this release (command-safety boundary).
+- `tools/check_compat.py` gains the `v1.1.15` target; the compat target
+  and current-facing docs re-baseline to the v1.1.15 release manifest.
+
+### v1.1.14 Integration Notes
+
+- Reference ingress adapters now refuse input they previously translated
+  with invented values: null `platform_id`/`sensor_id` (example-vendor),
+  absent/null/non-numeric confidence (eo-cv), missing
+  `center_freq_hz`/`power_dbm` on the kraken/moth JSON-replay paths.
+  Canonical geo is all-or-nothing per contract 6.8 (missing altitude
+  omits geo entirely — no more `alt_m: 0.0` fill), and optional error
+  bounds are omitted when unmeasured, never defaulted. `bandwidth_hz:
+  0.0` from receiver-class RF sensors is a documented sentinel (kraken,
+  moth, and signalhunter READMEs).
+- CoT egress display defaults changed: unknown accuracy and unknown
+  altitude render as CoT's `9999999.0` unknown convention (previously
+  invented 15 m/10 m and 0 m); event time is authoritative by default
+  (`use_wall_clock` is now an explicit replay-display opt-in); events
+  missing `event.ts` are refused outside wall-clock mode; confidence is
+  appended to remarks whenever present.
+- New governed diagnostic codes in both schemas' SYSTEM_EVENT
+  `reason_code` enums: `INFERENCE_HAS_FUSION_STATE`,
+  `INVALID_QUALITY_BEARING_FRAME`, `INVALID_QUALITY_HEADING_SOURCE`,
+  `GEO_ZERO_FILL_SUSPECTED` (warn). `quality.bearing_frame` /
+  `quality.heading_source` are now enforced at the semantics layer for
+  both versions (and by enum in the v1.1 schema); nested
+  `members`/`estimated_state` in INFERENCE payloads are rejected
+  recursively; canonical geo at (0,0) draws a warn-severity diagnostic.
+- Adapter-harness fixtures are stricter: `expect.events` requires
+  `event_count`, surplus expectations fail
+  (`ADAPTER_EXPECTATION_SURPLUS`), and a `None` return from a
+  `result: "event"` callable registers refusal (`event_count: 0`).
+  Must-pass corpus 15 -> 27; bad-events corpus 23 -> 27. Third-party
+  fixtures pinning per-event expectations without `event_count` must add
+  it.
+- Gateway configs that list `payload.extensions.risk_adjudication` or
+  `payload.extensions.external_promotion` under `strip_optional_fields`
+  are rejected at startup (accepted-risk labels and promotion evidence
+  stay filterable downstream).
+- The validation tools fail on empty input instead of passing vacuously;
+  checksum verification cross-checks coverage against the artifact list;
+  new `SHA256SUMS` files are LF so plain `sha256sum -c` works on Linux.
+- `tools/check_compat.py` gains the `v1.1.14` target; the compat target
+  defaults in `check_adapter.py`, `check_compat.py`, the bundle
+  builders, and `sign_release_artifacts.py` all derive from the release
+  manifest now.
+- Deployments using release or contract hash gates should update expected
+  hashes from the v1.1.14 release manifest (the semantic contract carries
+  two Class B wording clarifications: section 2.1 diagnostic-vocabulary
+  widening; section 5.7 holdover "must not decrease").
+
+### v1.1.13 Integration Notes
+
+- New adapter-authoring entry point: `adapters/AUTHORING.md` (orientation,
+  input floor, layer choice, the anti-fabrication non-negotiables, the
+  validation command ladder, the fixture-key reference, and review-proven
+  AI-agent failure modes), a worked exercise adapter at
+  `adapters/ingress/example-vendor/`, and `tools/check_adapter.py` — a
+  one-command wrapper for the tool-based ladder steps that fails on empty
+  input instead of passing vacuously.
+- The adapter harness can now pin refusal: `expect.event_count` asserts
+  exactly how many events a fixture callable returns, and `event_count: 0`
+  machine-checks fail-closed behavior. The must-pass corpus grows 11 -> 15
+  with one refusal fixture per schema-required RF input field; new adapters
+  should ship refusal fixtures the same way.
+- New worked EO full chain in `examples/zmeta-eo-chain-examples.jsonl`
+  (strict example corpus 47 -> 51) mirroring the eo-cv reference adapter's
+  dialect (`claim.bbox` corner format, `translate:` lineage transform).
+- Structured intake is live: GitHub issue templates for adapter-authoring
+  friction, semantic ambiguity, and deployment field reports (labeled
+  `adapter-authoring`, `semantic-ambiguity`, `field-telemetry`), plus a PR
+  template carrying the change-class/validation checklist.
+- `tools/check_compat.py` gains the `v1.1.13` target; CI and
+  `tools/check_adapter.py`'s manifest-derived default re-baseline to it.
+- Deployments using release or contract hash gates should update expected
+  hashes from the v1.1.13 release manifest.
+
+### v1.1.12 Integration Notes
+
+- Reference ingress adapters no longer fabricate `lineage.based_on`:
+  observation and system outputs omit `lineage` unless the caller supplies
+  real parent event ids (`based_on=[...]`), and mandatory-lineage events
+  refuse to emit instead of inventing parents (the MAVLink state translator
+  requires `based_on` or `source_zmeta_event_id`; the eo-cv inference
+  translator requires `parent_event_ids` or a schema-valid UUIDv7
+  `source_event_id`). Integrations that assumed lineage presence on these
+  outputs were consuming fabricated ids; pass real provenance instead.
+- The reference gateway now survives oversize outgoing UDP payloads: the
+  datagram is dropped with an explicit `send_failure` metric/diagnostic
+  instead of terminating the process. Nothing is truncated or retried.
+- Extension-registry status promotion now has an evidence bar (two or more
+  independent implementations plus a documented semantic-contract Section
+  2.6 failure condition); candidate-level evidence and promotion tripwires
+  live in `spec/future-branch-roadmap.yaml`.
+- Mapping packs are declarative descriptions plus test evidence; no runtime
+  engine executes `mapping.yaml` — see `adapters/mapping-packs/README.md`.
+
+### v1.1.11 Integration Notes
+
+- New advisory adoption guidance (non-normative, no validation changes):
+  `docs/zmeta_mqtt_binding_guidance.md` (topic shape, retain/tombstone honesty,
+  command traffic over MQTT), `docs/zmeta_vocabulary_crosswalk.md` (mapping
+  common deployment concepts onto the locked vocabulary), and
+  `docs/zmeta_correlation_pattern.md` (cross-sensor correlation with existing
+  vocabulary — fusion identity, ASSOCIATION bonds, and the proposed
+  `correlation_hint` extension), with runnable examples in
+  `examples/zmeta-correlation-pattern-examples.jsonl`.
+- The extension registry gains `CORRELATION_HINT` (proposed),
+  `DATA_REF_MEDIA_METADATA` (proposed), `AGGREGATE_STATE_SNAPSHOT`
+  (reserved), and `PAYLOAD_SCHEMA_URI` (rejected). Registry entries do not
+  make new vocabulary valid; reserved/proposed/rejected concepts remain
+  invalid under v1.0 and v1.1.0.
+- Carried forward from v1.1.10: producers that emitted altitude on a `COMMAND_EVENT` under any contract
+  section 7.8 field name, or that nested raw observation fields
+  (`features`, `modality`, `measurement`, `t_start`/`t_end`,
+  `data_ref`/`data_refs`, ...) inside a `STATE_EVENT` payload, were already
+  violating the contract and are now rejected: the reference enforcement
+  recurses to any nesting depth and normalizes whitespace-/case-padded key
+  names. Move altitude out of commands (the receiving autonomy owns vertical
+  deconfliction) and keep STATE projections raw-free, using
+  `lineage.based_on` for traceability.
+- The Kraken and Moth reference adapters now default
+  `quality.calibration_state` to `UNCALIBRATED`. Pass
+  `calibration_state="CALIBRATED"` (or `"DEGRADED"`) explicitly only when the
+  deployment can substantiate it.
+- Deployments using release or contract hash gates should update expected
+  hashes from the current release manifest
+  (`release/zmeta-release-manifest.yaml` at the pinned tag).
+- Downstream clone users should pin to a tagged release and integrate through
+  adapters, policy/config, profiles, and namespaced extensions. Local changes to
+  core schema, event vocabulary, version dispatch, risk semantics, projection
+  behavior, or command authority create a private dialect unless governed and
+  versioned. See `AGENTS.md` and `docs/zmeta_change_governance.md`.
+- Custom CoT/JREAP/MAVLink and other external-track ingress adapters that emit
+  authoritative `STATE_EVENT` output must attach valid
+  `payload.extensions.external_promotion` metadata and a `promote:*` lineage
+  transform, or the reference producer-authority policy rejects the event.
+- `external_promotion.trust_ref` is a policy reference used for promotion
+  adjudication. It is not a signature, credential, or standalone proof of
+  authenticity.
+- Adapter callers that previously consumed Moth tunnel/replay bearings or
+  MAVLink headings as canonical must now pass explicit
+  `bearing_frame="TRUE_NORTH"` or `heading_frame="TRUE_NORTH"` only when
+  deployment configuration actually guarantees that frame. Otherwise those
+  native values remain in explicitly named non-canonical fields. Kraken emits
+  no canonical bearing without platform heading compensation, and the Kraken
+  CSV path no longer fabricates `quality.snr_db` from RSSI.
+- `bearing.frame`, `quality.bearing_frame`, and `quality.heading_source` are
+  producer assertions and provenance. They make frame handling auditable and
+  catch unsupported labels, but they are not a signature, credential, sensor
+  calibration proof, or independent verification that the producer's
+  `TRUE_NORTH` assertion is correct.
+- Downstream consumers must honor `allowed_uses`, `prohibited_uses`, and
+  `policy_decision` labels, or run an equivalent filter such as
+  `tools/filter_risk.py`; a validated degraded or quarantined event is not clean
+  for fusion, state update, command basis, or autonomy by default.
+- Use `python tools/lint_policy_risk_modes.py` before deployment to catch
+  material risk checks configured to `ignore`.
