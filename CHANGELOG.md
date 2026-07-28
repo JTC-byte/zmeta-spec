@@ -51,8 +51,14 @@
   checksums are immutable and are not rewritten, per the released-assets
   rule. A consumer advancing a pin across these releases must re-derive any
   hand-maintained copy of the governed vocabularies rather than trust that
-  sentence — which is how the defect surfaced: it was reported by a
-  downstream consumer advancing its own pin, not found here.
+  sentence. Reported by a downstream consumer advancing its own pin, not
+  found here — and recorded as a **near miss, not an incident**: that
+  consumer worked from the release notes and diffed its consumed surfaces
+  directly, so the README is what disagreed with its evidence rather than
+  what misled it. The trap was live and a disciplined process stepped around
+  it. That is an argument for the guard, not against it — the next consumer
+  may read the bullet instead of the diff — but the record should not claim
+  a casualty it did not have.
 - 2026-07-27 — the release-currency guard now pins CONTENT, not only version
   literals (`gateway/tests/test_release_currency.py`, live-queue item 8 and
   the direct P2-01 remediation). Two checks: the README release-focus bullet

@@ -77,6 +77,22 @@ max 150/240.
    became a false governance claim in two published tags, aimed at exactly
    the reader who most needs it to be true: one deciding whether a pin
    advance requires re-deriving a hand-maintained vocabulary copy.
+   **It was a near miss, not an incident, and the record says so.** That
+   consumer worked from the release notes and diffed its consumed surfaces
+   directly; the README is what disagreed with its evidence, which is how it
+   was caught. A disciplined process stepped around a live trap. The guard
+   still earns its place — the next reader may take the bullet instead of
+   the diff — but nothing here was actually mis-advised, and our own
+   honesty rule applies to our incident records too.
+   **Two corrections to the first write-up of this finding, both from that
+   consumer and both verified against our tags:** its pin was at v1.1.16,
+   not the v1.1.9 line (five reviewed advances had happened since a stale
+   private note), so the consumed gap is v1.1.16→v1.1.18 and the locked v1.0
+   schema gained exactly **three** `reason_code` tokens over it —
+   `ENCODING_UNSUPPORTED`, `BEARING_FRAME_UNLABELED`, `NON_FINITE_CONFIDENCE`.
+   The other four arrived at v1.1.16 and were adjudicated at that advance.
+   Lesson for this repo's own analysis: a downstream pin is *their* live
+   state, never ours to assume — ask, or read their pin record.
    Implemented as two checks anchored to `release/RELEASE_NOTES_v<current>.md`
    — the authoritative record of what a cut changed — rather than to commit
    ranges, so they hold in a fresh clone: the focus bullet must name at least
@@ -95,6 +111,29 @@ max 150/240.
    materialization class but changes working-copy bytes for hashed files); and
    the deployment-side halves of the UxS command loop — authenticated transport
    and the SITL gate — remain open (items 1–4 above cover the gated work).
+
+10. **A machine-consumable projection of the governed vocabularies — new,
+   MAINTAINER DECISION, deliberately not started.** The governed
+   vocabularies ship only as `policy/*.yaml`, so every non-Python consumer
+   either vendors a YAML parser plus the raw files or hand-mirrors the parts
+   it needs. The consumer that reported P2-01 does the latter: its
+   `zmeta_semantics.ts` hand-codes the §7.7 STATE denylist as a mirror of
+   `policy/semantics.yaml`. It was byte-aligned across this advance —
+   verified by hand, again, which is exactly the point. That is manual
+   alignment re-verified at every pin advance, and it is the **live,
+   evidenced instance** of the paused Praesens review's finding #3 (policy
+   reimplemented rather than sourced), which until now was a drift
+   hypothesis. They rate it a workstream input, not a pin blocker, and that
+   is the right severity.
+   The shape that would fit doctrine, if it is wanted: a *generated,
+   derived, hash-pinned* export of the vocabularies that already exist — a
+   projection under gate 4, adding no vocabulary under gate 1, living in the
+   outer rings under gate 6. It changes no semantics; it removes the reason
+   a consumer hand-copies them. This bears directly on the multi-sensor
+   event, where participants clone this repo and write adapters in stacks
+   that are mostly not Python. Not started without a decision: it is a new
+   shipped artifact carrying a regeneration and hashing obligation, which
+   is a different class from a records fix.
 
 **Banked register candidates** live in `docs/r1_11_cold_reread_findings.md`
 (CR ledger + VW-01..17) and the doctrine log. Nothing is recorded only in a
