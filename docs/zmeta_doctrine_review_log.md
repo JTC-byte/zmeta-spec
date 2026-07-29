@@ -1021,12 +1021,36 @@ it in a green summary.
 Instances 1 and 2 are closed by checks in this cycle. Instance 3 is escalated,
 because closing it changes what validates.
 
+**Sharpened by the fielded consumer, 2026-07-28, and the sharpening is the
+useful part.** Their §9.1 says an assertion gets treated as evidence. This says
+something narrower and more actionable:
+
+> **A check that exists gets substituted by a cheaper one that shares its name
+> or its neighbourhood, and the substitution survives precisely because the
+> cheaper check passes.**
+
+Two further instances from their estate, taking the count to five across two
+repositories: `check_links --offline` validating a single link across the whole
+documentation estate while being cited as closeout evidence, and mutation
+testing standing in for reading assertions against intent.
+
+**The detection question it implies**, which is answerable in an afternoon and
+is the reason to keep this open rather than close it:
+
+> **For each gate we cite, what is the stronger check it is standing in for,
+> and when did we last run that one?**
+
+Note the shape of the failure mode: in all five instances the cheaper check was
+*green*, and its greenness is what prevented anyone from asking. That is why
+this is not simply "run more checks" — it is "know what each green means".
+
 **Deliberately NOT minted as a playbook discipline.** Three instances in one day
 is one session's evidence, not recurrence across cycles, and the v1.1.19
 after-action already records that the apparatus is large relative to the thing
 it governs. A rule proposed on the day its evidence appears is exactly the kind
-that should have to earn its place. Logged so that a fourth instance in a later
-cycle finds a record waiting rather than starting the count over.
+that should have to earn its place. Logged so that a later instance finds a
+record waiting rather than starting the count over — which it now has, twice,
+from a second repository.
 
 ### X1-03 — The retirement rule reads silence as death · OPEN
 
