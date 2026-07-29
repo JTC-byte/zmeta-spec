@@ -321,3 +321,72 @@ quickly, and design gate 7 binds the guiding documents as much as the kernel.
 The apparatus is now large relative to the thing it governs, and the Lifecycle
 rules exist for exactly this. They may warrant firing more aggressively than
 the recurrence threshold strictly requires.
+
+---
+
+## Addendum — the v1.1.19 publication session, 2026-07-28
+
+The cycle above closed with v1.1.19 prepared and a recommendation to tag. This
+records what happened between that recommendation and the published release,
+because most of it was not the tag.
+
+### The cut was made twice, and the second attempt is the one that shipped
+
+The first tag was created before the publish-path validations had been run.
+Running them afterwards found `validate_release_package.py --package-dir` — the
+command this release's own body publishes — failing on a package built at the
+prepare commit against a manifest that had moved four hours later. The battery,
+the kernel gate and CI all run `--templates-only`; only `--package-dir` compares
+the package's recorded hashes against the live manifest.
+
+Tagging is what makes checksums immutable here, so `sign_release_artifacts`
+refused to rewrite them and the stale package could not be corrected in place.
+That refusal is the only reason it did not ship. The tag was deleted before
+anything was published, the package rebuilt, and the cut redone.
+
+**The durable rule: run every publish-path validation before the tag exists.**
+Specifically `--package-dir` and `sha256sum -c`, not just the battery. The
+ordering is not a preference; the tag changes what is still fixable.
+
+### Three instances in one day of the same shape
+
+A stronger check existed and something cheaper ran in its place.
+
+- `--templates-only` stood in for `--package-dir`, so a stale package acquired a
+  pinned checksum.
+- A manual checklist stood in for a machine check, so the cut sat with only its
+  release notes — no validation report, no checksums — through a validating
+  manifest, a validating package, a green battery and green CI.
+- `pattern: "Z$"` stands in for `format: date-time`, so `event.ts` is
+  unconstrained beyond a trailing `Z` (X1-01).
+
+Two of the three were invisible to every automated gate. Both of the closable
+ones were closed by checks rather than by checklist items. The third is
+escalated, because closing it changes what validates.
+
+**Recorded as an observation, deliberately not minted as a discipline.** The
+tension at the end of the previous entry — that the apparatus is now large
+relative to the thing it governs — applies with full force to a rule proposed on
+the day its evidence appeared. It earns promotion by recurrence or not at all.
+
+### What the outside produced, again
+
+Every finding in this session came from outside the working loop, which is now
+the fifth consecutive time that has held. An outside reader's reaction to the
+README's prose drove a 40-file voice pass. A sibling repository's offhand remark
+about JSON Schema `format` semantics found X1-01 in our kernel. Running the
+documented first-run command rather than the test suite found the stale package.
+None came from re-reading work already done, and re-reading was done.
+
+The corollary is uncomfortable and worth stating plainly: the governance
+apparatus measured itself as green throughout, and was green, and none of that
+green was evidence about the three defects that mattered.
+
+### Method note: a control is not optional
+
+Four probes this session passed for the wrong reason before a control caught
+them — three of mine on the `event.ts` question, and one of the consumer's on
+the same claim, from the other side, within the hour. In every case the failing
+output was indistinguishable from the output a correct refusal would produce.
+Only a known-good control plus an assertion that the mutation was not a no-op
+separated the claim from its negation.

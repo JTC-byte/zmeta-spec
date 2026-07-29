@@ -2,7 +2,41 @@
 
 ## Current Resume Note
 
-- Last updated: 2026-07-28 (v1.1.19 PREPARED — not tagged, not published)
+- Last updated: 2026-07-28 (**v1.1.19 PUBLISHED**, tag on `0eebb43`)
+- **2026-07-28 (later session) — v1.1.19 PUBLISHED; documentation voice pass;
+  X1-01; two verification gaps closed.** Four strands.
+  **(1) The house voice.** An outside reader called the README machine-written.
+  40 current-facing files rewritten, 300 em dashes to 1, prose only — verified
+  by a structural invariant check (headings, tables, fences, links, code spans
+  identical except seven intentional heading rewordings; zero broken links).
+  Word count rose slightly, so it was not compression wearing a voice-pass
+  label. Scope set by measurement: `docs/README.md` was worst in the repository
+  at 52 dashes per 1k words, while `zmeta_professional_overview.md` was already
+  clean at 0.5 — the opposite of what the handoff predicted. Governed and
+  manifest-hashed files computed and excluded, not judged by eye. Adopted as the
+  repo standard in `CLAUDE.md`, which was itself brought to the standard in the
+  same commit because a style rule stated in the one file that breaks it is the
+  exemplar-violates-its-own-rule defect `adapters/AUTHORING.md` §9 already names.
+  **(2) A cross-repo exchange with the fielded consumer.** Two findings raised
+  against their deployment (calendar-invalid `ts` silently shifting a CoT
+  timestamp; a declared vertical datum read and discarded), each reproduced
+  independently on both sides. Their observation about JSON Schema `format`
+  semantics then found **X1-01 in our own kernel**: `event.ts` is unconstrained
+  beyond a trailing `Z`, and the mitigation named in two adapter READMEs cannot
+  work as shipped. Recorded, escalated, not fixed.
+  **(3) The cut, made twice.** The first tag was created before the publish-path
+  validations had run; `--package-dir` then failed on a package built at the
+  prepare commit against a manifest that had moved four hours later. Tagging is
+  what makes checksums immutable, so the fix was correctly refused in place and
+  the tag was deleted before anything was published. **Rule: run every
+  publish-path validation before the tag exists.**
+  **(4) Two verification gaps closed by checks rather than checklists** — release
+  artifact completeness, and package-mode validation at checksum time. With
+  X1-01 that is three instances in one day of a stronger check existing while
+  something cheaper ran in its place. Logged as an observation; not minted.
+  **Published and verified:** tag on `0eebb43`, 8 assets, CI green, published
+  assets downloaded back and re-verified against published checksums.
+  Battery 1477 + 1070.
 - **2026-07-28 — P2 + A1 CYCLE, v1.1.19 PREPARED, CLOSED OUT.** Opened by a
   downstream consumer's pin-advance report (P2-01: a stale README release-focus
   bullet asserting a governance negative that was false in two published tags)

@@ -2,14 +2,28 @@
 
 ## CURRENT STATE — read first (closeout 2026-07-28)
 
-**`v1.1.19` is PREPARED, NOT PUBLISHED. No tag, no signature, no asset upload
-has been made** — those are the maintainer's acts and none was performed. Until
-the tag exists, `v1.1.18` remains the latest published release.
+**`v1.1.19` is PUBLISHED.** Annotated tag on `0eebb43`, eight assets, CI green
+on the release commit. The published assets were downloaded back from GitHub and
+verified against the published `SHA256SUMS_v1.1.19.txt`; all seven checksummed
+artifacts matched. Checksums-only, consistent with v1.1.5 onward — no detached
+signatures. The maintainer delegated tag and upload explicitly, which is the
+condition AGENTS.md Release Limits require.
 
 **Battery at closeout:** kernel gate all flags exit 0, strict examples 51/51,
-adapter conformance 51/51, pytest 1468 + 1070 subtests, both lints clean,
-`export_policy_json --check` clean, manifest rebuilt LAST and revalidated.
-`main` is pushed and CI green.
+adapter conformance 51/51, pytest **1477 + 1070 subtests**, both lints clean,
+roadmap validator clean, `export_policy_json --check` clean, release manifest ok,
+release package ok **in package mode**. `main` is pushed, CI green, tree clean.
+
+**The cut was made twice, and the record says so.** The first tag was created
+before the publish-path validations had been run, and
+`validate_release_package.py --package-dir` — the command this release's own
+body publishes — then failed on a package built at the prepare commit against a
+manifest that had moved four hours later. Tagging is what makes checksums
+immutable here, so the fix was correctly refused in place and the tag was
+deleted before anything was published. **The durable rule: run every
+publish-path validation BEFORE the tag exists**, specifically `--package-dir`
+and `sha256sum -c`, not just the battery. Both gaps are now closed by checks
+rather than by checklist items; see "Verification integrity" below.
 
 ### What v1.1.19 contains
 
@@ -29,14 +43,31 @@ adapter conformance 51/51, pytest 1468 + 1070 subtests, both lints clean,
   required verbatim. The rule that tried to judge whether prose described the
   right release was removed after failing twice; see below.
 
-### Recommendation on the tag
+### Verification integrity: two gaps closed during the cut itself
 
-Tag it. The code has been stable across three separate verification rounds and
-the remaining findings have shifted almost entirely to prose, which the new
-checks now cover. An untagged release accumulates unreconciled drift, and that
-drift was the defect this cycle hit four times. A pinned version is also what
-the ADS-B tester needs, rather than an instruction to clone `main`. None of the
-open items below blocks a tag; all are recorded with recommendations.
+Both were the same shape — a weaker check standing in for a stronger one — and
+both were invisible to every automated gate.
+
+- **A release is now machine-checked to ship its full tracked artifact set.**
+  This cut was found carrying only `RELEASE_NOTES_v1.1.19.md`, with no validation
+  report and no checksums, through a validating manifest, a validating package, a
+  green battery and green CI. The completeness rule had lived only as manual
+  checkboxes in `RELEASE_CHECKLIST.md`.
+  `gateway/tests/test_release_artifact_completeness.py` generates the required
+  set and asserts it for the current release and every release since the
+  convention began at v1.1.0.
+- **A release package that fails package-mode validation can no longer acquire a
+  pinned checksum.** `sign_release_artifacts.write_checksums` now invokes the
+  governed validator before writing, so a stale package cannot become a published
+  claim. Three paired tests, including one asserting the refusal comes from the
+  validator rather than from the package directory merely existing.
+
+Counting X1-01, that is **three instances in one day of a stronger check
+existing while something cheaper ran in its place**: `--templates-only` for
+`--package-dir`, a manual checklist for artifact completeness, and
+`pattern: "Z$"` for `format: date-time`. Logged as an observation, not minted
+as doctrine — see the doctrine log's lifecycle rules on earning promotion by
+recurrence.
 
 ### The documentation voice pass
 
@@ -126,9 +157,16 @@ cut — and handle this in v1.1.20, which is then behaviour-changing rather than
 additive.** That distinction is what the fielded consumer's pin-advance review
 keys on, so it is worth more to them stated in advance than discovered in a diff.
 
-### The four decisions waiting on the maintainer
+### The decisions waiting on the maintainer
 
-1. **Tag v1.1.19, or keep going.** Everything but tag/sign/upload is done.
+**Decision 1 of the original four is CLOSED: v1.1.19 is tagged and published.**
+The rest stand, and none blocks running the standard live.
+
+1. **X1-01, the `event.ts` disposition** (new this session). Four options are
+   recorded in the doctrine log, outer rings first. Sequencing already decided:
+   this lands in **v1.1.20**, which is therefore behaviour-changing rather than
+   additive — the axis the fielded consumer's pin-advance review keys on. Not
+   urgent: no observed failure, zero external producers anywhere.
 2. **Doctrine log cycle A1** — three alphabet gaps from the ADS-B adapter, each
    with a second instance. The recommendation for all three is a *declaration,
    not a subtype*. **A1-01 already clears the 2+ independent implementation

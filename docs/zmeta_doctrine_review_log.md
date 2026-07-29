@@ -941,6 +941,8 @@ Confirmed independently on both stacks before being written down.
 | # | Tension | Gates in play | Status |
 |---|---|---|---|
 | X1-01 | The kernel does not constrain `event.ts` beyond a trailing `Z` | 3, 5, 6 | OPEN |
+| X1-02 | A weaker check keeps standing in for a stronger one that exists | 5, 7 | OPEN (observation, N=3 in one day) |
+| X1-03 | The retirement rule reads silence as death, which inverts for constitutional rules | 7 | OPEN |
 
 ### X1-01 — The kernel does not constrain `event.ts` · OPEN
 
@@ -994,6 +996,64 @@ production readback shows zero external producers, so no bad `ts` has ever been
 emitted at either end. Sequencing recorded: tag v1.1.19 as-is, which stays a
 clean additive cut; handle this in v1.1.20, which is then behaviour-changing
 rather than additive — a distinction the consumer's pin-advance review keys on.
+
+### X1-02 — A weaker check keeps standing in for a stronger one · OPEN
+
+Three instances in a single day, all in this session, each one a case where the
+stronger check already existed and something cheaper was being run in its place:
+
+1. `validate_release_package.py --templates-only` ran in the battery, the kernel
+   gate and CI, while `--package-dir` — the mode that compares the package's
+   recorded hashes against the live manifest — was never run for the cut. A
+   stale package acquired a pinned checksum.
+2. Release-artifact completeness lived as manual checkboxes in
+   `RELEASE_CHECKLIST.md` rather than as a check. The cut sat with only its
+   release notes through a validating manifest, a validating package, a green
+   battery and green CI.
+3. `pattern: "Z$"` stands in for `format: date-time`, which is annotation-only
+   under 2020-12 (X1-01 above).
+
+**Two of the three were invisible to every automated gate**, because the gate
+was running the weaker mode. The pattern is not "we lack checks" — it is that a
+cheaper sibling of the right check is easy to wire up and indistinguishable from
+it in a green summary.
+
+Instances 1 and 2 are closed by checks in this cycle. Instance 3 is escalated,
+because closing it changes what validates.
+
+**Deliberately NOT minted as a playbook discipline.** Three instances in one day
+is one session's evidence, not recurrence across cycles, and the v1.1.19
+after-action already records that the apparatus is large relative to the thing
+it governs. A rule proposed on the day its evidence appears is exactly the kind
+that should have to earn its place. Logged so that a fourth instance in a later
+cycle finds a record waiting rather than starting the count over.
+
+### X1-03 — The retirement rule reads silence as death · OPEN
+
+The Lifecycle section below says a rule that has **never fired** after several
+cycles is a "retirement candidate… documentation pretending to be a guardrail."
+The fielded consumer's audit playbook (§9.3) argues that this inverts for one
+class of rule, and the argument holds here:
+
+> An after-action log can only measure **procedural** rules. A **constitutional**
+> rule — layer discipline, authority boundaries, adapter obligations — succeeds
+> by making violations not happen, so it can never generate a "this caught
+> something" row. Reading its silence as death is reading the instrument
+> backwards.
+
+They flagged it at this repository specifically: **a spec repo is mostly
+constitutional rules, and a naive earn-your-place pass would gut exactly the
+wrong half.** The live instance is already on the board — the playbook's Status
+scoring carries "the one-third introduction cap has NEVER fired" as a
+watch-item, and the cap is plausibly working by deterrence rather than sitting
+inert. There is no way to tell those apart from firing counts alone.
+
+Not resolved here. The likely shape of a fix is to classify each rule as
+procedural or constitutional *before* scoring it, and to score only the
+procedural ones on firing count — but that adds a step to the governance
+apparatus in order to protect the governance apparatus, which is its own tension
+with gate 7. Recorded for the maintainer, since amending the lifecycle rules is
+a change to how every other rule is judged.
 
 ### The observation that found it, and a candidate rule
 

@@ -4,6 +4,44 @@
 
 ## [1.1.19] - 2026-07-28
 
+- 2026-07-28 — **PUBLISHED.** Annotated tag on `0eebb43`, eight assets,
+  checksums-only. Published assets were downloaded back and verified against the
+  published `SHA256SUMS_v1.1.19.txt`. The cut was made twice: the first tag was
+  created before the publish-path validations had run, `--package-dir` then
+  failed on a package built at the prepare commit against a manifest that had
+  moved four hours later, and because tagging is what makes checksums immutable
+  the fix was correctly refused in place. The tag was deleted before anything was
+  published and the cut redone. **Run every publish-path validation before the
+  tag exists.**
+- 2026-07-28 — **Release artifact completeness is machine-checked.**
+  `gateway/tests/test_release_artifact_completeness.py` generates the required
+  per-release set (`RELEASE_NOTES_`, `VALIDATION_REPORT_`, `SHA256SUMS_`) and
+  asserts it for the current release and every release since the convention
+  began at v1.1.0. This cut was found carrying only its release notes through a
+  validating manifest, a validating package, a green battery and green CI,
+  because the rule had lived only as manual checkboxes.
+- 2026-07-28 — **A stale release package can no longer acquire a pinned
+  checksum.** `release/sign_release_artifacts.py` refuses to write checksums when
+  a package directory exists and fails `validate_release_package.py
+  --package-dir`, invoking the governed validator rather than reimplementing it.
+  Three paired tests, including one asserting the refusal comes from the
+  validator rather than from the directory merely existing.
+- 2026-07-28 — **Documentation voice pass across 40 current-facing files**, prose
+  only: 300 em dashes to 1, plus inversion-for-emphasis, rhythm bolding and
+  metaphor-for-statement. No structure, ordering, facts, claims or code changed,
+  verified by a structural invariant check against the pre-pass tree. Governed
+  and manifest-hashed files were computed and excluded. Adopted as the repo
+  standard in `CLAUDE.md`, which was brought to the standard in the same commit.
+- 2026-07-28 — **Doctrine log cycle X1** (recorded, nothing minted). **X1-01**:
+  `event.ts` is unconstrained by the kernel beyond a trailing `Z` — `format:
+  date-time` is annotation-only under 2020-12, so `garbageZ` and a bare `Z`
+  validate; the `FormatChecker` mitigation named in two adapter READMEs cannot
+  work as shipped, since `jsonschema` registers no `date-time` checker without
+  `rfc3339-validator`. Egress adapters refuse such events; consumers reading
+  `ts` are unprotected. Escalated for v1.1.20, which is therefore
+  behaviour-changing rather than additive. **X1-02**: a weaker check keeps
+  standing in for a stronger one that exists. **X1-03**: the rule retiring
+  never-fired rules inverts for constitutional rules, which succeed by silence.
 - 2026-07-28 — **ADS-B ingress adapter** (`adapters/ingress/adsb/`), the first
   cooperative-broadcast adapter and the release's largest addition.
   `dump1090`/`readsb` `aircraft.json` → `OBSERVATION_EVENT`, for any decoder
