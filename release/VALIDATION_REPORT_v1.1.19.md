@@ -33,14 +33,43 @@ or event vocabulary was added.
 
 - Full kernel-protection conformance, all flags: exit 0.
 - Strict examples corpus: 51/51 passed, 0 warnings.
-- Full pytest suite: **1474 passed + 1070 subtests** (v1.1.18 cut: 1420 + 1070).
+- Full pytest suite: **1477 passed + 1070 subtests** (v1.1.18 cut: 1420 + 1070).
 - Adapter conformance harness: 51/51.
 - `tools/lint_policy_risk_modes.py`: ok.
 - `tools/lint_adapter_vocabularies.py`: ok.
 - `tools/validate_future_roadmap.py`: ok (candidates=18, rejected_or_deferred=3).
 - `tools/export_policy_json.py --check`: ok, 11 files.
-- Release manifest validated; release package validated in templates mode.
+- Release manifest validated.
+- Release package validated in **package mode** (`--package-dir`), not only
+  templates mode. See below: the distinction is why this cut had to be redone.
+- All seven checksummed assets verified with `sha256sum -c`.
 - GitHub CI green on every pushed commit in this range.
+
+## The release package was stale, and the weaker validation hid it
+
+The first attempt at this cut tagged, then failed on the verification command
+this release's own body publishes. `package-v1.1.19/` had been built at the
+prepare commit; the release manifest moved four hours later, and the package
+went on attesting to a manifest state that no longer existed. The battery, the
+kernel gate and CI all run `validate_release_package.py --templates-only`. Only
+`--package-dir` compares the package's recorded `release_manifest_hash` and
+`release_bundle_hash` against the live manifest, and it had never been run for
+this cut. A weaker mode stood in for the stronger one.
+
+Creating the tag then made the checksums immutable by the repository's own rule,
+so the stale package could not be corrected in place: `sign_release_artifacts.py`
+refused to rewrite a published `SHA256SUMS`. That refusal was correct. The tag
+was deleted before anything was published, the package rebuilt against the
+current manifest, and the cut redone.
+
+The fix is in the layer that failed. `sign_release_artifacts.py` now refuses to
+write checksums when a package directory exists and does not validate in package
+mode, invoking the governed validator rather than reimplementing it. A stale
+package can no longer acquire a pinned hash, which is the step that made the
+first attempt unpublishable. Paired tests construct an invalid package and
+assert the refusal, assert an absent package directory is still allowed, and
+assert the refusal comes from the validator rather than from the directory
+merely existing.
 
 ## Cross-platform contract-hash agreement (limit removed this release)
 

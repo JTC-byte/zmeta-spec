@@ -8,6 +8,7 @@ import os
 import shlex
 import shutil
 import subprocess
+import sys
 from pathlib import Path
 
 
@@ -139,8 +140,58 @@ def _refuse_if_published(release_dir: Path, version: str) -> None:
         )
 
 
+def _refuse_if_package_invalid(release_dir: Path, version: str) -> None:
+    """Refuse to pin a checksum for a release package that does not validate.
+
+    The v1.1.19 cut hit this: `package-<version>/` was built at the prepare
+    commit, the release manifest moved four hours later, and the package went
+    on attesting to a manifest state that no longer existed. Nothing noticed,
+    because the battery and CI run `validate_release_package.py
+    --templates-only` while only `--package-dir` compares the package's
+    recorded `release_manifest_hash` / `release_bundle_hash` against the live
+    manifest. A weaker mode stood in for the stronger one and the difference
+    was never exercised for that cut.
+
+    Checksum time is the right place to close it: this is the moment the
+    package's bytes stop being a local build artifact and become a published
+    claim. Refusing here means a stale package cannot acquire a pinned hash,
+    which is what made the v1.1.19 state unpublishable once its tag existed.
+
+    The governed validator is invoked rather than reimplemented, so there is
+    one definition of a valid package and this cannot drift from it.
+    """
+    package_dir = release_dir / f"package-{version}"
+    if not package_dir.is_dir():
+        # No package directory means no package zip to pin; nothing to check.
+        return
+    validator = ROOT / "tools" / "validate_release_package.py"
+    if not validator.is_file():
+        raise SystemExit(
+            f"cannot validate {package_dir.name}: {validator} is missing, so the "
+            "package cannot be shown valid before its hash is pinned"
+        )
+    result = subprocess.run(
+        [sys.executable, str(validator), "--package-dir", str(package_dir)],
+        cwd=str(ROOT),
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if result.returncode != 0:
+        detail = (result.stdout + result.stderr).strip()
+        raise SystemExit(
+            f"refusing to write checksums: {package_dir.name} does not validate "
+            f"(validate_release_package.py --package-dir exited "
+            f"{result.returncode}). Pinning its hash would publish a package "
+            f"that fails its own validator. Rebuild it with "
+            f"tools/build_release_package.py against the current manifest, then "
+            f"retry.\n{detail}"
+        )
+
+
 def write_checksums(release_dir: Path, version: str) -> Path:
     _refuse_if_published(release_dir, version)
+    _refuse_if_package_invalid(release_dir, version)
     _ensure_package_zip(release_dir, version)
     artifacts = _existing_artifacts(release_dir, version)
     checksum_path = release_dir / f"SHA256SUMS_{version}.txt"

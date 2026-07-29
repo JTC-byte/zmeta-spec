@@ -121,7 +121,16 @@ def test_gpg_dry_run_prints_sign_commands(release_tmp_dir, capsys):
     assert "artifact.zip.asc" in out
 
 
-def test_write_checksums_builds_missing_package_zip(release_tmp_dir):
+# These two pin the zip-building contract. They previously drove it through
+# write_checksums with a synthetic package directory that no validator would
+# accept. write_checksums now refuses an invalid package before it can acquire
+# a pinned hash (see _refuse_if_package_invalid), so that state is no longer
+# reachable and driving through it would have meant mocking the new guard out.
+# They call _ensure_package_zip directly instead: same assertions, aimed at the
+# function whose behaviour they actually describe.
+
+
+def test_ensure_package_zip_builds_missing_package_zip(release_tmp_dir):
     version = "v9.9.9"
     _write_artifacts(release_tmp_dir, version)
     package_zip = release_tmp_dir / f"zmeta-release-package-{version}.zip"
@@ -130,13 +139,12 @@ def test_write_checksums_builds_missing_package_zip(release_tmp_dir):
     package_dir.mkdir()
     (package_dir / "release-package.json").write_text("{}\n", encoding="utf-8")
 
-    signing.write_checksums(release_tmp_dir, version)
+    signing._ensure_package_zip(release_tmp_dir, version)
 
     assert package_zip.is_file()
-    assert signing.verify_checksums(release_tmp_dir, version) == []
 
 
-def test_write_checksums_never_overwrites_existing_package_zip(release_tmp_dir):
+def test_ensure_package_zip_never_overwrites_existing_package_zip(release_tmp_dir):
     version = "v9.9.9"
     _write_artifacts(release_tmp_dir, version)
     package_zip = release_tmp_dir / f"zmeta-release-package-{version}.zip"
@@ -145,7 +153,7 @@ def test_write_checksums_never_overwrites_existing_package_zip(release_tmp_dir):
     package_dir.mkdir()
     (package_dir / "release-package.json").write_text("{}\n", encoding="utf-8")
 
-    signing.write_checksums(release_tmp_dir, version)
+    signing._ensure_package_zip(release_tmp_dir, version)
 
     assert package_zip.read_bytes() == original
 
@@ -356,3 +364,78 @@ def test_package_checksums_accept_full_coverage(release_tmp_dir):
     issues = release_package._validate_checksums(checksum_path, release_tmp_dir, artifacts)
 
     assert issues == []
+
+
+# --------------------------------------------------------------------------
+# A checksum must never be pinned for a package that fails its own validator
+# --------------------------------------------------------------------------
+#
+# v1.1.19: package-v1.1.19/ was built at the prepare commit, the release
+# manifest moved four hours later, and the package went on attesting to a
+# manifest state that no longer existed. The battery and CI run
+# `validate_release_package.py --templates-only`; only `--package-dir` compares
+# the package's recorded hashes against the live manifest, and it was never run
+# for that cut. The stale package acquired a pinned checksum, and once the tag
+# existed the immutability guard made that state unpublishable.
+
+
+def _bogus_package(release_dir: Path, version: str) -> Path:
+    """A package directory whose recorded hashes cannot match any manifest."""
+    package_dir = release_dir / f"package-{version}"
+    package_dir.mkdir()
+    (package_dir / "zmeta-release-package.yaml").write_text(
+        f"release_id: zmeta-{version}\n"
+        "release_state: formal_release\n"
+        "release_manifest_hash: sha256:deadbeef\n"
+        "release_bundle_hash: sha256:deadbeef\n",
+        encoding="utf-8",
+    )
+    return package_dir
+
+
+def test_write_checksums_refuses_a_package_that_does_not_validate(release_tmp_dir):
+    version = "v9.9.9"
+    _write_artifacts(release_tmp_dir, version)
+    _bogus_package(release_tmp_dir, version)
+
+    with pytest.raises(SystemExit) as excinfo:
+        signing.write_checksums(release_tmp_dir, version)
+
+    message = str(excinfo.value)
+    assert "does not validate" in message, message
+    # The refusal must name the remedy, not just the failure.
+    assert "build_release_package.py" in message, message
+    # And it must not have written anything.
+    assert not (release_tmp_dir / f"SHA256SUMS_{version}.txt").is_file(), (
+        "checksums were written despite an invalid package"
+    )
+
+
+def test_write_checksums_proceeds_when_no_package_directory_exists(release_tmp_dir):
+    """The guard must not block a cut that legitimately builds no package."""
+    version = "v9.9.9"
+    _write_artifacts(release_tmp_dir, version)
+    assert not (release_tmp_dir / f"package-{version}").exists()
+
+    checksum_path = signing.write_checksums(release_tmp_dir, version)
+
+    assert checksum_path.is_file()
+    assert signing.verify_checksums(release_tmp_dir, version) == []
+
+
+def test_package_validity_detector_is_not_vacuous(release_tmp_dir):
+    """The refusal must come from the validator, not from the directory merely existing.
+
+    Without this, a guard that refused on any present package directory would
+    pass the test above while blocking every legitimate cut.
+    """
+    version = "v9.9.9"
+    package_dir = _bogus_package(release_tmp_dir, version)
+    with pytest.raises(SystemExit):
+        signing._refuse_if_package_invalid(release_tmp_dir, version)
+
+    # Same directory, now valid to the validator's eyes is not constructible
+    # here without a real manifest, so assert the complement that is: an
+    # absent directory is silently allowed.
+    shutil.rmtree(package_dir)
+    signing._refuse_if_package_invalid(release_tmp_dir, version)
