@@ -171,15 +171,40 @@ Grouped here so they are found together rather than rediscovered separately.
 2. **The conformance summary line.** `tools/validate_conformance.py:331` prints
    `conformance ok pass=20 fail=27`, which is accurate and reads alarming. A
    downstream reviewer had to run the identical command at `v1.1.18` as a control
-   to establish that the 27 are the negative corpus refusing correctly. Their
-   proposed fix, and it is right: say what the reader should expect, e.g.
-   `20 must-pass OK, 27 must-fail correctly refused`. Keep the existing
-   `conformance ok pass=` prefix — `gateway/tests/test_tool_input_floors.py:87`
-   asserts it.
+   to establish that the 27 are the negative corpus refusing correctly. **The
+   need is theirs; the constraint and the wording below are ours** — an earlier
+   version of this entry credited them with finding the constraint, which they
+   corrected. See the note under it.
+
+   `gateway/tests/test_tool_input_floors.py:83-89` asserts **two** things about
+   this line: `summary.startswith("conformance ok pass=")` and `" fail=" in
+   summary`. Any replacement must satisfy both. Verified candidate:
+
+   ```
+   conformance ok pass=20 fail=27 (20 must-pass OK, 27 must-fail correctly refused)
+   ```
+
+   Keeps the machine-readable head intact and states the expectation a reader
+   needs. **Do not use the bare form `20 must-pass OK, 27 must-fail correctly
+   refused`** — it satisfies neither assertion and turns that test red.
 3. **The hashed-file voice sweep**, 5 em dashes across 4 files (`AGENTS.md`,
    `docs/zmeta_change_governance.md`, `spec/release-hash-policy.md`,
    `spec/future-branch-roadmap.md`). The governed three stay out permanently;
    a prose edit there is a governed change at any time.
+
+**Provenance note on item 2, kept rather than tidied away.** The first version
+of this entry credited the fielded consumer with finding the
+`conformance ok pass=` constraint. They did not; it was found here by grepping
+for assertions on that output, and they corrected the attribution against their
+own interest. They also pointed out that the wording they *had* proposed breaks
+both assertions, so the entry as first written carried a fix that would turn a
+test red, under a credit belonging to the party who did not write the
+constraint. Both are corrected above.
+
+The rule this produced, theirs: **credit is a claim too.** Verify attributions
+in your favour at least as carefully as ones against you, because nobody else is
+incentivised to. It is §9.15 pointed at praise instead of criticism, and it cost
+one command to check.
 
 ### The decisions waiting on the maintainer
 
