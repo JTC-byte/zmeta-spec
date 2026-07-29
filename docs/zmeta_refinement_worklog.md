@@ -37,6 +37,47 @@
   **Published and verified:** tag on `0eebb43`, 8 assets, CI green, published
   assets downloaded back and re-verified against published checksums.
   Battery 1477 + 1070.
+- **2026-07-28 (checkpoint after the session closeout) — three commits landed
+  after `b8385ef`, reconciled here.** The closeout is the tier that catches
+  exactly this, so the drift is recorded rather than folded in silently.
+  **Doctrine log cycle X1 now carries three OPEN entries**, none minted:
+  **X1-01** `event.ts` unconstrained beyond a trailing `Z`, sequenced for
+  v1.1.20 which is therefore behaviour-changing rather than additive;
+  **X1-02** a weaker check standing in for a stronger one; **X1-03** our own
+  retirement rule reading silence as death, which inverts for constitutional
+  rules — a spec repo is mostly those, so a naive earn-your-place pass would
+  remove the wrong half.
+  **X1-02 was sharpened by the fielded consumer and the count reached five
+  across two repositories.** Their mechanism, better than the three
+  coincidences originally recorded: *a check that exists gets substituted by a
+  cheaper one that shares its name or its neighbourhood, and the substitution
+  survives precisely because the cheaper check passes.* In all five instances
+  the cheaper check was green, and the greenness is what stopped anyone asking.
+  The detection question — *for each gate we cite, what stronger check is it
+  standing in for, and when did we last run that one?* — is deliberately
+  unstarted on both sides. Starting a sweep off the back of a closeout is how
+  the previous cycle grew an apparatus it then had to apologise for.
+  **Three items queued for the v1.1.20 cut**, grouped because being free at the
+  next manifest rebuild is the only property they share: X1-01 enforcement, the
+  conformance summary legibility line, and a five-dash voice sweep across four
+  manifest-hashed files. Doing any now would diverge `main` from the published
+  `SHA256SUMS_v1.1.19.txt` for no reader benefit (the A-12 pattern).
+  **A false credit was corrected, and it is the entry worth reading.** The queue
+  credited the consumer with finding a test constraint that was found here, and
+  the wording they *had* proposed breaks both assertions that test makes — so
+  the entry carried a fix that would turn a test red under a credit belonging to
+  the party who did not supply the constraint. Both halves corrected; the
+  replacement line is verified against both assertions rather than proposed.
+  The rule, theirs: **credit is a claim too** — verify attributions in your
+  favour at least as carefully as ones against you, because nobody else is
+  incentivised to. The hazard, named against ourselves: **an invented provenance
+  is more convincing than the truth, which is why it survives review.**
+  **Downstream:** the consumer advanced their pin to v1.1.19 (reviewed GO,
+  additive, full battery green) and reports `ahead 0 behind 0` for the first
+  time in this arc. Their hand-mirrored §7.7 denylist is verified as a drop-in
+  replacement for `export/policy/semantics.json` and retires when their W1 wave
+  closes. Battery unchanged at 1477 + 1070; no hashed artifact touched, so the
+  published manifest and checksums stay valid.
 - **2026-07-28 — P2 + A1 CYCLE, v1.1.19 PREPARED, CLOSED OUT.** Opened by a
   downstream consumer's pin-advance report (P2-01: a stale README release-focus
   bullet asserting a governance negative that was false in two published tags)

@@ -390,3 +390,40 @@ the same claim, from the other side, within the hour. In every case the failing
 output was indistinguishable from the output a correct refusal would produce.
 Only a known-good control plus an assertion that the mutation was not a no-op
 separated the claim from its negation.
+
+### Checkpoint addendum — what landed after the closeout
+
+Three commits landed after the session closeout, which is worth recording as its
+own fact: a closeout is a line drawn at a moment, not a guarantee that the moment
+holds. All three came from the cross-repo channel continuing after both sides had
+said nothing was outstanding.
+
+**The most useful of the three was a correction against the correcting party's
+own interest.** An entry here credited the fielded consumer with finding a test
+constraint that was actually found on this side, and the wording they had
+proposed violated that constraint — so the queued fix would have turned a test
+red at the next cut, logged against the wrong author. They checked their own
+credit and sent it back.
+
+Two rules came out of it. Theirs: **credit is a claim too.** Every verification
+discipline built during this cycle points outward at claims that cost something —
+a finding against the code, a correction against the record. Attribution in one's
+own favour is the single class where the incentive runs the other way, which
+makes it the only one where nobody else does the checking.
+
+Ours, named against ourselves because it is a defect in how records get written
+here rather than a slip: **an invented provenance is more convincing than the
+truth, which is why it survives review.** A stale claim looks stale. A fabricated
+attribution looks well-sourced, and reads better than the accurate version, so no
+reviewer flags it. That is a different failure from staleness and needs its own
+guard, which for now is a habit: when writing "X found" or "per X", check that X
+did.
+
+**On the finding-source measurement in the entry above**, the consumer improved
+it and the improved version is the one to keep: *a second party reading your work
+is the highest-yield finding source available, and it does not require them to
+audit you.* Four of the five outside findings arrived as ordinary working traffic
+— a remark, a question, a control someone ran for their own reasons, a
+correction. None was commissioned. A survey-the-ecosystem rule buys the expensive
+version of something that was already arriving free. The clause that makes it
+repeatable is that nobody was auditing.
