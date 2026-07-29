@@ -157,6 +157,30 @@ cut — and handle this in v1.1.20, which is then behaviour-changing rather than
 additive.** That distinction is what the fielded consumer's pin-advance review
 keys on, so it is worth more to them stated in advance than discovered in a diff.
 
+### Queued for the v1.1.20 cut — three things that are cheap only then
+
+All three touch manifest-hashed files. Doing any of them now regenerates the
+manifest under the published `v1.1.19` identity and diverges current `main` from
+the published `SHA256SUMS_v1.1.19.txt` — the documented A-12 pattern. At the next
+cut the manifest is rebuilt anyway, so the marginal cost of all three is zero.
+Grouped here so they are found together rather than rediscovered separately.
+
+1. **X1-01 enforcement**, if the maintainer chooses a closing option. This is
+   what makes v1.1.20 behaviour-changing rather than additive, and the fielded
+   consumer has already recorded that classification in advance.
+2. **The conformance summary line.** `tools/validate_conformance.py:331` prints
+   `conformance ok pass=20 fail=27`, which is accurate and reads alarming. A
+   downstream reviewer had to run the identical command at `v1.1.18` as a control
+   to establish that the 27 are the negative corpus refusing correctly. Their
+   proposed fix, and it is right: say what the reader should expect, e.g.
+   `20 must-pass OK, 27 must-fail correctly refused`. Keep the existing
+   `conformance ok pass=` prefix — `gateway/tests/test_tool_input_floors.py:87`
+   asserts it.
+3. **The hashed-file voice sweep**, 5 em dashes across 4 files (`AGENTS.md`,
+   `docs/zmeta_change_governance.md`, `spec/release-hash-policy.md`,
+   `spec/future-branch-roadmap.md`). The governed three stay out permanently;
+   a prose edit there is a governed change at any time.
+
 ### The decisions waiting on the maintainer
 
 **Decision 1 of the original four is CLOSED: v1.1.19 is tagged and published.**
