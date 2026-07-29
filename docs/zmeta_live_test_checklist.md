@@ -75,24 +75,56 @@ change to the standard and none should move without field evidence.
       `AUTHORING.md` to a green ladder. The producer-authority wall is closed;
       the remaining cost is the contract reading §0 routes them through.
 
-## C. Hardware and integration, gated on access
+## C. Integration items, decomposed by what is actually gated
 
-- [ ] **Real-Pi throughput.** A five-minute replay smoke. Build, dependencies,
-      startup and semantics are verified under ARM64 emulation; only throughput
-      is unmeasured.
-- [ ] **TAK / COP display** with live tooling. The `cot.config` pedigree knob
-      that enables `<precisionlocation>` is shipped and pinned but has never
-      rendered on a real COP.
-- [ ] **ADS-B end to end.** RTL-SDR → `dump1090` → adapter → edge gateway →
-      GCS gateway → CoT → TAK. This is what the adapter was built for.
-- [ ] **SAPIENT live-enclave** validation against the official BSI Flex 335
-      harness and multi-node routing.
-- [ ] **SITL end-to-end gate.** The stated precondition for live
-      GCS-originated tasking.
-- [ ] **Cross-platform hash agreement in the field.** Windows and Linux now
-      produce identical contract hashes in test. *Question:* confirm on the
-      real edge/GCS pair, since the quickstart tells operators to stop when
-      they differ.
+**Re-tested 2026-07-28, and the section title was wrong.** These were carried as
+"gated on hardware or access". Decomposing each one closed one item outright and
+showed most of the rest are only partly gated. The prompt for the re-test came
+from the fielded consumer: *"blocked" is a claim too*, and they had found their
+own last audit criterion was seven sub-conditions, six of which closed the same
+day on evidence already in hand. Three items here were first spotted as misfiled
+by noticing; that is exactly the signal to re-test the whole list rather than the
+ones that happened to catch the eye.
+
+- [x] **Cross-platform hash agreement — ANSWERED 2026-07-28. No hardware
+      needed.** `tools/compute_contract_hash.py` on Windows and in CI on ubuntu,
+      over the same tree, produce byte-identical values for all four hashes
+      (`contract_hash=3cafdd2705704b5dc5b1dc9efbb2e4840c40e1ff1f8437cb6f29ddd53c63e795`),
+      confirmed by reading the CI job log rather than re-deriving locally. The
+      item conflated two questions: whether the hash is platform-stable, which
+      this answers, and whether a deployment pair is configured consistently,
+      which was never a hash question. Note for anyone re-checking: the manifest
+      records *bundle* hashes, which are a different computation — comparing
+      those to this tool's output looks like a mismatch and proves nothing.
+- [ ] **SITL end-to-end gate — never gated at all.** Software in the loop is
+      software; no airframe is required. It is the stated precondition for live
+      GCS-originated tasking and the only item here that exercises the command
+      path against something with the authority to refuse.
+      **Design precondition, adopted before the harness exists:** the telemetry
+      must distinguish "delivered and refused" from "never delivered". A run
+      reporting *no violations* must be structurally incapable of also meaning
+      *the harness never delivered a command*. Learned from a consumer whose
+      retention job returned `0` for both "ran, matched nothing" and "failed",
+      producing six log lines that proved a query healthy against production
+      when no eligible row had ever existed.
+- [ ] **TAK / COP display — gated on a deploy step, not on access.**
+      `takserver-docker 5.7-RELEASE-43` is already on hand locally. The
+      `cot.config` pedigree knob that enables `<precisionlocation>` is shipped
+      and pinned but has never rendered on a real COP.
+- [ ] **ADS-B end to end — roughly five of seven links testable now.** The chain
+      is RTL-SDR → `dump1090` → adapter → edge gateway → GCS gateway → CoT →
+      TAK. Only the first two links need hardware; everything downstream runs
+      today against a captured or synthetic `aircraft.json`. Combined with the
+      TAK item above, the whole path except the RF front end is reachable.
+- [ ] **SAPIENT — partly closed already.** Single-node Apex v4.2.0 validation
+      was performed and recorded at v1.1.15. What remains is multi-node routing
+      and the official C# BSI Flex 335 harness (no .NET SDK on the validation
+      host). Narrower than the original item title implied.
+- [ ] **Real-Pi throughput — genuinely hardware, and the only one.** Build,
+      dependencies, startup and semantics are verified under ARM64 emulation;
+      only the throughput number is unmeasured. The harness and metric can be
+      built on x86 first so the Pi visit is a five-minute confirmation rather
+      than a design exercise.
 
 ## D. Packaging
 
