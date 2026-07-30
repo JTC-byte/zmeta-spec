@@ -2,11 +2,31 @@ services:
   zmeta-gateway:
     image: python:3.13-slim
     working_dir: /app
+    # forward.host and cot.host in configs/gateway-config.json are 127.0.0.1,
+    # which is correct when the gateway runs directly on a host. Inside a
+    # container 127.0.0.1 is the container's own loopback, so both streams go
+    # to a namespace nothing can read and the datagrams are gone with no error.
+    # Measured 2026-07-30: the container reported recv=722 fwd=722 while a
+    # receiver on the host's 127.0.0.1:5556 saw zero. The CLI overrides below
+    # are applied after the config file loads and win over it, so the container
+    # sends to the host instead. Set ZMETA_COT_HOST when TAK is elsewhere.
     command: >
       sh -c "pip install --no-cache-dir -r /app/gateway/requirements.txt
-      && python -u /app/gateway/src/gateway.py --config /app/configs/gateway-config.json"
+      && python -u /app/gateway/src/gateway.py
+      --config /app/configs/gateway-config.json
+      --forward-host ${ZMETA_CONSUMER_HOST:-host.docker.internal}
+      --cot-host ${ZMETA_COT_HOST:-host.docker.internal}"
+    extra_hosts:
+      # Resolves host.docker.internal on Docker Engine (Linux). Docker Desktop
+      # provides the name already and the mapping is harmless there.
+      - "host.docker.internal:host-gateway"
     volumes:
       - ../..:/app:ro
     ports:
-      - "5555:5555/udp"
-      - "6969:6969/udp"
+      # Only the listen port is published. A published port accepts traffic
+      # INTO the container and does nothing for the gateway's own outbound
+      # sends, which is why the forward and CoT streams are handled above
+      # rather than by a port mapping. The previous "6969:6969/udp" entry
+      # published a port nothing in the container ever bound. Override the
+      # host side to run this node beside an edge node on one machine.
+      - "${ZMETA_GATEWAY_PORT:-5555}:5555/udp"

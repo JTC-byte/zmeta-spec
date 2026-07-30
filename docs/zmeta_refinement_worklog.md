@@ -2,7 +2,44 @@
 
 ## Current Resume Note
 
-- Last updated: 2026-07-28 (**v1.1.19 PUBLISHED**, tag on `0eebb43`)
+- Last updated: 2026-07-30 (simulation reps; deployment-path breaks fixed)
+- **2026-07-30 — internal simulation reps while field feedback is pending.**
+  The stack was run rather than read: two gateway nodes, the shipped containers,
+  the ADS-B adapter on a synthetic `aircraft.json`, the command-evidence loop in
+  four cases, a throughput sweep, and an X1-01 reproduction. Every rep carried a
+  control defined before the run, which caught three bad measurements of my own
+  before they became findings: a false "node did not come up" from a
+  block-buffered pipe, a throughput figure that was measuring duplicate
+  suppression rather than capacity, and a command corpus in which all four cases
+  failed for an unrelated reason (`TIMING_STATUS_MISSING`, because the node had
+  not published `TIME_STATUS`).
+  **Two real breaks in the deployment path, both fixed and both verified by
+  re-running.** The containerized nodes could not deliver anything: `forward.host`
+  and `cot.host` are `127.0.0.1`, which inside a container is the container's own
+  loopback, so the send succeeds and the datagram is unreadable. Measured at
+  `recv=722 fwd=722` in the container against zero on the host. And the two
+  Compose files both published `5555:5555/udp`, so the pair could not co-host.
+  The Compose files now override both egress hosts on the command line and take
+  host-port overrides; the corrected pair was run end to end on one machine, with
+  ZMeta JSON arriving on the host's 5556 and CoT on 6969 where both had
+  previously measured zero.
+  **The finding that matters most for a live event.** CoT projects `STATE_EVENT`
+  only, so five clean ADS-B observations produced zero CoT while the example
+  corpus produces one because it contains a `STATE_EVENT`. The documented
+  rehearsal passes and the real sensor then shows nothing, which is the worst
+  available ordering. Recorded as S1-03: a fixture chosen to demonstrate every
+  feature is not a fixture representative of the input.
+  **Confirmed rather than assumed:** X1-01 accepts six of six nonsense
+  timestamps including `banana-Z`, with both controls behaving, and those events
+  reach a downstream ZMeta consumer with no violation while CoT egress refuses
+  them. Left untouched, since it is adjudicated for v1.1.20. Also verified
+  working: the command-evidence gate refuses a prohibited-parent citation with
+  `LINEAGE_MISMATCH` while an identical command on a clean parent forwards;
+  Profile L compact maxes at 150 bytes against the 240-byte budget; contract
+  hashes are byte-identical across host and Linux container.
+  **Measured for the first time:** 100% delivery at 400 events/s, saturation
+  near 422/s, and 44% delivery at 1000/s offered while the node reported
+  `drops=0`, because loss above capacity happens upstream of the process.
 - **2026-07-28 (later session) — v1.1.19 PUBLISHED; documentation voice pass;
   X1-01; two verification gaps closed.** Four strands.
   **(1) The house voice.** An outside reader called the README machine-written.

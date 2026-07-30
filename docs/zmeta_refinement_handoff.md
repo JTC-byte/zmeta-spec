@@ -1,6 +1,82 @@
 # ZMeta Refinement Handoff Notes
 
-## CURRENT STATE — read first (closeout 2026-07-28)
+## CURRENT STATE — read first (simulation reps 2026-07-30)
+
+**`v1.1.19` remains the published release and nothing governed moved.** The work
+on 2026-07-30 was a set of internal simulation reps run while field feedback is
+pending, plus the fixes they justified. No schema, policy, semantics or
+event-vocabulary change; no manifest-hashed file touched, so the published
+`v1.1.19` manifest and checksums stay valid.
+
+**Two real breaks in the deployment path, found by running the shipped
+containers and fixed the same session.**
+
+- **A containerized node could not deliver anything it produced.**
+  `forward.host` and `cot.host` are `127.0.0.1`, correct on a host and wrong in
+  a container, where it is the container's own loopback. The send succeeds and
+  the datagram is unreadable, so nothing errors. Measured: the container
+  reported `recv=722 fwd=722` while a receiver on the host's `127.0.0.1:5556`
+  saw zero. `deploy/*/docker-compose.yml` now pass `--forward-host`,
+  `--cot-host` and `--forward-port` on the command line, where they win over the
+  config, defaulting to `host.docker.internal`. Re-run after the fix: ZMeta JSON
+  on the host's 5556 and CoT on 6969, where both had measured zero.
+- **The two Compose files both published `5555:5555/udp`**, so the pair failed
+  to co-host with `Bind for 0.0.0.0:5555 failed: port is already allocated`.
+  Host ports are now overridable and the corrected pair was run end to end on
+  one machine.
+
+`gateway/tests/test_container_egress_overrides.py` pins the invariant the fix
+rests on, which is that CLI values are applied after the config and beat it. It
+carries a control asserting the config's own values survive when no override is
+given, and its docstring states plainly that the Compose text assertions guard
+against silent removal and are not evidence of delivery.
+
+**The finding that matters most before a live event, and it is not a code
+defect.** CoT projects `STATE_EVENT` only. Five clean ADS-B observations
+traversed both nodes and produced zero CoT, while the example corpus produces
+one because it happens to contain a `STATE_EVENT`. The documented pre-event
+rehearsal therefore passes and the real sensor then shows nothing on the COP.
+The quickstart now says so at the top. Logged as **S1-03**: a fixture chosen to
+demonstrate every event type is not a fixture representative of the input.
+
+**Doctrine log cycle S1, three entries, all OPEN, nothing minted.** S1-01
+`confidence` reaches CoT only as free text with no structured element, which is
+gate 5 against gate 4 and the second instance across two stacks. S1-02 `drops=0`
+is read as a loss counter though it can only see what arrived. S1-03 above. Each
+carries the live question that would settle it, because none of the three is a
+defect with a known fix.
+
+**Verified working, by running rather than by reading:** the command-evidence
+gate refuses a prohibited-parent citation with `LINEAGE_MISMATCH` while an
+identical command citing a clean parent forwards; Profile L compact maxes at 150
+bytes against the 240-byte budget; contract hashes are byte-identical across a
+Windows host and a Linux container; the ADS-B adapter's refusals and demotions
+behave exactly as its README claims on realistic input.
+
+**Measured for the first time, so the Raspberry Pi visit is now a comparison
+rather than a design exercise:** one gateway sustains 100% delivery at 400
+events/s on an x86 host, saturates near 422/s, and at 1000/s offered delivers
+44% while reporting `drops=0`, because loss above capacity happens in the kernel
+upstream of the process.
+
+**X1-01 confirmed live and deliberately untouched.** Six of six nonsense
+timestamps pass the governed schema, including `banana-Z` and bare `Z`, with
+both controls behaving; `rfc3339-validator` is absent and `date-time` is
+unregistered, so the mitigation the adapter READMEs name is confirmed vacuous.
+Run through the gateway, those events reach a downstream ZMeta consumer with no
+violation or warning, while CoT egress refuses them. The protection is real for
+TAK and absent for every ZMeta consumer. It stays sequenced for v1.1.20 as
+already adjudicated, since minting a governed change inside a fix wave is
+exactly what the playbook forbids.
+
+**The method note worth reusing.** Every rep had its pass and no-op criteria
+written before the run. That caught three bad measurements of mine before they
+became findings: a false "node did not come up" from a block-buffered pipe, a
+throughput number that was measuring duplicate suppression because the generator
+cycled `event_id`s, and a four-case command corpus in which every case failed
+for an unrelated reason. Each would have been reported as a result.
+
+## Previous state (closeout 2026-07-28)
 
 **`v1.1.19` is PUBLISHED.** Annotated tag on `0eebb43`, eight assets, CI green
 on the release commit. The published assets were downloaded back from GitHub and

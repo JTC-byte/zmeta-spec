@@ -2,10 +2,29 @@ services:
   zmeta-edge:
     image: python:3.13-slim
     working_dir: /app
+    # The edge node forwards to the GCS node, so forward.host in
+    # configs/edge-config.json is a real address you set (the shipped
+    # placeholder GATEWAY_HOST resolves to nothing on purpose). When the GCS
+    # node runs on this same machine, that address is the host as seen from
+    # this container: set ZMETA_GCS_HOST=host.docker.internal.
+    #
+    # The forward PORT defaults to 5555 here rather than to the config's 5556,
+    # because node-to-node always targets the receiving node's listen port and
+    # 5556 is the local-consumer destination. Sending edge traffic to a GCS
+    # node's 5556 arrives nowhere and reports nothing.
     command: >
       sh -c "pip install --no-cache-dir -r /app/gateway/requirements.txt
-      && python -u /app/gateway/src/gateway.py --config /app/configs/edge-config.json"
+      && python -u /app/gateway/src/gateway.py
+      --config /app/configs/edge-config.json
+      --forward-host ${ZMETA_GCS_HOST:-GATEWAY_HOST}
+      --forward-port ${ZMETA_GCS_PORT:-5555}"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     volumes:
       - ../..:/app:ro
     ports:
-      - "5555:5555/udp"
+      # Both nodes listen on 5555 inside their container. Running the pair on
+      # one machine needs different HOST ports, or the second one fails with
+      # "Bind for 0.0.0.0:5555 failed: port is already allocated".
+      # Example: ZMETA_EDGE_PORT=5557 docker compose up -d
+      - "${ZMETA_EDGE_PORT:-5555}:5555/udp"

@@ -27,6 +27,14 @@ python tools/run_gateway.py --profile H
 python tools/replay.py --file examples/zmeta-command-examples.jsonl --delay-ms 200
 ```
 
+`--loop` re-sends each event exactly as written, including its `event_id`. A
+gateway deduplicates on `event_id`, so only the first pass forwards and every
+later pass is counted under `duplicates` and dropped. That makes `--loop`
+useful for exercising the dedupe path and unsuitable as a load generator:
+measured 2026-07-30, cycling a six-event corpus at 200 events/s delivered 17%
+of what was sent, and the shortfall was dedupe rather than capacity. A load
+generator must mint a fresh `event_id` per event, as a real producer does.
+
 ### Convert Encodings
 
 ```

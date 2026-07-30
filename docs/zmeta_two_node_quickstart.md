@@ -21,6 +21,16 @@ containers in this repository; nothing needs to be built.
                                      (fusion, SAPIENT egress, tools)
 ```
 
+**What reaches TAK, and what does not.** The CoT projection converts
+`STATE_EVENT` track states only. An ingress adapter emits `OBSERVATION_EVENT`,
+so a sensor wired straight through this topology produces ZMeta on the wire and
+nothing on the map until something promotes observations to track state. That
+promotion is a fusion or tracking stage, and it is consumer-side work this
+repository does not ship. Verified 2026-07-30: five clean ADS-B observations
+traversed both nodes and produced zero CoT datagrams, while the example corpus
+below produces one because it contains one `STATE_EVENT`. Plan the fusion stage
+before the event, or expect a working wire and an empty COP.
+
 Two rules govern the whole design:
 
 1. **The canonical ZMeta event is the source of truth; every egress is a
@@ -38,9 +48,16 @@ The edge gateway ingests adapter output (JSON), validates it against the
 locked kernel, and forwards **compact** datagrams.
 
 **Both stock nodes ship Profile H**, and they must match: profile validation is
-exact equality, so a mismatched pair drops 100% of traffic silently. H is the
-default because Profile L excludes `OBSERVATION_EVENT`, which is everything an ingress
+exact equality, so a mismatched pair refuses 100% of traffic. H is the default
+because Profile L excludes `OBSERVATION_EVENT`, which is everything an ingress
 adapter emits, so an L node cannot carry sensor detections at all.
+
+The refusal is not silent on the data path and is silent on the operator
+console, which is worth knowing before you debug one. Measured 2026-07-30 with
+an H edge feeding an L GCS node: every event produced a
+`SYSTEM_EVENT`/`SCHEMA_VIOLATION` diagnostic on the receiving node's forward
+port, and the node's own stdout printed nothing at all beyond its startup
+banner. Look at the consumer stream, not the log, to find this.
 
 Profile L remains the bandwidth shape for a constrained link (measured max 150
 bytes against a 240-byte budget for the L corpus). Choosing it is a deliberate
@@ -134,6 +151,50 @@ gateway's JSON output (port 5556) and project with
 validated against the official Dstl Apex tooling). Same pattern for
 JREAP/KLV.
 
+## Running the nodes in containers
+
+The two `deploy/` Compose files handle the container-specific parts of this,
+and it is worth knowing what they are doing on your behalf.
+
+A gateway sends its forward and CoT streams outward. `configs/*.json` set both
+destinations to `127.0.0.1`, which is right when the gateway runs directly on a
+host and wrong inside a container, where `127.0.0.1` is the container's own
+loopback. Datagrams sent there are delivered to a namespace nothing can read,
+and no error is raised, because the send succeeds. Measured 2026-07-30 before
+this was corrected: a container reported `recv=722 fwd=722` while a receiver on
+the host's `127.0.0.1:5556` saw zero, and the wire check above could not pass.
+The Compose files now pass `--forward-host` and `--cot-host` on the command
+line, where they override the config, and default them to
+`host.docker.internal`.
+
+Publishing a port does not help here. A published port carries traffic *into* a
+container and has no bearing on what the gateway sends out, which is why only
+the listen port is published now.
+
+Environment overrides, all optional:
+
+| Variable | Default | Use it when |
+|---|---|---|
+| `ZMETA_GATEWAY_PORT` | `5555` | the GCS node's host port must move |
+| `ZMETA_EDGE_PORT` | `5555` | running both nodes on one machine |
+| `ZMETA_CONSUMER_HOST` | `host.docker.internal` | your fusion process is not on the container's host |
+| `ZMETA_COT_HOST` | `host.docker.internal` | TAK is not on the container's host |
+| `ZMETA_GCS_HOST` | `GATEWAY_HOST` | the edge node needs the GCS address |
+| `ZMETA_GCS_PORT` | `5555` | the GCS node listens somewhere other than 5555 |
+
+Both nodes listen on 5555 inside their own container, so running the pair on
+one machine needs different host ports. Without that, the second one refuses to
+start with `Bind for 0.0.0.0:5555 failed: port is already allocated`. The whole
+pair on one host:
+
+```bash
+cd deploy/gateway && docker compose up -d
+cd ../edge && ZMETA_EDGE_PORT=5557 ZMETA_GCS_HOST=host.docker.internal docker compose up -d
+```
+
+Feed the edge on host port 5557; ZMeta JSON arrives on the host's 5556 and CoT
+on 6969. That exact pair was run end to end on 2026-07-30.
+
 ## Wire check (five minutes, run it before the event)
 
 From the repo root on any host that can reach the nodes:
@@ -152,14 +213,23 @@ wiring two, replay into it and receive on the same machine.)
 
 What you should see:
 
-- Edge logs: `recv=N ... fwd=N ... violations=0`, compact bytes well under
-  240.
-- GCS logs: the same events arriving compact, forwarded as JSON, `cot=N`
-  when CoT is on.
+- **The receiver in step 1 prints the replayed events.** This is the check
+  that matters, because it is the only one a short replay actually produces.
+  Compare the event ids it prints against the corpus you sent.
 - **The four hash lines printed by both gateways match.** That is the
   interoperability contract made visible: if the hashes differ, the nodes
   are not speaking the same governed kernel. Stop and reconcile versions
   before anything else.
+
+**What you will NOT see, and it is not a fault.** The `recv=N ... fwd=N ...
+violations=0` metrics line is emitted from the datagram path, so it appears
+only when a datagram arrives after the metrics interval has elapsed. A replay
+of four events finishes in under a second and the node then goes idle, so the
+line never prints and the run's final window is never flushed. Shortening
+`metrics_interval_sec` does not change this: verified 2026-07-30 at a
+one-second interval with seven seconds of idle, still no output. Metrics are a
+sustained-traffic instrument. To see them, hold a load for longer than the
+interval, or read the far-consumer count above instead.
 
 ## Reading the honesty signals (field debugging cheat-sheet)
 
@@ -172,6 +242,10 @@ What you should see:
 | no ellipse detail on TAK | `geopointsrc`/`altsrc` not asserted in `cot.config` | the omission default; assert it if (and only if) it is true |
 | no bearing on a track you expected one for | the adapter demoted a frame-unlabeled bearing to native features (contract 6.4) | working; assert the frame at the producer if it is provable |
 | an adapter emitting nothing for a record | fail-closed refusal on an unmappable/unavailable datum | working; the adapter's colocated tests enumerate its refusal reasons |
+| events flowing to consumers but nothing on TAK | your stream is observations; CoT projects `STATE_EVENT` only | working; you need a fusion or tracking stage, see the top of this guide |
+| no metrics line at all | the node is idle, or the replay was shorter than one metrics interval | working; metrics are emitted from the datagram path, so hold a load to see them |
+| `drops=0` while a consumer is clearly missing events | drops counts what the gateway discarded, not what never reached it | check offered load: at 1000 events/s on one test host, 44% arrived with `drops=0`, the rest lost in the kernel receive buffer upstream |
+| `duplicates` climbing and `fwd` flat | the same `event_id` is being re-sent | working; event dedupe is keyed on `event_id`, and `tools/replay.py --loop` re-sends ids verbatim, so only its first pass forwards |
 
 ## Pre-event checklist per team
 

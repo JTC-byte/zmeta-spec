@@ -62,15 +62,46 @@ change to the standard and none should move without field evidence.
       observations flow. *Question:* does a real bandwidth-constrained link
       want L instead, and if so what does a team lose by having to choose?
 - [ ] **The five-minute wire check as written.** The metrics line is emitted
-      only after `metrics_interval_sec` (30 s in the stock configs) has elapsed
-      on the datagram path, so a short replay prints no metrics output at all,
-      rather than a low count. The quickstart's `recv=N ... fwd=N` line will
-      not appear, and the documented check replays four events in under a
-      second. *Question:* does the absence mislead a real team, or does the
-      far-consumer count suffice?
-- [ ] **Two nodes on one host.** Both compose files publish `5555:5555/udp`, so
-      the pair cannot come up unmodified on a single machine. *Question:* do
-      teams actually co-host, or is the two-machine assumption fine?
+      only after `metrics_interval_sec` has elapsed **on the datagram path**, so
+      a short replay prints no metrics output at all, rather than a low count.
+      **Reproduced 2026-07-30 and sharper than recorded:** the trigger is
+      datagram arrival, not a timer, so shortening the interval does not help.
+      Run at a one-second interval with seven seconds of idle, still nothing;
+      the final window is never flushed on shutdown either. A team replaying any
+      finite corpus will never see the line at any interval setting. The
+      quickstart now says so and points at the far-consumer count as the real
+      check. *Question that remains:* does a team hitting a 100% refusal in the
+      field notice, given that neither channel says anything on the console?
+- [x] **Two nodes on one host — FIXED 2026-07-30.** Both compose files published
+      `5555:5555/udp` and the second one failed with `Bind for 0.0.0.0:5555
+      failed: port is already allocated`. Host ports are now overridable
+      (`ZMETA_EDGE_PORT`, `ZMETA_GATEWAY_PORT`) and the pair was run end to end
+      on one machine. Closed rather than asked, because the answer did not
+      depend on how teams deploy: the fix costs nothing and the failure was
+      certain for anyone who tried.
+- [x] **Containerized nodes could not deliver anything — FIXED 2026-07-30.**
+      `forward.host` and `cot.host` are `127.0.0.1`, which inside a container is
+      the container's own loopback, so both output streams were delivered to a
+      namespace nothing can read, with no error. Measured before the fix: the
+      container reported `recv=722 fwd=722` while a receiver on the host's
+      `127.0.0.1:5556` saw zero. The Compose files now override both hosts on
+      the command line. This was a real break of the shipped deployment path,
+      not a question for the field.
+- [ ] **CoT reaches TAK only for `STATE_EVENT`.** Five clean ADS-B observations
+      traversed both nodes and produced zero CoT, while the example corpus
+      produces one because it contains one `STATE_EVENT`. The documented
+      rehearsal therefore passes and a real sensor then shows nothing. The
+      quickstart now states it. *Question:* do teams arrive with a fusion or
+      tracking stage, or do they expect the gateway to promote observations?
+      That answer decides whether track promotion is a documentation problem or
+      a missing component.
+- [ ] **`drops=0` does not mean nothing was lost.** Loss from offered load above
+      capacity happens in the kernel receive buffer, upstream of the gateway, so
+      the gateway cannot count it. Measured on one x86 host: 100% delivery at
+      400 events/s, saturation near 422/s, and at 1000/s offered only 44%
+      arrived while the node still reported `drops=0 violations=0`. *Question:*
+      does any deployment run near capacity, and if so is a receive-buffer
+      overflow counter worth the platform-specific code it needs?
 - [ ] **Adapter in about an hour.** *Question:* time a real author, cold, from
       `AUTHORING.md` to a green ladder. The producer-authority wall is closed;
       the remaining cost is the contract reading §0 routes them through.

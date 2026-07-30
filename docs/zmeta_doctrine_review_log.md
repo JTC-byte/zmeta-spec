@@ -1108,6 +1108,107 @@ good on the day it was written.
 
 ---
 
+## Cycle S1 — 2026-07-30 (internal simulation reps)
+
+Raised while running the shipped deployment path rather than reading it: two
+gateway nodes, the containers, the ADS-B adapter on a synthetic snapshot, the
+command-evidence loop, and a throughput sweep. The operating rule for the cycle
+was that a real break gets fixed and an assumption of behaviour gets recorded
+with the live validation that would settle it. Three of the four entries below
+are the second kind. The breaks found in the same session were fixed and are
+recorded in `docs/zmeta_live_test_checklist.md` rather than here, because they
+were defects with a known fix and not tensions between gates.
+
+| # | Tension | Gates in play | Status |
+|---|---|---|---|
+| S1-01 | `confidence` reaches CoT only as free text, with no structured element | 4, 5 | OPEN |
+| S1-02 | A counter that can only see what arrived is read as a loss counter | 3 | OPEN (observation) |
+| S1-03 | The rehearsal corpus exercises a path the real input does not | 5, 7 | OPEN (observation) |
+
+### S1-01 — `confidence` reaches CoT only as free text · OPEN
+
+`adapters/egress/cot/zmeta_to_cot.py` composes `confidence=<value>` into
+`<remarks>` and emits no structured `<detail>` child carrying it. Captured off
+the wire on 2026-07-30 from the stock two-node path:
+
+```xml
+<detail>
+    <contact callsign="Track track-001" />
+    <remarks>confidence=0.76</remarks>
+</detail>
+```
+
+The `labels_on` element present in the same builder is a TAK rendering toggle,
+not a quality projection. The error ellipse does have a structured home
+(`point@ce`, and `precisionlocation` once the operator asserts pedigree), so
+`confidence` is the field with no structured channel at all.
+
+**The tension.** Gate 5 says semantically load-bearing data lives in structured
+parseable fields and names CoT `<detail>` sub-elements as the example, never
+free text alone. Gate 4 says the canonical ZMeta event is the source of truth
+and every egress is a lossy projection, which argues that CoT is the
+human-facing rendering and a machine consumer should read the ZMeta event.
+Both readings are defensible and they disagree here.
+
+**Why it is not being fixed on the spot.** Adding a `<detail>` child changes
+what every existing CoT consumer receives, and the Praesens review already
+carries the same observation as its finding #5, so this is the second instance
+across two stacks and the shared root is upstream. Changing egress shape to
+settle a doctrinal question, with no consumer asking for it, is the failure
+mode discipline 10 exists to prevent.
+
+**What would settle it, live:** does any CoT consumer at the event need to read
+confidence by machine, or is the remarks string what a human reads while
+machine consumers take the ZMeta stream? "Nobody parses it" closes this and
+`<remarks>` stays the whole answer.
+
+### S1-02 — A counter that can only see what arrived is read as a loss counter · OPEN
+
+The gateway's `drops` counter is honest about what the gateway discarded. It
+cannot see datagrams the kernel dropped before `recvfrom`, because the process
+was never given them. Measured on one x86 host: 100% delivery at 400 events/s,
+saturation near 422/s, and at 1000/s offered only 44% arrived while the node
+reported `drops=0 violations=0` throughout.
+
+Nothing here is a lie. The operator-facing reading is the problem: `drops=0`
+alongside `violations=0` is exactly what a healthy node prints, and it is also
+what a node prints while more than half its sensor feed is discarded upstream.
+That is the X1-02 family seen from the metrics side, where a green reading stops
+the question.
+
+Recorded, not fixed. A receive-buffer overflow count is available per platform
+(`SO_RXQ_OVFL` on Linux, nothing portable on Windows), so the fix is
+platform-specific code for a condition no deployment has yet reported. The
+cheat-sheet row added to the quickstart is the cheap half.
+
+**What would settle it, live:** does any deployment run near capacity? If none
+do, this stays a documentation row forever, which is the right outcome.
+
+### S1-03 — The rehearsal corpus exercises a path the real input does not · OPEN
+
+The pre-event wire check replays `examples/zmeta-examples-1.0.jsonl`, which
+contains one `STATE_EVENT` and therefore produces CoT. An ingress adapter emits
+`OBSERVATION_EVENT`, and CoT projects `STATE_EVENT` only, so five clean ADS-B
+observations produced zero CoT on the same path minutes later. The rehearsal
+passes and the live run shows nothing, which is worse than a rehearsal that
+fails, because it converts a missing component into a mystery on the day.
+
+The generalisation worth watching, and the reason this is logged rather than
+just fixed in the guide: **a fixture chosen to demonstrate every feature is not
+a fixture representative of the input.** The example corpus is deliberately one
+of each event type. That makes it a fine conformance sample and a misleading
+smoke test. Same shape as the vacuous-verification family, one level out: the
+check passed, and it passed for a reason unrelated to what the operator was
+about to do.
+
+Not minted. One instance, and the guide correction may be the whole remedy.
+
+**What would settle it, live:** do teams arrive with a fusion or tracking stage?
+If most expect the gateway to promote observations to track state, this stops
+being a rehearsal-fixture question and becomes a missing-component question.
+
+---
+
 ## Lifecycle — these logs terminate, they do not accumulate
 
 The value of this log is the pattern over time. But a log that only ever grows
