@@ -248,3 +248,17 @@ python tools/validate_release_package.py --manifest release/zmeta-release-manife
 
 Release package tooling is no-signature by default. It does not create git
 tags, call signing tools, or store keys/secrets in the repository.
+
+### Deployment simulation
+
+`tools/sim/` holds harnesses that stand up real gateway nodes and push real
+traffic through them: `two_node.py` for the wire path and `throughput.py` for
+capacity. They answer questions the validators here cannot, because a schema
+check cannot tell you that a containerized node is delivering its output to a
+loopback nothing can read. See `tools/sim/README.md` for how to run them and
+for the rule that keeps them separable.
+
+Everything else on this page defines or enforces the standard. The simulation
+harnesses do not, and nothing governed may depend on them. That separation is
+asserted by `gateway/tests/test_sim_boundary.py`, so the harnesses stay
+extractable into their own repository if they outgrow this one.

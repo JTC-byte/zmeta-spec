@@ -1124,6 +1124,7 @@ were defects with a known fix and not tensions between gates.
 | S1-01 | `confidence` reaches CoT only as free text, with no structured element | 4, 5 | OPEN |
 | S1-02 | A counter that can only see what arrived is read as a loss counter | 3 | OPEN (observation) |
 | S1-03 | The rehearsal corpus exercises a path the real input does not | 5, 7 | OPEN (observation) |
+| S1-04 | Operational tooling accumulating inside a data standard | 1, 7 | OPEN (maintainer, criterion set) |
 
 ### S1-01 — `confidence` reaches CoT only as free text · OPEN
 
@@ -1206,6 +1207,44 @@ Not minted. One instance, and the guide correction may be the whole remedy.
 **What would settle it, live:** do teams arrive with a fusion or tracking stage?
 If most expect the gateway to promote observations to track state, this stops
 being a rehearsal-fixture question and becomes a missing-component question.
+
+### S1-04 — Operational tooling accumulating inside a data standard · OPEN
+
+Raised by the maintainer on 2026-07-30, when the simulation harnesses from the
+rep cycle were committed to `tools/sim/`: *"I just want to make sure we do not
+start a habit of overstuffing what is simply meant to be a data standard,
+although these tools are invaluable."*
+
+Both halves are true at once, which is what makes it a tension rather than a
+decision. The harnesses found two real deployment breaks that reading the code
+had not, so their value is demonstrated rather than assumed. And a data standard
+whose repository fills with operational tooling stops being a thing you can read
+and adopt, which is gate 1 pointed at the repository instead of at the event
+model: an alphabet, not a dictionary, applies to what we ship as much as to what
+we define.
+
+**Resolved for now by making the boundary structural rather than a promise.**
+`gateway/tests/test_sim_boundary.py` asserts that no governed artifact imports
+or invokes anything under `tools/sim`. The dependency is allowed to run one
+direction only. That test carries its own non-vacuity checks, including one that
+proves the detector fires, which caught a real gap in the detector on the day it
+was written.
+
+**The criterion for extraction, agreed the same day:** when the harnesses grow
+their own configuration surface, their own dependencies, or an audience that is
+not "someone integrating a sensor with ZMeta", they are a product and belong in
+their own repository. While the boundary test holds, that move is a directory
+rename plus a pointer, so deferring the decision costs nothing and keeping the
+option open is the whole point.
+
+**What would force the decision:** a third harness, a dependency outside the
+standard library, or any request to run these in CI. Any one of those is the
+trigger to answer the question rather than re-defer it, and the N=3 lifecycle
+rule below applies normally.
+
+Worth stating because it is easy to lose: the surface being protected is not
+disk space. It is that a reader can tell, in one look, which parts of this
+repository define the standard and which parts merely help you operate it.
 
 ---
 

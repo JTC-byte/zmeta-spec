@@ -40,6 +40,17 @@
   **Measured for the first time:** 100% delivery at 400 events/s, saturation
   near 422/s, and 44% delivery at 1000/s offered while the node reported
   `drops=0`, because loss above capacity happens upstream of the process.
+  **The harnesses were then committed to `tools/sim/` under a structural
+  boundary.** The maintainer named the risk in the same breath as the value:
+  operational tooling is invaluable and a data standard that accumulates it
+  stops being readable as a standard. Recorded as doctrine S1-04 with an
+  extraction criterion and a trigger, and enforced by
+  `gateway/tests/test_sim_boundary.py`, which asserts that nothing governed
+  imports or invokes anything under `tools/sim`. The dependency runs one
+  direction only, so extraction stays a directory move rather than a refactor.
+  That test's own detector-fires check caught a gap in its detector on the day
+  it was written: a Windows path in Python source carries an escaped separator
+  and the first pattern missed it.
 - **2026-07-28 (later session) — v1.1.19 PUBLISHED; documentation voice pass;
   X1-01; two verification gaps closed.** Four strands.
   **(1) The house voice.** An outside reader called the README machine-written.

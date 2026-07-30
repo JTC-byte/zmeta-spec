@@ -69,6 +69,19 @@ TAK and absent for every ZMeta consumer. It stays sequenced for v1.1.20 as
 already adjudicated, since minting a governed change inside a fix wave is
 exactly what the playbook forbids.
 
+**The rep harnesses are now committed, under a boundary that keeps them
+extractable.** `tools/sim/two_node.py` and `tools/sim/throughput.py`, with the
+control mode and the fresh-`event_id` generator that the session proved were
+load-bearing. The maintainer flagged the real risk in committing them: a data
+standard whose repository fills with operational tooling stops being a thing you
+can read and adopt. That is recorded as doctrine **S1-04** with an extraction
+criterion and a trigger, and it is enforced rather than promised by
+`gateway/tests/test_sim_boundary.py`, which asserts nothing governed imports or
+invokes anything under `tools/sim`. While that holds, extraction is a directory
+move and a pointer. The trigger to stop deferring the question is a third
+harness, a dependency outside the standard library, or a request to run these in
+CI.
+
 **The method note worth reusing.** Every rep had its pass and no-op criteria
 written before the run. That caught three bad measurements of mine before they
 became findings: a false "node did not come up" from a block-buffered pipe, a
