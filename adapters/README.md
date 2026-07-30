@@ -6,6 +6,7 @@ They are intentionally minimal and may be lossy.
 - Ingress adapters: `adapters/ingress/`
 - Mapping packs: `adapters/mapping-packs/`
 - Egress projections: `adapters/egress/` (CoT, MissionIntent, JREAP, KLV, SAPIENT)
+- Projectors: `adapters/projector/` (ZMeta in, ZMeta out)
 
 Building a new adapter? Start with the step-by-step authoring guide:
 `adapters/AUTHORING.md`.
@@ -44,6 +45,20 @@ or command safety.
 | [bladeRF EW](ingress/bladerf/) | edge-comms bladeRF / ROS2 EW `rf_detection` JSON (`edge-comms-bladerf` pack) | OBSERVATION_EVENT (RF) | Reference |
 | [ADS-B](ingress/adsb/) | `dump1090` / `readsb` `aircraft.json` (RTL-SDR, any decoder `adsbcot` supports) | OBSERVATION_EVENT (NETWORK) | Reference |
 | [Example-vendor](ingress/example-vendor/) | `example-vendor-pack` RF JSON | OBSERVATION_EVENT (RF) | Worked exercise |
+
+## Projectors
+
+ZMeta in, ZMeta out. Neither ingress nor egress: these sit between an adapter
+and a consumer and change what an event *is*, not what format it is in.
+
+| Projector | Input | Emits | Status |
+|---|---|---|---|
+| [Track](projector/track/) | `OBSERVATION_EVENT` whose subject broadcasts an identity (ADS-B `icao24`, AIS `mmsi`) | `FUSION_EVENT` + `STATE_EVENT` | Reference |
+
+Why this category exists: CoT projects `STATE_EVENT` only, so an ingress adapter
+alone puts ZMeta on the wire and nothing on a COP. Where identity must be
+inferred that gap is a real tracker and stays consumer-side by design. Where the
+subject broadcasts its own identity it is not, and the track projector closes it.
 
 Status legend: **Production**: exercised against real sensor data.
 **Template**: copy-me starting point, structurally complete.

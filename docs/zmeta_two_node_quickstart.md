@@ -24,12 +24,23 @@ containers in this repository; nothing needs to be built.
 **What reaches TAK, and what does not.** The CoT projection converts
 `STATE_EVENT` track states only. An ingress adapter emits `OBSERVATION_EVENT`,
 so a sensor wired straight through this topology produces ZMeta on the wire and
-nothing on the map until something promotes observations to track state. That
-promotion is a fusion or tracking stage, and it is consumer-side work this
-repository does not ship. Verified 2026-07-30: five clean ADS-B observations
-traversed both nodes and produced zero CoT datagrams, while the example corpus
-below produces one because it contains one `STATE_EVENT`. Plan the fusion stage
-before the event, or expect a working wire and an empty COP.
+nothing on the map until something associates observations into tracks.
+Verified 2026-07-30: five clean ADS-B observations traversed both nodes and
+produced zero CoT datagrams, while the example corpus below produces one
+because it contains one `STATE_EVENT`. The rehearsal passes and the real sensor
+shows nothing, so decide which case you are in before the event.
+
+How much work that is depends entirely on your sensor:
+
+- **The subject broadcasts its own identity** (ADS-B, AIS). The association key
+  arrives with the data, so `adapters/projector/track/` does the job. Feed it
+  observations, publish the `FUSION_EVENT` and `STATE_EVENT` pair it returns,
+  and tracks appear. The same synthetic snapshot that produced zero CoT above
+  produces two tracks through it.
+- **Identity has to be inferred** (RF bearings, EO detections). That is a real
+  tracker and it is yours to bring. This repository ships the semantics for
+  expressing correlation, deliberately not a correlation engine, because that
+  decision depends on your sensors and your scenario.
 
 Two rules govern the whole design:
 
@@ -242,7 +253,8 @@ interval, or read the far-consumer count above instead.
 | no ellipse detail on TAK | `geopointsrc`/`altsrc` not asserted in `cot.config` | the omission default; assert it if (and only if) it is true |
 | no bearing on a track you expected one for | the adapter demoted a frame-unlabeled bearing to native features (contract 6.4) | working; assert the frame at the producer if it is provable |
 | an adapter emitting nothing for a record | fail-closed refusal on an unmappable/unavailable datum | working; the adapter's colocated tests enumerate its refusal reasons |
-| events flowing to consumers but nothing on TAK | your stream is observations; CoT projects `STATE_EVENT` only | working; you need a fusion or tracking stage, see the top of this guide |
+| events flowing to consumers but nothing on TAK | your stream is observations; CoT projects `STATE_EVENT` only | working; you need track association, see the top of this guide |
+| a track on TAK with `ce="9999999.0"` though your sensor knows its accuracy | a v1.0 `STATE_EVENT` has nowhere to carry positional uncertainty | a known limit, doctrine log S1-05; nothing is overstated, the measurement is simply unsayable on a v1.0 track |
 | no metrics line at all | the node is idle, or the replay was shorter than one metrics interval | working; metrics are emitted from the datagram path, so hold a load to see them |
 | `drops=0` while a consumer is clearly missing events | drops counts what the gateway discarded, not what never reached it | check offered load: at 1000 events/s on one test host, 44% arrived with `drops=0`, the rest lost in the kernel receive buffer upstream |
 | `duplicates` climbing and `fwd` flat | the same `event_id` is being re-sent | working; event dedupe is keyed on `event_id`, and `tools/replay.py --loop` re-sends ids verbatim, so only its first pass forwards |

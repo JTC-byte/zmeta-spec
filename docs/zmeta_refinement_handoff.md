@@ -1,6 +1,56 @@
 # ZMeta Refinement Handoff Notes
 
-## CURRENT STATE — read first (simulation reps 2026-07-30)
+## CURRENT STATE — read first (track projector 2026-07-30)
+
+**`adapters/projector/track/` closes the observation-to-track gap for sources
+whose subjects broadcast an identity.** The same synthetic ADS-B snapshot that
+produced zero CoT earlier the same day now produces two tracks on the CoT wire,
+verified through two live gateway nodes. Nothing governed moved and no
+manifest-hashed file was touched.
+
+**A third adapter category, and the reason it is not ingress or egress.** A
+projector takes ZMeta in and emits ZMeta out. It changes what an event *is*
+rather than what format it is in. Ingress translates a foreign format inward,
+egress projects outward, and neither describes promoting observations into a
+track.
+
+**Why fusion and not external promotion, since both reach a `STATE_EVENT`.**
+Promotion is for importing a track another system already computed, which is
+what the CoT and JREAP ingress adapters do. Fusion is for a track you associated
+yourself. An aircraft broadcasts instantaneous position and identity; it does not
+decide that successive broadcasts are one object or when that object is stale.
+The lineage rules agree: `policy/lineage.yaml` allows a `STATE_EVENT` to cite
+only `FUSION_EVENT` or `STATE_EVENT` parents, so a state citing an observation is
+refused with `LINEAGE_PARENT_TYPE_INVALID`, and going straight from observation
+to state would require citing a parent that does not exist.
+`FusionPayload.members` is `minItems: 1`, so a single-member association is
+schema-legal and no invention is needed. All three refusal paths were confirmed
+by running them.
+
+**`confidence` is a required constructor argument with no default, and that is
+the finding underneath the component.** The kernel requires `confidence` on both
+emitted event types. A cooperative broadcast supplies none: `nac_p` and `sil` are
+accuracy and integrity, already projected into an error ellipse, and neither is a
+probability that the claim is true. The only honest source is the operator, so
+the projector refuses to construct without one. Deriving it from `sil` was
+considered and rejected as an unadjudicated modelling decision.
+
+**NEW: doctrine log S1-05, and it is kernel-shaped.** A v1.0 `STATE_EVENT` has
+nowhere to carry positional uncertainty: `$defs/geo` is `lat`, `lon`, `alt_m`
+with `additionalProperties: false`, and CoT reads `geo.error_ellipse_m` which
+exists only on the v1.1.0 experimental geo. So the 30 m ellipse ADS-B genuinely
+derives from `nac_p: 9` reaches TAK as `ce="9999999.0"`. Nothing is overstated,
+and a real measurement is unavailable. Every outer-ring workaround is worse than
+the gap, so this belongs with the experimental-split experiment from cycle A1
+rather than with a fix.
+
+**Deferred to the v1.1.20 cut on purpose:** registering the projector in
+`conformance/adapter-harness/must-pass.jsonl`. That file is manifest-hashed, so
+adding fixtures now would regenerate the manifest under the published `v1.1.19`
+identity and diverge `main` from its published checksums. It joins the three
+items already grouped for that cut.
+
+## Previous state (simulation reps 2026-07-30)
 
 **`v1.1.19` remains the published release and nothing governed moved.** The work
 on 2026-07-30 was a set of internal simulation reps run while field feedback is

@@ -90,11 +90,22 @@ change to the standard and none should move without field evidence.
 - [ ] **CoT reaches TAK only for `STATE_EVENT`.** Five clean ADS-B observations
       traversed both nodes and produced zero CoT, while the example corpus
       produces one because it contains one `STATE_EVENT`. The documented
-      rehearsal therefore passes and a real sensor then shows nothing. The
-      quickstart now states it. *Question:* do teams arrive with a fusion or
-      tracking stage, or do they expect the gateway to promote observations?
-      That answer decides whether track promotion is a documentation problem or
-      a missing component.
+      rehearsal therefore passes and a real sensor then shows nothing.
+      **Half-answered 2026-07-30 by building the missing half:**
+      `adapters/projector/track/` closes it for sources whose subjects broadcast
+      an identity, and the same snapshot that produced zero CoT now produces two
+      tracks. A source whose identity must be inferred still needs a real
+      tracker, which stays consumer-side by design. *Question that remains:* how
+      many teams arrive with an inferred-identity sensor and no tracker? If most
+      do, the ladder from observation to track needs to be far more prominent
+      than one section of a quickstart.
+- [ ] **Does anyone act differently on a known accuracy?** A v1.0
+      `STATE_EVENT` has nowhere to carry positional uncertainty, so a track
+      reaches TAK with `ce="9999999.0"` even when the ingress adapter measured a
+      real ellipse (ADS-B derives 30 m from `nac_p: 9`). Observed end to end.
+      Doctrine log S1-05. *Question:* does an operator treat a 30 m track
+      differently from an unknown one, or is everything treated as approximate
+      anyway? "Nobody acts on it" closes the item and the limit stays documented.
 - [ ] **`drops=0` does not mean nothing was lost.** Loss from offered load above
       capacity happens in the kernel receive buffer, upstream of the gateway, so
       the gateway cannot count it. Measured on one x86 host: 100% delivery at

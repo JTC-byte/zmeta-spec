@@ -1125,6 +1125,7 @@ were defects with a known fix and not tensions between gates.
 | S1-02 | A counter that can only see what arrived is read as a loss counter | 3 | OPEN (observation) |
 | S1-03 | The rehearsal corpus exercises a path the real input does not | 5, 7 | OPEN (observation) |
 | S1-04 | Operational tooling accumulating inside a data standard | 1, 7 | OPEN (maintainer, criterion set) |
+| S1-05 | A v1.0 track cannot carry the uncertainty its own observation measured | 2, 3 | OPEN |
 
 ### S1-01 — `confidence` reaches CoT only as free text · OPEN
 
@@ -1245,6 +1246,57 @@ rule below applies normally.
 Worth stating because it is easy to lose: the surface being protected is not
 disk space. It is that a reader can tell, in one look, which parts of this
 repository define the standard and which parts merely help you operate it.
+
+### S1-05 — A v1.0 track cannot carry the uncertainty its own observation measured · OPEN
+
+Found while building `adapters/projector/track`, which is the first component
+that has to carry a measured accuracy from an observation onto a track.
+
+Under the locked v1.0 kernel, `$defs/geo` is exactly `lat`, `lon` and `alt_m`
+with `additionalProperties: false`, and `TrackStatePayload.geo` is a plain
+`$ref` to it. There is no field on a v1.0 `STATE_EVENT` for positional
+uncertainty. An `OBSERVATION_EVENT` can carry one, under
+`payload.quality.error_ellipse_m`, and the ADS-B adapter populates it with a
+real value derived from `nac_p`.
+
+`adapters/egress/cot` reads `geo.error_ellipse_m`, which exists only on the
+v1.1.0 experimental geo, and its own comment says so: *"the only schema-valid
+uncertainty source on geo (v1.1.0 $defs/geo; v1.0 geo carries none)"*.
+
+**Observed end to end 2026-07-30.** An ADS-B target with `nac_p: 9` produces a
+30 m semi-major ellipse on the observation. The projected track reaches TAK as
+`ce="9999999.0"`, CoT's unknown-accuracy sentinel. The measurement exists, is
+honest, and cannot travel.
+
+Two smaller things fall out of the same look. The key names differ between the
+two homes: the observation carries `semi_major_m` under `quality`, and the CoT
+reader expects `semi_major` under `geo`. And the repository's own CoT example is
+a v1.1.0 event for exactly this reason, so the documented example does not
+demonstrate what a v1.0 deployment will see.
+
+**This is not R1-11-08**, which is about zero-filling a *partially* populated
+ellipse and overstating precision. This is the opposite direction: a fully
+populated, correctly measured ellipse with nowhere to go.
+
+**Gate 2 is what makes it a tension rather than a limitation.** Consumer
+sufficiency asks whether a downstream consumer has what it needs to responsibly
+act. An operator deciding whether a track is precise enough to act on is the
+canonical case, and on a v1.0 track the answer is always "unknown" no matter how
+well the sensor characterised itself. Nothing is overstated, which is the half
+the honesty gates protect, and the half they do not protect is that a real
+measurement is silently unavailable.
+
+**Not fixed, and not fixable in the outer rings.** Every workaround is worse
+than the gap: `cot_config.default_ce` is deployment-wide and would assert one
+accuracy for every track; stuffing the ellipse into an extension puts it
+somewhere no standard consumer reads. This is a kernel-shaped question, which
+means it is the maintainer's and it belongs with the experimental-split
+experiment already recorded in cycle A1 rather than with a fix.
+
+**What would settle it, live:** does any operator at the event act differently
+on a track with a 30 m ellipse than on one with an unknown one? If the honest
+answer is that everything gets treated as approximate anyway, this stays a
+documented limit and costs nothing.
 
 ---
 

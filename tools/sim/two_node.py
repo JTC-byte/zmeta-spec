@@ -190,6 +190,8 @@ def parse_args():
                    help="seconds to wait after the last event before counting")
     p.add_argument("--control", action="store_true",
                    help="do not start the edge node; downstream MUST observe zero")
+    p.add_argument("--show-cot", action="store_true",
+                   help="print the CoT XML captured off the egress port")
     p.add_argument("--verbose", action="store_true", help="print both node logs")
     return p.parse_args()
 
@@ -278,6 +280,10 @@ def main():
               f"geo={'yes' if pl.get('geo') else 'no'} id={ev.get('event_id')}")
     for e in diagnostics:
         print(f"  diag SCHEMA_VIOLATION reasons={reason_codes(e.get('payload') or {})}")
+    if args.show_cot:
+        for raw in cot.datagrams:
+            for line in raw.decode("utf-8", "replace").splitlines():
+                print("  cot| " + line)
 
     if args.control:
         clean = not consumer.datagrams and not cot.datagrams

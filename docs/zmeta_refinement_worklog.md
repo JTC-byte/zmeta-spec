@@ -2,7 +2,35 @@
 
 ## Current Resume Note
 
-- Last updated: 2026-07-30 (simulation reps; deployment-path breaks fixed)
+- Last updated: 2026-07-30 (track projector; the observation-to-track gap closed
+  for broadcast-identity sources)
+- **2026-07-30 (later) — `adapters/projector/track/`.** The simulation reps
+  earlier the same day found that CoT projects `STATE_EVENT` only, so five clean
+  ADS-B observations reached a consumer and produced zero CoT while the example
+  corpus produced one because it happens to contain a `STATE_EVENT`. The
+  rehearsal passed and the real sensor showed nothing. This closes that for
+  sources whose subjects broadcast an identity: the same snapshot now produces
+  two tracks on the CoT wire, verified through two live gateway nodes, 9 of 9
+  events forwarded with zero diagnostics.
+  **A third adapter category.** A projector is ZMeta in and ZMeta out. It
+  changes what an event is rather than what format it is in, which is neither
+  ingress nor egress.
+  **Fusion, not external promotion, and the constraints agree with the
+  semantics.** Promotion imports a track another system computed; fusion is a
+  track you associated. `policy/lineage.yaml` permits a `STATE_EVENT` to cite
+  only `FUSION_EVENT` or `STATE_EVENT` parents, so a state citing an observation
+  is refused with `LINEAGE_PARENT_TYPE_INVALID`, and `FusionPayload.members` is
+  `minItems: 1`, so a single-member association needs no invented lineage. Both
+  were confirmed by running them rather than by reading the policy.
+  **The finding underneath the component:** `confidence` is required by the
+  kernel on both emitted types and a cooperative broadcast supplies none, so the
+  projector refuses to construct without an operator-asserted value. Deriving it
+  from `sil` was rejected as an unadjudicated modelling decision.
+  **Doctrine log S1-05, kernel-shaped:** a v1.0 `STATE_EVENT` has nowhere to
+  carry positional uncertainty, so a measured 30 m ADS-B ellipse reaches TAK as
+  the unknown-accuracy sentinel. Nothing overstated, a real measurement
+  unavailable, and every outer-ring workaround worse than the gap.
+  29 colocated tests. Battery 1518 + 1074.
 - **2026-07-30 — internal simulation reps while field feedback is pending.**
   The stack was run rather than read: two gateway nodes, the shipped containers,
   the ADS-B adapter on a synthetic `aircraft.json`, the command-evidence loop in
