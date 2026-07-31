@@ -2,8 +2,19 @@
 
 ## Current Resume Note
 
-- Last updated: 2026-07-30 (track projector; the observation-to-track gap closed
-  for broadcast-identity sources)
+- Last updated: 2026-07-30 (cycle closed out; three commits pushed, CI green)
+- **2026-07-30 (closeout).** Three commits reviewed against the intent that drove
+  them, battery verified by hand, records reconciled across every surface. Four
+  findings. The CHANGELOG's `[Unreleased]` was empty after three commits of
+  user-facing work, which is the fourth instance of records lagging commits and
+  the one the v1.1.19 scoring had pre-committed to fixing with a mechanism, so
+  `gateway/tests/test_changelog_keeps_up.py` now asserts the description exists
+  without judging what it says. X1-02 is past the N=3 lifecycle threshold at five
+  instances and still OPEN, which is a rule firing and being overridden by
+  judgement; recorded on the entry for the maintainer. Discipline 6 went unmet,
+  because no independent panel read this cycle at all. And the repeated
+  `recv=722` measurement was considered and cleared: six assertions, all framed
+  in the past tense as a corrected defect, so all six stay true.
 - **2026-07-30 (later) — `adapters/projector/track/`.** The simulation reps
   earlier the same day found that CoT projects `STATE_EVENT` only, so five clean
   ADS-B observations reached a consumer and produced zero CoT while the example

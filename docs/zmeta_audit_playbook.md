@@ -256,6 +256,38 @@ full audits:
 - Whether the kernel wave (W1) should fix everything rather than stop at the
   MODERATE floor, given it is small, locked, and drift-intolerant.
 
+## Rule scoring — 2026-07-30 (the simulation-rep cycle)
+
+**No rule scored out; one watch-item closed with a mechanism; one discipline
+went unmet and that is the finding.**
+
+| Rule / setting | Fired | Outcome |
+|---|---|---|
+| 1. Commit at every boundary | Continuously | Validated. Three commits, each pushed with CI green before the next began. |
+| 2. Resume from the tree | Fired at refresh | **Prevented a wrong recommendation.** My own memory said the compact-mapping fail-closed clause was still a pending governed wave. The tree said it landed 2026-07-27. I nearly proposed it as the next line of business. |
+| 3. Verify the battery yourself | Every commit | Validated, and it found nothing, which is the outcome it should mostly have. |
+| 4. Attack pass is load-bearing | **Did not fire** | No adversarial pass ran this cycle. Its function was partly served by per-rep controls defined before each run, which caught three bad measurements. That is not the same instrument and should not be recorded as though it were. |
+| 5. No vacuous pins; the demonstration ships with the pin | Fired three times | Validated. Every check added this cycle carries a control or a mutation proof, and one of them (`test_sim_boundary`'s detector-fires case) caught a real gap in its own detector on the day it was written. |
+| 6. Author is not grader | **NOT APPLIED** | **The honest gap in this cycle.** No independent panel read any of this work. Everything here, including two deployment fixes and a new adapter category, is author-graded. The v1.1.19 cycle is the direct evidence for why that matters: an author-run pre-cut review produced a cut that looked ready, and independent panels then found the headline guard did not work. |
+| 7. No minting; log the collision | Continuously | Validated. Five doctrine entries this cycle, nothing minted, locked kernel untouched, and two policy questions escalated rather than answered. |
+| 8. Audit the doctrine | Fired at this closeout | Validated, and it produced the sharpest finding: X1-02 is past the N=3 threshold and still OPEN. |
+| 9. Scale verification to the pass | Fired | Correct for the work and incomplete as a result. Lean was right for reps, where the value is in executing rather than reading. It is what left rule 6 unmet, so the two are the same decision seen twice. |
+| 10. Validate before hardening | Fired repeatedly | **The cycle's spine.** S1-01, S1-02, S1-03 and S1-05 are all recorded with their live question rather than fixed, on the operator's explicit instruction. Two real breaks were fixed, and the line between the two categories held. |
+
+**Watch-items.** (a) The one-third introduction cap has still never fired,
+across yet another cycle. It is now the longest-standing never-fired rule and
+the X1-03 caution applies directly: silence from a constitutional rule is not
+evidence of uselessness, so do not prune it on that basis, but do stop citing it
+as active machinery. (b) **Closed with a mechanism.** "Records surfaces
+reconcile at points while commits land continuously" was carried with a
+pre-committed disposition: if it recurs, build something. It recurred at this
+closeout, where three commits of user-facing work sat under an empty
+`[Unreleased]`. `gateway/tests/test_changelog_keeps_up.py` now asserts that
+work recorded after the newest released version is described, and deliberately
+does not judge what the description says. (c) **New: rule 6 went unmet.** One
+cycle is not a pattern. Two would be, and the work most needing an independent
+read is the work now sitting in front of a live event.
+
 ## Rule scoring — 2026-07-28 (the v1.1.19 cycle)
 
 **No rule scored out; one added (10), one vindicated decisively (6).**

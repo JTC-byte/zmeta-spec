@@ -997,7 +997,30 @@ emitted at either end. Sequencing recorded: tag v1.1.19 as-is, which stays a
 clean additive cut; handle this in v1.1.20, which is then behaviour-changing
 rather than additive — a distinction the consumer's pin-advance review keys on.
 
-### X1-02 — A weaker check keeps standing in for a stronger one · OPEN
+### X1-02 — A weaker check keeps standing in for a stronger one · OPEN, PAST THRESHOLD
+
+**Closeout note, 2026-07-30.** The lifecycle rule below says a tension must
+reach a terminal status on its third recurrence. This entry is at five instances
+across two repositories and is still OPEN, held there by a detection question
+its own text calls answerable in an afternoon, which has now gone two days
+unstarted. The rule fired and was overridden by judgement. That is recorded
+rather than quietly repeated, because a threshold that is passed without comment
+is not a threshold.
+
+The honest reading: this entry is not waiting for more evidence, it is waiting
+for an afternoon. Two dispositions are available and a third is not. Either the
+detection question gets answered, at which point the entry goes terminal with a
+result, or it goes terminal without one as HELD-FIRM with the question recorded
+as declined. Carrying it open through another cycle should stop being an option.
+**Maintainer's call.**
+
+**Not counted as a sixth instance: S1-02**, the `drops` counter read as a loss
+counter. The shapes are adjacent and not the same. X1-02 is a *check* being
+substituted by a cheaper sibling that shares its name or neighbourhood. S1-02 is
+a correctly scoped *counter* being read as though its scope were wider, with no
+substitution involved. Counting it here would inflate the number that drives the
+lifecycle decision above, which is the one place an inflated count does real
+damage. Recorded as its own entry with the relationship stated.
 
 Three instances in a single day, all in this session, each one a case where the
 stronger check already existed and something cheaper was being run in its place:

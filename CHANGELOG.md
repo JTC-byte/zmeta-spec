@@ -2,6 +2,48 @@
 
 ## [Unreleased]
 
+- 2026-07-30 — **Track projector: a sensor that names itself can reach a map.**
+  `adapters/projector/track/` is a third adapter category, ZMeta in and ZMeta
+  out, that associates observations whose subjects broadcast an identity into
+  tracks and emits the `FUSION_EVENT` plus `STATE_EVENT` pair a COP needs. CoT
+  projects `STATE_EVENT` only, so an ingress adapter alone produced valid ZMeta
+  and an empty map: five clean ADS-B observations traversed two nodes and
+  produced zero CoT. The same snapshot now produces two tracks on the wire.
+  Fusion rather than external promotion, because promotion imports a track
+  another system computed while fusion is one you associated. `confidence` is an
+  operator-asserted constructor argument with no default: the kernel requires it
+  and a cooperative broadcast supplies none. ADS-B `icao24` and AIS `mmsi`
+  identity paths ship; 29 colocated tests.
+- 2026-07-30 — **A containerized node could not deliver anything it produced.**
+  `forward.host` and `cot.host` are `127.0.0.1`, correct on a host and wrong
+  inside a container, where it is the container's own loopback: the send
+  succeeds, nothing can read the destination, and no error is raised. A
+  container reported `recv=722 fwd=722` while a receiver on the host saw zero.
+  Both Compose files now pass the destinations on the command line, where they
+  override the config. `gateway/tests/test_container_egress_overrides.py` pins
+  the precedence the fix rests on.
+- 2026-07-30 — **The two Compose files can run on one host.** Both published
+  `5555:5555/udp`, so the second failed to bind. Host ports are now overridable
+  through `ZMETA_EDGE_PORT` and `ZMETA_GATEWAY_PORT`.
+- 2026-07-30 — **Deployment simulation harnesses.** `tools/sim/two_node.py` and
+  `tools/sim/throughput.py` stand up real gateway nodes and report what actually
+  arrived, with a control mode that measures the zero case rather than assuming
+  it. `gateway/tests/test_sim_boundary.py` asserts that nothing governed imports
+  or invokes them, so they stay extractable into their own repository. The scope
+  question is doctrine log S1-04.
+- 2026-07-30 — **Field-path documentation corrected against what the stack
+  actually does.** The metrics line cannot appear for a finite replay at any
+  interval setting, because it is emitted from the datagram path; a profile
+  mismatch refuses loudly on the data path and silently on the console;
+  `drops=0` does not mean nothing was lost, since loss above capacity happens
+  upstream of the process; and `tools/replay.py --loop` forwards nothing after
+  its first pass because event dedupe is keyed on `event_id`.
+- 2026-07-30 — **Doctrine log cycle S1**, five entries, all OPEN, nothing
+  minted. S1-05 is the one that needs a maintainer decision: a v1.0
+  `STATE_EVENT` has nowhere to carry positional uncertainty, so the 30 m ellipse
+  ADS-B derives from `nac_p: 9` reaches TAK as the unknown-accuracy sentinel.
+  Nothing is overstated and a real measurement is unavailable.
+
 ## [1.1.19] - 2026-07-28
 
 - 2026-07-28 — **PUBLISHED.** Annotated tag on `0eebb43`, eight assets,

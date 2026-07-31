@@ -427,3 +427,120 @@ audit you.* Four of the five outside findings arrived as ordinary working traffi
 correction. None was commissioned. A survey-the-ecosystem rule buys the expensive
 version of something that was already arriving free. The clause that makes it
 repeatable is that nobody was auditing.
+
+## The simulation-rep cycle — 2026-07-30
+
+A cycle with no audit in it. The operator asked for internal reps while field
+feedback was pending, with one constraint that shaped everything: fix a real
+break, and for anything that is an assumption of behaviour, record it with the
+live validation that would settle it instead of building on it. The stated
+reason was that working from assumptions, without touching the code, and
+trusting what a log said rather than letting it point at what to check, had been
+expensive before.
+
+### The result that justifies the cadence
+
+Running the shipped deployment found two breaks that reading it never had, and
+neither was subtle once observed. A containerized node forwarded both its output
+streams to the container's own loopback, so a gateway reporting `recv=722
+fwd=722` delivered nothing a host could read, and no error was raised because
+the send succeeded. The two Compose files both bound the same host port, so the
+pair could not come up together at all.
+
+Neither is visible in a code review. Both are obvious in one run. That is the
+whole argument for reps as a tier, and it is worth stating plainly because the
+repository already had a green battery, green CI, and a documented wire check
+that could not pass against its own containers.
+
+### Controls-first paid three times, and each time against us
+
+Every rep had its pass and no-op criteria written before the run. Three
+measurements failed those criteria and would otherwise have been reported as
+findings:
+
+- A gateway was reported as "did not come up" because its startup banner sat in
+  a block-buffered pipe. The process was healthy and listening. The shipped
+  Compose files already run `python -u` for exactly this reason; the harness did
+  not, and a live gateway read as a dead one.
+- A throughput run reported 17% delivery. The generator was cycling a corpus
+  verbatim, so it was measuring duplicate suppression rather than capacity. The
+  same property is why `tools/replay.py --loop` forwards nothing after its first
+  pass, which is now documented.
+- A four-case command-evidence corpus failed in all four cases, including the
+  two that had to pass. The cause was unrelated to what was being tested: the
+  node had not published `TIME_STATUS`.
+
+The third is the instructive one. Case A alone would have "confirmed" that the
+command-evidence gate refuses a prohibited-parent citation. It does refuse it,
+which is what makes the near miss worth recording: the right answer was reached
+for the wrong reason, and only the control that had to pass revealed it.
+
+### The finding that matters most for a live event
+
+CoT projects `STATE_EVENT` only. An ingress adapter emits `OBSERVATION_EVENT`.
+So a sensor wired through the documented topology produces valid ZMeta and an
+empty map, and the shipped example corpus contains a `STATE_EVENT`, so the
+documented pre-event rehearsal passes and the real sensor then shows nothing.
+
+The general form, logged as S1-03: **a fixture chosen to demonstrate every
+feature is not a fixture representative of the input.** The example corpus is
+deliberately one of each event type, which makes it a good conformance sample
+and a misleading smoke test. It is the vacuous-verification family one level
+out, where the check passed for a reason unrelated to what the operator was
+about to do.
+
+### What the fix taught, which was more than the fix
+
+Closing that gap for broadcast-identity sources meant deciding between two
+routes to a `STATE_EVENT`, and the decision was made by running into each
+constraint rather than by reading the policy and reasoning:
+
+- a state citing an observation is refused, `LINEAGE_PARENT_TYPE_INVALID`;
+- a sensor producer attempting to declare a track is refused,
+  `PRODUCER_NOT_ALLOWED`;
+- external promotion carries no requirement on the `state-projector-*` wildcard,
+  so stripping the entire evidence block changed nothing observable.
+
+Fusion was the honest route and also the one needing no invented lineage, since
+`FusionPayload.members` is `minItems: 1`. Two attempts failed before the working
+one, and that is why the answer is trustworthy rather than merely plausible.
+
+Underneath it sat a smaller finding with a wider shape. The kernel requires
+`confidence` on both emitted event types, and a cooperative broadcast has none
+to give: `nac_p` and `sil` are accuracy and integrity, not the probability that
+a claim is true. So the value has to be asserted by the operator, and the
+component refuses to construct without one. Deriving it from `sil` was rejected
+because that mapping is a modelling decision nobody has adjudicated, and
+inventing it inside an adapter is how a private dialect starts.
+
+### A rule that fired and was not honoured
+
+The doctrine log's lifecycle says a tension must reach a terminal status on its
+third recurrence. X1-02, a weaker check standing in for a stronger one, is at
+five instances across two repositories and is still OPEN, held there by a
+detection question described as answerable in an afternoon and not yet started.
+
+That is the rule working as an instrument and being overridden by judgement,
+which is worth naming rather than quietly repeating. The honest reading is that
+the entry is not waiting for more evidence; it is waiting for an afternoon.
+Either the question gets answered or the entry goes terminal without it, and
+carrying it open through another cycle is the option that should stop being
+available.
+
+### On adding tooling to a standard
+
+The harnesses were committed on the operator's instruction, alongside his own
+caution: operational tooling is invaluable and a data standard whose repository
+accumulates it stops being readable as a standard. Both are true, which is why
+it went into the log as S1-04 rather than being settled on the day.
+
+The move that made deferring honest was making the boundary structural. A test
+asserts that nothing governed imports or invokes anything under `tools/sim`, so
+the dependency runs one direction only and extraction stays a directory move.
+Deferring a decision is only free when you have paid for the option to reverse
+it, and this is what paying for it looks like.
+
+That test also earned its keep immediately. Its own detector-fires check caught
+a gap in the detector: a Windows path in Python source carries an escaped
+separator, and the first pattern matched only a single one, so a real dependency
+written that way would have passed unnoticed.

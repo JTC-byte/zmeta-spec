@@ -1,6 +1,46 @@
 # ZMeta Refinement Handoff Notes
 
-## CURRENT STATE — read first (track projector 2026-07-30)
+## CLOSEOUT — 2026-07-30
+
+Three commits, 19 files, `main` pushed and CI green at `9fca0e1`, tree clean.
+Battery verified by hand rather than accepted: kernel gate all flags exit 0,
+strict examples 51/51, pytest 1518 passed plus 1074 subtests, both lints clean,
+roadmap validator and policy JSON export clean.
+
+**Four things the closeout found.**
+
+1. **The CHANGELOG's `[Unreleased]` was empty** after three commits of
+   user-facing work. This is the fourth instance across three cycles of records
+   reconciling at points while commits land continuously, and the v1.1.19 rule
+   scoring had already carried it with a pre-committed disposition: if it
+   recurs, build something. It recurred, so
+   `gateway/tests/test_changelog_keeps_up.py` now asserts that work recorded
+   after the newest released version is described somewhere. It deliberately
+   does not judge *what* the description says, because the rule that tried to
+   judge whether prose meant the right thing failed twice on the release-focus
+   bullet.
+2. **X1-02 is past the lifecycle threshold and still OPEN.** The rule says a
+   tension reaches a terminal status on its third recurrence; this one is at
+   five across two repositories, held open by a detection question its own text
+   calls answerable in an afternoon and which is now two days unstarted. Either
+   the question gets answered or the entry goes terminal without it. Recorded on
+   the entry, and it is the maintainer's call.
+3. **Discipline 6 went unmet.** No independent panel read any of this cycle,
+   including two deployment fixes and a new adapter category. The v1.1.19 cycle
+   is the evidence for why that matters: an author-run pre-cut review produced a
+   cut that looked ready, and independent panels then found the headline guard
+   did not work. One cycle is not a pattern; two would be, and the work now
+   sitting in front of a live event is the work most wanting a cold read.
+4. **Considered and cleared:** the `recv=722 fwd=722` measurement is asserted in
+   six places. The moving-fact rule counts that as a future defect count, but
+   the fact is frozen and every instance is framed in the past tense as a
+   defect that was corrected, so all six stay true. No action.
+
+**Nothing is half-done.** Every deferral is explicit and named: harness fixtures
+for the projector wait for the v1.1.20 cut because `must-pass.jsonl` is
+manifest-hashed, and the open doctrine entries are decisions rather than work.
+
+## CURRENT STATE (track projector 2026-07-30)
 
 **`adapters/projector/track/` closes the observation-to-track gap for sources
 whose subjects broadcast an identity.** The same synthetic ADS-B snapshot that
