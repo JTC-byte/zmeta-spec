@@ -37,7 +37,7 @@
   kernel on both emitted types and a cooperative broadcast supplies none, so the
   projector refuses to construct without an operator-asserted value. Deriving it
   from `sil` was rejected as an unadjudicated modelling decision.
-  **Doctrine log S1-05, kernel-shaped:** a v1.0 `STATE_EVENT` has nowhere to
+  **Doctrine log SIM1-05, kernel-shaped:** a v1.0 `STATE_EVENT` has nowhere to
   carry positional uncertainty, so a measured 30 m ADS-B ellipse reaches TAK as
   the unknown-accuracy sentinel. Nothing overstated, a real measurement
   unavailable, and every outer-ring workaround worse than the gap.
@@ -66,7 +66,7 @@
   only, so five clean ADS-B observations produced zero CoT while the example
   corpus produces one because it contains a `STATE_EVENT`. The documented
   rehearsal passes and the real sensor then shows nothing, which is the worst
-  available ordering. Recorded as S1-03: a fixture chosen to demonstrate every
+  available ordering. Recorded as SIM1-03: a fixture chosen to demonstrate every
   feature is not a fixture representative of the input.
   **Confirmed rather than assumed:** X1-01 accepts six of six nonsense
   timestamps including `banana-Z`, with both controls behaving, and those events
@@ -82,7 +82,7 @@
   **The harnesses were then committed to `tools/sim/` under a structural
   boundary.** The maintainer named the risk in the same breath as the value:
   operational tooling is invaluable and a data standard that accumulates it
-  stops being readable as a standard. Recorded as doctrine S1-04 with an
+  stops being readable as a standard. Recorded as doctrine SIM1-04 with an
   extraction criterion and a trigger, and enforced by
   `gateway/tests/test_sim_boundary.py`, which asserts that nothing governed
   imports or invokes anything under `tools/sim`. The dependency runs one

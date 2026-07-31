@@ -14,7 +14,7 @@ Nothing governed may read tools/sim.
 validators and kernel-gate tools in tools/, the conformance corpora, and the
 gateway runtime. If that set is ever redrawn, redraw it here too.
 
-The scope question this protects is recorded as doctrine log S1-04.
+The scope question this protects is recorded as doctrine log SIM1-04.
 """
 
 import re

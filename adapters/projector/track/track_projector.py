@@ -40,15 +40,27 @@ fabricated height. Both refusals are counted and reported, because an
 association component that silently drops its inputs is indistinguishable from
 one that is not running.
 
-KNOWN LIMIT, worth reading before you judge the output. Under the locked v1.0
-kernel a STATE_EVENT's `geo` is exactly lat, lon and alt_m, with
-`additionalProperties: false`. There is nowhere on a v1.0 state to carry
-positional uncertainty, and `adapters/egress/cot` reads `geo.error_ellipse_m`,
-which only exists on the v1.1.0 experimental geo. So a well-characterised
-accuracy measured by the ingress adapter (ADS-B derives a real ellipse from
-`nac_p`) cannot travel to the display: every v1.0 track renders with CoT's
-unknown-accuracy sentinel. Nothing here overstates accuracy, which is the
-important half. The measured value is simply unsayable on a v1.0 track.
+KNOWN LIMIT, and it is a version limit rather than a model limit. Under the
+locked v1.0 kernel a STATE_EVENT's `geo` is exactly lat, lon and alt_m with
+`additionalProperties: false`, so a v1.0 track carries no positional
+uncertainty and `adapters/egress/cot`, which reads `geo.error_ellipse_m`,
+renders every one of them with CoT's unknown-accuracy sentinel. An accuracy the
+ingress adapter genuinely measured, such as the ellipse ADS-B derives from
+`nac_p`, does not reach the display.
+
+The v1.1.0 branch already solves this. `geo.error_ellipse_m` is a registered,
+approved, schema-implemented extension allowed on STATE_EVENT, carrying
+semi-major, semi-minor, orientation and an optional probability level. The open
+question is which schema version a deployment runs, not whether ZMeta can say
+it. See doctrine log SIM1-05.
+
+Nothing here overstates accuracy either way, which is the half that matters.
+
+SAPIENT EXPORT NEEDS AN OBJECT MAP. `adapters/egress/sapient` refuses a track
+whose `track_id` is not a ULID unless the caller supplies `object_map`, because
+minting a SAPIENT identity per report would shred track continuity on the
+SAPIENT side. This projector's ids are broadcast-shaped (`icao24-a1b2c3`), so a
+deployment exporting to SAPIENT must own and supply that mapping.
 """
 
 from __future__ import annotations

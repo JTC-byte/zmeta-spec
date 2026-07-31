@@ -272,7 +272,7 @@ went unmet and that is the finding.**
 | 7. No minting; log the collision | Continuously | Validated. Five doctrine entries this cycle, nothing minted, locked kernel untouched, and two policy questions escalated rather than answered. |
 | 8. Audit the doctrine | Fired at this closeout | Validated, and it produced the sharpest finding: X1-02 is past the N=3 threshold and still OPEN. |
 | 9. Scale verification to the pass | Fired | Correct for the work and incomplete as a result. Lean was right for reps, where the value is in executing rather than reading. It is what left rule 6 unmet, so the two are the same decision seen twice. |
-| 10. Validate before hardening | Fired repeatedly | **The cycle's spine.** S1-01, S1-02, S1-03 and S1-05 are all recorded with their live question rather than fixed, on the operator's explicit instruction. Two real breaks were fixed, and the line between the two categories held. |
+| 10. Validate before hardening | Fired repeatedly | **The cycle's spine.** SIM1-01, SIM1-02, SIM1-03 and SIM1-05 are all recorded with their live question rather than fixed, on the operator's explicit instruction. Two real breaks were fixed, and the line between the two categories held. |
 
 **Watch-items.** (a) The one-third introduction cap has still never fired,
 across yet another cycle. It is now the longest-standing never-fired rule and

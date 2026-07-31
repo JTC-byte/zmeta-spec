@@ -75,14 +75,28 @@ probability that the claim is true. The only honest source is the operator, so
 the projector refuses to construct without one. Deriving it from `sil` was
 considered and rejected as an unadjudicated modelling decision.
 
-**NEW: doctrine log S1-05, and it is kernel-shaped.** A v1.0 `STATE_EVENT` has
-nowhere to carry positional uncertainty: `$defs/geo` is `lat`, `lon`, `alt_m`
-with `additionalProperties: false`, and CoT reads `geo.error_ellipse_m` which
-exists only on the v1.1.0 experimental geo. So the 30 m ellipse ADS-B genuinely
-derives from `nac_p: 9` reaches TAK as `ce="9999999.0"`. Nothing is overstated,
-and a real measurement is unavailable. Every outer-ring workaround is worse than
-the gap, so this belongs with the experimental-split experiment from cycle A1
-rather than with a fix.
+**Doctrine log SIM1-05, CORRECTED 2026-07-31.** As first written this said a
+v1.0 `STATE_EVENT` has nowhere to carry positional uncertainty and framed it as
+a kernel gap. That overstates. `ERROR_ELLIPSE_M` is a registered, approved,
+schema-implemented and conformance-implemented extension allowed on
+`STATE_EVENT`, on the v1.1.0 branch, carrying semi-major, semi-minor,
+orientation and an optional probability level. What is true is narrower: a
+deployment on the locked v1.0 kernel, which is every shipped artifact and the
+gateway default, carries none, so the 30 m ellipse ADS-B derives from
+`nac_p: 9` reaches TAK as `ce="9999999.0"`. That makes it an adoption-path
+question belonging with the experimental-split experiment, not a new gap.
+
+One real defect survived the correction: the v1.0 generic quality object spells
+the members `semi_major_m` / `semi_minor_m` and the v1.1.0 formal contract
+spells them `semi_major` / `semi_minor`, which is what the CoT reader looks for.
+A deployment moving between them gets silence rather than an error. Small, cheap
+and independent of the adoption question.
+
+**The correction is the lesson.** An external comparative survey reached the
+same conclusion from a literature angle on the same day, and the agreement made
+it feel settled. Two sources reaching the same wrong answer is not
+corroboration when neither checked the extension registry. When an outside
+claim matches your own, that is the moment to verify it, not to stop.
 
 **Deferred to the v1.1.20 cut on purpose:** registering the projector in
 `conformance/adapter-harness/must-pass.jsonl`. That file is manifest-hashed, so
@@ -126,13 +140,13 @@ defect.** CoT projects `STATE_EVENT` only. Five clean ADS-B observations
 traversed both nodes and produced zero CoT, while the example corpus produces
 one because it happens to contain a `STATE_EVENT`. The documented pre-event
 rehearsal therefore passes and the real sensor then shows nothing on the COP.
-The quickstart now says so at the top. Logged as **S1-03**: a fixture chosen to
+The quickstart now says so at the top. Logged as **SIM1-03**: a fixture chosen to
 demonstrate every event type is not a fixture representative of the input.
 
-**Doctrine log cycle S1, three entries, all OPEN, nothing minted.** S1-01
+**Doctrine log cycle SIM1, three entries, all OPEN, nothing minted.** SIM1-01
 `confidence` reaches CoT only as free text with no structured element, which is
-gate 5 against gate 4 and the second instance across two stacks. S1-02 `drops=0`
-is read as a loss counter though it can only see what arrived. S1-03 above. Each
+gate 5 against gate 4 and the second instance across two stacks. SIM1-02 `drops=0`
+is read as a loss counter though it can only see what arrived. SIM1-03 above. Each
 carries the live question that would settle it, because none of the three is a
 defect with a known fix.
 
@@ -164,7 +178,7 @@ extractable.** `tools/sim/two_node.py` and `tools/sim/throughput.py`, with the
 control mode and the fresh-`event_id` generator that the session proved were
 load-bearing. The maintainer flagged the real risk in committing them: a data
 standard whose repository fills with operational tooling stops being a thing you
-can read and adopt. That is recorded as doctrine **S1-04** with an extraction
+can read and adopt. That is recorded as doctrine **SIM1-04** with an extraction
 criterion and a trigger, and it is enforced rather than promised by
 `gateway/tests/test_sim_boundary.py`, which asserts nothing governed imports or
 invokes anything under `tools/sim`. While that holds, extraction is a directory

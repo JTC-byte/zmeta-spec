@@ -1014,9 +1014,9 @@ result, or it goes terminal without one as HELD-FIRM with the question recorded
 as declined. Carrying it open through another cycle should stop being an option.
 **Maintainer's call.**
 
-**Not counted as a sixth instance: S1-02**, the `drops` counter read as a loss
+**Not counted as a sixth instance: SIM1-02**, the `drops` counter read as a loss
 counter. The shapes are adjacent and not the same. X1-02 is a *check* being
-substituted by a cheaper sibling that shares its name or neighbourhood. S1-02 is
+substituted by a cheaper sibling that shares its name or neighbourhood. SIM1-02 is
 a correctly scoped *counter* being read as though its scope were wider, with no
 substitution involved. Counting it here would inflate the number that drives the
 lifecycle decision above, which is the one place an inflated count does real
@@ -1131,7 +1131,18 @@ good on the day it was written.
 
 ---
 
-## Cycle S1 — 2026-07-30 (internal simulation reps)
+## Cycle SIM1 — 2026-07-30 (internal simulation reps)
+
+**Named SIM1, not S1, and the reason is worth one line.** This cycle was first
+written as `S1-01`..`S1-05` on 2026-07-30. That collides with the historical
+`S1-01A`..`S1-19` work-item series from the original build phase, which is
+referenced throughout the handoff's Key Docs table and the worklog, and which
+includes a completed item literally called S1-05
+(`docs/s1_05_encoding_negative_validation_plan.md`). A doctrine log whose whole
+value is that entries are citable cannot have two meanings for one identifier.
+Renamed on 2026-07-31, one day old and before any external citation. The
+historical series was not touched: it is a dated process record, and the rename
+was verified to leave every lettered reference unchanged.
 
 Raised while running the shipped deployment path rather than reading it: two
 gateway nodes, the containers, the ADS-B adapter on a synthetic snapshot, the
@@ -1144,13 +1155,13 @@ were defects with a known fix and not tensions between gates.
 
 | # | Tension | Gates in play | Status |
 |---|---|---|---|
-| S1-01 | `confidence` reaches CoT only as free text, with no structured element | 4, 5 | OPEN |
-| S1-02 | A counter that can only see what arrived is read as a loss counter | 3 | OPEN (observation) |
-| S1-03 | The rehearsal corpus exercises a path the real input does not | 5, 7 | OPEN (observation) |
-| S1-04 | Operational tooling accumulating inside a data standard | 1, 7 | OPEN (maintainer, criterion set) |
-| S1-05 | A v1.0 track cannot carry the uncertainty its own observation measured | 2, 3 | OPEN |
+| SIM1-01 | `confidence` reaches CoT only as free text, with no structured element | 4, 5 | OPEN |
+| SIM1-02 | A counter that can only see what arrived is read as a loss counter | 3 | OPEN (observation) |
+| SIM1-03 | The rehearsal corpus exercises a path the real input does not | 5, 7 | OPEN (observation) |
+| SIM1-04 | Operational tooling accumulating inside a data standard | 1, 7 | OPEN (maintainer, criterion set) |
+| SIM1-05 | A v1.0 deployment cannot carry uncertainty the v1.1.0 branch already can | 2, 3 | OPEN |
 
-### S1-01 — `confidence` reaches CoT only as free text · OPEN
+### SIM1-01 — `confidence` reaches CoT only as free text · OPEN
 
 `adapters/egress/cot/zmeta_to_cot.py` composes `confidence=<value>` into
 `<remarks>` and emits no structured `<detail>` child carrying it. Captured off
@@ -1187,7 +1198,7 @@ confidence by machine, or is the remarks string what a human reads while
 machine consumers take the ZMeta stream? "Nobody parses it" closes this and
 `<remarks>` stays the whole answer.
 
-### S1-02 — A counter that can only see what arrived is read as a loss counter · OPEN
+### SIM1-02 — A counter that can only see what arrived is read as a loss counter · OPEN
 
 The gateway's `drops` counter is honest about what the gateway discarded. It
 cannot see datagrams the kernel dropped before `recvfrom`, because the process
@@ -1209,7 +1220,7 @@ cheat-sheet row added to the quickstart is the cheap half.
 **What would settle it, live:** does any deployment run near capacity? If none
 do, this stays a documentation row forever, which is the right outcome.
 
-### S1-03 — The rehearsal corpus exercises a path the real input does not · OPEN
+### SIM1-03 — The rehearsal corpus exercises a path the real input does not · OPEN
 
 The pre-event wire check replays `examples/zmeta-examples-1.0.jsonl`, which
 contains one `STATE_EVENT` and therefore produces CoT. An ingress adapter emits
@@ -1232,7 +1243,7 @@ Not minted. One instance, and the guide correction may be the whole remedy.
 If most expect the gateway to promote observations to track state, this stops
 being a rehearsal-fixture question and becomes a missing-component question.
 
-### S1-04 — Operational tooling accumulating inside a data standard · OPEN
+### SIM1-04 — Operational tooling accumulating inside a data standard · OPEN
 
 Raised by the maintainer on 2026-07-30, when the simulation harnesses from the
 rep cycle were committed to `tools/sim/`: *"I just want to make sure we do not
@@ -1270,7 +1281,7 @@ Worth stating because it is easy to lose: the surface being protected is not
 disk space. It is that a reader can tell, in one look, which parts of this
 repository define the standard and which parts merely help you operate it.
 
-### S1-05 — A v1.0 track cannot carry the uncertainty its own observation measured · OPEN
+### SIM1-05 — A v1.0 deployment cannot carry uncertainty the v1.1.0 branch already can · OPEN
 
 Found while building `adapters/projector/track`, which is the first component
 that has to carry a measured accuracy from an observation onto a track.
@@ -1309,17 +1320,51 @@ well the sensor characterised itself. Nothing is overstated, which is the half
 the honesty gates protect, and the half they do not protect is that a real
 measurement is silently unavailable.
 
-**Not fixed, and not fixable in the outer rings.** Every workaround is worse
-than the gap: `cot_config.default_ce` is deployment-wide and would assert one
-accuracy for every track; stuffing the ellipse into an extension puts it
-somewhere no standard consumer reads. This is a kernel-shaped question, which
-means it is the maintainer's and it belongs with the experimental-split
-experiment already recorded in cycle A1 rather than with a fix.
+**CORRECTED 2026-07-31, and the correction is most of the entry.** The framing
+above overstates. Prompted by an external comparative survey making the same
+claim from a literature angle, I re-checked the tree instead of accepting the
+agreement, and the agreement was wrong in the same direction I was.
 
-**What would settle it, live:** does any operator at the event act differently
-on a track with a 30 m ellipse than on one with an unknown one? If the honest
-answer is that everything gets treated as approximate anyway, this stays a
-documented limit and costs nothing.
+`ERROR_ELLIPSE_M` is a **registered, approved extension** in
+`spec/extension-registry.yaml`: `status: experimental`, `version_branch: 1.1.0`,
+`schema_status: implemented`, `conformance_status: implemented`,
+`review_state: approved`, `allowed_event_types: [OBSERVATION_EVENT,
+FUSION_EVENT, STATE_EVENT]`, `payload_scope: [payload.geo.error_ellipse_m,
+payload.estimated_state.geo.error_ellipse_m]`. Verified directly against both
+schemas: v1.1.0 `$defs/geo` carries `error_ellipse_m` referencing a formal
+`$defs/error_ellipse` with `semi_major`, `semi_minor`, `orientation_deg` and an
+optional `probability` enum (`1_SIGMA`, `CEP`, `CE_90`, `CE_95`). v1.0 does not.
+
+So this is **not** an expressibility gap in ZMeta, and the original heading was
+wrong. A v1.1.0 track carries positional uncertainty today, on the branch built
+for exactly this, with a probability level attached — which is better than the
+scalar most peers manage. What is true is narrower: **a deployment on the locked
+v1.0 kernel, which is what every shipped artifact and the gateway default use,
+cannot carry it, so a measured accuracy does not reach the display.**
+
+That makes this an adoption-path question, not an alphabet question, and it
+belongs with the experimental-split experiment from cycle A1 as a concrete thing
+v1.1.0 already buys rather than as a new gap to close.
+
+**The one thing here that is a genuine defect, and it survived the
+correction.** The two homes spell the same quantity differently: the v1.0
+generic quality object uses `semi_major_m` / `semi_minor_m` (the ADS-B adapter
+emits these), and the v1.1.0 formal contract uses `semi_major` / `semi_minor`,
+which is what `adapters/egress/cot` reads. A deployment moving from the v1.0
+quality object to the v1.1.0 formal block gets silence rather than an error,
+because the reader looks for a key the writer never wrote. That is a small,
+cheap, real fix and it is independent of the adoption question.
+
+**Method note worth keeping.** An outside review and an inside rep agreed on
+this finding, and the agreement made it feel settled. Two sources reaching the
+same wrong conclusion is not corroboration when neither checked the registry.
+The rule this earns: **when an external claim matches your own, that is the
+moment to verify it, not the moment to stop.**
+
+**What would settle the remaining question, live:** does any operator at the
+event act differently on a track with a 30 m ellipse than on one with an unknown
+one? If everything is treated as approximate anyway, the v1.0 limit costs
+nothing and the adoption question answers itself.
 
 ---
 

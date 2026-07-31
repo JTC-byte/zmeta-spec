@@ -200,3 +200,33 @@ state = {
 print(zmeta_state_to_sapient_detection(state, node_id="0f2c8b4e-9f1d-4e6a-8a3b-1c5d7e9f0a2b"))
 PY
 ```
+
+## Track identity: `object_map` is required for non-ULID track ids
+
+`object_id` is caller-owned identity. A `track_id` that is already a ULID passes
+through unchanged; anything else must resolve through `object_map` to a
+caller-owned SAPIENT ULID, or the event is refused and no detection is emitted.
+
+That refusal is deliberate. Minting a fresh identity per report would shred
+track continuity on the SAPIENT side, where `object_id` is what makes successive
+reports the same object.
+
+It has a practical consequence worth stating, because it is not obvious until an
+export silently produces nothing: identifiers from `adapters/projector/track` are
+broadcast-shaped by design (`icao24-a1b2c3`, `mmsi-366123456`), so a deployment
+bridging those tracks to SAPIENT owns and supplies the mapping.
+
+```python
+zmeta_state_to_sapient_detection(
+    state, node_id=NODE_UUID,
+    object_map={"icao24-a1b2c3": "01JQ0000000000000000000001"})
+```
+
+## What a SAPIENT consumer does not receive
+
+`SAPIENT_EGRESS_LOSS_NOTES` in the module enumerates the ZMeta fields this
+projection drops and why. One thing it does not enumerate, because the register
+tracks dropped ZMeta fields rather than unfilled SAPIENT ones: **this projection
+emits `classification[].confidence` and never `detection_confidence`.** A ZMeta
+event carries a single `confidence`, and projecting it into both slots would
+assert a detection-existence claim the event never made.

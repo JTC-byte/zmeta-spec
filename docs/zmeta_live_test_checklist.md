@@ -103,7 +103,7 @@ change to the standard and none should move without field evidence.
       `STATE_EVENT` has nowhere to carry positional uncertainty, so a track
       reaches TAK with `ce="9999999.0"` even when the ingress adapter measured a
       real ellipse (ADS-B derives 30 m from `nac_p: 9`). Observed end to end.
-      Doctrine log S1-05. *Question:* does an operator treat a 30 m track
+      Doctrine log SIM1-05. *Question:* does an operator treat a 30 m track
       differently from an unknown one, or is everything treated as approximate
       anyway? "Nobody acts on it" closes the item and the limit stays documented.
 - [ ] **`drops=0` does not mean nothing was lost.** Loss from offered load above

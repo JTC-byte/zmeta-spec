@@ -482,7 +482,7 @@ So a sensor wired through the documented topology produces valid ZMeta and an
 empty map, and the shipped example corpus contains a `STATE_EVENT`, so the
 documented pre-event rehearsal passes and the real sensor then shows nothing.
 
-The general form, logged as S1-03: **a fixture chosen to demonstrate every
+The general form, logged as SIM1-03: **a fixture chosen to demonstrate every
 feature is not a fixture representative of the input.** The example corpus is
 deliberately one of each event type, which makes it a good conformance sample
 and a misleading smoke test. It is the vacuous-verification family one level
@@ -532,7 +532,7 @@ available.
 The harnesses were committed on the operator's instruction, alongside his own
 caution: operational tooling is invaluable and a data standard whose repository
 accumulates it stops being readable as a standard. Both are true, which is why
-it went into the log as S1-04 rather than being settled on the day.
+it went into the log as SIM1-04 rather than being settled on the day.
 
 The move that made deferring honest was making the boundary structural. A test
 asserts that nothing governed imports or invokes anything under `tools/sim`, so

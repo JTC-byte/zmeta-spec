@@ -30,7 +30,7 @@
   arrived, with a control mode that measures the zero case rather than assuming
   it. `gateway/tests/test_sim_boundary.py` asserts that nothing governed imports
   or invokes them, so they stay extractable into their own repository. The scope
-  question is doctrine log S1-04.
+  question is doctrine log SIM1-04.
 - 2026-07-30 — **Field-path documentation corrected against what the stack
   actually does.** The metrics line cannot appear for a finite replay at any
   interval setting, because it is emitted from the datagram path; a profile
@@ -38,11 +38,12 @@
   `drops=0` does not mean nothing was lost, since loss above capacity happens
   upstream of the process; and `tools/replay.py --loop` forwards nothing after
   its first pass because event dedupe is keyed on `event_id`.
-- 2026-07-30 — **Doctrine log cycle S1**, five entries, all OPEN, nothing
-  minted. S1-05 is the one that needs a maintainer decision: a v1.0
-  `STATE_EVENT` has nowhere to carry positional uncertainty, so the 30 m ellipse
-  ADS-B derives from `nac_p: 9` reaches TAK as the unknown-accuracy sentinel.
-  Nothing is overstated and a real measurement is unavailable.
+- 2026-07-30 — **Doctrine log cycle SIM1**, five entries, all OPEN, nothing
+  minted. SIM1-05 needs a maintainer decision and was corrected on 2026-07-31:
+  a v1.0 `STATE_EVENT` carries no positional uncertainty, so the 30 m ellipse
+  ADS-B derives from `nac_p: 9` reaches TAK as the unknown-accuracy sentinel,
+  but the v1.1.0 branch already carries it as a registered approved extension.
+  It is an adoption-path question, not an expressibility gap.
 
 ## [1.1.19] - 2026-07-28
 

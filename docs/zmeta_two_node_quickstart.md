@@ -254,7 +254,7 @@ interval, or read the far-consumer count above instead.
 | no bearing on a track you expected one for | the adapter demoted a frame-unlabeled bearing to native features (contract 6.4) | working; assert the frame at the producer if it is provable |
 | an adapter emitting nothing for a record | fail-closed refusal on an unmappable/unavailable datum | working; the adapter's colocated tests enumerate its refusal reasons |
 | events flowing to consumers but nothing on TAK | your stream is observations; CoT projects `STATE_EVENT` only | working; you need track association, see the top of this guide |
-| a track on TAK with `ce="9999999.0"` though your sensor knows its accuracy | a v1.0 `STATE_EVENT` has nowhere to carry positional uncertainty | a known limit, doctrine log S1-05; nothing is overstated, the measurement is simply unsayable on a v1.0 track |
+| a track on TAK with `ce="9999999.0"` though your sensor knows its accuracy | a v1.0 `STATE_EVENT` carries no positional uncertainty; the v1.1.0 branch does | a version limit, doctrine log SIM1-05; nothing is overstated either way |
 | no metrics line at all | the node is idle, or the replay was shorter than one metrics interval | working; metrics are emitted from the datagram path, so hold a load to see them |
 | `drops=0` while a consumer is clearly missing events | drops counts what the gateway discarded, not what never reached it | check offered load: at 1000 events/s on one test host, 44% arrived with `drops=0`, the rest lost in the kernel receive buffer upstream |
 | `duplicates` climbing and `fwd` flat | the same `event_id` is being re-sent | working; event dedupe is keyed on `event_id`, and `tools/replay.py --loop` re-sends ids verbatim, so only its first pass forwards |

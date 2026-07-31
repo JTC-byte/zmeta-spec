@@ -34,7 +34,7 @@ their own repository.** The boundary test above is what keeps that move cheap:
 as long as nothing governed imports this directory, extraction is a directory
 move and a README pointer, not a refactor.
 
-Recorded as doctrine log **S1-04**, so the question comes back on a trigger
+Recorded as doctrine log **SIM1-04**, so the question comes back on a trigger
 rather than drifting.
 
 ## `two_node.py` — the wire path

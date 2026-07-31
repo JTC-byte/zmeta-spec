@@ -90,21 +90,41 @@ Refusals are counted and exposed on `.stats` because an association component
 that silently drops its inputs is indistinguishable from one that is not
 running.
 
-## Known limit: uncertainty cannot reach the display
+## Known limit: uncertainty on a v1.0 track
 
 Under the locked v1.0 kernel a `STATE_EVENT`'s `geo` is exactly `lat`, `lon` and
-`alt_m`, with `additionalProperties: false`. There is nowhere on a v1.0 state to
-put positional uncertainty. `adapters/egress/cot` reads `geo.error_ellipse_m`,
-which exists only on the v1.1.0 experimental geo.
+`alt_m`, with `additionalProperties: false`. A v1.0 track therefore carries no
+positional uncertainty, and since `adapters/egress/cot` reads
+`geo.error_ellipse_m`, every such track renders with CoT's unknown-accuracy
+sentinel (`ce="9999999.0"`). The 30 m ellipse ADS-B derives from `nac_p: 9` does
+not reach TAK.
 
-So a well-characterised accuracy that the ingress adapter genuinely measured,
-such as the 30 m ellipse ADS-B derives from `nac_p: 9`, cannot travel to TAK on
-a v1.0 track. Every such track renders with CoT's unknown-accuracy sentinel
-(`ce="9999999.0"`).
+This is a version limit, not a model limit. On the v1.1.0 branch
+`geo.error_ellipse_m` is a registered, approved, schema-implemented extension
+allowed on `STATE_EVENT`, carrying semi-major, semi-minor, orientation and an
+optional probability level (`1_SIGMA`, `CEP`, `CE_90`, `CE_95`). The open
+question is which schema version a deployment runs. See doctrine log SIM1-05.
 
-Nothing is overstated, which is the half that matters. The measured value is
-simply unsayable at this layer, and that is a question for the maintainer rather
-than something to work around here.
+Nothing is overstated either way, which is the half that matters.
+
+## Exporting these tracks to SAPIENT
+
+`adapters/egress/sapient` refuses a track whose `track_id` is not a ULID unless
+the caller supplies an `object_map`. That refusal is deliberate: minting a fresh
+SAPIENT identity per report would destroy track continuity on the SAPIENT side,
+so object identity is caller-owned deployment state.
+
+This projector's identifiers are broadcast-shaped (`icao24-a1b2c3`,
+`mmsi-366123456`), which is the point of them, so a deployment exporting to
+SAPIENT owns and supplies the mapping:
+
+```python
+zmeta_state_to_sapient_detection(
+    state, node_id=NODE_UUID,
+    object_map={"icao24-a1b2c3": "01JQ0000000000000000000001"})
+```
+
+Without it the export returns `None` and no detection is produced.
 
 ## Bounds
 
