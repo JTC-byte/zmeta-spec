@@ -1,6 +1,30 @@
 # ZMeta Refinement Handoff Notes
 
-## NEXT SESSION: tier 2, and all of it is a decision rather than work
+## NEXT SESSION: the order is review, then push, then tier 2
+
+Maintainer's direction at the 2026-07-31 closeout, and the order matters.
+
+1. **Fresh review of everything this session worked**, as the refresh tier: a
+   cold re-read of the four unpushed commits with the context that produced them
+   gone. This is deliberately before the push, not after. It is also the closest
+   available answer to the discipline 6 gap the last two closeouts recorded,
+   since no independent panel read any of this work.
+2. **Push once that comes back green**, not before. Four commits: `4e37e54`,
+   `12df155`, `d81ada3`, `933a985`.
+3. **Then tier 2**, below.
+
+Two things a cold reader should aim at first, because both are places this
+session's own instruments failed:
+
+- The `test_changelog_keeps_up.py` strengthening was written and verified by the
+  same person who wrote the version it replaced. It is red-first demonstrated,
+  which is better than the original, and it has had no second reader.
+- The SIM1 rename touched 33 references across ten files by pattern. The
+  historical-reference invariant was asserted per file and held, but a pattern
+  edit at that scale deserves a human look at the diff rather than trust in the
+  assertion.
+
+## Tier 2, and all of it is a decision rather than work
 
 The maintainer's direction at the 2026-07-31 closeout. Tier 1 is complete and
 committed. Everything below needs a call, not an implementation, and each has
