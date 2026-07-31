@@ -907,6 +907,39 @@ its **dimensionality**, the way `geo_status` already declares availability.
 **Whether it matters is a field question.** It is entirely possible no consumer
 misses the dropped positions, and that is cheaper to discover than to argue.
 
+**SECOND INDEPENDENT IMPLEMENTATION LANDED 2026-07-31, and it clears the
+promotion bar.** `adapters/ingress/ais/` is the AIS instance this entry
+predicted. It is not a variation on the ADS-B case, it is the total form: for
+ADS-B, barometric-only targets are a subset; for AIS it is every vessel, every
+message, always, because a surface vessel has no height above the ellipsoid and
+the message has no field for one. Substituting sea level would be wrong by up to
+the geoid separation, roughly 100 m, and would assert a measurement nobody made.
+
+**The consequence is measured, not argued.** A schema-valid AIS observation
+whose identity resolves cleanly (`mmsi-366123456`) and whose position is exact
+as broadcast projects to **zero tracks** through `adapters/projector/track`,
+because a track requires canonical geo. The identity works, the position is
+right there, the event validates, and nothing reaches a COP. Pinned in
+`adapters/ingress/ais/test_ais_ingress.py::TestTrackProjectionConsequence`.
+
+Two implementations now, in this repository, on different sensor classes,
+reaching the same wall from opposite directions: ADS-B refuses to substitute an
+altitude it cannot convert, AIS has no altitude to convert. The bar this entry
+was waiting on is met.
+
+**A third facet, surfaced while writing the second implementation.** When
+canonical geo is omitted, the only available status token misdescribes the
+result. The contract's `geo_status` vocabulary is `AVAILABLE`, `UNAVAILABLE`,
+`ESTIMATED`, `STALE`, `CONFIGURED` (section 21.1), and both adapters set
+`UNAVAILABLE` for a position that is known, exact and sitting in the native
+features. Read as the status of the canonical geo object it is correct; read as
+a statement about our knowledge of position it is false, and a consumer
+filtering on `geo_status == UNAVAILABLE` would discard vessels it could have
+plotted. The adapters were deliberately kept consistent with each other rather
+than diverging, so this needs either a vocabulary token or a contract sentence
+saying which reading is normative. It is the cheapest of the three fixes and
+independent of the dimensionality question.
+
 ### A1-03 — Translation provenance is unsayable for an original observation · OPEN
 
 `lineage` requires `based_on` with `minItems: 1`, and `transform` lives inside
