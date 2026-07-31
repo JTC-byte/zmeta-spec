@@ -1,6 +1,66 @@
 # ZMeta Refinement Handoff Notes
 
-## CLOSEOUT — 2026-07-30
+## NEXT SESSION: tier 2, and all of it is a decision rather than work
+
+The maintainer's direction at the 2026-07-31 closeout. Tier 1 is complete and
+committed. Everything below needs a call, not an implementation, and each has
+its evidence already assembled.
+
+1. **X1-02 terminal call.** Past the N=3 lifecycle threshold at five instances
+   across two repositories, held open by a detection question its own text calls
+   answerable in an afternoon. **A sixth instance landed on 2026-07-31 and it is
+   the sharpest yet:** the check written at the previous closeout to catch
+   records-lag passed while the records were stale, because it tested for an
+   empty section rather than a current one. Written by the author of the X1-02
+   note, one day after writing it. Either the detection question gets answered
+   or the entry goes terminal as HELD-FIRM with the question recorded as
+   declined.
+2. **A1-02 disposition.** The promotion bar is met: two independent
+   implementations, ADS-B and AIS, different sensor classes, same wall. The
+   recommendation on record is a declaration of dimensionality rather than a
+   subtype. Three facets now, and the third is much the cheapest: the
+   `geo_status` vocabulary has no token for "horizontally known, vertically
+   absent", so both adapters say `UNAVAILABLE` for a position that is known and
+   present in the native features. That one is a vocabulary token or a normative
+   sentence, independent of the dimensionality question.
+3. **The experimental-split experiment.** Carries more weight since SIM1-05 was
+   corrected: uncertainty already lives on the v1.1.0 branch as a registered,
+   approved, schema-implemented extension, so this is the concrete thing v1.1.0
+   buys rather than a hypothetical.
+4. **`state-projector-*` promotion evidence.** The wildcard can assert an
+   authoritative track with no promotion evidence at all; demonstrated by
+   stripping the whole block and getting an identical result. Policy change,
+   therefore yours.
+5. **X1-01 disposition**, already queued for v1.1.20 and unchanged.
+
+**Queued for the v1.1.20 cut** and cheap only there, because
+`conformance/adapter-harness/must-pass.jsonl` is manifest-hashed: harness
+fixtures for both `adapters/projector/track/` and `adapters/ingress/ais/`, plus
+the three items grouped at the previous cut.
+
+**Three commits are local and unpushed** as of this closeout: `4e37e54`,
+`12df155`, `d81ada3`.
+
+## CLOSEOUT — 2026-07-31
+
+Two commits since the last closeout, reviewed against the intent that drove
+them, battery verified by hand, records reconciled.
+
+**The finding is that the previous closeout's own fix did not hold.**
+`test_changelog_keeps_up.py`, written on 2026-07-30 to close the records-lag
+watch-item, passed this session while the CHANGELOG described none of the work.
+It asserted `[Unreleased]` was non-empty, and yesterday's entries were still
+there. That is X1-02 in its purest available form, committed by the author of
+the X1-02 note one day later. Strengthened red-first: the newest dated entry
+must now be at least as recent as the worklog's last-updated date, demonstrated
+failing on the real stale state before the fix.
+
+**The other three checks were clean.** No governed artifact moved, no
+manifest-hashed file was touched, the SIM1 rename left every historical
+reference intact, and the AIS adapter's claims are pinned in colocated tests
+rather than asserted in prose.
+
+## Previous closeout — 2026-07-30
 
 Three commits, 19 files, `main` pushed and CI green at `9fca0e1`, tree clean.
 Battery verified by hand rather than accepted: kernel gate all flags exit 0,

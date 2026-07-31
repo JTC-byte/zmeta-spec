@@ -2,7 +2,39 @@
 
 ## Current Resume Note
 
-- Last updated: 2026-07-30 (cycle closed out; three commits pushed, CI green)
+- Last updated: 2026-07-31 (external review fact-checked; AIS shipped; A1-02 bar met)
+- **2026-07-31 — an outside comparative survey, fact-checked against the stack,
+  and the second implementation A1-02 was waiting for.** An external agent
+  reviewed ZMeta against SAPIENT, OGC O&M, CloudEvents, C2PA, PROV-O and the
+  STANAGs without repository access. Treated as gap exposure rather than
+  direction, and every claim about ZMeta that could be checked was checked.
+  **The most useful result was a correction to us, not to them.** The survey and
+  the previous day's rep independently agreed that ZMeta cannot carry positional
+  uncertainty on a track, and the agreement made it feel settled. Both were
+  wrong: `ERROR_ELLIPSE_M` is a registered, approved, schema-implemented
+  extension allowed on `STATE_EVENT`, on the v1.1.0 branch, with a probability
+  level attached. Only the locked v1.0 kernel carries none, which makes it an
+  adoption-path question rather than an expressibility gap. Corrected in six
+  places. Rule earned: **when an external claim matches your own, that is the
+  moment to verify it, not the moment to stop.**
+  **Survived the correction:** the v1.0 quality object spells `semi_major_m` and
+  the v1.1.0 formal contract spells `semi_major`, which is what the CoT reader
+  looks for, so a deployment moving between them gets silence rather than an
+  error.
+  **The doctrine cycle was renamed S1 to SIM1**, 33 references, because
+  `S1-01`..`S1-05` collided with the historical `S1-01A`..`S1-19` work-item
+  series including a real completed S1-05. History untouched, verified per file.
+  **AIS ingress shipped** (`adapters/ingress/ais/`, 49 tests) and clears the
+  A1-02 promotion bar as the second independent implementation. It is the total
+  case rather than a variation: every vessel, every message, because a surface
+  vessel has no height above the ellipsoid. Measured consequence, pinned in a
+  test: a schema-valid AIS observation with a clean identity and an exact
+  position projects to zero tracks. A third facet surfaced with it, the
+  `geo_status` vocabulary having no token for "horizontally known, vertically
+  absent", which is the cheapest of the three A1-02 fixes.
+  Also documented from running the ZMeta to SAPIENT round trip: the egress needs
+  a caller-supplied `object_map` for non-ULID track ids, and it fills
+  `classification[].confidence` but never `detection_confidence`.
 - **2026-07-30 (closeout).** Three commits reviewed against the intent that drove
   them, battery verified by hand, records reconciled across every surface. Four
   findings. The CHANGELOG's `[Unreleased]` was empty after three commits of

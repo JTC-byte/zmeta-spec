@@ -288,6 +288,40 @@ does not judge what the description says. (c) **New: rule 6 went unmet.** One
 cycle is not a pattern. Two would be, and the work most needing an independent
 read is the work now sitting in front of a live event.
 
+### Addendum — 2026-07-31 closeout
+
+**The check built at the last closeout failed at this one, in the shape it was
+built to prevent.** `test_changelog_keeps_up.py` was written on 2026-07-30 to
+close the records-lag watch-item. It asserted `[Unreleased]` was non-empty. One
+day later a session shipped an adapter, corrected a doctrine entry and renamed a
+cycle, none of it reached the CHANGELOG, and **the check passed**, because
+yesterday's entries were still sitting there.
+
+That is not vacuity: the check had a mutation test, the mutation test was
+honest, and it would have caught the empty case it was written for. It is
+X1-02 — a cheaper sibling of the right check, passing, and the passing is what
+stopped anyone asking. Committed by the author of the X1-02 note, one day after
+writing it, which is the most direct evidence available that the class is not an
+attention problem.
+
+Strengthened the same session, red-first: the newest dated `[Unreleased]` entry
+must be at least as recent as the worklog's last-updated date. Demonstrated
+failing on the real stale state before the fix, then passing after.
+
+**Rule 3 (verify the battery yourself) scored again, and differently.** A green
+battery reported this session as clean while the CHANGELOG was stale, because
+the battery only knows what its checks ask. The rule survives; the note is that
+"verify the battery" and "verify the thing the battery was supposed to cover"
+are different acts.
+
+**Rule 6 (author is not grader) remains unmet across two consecutive
+sessions**, and this is now the pattern the last closeout said would matter. An
+outside review did arrive this session, unprompted and without repository
+access, and its highest-value effect was prompting a re-check that corrected
+*our* record rather than theirs. That is not a substitute for a grader, but it
+is evidence for the finding-source rule: the highest-yield review arrived as
+ordinary traffic from someone who was not auditing.
+
 ## Rule scoring — 2026-07-28 (the v1.1.19 cycle)
 
 **No rule scored out; one added (10), one vindicated decisively (6).**

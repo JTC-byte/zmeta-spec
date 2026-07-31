@@ -2,6 +2,45 @@
 
 ## [Unreleased]
 
+- 2026-07-31 — **AIS ingress adapter** (`adapters/ingress/ais/`). Decoded AIS
+  position reports (types 1, 2, 3, 18, 19, 27) into `OBSERVATION_EVENT`s, from
+  AIS-catcher JSON on the same RTL-SDR dongle as ADS-B. Every AIS observation
+  omits canonical geo, because a surface vessel has no height above the
+  ellipsoid and substituting sea level would assert a measurement nobody made;
+  the real position is demoted to named native features. The standard's
+  not-available sentinels (lat 91, lon 181, speed 102.3, course 360, heading
+  511, second 60 to 63) are refused rather than carried. Declared codes stay
+  codes: MMSI, ship type and navigation status never become a ZMeta identity or
+  classification. 49 colocated tests.
+- 2026-07-31 — **A1-02 has its second independent implementation and clears the
+  promotion bar.** AIS is the total case rather than a variation on ADS-B: every
+  vessel, every message. Measured and pinned in a test, a schema-valid AIS
+  observation whose identity resolves cleanly and whose position is exact
+  projects to zero tracks, because a track requires canonical geo. A third facet
+  is recorded with it: the `geo_status` vocabulary has no token for
+  "horizontally known, vertically absent", so both adapters report `UNAVAILABLE`
+  for a position that is known and present in the native features.
+- 2026-07-31 — **SIM1-05 corrected, and the correction is the lesson.** An
+  external comparative survey independently reached the same conclusion as the
+  previous day's rep, that ZMeta cannot carry positional uncertainty on a track.
+  Both were wrong. `ERROR_ELLIPSE_M` is a registered, approved,
+  schema-implemented extension allowed on `STATE_EVENT` on the v1.1.0 branch,
+  carrying semi-major, semi-minor, orientation and an optional probability
+  level. Only the locked v1.0 kernel carries none, which makes this an
+  adoption-path question rather than an expressibility gap. One real defect
+  survived: the v1.0 quality object spells `semi_major_m` while the v1.1.0
+  formal contract spells `semi_major`, which is what the CoT reader looks for.
+- 2026-07-31 — **Doctrine cycle renamed S1 to SIM1.** The original identifiers
+  collided with the historical `S1-01A` to `S1-19` work-item series, which
+  includes a completed item also called S1-05. 33 references moved; the
+  historical series was not touched.
+- 2026-07-31 — **SAPIENT export requirements documented.** The egress refuses a
+  track whose `track_id` is not a ULID unless the caller supplies an
+  `object_map`, which is correct because minting identity per report would
+  destroy track continuity, and which silently produces nothing for the track
+  projector's broadcast-shaped ids. It also fills `classification[].confidence`
+  and never `detection_confidence`, because a ZMeta event carries one confidence
+  and filling both would assert a detection-existence claim it never made.
 - 2026-07-30 — **Track projector: a sensor that names itself can reach a map.**
   `adapters/projector/track/` is a third adapter category, ZMeta in and ZMeta
   out, that associates observations whose subjects broadcast an identity into

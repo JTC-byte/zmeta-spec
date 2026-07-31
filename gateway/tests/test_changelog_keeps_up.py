@@ -76,6 +76,36 @@ class ChangelogKeepsUpTest(unittest.TestCase):
             "change. Either is a record; silence is not.",
         )
 
+    def test_the_newest_work_is_described_and_not_just_some_older_work(self):
+        """The strengthening this check needed, and it needed it immediately.
+
+        As first written this file only asserted [Unreleased] was non-empty. One
+        day later a session added an adapter, corrected a doctrine entry and
+        renamed a cycle, and the check passed because yesterday's entries were
+        still sitting there. A non-empty section is a cheaper sibling of "the
+        current work is described", and the cheaper one passing is what stops
+        anyone asking. That is doctrine X1-02 committed by the author of the
+        X1-02 note, which is why the stronger form is here now.
+        """
+        _, released_on = newest_released()
+        worked_on = worklog_date()
+        if worked_on <= released_on:
+            self.skipTest("no worklog activity after the newest released version")
+        dated = [date.fromisoformat(m) for m in
+                 re.findall(r"^- (\d{4}-\d{2}-\d{2})", unreleased_body(), re.M)]
+        self.assertTrue(
+            dated,
+            "CHANGELOG.md [Unreleased] carries no dated entry, so its currency "
+            "cannot be checked. Entries take the form '- YYYY-MM-DD — ...'.",
+        )
+        self.assertGreaterEqual(
+            max(dated), worked_on,
+            f"the worklog was last updated {worked_on} but the newest dated "
+            f"[Unreleased] entry is {max(dated)}. The latest work is not "
+            "described. Add it, or state plainly that the session made no "
+            "user-facing change.",
+        )
+
     def test_the_check_would_notice_an_empty_unreleased(self):
         """Mutation. The assertion above must fail on the state it exists to catch."""
         text = CHANGELOG.read_text(encoding="utf-8")

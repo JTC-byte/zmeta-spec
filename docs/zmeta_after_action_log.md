@@ -544,3 +544,79 @@ That test also earned its keep immediately. Its own detector-fires check caught
 a gap in the detector: a Windows path in Python source carries an escaped
 separator, and the first pattern matched only a single one, so a real dependency
 written that way would have passed unnoticed.
+
+## Addendum — the external-review session, 2026-07-31
+
+An outside agent produced a comparative survey of ZMeta against SAPIENT, OGC
+O&M/SensorThings, CloudEvents, C2PA, PROV-O, in-toto/SLSA, ODCS, FHIR and the
+NATO STANAGs, without access to this repository. The operator's framing was that
+it should expose gaps rather than redirect effort. That framing held, and the
+most useful thing it produced was a correction to us.
+
+### The best result was the survey being wrong in the same direction we were
+
+The survey concluded ZMeta's uncertainty handling is thin. The previous day's
+rep had independently reached the same conclusion by watching a track render
+with CoT's unknown-accuracy sentinel. Two sources, two methods, one answer, and
+the agreement made it feel settled.
+
+Checking it instead of accepting it showed both were wrong. `ERROR_ELLIPSE_M` is
+a registered, approved, schema-implemented and conformance-implemented extension
+allowed on `STATE_EVENT`, on the v1.1.0 branch, carrying semi-major, semi-minor,
+orientation and an optional probability level. Only the locked v1.0 kernel
+carries none, which makes it an adoption-path question rather than a gap in what
+the model can express.
+
+The rule this earns, now on the entry: **when an external claim matches your
+own, that is the moment to verify it, not the moment to stop.** Corroboration
+requires independent checking, not independent arrival. Neither source had read
+the extension registry.
+
+### What survives fact-checking is worth more than what does not
+
+Verified correct and acted on: classification and releasability are genuinely
+unexpressible today, though reserved in the registry rather than unconsidered;
+confidence is a single scalar; malformed `event.ts` validates; the conformance
+apparatus lacks a third-party programme rather than lacking machinery.
+
+Verified wrong: the head-to-head framing against SAPIENT, since this repository
+ships a complete bidirectional SAPIENT bridge and treats it as a mapped format;
+and the recommendation to rebase on CloudEvents, whose required attributes
+measure 134 bytes bare and 168 with `time`, against a Profile L compact event
+that measured 98 to 150 in a 240-byte budget. The envelope is larger than the
+event it would wrap.
+
+The asymmetry is the lesson about outside review generally. A reviewer without
+stack access finds real gaps and misjudges posture, and both halves are useful
+provided you check which is which rather than accepting or rejecting wholesale.
+
+### A citation collision, caught by grepping for our own claim
+
+The doctrine cycle opened the previous day as `S1-01` through `S1-05` collided
+with the historical `S1-01A` through `S1-19` work-item series, which includes a
+completed item also called S1-05. A log whose value is that entries are citable
+cannot carry two meanings for one identifier. Renamed to SIM1 one day old,
+33 references, history untouched and verified per file.
+
+It surfaced only because a search for one of our own overstated claims returned
+files that had nothing to do with it. Worth generalising: **check for identifier
+collisions before naming a cycle**, because the cost of the rename rises with
+every citation.
+
+### The check from the last closeout failed at this one
+
+`test_changelog_keeps_up.py` was written on 2026-07-30 to close the records-lag
+watch-item with a mechanism instead of another sweep. At this closeout it passed
+while the CHANGELOG described none of the session's work, because it asserted
+`[Unreleased]` was non-empty and the previous day's entries were still there.
+
+This is not vacuity. The check had a mutation test, the mutation test was
+honest, and it would have caught the case it was written for. It is X1-02: a
+cheaper sibling of the right check, passing, and the passing is what stops
+anyone asking. Committed by the author of the X1-02 note, one day after writing
+it, which is the strongest evidence available that the class is not an attention
+problem and will not be solved by trying harder.
+
+Strengthened red-first the same session. It is also the sixth instance, and it
+is why the terminal call on X1-02 is now the first item for the next session
+rather than a standing question.

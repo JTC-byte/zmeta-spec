@@ -974,7 +974,7 @@ Confirmed independently on both stacks before being written down.
 | # | Tension | Gates in play | Status |
 |---|---|---|---|
 | X1-01 | The kernel does not constrain `event.ts` beyond a trailing `Z` | 3, 5, 6 | OPEN |
-| X1-02 | A weaker check keeps standing in for a stronger one that exists | 5, 7 | OPEN (observation, N=3 in one day) |
+| X1-02 | A weaker check keeps standing in for a stronger one that exists | 5, 7 | **OPEN, PAST THRESHOLD (N=6)** — terminal call due |
 | X1-03 | The retirement rule reads silence as death, which inverts for constitutional rules | 7 | OPEN |
 
 ### X1-01 — The kernel does not constrain `event.ts` · OPEN
@@ -1030,7 +1030,7 @@ emitted at either end. Sequencing recorded: tag v1.1.19 as-is, which stays a
 clean additive cut; handle this in v1.1.20, which is then behaviour-changing
 rather than additive — a distinction the consumer's pin-advance review keys on.
 
-### X1-02 — A weaker check keeps standing in for a stronger one · OPEN, PAST THRESHOLD
+### X1-02 — A weaker check keeps standing in for a stronger one · OPEN, PAST THRESHOLD (N=6)
 
 **Closeout note, 2026-07-30.** The lifecycle rule below says a tension must
 reach a terminal status on its third recurrence. This entry is at five instances
@@ -1047,7 +1047,26 @@ result, or it goes terminal without one as HELD-FIRM with the question recorded
 as declined. Carrying it open through another cycle should stop being an option.
 **Maintainer's call.**
 
-**Not counted as a sixth instance: SIM1-02**, the `drops` counter read as a loss
+**SIXTH INSTANCE, 2026-07-31, and it is the sharpest available.**
+`gateway/tests/test_changelog_keeps_up.py` was written at the previous closeout
+to close the records-lag watch-item with a mechanism. It asserted `[Unreleased]`
+was non-empty. One day later a session shipped an adapter, corrected a doctrine
+entry and renamed a cycle, none of it reached the CHANGELOG, and the check
+**passed**, because the previous day's entries were still sitting there.
+
+Not vacuity: it carried a mutation test, the mutation test was honest, and it
+would have caught the empty case it was written for. It is exactly this entry's
+class — a cheaper sibling of the right check ("is the section non-empty" for "is
+the current work described"), passing, and the passing is what stopped anyone
+asking. **Written by the author of this entry, one day after writing it.**
+
+That is the strongest evidence available that this class is not an attention
+problem. It was fresh, it was named, it was the thing being guarded against, and
+it still happened. Strengthened red-first the same session: the newest dated
+`[Unreleased]` entry must now be at least as recent as the worklog's
+last-updated date, demonstrated failing on the real stale state before the fix.
+
+**Not counted as an instance: SIM1-02**, the `drops` counter read as a loss
 counter. The shapes are adjacent and not the same. X1-02 is a *check* being
 substituted by a cheaper sibling that shares its name or neighbourhood. SIM1-02 is
 a correctly scoped *counter* being read as though its scope were wider, with no
