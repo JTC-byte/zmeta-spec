@@ -51,6 +51,23 @@ its one spec-side residue, a declared-redaction extension registration; the
 maintainer's Cesium experimentation COP; an awareness pass over
 github.com/nkuntz1934/idahopulse.
 
+**SAPIENT interop validation against an independent implementation**
+(maintainer-supplied 2026-08-02): github.com/mdudel/sapient-harness-java is
+a pure-Java BSI Flex 335 v2 test harness, Apache-2.0, reusing dstl's
+protobuf definitions verbatim and mirroring the reference wire framing
+(4-byte little-endian length-prefixed protobuf over TCP), with detection
+and status generators, message validation, and a headless CLI. Two runs,
+both directions: our sapient egress output into its receiver and
+validation, and its generated detection reports into our sapient ingress,
+checking the ZMeta side stays schema-valid with honest labels. The wire
+framing is exactly the layer our parsed-dict SAPIENT adapters never
+exercise, so this measures the disclosed Template-status gap rather than
+re-testing our own fixtures. Local runs first; wiring its CLI into CI would
+add a Java 17 plus Maven dependency and is a separate decision. Relevant to
+the coalition lane: BSI Flex 335 is the coalition-standard family, and
+interop proof against an implementation we did not write is the credible
+kind.
+
 ## Superseded 2026-08-02 — the tier-2 list this replaced
 
 The 2026-07-31 sequencing ran to completion the same day, in the order given:
