@@ -38,6 +38,26 @@ The campaign, in order:
    tagging (the range is twenty-plus commits; budget a real panel), then
    tag, sign, publish.
 
+## Adjudication of 2026-08-02, fourth round — the A1-02 shape is APPROVED
+
+The maintainer reviewed and approved the drafted A1-02 shape: optional
+geo dimensionality ("2D"/"3D", absent means 3D for backward compatibility,
+"2D" forbids alt_m entirely), the VERTICAL_UNAVAILABLE geo_status token
+with the geo-status-describes-the-object normative sentence and a
+token-to-form coherence rule, landing on the v1.1 branch with the locked
+v1.0 kernel untouched. His rationale, which the normative text should
+carry in spirit: a large share of real traffic will never have vertical
+data; nothing is laundered by accepting it, and denying good pings for
+data they will never have is the wrong failure; the label tells the
+operator why it is 2-D so the go/no-go stays theirs. Two clarifications
+resolved with the approval: adapters DEFAULT to declaring "2D" when the
+source has no altitude (the schema's absent-means-3D rule is purely
+compatibility for the existing corpus, which all carries alt_m); and the
+vocabulary starts with the single token, the specific reason staying
+discoverable in native features, with reason-granular tokens available
+later as an additive change if field feedback demands them. Next session
+drafts the normative text and schema from this without further gates.
+
 ## Adjudications of 2026-08-02, third round — the ellipse promotion's shape
 
 The blast-radius scout surfaced four sub-decisions the promotion cannot
