@@ -2,7 +2,18 @@
 
 ## Current Resume Note
 
-- Last updated: 2026-08-02 (readiness audit; four adjudications; fix wave shipped)
+- Last updated: 2026-08-02 (readiness audit; seven adjudications; fix wave shipped; checkpoint closed)
+- **2026-08-02 (checkpoint closeout).** Final state verified by hand rather
+  than accepted: main and origin synced at f0f875e, CI green on the last two
+  pushes, kernel gate all flags exit 0, examples 51/51, pytest 1636 passed
+  plus 1074 subtests with the exit code checked, both adapter lints and the
+  roadmap validator exit 0, no stray worktrees, branches or containers. A
+  second adjudication round closed the last three gate decisions, recorded
+  in the handoff: contract 4.5.1 keeps its semantics and teaches the
+  refusal, the default gateway config will preserve data_ref at Profile H,
+  and zmeta_uuid imports converge on the plain top-level form. The handoff
+  top now carries the whole big-push campaign; the only open decision
+  anywhere in the stack is the X1-02 terminal call.
 - **2026-08-02 — the readiness audit's verdicts landed as work the same
   day.** Ten axes ran their paths live rather than reading them: encoding
   READY; normalize-rf, visualize, retask, lineage and zero-shot
