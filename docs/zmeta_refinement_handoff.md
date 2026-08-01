@@ -38,6 +38,30 @@ The campaign, in order:
    tagging (the range is twenty-plus commits; budget a real panel), then
    tag, sign, publish.
 
+## Adjudications of 2026-08-02, third round — the ellipse promotion's shape
+
+The blast-radius scout surfaced four sub-decisions the promotion cannot
+proceed without; all four adjudicated:
+
+1. **Mechanism: registry adoption on the v1.1 branch.** The extension
+   registry status moves experimental to adopted; the field stays on the
+   version-discriminated v1.1.0 schema branch, which v1.1.20 ships as the
+   formal adoption vehicle. The locked v1.0 kernel is untouched and every
+   v1.0-purity invariant stays true.
+2. **Compact stays v1.0-only.** Profile L's mapping keeps refusing v1.1.0
+   events with its existing honest diagnostic; no new integer keys. A real
+   constrained link needing v1.1 STATE is the field evidence that would
+   reopen this. The same reading applies to the A1-02 dimensionality form:
+   no compact additions in this wave.
+3. **Conditional version stamping.** A writer stamps zmeta_version 1.1.0
+   only on events that actually carry a declared geo ellipse, 1.0
+   otherwise; the version field declares the contract each event genuinely
+   uses. This is how the ADS-B writer's wrong-location ellipse
+   (payload.quality under a 1.0 stamp) gets resolved.
+4. **risk_relevant moves to true**, with the required registry fields
+   (security_privacy_notes, fixture_references, projection-behavior
+   constraints) written as part of the wave.
+
 ## Adjudications of 2026-08-02, second round — all three gate decisions
 
 1. **Contract 4.5.1: teach the refusal.** Semantics stay exactly as
