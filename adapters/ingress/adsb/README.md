@@ -28,10 +28,31 @@ them. It also produces the hard cases continuously and for free:
 |---|---|
 | position + `alt_geom` + `nac_p` | canonical `geo`, error ellipse from the declared NACp bound |
 | position, `alt_baro` only | no canonical `geo` (see open question 2); lat/lon kept as native features, `geo_status: UNAVAILABLE` |
+| position, `alt_geom` outside the plausibility band (roughly -450 m to 20000 m) | no canonical `geo`; lat/lon and the raw `alt_geom` value kept as native features, `geo_status: UNAVAILABLE` |
 | Mode S only, no position | a real detection of a real emitter, positionless |
 | `nac_p` absent | no error bound invented |
-| NaN / out-of-range coordinate | not a position |
+| NaN / out-of-range coordinate | not a position, and not demoted to native features either |
+| snapshot clock (`now`) below 2000-01-01 | refused entirely; not read as a moment |
 | no `hex` | refused entirely; no subject for the observation |
+
+### Geometric altitude plausibility
+
+`alt_geom` is WGS84 and is the only field that may become canonical `alt_m`,
+but a present value is not automatically a usable one. A sentinel or a
+corrupted decode (dump1090 has been observed to report `alt_geom` as `-9999`)
+converts to a geometric height of -3047.7 m, a depth no aircraft occupies.
+This adapter rejects `alt_geom` outside a plausibility band of roughly -450 m
+(the Dead Sea shore, the lowest point on Earth's land surface, with margin)
+to 20000 m (above every civil airliner and every known military fixed-wing
+envelope, the U-2 and SR-71 included). A value outside that band is treated
+the same way a missing `alt_geom` is: no canonical `geo`, `geo_status:
+UNAVAILABLE`, and the position demoted to `adsb_lat_deg` / `adsb_lon_deg`.
+The raw altitude also survives, as `adsb_alt_geom_ft`, so the corrupted
+reading is visible rather than silently dropped.
+
+An out-of-range coordinate (for example `lat: 95.0`) is a different case: the
+position itself is not real, so it is refused from both canonical `geo` and
+the native demotion path, the same bounds check in both places.
 
 ## Field mapping
 
@@ -49,7 +70,9 @@ Native, explicitly named so nothing reads more into them than the data supports:
 `adsb_ground_speed_kt`, `adsb_track_deg_true`, `adsb_baro_rate_fpm`,
 `adsb_message_count`, `adsb_seen_s`, `adsb_seen_pos_s`, `adsb_nac_p`,
 `adsb_nac_v`, `adsb_sil`, `adsb_nic`, `adsb_downlink_hz`, `adsb_receiver_id`,
-and `adsb_lat_deg` / `adsb_lon_deg` when the position could not become canonical.
+`adsb_lat_deg` / `adsb_lon_deg` when the position could not become canonical,
+and `adsb_alt_geom_ft` when `alt_geom` was present but outside the
+plausibility band above.
 
 ## Three open questions this adapter raised
 

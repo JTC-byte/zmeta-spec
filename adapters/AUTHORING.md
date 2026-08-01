@@ -52,6 +52,7 @@ it were
 | RF DoA / bearing solution | `OBSERVATION_EVENT` (RF) | `ingress/kraken/` |
 | RF peak freq/power scalar | `OBSERVATION_EVENT` (RF) | `ingress/moth/` |
 | PSD sweep captures | `OBSERVATION_EVENT` (RF) | `ingress/signalhunter/` |
+| Cooperative-broadcast decoded telemetry (ADS-B, AIS, rtl_433-class decoders) | `OBSERVATION_EVENT` (NETWORK) | `ingress/adsb/`, `ingress/ais/` |
 | Decoded EO/IR metadata | `OBSERVATION_EVENT` (EO) | `ingress/klv/` |
 | Classifier/detector claims | `INFERENCE_EVENT` | `ingress/eo-cv/` |
 | Multi-layer vendor reports (fact + opinion in one message) | split: `OBSERVATION_EVENT` + per-claim `INFERENCE_EVENT` | `ingress/sapient/` |
@@ -153,19 +154,103 @@ producer did not make. Keep it in explicitly named
 values (default bearings, error bounds, power levels, positions) remains
 prohibited by rules 3, 9, and 10.
 
+## Residue Classes A Zero-Shot Author Should Assume
+
+The rules above get violated in the same handful of concrete shapes often
+enough that this repository's own fix history is worth reading as a
+checklist, not just as background. Each item below cost a real fix here;
+check your adapter against it before calling it done.
+
+- **Message-type-scoped sentinels.** A wire format's own "value not
+  reported" encoding is not missing data, and it is not a value to carry
+  either; it is a fact about the field, and it can differ by message type
+  within the same format. AIS message type 27 packs speed and course into
+  narrower fields with their own not-available encodings (`63` kt, `511`
+  degrees), distinct from every other position-report type's (`102.3` kt,
+  `360.0` degrees). `ingress/ais/ais_to_zmeta.py` reads `POSITION_REPORT_TYPES`
+  next to `SOG_NOT_AVAILABLE` / `TYPE27_SOG_NOT_AVAILABLE` for this reason.
+  Read the standard's not-available table for each message type your adapter
+  accepts, next to the code path that accepts that type, not once for the
+  format as a whole.
+- **Epoch-floor plus calendar validation on every time channel.** A number
+  under a field named `timestamp` is epoch seconds only if it is plausibly
+  epoch seconds. `ingress/ais/ais_to_zmeta.py`'s `EPOCH_FLOOR_S` (2000-01-01)
+  refuses values below it rather than dating an event near 1970-01-01,
+  because some other quantity (AIS's own second-of-minute field is the live
+  example) leaked in under that name. A fixed-width digit string is not a
+  validated timestamp either: the same adapter's `rxtime` path requires the
+  fourteen digits to parse as a real calendar moment (`datetime.strptime`)
+  before they are reformatted as one, so a value like month `88` refuses the
+  message instead of producing a UTC-Z string the schema would accept.
+- **Stream-shape honesty.** A `translate_stream`-style entry point that
+  accepts "an iterable of records" must work on a generator, and must raise,
+  not silently iterate wrong, on the inputs that look like iterables by
+  accident: a single record dict (iterates as its keys) and a string
+  (iterates as its characters). `ingress/ais/ais_to_zmeta.py`'s
+  `translate_stream` is the pattern: zero events from a miswired call must
+  never look identical to zero events from a genuinely empty stream.
+- **Per-field physical bounds.** A decoded value outside the range the
+  sending field can physically encode is not a claim the standard makes, it
+  is corruption, and it is dropped rather than carried as fact. AIS speed
+  over ground is bounded `0` to `102.2` kt (`62` kt for the six-bit message-27
+  field), course `0` to `359.9` degrees, heading `0` to `359` degrees; values
+  outside those ranges are refused even when they are not one of the
+  standard's own not-available sentinels.
+
+## Start From A Mapping Pack, Not A Blank File
+
+For a new vendor format, check `adapters/mapping-packs/` before writing a new
+adapter module from this guide's text alone. A mapping pack is a declarative
+description of the vendor translation (`mapping.yaml`, optional
+`enums.yaml`/`units.yaml`, and a `tests/` corpus of real input plus expected
+ZMeta output) reviewed against a real vendor format rather than left implicit
+in adapter code. `edge-comms-bladerf/` ships real flight-blackbox RF
+detections; `sapient-bsi-flex-335/` is validated against the official Dstl
+Apex tooling. Both pair with a runnable reference adapter (`ingress/bladerf/`,
+`ingress/sapient/`) a new author can diff against. `example-vendor-pack` plus
+`ingress/example-vendor/` is the smaller, structural teaching pair, built to
+mirror this guide section by section.
+
+Building against an existing pack, or writing a new one alongside a thin
+adapter, is the field-proven lane: the pack's `tests/` corpus is conformance
+evidence an adapter can be checked against, not just this guide's prose.
+
+Writing an adapter from this guide's text alone, with no mapping pack behind
+it, is the fallback for a format nothing here already covers. Every rule in
+this guide still applies; there is simply no existing pack or reference
+implementation to diff against, so lean harder on the validation ladder
+(section 5) and on one refusal fixture per required field (section 9) to
+catch what a missing second set of eyes would otherwise catch.
+
 ## 4. Build
 
 - Copy `adapters/ingress/template/adapter_template.py` (or the nearest
-  reference from the table) and implement `detect(input_bytes) -> schema_id`,
-  `translate(input_obj, schema_id) -> list[dict]`,
-  `validate(zmeta_event) -> (pass|warn|fail, violations)`.
+  reference from the table) and implement your translation entry point(s):
+  one or more `translate_<subject>` functions named for what they accept
+  (`translate_aircraft`, `translate_message`, `translate_stream`,
+  `translate_csv_row`, and so on; there is no single required name), each
+  returning `list[dict]` of ZMeta events for one input, or refusing with
+  `[]`/`None`. `detect(input_bytes) -> schema_id` is optional dispatch
+  plumbing for a caller that must identify the format from raw bytes before
+  it can pick the right entry point; reference adapters whose caller already
+  knows the schema (`ingress/adsb/`, `ingress/ais/`) skip it. A local
+  `validate(zmeta_event)` function is an optional convenience some adapters
+  ship; the canonical validator (ladder step 2 below) is authoritative
+  regardless of whether your adapter also carries one.
 - Declare an `ADAPTER_VERSION`. When translating with real parents, set
   `lineage.transform = "translate:<schema_id>@<adapter_version>"`.
 - Normalize timestamps with `adapters.ingress.time_utils.normalize_utc_z()` /
   `epoch_ms_to_utc_z()`; expose per-event `payload.timing_quality` or periodic
   `TIME_STATUS`.
-- Fail closed. Return nothing on ambiguous or unmappable input and emit a
-  `SYSTEM_EVENT`/`SCHEMA_VIOLATION` diagnostic for deterministic failures.
+- Fail closed. Return `[]`/`None` on ambiguous or unmappable input rather
+  than emitting a schema-invalid event. Building and emitting the
+  `SYSTEM_EVENT`/`SCHEMA_VIOLATION` diagnostic for that refusal is caller-side
+  (the gateway, a wrapping ingest script, or the harness): a `translate_*`
+  entry point's own fail-closed return is what signals the refusal, not a
+  self-constructed diagnostic. (`ingress/sapient/`'s `_translate_error` is a
+  different case: it translates the vendor's own self-reported error message
+  into this same ZMeta vocabulary, which is ordinary translation work, not a
+  diagnostic about this adapter's refusal.)
 - Vendor quirks belong in adapter-local code, a mapping pack
   (`adapters/mapping-packs/`: declarative documentation plus test samples;
   no runtime engine executes `mapping.yaml`), or namespaced payload
@@ -266,8 +351,12 @@ move. The reference patterns:
 | `packet-analyzer-*` | comms/packet analysis |
 | `classifier-*`, `detector-*` | inference producers |
 | `fusion-*` | fusion producers |
-| `state-projector-*` | STATE projection |
 | `mavlink-*` | MAVLink bridges |
+
+There is no state-projector wildcard. A producer that emits an authoritative
+`STATE_EVENT` names itself explicitly in the policy and chooses its evidence
+requirements there, because an unnamed authoritative track is an injection
+path. The reference track projector runs as `fusion-*`.
 
 `acme-doa` fails and `rf-sensor-acme` passes, with nothing else changed.
 Note that `adapters/ingress/example-vendor/` is individually allowlisted in the

@@ -157,7 +157,14 @@ def _decode_auto(data: bytes, allow_jsonl_first: bool = False) -> Dict[str, Any]
 def main() -> None:
     args = parse_args()
     data = read_input(args.input, args.source_encoding)
-    event = decode_event(data, args.source_encoding, args.allow_jsonl_first)
+    try:
+        event = decode_event(data, args.source_encoding, args.allow_jsonl_first)
+    except (ValueError, TypeError) as exc:
+        # A hostile datagram (unknown compact integer key, a refused CBOR
+        # tag, truncated bytes) must fail closed with a one-line refusal,
+        # not a raw traceback -- the same guarantee the encode side gives
+        # below for an unrepresentable event.
+        raise SystemExit(f"decode refused: {exc}")
     try:
         out = encode_event(event, args.target_encoding, args.pretty)
     except zmeta_compact.CompactUnrepresentableError as exc:

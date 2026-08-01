@@ -4,17 +4,41 @@ Overview: see `adapters/README.md`.
 
 Purpose: convert external payloads into ZMeta v1.0.
 
-### Required functions
+### Entry points
 
-- `detect(input_bytes)` -> schema_id
-- `translate(input_obj, schema_id)` -> list[dict] of ZMeta events
-- `validate(zmeta_event)` -> (pass|warn|fail, violations)
+There is no single required function name. What every shipped adapter has in
+common is one or more `translate_<subject>` functions, named for the shape of
+input each accepts (`translate_aircraft`, `translate_message`,
+`translate_stream`, `translate_csv_row`, `translate_bin_file`, and so on),
+each taking one parsed input object (or an iterable, for a stream-shaped
+entry point) and returning `list[dict]` of ZMeta events, or refusing with
+`[]`/`None` when the input cannot honestly become one. Colocated tests
+(`test_<adapter>_ingress.py`, next to the adapter module) are what pin each
+entry point's emission and refusal behavior; see `adapters/AUTHORING.md`
+section 9 for the one-refusal-fixture-per-required-field standard.
+
+`detect(input_bytes) -> schema_id` is optional dispatch plumbing for a caller
+that must identify the format from raw bytes before it can pick the right
+entry point. Reference adapters whose caller already knows the schema
+(`ingress/adsb/`, `ingress/ais/`) skip it entirely. A local
+`validate(zmeta_event) -> (pass|fail, violations)` function is an optional
+convenience some adapters ship; it is never the thing that makes an event
+conformant. The canonical validator is
+`python tools/validate.py --file <events>.jsonl --profile <profile> --strict`
+against `schema/zmeta-event-1.0.schema.json` (`adapters/AUTHORING.md` ladder
+step 2), and it is authoritative regardless of whether your adapter also
+carries a local `validate()`.
 
 ### Required behavior
 
-- Must call schema validation using `schema/zmeta-event-1.0.schema.json`.
-- Must emit SYSTEM_EVENT/SCHEMA_VIOLATION on deterministic failures or warning
-  diagnostics, with risk labels when policy soft-accepts degraded data.
+- Emitted events must be schema-valid against
+  `schema/zmeta-event-1.0.schema.json`; run the canonical validator above
+  before calling an adapter done.
+- Building and emitting the `SYSTEM_EVENT`/`SCHEMA_VIOLATION` diagnostic for a
+  refused input is caller-side (the gateway, a wrapping ingest script, or the
+  harness), matching every reviewed adapter: a `translate_*` entry point's own
+  fail-closed `[]`/`None` return is what signals the refusal, and the caller
+  decides what diagnostic, if any, to build from it.
 - Must emit `lineage` only when real parent ZMeta event ids exist (for
   example, caller-supplied `based_on`). When lineage is emitted, set
   `lineage.transform = "translate:<schema_id>@<adapter_version>"`. Never

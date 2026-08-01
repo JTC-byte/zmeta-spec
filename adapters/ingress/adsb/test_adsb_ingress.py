@@ -120,6 +120,77 @@ def test_an_unusable_snapshot_clock_refuses_rather_than_guessing():
     assert translate_aircraft(FULL, **dict(BASE, now_epoch_s=math.nan)) is None
 
 
+def test_an_implausibly_small_snapshot_clock_refuses_rather_than_dating_near_1970():
+    """A `now` far below any real epoch second is not a moment.
+
+    It is some other quantity that leaked in under that key (a counter, a
+    relative offset). Converting it anyway would silently date the event
+    near 1970-01-01. Mirrors the AIS adapter's EPOCH_FLOOR_S.
+    """
+    assert translate_aircraft(FULL, **dict(BASE, now_epoch_s=1000.0)) is None
+
+
+# --- Geometric altitude plausibility (sibling-parity, AIS altitude doctrine) -
+# A sentinel or a garbled decode (dump1090 has been observed to report
+# alt_geom -9999) must not become a canonical alt_m: -9999 ft is -3047.7 m,
+# a depth no aircraft occupies. Contract 6.8 all-or-nothing then applies the
+# same way a missing alt_geom does: no canonical geo, position demoted
+# natively, geo_status UNAVAILABLE.
+
+
+def test_a_sentinel_geometric_altitude_is_rejected_like_a_missing_one():
+    entry = dict(FULL, alt_geom=-9999)
+    event = translate_aircraft(entry, **BASE)
+    features = event["payload"]["features"]
+
+    assert "geo" not in event["payload"]
+    assert event["payload"]["quality"]["geo_status"] == "UNAVAILABLE"
+    assert features["adsb_lat_deg"] == 34.05
+    assert features["adsb_lon_deg"] == -118.25
+    # the raw declared value survives so the corrupted reading is visible,
+    # not silently dropped
+    assert features["adsb_alt_geom_ft"] == -9999
+
+
+def test_a_geometric_altitude_above_the_plausibility_ceiling_is_rejected():
+    """Sustained flight above ~20 km is beyond every civil and known military
+
+    fixed-wing envelope, so a value up there is decoder garbage, not a real
+    aircraft.
+    """
+    entry = dict(FULL, alt_geom=200000)  # ~60960 m
+    event = translate_aircraft(entry, **BASE)
+
+    assert "geo" not in event["payload"]
+    assert event["payload"]["quality"]["geo_status"] == "UNAVAILABLE"
+    assert event["payload"]["features"]["adsb_alt_geom_ft"] == 200000
+
+
+def test_geometric_altitude_within_the_plausibility_band_is_unaffected():
+    """The band must not squeeze real high-altitude traffic."""
+    entry = dict(FULL, alt_geom=65000)  # ~19812 m, inside the band
+    event = translate_aircraft(entry, **BASE)
+
+    assert event["payload"]["geo"]["alt_m"] == pytest.approx(65000 * 0.3048)
+
+
+def test_an_out_of_range_coordinate_is_not_demoted_to_native_either():
+    """An impossible coordinate is corruption, not a position worth keeping.
+
+    Sibling-parity with the AIS adapter's `_position()`: the bounds check
+    that keeps an out-of-range coordinate out of canonical geo must also
+    keep it out of the native demotion path, or the "not a position" claim
+    is only half-honored.
+    """
+    entry = {"hex": "aabbcc", "lat": 95.0, "lon": 200.0, "seen": 1.0}
+    event = translate_aircraft(entry, **BASE)
+    features = event["payload"]["features"]
+
+    assert "geo" not in event["payload"]
+    assert "adsb_lat_deg" not in features
+    assert "adsb_lon_deg" not in features
+
+
 def test_absent_declared_accuracy_produces_no_bound():
     """NACp absent, or a category that declares no bound, invents nothing."""
     for entry in (

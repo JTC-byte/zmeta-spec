@@ -853,7 +853,7 @@ instance, which is what keeps a fix from being an accommodation for one source.
 | # | Tension | Gates in play | Status |
 |---|---|---|---|
 | A1-01 | RF minimum features assume a calibrated receiver | 1, 3 | OPEN |
-| A1-02 | All-or-nothing geo discards good 2-D positions | 1, 2, 3 | OPEN |
+| A1-02 | All-or-nothing geo discards good 2-D positions | 1, 2, 3 | **DECIDED 2026-08-02** — declared dimensionality + vocabulary token, lands v1.1.20 |
 | A1-03 | Translation provenance is unsayable for an original observation | 3, 5 | OPEN |
 
 ### A1-01 — `power_dbm` assumes a calibrated receiver · OPEN
@@ -890,7 +890,7 @@ The ADS-B adapter ships on v1.0 using `NETWORK` modality to avoid the
 fabrication. That is a WORKAROUND, not a design — ADS-B is RF — and it is
 recorded as such in the adapter README.
 
-### A1-02 — All-or-nothing geo discards good 2-D positions · OPEN
+### A1-02 — All-or-nothing geo discards good 2-D positions · DECIDED 2026-08-02
 
 `payload.geo` requires `alt_m` (contract 6.8). A large share of ADS-B targets
 report only `alt_baro`, a pressure altitude referenced to 1013.25 hPa, which is
@@ -940,7 +940,20 @@ than diverging, so this needs either a vocabulary token or a contract sentence
 saying which reading is normative. It is the cheapest of the three fixes and
 independent of the dimensionality question.
 
-### A1-03 — Translation provenance is unsayable for an original observation · OPEN
+**DECIDED 2026-08-02, maintainer adjudication.** The disposition this entry
+recommended: canonical geo gains a declared-dimensionality form, plus a
+`geo_status` vocabulary token for "horizontally known, vertically absent",
+one mechanism for AIS, barometric-only ADS-B, and every future 2-D source.
+Per-source carve-outs were considered and rejected as dialect. Two paths
+were examined and declined on the record: reusing `geo2d` on state payloads
+(two position homes on one payload makes every consumer branch forever) and
+rehoming AIS as SYSTEM_EVENT (SystemPayload carries no geo member, and the
+system channel is trusted internal telemetry, the wrong authority lane for a
+spoofable broadcast). The urgency input was the readiness audit's finding
+that maritime tracks cannot reach a COP through the reference pipeline at
+all. Lands in the v1.1.20 governed wave, which is already
+behaviour-changing under X1-01. Lineage was confirmed a non-issue: the
+single-member FUSION path is legal and instant; the wall was geometry only. — Translation provenance is unsayable for an original observation · OPEN
 
 `lineage` requires `based_on` with `minItems: 1`, and `transform` lives inside
 it. An original observation has no ZMeta parent, so an adapter cannot record
@@ -1445,6 +1458,15 @@ such thing. The adjacent claim that nothing here is overstated did not survive
 this look either. The fabrication itself is a defect in published egress code,
 outside the reviewed range, and is queued in the handoff rather than fixed
 here.
+
+**PROMOTION DECIDED 2026-08-02, maintainer adjudication.** `error_ellipse_m`
+moves from the v1.1.0 experimental branch into the v1.1.20 formal cut, with
+the `semi_major_m` spelling divergence reconciled in the same governed wave.
+The deciding input: the readiness audit reproduced the fielded
+LOB-fusion-to-ellipse retask workflow end to end and confirmed a live user
+stands on the experimental branch today, hitting an undocumented wall when
+building from the public trunk. The adoption-path question this entry framed
+is answered by promotion rather than by documentation.
 
 **Method note worth keeping.** An outside review and an inside rep agreed on
 this finding, and the agreement made it feel settled. Two sources reaching the

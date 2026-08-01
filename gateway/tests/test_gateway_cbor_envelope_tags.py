@@ -91,7 +91,7 @@ class _RecordingMetrics:
     def __init__(self):
         self.violations = []
 
-    def record_violation(self, code, event_id=None, producer=None):
+    def record_violation(self, code, event_id=None, producer=None, details=None):
         self.violations.append(code)
 
 

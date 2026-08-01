@@ -329,8 +329,44 @@ def _warn_stderr(message):
         return False
 
 
+# Bound on the optional `details` text a violation/warning/drop metrics
+# record carries. Without it, every record of one code is identical apart
+# from event_id/producer: 24 structurally different garbage inputs that all
+# fail the same check collapse into one violation_codes count with no way to
+# tell one from another in metrics.jsonl. `details` is short operator
+# context (a jsonschema message, a decode exception's str()), not the full
+# diagnostic, so a much smaller bound than MAX_DIAGNOSTIC_ERROR_CHARS is
+# enough to keep records distinguishable without one record dominating the
+# log.
+MAX_METRICS_DETAIL_CHARS = 500
+
+
+def _bounded_metrics_detail(details):
+    """Coerce `details` to a short, bounded string for a metrics record.
+
+    Falsy input (the common case: most calls pass nothing) means "no detail
+    to add" and the caller omits the key entirely, the same convention
+    event_id/producer already use. A non-string value is stringified rather
+    than silently dropped, so a caller that passes a dict by mistake still
+    surfaces something rather than nothing.
+    """
+    if not details:
+        return None
+    text = details if isinstance(details, str) else str(details)
+    if len(text) <= MAX_METRICS_DETAIL_CHARS:
+        return text
+    return text[:MAX_METRICS_DETAIL_CHARS] + "...<truncated>"
+
+
 class GatewayMetrics:
-    def __init__(self, interval_sec=DEFAULT_METRICS_INTERVAL_SEC, emit=True, logger=None, contract_hash=None):
+    def __init__(
+        self,
+        interval_sec=DEFAULT_METRICS_INTERVAL_SEC,
+        emit=True,
+        logger=None,
+        contract_hash=None,
+        cot_enabled=False,
+    ):
         self.emit = bool(emit)
         try:
             interval = int(interval_sec)
@@ -342,6 +378,11 @@ class GatewayMetrics:
         self.last_log = time.monotonic()
         self.logger = logger
         self.contract_hash = contract_hash
+        # Rides the periodic summary and the "metrics" log record so
+        # emit_cot=false is distinguishable at a glance from "CoT is enabled
+        # but nothing eligible has arrived yet" - both report cot=0 and were
+        # otherwise bit-identical.
+        self.cot_enabled = bool(cot_enabled)
         self.total = self._new_window()
         self.window = self._new_window()
         self.console_failures = 0
@@ -470,15 +511,20 @@ class GatewayMetrics:
             record["contract_hash"] = self.contract_hash
         self.logger.write(record)
 
-    def record_drop(self, reason, producer=None):
+    def record_drop(self, reason, producer=None, event_id=None, details=None):
         self._bump("drops", 1)
         self._bump_map("drop_reasons", reason)
         payload = {"reason": reason}
+        if event_id:
+            payload["event_id"] = event_id
         if producer:
             payload["producer"] = producer
+        bounded_details = _bounded_metrics_detail(details)
+        if bounded_details:
+            payload["details"] = bounded_details
         self._log_event("drop", payload)
 
-    def record_violation(self, code, event_id=None, producer=None):
+    def record_violation(self, code, event_id=None, producer=None, details=None):
         self._bump("violations", 1)
         self._bump_map("violation_codes", code)
         payload = {"code": code}
@@ -486,9 +532,12 @@ class GatewayMetrics:
             payload["event_id"] = event_id
         if producer:
             payload["producer"] = producer
+        bounded_details = _bounded_metrics_detail(details)
+        if bounded_details:
+            payload["details"] = bounded_details
         self._log_event("violation", payload)
 
-    def record_warning(self, code, event_id=None, producer=None):
+    def record_warning(self, code, event_id=None, producer=None, details=None):
         self._bump("warnings", 1)
         self._bump_map("warning_codes", code)
         payload = {"code": code}
@@ -496,6 +545,9 @@ class GatewayMetrics:
             payload["event_id"] = event_id
         if producer:
             payload["producer"] = producer
+        bounded_details = _bounded_metrics_detail(details)
+        if bounded_details:
+            payload["details"] = bounded_details
         self._log_event("warning", payload)
 
     def record_oversize_datagram(self, size, threshold, kind, event_id=None, producer=None):
@@ -594,7 +646,13 @@ class GatewayMetrics:
         self._print(
             "metrics "
             f"interval={self.interval_sec}s recv={window['received']} "
-            f"bytes={window['bytes']} fwd={window['forwarded']} cot={window['cot']} "
+            f"bytes={window['bytes']} fwd={window['forwarded']} "
+            # cot_enabled names the run's own configuration, not a window
+            # count: without it, emit_cot=false and "CoT enabled but nothing
+            # eligible has arrived yet" both print cot=0 cot_skipped=0 and
+            # are bit-identical on this line.
+            f"cot_enabled={'true' if self.cot_enabled else 'false'} "
+            f"cot={window['cot']} "
             f"cot_skipped={window['cot_skipped']} "
             f"timing_source={window['timing_quality_source']} "
             f"timing_fallback={window['timing_quality_fallback']} "
@@ -665,6 +723,9 @@ class GatewayMetrics:
                 "received": window["received"],
                 "bytes": window["bytes"],
                 "forwarded": window["forwarded"],
+                # The run's own configuration, not a window count - see the
+                # console line above for why this has to ride the record.
+                "cot_enabled": self.cot_enabled,
                 "cot": window["cot"],
                 "cot_skipped": window["cot_skipped"],
                 "timing_quality_source": window["timing_quality_source"],
@@ -1968,6 +2029,26 @@ def _wire_safe_details(details):
     return root
 
 
+# Bound on the verbatim error text a SCHEMA_INVALID diagnostic embeds in
+# details.error. jsonschema's own error message echoes the failing instance
+# verbatim on a pattern/format/enum mismatch ("'<value>' does not match
+# '<pattern>'"), and a decode exception's str() can do the same for a
+# malformed wire value - audit measured 10,025 chars for one pathological
+# event_id. That string lands in both the diagnostic event forwarded on the
+# wire and the metrics.jsonl record it feeds, so an unbounded echo turns one
+# garbage datagram into a datagram-sized diagnostic. Same pattern as
+# validators._path_of: truncated and marked, so the diagnostic still says
+# what happened without carrying the whole offending value.
+MAX_DIAGNOSTIC_ERROR_CHARS = 1024
+
+
+def _bounded_diagnostic_error(text):
+    text = str(text)
+    if len(text) <= MAX_DIAGNOSTIC_ERROR_CHARS:
+        return text
+    return text[:MAX_DIAGNOSTIC_ERROR_CHARS] + "...<truncated>"
+
+
 def build_violation_event(reason_code, original=None, details=None, contract_hashes=None, stamp_contract_hash=False, force_schema_violation=False):
     original_event = original.get("event", {}) if isinstance(original, dict) else {}
     original_source = original.get("source", {}) if isinstance(original, dict) else {}
@@ -2115,12 +2196,20 @@ def process_message(
     try:
         instance = _decode_message(message, input_encoding)
     except Exception as exc:
+        # The payload never decoded, so there is no event_id/producer to
+        # expose - but str(exc) is still a short reason that distinguishes
+        # this garbage input from another one that also fails to decode.
+        # Bounded twice: MAX_METRICS_DETAIL_CHARS for the metrics record,
+        # MAX_DIAGNOSTIC_ERROR_CHARS (the documented ~1 KB bound) for the
+        # diagnostic event, since a decode exception's str() can itself echo
+        # the offending wire value.
+        decode_error = str(exc)
         if metrics:
-            metrics.record_violation("SCHEMA_INVALID")
+            metrics.record_violation("SCHEMA_INVALID", details=decode_error)
         return [
             build_violation_event(
                 "SCHEMA_INVALID",
-                details={"error": str(exc)},
+                details={"error": _bounded_diagnostic_error(decode_error)},
                 contract_hashes=contract_hashes,
                 stamp_contract_hash=stamp_contract_hash,
             )
@@ -2135,19 +2224,28 @@ def process_message(
 
     if rate_limiter and not rate_limiter.allow(producer):
         if metrics:
-            metrics.record_drop("RATE_LIMIT_PRODUCER", producer=producer)
+            metrics.record_drop("RATE_LIMIT_PRODUCER", producer=producer, event_id=event_id)
         return []
 
     ok, violations = validate_schema(instance, validator, severity_map)
     if not ok:
         violation = violations[0]
         if metrics:
-            metrics.record_violation(violation["code"], event_id=event_id, producer=producer)
+            metrics.record_violation(
+                violation["code"], event_id=event_id, producer=producer, details=violation["message"]
+            )
         return [
             build_violation_event(
                 violation["code"],
                 original=instance,
-                details={"error": violation["message"], **violation.get("details", {})},
+                # jsonschema's own message can echo the failing instance
+                # verbatim (a pattern/format mismatch reports the whole
+                # value), so it is bounded the same as a decode exception's
+                # str() above before it enters the diagnostic.
+                details={
+                    "error": _bounded_diagnostic_error(violation["message"]),
+                    **violation.get("details", {}),
+                },
                 contract_hashes=contract_hashes,
                 stamp_contract_hash=stamp_contract_hash,
             )
@@ -2161,7 +2259,9 @@ def process_message(
         if fails:
             violation = fails[0]
             if metrics:
-                metrics.record_violation(violation["code"], event_id=event_id, producer=producer)
+                metrics.record_violation(
+                    violation["code"], event_id=event_id, producer=producer, details=violation.get("message")
+                )
             return [
                 build_violation_event(
                     violation["code"],
@@ -2179,7 +2279,9 @@ def process_message(
         if fails:
             violation = fails[0]
             if metrics:
-                metrics.record_violation(violation["code"], event_id=event_id, producer=producer)
+                metrics.record_violation(
+                    violation["code"], event_id=event_id, producer=producer, details=violation.get("message")
+                )
             return [
                 build_violation_event(
                     violation["code"],
@@ -2208,7 +2310,9 @@ def process_message(
             if fails:
                 violation = fails[0]
                 if metrics:
-                    metrics.record_violation(violation["code"], event_id=event_id, producer=producer)
+                    metrics.record_violation(
+                        violation["code"], event_id=event_id, producer=producer, details=violation.get("message")
+                    )
                 return [
                     build_violation_event(
                         violation["code"],
@@ -2236,7 +2340,9 @@ def process_message(
         if fails:
             violation = fails[0]
             if metrics:
-                metrics.record_violation(violation["code"], event_id=event_id, producer=producer)
+                metrics.record_violation(
+                    violation["code"], event_id=event_id, producer=producer, details=violation.get("message")
+                )
             return [
                 build_violation_event(
                     violation["code"],
@@ -2260,7 +2366,9 @@ def process_message(
         if fails:
             violation = fails[0]
             if metrics:
-                metrics.record_violation(violation["code"], event_id=event_id, producer=producer)
+                metrics.record_violation(
+                    violation["code"], event_id=event_id, producer=producer, details=violation.get("message")
+                )
             return [
                 build_violation_event(
                     violation["code"],
@@ -2291,7 +2399,9 @@ def process_message(
         if fails:
             violation = fails[0]
             if metrics:
-                metrics.record_violation(violation["code"], event_id=event_id, producer=producer)
+                metrics.record_violation(
+                    violation["code"], event_id=event_id, producer=producer, details=violation.get("message")
+                )
             # The evidence-lineage reason codes are not in the deliberately
             # task-limited TASK_ACK vocabulary, so this refusal rides the
             # SCHEMA_VIOLATION shape (the documented force_schema_violation
@@ -2319,7 +2429,9 @@ def process_message(
         if fails:
             violation = fails[0]
             if metrics:
-                metrics.record_violation(violation["code"], event_id=event_id, producer=producer)
+                metrics.record_violation(
+                    violation["code"], event_id=event_id, producer=producer, details=violation.get("message")
+                )
             return [
                 build_violation_event(
                     violation["code"],
@@ -2337,7 +2449,9 @@ def process_message(
         if fails:
             violation = fails[0]
             if metrics:
-                metrics.record_violation(violation["code"], event_id=event_id, producer=producer)
+                metrics.record_violation(
+                    violation["code"], event_id=event_id, producer=producer, details=violation.get("message")
+                )
             return [
                 build_violation_event(
                     violation["code"],
@@ -2365,7 +2479,9 @@ def process_message(
     if strict_validation and warnings:
         violation = warnings[0]
         if metrics:
-            metrics.record_violation(violation["code"], event_id=event_id, producer=producer)
+            metrics.record_violation(
+                violation["code"], event_id=event_id, producer=producer, details=violation.get("message")
+            )
         # A strict-mode refusal of a COMMAND_EVENT is emitted as a TASK_ACK,
         # whose reason_code vocabulary is deliberately task-limited. A warn
         # code outside that vocabulary (the command-evidence lineage codes
@@ -2396,7 +2512,9 @@ def process_message(
             if dedupe_cache.check_and_set(task_id, ttl_ms):
                 if metrics:
                     metrics.record_duplicate(task_id=task_id)
-                    metrics.record_violation("TASK_DUPLICATE", event_id=event_id, producer=producer)
+                    metrics.record_violation(
+                        "TASK_DUPLICATE", event_id=event_id, producer=producer, details=task_id
+                    )
                 return [
                     build_duplicate_ack(
                         instance,
@@ -2411,7 +2529,9 @@ def process_message(
     outgoing = [instance]
     for warning in warnings:
         if metrics:
-            metrics.record_warning(warning["code"], event_id=event_id, producer=producer)
+            metrics.record_warning(
+                warning["code"], event_id=event_id, producer=producer, details=warning.get("message")
+            )
         outgoing.append(
             build_warning_event(
                 warning["code"],
@@ -2506,6 +2626,11 @@ def main():
             "Enable emit_cot or ensure downstream decodes this binary encoding."
         )
     print(f"forwarding to {forward_addr[0]}:{forward_addr[1]}")
+    if settings["emit_cot"]:
+        # Named the same way as the JSON forward target above: an operator
+        # reading this banner otherwise has no way to confirm where CoT is
+        # actually going short of reading the config file back.
+        print(f"forwarding CoT to {settings['cot_host']}:{settings['cot_port']}")
     print(f"schema_hash={contract_hashes['schema_hash']}")
     print(f"policy_hash={contract_hashes['policy_hash']}")
     if contract_hashes.get("semantics_hash"):
@@ -2545,6 +2670,7 @@ def main():
         emit=settings["emit_metrics"],
         logger=logger,
         contract_hash=contract_hashes["contract_hash"],
+        cot_enabled=settings["emit_cot"],
     )
     rate_limit = settings["rate_limit_per_sec"]
     producer_rate_limiter = (
@@ -2645,6 +2771,7 @@ def main():
                             violation["code"],
                             event_id=event_block.get("event_id"),
                             producer=source.get("producer") if isinstance(source, dict) else None,
+                            details=violation.get("message"),
                         )
                     outgoing = build_violation_event(
                         violation["code"],
@@ -2670,7 +2797,13 @@ def main():
                     # operator filters on, so one lowercase outlier hides that
                     # bucket from a SCREAMING_SNAKE filter.
                     if metrics:
-                        metrics.record_drop("ENCODING_UNSUPPORTED")
+                        drop_event_block = outgoing.get("event", {}) if isinstance(outgoing, dict) else {}
+                        drop_source = outgoing.get("source", {}) if isinstance(outgoing, dict) else {}
+                        metrics.record_drop(
+                            "ENCODING_UNSUPPORTED",
+                            event_id=drop_event_block.get("event_id") if isinstance(drop_event_block, dict) else None,
+                            producer=drop_source.get("producer") if isinstance(drop_source, dict) else None,
+                        )
                     continue
                 event_block = outgoing.get("event", {}) if isinstance(outgoing, dict) else {}
                 source_block = outgoing.get("source", {}) if isinstance(outgoing, dict) else {}

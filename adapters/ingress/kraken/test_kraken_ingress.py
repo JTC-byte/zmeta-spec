@@ -197,6 +197,80 @@ def test_http_body_passes_heading_params_through():
     assert events[0]["payload"]["quality"]["heading_source"] == "FIXED_MOUNT_SURVEYED"
 
 
+def test_csv_row_with_nan_rssi_is_refused():
+    """The CSV path's own float() accepts the literal "nan" as valid syntax,
+
+    so parsing alone does not mean the row is usable. A non-finite RSSI is
+    not a power reading, and the row is refused the same way an unparseable
+    row is (see README, "The CSV path refuses any row it cannot parse").
+    """
+    fields = list(CSV_FIELDS)
+    fields[3] = "nan"
+
+    assert translate_csv_row(fields, platform_id="rf-node-1") is None
+
+
+def test_csv_row_with_nan_doa_is_refused():
+    fields = list(CSV_FIELDS)
+    fields[1] = "nan"
+
+    assert translate_csv_row(fields, platform_id="rf-node-1") is None
+
+
+def test_csv_row_with_nan_freq_is_refused():
+    fields = list(CSV_FIELDS)
+    fields[4] = "nan"
+
+    assert translate_csv_row(fields, platform_id="rf-node-1") is None
+
+
+def test_csv_row_with_nan_timestamp_is_refused():
+    fields = list(CSV_FIELDS)
+    fields[0] = "nan"
+
+    assert translate_csv_row(fields, platform_id="rf-node-1") is None
+
+
+def test_json_nan_power_is_refused():
+    """power_dbm is measured, same rule as a missing power_dbm above."""
+    raw = dict(JSON_RAW, power_dbm=float("nan"))
+
+    assert translate_json(raw, platform_id="rf-node-1") is None
+
+
+def test_json_nan_center_freq_is_refused():
+    raw = dict(JSON_RAW, center_freq_hz=float("nan"))
+
+    assert translate_json(raw, platform_id="rf-node-1") is None
+
+
+def test_json_nan_bearing_deg_is_refused():
+    raw = dict(JSON_RAW, bearing_deg=float("nan"))
+
+    assert translate_json(raw, platform_id="rf-node-1") is None
+
+
+def test_json_nan_bearing_error_is_dropped_not_fabricated():
+    """bearing_error_deg is schema-optional: a non-finite value is dropped,
+
+    same as an absent one, rather than refusing the whole event.
+    """
+    raw = dict(JSON_RAW, bearing_error_deg=float("nan"))
+    event = translate_json(raw, platform_id="rf-node-1")
+
+    assert event is not None
+    assert "angular_error_deg" not in event["payload"]["features"]
+    assert "measurement_error" not in event["payload"]["quality"]
+
+
+def test_json_nan_snr_is_dropped():
+    raw = dict(JSON_RAW, snr_db=float("nan"))
+    event = translate_json(raw, platform_id="rf-node-1")
+
+    assert event is not None
+    assert "snr_db" not in event["payload"]["quality"]
+
+
 def test_events_validate_against_v1_0_schema():
     for event in (
         _csv_event(platform_heading_deg=90.0, heading_source="AHRS_TRUE"),

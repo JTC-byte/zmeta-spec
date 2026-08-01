@@ -48,6 +48,23 @@ emitter bandwidth). The TUNNEL path passes the ICD `bw_hz` field through
 unchanged; a 0.0 there carries the same sentinel meaning. On the JSON replay
 path, a missing `frequency.bandwidth_hz` defaults to the 0.0 sentinel.
 
+### Non-finite input (NaN/inf)
+
+`translate_serial_line()` accepts both a JSON payload (which can carry a bare
+`NaN`) and CSV text (where `float()` accepts the literal `"nan"`/`"inf"`
+without raising), so parsing success alone does not mean `peakDbm` or
+`peakFreqMhz` is a real reading. A non-finite value in either field is
+refused, the same as a missing one.
+
+`translate_custom_mavlink()` wire-encodes `freq_mhz` as a float32, which can
+carry a NaN bit pattern from a corrupted or partially-written frame. The
+existing sanity bounds (`freq_mhz <= 0`, `freq_mhz > 10000`) do not catch
+this: both comparisons are false for NaN, the same way every comparison
+against NaN is false, so a NaN reading passed the bound check unchallenged
+before an explicit `isfinite` check was added ahead of it. (`power_dbm` is
+wire-encoded as `int16` on this path and cannot itself carry a NaN bit
+pattern.)
+
 ### JSON replay refusal matrix and geo (all-or-nothing)
 
 `translate_json_replay()` never fabricates schema-required RF measurements:

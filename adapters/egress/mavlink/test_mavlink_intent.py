@@ -238,3 +238,69 @@ def test_priority_present_maps_exactly():
         result = zmeta_command_to_mission_intent(event)
         assert result is not None
         assert result["priority"] == value, value
+
+
+# Maintainer decision 2026-08-02: this translator had zero awareness of
+# payload.extensions.risk_adjudication, so a COMMAND_EVENT the gateway
+# soft-flagged (gateway/src/validators.py _append_risk_adjudication, the
+# S1-15 soft-acceptance stamp) still became a clean MissionIntent. The
+# record shape below is copied from the gateway's own stamp
+# (gateway/tests/test_command_evidence.py
+# test_prohibited_use_degrade_mode_stamps_the_command), not guessed: a
+# non-empty payload.extensions.risk_adjudication list is only ever written
+# onto a command the gateway did NOT forward clean.
+RISK_ADJUDICATION_RECORD = {
+    "risk_dimension": "lineage",
+    "reason_code": "LINEAGE_MISMATCH",
+    "policy_mode": "degrade",
+    "policy_decision": "DEGRADED_ACCEPT",
+    "policy_ref": "policy/command-evidence.yaml#prohibited_use_mode",
+    "allowed_uses": ["DISPLAY", "LOCAL_AWARENESS", "ALERTING"],
+    "prohibited_uses": ["AUTONOMY_TASKING"],
+}
+
+
+def _flagged_command_event():
+    event = _command_event()
+    event["payload"]["extensions"] = {
+        "risk_adjudication": [dict(RISK_ADJUDICATION_RECORD)]
+    }
+    return event
+
+
+def test_risk_flagged_command_refused_by_default():
+    assert zmeta_command_to_mission_intent(_flagged_command_event()) is None
+
+
+def test_risk_flagged_command_with_override_translates_and_stamps():
+    result = zmeta_command_to_mission_intent(_flagged_command_event(), allow_flagged=True)
+    assert result is not None
+    assert result["task_id"] == "task-1"
+    assert result["risk_adjudication"] == [RISK_ADJUDICATION_RECORD]
+
+
+def test_unflagged_command_unchanged_by_allow_flagged_param():
+    default_result = zmeta_command_to_mission_intent(_command_event())
+    override_result = zmeta_command_to_mission_intent(_command_event(), allow_flagged=True)
+    assert default_result == override_result
+    assert "risk_adjudication" not in default_result
+
+
+def test_malformed_risk_adjudication_shape_refuses_by_default():
+    # Present but not the documented list shape: unreadable, and an
+    # unreadable label set may well be prohibiting command basis, so it
+    # must not be read as "no flag" (mirrors the gateway's own
+    # UNADJUDICABLE_RISK_SHAPE precedent).
+    event = _command_event()
+    event["payload"]["extensions"] = {"risk_adjudication": dict(RISK_ADJUDICATION_RECORD)}
+    assert zmeta_command_to_mission_intent(event) is None
+
+
+def test_empty_risk_adjudication_list_is_not_a_flag():
+    # An empty list means nothing was ever stamped; it must not by itself
+    # refuse a command that otherwise projects cleanly.
+    event = _command_event()
+    event["payload"]["extensions"] = {"risk_adjudication": []}
+    result = zmeta_command_to_mission_intent(event)
+    assert result is not None
+    assert "risk_adjudication" not in result

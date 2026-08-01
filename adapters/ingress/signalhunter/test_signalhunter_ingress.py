@@ -1,4 +1,5 @@
 import json
+import math
 import struct
 from pathlib import Path
 
@@ -147,3 +148,41 @@ def test_gps_frames_carry_no_fabricated_altitude():
     _header_dict, parsed = iter_bin_frames(raw)
     gps = parsed[0][2]
     assert set(gps.keys()) == {"lat", "lon"}
+
+
+# --- NaN PSD bin (R1-11): refuse before bearing math ------------------------
+# A NaN bin fails every comparison `detect_peaks` uses to reject it (`val <
+# noise_floor_dbm`, `val <= neighbour`, `val - local_min < prominence`), so it
+# reads as a valid local-maximum peak with power_dbm=NaN. Worse,
+# `compute_gradient_bearing`'s `power_delta > 0` branch is also False for a
+# NaN delta, so it silently takes the "power decreased" path and flips the
+# bearing 180 degrees from the real travel direction. Screening NaN at parse
+# time refuses the whole frame before either failure can happen.
+
+
+def test_iter_bin_frames_refuses_a_frame_with_a_non_finite_bin():
+    frame = _psd_frame(float("nan"))
+    raw = _header(1) + frame
+    _header_dict, parsed = iter_bin_frames(raw)
+
+    frame_idx, psd, gps = parsed[0]
+    assert gps is None
+    assert psd == []
+
+
+def test_nan_peak_power_refuses_the_frame_instead_of_flipping_bearing():
+    # Travel direction START -> MOVED is due north (0 deg). Pre-fix, a NaN
+    # peak reading in the final sweep produced a NaN power_dbm feature and
+    # flipped the emitted bearing to ~180 deg (the "power decreased" branch)
+    # instead of refusing -- see compute_gradient_bearing's power_delta > 0
+    # check, which is False for NaN just like every other NaN comparison.
+    frames = [
+        _psd_frame(-50.0),  # persistence 1
+        _psd_frame(-50.0),  # persistence 2
+        _psd_frame(-50.0),  # persistence 3 -> establishes gradient state
+        _gps_frame(MOVED_LAT, MOVED_LON),
+        _psd_frame(float("nan")),  # corrupted sweep: the peak bin is NaN
+    ]
+    raw = _header(len(frames)) + b"".join(frames)
+
+    assert translate_bin_file(raw, platform_id="foot-patrol-01") == []

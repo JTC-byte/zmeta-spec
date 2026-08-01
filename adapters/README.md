@@ -73,8 +73,11 @@ Real raw→ZMeta corpus for adapter authors (bladeRF edge-comms detections):
 [`mapping-packs/edge-comms-bladerf/`](mapping-packs/edge-comms-bladerf/);
 its reference implementation is [`ingress/bladerf/`](ingress/bladerf/).
 
-Each adapter implements the standard `detect()` / `translate()` / `validate()`
-pattern described in `ingress/template/README.md`.
+Each adapter ships documented entry points plus colocated tests, and its
+output is checked by the canonical validator; `ingress/template/README.md`
+describes the convention. Entry-point names follow the input's shape
+(`translate_message`, `translate_snapshot`, `translate_stream`) rather than
+a fixed function trio.
 
 Representative adapter outputs are checked by the shared conformance harness:
 

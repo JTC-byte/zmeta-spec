@@ -129,6 +129,16 @@ def iter_bin_frames(raw: bytes) -> Tuple[dict, List[Tuple[int, List[float], Opti
             # fabricated 0.0 — even an unconsumed one — is the zero-fill
             # class contract 6.8 prohibits.
             frames.append((idx, [], {"lat": values[0], "lon": values[1]}))
+        elif not all(math.isfinite(v) for v in values):
+            # A non-finite PSD bin (a corrupted or partially-written capture)
+            # is not a power reading, and downstream math cannot screen it:
+            # NaN fails every comparison detect_peaks uses to reject an
+            # implausible bin, so it reads as a valid local-maximum peak, and
+            # a NaN power_delta then reads as "not increasing" in
+            # compute_gradient_bearing, silently flipping the bearing 180
+            # degrees. Refuse the whole frame before any of that runs, the
+            # same way a no-lock GPS sentinel is refused rather than consumed.
+            frames.append((idx, [], None))
         else:
             frames.append((idx, values, None))
     return header, frames

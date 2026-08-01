@@ -1,3 +1,4 @@
+import copy
 import math
 from collections.abc import Mapping, Sequence
 from collections.abc import Set as AbstractSet
@@ -98,10 +99,50 @@ def _has_non_finite(value):
     return False
 
 
-def zmeta_command_to_mission_intent(event):
+def _risk_adjudication_records(payload):
+    """Read the gateway's own soft-acceptance stamp,
+    payload.extensions.risk_adjudication (gateway/src/validators.py
+    _append_risk_adjudication, docstring: "warn forwards the command
+    unmodified beside its diagnostic ... degrade additionally stamps the
+    command's own payload.extensions.risk_adjudication"). A non-empty list
+    there is written only onto a command the gateway did NOT forward clean,
+    so its mere presence is the soft flag - independent of which use tokens
+    the records carry.
+
+    Returns the record list to refuse on (and, under the caller's opt-in, to
+    stamp into MissionIntent), or None when nothing was ever stamped. A
+    field present but not the documented list shape is unreadable, and
+    reading it as "no flag" would be the exact laundering the gateway's own
+    UNADJUDICABLE_RISK_SHAPE convention exists to prevent, so it fails
+    closed as a flag with no readable records ([]).
+    """
+    if not isinstance(payload, Mapping):
+        return None
+    extensions = payload.get("extensions")
+    if not isinstance(extensions, Mapping):
+        return None
+    records = extensions.get("risk_adjudication")
+    if records is None:
+        return None
+    if isinstance(records, list):
+        return records if records else None
+    return []
+
+
+def zmeta_command_to_mission_intent(event, allow_flagged=False):
     """
     Convert a ZMeta COMMAND_EVENT to a MissionIntent dict.
     Returns None if the input is not a COMMAND_EVENT or missing required fields.
+
+    Fail-closed by default: a COMMAND_EVENT carrying a gateway-stamped
+    payload.extensions.risk_adjudication record (a soft-accepted command,
+    warn/degrade disposition - see _risk_adjudication_records) is refused,
+    the same None signal as every other refusal in this module. Passing
+    allow_flagged=True is an explicit opt-in that translates the command
+    anyway and stamps the risk_adjudication records into the MissionIntent
+    output, so the operator who wires their own autonomy on this stream
+    still sees what the gateway flagged rather than it vanishing at
+    translation.
     """
     if event.get("event", {}).get("event_type") != "COMMAND_EVENT":
         return None
@@ -118,6 +159,10 @@ def zmeta_command_to_mission_intent(event):
         return None
 
     if requires_deconfliction is not True:
+        return None
+
+    risk_records = _risk_adjudication_records(payload)
+    if risk_records is not None and not allow_flagged:
         return None
 
     target_lat = None
@@ -152,6 +197,14 @@ def zmeta_command_to_mission_intent(event):
         if _contains_altitude(geometry):
             raise ValueError("command geometry must not include altitude")
         mission["geometry"] = geometry
+
+    # allow_flagged is the explicit override for a command the gateway did
+    # not forward clean (see _risk_adjudication_records above): stamp what
+    # was flagged into the output rather than let it vanish at translation.
+    # Deep-copied so the returned mission shares no mutable state with the
+    # input event's payload.
+    if risk_records is not None and allow_flagged:
+        mission["risk_adjudication"] = copy.deepcopy(risk_records)
 
     # Refuse rather than hand an autonomy stack a waypoint, boundary vertex or
     # duration that is NaN/inf. This is the sharpest end of the class: a

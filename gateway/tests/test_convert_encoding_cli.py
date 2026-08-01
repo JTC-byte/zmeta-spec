@@ -5,9 +5,24 @@ import sys
 import uuid
 from pathlib import Path
 
+import zmeta_cbor
+
 
 ROOT = Path(__file__).resolve().parents[2]
 TMP_ROOT = ROOT / "pytest-work"
+
+# Hostile compact-decode datagrams (audit-named): an unknown top-level
+# integer key, a CBOR tag this profile refuses (28/29, the value-sharing
+# pair), and truncated bytes. Tag bytes are the minimal single-byte-argument
+# encoding (major type 6, one-byte tag number, then a zero argument); the
+# truncated case reuses the vetted minimal example from
+# gateway/tests/test_compact_negative_decode.py's decoder-level test.
+_HOSTILE_COMPACT_INPUTS = {
+    "unknown_integer_key": zmeta_cbor.dumps({99: "x"}),
+    "shared_reference_tag_28": bytes.fromhex("d81c00"),
+    "shared_reference_tag_29": bytes.fromhex("d81d00"),
+    "truncated_bytes": bytes.fromhex("45616263"),
+}
 
 
 def _sample_event():
@@ -131,3 +146,47 @@ def _run_convert_json_compact_auto_json(tmp_path):
     )
 
     assert json.loads(roundtrip_path.read_text(encoding="utf-8")) == event
+
+
+def _run_hostile_compact_decode(data):
+    return subprocess.run(
+        [
+            sys.executable,
+            str(ROOT / "tools" / "convert_encoding.py"),
+            "--from",
+            "compact",
+            "--to",
+            "json",
+        ],
+        input=data,
+        cwd=str(ROOT),
+        capture_output=True,
+    )
+
+
+def test_convert_compact_unknown_integer_key_refuses_without_traceback():
+    result = _run_hostile_compact_decode(_HOSTILE_COMPACT_INPUTS["unknown_integer_key"])
+    assert result.returncode != 0
+    assert b"Traceback" not in result.stderr
+    assert b"decode refused:" in result.stderr
+
+
+def test_convert_compact_shared_reference_tag_28_refuses_without_traceback():
+    result = _run_hostile_compact_decode(_HOSTILE_COMPACT_INPUTS["shared_reference_tag_28"])
+    assert result.returncode != 0
+    assert b"Traceback" not in result.stderr
+    assert b"decode refused:" in result.stderr
+
+
+def test_convert_compact_shared_reference_tag_29_refuses_without_traceback():
+    result = _run_hostile_compact_decode(_HOSTILE_COMPACT_INPUTS["shared_reference_tag_29"])
+    assert result.returncode != 0
+    assert b"Traceback" not in result.stderr
+    assert b"decode refused:" in result.stderr
+
+
+def test_convert_compact_truncated_bytes_refuses_without_traceback():
+    result = _run_hostile_compact_decode(_HOSTILE_COMPACT_INPUTS["truncated_bytes"])
+    assert result.returncode != 0
+    assert b"Traceback" not in result.stderr
+    assert b"decode refused:" in result.stderr

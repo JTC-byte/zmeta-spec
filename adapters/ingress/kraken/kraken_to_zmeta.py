@@ -11,12 +11,27 @@ Input formats:
 Source: Z-ISR edge/edge/sensors/kraken_rf.py
 """
 
+import math
+
 from adapters.ingress.time_utils import coerce_timing_quality, epoch_ms_to_utc_z, utc_now_z
 from zmeta_uuid import uuid7
 
 ADAPTER_VERSION = "1.3.0"
 SCHEMA_ID = "krakensdr-doa"
 DEFAULT_SENSOR_ID = "krakensdr_rf"
+
+
+def _finite(value):
+    """A real finite number, or None. Bools are not numbers here.
+
+    Mirrors the adsb/ais `_finite()` helper: a NaN/inf reading is not a
+    measurement, and Python's own `float()` and `json.loads()` both accept
+    non-finite literals ("nan", "inf") as valid syntax, so parsing success
+    alone does not mean a value is usable.
+    """
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return None
+    return float(value) if math.isfinite(value) else None
 
 
 def _utc_now():
@@ -124,6 +139,15 @@ def translate_csv_row(
         freq_hz = float(fields[4].strip())
     except (ValueError, IndexError):
         return None
+    # float() parses "nan"/"inf" without raising, so a non-finite value in
+    # any of the five required columns is not caught by the try/except above.
+    # The CSV path's own convention is to refuse whatever it cannot parse
+    # (see README); a non-finite column is exactly as unusable as text that
+    # fails float() outright, so the whole row is refused rather than one
+    # field silently carrying NaN into the event (or, for ts_raw, crashing
+    # the int() conversion below).
+    if not all(math.isfinite(v) for v in (ts_raw, doa_deg, conf, rssi_db, freq_hz)):
+        return None
 
     if ts_raw > 1e12:
         ts_ms = int(ts_raw)
@@ -223,28 +247,37 @@ def translate_json(
 
     Returns:
         ZMeta event dict, or None if the input is missing a measured RF
-        field (``center_freq_hz`` or ``power_dbm``). The KrakenSDR measures
-        both, so their absence means broken input -- the adapter refuses
-        rather than fabricating a value. ``bandwidth_hz`` is different: the
-        sensor physically cannot measure emitter bandwidth, so a missing
-        value takes the same documented 0.0 sentinel as the CSV path. A
-        missing ``bearing_error_deg`` omits ``features.angular_error_deg``
-        and ``quality.measurement_error`` entirely (both are schema-optional;
-        an error bound is never invented).
+        field (``center_freq_hz`` or ``power_dbm``) or the field is present
+        but non-finite (NaN/inf is not a measurement either). The KrakenSDR
+        measures both, so an unusable value means broken input -- the
+        adapter refuses rather than fabricating a value; the same applies to
+        ``bearing_deg``, the DOA measurement itself. ``bandwidth_hz`` is
+        different: the sensor physically cannot measure emitter bandwidth,
+        so a missing value takes the same documented 0.0 sentinel as the CSV
+        path (unconditionally, this rule is not touched by NaN screening). A
+        missing or non-finite ``bearing_error_deg`` omits
+        ``features.angular_error_deg`` and ``quality.measurement_error``
+        entirely (both are schema-optional; an error bound is never
+        invented). ``snr_db`` and ``bearing_confidence`` follow the same
+        optional-field rule.
     """
     import time
 
     ts_ms = int(raw.get("timestamp_ms", int(time.time() * 1000)))
-    doa_deg = float(raw["bearing_deg"]) % 360.0
+    doa_deg_raw = _finite(raw.get("bearing_deg"))
+    if doa_deg_raw is None:
+        return None
+    doa_deg = doa_deg_raw % 360.0
     if raw.get("center_freq_hz") is None or raw.get("power_dbm") is None:
         return None
-    freq_hz = float(raw["center_freq_hz"])
-    power = float(raw["power_dbm"])
+    freq_hz = _finite(raw.get("center_freq_hz"))
+    power = _finite(raw.get("power_dbm"))
+    if freq_hz is None or power is None:
+        return None
     bw_hz = float(raw.get("bandwidth_hz", 0.0))
-    err_raw = raw.get("bearing_error_deg")
-    err = None if err_raw is None else float(err_raw)
-    snr = raw.get("snr_db")
-    conf = raw.get("bearing_confidence")
+    err = _finite(raw.get("bearing_error_deg"))
+    snr = _finite(raw.get("snr_db"))
+    conf = _finite(raw.get("bearing_confidence"))
     meta = raw.get("metadata", {})
 
     ts_iso = epoch_ms_to_utc_z(ts_ms)

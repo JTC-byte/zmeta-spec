@@ -1,4 +1,5 @@
 import json
+import math
 import struct
 from pathlib import Path
 
@@ -82,6 +83,43 @@ def test_serial_without_geo_marks_unavailable():
 
     assert "geo" not in event["payload"]
     assert event["payload"]["quality"]["geo_status"] == "UNAVAILABLE"
+
+
+# --- Non-finite readings (R1-11 sibling-parity with adsb/ais/bladerf) -------
+# power_dbm and center_freq_hz are the measured RF fields: a NaN reading in
+# either is not a measurement, and neither the presence check
+# (`is None`) nor a numeric bound (`<= 0`, `> 10000`) catches it, because
+# every comparison against NaN is False. Both formats must refuse instead of
+# emitting a NaN feature.
+
+
+def test_serial_json_nan_peak_power_is_refused():
+    assert _serial_event('{"peakDbm": NaN, "peakFreqMhz": 2437.0}') is None
+
+
+def test_serial_json_nan_peak_freq_is_refused():
+    assert _serial_event('{"peakDbm": -45.2, "peakFreqMhz": NaN}') is None
+
+
+def test_serial_csv_nan_peak_power_is_refused():
+    assert _serial_event("2437.0,nan") is None
+
+
+def test_serial_csv_nan_peak_freq_is_refused():
+    assert _serial_event("nan,-45.2") is None
+
+
+def test_custom_mavlink_nan_freq_bit_pattern_is_refused():
+    """A NaN bit pattern satisfies neither side of the sanity bound
+
+    (`freq_mhz <= 0` and `freq_mhz > 10000` are both False for NaN), so the
+    bound check alone lets it through. isfinite must run first. (power_dbm is
+    wire-encoded as int16, so it cannot itself carry a NaN bit pattern.)
+    """
+    payload = struct.pack("<fh", math.nan, -45)
+    frame = bytes([0xFD, len(payload), 0, 0, 0, 1, 1, 0xFA, 0x3C, 0x00]) + payload + b"\x00\x00"
+
+    assert translate_custom_mavlink(frame, platform_id="uav-01", timestamp_ms=TS_MS) is None
 
 
 def test_custom_mavlink_omits_fabricated_bearing():

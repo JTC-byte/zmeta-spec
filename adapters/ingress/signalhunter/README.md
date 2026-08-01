@@ -51,6 +51,19 @@ bandwidth (the same convention as the KrakenSDR adapter's
 | Gradient bearing | Travel-direction or reverse based on power delta |
 | GPS interpolation | Header position updated from trailing GPS frames |
 
+### Non-finite PSD bins
+
+A NaN or infinite bin in a capture (a corrupted or partially-written file) is
+not a power reading, and the peak-detection and gradient math cannot screen
+it after the fact: NaN fails every comparison, including the ones that are
+supposed to reject an implausible bin, so a NaN bin reads as a valid
+local-maximum peak, and a NaN power delta then reads as "power decreased" in
+the gradient bearing calculation, silently flipping the emitted bearing 180
+degrees from the real travel direction. `iter_bin_frames` screens for this at
+parse time: a PSD frame containing any non-finite bin is refused (treated as
+an empty sweep) before peak detection or bearing math ever runs, the same way
+a no-lock GPS sentinel is refused rather than consumed.
+
 ### Usage
 
 ```python

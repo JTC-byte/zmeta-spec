@@ -65,11 +65,31 @@ applies the same honesty rule per field class rather than defaulting:
   `0.0` Hz / `-80.0` dBm; that is removed as of 1.3.0).
 - **`bandwidth_hz` missing: `0.0` sentinel**, same convention as the CSV
   path -- the sensor physically cannot measure emitter bandwidth, so 0 is the
-  documented "not measured" marker, not a fabricated measurement.
+  documented "not measured" marker, not a fabricated measurement. This
+  convention is unconditional and is not affected by the NaN screening below.
 - **`bearing_error_deg` missing: omitted** -- `features.angular_error_deg` and
   `quality.measurement_error` are both schema-optional and are left out
   entirely (earlier adapter versions fabricated a `15.0` deg `1_SIGMA` bound;
   that is removed as of 1.3.0).
+
+### Non-finite input (NaN/inf)
+
+`float()` accepts the literal strings `"nan"` and `"inf"` without raising, and
+a JSON payload can carry a bare `NaN`, so parsing success alone does not mean
+a value is a real measurement. Both translate paths screen for this at the
+adapter boundary:
+
+- **CSV row: any of the five columns non-finite, refused.** `epoch_sec`,
+  `doa_deg`, `confidence`, `rssi_db`, and `freq_hz` are all required to build
+  the row at all, so a non-finite value in any of them is refused the same
+  way an unparseable column is.
+- **JSON `bearing_deg`, `center_freq_hz`, or `power_dbm` non-finite,
+  refused.** These are the measured fields; a non-finite value means broken
+  input, same rule as a missing one above.
+- **JSON `bearing_error_deg`, `snr_db`, or `bearing_confidence` non-finite,
+  dropped.** These are schema-optional; a non-finite value is treated as
+  absent rather than refusing the whole event, and no bound is invented in
+  its place.
 
 ### Usage
 

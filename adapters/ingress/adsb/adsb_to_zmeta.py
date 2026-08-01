@@ -71,6 +71,17 @@ ADAPTER_VERSION = "1.0.0"
 # features, not in RF minimum features, for the dBFS reason above.
 ADSB_DOWNLINK_HZ = 1090_000_000
 
+# Geometric altitude plausibility band, metres above the WGS-84 ellipsoid.
+# Floor: the lowest point on Earth's land surface is the Dead Sea shore, about
+# -430 m; -450 m gives margin without endorsing a depth no aircraft occupies.
+# Ceiling: sustained flight above roughly 20 km (~65,600 ft) is beyond every
+# civil airliner and every known military fixed-wing envelope (the U-2 and
+# SR-71 both operate below it), so a value out there is a decoder fault or a
+# corrupted GNSS solution, not a real aircraft. The band was written against
+# a real dump1090 decode of alt_geom -9999 ft (-3047.7 m), which it rejects.
+ALT_GEOM_MIN_M = -450.0
+ALT_GEOM_MAX_M = 20000.0
+
 # NACp -> 95% horizontal containment radius in metres (DO-260B table). Only the
 # categories with a bounded radius are usable; 0 and 1 mean "unknown" or ">10 NM"
 # and are deliberately absent so they map to no claim at all.
@@ -99,16 +110,60 @@ def _finite(value):
     return value if math.isfinite(value) else None
 
 
+# A number under `now` is read as epoch seconds only when it could be one.
+# Below this floor it is some other quantity that leaked in under that key (a
+# counter, a relative offset), and reading it as epoch seconds would date the
+# event near 1970-01-01. Mirrors the AIS adapter's EPOCH_FLOOR_S
+# (adapters/ingress/ais/ais_to_zmeta.py).
+EPOCH_FLOOR_S = 946_684_800.0  # 2000-01-01T00:00:00Z
+
+
 def _utc_z(epoch_seconds):
     """Epoch seconds -> UTC-Z timestamp, or None when unusable."""
     seconds = _finite(epoch_seconds)
-    if seconds is None:
+    if seconds is None or seconds < EPOCH_FLOOR_S:
         return None
     try:
         moment = datetime.fromtimestamp(seconds, tz=timezone.utc)
     except (OverflowError, OSError, ValueError):
         return None
     return moment.strftime("%Y-%m-%dT%H:%M:%S.") + f"{moment.microsecond // 1000:03d}Z"
+
+
+def _position(entry):
+    """The broadcast horizontal position, bounds-checked, or None.
+
+    Shared by canonical geo and the native-demotion path in
+    ``_native_features``: an out-of-range coordinate is not a position in
+    either place. Mirrors the AIS adapter's ``_position()``
+    (adapters/ingress/ais/ais_to_zmeta.py), which bounds-checks once for the
+    same reason.
+    """
+    lat = _finite(entry.get("lat"))
+    lon = _finite(entry.get("lon"))
+    if lat is None or lon is None:
+        return None
+    if not (-90.0 <= lat <= 90.0) or not (-180.0 <= lon <= 180.0):
+        return None
+    return lat, lon
+
+
+def _usable_alt_geom_m(entry):
+    """``alt_geom`` converted to metres when plausible, else None.
+
+    Covers both "absent" and "present but implausible" (a sentinel or a
+    corrupted decode, e.g. -9999 ft): both mean there is no honest geometric
+    altitude, so canonical geo cannot be built from this entry. Shared by
+    ``_geo`` and ``_native_features`` so the two paths agree on when an
+    altitude is usable.
+    """
+    alt_geom = _finite(entry.get("alt_geom"))
+    if alt_geom is None:
+        return None
+    alt_m = alt_geom * 0.3048  # feet -> metres
+    if not (ALT_GEOM_MIN_M <= alt_m <= ALT_GEOM_MAX_M):
+        return None
+    return alt_m
 
 
 def _geo(entry):
@@ -118,26 +173,27 @@ def _geo(entry):
     not a position. Altitude is included ONLY from ``alt_geom`` (WGS84);
     ``alt_baro`` is a pressure altitude and never becomes ``alt_m``.
     """
-    lat = _finite(entry.get("lat"))
-    lon = _finite(entry.get("lon"))
-    if lat is None or lon is None:
+    position = _position(entry)
+    if position is None:
         return None
-    if not (-90.0 <= lat <= 90.0) or not (-180.0 <= lon <= 180.0):
-        return None
-    alt_geom = _finite(entry.get("alt_geom"))
-    if alt_geom is None:
-        # Canonical geo requires alt_m (contract 6.8, all-or-nothing), and the
-        # only altitude many ADS-B targets report is `alt_baro` -- a PRESSURE
-        # altitude referenced to 1013.25 hPa. Converting it to a geometric
-        # height needs local QNH, which the message does not carry. So there is
-        # no honest canonical geo here.
+    lat, lon = position
+    alt_m = _usable_alt_geom_m(entry)
+    if alt_m is None:
+        # Canonical geo requires alt_m (contract 6.8, all-or-nothing). The
+        # common cause is `alt_baro`-only reporting: a PRESSURE altitude
+        # referenced to 1013.25 hPa, which needs local QNH to become a
+        # geometric height and the message does not carry that. The less
+        # common cause is `alt_geom` present but outside the plausibility
+        # band (ALT_GEOM_MIN_M/ALT_GEOM_MAX_M) -- a sentinel or a corrupted
+        # decode, not a real altitude. Either way there is no honest
+        # canonical geo here.
         #
         # The horizontal position is real, though, and discarding it would be
         # its own dishonesty. It is demoted to explicitly named native features
         # by the caller -- the same convert-or-demote rule the bladeRF adapter
         # applies to a frame-unlabelled bearing.
         return None
-    return {"lat": lat, "lon": lon, "alt_m": alt_geom * 0.3048}  # feet -> metres
+    return {"lat": lat, "lon": lon, "alt_m": alt_m}
 
 
 def _quality(entry, has_geo):
@@ -188,21 +244,29 @@ def _native_features(entry, receiver_id):
         features["rssi_dbfs"] = rssi
 
     # A horizontal position that could not become canonical geo -- because the
-    # target reported no geometric altitude and canonical geo is all-or-nothing
-    # -- is preserved here under explicitly native keys. It makes no canonical
-    # claim, and `quality.geo_status` says the canonical position is
-    # unavailable, so nothing downstream can mistake this for a ZMeta position.
-    lat = _finite(entry.get("lat"))
-    lon = _finite(entry.get("lon"))
-    if lat is not None and lon is not None and _finite(entry.get("alt_geom")) is None:
-        features["adsb_lat_deg"] = lat
-        features["adsb_lon_deg"] = lon
+    # target reported no usable geometric altitude and canonical geo is
+    # all-or-nothing -- is preserved here under explicitly native keys. It
+    # makes no canonical claim, and `quality.geo_status` says the canonical
+    # position is unavailable, so nothing downstream can mistake this for a
+    # ZMeta position. Uses the same bounds-checked `_position()` canonical geo
+    # does, so an out-of-range coordinate is not demoted either -- it is
+    # corruption, not a position worth keeping.
+    position = _position(entry)
+    if position is not None and _usable_alt_geom_m(entry) is None:
+        features["adsb_lat_deg"], features["adsb_lon_deg"] = position
 
     # Pressure altitude, explicitly named as such so nothing mistakes it for a
     # geometric height.
     alt_baro = _finite(entry.get("alt_baro"))
     if alt_baro is not None:
         features["adsb_alt_baro_ft"] = alt_baro
+
+    # A geometric altitude that was present but outside the plausibility band
+    # (ALT_GEOM_MIN_M/ALT_GEOM_MAX_M) is preserved here too, so the corrupted
+    # reading is visible rather than silently vanishing.
+    alt_geom_raw = _finite(entry.get("alt_geom"))
+    if alt_geom_raw is not None and _usable_alt_geom_m(entry) is None:
+        features["adsb_alt_geom_ft"] = alt_geom_raw
 
     for native_key, feature_key in (
         ("gs", "adsb_ground_speed_kt"),

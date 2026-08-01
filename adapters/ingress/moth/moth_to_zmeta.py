@@ -20,6 +20,7 @@ derived later by correlating power with UAS heading during a yaw scan.
 Source: Z-ISR edge/edge/sensors/moth_rf.py and edge/edge/zmeta_builder.py
 """
 
+import math
 import struct
 
 from adapters.ingress.time_utils import coerce_timing_quality, epoch_ms_to_utc_z, utc_now_z
@@ -146,6 +147,14 @@ def translate_serial_line(line, *, platform_id, sensor_geo=None, sensor_id=None,
 
     if peak_dbm is None or peak_freq_mhz is None:
         return None
+    # A NaN/inf reading is not a measurement. The CSV branch's own float()
+    # calls accept "nan"/"inf" as valid syntax, and a JSON payload can carry a
+    # literal NaN, so neither branch's success alone means the value is real.
+    for value in (peak_dbm, peak_freq_mhz):
+        if isinstance(value, bool) or not isinstance(value, (int, float)):
+            return None
+        if not math.isfinite(value):
+            return None
 
     ts_ms = timestamp_ms or int(time.time() * 1000)
     ts_iso = epoch_ms_to_utc_z(ts_ms)
@@ -330,6 +339,11 @@ def translate_custom_mavlink(frame_bytes, *, platform_id, sensor_geo=None,
         return None
 
     freq_mhz, power_dbm = _MOTH_CUSTOM_STRUCT.unpack(payload)
+    # freq_mhz is wire-encoded as float32 and can carry a NaN bit pattern; NaN
+    # fails every comparison below (`<= 0`, `> 10000`), so isfinite must run
+    # first or a corrupted reading passes the sanity bounds unchallenged.
+    if not math.isfinite(freq_mhz):
+        return None
     if freq_mhz <= 0 or freq_mhz > 10000 or power_dbm > 10 or power_dbm < -200:
         return None
 
