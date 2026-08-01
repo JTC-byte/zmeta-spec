@@ -69,6 +69,8 @@ the vessel's own claims, carried natively, for an inference stage to adjudicate.
 
 from __future__ import annotations
 
+from datetime import datetime
+
 from adapters.ingress.time_utils import coerce_timing_quality, epoch_ms_to_utc_z
 
 ADAPTER_VERSION = "1.0.0"
@@ -93,6 +95,20 @@ COG_NOT_AVAILABLE = 360.0
 HEADING_NOT_AVAILABLE = 511
 LAT_NOT_AVAILABLE = 91.0
 LON_NOT_AVAILABLE = 181.0
+# Message 27 packs speed and course into smaller fields with their own
+# not-available encodings: 63 for speed, 511 for course. 63 kt is a real
+# speed in a Class A report, so these are checked only for type 27.
+TYPE27_SOG_NOT_AVAILABLE = 63.0
+TYPE27_COG_NOT_AVAILABLE = 511.0
+# The fields themselves bound what a real report can say: speed 0 to 102.2 kt,
+# course 0 to 359.9 degrees. A decoded value outside those bounds is not an
+# AIS claim, it is corruption, and it is dropped rather than carried.
+SOG_MAX_KT = 102.2
+# A number under `timestamp` is read as epoch seconds only when it could be
+# one. Below this floor it is some other quantity that leaked in under that
+# name (an AIS second-of-minute is the live example), and reading it as epoch
+# seconds would date the event near 1970-01-01.
+EPOCH_FLOOR_S = 946_684_800.0  # 2000-01-01T00:00:00Z
 # `second` 60 means the timestamp is unavailable; 61-63 encode positioning-system
 # states (manual, dead reckoning, inoperative) rather than a second-of-minute.
 SECOND_NOT_A_TIME = frozenset({60, 61, 62, 63})
@@ -131,13 +147,25 @@ def _position(msg):
     lon = _finite(msg.get("lon"))
     if lat is None or lon is None:
         return None
-    # The standard's own not-available encodings, which are in range for a
-    # naive bounds check and would otherwise place a vessel at the north pole.
+    # The standard's own not-available encodings. They would also fail the
+    # bounds check below, but they are refused here by name: 91.0 and 181.0
+    # mean "not reported", which is a different fact from decoder garbage
+    # that happens to be out of range.
     if abs(lat - LAT_NOT_AVAILABLE) < 1e-6 or abs(lon - LON_NOT_AVAILABLE) < 1e-6:
         return None
     if not (-90.0 <= lat <= 90.0) or not (-180.0 <= lon <= 180.0):
         return None
     return lat, lon
+
+
+def _epoch_s_to_utc_z(epoch_s):
+    """Epoch seconds to UTC-Z, or None when the number cannot be a moment."""
+    if epoch_s < EPOCH_FLOOR_S:
+        return None
+    try:
+        return epoch_ms_to_utc_z(epoch_s * 1000.0)
+    except (OverflowError, OSError, ValueError):
+        return None
 
 
 def _event_ts(msg, now_epoch_s):
@@ -146,18 +174,30 @@ def _event_ts(msg, now_epoch_s):
     The AIS `second` field is a second-of-minute, not a timestamp: it cannot
     date a message on its own and is carried natively instead. Reception time
     comes from the decoder (`rxtime`) or from the caller.
+
+    A time channel that is present but impossible refuses the message rather
+    than sliding to the next clock. A corrupt `rxtime` or `timestamp` is a
+    decoder fault the caller should see as a refusal, not something to paper
+    over with a different clock.
     """
     rxtime = msg.get("rxtime")
     if isinstance(rxtime, str) and len(rxtime) == 14 and rxtime.isdigit():
-        # AIS-catcher's rxtime is YYYYMMDDHHMMSS in UTC.
+        # AIS-catcher's rxtime is YYYYMMDDHHMMSS in UTC. Fourteen digits are
+        # not necessarily a date: month 88 would slice into a string the
+        # schema accepts as a timestamp, so the digits must parse as a
+        # calendar moment before they are formatted as one.
+        try:
+            datetime.strptime(rxtime, "%Y%m%d%H%M%S")
+        except ValueError:
+            return None
         return (f"{rxtime[0:4]}-{rxtime[4:6]}-{rxtime[6:8]}T"
                 f"{rxtime[8:10]}:{rxtime[10:12]}:{rxtime[12:14]}.000Z")
     epoch = _finite(msg.get("timestamp"))
     if epoch is not None:
-        return epoch_ms_to_utc_z(epoch * 1000.0)
+        return _epoch_s_to_utc_z(epoch)
     epoch = _finite(now_epoch_s)
     if epoch is not None:
-        return epoch_ms_to_utc_z(epoch * 1000.0)
+        return _epoch_s_to_utc_z(epoch)
     return None
 
 
@@ -181,11 +221,19 @@ def _native_features(msg, mmsi, receiver_id, position):
         features["ais_lat_deg"], features["ais_lon_deg"] = position
 
     sog = _finite(msg.get("speed"))
-    if sog is not None and abs(sog - SOG_NOT_AVAILABLE) > 1e-6:
-        features["ais_sog_kt"] = sog
+    if sog is not None:
+        not_reported = abs(sog - SOG_NOT_AVAILABLE) < 1e-6 or (
+            msg_type == 27 and abs(sog - TYPE27_SOG_NOT_AVAILABLE) < 1e-6
+        )
+        if not not_reported and 0.0 <= sog <= SOG_MAX_KT:
+            features["ais_sog_kt"] = sog
     cog = _finite(msg.get("course"))
-    if cog is not None and abs(cog - COG_NOT_AVAILABLE) > 1e-6:
-        features["ais_cog_deg_true"] = cog
+    if cog is not None:
+        not_reported = abs(cog - COG_NOT_AVAILABLE) < 1e-6 or (
+            msg_type == 27 and abs(cog - TYPE27_COG_NOT_AVAILABLE) < 1e-6
+        )
+        if not not_reported and 0.0 <= cog < 360.0:
+            features["ais_cog_deg_true"] = cog
     heading = msg.get("heading")
     if isinstance(heading, int) and not isinstance(heading, bool) and heading != HEADING_NOT_AVAILABLE:
         if 0 <= heading <= 359:
@@ -254,7 +302,8 @@ def translate_message(
     Returns:
         The event dict, or ``None`` when the message cannot honestly become
         one: not a position report, no MMSI (no subject), or no usable
-        reception time.
+        reception time, where a time channel that is present but impossible
+        counts as unusable rather than falling through to another clock.
     """
     if not isinstance(msg, dict):
         return None
@@ -311,13 +360,15 @@ def _new_event_id():
 def translate_stream(messages, *, platform_id, **kwargs):
     """Translate an iterable of decoded AIS messages.
 
+    Any iterable works, a generator included. A non-iterable raises rather
+    than returning an empty list, because zero events from a miswired call
+    must not look identical to zero events from an empty sea.
+
     Messages that cannot honestly become events are dropped, not patched. The
     count of refusals is the caller's to observe: an adapter that invents a
     position to keep its yield up is the failure mode this file exists to
     avoid.
     """
-    if not isinstance(messages, (list, tuple)):
-        return []
     events = []
     for msg in messages:
         event = translate_message(msg, platform_id=platform_id, **kwargs)

@@ -15,6 +15,14 @@ release-focus bullet and produced new holes both times. This forces a decision
 and accepts any honest answer, including "no user-facing change this session",
 which is itself the record worth having.
 
+KNOWN LIMITS, demonstrated by the 2026-07-31 pre-push cold read and accepted
+rather than discovered later. The check compares two hand-maintained dates, so
+it is blind when both record surfaces lag together; a dated line with no prose
+after it satisfies it; a future-dated typo satisfies it from then on; and it
+skips for the rest of any release day. Each is the price of the one design
+decision above: a test cannot judge prose, so it judges dates. The X1-02
+terminal call owns whether that price stands.
+
 BOTH SIGNALS ARE TREE-LOCAL. Nothing here reads git. CI checks out without tags,
 so a check comparing against `git describe` or a tag would pass vacuously in CI
 while failing locally, which is the same class one level up (doctrine X1-02).
@@ -55,6 +63,12 @@ def unreleased_body(text=None):
     return match.group("body").strip()
 
 
+def newest_dated_entry(body):
+    """The newest '- YYYY-MM-DD' entry date in a section body, or None."""
+    dated = [date.fromisoformat(m) for m in re.findall(r"^- (\d{4}-\d{2}-\d{2})", body, re.M)]
+    return max(dated) if dated else None
+
+
 class ChangelogKeepsUpTest(unittest.TestCase):
     def test_the_locators_still_find_what_they_expect(self):
         """Non-vacuity. A broken regex would make every assertion below trivial."""
@@ -91,17 +105,16 @@ class ChangelogKeepsUpTest(unittest.TestCase):
         worked_on = worklog_date()
         if worked_on <= released_on:
             self.skipTest("no worklog activity after the newest released version")
-        dated = [date.fromisoformat(m) for m in
-                 re.findall(r"^- (\d{4}-\d{2}-\d{2})", unreleased_body(), re.M)]
-        self.assertTrue(
-            dated,
+        newest = newest_dated_entry(unreleased_body())
+        self.assertIsNotNone(
+            newest,
             "CHANGELOG.md [Unreleased] carries no dated entry, so its currency "
             "cannot be checked. Entries take the form '- YYYY-MM-DD — ...'.",
         )
         self.assertGreaterEqual(
-            max(dated), worked_on,
+            newest, worked_on,
             f"the worklog was last updated {worked_on} but the newest dated "
-            f"[Unreleased] entry is {max(dated)}. The latest work is not "
+            f"[Unreleased] entry is {newest}. The latest work is not "
             "described. Add it, or state plainly that the session made no "
             "user-facing change.",
         )
@@ -112,6 +125,28 @@ class ChangelogKeepsUpTest(unittest.TestCase):
         emptied = UNRELEASED_SECTION.sub("## [Unreleased]\n\n", text, count=1)
         self.assertNotEqual(emptied, text, "the mutation did not apply, so this proves nothing")
         self.assertEqual(unreleased_body(emptied), "")
+
+    def test_the_check_would_notice_stale_dated_entries(self):
+        """Mutation, for the strengthened assertion. This is the exact state
+        that beat the first version of this file: a populated [Unreleased]
+        whose newest dated entry predates the newest work. As committed, the
+        red demonstration for the strengthening existed only in a commit
+        message, which is the session-act proof this repo's playbook forbids;
+        this puts it in the tree.
+        """
+        stale = ("- 2026-07-30 — an adapter, a correction and a rename,\n"
+                 "  all still sitting there from yesterday\n")
+        newest = newest_dated_entry(stale)
+        self.assertIsNotNone(newest, "the stale fixture lost its dated entry, so this proves nothing")
+        self.assertLess(
+            newest, date(2026, 7, 31),
+            "the fixture must predate the work for this to prove anything",
+        )
+        self.assertIsNone(
+            newest_dated_entry("prose without any dated entry at all\n"),
+            "a dateless body must read as 'no dated entry', which the "
+            "assertion above refuses rather than treats as current",
+        )
 
 
 if __name__ == "__main__":

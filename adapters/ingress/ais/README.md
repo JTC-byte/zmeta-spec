@@ -71,19 +71,27 @@ the maintainer rather than resolved locally.
 
 ## Not-available sentinels
 
-ITU-R M.1371 encodes "not reporting" as in-range values, which a naive bounds
-check accepts. Each is refused rather than carried:
+ITU-R M.1371 encodes "not reporting" as explicit field values. Each is refused
+rather than carried:
 
 | Field | Sentinel | Carried as |
 |---|---|---|
 | `lat` / `lon` | 91.0 / 181.0 | no position at all |
 | `speed` | 102.3 | omitted |
+| `speed` (message 27) | 63 | omitted |
 | `course` | 360.0 | omitted |
+| `course` (message 27) | 511 | omitted |
 | `heading` | 511 | omitted |
 | `second` | 60 to 63 | `ais_second_status`, never a second-of-minute |
 
 Carrying them would put a stopped vessel at the north pole on a due-north
-heading.
+heading. Message 27 packs speed and course into smaller fields with their own
+not-available encodings, and 63 kt is a real speed in a Class A report, so
+those two are checked only for message 27.
+
+Beyond the sentinels, the fields bound what a real report can say: speed 0 to
+102.2 kt, course 0 to 359.9 degrees, heading 0 to 359. A decoded value outside
+those bounds is corruption, not an AIS claim, and the field is dropped.
 
 ## Native features
 
@@ -127,8 +135,19 @@ RF; that is a later refinement, not something to fake here.
 | Not a position report type | no event |
 | No MMSI, or an unusable one | no event; there is no subject |
 | No usable reception time | no event |
+| A present but impossible `rxtime` or `timestamp` | no event; a corrupt time channel is a decoder fault, not a reason to borrow another clock |
 | Position sentinels | event without a position; the emitter was still decoded |
 | Non-finite number in any field | that field dropped |
+| A speed or course the field cannot encode | that field dropped |
+
+Reception time is trusted only when it can be a moment: `rxtime` must parse as
+a calendar date, and an epoch `timestamp` below 2000-01-01 is read as some
+other quantity that leaked in under that name, not as epoch seconds.
+
+`translate_stream` takes any iterable, a generator included, and raises for a
+non-iterable rather than returning an empty list: zero events from a miswired
+call must not look identical to zero events from an empty sea. One refused
+message never stops the batch.
 
 Refusals are dropped, not patched. The count is the caller's to observe: an
 adapter that invents a position to keep its yield up is the failure mode this

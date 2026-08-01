@@ -1,9 +1,9 @@
 """AIS ingress: the honesty rules, pinned against real message shapes.
 
 Every case here is a shape a decoder actually produces. The ones that matter
-most are the refusals and the standard's not-available sentinels, which are in
-range for a naive bounds check and would place a stopped vessel at the north
-pole on a due-north heading.
+most are the refusals and the standard's not-available sentinels: explicit
+encodings of "not reported" that, carried as values, would place a stopped
+vessel at the north pole on a due-north heading.
 """
 
 import json
@@ -22,6 +22,7 @@ from adapters.ingress.ais.ais_to_zmeta import (  # noqa: E402
     translate_message,
     translate_stream,
 )
+from adapters.ingress.time_utils import DEFAULT_UNSYNCED_ERROR_MS  # noqa: E402
 
 SCHEMA = json.loads(
     (ROOT / "schema" / "zmeta-event-1.0.schema.json").read_text(encoding="utf-8")
@@ -106,10 +107,23 @@ class TestTheAltitudeRule:
 
 class TestNotAvailableSentinels:
     def test_the_position_sentinels_are_not_a_position(self):
-        """lat 91 / lon 181 pass a naive range check and mean 'not reported'."""
+        """lat 91 / lon 181 mean 'not reported'. They are refused by name,
+        not merely as out-of-range numbers."""
         features = translate(lat=91.0, lon=181.0)["payload"]["features"]
         assert "ais_lat_deg" not in features
         assert "ais_lon_deg" not in features
+
+    def test_message_27_has_its_own_sentinels_and_they_are_dropped(self):
+        """Long-range reports pack speed and course into smaller fields with
+        their own not-available encodings. Carried as values they would be a
+        vessel doing a real-looking 63 kt on a course that does not exist."""
+        features = translate(type=27, speed=63.0, course=511.0)["payload"]["features"]
+        assert "ais_sog_kt" not in features
+        assert "ais_cog_deg_true" not in features
+
+    def test_63_knots_in_a_class_a_report_is_a_real_speed(self):
+        """The message 27 speed sentinel is scoped to message 27."""
+        assert translate(type=1, speed=63.0)["payload"]["features"]["ais_sog_kt"] == 63.0
 
     def test_speed_over_ground_sentinel_is_dropped(self):
         assert "ais_sog_kt" not in translate(speed=102.3)["payload"]["features"]
@@ -136,6 +150,24 @@ class TestNotAvailableSentinels:
         event = translate(lat=91.0, lon=181.0)
         assert event is not None
         assert event["payload"]["features"]["ais_mmsi"] == 366123456
+
+
+class TestDecoderGarbage:
+    """Values the AIS fields cannot encode are corruption, not measurements."""
+
+    @pytest.mark.parametrize("bad", [-0.1, 102.4, 720.0])
+    def test_an_impossible_speed_is_dropped(self, bad):
+        assert "ais_sog_kt" not in translate(speed=bad)["payload"]["features"]
+
+    @pytest.mark.parametrize("bad", [-1.0, 360.1, 511.0, 720.5])
+    def test_an_impossible_course_is_dropped(self, bad):
+        assert "ais_cog_deg_true" not in translate(course=bad)["payload"]["features"]
+
+    def test_the_extremes_of_the_real_ranges_still_carry(self):
+        """The guards drop what the fields cannot encode, not fast traffic."""
+        features = translate(speed=102.2, course=359.9)["payload"]["features"]
+        assert features["ais_sog_kt"] == 102.2
+        assert features["ais_cog_deg_true"] == 359.9
 
 
 class TestNoLaundering:
@@ -185,9 +217,33 @@ class TestTextAndTiming:
         del m["rxtime"]
         assert translate_message(m, platform_id="ais-node-01") is None
 
+    def test_fourteen_digits_that_are_not_a_date_refuse_the_message(self):
+        """Month 88 slices into a string the schema accepts as a timestamp.
+        A corrupt time channel is a refusal, not a fact to reformat."""
+        assert translate(rxtime="20268888888888") is None
+
+    def test_an_epoch_far_outside_datetime_range_refuses_not_crashes(self):
+        m = msg()
+        del m["rxtime"]
+        m["timestamp"] = 1e18
+        assert translate_message(m, **BASE) is None
+
+    def test_a_small_number_under_timestamp_is_not_epoch_seconds(self):
+        """A second-of-minute leaking in under the `timestamp` key must not
+        date the event 1970-01-01."""
+        m = msg()
+        del m["rxtime"]
+        m["timestamp"] = 42
+        assert translate_message(m, **BASE) is None
+
     def test_absent_clock_metadata_degrades_rather_than_claiming_sync(self):
+        """The governed fallback, pinned exactly. The first version of this
+        pin asserted only `!= "LOCKED"`, which a fabricated HOLDOVER claim
+        also satisfies; the 2026-07-31 pre-push cold read demonstrated it."""
         timing = translate()["payload"]["timing_quality"]
-        assert timing["sync_state"] != "LOCKED"
+        assert timing["time_source"] == "UNKNOWN"
+        assert timing["sync_state"] == "UNSYNCED"
+        assert timing["est_error_ms"] == DEFAULT_UNSYNCED_ERROR_MS
 
 
 class TestStreamAccounting:
@@ -197,8 +253,24 @@ class TestStreamAccounting:
         assert len(events) == 2
         assert [e["payload"]["features"]["ais_mmsi"] for e in events] == [366123456, 338111222]
 
-    def test_a_non_list_input_yields_nothing(self):
-        assert translate_stream(None, **BASE) == []
+    def test_a_generator_stream_is_translated_not_swallowed(self):
+        """A generator is the natural shape of a live decoder feed. The first
+        version of this function returned [] for one, silently."""
+        stream = (m for m in [msg(), msg(mmsi=338111222)])
+        assert len(translate_stream(stream, **BASE)) == 2
+
+    def test_a_non_iterable_raises_rather_than_yielding_an_empty_sea(self):
+        """Zero events from a miswired call must not look like zero traffic."""
+        with pytest.raises(TypeError):
+            translate_stream(None, **BASE)
+
+    def test_one_poisoned_message_does_not_kill_the_batch(self):
+        poisoned = msg(mmsi=338111222)
+        del poisoned["rxtime"]
+        poisoned["timestamp"] = 1e18
+        events = translate_stream([msg(), poisoned], **BASE)
+        assert len(events) == 1
+        assert events[0]["payload"]["features"]["ais_mmsi"] == 366123456
 
 
 class TestSchemaConformance:
