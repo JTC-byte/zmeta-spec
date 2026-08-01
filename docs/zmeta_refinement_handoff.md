@@ -1,6 +1,57 @@
 # ZMeta Refinement Handoff Notes
 
-## NEXT SESSION: tier 2, and all of it is decisions
+## NEXT SESSION: the v1.1.20 governed wave, then the remaining scoped waves
+
+The live-readiness audit ran to completion on 2026-08-02: ten axes, every
+verdict from executed paths, roughly 1.9 million subagent tokens. Verdicts:
+encoding READY; normalize-rf, visualize, retask, lineage and zero-shot
+READY_WITH_GAPS; normalize-tactical, containers, redact and operator-debug
+GAPPED. The confirmed small fixes landed the same day as a four-fixer wave
+(see the CHANGELOG's 2026-08-02 entries), and the maintainer adjudicated
+four decisions, recorded on their doctrine entries: A1-02 (declared
+dimensionality plus a geo_status token), MAVLink command translation
+fail-closed with explicit override (shipped in the wave), the
+state-projector-* wildcard removed (shipped, governed commit), and
+error_ellipse_m promoted into v1.1.20 with the spelling reconciliation.
+
+**The v1.1.20 governed wave, in one cut, all behaviour-changing items
+together:**
+
+1. A1-02: declared-dimensionality form on canonical geo plus the geo_status
+   token, normative text drafted for maintainer review before anything
+   lands. This unblocks maritime tracks reaching a COP at all.
+2. error_ellipse_m promotion from the v1.1.0 branch into the formal schema,
+   reconciling the semi_major_m adapter spelling in the same wave.
+3. X1-01: constrain event.ts beyond the trailing Z.
+4. Harness fixtures now that must-pass.jsonl moves anyway: AIS,
+   signalhunter, and the track projector.
+5. jreap-ingress and mavlink negative promotion pins in the bad-events
+   corpus (the refusals work live; the corpus does not pin them).
+6. Regenerate the stale Profile L size table in spec/compact-binary-mapping.md
+   from tools/measure_packet_size.py output.
+
+**Awaiting maintainer decisions, evidence assembled:** the contract 4.5.1
+promoted-track lineage contradiction (external promotion with no ZMeta
+parent versus lineage pointing at the ingest observation); the shipped
+reference configs stripping payload.data_ref at every profile by default;
+the X1-02 terminal call (N=6, terminal-call input on the entry); the
+adapter zmeta_uuid import convention (three patterns now coexist: guarded
+top-level, lazy, plain).
+
+**Scoped waves queued, no decisions needed:** the CoT egress zero-default
+ellipse fabrication fix (published code, still open, wants its own
+red-first test); a track-projector stage in the reference deployment so the
+documented containers can put a raw sensor feed on a map; TIME_STATUS
+feeding the gateway's clock-health counters; value-scan forms of the AIS
+no-classification pins.
+
+**Parallel tracks:** the coalition egress example repository (adjudicated
+direction: redaction is projection, canonical immutability untouched) with
+its one spec-side residue, a declared-redaction extension registration; the
+maintainer's Cesium experimentation COP; an awareness pass over
+github.com/nkuntz1934/idahopulse.
+
+## Superseded 2026-08-02 — the tier-2 list this replaced
 
 The 2026-07-31 sequencing ran to completion the same day, in the order given:
 the cold re-read first, the fixes it forced, then the push. Eight independent
@@ -39,7 +90,13 @@ range or below the fix bar, none blocking:
   laundered under an unlisted key would pass the suite; a value-scan form is
   stronger.
 
-## Tier 2, and all of it is a decision rather than work
+## Tier 2 — resolved 2026-08-02 except item 1; kept as the decision record
+
+Adjudications: item 2 (A1-02) DECIDED, declared dimensionality plus token,
+v1.1.20; item 3 (experimental split) DECIDED by promoting error_ellipse_m
+into v1.1.20; item 4 (state-projector-*) DECIDED and SHIPPED, the wildcard
+is removed; item 5 (X1-01) rides the v1.1.20 cut as planned. Item 1, the
+X1-02 terminal call, remains the maintainer's. Original list as written:
 
 The maintainer's direction at the 2026-07-31 closeout. Tier 1 is complete and
 committed. Everything below needs a call, not an implementation, and each has

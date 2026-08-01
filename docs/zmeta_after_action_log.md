@@ -672,3 +672,30 @@ record corrections. The depth priced out because the range contained a new
 component; the two records-only commits contributed corrections, never
 stoppers. That is a usable sizing rule for this tier: scale the panel to the
 newest code in the range, not to the diff line count.
+
+## Addendum — the live-readiness audit and its fix wave, 2026-08-02
+
+Ten axes, each required to run its path rather than read it; the full result
+set is the session's, the verdicts and gap queue are in the handoff and
+CHANGELOG. Three process notes worth keeping:
+
+- **Two instruments failed in the author's own hands the same day, both in
+  the X1-02 shape.** A verification one-liner piped pytest through tail, so
+  the shell reported the tail's exit code and printed the green marker over
+  30 failures; reading the output caught it, the marker did not. And a bare
+  `tools/build_release_manifest.py` run reset the manifest's identity fields
+  to the tool's hardening-baseline defaults, which 30 release-currency pins
+  caught on the next battery. The manifest tool's defaults are for the
+  baseline; a mid-cycle rebuild must always pass the release identity
+  explicitly. Both are the cheaper-check class: a green marker standing in
+  for the thing it summarizes.
+- **The content-currency guard fired for real for the first time.** The
+  governed policy edit changed the machine-generated governance sentence,
+  and the guard refused the stale README bullet until the regenerated
+  sentence was carried verbatim. The P2-01 mechanism works under live fire.
+- **The budget shape that worked:** the fan-out ran on a separate model
+  budget with the orchestrating session reserved for judgment, synthesis and
+  the governed edit. Nine axes plus a four-fixer wave landed inside one
+  session that way. The banked-axis pattern (inline a completed axis's
+  result as a literal, rerun only the rest) is what recovered two aborted
+  runs without re-spending them.

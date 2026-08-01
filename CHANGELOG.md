@@ -2,6 +2,39 @@
 
 ## [Unreleased]
 
+- 2026-08-02 — **An unnamed producer can no longer assert an authoritative
+  track.** The `state-projector-*` wildcard is removed from
+  `policy/producer-authority.yaml` (maintainer-adjudicated). It authorized any
+  producer matching a broad glob to emit `STATE_EVENT`s with no
+  external-promotion evidence and no named identity, and no reference
+  component used it; the reference track projector runs as `fusion-*`. A
+  deployment that runs a state projector now names its producer in policy
+  deliberately, as `configs/policy-variants/producer-authority.strict.yaml`
+  already does. Breaking for any deployment that relied on the glob: rename
+  or add a named producer stanza. Refusal pinned red-first in
+  `gateway/tests/test_state_projector_wildcard.py`.
+- 2026-08-02 — **Readiness-audit fix wave, every fix demonstrated red
+  first.** ADS-B gains an altitude plausibility band (a garbled -9999 ft
+  Mode S altitude was becoming canonical `alt_m` below sea level with no
+  flag) and stops leaking out-of-range coordinates into native features.
+  Kraken, moth and signalhunter gain the non-finite screens the other
+  adapters already had; a NaN PSD bin in signalhunter was silently flipping
+  the computed bearing 180 degrees, and now refuses the frame before bearing
+  math. The MAVLink command translator refuses a `COMMAND_EVENT` carrying
+  gateway risk-adjudication records by default; the explicit `allow_flagged`
+  opt-in translates it with the records stamped into the MissionIntent, so a
+  soft-flagged command no longer becomes a clean intent. Gateway
+  `metrics.jsonl` entries carry a bounded `details` field plus `event_id`
+  and `producer` where available, the metrics line states `cot_enabled`, the
+  `SCHEMA_INVALID` diagnostic truncates instead of echoing a 10 KB payload,
+  and the startup banner prints the CoT destination. `deploy/README.md`
+  documents the env-var override path the compose files actually use, with
+  a verification section; the old text sent a stranger to edit config
+  fields the container command silently overrides. `adapters/AUTHORING.md`
+  teaches the residue classes Claude-authored adapters shipped with, adds
+  the cooperative-broadcast layer row, and steers authors to the
+  mapping-pack route. `tools/convert_encoding.py` refuses hostile compact
+  input with a one-line diagnostic on decode, matching the encode side.
 - 2026-07-31 — **AIS ingress hardened by the pre-push cold read.** Message 27
   carries its own not-available sentinels, speed 63 and course 511, and the
   adapter was carrying them as clean motion data; both are refused now, scoped

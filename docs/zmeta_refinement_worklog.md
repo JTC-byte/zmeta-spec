@@ -2,7 +2,37 @@
 
 ## Current Resume Note
 
-- Last updated: 2026-07-31 (pre-push cold read; AIS hardened and attacked)
+- Last updated: 2026-08-02 (readiness audit; four adjudications; fix wave shipped)
+- **2026-08-02 — the readiness audit's verdicts landed as work the same
+  day.** Ten axes ran their paths live rather than reading them: encoding
+  READY; normalize-rf, visualize, retask, lineage and zero-shot
+  READY_WITH_GAPS; normalize-tactical, containers, redact and operator-debug
+  GAPPED. The retask axis reproduced both fielded command workflows end to
+  end. The maintainer adjudicated four decisions the same day, each recorded
+  on its doctrine entry: A1-02 goes to declared dimensionality plus a
+  geo_status token in v1.1.20; error_ellipse_m promotes into v1.1.20 with
+  the spelling reconciliation; MAVLink command translation is fail-closed
+  with an explicit override, shipped; and the state-projector-* wildcard is
+  removed, shipped as its own governed commit with the JSON export
+  regenerated and the manifest rebuilt with its v1.1.19 identity preserved.
+  The confirmed small fixes shipped as a four-fixer wave, every fix
+  demonstrated red first, 45 new tests: the ADS-B altitude plausibility
+  band and coordinate-demotion parity, isfinite screens for kraken, moth
+  and signalhunter including the NaN bin that silently flipped a bearing
+  180 degrees, gateway metrics details with event and producer attribution,
+  cot_enabled on the metrics line, diagnostic truncation, the CoT banner
+  line, the deploy README rewritten around the override path the compose
+  files actually use, AUTHORING.md teaching the residue classes and the
+  mapping-pack route, and convert_encoding refusing hostile decode input
+  with a one-line diagnostic. A cold attack pass on both commits came back
+  CLEAN: nothing reopened, no vacuous pin among the 45 (three files
+  reverted one at a time went 4, 9 and 4 red), manifest identity
+  byte-identical outside seven hash lines. Two of my own instruments failed
+  in the X1-02 shape and are recorded in the after-action log: a piped exit
+  code under a green echo, and a bare manifest rebuild that reset the
+  release identity, caught by thirty release-currency pins. Battery 1636
+  passed plus 1074 subtests, kernel gate all flags exit 0, examples 51/51.
+  The push follows this record.
 - **2026-07-31 (later) — the pre-push cold read, and it was not green.** The
   maintainer's sequencing: review the four unpushed commits cold, push on
   green, then tier 2. Eight independent lenses read the range with the
