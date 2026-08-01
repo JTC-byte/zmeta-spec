@@ -141,13 +141,20 @@ RF; that is a later refinement, not something to fake here.
 | A speed or course the field cannot encode | that field dropped |
 
 Reception time is trusted only when it can be a moment: `rxtime` must parse as
-a calendar date, and an epoch `timestamp` below 2000-01-01 is read as some
-other quantity that leaked in under that name, not as epoch seconds.
+a calendar date (the channel is recognised by its fourteen-digit AIS-catcher
+shape; any other shape under that key is treated as absent), and an epoch
+`timestamp` below 2000-01-01 is read as some other quantity that leaked in
+under that name, not as epoch seconds.
 
-`translate_stream` takes any iterable, a generator included, and raises for a
-non-iterable rather than returning an empty list: zero events from a miswired
-call must not look identical to zero events from an empty sea. One refused
-message never stops the batch.
+`translate_stream` takes any iterable of message dicts, a generator included.
+It raises for a non-iterable, and for the two iterables that read as an
+accidental empty sea, a single message dict and a string, rather than
+returning an empty list: zero events from a miswired call must not look
+identical to zero events from an empty sea. One refused message never stops
+the batch.
+
+Beyond the shared sentinels, message 27's speed bound is its own field's: 0 to
+62 kt, not the Class A 102.2.
 
 Refusals are dropped, not patched. The count is the caller's to observe: an
 adapter that invents a position to keep its yield up is the failure mode this

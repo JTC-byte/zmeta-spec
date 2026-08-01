@@ -2,7 +2,7 @@
 
 ## Current Resume Note
 
-- Last updated: 2026-07-31 (pre-push cold read; AIS hardened; range pushed)
+- Last updated: 2026-07-31 (pre-push cold read; AIS hardened and attacked)
 - **2026-07-31 (later) — the pre-push cold read, and it was not green.** The
   maintainer's sequencing: review the four unpushed commits cold, push on
   green, then tier 2. Eight independent lenses read the range with the
@@ -27,8 +27,17 @@
   rule, and the closeout's "three commits unpushed" was written inside the
   fourth. The rename audit came back exact, and the records lens verified
   every other enumeration it recounted. Discipline 6 is answered for this
-  range: the cold panel found what the author's read did not. Pushed together
-  with the fix commits.
+  range: the cold panel found what the author's read did not.
+  **The attack pass on the fix wave itself** ran cold in a worktree: no
+  original defect reopened across 16 probes, and no vacuous pin, with all 14
+  new tests demonstrated red on the reverted adapter. Its residue closed in a
+  follow-up commit: a single message dict or a string passed to
+  `translate_stream` read as an empty sea, message 27's speed bound was still
+  the Class A 102.2 when its own field stops at 62, the rxtime docstring
+  claimed a refusal broader than the code performs, and this record asserted
+  the push before any push existed, which is the same self-referential class
+  this session corrected twice in others' records. The push follows this
+  record.
 - **2026-07-31 — an outside comparative survey, fact-checked against the stack,
   and the second implementation A1-02 was waiting for.** An external agent
   reviewed ZMeta against SAPIENT, OGC O&M, CloudEvents, C2PA, PROV-O and the

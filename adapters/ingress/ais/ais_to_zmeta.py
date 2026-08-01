@@ -101,9 +101,11 @@ LON_NOT_AVAILABLE = 181.0
 TYPE27_SOG_NOT_AVAILABLE = 63.0
 TYPE27_COG_NOT_AVAILABLE = 511.0
 # The fields themselves bound what a real report can say: speed 0 to 102.2 kt,
-# course 0 to 359.9 degrees. A decoded value outside those bounds is not an
-# AIS claim, it is corruption, and it is dropped rather than carried.
+# course 0 to 359.9 degrees, and for message 27 speed 0 to 62 kt, because its
+# speed field is six bits. A decoded value outside the sending field's bounds
+# is not an AIS claim, it is corruption, and it is dropped rather than carried.
 SOG_MAX_KT = 102.2
+TYPE27_SOG_MAX_KT = 62.0
 # A number under `timestamp` is read as epoch seconds only when it could be
 # one. Below this floor it is some other quantity that leaked in under that
 # name (an AIS second-of-minute is the live example), and reading it as epoch
@@ -176,9 +178,12 @@ def _event_ts(msg, now_epoch_s):
     comes from the decoder (`rxtime`) or from the caller.
 
     A time channel that is present but impossible refuses the message rather
-    than sliding to the next clock. A corrupt `rxtime` or `timestamp` is a
-    decoder fault the caller should see as a refusal, not something to paper
-    over with a different clock.
+    than sliding to the next clock. The `rxtime` channel is recognised by its
+    AIS-catcher shape, fourteen digits: a recognised shape that does not parse
+    as a calendar moment refuses the message, and any other shape under that
+    key is not this adapter's channel and is treated as absent. A `timestamp`
+    that is present but cannot be a moment refuses the message rather than
+    sliding to the caller's clock.
     """
     rxtime = msg.get("rxtime")
     if isinstance(rxtime, str) and len(rxtime) == 14 and rxtime.isdigit():
@@ -225,7 +230,8 @@ def _native_features(msg, mmsi, receiver_id, position):
         not_reported = abs(sog - SOG_NOT_AVAILABLE) < 1e-6 or (
             msg_type == 27 and abs(sog - TYPE27_SOG_NOT_AVAILABLE) < 1e-6
         )
-        if not not_reported and 0.0 <= sog <= SOG_MAX_KT:
+        sog_max = TYPE27_SOG_MAX_KT if msg_type == 27 else SOG_MAX_KT
+        if not not_reported and 0.0 <= sog <= sog_max:
             features["ais_sog_kt"] = sog
     cog = _finite(msg.get("course"))
     if cog is not None:
@@ -360,15 +366,22 @@ def _new_event_id():
 def translate_stream(messages, *, platform_id, **kwargs):
     """Translate an iterable of decoded AIS messages.
 
-    Any iterable works, a generator included. A non-iterable raises rather
-    than returning an empty list, because zero events from a miswired call
-    must not look identical to zero events from an empty sea.
+    Any iterable of message dicts works, a generator included. A non-iterable
+    raises, and so do the iterables that read as an accidental empty sea: a
+    single message dict (which iterates as its keys) and a string (which
+    iterates as its characters). Zero events from a miswired call must not
+    look identical to zero events from an empty sea.
 
     Messages that cannot honestly become events are dropped, not patched. The
     count of refusals is the caller's to observe: an adapter that invents a
     position to keep its yield up is the failure mode this file exists to
     avoid.
     """
+    if isinstance(messages, (dict, str, bytes)):
+        raise TypeError(
+            "translate_stream takes an iterable of decoded messages, not a "
+            f"single {type(messages).__name__}; wrap one message in a list"
+        )
     events = []
     for msg in messages:
         event = translate_message(msg, platform_id=platform_id, **kwargs)

@@ -125,6 +125,15 @@ class TestNotAvailableSentinels:
         """The message 27 speed sentinel is scoped to message 27."""
         assert translate(type=1, speed=63.0)["payload"]["features"]["ais_sog_kt"] == 63.0
 
+    def test_a_message_27_speed_above_its_own_field_is_dropped(self):
+        """The message 27 speed field encodes 0 to 62 kt. An 80 kt reading
+        cannot come out of it except as corruption, and the attack pass on
+        the first fix found the guard still applying the Class A bound."""
+        assert "ais_sog_kt" not in translate(type=27, speed=80.0)["payload"]["features"]
+
+    def test_a_message_27_speed_at_its_field_maximum_is_carried(self):
+        assert translate(type=27, speed=62.0)["payload"]["features"]["ais_sog_kt"] == 62.0
+
     def test_speed_over_ground_sentinel_is_dropped(self):
         assert "ais_sog_kt" not in translate(speed=102.3)["payload"]["features"]
 
@@ -263,6 +272,16 @@ class TestStreamAccounting:
         """Zero events from a miswired call must not look like zero traffic."""
         with pytest.raises(TypeError):
             translate_stream(None, **BASE)
+
+    def test_a_single_message_dict_is_a_miswired_call_not_a_stream(self):
+        """Passing one message where a stream belongs is the natural mistake,
+        and a dict iterates as its keys, which reads as an empty sea."""
+        with pytest.raises(TypeError):
+            translate_stream(msg(), **BASE)
+
+    def test_a_string_is_a_miswired_call_not_a_stream(self):
+        with pytest.raises(TypeError):
+            translate_stream("decoded.json", **BASE)
 
     def test_one_poisoned_message_does_not_kill_the_batch(self):
         poisoned = msg(mmsi=338111222)

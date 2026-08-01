@@ -7,10 +7,11 @@ the cold re-read first, the fixes it forced, then the push. Eight independent
 lenses read the four commits with the producing context gone, and every
 finding was adversarially verified. **The read did not come back green: 31
 findings, 16 verified with none refuted, three MAJOR, all three in the AIS
-adapter.** The must-fix set was fixed red-first in the same session and the
-whole range pushed together. Details are in the worklog's newest 2026-07-31
-entry and the CHANGELOG; the X1-02 terminal-call input from the read is on the
-doctrine entry.
+adapter.** The must-fix set was fixed red-first in the same session, a cold
+attack pass on the fixes reopened nothing and found no vacuous pins, and the
+push follows the attack pass's own residue commit. Details are in the
+worklog's newest 2026-07-31 entry and the CHANGELOG; the X1-02 terminal-call
+input from the read is on the doctrine entry.
 
 The two named targets both earned their naming. The changelog-check
 strengthening was confirmed to be another cheaper sibling of its intent; its

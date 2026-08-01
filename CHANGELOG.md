@@ -18,6 +18,10 @@
   than only `!= LOCKED`. 64 colocated tests; the 14 new ones were demonstrated
   failing on the unfixed adapter first. The changelog check's red demonstration
   also moved from a commit-message attestation into an in-tree mutation canary.
+  A cold attack pass on the wave then closed its own residue: a single message
+  dict or a string passed where a stream belongs raises instead of reading as
+  an empty sea, and message 27's speed bound is its own field's 0 to 62 kt
+  rather than the Class A 102.2. 68 colocated tests after the residue commit.
 - 2026-07-31 — **AIS ingress adapter** (`adapters/ingress/ais/`). Decoded AIS
   position reports (types 1, 2, 3, 18, 19, 27) into `OBSERVATION_EVENT`s, from
   AIS-catcher JSON on the same RTL-SDR dongle as ADS-B. Every AIS observation
