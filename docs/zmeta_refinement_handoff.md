@@ -1,6 +1,55 @@
 # ZMeta Refinement Handoff Notes
 
-## NEXT SESSION: the v1.1.20 governed wave, then the remaining scoped waves
+## THE BIG PUSH: v1.1.20 closes every audit gap and the release delta
+
+Maintainer's direction, 2026-08-02, in his framing: this effort is the big
+one. Full audit of the stack (done, 2026-08-02, ten axes), full fixes,
+test harnesses, simulations and validations, then the documentation
+refresh to reflect current state, then the release. Coalition redaction is
+explicitly out of scope for the push (it becomes example profiles in a
+separate repository later; ZMeta already does the enabling work).
+Operator-debug work folds INTO the push where it fits, which it does: the
+TIME_STATUS-to-clock-health linkage is gateway code, not governed.
+
+The campaign, in order:
+
+1. **Governed wave** (every gate decision is now made; see below): A1-02,
+   ellipse promotion, X1-01, fixtures, pins, size table, plus the three
+   adjudications of 2026-08-02 recorded in the next section.
+2. **Remaining scoped fixes folded in**: CoT zero-default ellipse fix
+   (natural companion to the ellipse promotion, same reader), the
+   track-projector stage in the reference deployment, TIME_STATUS feeding
+   clock-health counters, value-scan classification pins, the uuid import
+   convention sweep, the 4.5.1 diagnostic teaching.
+3. **Validation battery before the cut**: the SAPIENT interop harness run
+   (both directions, entry below; prerequisite check first, it needs Java
+   17 and Maven), the two-node and throughput simulations re-run on the
+   fixed stack, the container path re-verified, and the retask chain
+   re-run against the new fail-closed MAVLink behavior.
+4. **Documentation refresh**: full currency and content pass so every doc
+   describes the v1.1.20 state, not a remembered one; the release-currency
+   suite enforces literals, a content read enforces the rest.
+5. **The cut**, per the playbook cut tier: currency pass first, manifest
+   last, rebuild after any edit, whole-range fresh-eyes review before
+   tagging (the range is twenty-plus commits; budget a real panel), then
+   tag, sign, publish.
+
+## Adjudications of 2026-08-02, second round — all three gate decisions
+
+1. **Contract 4.5.1: teach the refusal.** Semantics stay exactly as
+   written; promotion metadata alone is the audit trail for a first-seen
+   external track, and source_event_uid already carries the linkage. The
+   fix is the diagnostic (point the refused integrator at the
+   metadata-alone path) and ingress adapter documentation. No governed
+   semantic change.
+2. **data_ref: preserve at Profile H.** The default gateway config keeps
+   payload.data_ref at Profile H where bandwidth is not the constraint;
+   M and L keep stripping; the strict variant keeps stripping everywhere.
+3. **zmeta_uuid imports: plain top-level import everywhere.** ADS-B drops
+   its guarded fallback, AIS drops its lazy import, AUTHORING.md states the
+   rule: id generation fails loudly at import, never degrades silently.
+
+## Superseded 2026-08-02 by the campaign above — the interim queue as written
 
 The live-readiness audit ran to completion on 2026-08-02: ten axes, every
 verdict from executed paths, roughly 1.9 million subagent tokens. Verdicts:
