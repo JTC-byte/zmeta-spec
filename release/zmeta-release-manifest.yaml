@@ -18,7 +18,7 @@ hash_canonicalization:
   release_manifest_hash: sha256 over canonical YAML manifest content with release_manifest_hash set to null
 semantic_contract_hash: sha256:fca9cd742d8eb8d4e6e068cbafe46fa4cdb902163f8ac5ac0d8459be75fdaaba
 schema_bundle_hash: sha256:875eceb2cda4404c971ac561dafc48e157798b82e7796d1d52a5b8c16de94e71
-policy_bundle_hash: sha256:d5f038c8e260a73a2a79a88b55364ed2ce278fbf107f71af5e487b96459c6688
+policy_bundle_hash: sha256:8b72602699aac56fcb18f93c85a530d42a991300e909ec8d3f1962c08bb034c1
 extension_registry_hash: sha256:f3b40f1e94cd39eb9d7df113c7d2c5dbc73544672e499dfde4e456f8d3836e6d
 conformance_class_manifest_hash: sha256:6a3a9d930cc06d5228cb2d1ad8b42a91048425ff1e500bf7bfee3528bf2b4524
 profile_projection_catalog_hash: sha256:bae61b3a01cc0a3c2aa1f90391f231d40484175280bce9dbb43371eb0ea04341
@@ -28,8 +28,8 @@ bad_event_corpus_hash: sha256:f839d7fb4a0ab127c95c7e904b00ee44284d6c1a1218158d11
 adapter_conformance_hash: sha256:74ec9f50ac692a50f196d29c1cbdb5d8c9caf2ca261cf186a8c6f8c802f545f9
 encoding_projection_specs_hash: sha256:bb605812a12900c50e74c3fcee8d1ff640bf4f4e3d5456f50cd8f4180286fb14
 process_governance_hash: sha256:2736079f0162f72c26e87b130900e53ca8dad903b11123874f2b21e7b8f389fb
-release_bundle_hash: sha256:273cdc9c51d0a0bfdec38da08aa3e4246d3fdbc14fcf234550cc53289eb479cf
-release_manifest_hash: sha256:e124fb1ab50041240f02f5fa956b145586954b5a4d22fa61667acbe13186970f
+release_bundle_hash: sha256:5fef5072402f4e10a21854dadb5099d8ed2e17d9f74c5cd2ec7b7b369c0bac81
+release_manifest_hash: sha256:afd7399d9ebb3013000b6b2ac1037755abc15e555cb6a5617a47597a2e4400cb
 artifact_hashes:
 - path: AGENTS.md
   group: process_governance
@@ -145,7 +145,7 @@ artifact_hashes:
   canonicalization: text_lf
 - path: export/policy/index.json
   group: policy_json_export
-  hash: sha256:0c2c42f197102128d86c554bfd68d6832d602697ec014fa7cccd26b44442122d
+  hash: sha256:88da964ba20cefa4eb80c3901a15dc2049dea114c949560d8aea5b7bc2da3e82
   canonicalization: text_lf
 - path: export/policy/lineage.json
   group: policy_json_export
@@ -153,7 +153,7 @@ artifact_hashes:
   canonicalization: text_lf
 - path: export/policy/producer-authority.json
   group: policy_json_export
-  hash: sha256:4f2e403352d4a121f00295dd2a8d8579a8fbe552f6ceb76deaf28f1e818daafa
+  hash: sha256:1188c56184d8180819eb1977d6309a414295be487e742435922ea9266ed8c905
   canonicalization: text_lf
 - path: export/policy/profile-precision.json
   group: policy_json_export
@@ -193,7 +193,7 @@ artifact_hashes:
   canonicalization: text_lf
 - path: policy/producer-authority.yaml
   group: policy_bundle
-  hash: sha256:d1ed35df46863b4f908c41a833403a21bff0ec9803e55a0db6b307ec457ee145
+  hash: sha256:9b8145daae15fcc4fb63b13d1b1d5797eae19e9b92c10f4f550cf9dd17366b48
   canonicalization: text_lf
 - path: policy/profile-precision.yaml
   group: policy_bundle
@@ -395,7 +395,7 @@ artifact_groups:
     - policy/semantics.yaml
     - policy/timing-freshness.yaml
     - policy/violation-codes.yaml
-    hash: sha256:d5f038c8e260a73a2a79a88b55364ed2ce278fbf107f71af5e487b96459c6688
+    hash: sha256:8b72602699aac56fcb18f93c85a530d42a991300e909ec8d3f1962c08bb034c1
   policy_json_export:
     description: 'Derived verbatim JSON projection of the governed policy YAML, with the generator that defines it. Not authoritative: policy_bundle is the source.'
     paths:
@@ -411,7 +411,7 @@ artifact_groups:
     - export/policy/timing-freshness.json
     - export/policy/violation-codes.json
     - tools/export_policy_json.py
-    hash: sha256:2be27d29115d9fc4fb25fd01cffbeaa6d0e1e8faf20f2c3d32a66b6bdb8c10b1
+    hash: sha256:8fc87c50569d7bff57dd4f9de52f8dc9be896b60803a16692d1bc86edf236594
   extension_registry:
     description: Machine-readable extension and reserved-vocabulary registry.
     paths:

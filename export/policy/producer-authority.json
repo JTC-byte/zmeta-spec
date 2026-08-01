@@ -441,12 +441,6 @@
           "SYSTEM_EVENT"
         ]
       },
-      "state-projector-*": {
-        "allowed_event_types": [
-          "STATE_EVENT",
-          "SYSTEM_EVENT"
-        ]
-      },
       "torch": {
         "allowed_event_types": [
           "INFERENCE_EVENT",

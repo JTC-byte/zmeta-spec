@@ -18,7 +18,7 @@
     {
       "export": "export/policy/producer-authority.json",
       "source": "policy/producer-authority.yaml",
-      "source_sha256": "sha256:d1ed35df46863b4f908c41a833403a21bff0ec9803e55a0db6b307ec457ee145"
+      "source_sha256": "sha256:9b8145daae15fcc4fb63b13d1b1d5797eae19e9b92c10f4f550cf9dd17366b48"
     },
     {
       "export": "export/policy/profile-precision.json",

@@ -4195,7 +4195,7 @@ def validate_producer_authority(event, authority_policy, severity_map=None):
                         "producer does not match producer authority policy "
                         "(policy/producer-authority.yaml); reference patterns "
                         "include rf-sensor-*, eo-sensor-*, acoustic-sensor-*, "
-                        "classifier-*, detector-*, fusion-*, state-projector-*, "
+                        "classifier-*, detector-*, fusion-*, "
                         "mavlink-* -- see adapters/AUTHORING.md section 7"
                     ),
                     details=details,

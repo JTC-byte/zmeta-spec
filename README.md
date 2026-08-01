@@ -192,7 +192,7 @@ nodes.
   (`adapters/ingress/adsb/`) translates `dump1090` and `readsb` snapshots into
   ZMeta, and declines to emit a position, an altitude datum, or a calibrated
   power value it does not have.
-  Governed artifacts changed in this release, relative to zmeta-v1.1.18: conformance/adapter-harness/must-pass.jsonl.
+  Governed artifacts changed in this release, relative to zmeta-v1.1.18: conformance/adapter-harness/must-pass.jsonl, policy/producer-authority.yaml.
   The locked v1.0 kernel is unchanged.
 - Normative contract: v1.0 locked semantic contract, canonical version-discriminated
   JSON schema, v1.0 JSON schema, and policy pack.

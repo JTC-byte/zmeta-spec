@@ -228,10 +228,14 @@ producer_authority:
         - FUSION_EVENT
         - STATE_EVENT
         - SYSTEM_EVENT
-    state-projector-*:
-      allowed_event_types:
-        - STATE_EVENT
-        - SYSTEM_EVENT
+    # No state-projector-* wildcard. A wildcard producer that can emit an
+    # authoritative STATE_EVENT with no external-promotion evidence and no
+    # named identity is an injection path: a track displays indistinguishably
+    # from an adjudicated one. A deployment that runs a state projector adds a
+    # named producer deliberately, choosing its evidence requirements the way
+    # configs/policy-variants/producer-authority.strict.yaml names
+    # state-projector-01. The reference track projector runs as fusion-*.
+    # Removed 2026-08-02 after the live-readiness audit sized the hole.
     cot-ingress:
       allowed_event_types:
         - STATE_EVENT
