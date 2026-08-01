@@ -993,7 +993,7 @@ Confirmed independently on both stacks before being written down.
 | # | Tension | Gates in play | Status |
 |---|---|---|---|
 | X1-01 | The kernel does not constrain `event.ts` beyond a trailing `Z` | 3, 5, 6 | OPEN |
-| X1-02 | A weaker check keeps standing in for a stronger one that exists | 5, 7 | **OPEN, PAST THRESHOLD (N=6)** — terminal call due |
+| X1-02 | A weaker check keeps standing in for a stronger one that exists | 5, 7 | **DECIDED 2026-08-02** — terminal via one-time gate inventory in the v1.1.20 push |
 | X1-03 | The retirement rule reads silence as death, which inverts for constitutional rules | 7 | OPEN |
 
 ### X1-01 — The kernel does not constrain `event.ts` · OPEN
@@ -1102,6 +1102,19 @@ is the sixth instance's check, examined harder, not a new substitution. What it
 adds to the terminal call is evidence that even the corrected form of a check
 in this class reverts toward the cheaper sibling, which strengthens the case
 for answering the detection question rather than closing HELD-FIRM.
+
+**TERMINAL CALL MADE 2026-08-02, maintainer adjudication: the detection
+question gets answered once, inside the v1.1.20 push's validation phase.**
+The shape: enumerate every gate the battery, CI and closeouts cite; name the
+stronger check each one stands in for; run the stronger forms once; fix what
+that finds; close this entry with the result. Deliberately NOT a standing
+inventory artifact with a currency check, because that mints permanent
+apparatus in exactly the way the v1.1.19 after-action warned against, and
+the inventory itself would become one more surface that can rot. The entry
+goes terminal when the inventory's result is recorded here. Two further
+adjacent instances from the same day the call was made, both the author's
+own and both caught by existing guards, are recorded in the after-action
+log rather than counted, per the SIM1-02 precedent on count inflation.
 
 **Not counted as an instance: SIM1-02**, the `drops` counter read as a loss
 counter. The shapes are adjacent and not the same. X1-02 is a *check* being

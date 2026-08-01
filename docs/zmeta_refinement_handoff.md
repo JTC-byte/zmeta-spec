@@ -23,9 +23,13 @@ The campaign, in order:
    convention sweep, the 4.5.1 diagnostic teaching.
 3. **Validation battery before the cut**: the SAPIENT interop harness run
    (both directions, entry below; prerequisite check first, it needs Java
-   17 and Maven), the two-node and throughput simulations re-run on the
-   fixed stack, the container path re-verified, and the retask chain
-   re-run against the new fail-closed MAVLink behavior.
+   17 and Maven, neither installed locally, so plan on a Maven/JDK-17
+   container), the two-node and throughput simulations re-run on the fixed
+   stack, the container path re-verified, the retask chain re-run against
+   the new fail-closed MAVLink behavior, and the **X1-02 one-time gate
+   inventory** (adjudicated 2026-08-02): every gate the battery, CI and
+   closeouts cite, the stronger check each stands in for, the stronger
+   forms run once, findings fixed, the entry closed with the result.
 4. **Documentation refresh**: full currency and content pass so every doc
    describes the v1.1.20 state, not a remembered one; the release-currency
    suite enforces literals, a content read enforces the rest.
