@@ -620,3 +620,55 @@ problem and will not be solved by trying harder.
 Strengthened red-first the same session. It is also the sixth instance, and it
 is why the terminal call on X1-02 is now the first item for the next session
 rather than a standing question.
+
+## Addendum — the pre-push cold read, 2026-07-31
+
+The maintainer sequenced the held range as review, then push, then tier 2,
+with the review run cold: eight independent lenses over the four unpushed
+commits, producing context gone, every finding adversarially verified before
+it counted. This is the discipline 6 experiment the last two closeouts said
+the work needed, run before the push, which is the last point it could change
+anything.
+
+### The result
+
+The author's reading had this range clean. The cold panel returned 31
+findings, verified 16 with none refuted, and three were MAJOR, all in the AIS
+adapter the closeout had called pinned: message 27's not-available sentinels
+carried as clean motion data, one poisoned timestamp killing a whole
+`translate_stream` batch with an uncaught OSError, and a timing pin that a
+fabricated sync claim satisfies. Fixed red-first the same session, 14 new
+tests demonstrated failing before the fix.
+
+### What generalises
+
+- **Cold reading catches what careful authorship does not, and the margin
+  here was three MAJOR on 728 new lines.** The v1.1.19 cycle showed it for a
+  cut; this shows it for an ordinary feature commit. The strongest defect sat
+  in behavior no test exercised, so re-reading the tests could not have
+  surfaced it.
+- **The sentinel class does not close instance by instance.** The adapter was
+  written around the sentinel problem, documented it, and tested it, and it
+  still carried the type-27 pair, because the standard defines sentinels per
+  message type and the implementation checked per field. Closing the class
+  means reading the standard's tables per type, next to the code that accepts
+  each type.
+- **The verify-what-agrees-with-you rule fired one level up.** The SIM1-05
+  correction, itself a product of that rule, carried two false claims of its
+  own: a failure mode described as silence that is loud on one path and
+  fabricating on the other, and a v1.0 member spelling the v1.0 schema never
+  defines. Both read as details of an already-verified story, so neither was
+  checked.
+- **Self-referential counts are a small, distinct class.** "Three commits are
+  unpushed" was committed inside the fourth; "six places" was hand-counted
+  inside the paragraph applying the moving-fact rule. Where a count moves
+  with the tree, generate it or date it to a named tree.
+
+### What it cost
+
+Roughly 1.9 million subagent tokens across 24 agents for a four-commit range,
+and the purchase was three MAJOR defects stopped short of origin plus five
+record corrections. The depth priced out because the range contained a new
+component; the two records-only commits contributed corrections, never
+stoppers. That is a usable sizing rule for this tier: scale the panel to the
+newest code in the range, not to the diff line count.

@@ -962,6 +962,12 @@ dongle is the natural second — no extra hardware, genuinely independent sensor
 family, and the strongest possible case since altitude is meaningless rather
 than merely missing.
 
+**Overtaken 2026-07-31.** The experiment ran: the AIS adapter landed as exactly
+this second implementation (`adapters/ingress/ais/`), and the A1-02 entry above
+records the promotion bar as met. The paragraph stays as written because it is
+the experiment that was proposed. The pre-push cold read flagged the
+contradiction between this paragraph and the entry above; this note closes it.
+
 ---
 
 ## Cycle X1 — 2026-07-28 (cross-repo exchange with the fielded consumer)
@@ -1065,6 +1071,24 @@ problem. It was fresh, it was named, it was the thing being guarded against, and
 it still happened. Strengthened red-first the same session: the newest dated
 `[Unreleased]` entry must now be at least as recent as the worklog's
 last-updated date, demonstrated failing on the real stale state before the fix.
+
+**Terminal-call input from the 2026-07-31 pre-push cold read, which attacked
+the strengthened check by mutation.** Verdict: the strengthening is materially
+stronger than what it replaced and it is still a cheaper sibling of the intent,
+because it compares hand-maintained dates where the intent is about prose. The
+demonstrated residue: it is blind when both record surfaces lag together, which
+is the natural way the guarded defect occurs; a dated line with no content
+satisfies it; a one-token date bump on yesterday's entry recreates the exact
+state it was written against and passes; a future-dated typo satisfies it
+permanently; and it skips for the remainder of any release day. The same read
+also found the strengthening's red demonstration lived only in a commit
+message, the session-act proof the playbook forbids, closed the same day with
+an in-tree mutation canary and the residue written into the check's own
+docstring as known limits. Deliberately not counted as a seventh instance: it
+is the sixth instance's check, examined harder, not a new substitution. What it
+adds to the terminal call is evidence that even the corrected form of a check
+in this class reverts toward the cheaper sibling, which strengthens the case
+for answering the detection question rather than closing HELD-FIRM.
 
 **Not counted as an instance: SIM1-02**, the `drops` counter read as a loss
 counter. The shapes are adjacent and not the same. X1-02 is a *check* being
@@ -1406,6 +1430,21 @@ which is what `adapters/egress/cot` reads. A deployment moving from the v1.0
 quality object to the v1.1.0 formal block gets silence rather than an error,
 because the reader looks for a key the writer never wrote. That is a small,
 cheap, real fix and it is independent of the adoption question.
+
+**Corrected 2026-07-31 by the pre-push cold read, before this entry left the
+tree, and the paragraph above is wrong in both of its factual claims.** First,
+the v1.0 schema defines no ellipse member spellings at all: `semi_major_m` is
+the ADS-B adapter's own convention inside the free-form `quality` object, not
+a v1.0 definition. Second, the failure mode is not silence. The v1.1.0
+`$defs/error_ellipse` requires all three members and forbids unknown ones, so
+a validating path refuses the wrong spelling loudly. The non-validating CoT
+path emits `point@ce` as the unknown-value convention, which is honest, and
+then renders `<remarks>` and `<precisionlocation>` from `.get(key, 0)`
+defaults, a fabricated zero-size ellipse claim on an event that asserted no
+such thing. The adjacent claim that nothing here is overstated did not survive
+this look either. The fabrication itself is a defect in published egress code,
+outside the reviewed range, and is queued in the handoff rather than fixed
+here.
 
 **Method note worth keeping.** An outside review and an inside rep agreed on
 this finding, and the agreement made it feel settled. Two sources reaching the

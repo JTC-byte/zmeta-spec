@@ -2,6 +2,22 @@
 
 ## [Unreleased]
 
+- 2026-07-31 — **AIS ingress hardened by the pre-push cold read.** Message 27
+  carries its own not-available sentinels, speed 63 and course 511, and the
+  adapter was carrying them as clean motion data; both are refused now, scoped
+  to message 27 because 63 kt is a real Class A speed. Speed and course gained
+  range guards, so values the AIS fields cannot encode (a negative speed, a 720
+  degree course) are dropped as corruption rather than carried as claims. A
+  present but impossible time channel refuses the message instead of borrowing
+  another clock: fourteen `rxtime` digits must parse as a calendar moment, an
+  epoch `timestamp` below 2000-01-01 is not epoch seconds, and one far outside
+  datetime range no longer kills the whole `translate_stream` batch with an
+  uncaught OSError. `translate_stream` accepts any iterable including a
+  generator, which previously produced an empty list with no error, and raises
+  for a non-iterable. The timing test pins the exact governed fallback rather
+  than only `!= LOCKED`. 64 colocated tests; the 14 new ones were demonstrated
+  failing on the unfixed adapter first. The changelog check's red demonstration
+  also moved from a commit-message attestation into an in-tree mutation canary.
 - 2026-07-31 — **AIS ingress adapter** (`adapters/ingress/ais/`). Decoded AIS
   position reports (types 1, 2, 3, 18, 19, 27) into `OBSERVATION_EVENT`s, from
   AIS-catcher JSON on the same RTL-SDR dongle as ADS-B. Every AIS observation
@@ -28,8 +44,11 @@
   carrying semi-major, semi-minor, orientation and an optional probability
   level. Only the locked v1.0 kernel carries none, which makes this an
   adoption-path question rather than an expressibility gap. One real defect
-  survived: the v1.0 quality object spells `semi_major_m` while the v1.1.0
-  formal contract spells `semi_major`, which is what the CoT reader looks for.
+  survived: the ADS-B adapter writes `semi_major_m` inside the free-form v1.0
+  quality object while the v1.1.0 formal contract spells `semi_major`, which is
+  what the CoT reader looks for. The wrong spelling fails v1.1.0 validation
+  loudly, and on the non-validating CoT path the remarks render a fabricated
+  zero-size ellipse, a published-code defect now queued in the handoff.
 - 2026-07-31 — **Doctrine cycle renamed S1 to SIM1.** The original identifiers
   collided with the historical `S1-01A` to `S1-19` work-item series, which
   includes a completed item also called S1-05. 33 references moved; the

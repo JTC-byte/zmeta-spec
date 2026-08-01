@@ -1,28 +1,42 @@
 # ZMeta Refinement Handoff Notes
 
-## NEXT SESSION: the order is review, then push, then tier 2
+## NEXT SESSION: tier 2, and all of it is decisions
 
-Maintainer's direction at the 2026-07-31 closeout, and the order matters.
+The 2026-07-31 sequencing ran to completion the same day, in the order given:
+the cold re-read first, the fixes it forced, then the push. Eight independent
+lenses read the four commits with the producing context gone, and every
+finding was adversarially verified. **The read did not come back green: 31
+findings, 16 verified with none refuted, three MAJOR, all three in the AIS
+adapter.** The must-fix set was fixed red-first in the same session and the
+whole range pushed together. Details are in the worklog's newest 2026-07-31
+entry and the CHANGELOG; the X1-02 terminal-call input from the read is on the
+doctrine entry.
 
-1. **Fresh review of everything this session worked**, as the refresh tier: a
-   cold re-read of the four unpushed commits with the context that produced them
-   gone. This is deliberately before the push, not after. It is also the closest
-   available answer to the discipline 6 gap the last two closeouts recorded,
-   since no independent panel read any of this work.
-2. **Push once that comes back green**, not before. Four commits: `4e37e54`,
-   `12df155`, `d81ada3`, `933a985`.
-3. **Then tier 2**, below.
+The two named targets both earned their naming. The changelog-check
+strengthening was confirmed to be another cheaper sibling of its intent; its
+residue is now documented in the check's own docstring as known limits, and
+its red proof moved from a commit-message attestation into an in-tree
+mutation canary. The SIM1 rename audit came back exact: 33 references
+independently re-derived, the historical series untouched.
 
-Two things a cold reader should aim at first, because both are places this
-session's own instruments failed:
+Discipline 6 is answered for this range: the cold panel found three MAJOR
+defects the author's own reading had not.
 
-- The `test_changelog_keeps_up.py` strengthening was written and verified by the
-  same person who wrote the version it replaced. It is red-first demonstrated,
-  which is better than the original, and it has had no second reader.
-- The SIM1 rename touched 33 references across ten files by pattern. The
-  historical-reference invariant was asserted per file and held, but a pattern
-  edit at that scale deserves a human look at the diff rather than trust in the
-  assertion.
+**Queued from the 2026-07-31 pre-push review**, each outside the reviewed
+range or below the fix bar, none blocking:
+
+- `adapters/egress/cot/zmeta_to_cot.py` renders `<remarks>` and
+  `<precisionlocation>` ellipse members with `.get(key, 0)` defaults, so an
+  ellipse dict carrying wrong member spellings becomes a fabricated zero-size
+  ellipse claim. Published code. A small fix that wants its own red-first
+  test.
+- Sibling-parity pass on `adapters/ingress/adsb/`: it demotes out-of-range
+  coordinates with no bounds check where AIS refuses them, it lacks the epoch
+  plausibility floor AIS now has, and the two differ on the guarded
+  `zmeta_uuid` import. One scoped wave, both READMEs in the diff.
+- The AIS no-classification pins enumerate key names, so a classification
+  laundered under an unlisted key would pass the suite; a value-scan form is
+  stronger.
 
 ## Tier 2, and all of it is a decision rather than work
 
@@ -63,7 +77,10 @@ fixtures for both `adapters/projector/track/` and `adapters/ingress/ais/`, plus
 the three items grouped at the previous cut.
 
 **Three commits are local and unpushed** as of this closeout: `4e37e54`,
-`12df155`, `d81ada3`.
+`12df155`, `d81ada3`. *[Corrected 2026-07-31: false the moment it was
+committed, because the commit carrying this sentence was the fourth. A count
+of unpushed commits written inside an unpushed commit undercounts itself;
+generate such counts, or date them to a named tree.]*
 
 ## CLOSEOUT — 2026-07-31
 
@@ -118,7 +135,11 @@ roadmap validator and policy JSON export clean.
 4. **Considered and cleared:** the `recv=722 fwd=722` measurement is asserted in
    six places. The moving-fact rule counts that as a future defect count, but
    the fact is frozen and every instance is framed in the past tense as a
-   defect that was corrected, so all six stay true. No action.
+   defect that was corrected, so all six stay true. No action. *[Corrected
+   2026-07-31: the clearance holds, the count did not. A generated recount
+   (`grep -rn "recv=722"` over the canonical tree) finds nine places asserting
+   the measurement and two more asserting this count of places. Six was a hand
+   count inside a paragraph applying the counting rule.]*
 
 **Nothing is half-done.** Every deferral is explicit and named: harness fixtures
 for the projector wait for the v1.1.20 cut because `must-pass.jsonl` is

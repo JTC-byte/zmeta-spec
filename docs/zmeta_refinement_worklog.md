@@ -2,7 +2,33 @@
 
 ## Current Resume Note
 
-- Last updated: 2026-07-31 (external review fact-checked; AIS shipped; A1-02 bar met)
+- Last updated: 2026-07-31 (pre-push cold read; AIS hardened; range pushed)
+- **2026-07-31 (later) — the pre-push cold read, and it was not green.** The
+  maintainer's sequencing: review the four unpushed commits cold, push on
+  green, then tier 2. Eight independent lenses read the range with the
+  producing context gone, every finding adversarially verified: 31 findings,
+  16 verified, none refuted. Three MAJOR, all in the AIS adapter: message 27's
+  own not-available sentinels (speed 63, course 511) carried as clean motion
+  data, with no course range guard at all; a finite but out-of-range
+  `timestamp` killing the whole `translate_stream` batch with an uncaught
+  OSError; and the timing pin asserting only `sync_state != "LOCKED"`, which a
+  fabricated HOLDOVER claim also satisfies. All fixed red-first: 14 new tests
+  demonstrated failing on the unfixed adapter, 64 colocated tests green after.
+  Also closed: `rxtime` digits must now parse as a calendar moment, because
+  month 88 produced a schema-passing lie; a sub-2000 epoch under `timestamp`
+  refuses rather than dating the event 1970; `translate_stream` takes any
+  iterable and raises on a non-iterable instead of silently returning nothing;
+  and the changelog check's red demonstration moved from a commit-message
+  attestation into an in-tree mutation canary, with its residual holes written
+  into the check's docstring as known limits and onto X1-02 as terminal-call
+  input. Records corrected with markers: the SIM1-05 "silence" claim was wrong
+  on both paths, the A1 experiment paragraph was overtaken by the AIS landing,
+  the recv=722 count was a hand count inside a paragraph applying the counting
+  rule, and the closeout's "three commits unpushed" was written inside the
+  fourth. The rename audit came back exact, and the records lens verified
+  every other enumeration it recounted. Discipline 6 is answered for this
+  range: the cold panel found what the author's read did not. Pushed together
+  with the fix commits.
 - **2026-07-31 — an outside comparative survey, fact-checked against the stack,
   and the second implementation A1-02 was waiting for.** An external agent
   reviewed ZMeta against SAPIENT, OGC O&M, CloudEvents, C2PA, PROV-O and the
@@ -17,10 +43,14 @@
   adoption-path question rather than an expressibility gap. Corrected in six
   places. Rule earned: **when an external claim matches your own, that is the
   moment to verify it, not the moment to stop.**
-  **Survived the correction:** the v1.0 quality object spells `semi_major_m` and
-  the v1.1.0 formal contract spells `semi_major`, which is what the CoT reader
-  looks for, so a deployment moving between them gets silence rather than an
-  error.
+  **Survived the correction:** the ADS-B adapter writes `semi_major_m` inside
+  the free-form v1.0 quality object and the v1.1.0 formal contract spells
+  `semi_major`, which is what the CoT reader looks for. *[Corrected 2026-07-31
+  by the pre-push cold read: the mismatch is real and its failure mode is not
+  silence. A validating path refuses the wrong spelling loudly, and the
+  non-validating CoT path renders remarks and precisionlocation from zero
+  defaults, a fabricated zero-size ellipse. The fabrication is queued in the
+  handoff as its own defect.]*
   **The doctrine cycle was renamed S1 to SIM1**, 33 references, because
   `S1-01`..`S1-05` collided with the historical `S1-01A`..`S1-19` work-item
   series including a real completed S1-05. History untouched, verified per file.
@@ -46,7 +76,10 @@
   judgement; recorded on the entry for the maintainer. Discipline 6 went unmet,
   because no independent panel read this cycle at all. And the repeated
   `recv=722` measurement was considered and cleared: six assertions, all framed
-  in the past tense as a corrected defect, so all six stay true.
+  in the past tense as a corrected defect, so all six stay true. *[Corrected
+  2026-07-31: the clearance holds, the count did not. A generated recount finds
+  nine places asserting the measurement and two more asserting this count of
+  places. Six was a hand count inside a paragraph applying the counting rule.]*
 - **2026-07-30 (later) — `adapters/projector/track/`.** The simulation reps
   earlier the same day found that CoT projects `STATE_EVENT` only, so five clean
   ADS-B observations reached a consumer and produced zero CoT while the example
