@@ -33,6 +33,18 @@
   and zmeta_uuid imports converge on the plain top-level form. The handoff
   top now carries the whole big-push campaign; the only open decision
   anywhere in the stack is the X1-02 terminal call.
+  *[Superseded the same evening, and the checkpoint was not the end: the
+  session continued through the X1-02 terminal call (one-time gate
+  inventory, e0ccf9a), the ellipse promotion's four sub-decisions
+  (1a99a59), the A1-02 shape approval with rationale (9c102a1), the prep
+  scouts (SAPIENT harness built and smoke-verified, interop templates and
+  shim live-proven, idahopulse brief), and the gate inventory's stronger
+  forms actually running, which surfaced the two severe findings the
+  2026-08-02 (late) entry records, one of which, the v1.0 lock breach, was
+  adjudicated and repaired the same night at 69a14a7. Fourteen maintainer
+  adjudications plus the A1-02 approval in one day. Final verified state at
+  session end: battery 1639 passed plus 1074 subtests, gate exit 0, CI
+  green, tree clean, synced.]*
 - **2026-08-02 — the readiness audit's verdicts landed as work the same
   day.** Ten axes ran their paths live rather than reading them: encoding
   READY; normalize-rf, visualize, retask, lineage and zero-shot
