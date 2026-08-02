@@ -1123,8 +1123,15 @@ class SchemaVersionDiscriminationTest(unittest.TestCase):
         for system_type in ["LINK_STATUS", "TIME_STATUS", "SCHEMA_VIOLATION", "TASK_ACK"]:
             self.assert_valid(valid_v1_0_system_event(system_type))
 
+    # The four subtype-consistency pins below run against the 1.1.0 stamp:
+    # the 2026-08-02 lock restoration removed the consistency machinery from
+    # the v1.0 schema (it was added post-lock by the v1.1.0 release), and
+    # whether the locked v1.0 CONTRACT text independently mandates the
+    # subtype/payload-discriminator match is a recorded open adjudication.
+    # Until that is decided, the rules are pinned where they lawfully live.
     def test_system_subtype_must_match_payload_system_type(self):
         event = valid_v1_0_system_event("TIME_STATUS")
+        event["zmeta_version"] = "1.1.0"
         event["payload"] = {
             "system_type": "LINK_STATUS",
             "state": "UP",
@@ -1145,20 +1152,20 @@ class SchemaVersionDiscriminationTest(unittest.TestCase):
         self.assert_invalid(event)
 
     def test_inference_subtype_must_match_payload_inference_type(self):
-        event = inference_event("ANOMALY")
+        event = inference_event("ANOMALY", version="1.1.0")
         event["event"]["event_subtype"] = "CLASSIFICATION"
 
         self.assert_invalid(event)
 
     def test_observation_subtype_must_match_payload_modality(self):
-        event = valid_rf_observation("1.0")
+        event = valid_rf_observation("1.1.0")
         event["payload"]["modality"] = "EO"
         event["payload"]["features"] = {}
 
         self.assert_invalid(event)
 
     def test_state_subtype_must_be_track_state(self):
-        event = state_event()
+        event = state_event(version="1.1.0")
         event["event"]["event_subtype"] = "POSITION"
 
         self.assert_invalid(event)

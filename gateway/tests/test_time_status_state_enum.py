@@ -50,7 +50,11 @@ spec.loader.exec_module(validators)
 # raw-bytes pin holds on exactly one platform (post-release CI catch,
 # 2026-07-27). Normalizing CRLF to LF before hashing makes the pin hold on
 # every checkout while still detecting any real edit.
-V1_0_SCHEMA_SHA256 = "1d2d84164b3a8986874e932c0e9369be3bf392a483a8ff261d464f34bd16d7b5"
+# Pinned at the 2026-08-02 lock restoration: event_subtype returned to the
+# original v1.0 contract (any non-empty string) after the v1.1.0 release had
+# silently added a per-type vocabulary to the locked file. Moving this hash
+# requires a maintainer adjudication on the record.
+V1_0_SCHEMA_SHA256 = "593fc7fe40530a2f1be18d193c04c8354ab4441622013c789a26508bfef31814"
 
 # The derived vocabulary, in declared order: the sync-state trio in the
 # metrics.sync_state enum's own order, then the mavlink template's health

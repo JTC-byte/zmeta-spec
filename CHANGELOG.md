@@ -2,6 +2,26 @@
 
 ## [Unreleased]
 
+- 2026-08-02 — **The locked v1.0 contract is restored.** The v1.1.0 release
+  had silently added a per-event-type `event_subtype` vocabulary into the
+  locked v1.0 schema, narrowing a contract that promised any non-empty
+  string: a record from the v1.0.5 tag's own example corpus
+  (`event_subtype: "RF_OBSERVATION"`) stopped validating, and the corpus
+  copy was later edited to match, hiding the breach. Found by running the
+  stronger form of the schema gate during the X1-02 one-time inventory;
+  maintainer-adjudicated the same day: restore. The consistency block is
+  removed from the v1.0 schema; the controlled vocabulary remains in the
+  v1.1.0 schema, where producers opt into it. The exact v1.0.5-era record
+  is embedded verbatim in `gateway/tests/test_v1_lock_restoration.py` and
+  must validate forever; the v1.0 schema byte-identity pin is re-anchored
+  at the restored bytes and moving it now requires an on-record
+  adjudication. One conformance fixture and four tests that pinned the
+  unlawful rules moved to the 1.1.0 stamp. Recorded open question, not
+  silently resolved: whether the locked contract's own subtype-discriminator
+  sentence independently mandates the match rule for v1.0 (the same
+  question applies to the post-lock `subtypePayloadMatch` block, which
+  rejects nothing in the historical corpus and was left untouched).
+
 - 2026-08-02 — **An unnamed producer can no longer assert an authoritative
   track.** The `state-projector-*` wildcard is removed from
   `policy/producer-authority.yaml` (maintainer-adjudicated). It authorized any

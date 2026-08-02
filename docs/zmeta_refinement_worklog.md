@@ -2,7 +2,26 @@
 
 ## Current Resume Note
 
-- Last updated: 2026-08-02 (readiness audit; seven adjudications; fix wave shipped; checkpoint closed)
+- Last updated: 2026-08-02 (lock restored; fourteen adjudications; prep complete)
+- **2026-08-02 (late) — the lock breach, found and repaired the same day.**
+  The X1-02 one-time gate inventory ran the stronger forms that had never
+  been run and surfaced five defects, two severe: every published release's
+  SHA256SUMS carries wrong manifest checksums (CRLF hashing in the signer;
+  adjudicated: fix the signer, publish errata, correct from v1.1.20), and
+  the locked v1.0 schema had been narrowed by the v1.1.0 release
+  (adjudicated: restore). The restoration shipped red-first the same
+  evening: the v1.0.5-era record validates again and is pinned verbatim,
+  the whole v1.0.5 corpus validates 3 for 3, the vocabulary still binds
+  under the 1.1.0 stamp, the byte-identity pin re-anchors at the restored
+  bytes, and the saturation blind spot this exposed in the
+  governance-sentence test's mutation arm is fixed symmetrically. Left
+  open on the record rather than resolved in the dark: whether the locked
+  contract text independently mandates the subtype-discriminator match for
+  v1.0. Also this session: SAPIENT interop prerequisites completed and
+  live-verified end to end (templates, cross-language wire proof, both
+  shim directions), and the A1-02 shape approved with rationale. Battery
+  1639 passed plus 1074 subtests, gate exit 0. The push follows this
+  record.
 - **2026-08-02 (checkpoint closeout).** Final state verified by hand rather
   than accepted: main and origin synced at f0f875e, CI green on the last two
   pushes, kernel gate all flags exit 0, examples 51/51, pytest 1636 passed

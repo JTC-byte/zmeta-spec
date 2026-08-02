@@ -818,17 +818,29 @@ def test_governance_sentence_is_derived_from_the_manifest():
     else:
         assert "No governed artifact changed" in live
 
-    # and moving a governed hash must move the sentence
+    # and moving a governed hash must move the sentence, in whichever
+    # direction the tree leaves available. When the target artifact has
+    # already changed relative to baseline (the 2026-08-02 lock restoration
+    # put schema/zmeta-event-1.0.schema.json in that state), doctoring it
+    # AWAY from baseline is a no-op on the sentence, so flip it back TO the
+    # baseline hash instead and require the sentence to shrink.
+    target = "schema/zmeta-event-1.0.schema.json"
+    flipped = (
+        baseline["artifact_hashes"][target]
+        if target in changes
+        else "sha256:deadbeef"
+    )
     doctored = dict(manifest)
     doctored["artifact_hashes"] = [
-        dict(entry, hash="sha256:deadbeef")
-        if entry["path"] == "schema/zmeta-event-1.0.schema.json"
-        else entry
+        dict(entry, hash=flipped) if entry["path"] == target else entry
         for entry in manifest["artifact_hashes"]
     ]
     moved = facts.governance_sentence(baseline, doctored)
     assert moved != live, "moving the locked v1.0 schema hash did not change the sentence"
-    assert "schema/zmeta-event-1.0.schema.json" in moved
+    if target in changes:
+        assert target not in moved
+    else:
+        assert target in moved
 
 
 def test_a_deleted_governed_artifact_is_visible():
