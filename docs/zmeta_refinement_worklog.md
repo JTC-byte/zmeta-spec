@@ -2,7 +2,40 @@
 
 ## Current Resume Note
 
-- Last updated: 2026-08-03 (wave 2 landed; A1-02 and X1-01 closed; vessel reaches the map)
+- Last updated: 2026-08-03 (phase 3 validations done; SAPIENT boundary owes three fixes)
+- **2026-08-03 (phase 3) — the first interop against an implementation we
+  did not write, and it paid both ways.** Four validation streams ran
+  read-only against 720774e. The headline positive: the independent Java
+  SAPIENT harness (BSI Flex 335 v2, dstl protobufs) accepted a
+  DetectionReport built by the real chain, ADS-B entry through the track
+  projector through the SAPIENT egress and the Python shim over framed
+  TCP: VALID DETECTION_REPORT from a validator nobody here wrote. The
+  headline findings, all at the SAPIENT boundary, all queued cut-blocking:
+  (1) BLOCKER, ingress: a detection with any classification entry emits an
+  OBSERVATION whose vendor extension carries the per-entry confidence key
+  verbatim, and the gateway's recursive identity denylist rightly refuses
+  it (OBSERVATION_HAS_IDENTITY); the adapter README claims the rename
+  avoids denylist keys, which is false for confidence, and the adapter
+  test suite never runs its output through the gateway validators, the
+  vacuous-verification class again. (2) BLOCKER, ingress: every
+  INFERENCE_EVENT the adapter emits is hardcoded node_role EDGE, which
+  policy/roles.yaml forbids for inference; producer authority grants what
+  role stamping then always refuses. (3) MAJOR, egress: a 2-D STATE (every
+  AIS vessel, every baro-only aircraft) returns None from the SAPIENT
+  egress with no counter and no loss note; the A1-02 rollout never swept
+  the egress adapters, and grep shows no egress adapter knows
+  dimensionality exists. Elsewhere: containers PASS through the rewritten
+  deploy README followed verbatim by a stranger, which closes the
+  readiness audit containers BLOCKER on the record, with a real MAJOR
+  observation that the metrics summary line is datagram-driven rather than
+  timer-driven, so an idle gateway goes silent; sims PASS with throughput
+  consistent with the ~422 events/s datum, plus the pleasing note that
+  every replayed 2025-era synthetic event now trips the new ts-plausibility
+  warning, the instrument working exactly as shipped; retask PASS, 24 of
+  24 checks, both fielded shapes on the promoted lane, TIMING_STATUS_MISSING
+  and the fail-closed MAVLink refusal both confirmed live. Full results
+  archived with the session prep artifacts. The three SAPIENT fixes open
+  the next session, before the docs refresh and the cut.
 - **2026-08-03 (later) — wave 2, and the doctrine that opened this cycle
   closes in the right direction.** Four workstreams landed the 2-D form end
   to end: AIS and barometric-only ADS-B emit declared 2-D canonical geo

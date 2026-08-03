@@ -34,8 +34,42 @@ produces 2-D tracks, closing A1-02's measured consequence in the right
 direction; the third coherence arm; X1-01 closed at both lawful layers;
 contract sections 21.1 and 21.8 drafted per the section 20.4 checklist;
 ERROR_ELLIPSE_M and GEO_DIMENSIONALITY adopted in the registry; both
-doctrine entries CLOSED on the log. Remaining phases as written below:
-validations (phase 3), documentation refresh (phase 4), the cut (phase 5).
+doctrine entries CLOSED on the log.
+
+**PHASE 3 RAN 2026-08-03** (four read-only streams against 720774e; full
+results in the worklog entry and the session archive). Sims PASS
+(throughput consistent with the ~422 events/s datum), containers PASS
+through the rewritten README followed verbatim, which closes the readiness
+audit containers BLOCKER, retask PASS 24/24 on both fielded shapes, and
+the SAPIENT interop achieved the first acceptance by an independent
+implementation while finding the three boundary defects below.
+
+**NEXT SESSION OPENS WITH THE SAPIENT BOUNDARY FIX WAVE, cut-blocking:**
+
+1. Ingress, BLOCKER: strip or rename every observation-denylist key
+   (confidence is the demonstrated one) inside the vendor extension copies
+   of classification and behaviour entries; correct the README sentence
+   that claims this already happens; and add gateway-validator runs to the
+   adapter test suite, because schema-only validate() is how this class
+   survives.
+2. Ingress, BLOCKER: INFERENCE_EVENTs must not stamp node_role EDGE
+   (policy/roles.yaml allows inference from GATEWAY only); fix the
+   stamping, pin it through the gateway validators.
+3. Egress, MAJOR: decide and implement 2-D STATE handling for the SAPIENT
+   detection (the dstl protos say whether location z is optional; if it
+   is, emit without z; if not, refuse VISIBLY with a counter and a loss
+   note). Sweep the other egress adapters (jreap, klv) for the same
+   all-or-nothing geo gate, because no egress adapter currently knows
+   dimensionality exists.
+
+Also queued from phase 3, not cut-blocking: the gateway metrics summary
+line is datagram-driven so an idle gateway goes silent (timer-drive it or
+document it); tools/udp_receiver.py block-buffers when redirected (add
+flushing); sim tooling guidance for the ts-plausibility warning on
+replayed historical corpora (set the horizon to 0 in sims, or note it).
+
+Then phase 4 (documentation refresh) and phase 5 (the cut) as written
+below.
 
 The campaign, in order:
 
