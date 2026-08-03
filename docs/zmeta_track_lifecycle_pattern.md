@@ -1,7 +1,7 @@
 # Track Lifecycle With Existing Vocabulary - The Command-Grade Track Pattern
 
 Status: advisory pattern guide (Docs/advisory change class, non-normative).
-Current release context: ZMeta v1.1.19.
+Current release context: ZMeta v1.1.20.
 
 This document describes how a fielded deployment answers the track lifecycle
 questions -- is this track new, active, stale, lost, merged, split, retired,

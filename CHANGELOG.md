@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+(Nothing yet — the next work lands here.)
+
+## [1.1.20] - 2026-08-03
+
 - 2026-08-03 — **Phase 4: the documentation describes the stack the push
   built.** The README's Current Release section no longer attributes the
   working tree's governed delta to the published v1.1.19 tag: it states

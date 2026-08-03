@@ -1,8 +1,8 @@
 manifest_version: 1
-release_id: zmeta-v1.1.19
-release_name: ZMeta v1.1.19
+release_id: zmeta-v1.1.20
+release_name: ZMeta v1.1.20
 release_status: formal_release
-release_date: '2026-07-28'
+release_date: '2026-08-03'
 zmeta_versions:
   normative:
   - '1.0'
@@ -27,9 +27,9 @@ profile_precision_policy_hash: sha256:a2f51cf5f0779c43ae4118b941524fb14783181c73
 bad_event_corpus_hash: sha256:a14c0492452bfad586a9fdce4a7e199b0baf937325b19af3a2b1d03a16cbdc5f
 adapter_conformance_hash: sha256:d97db4ca864fce4a9f4546175c93f40947083c77d5e19ef1357e285d7bdd181c
 encoding_projection_specs_hash: sha256:54459b03ceed6605d7af49d327b7c7c41395b82b8dadad7fd6a0d9d40c8ecd6d
-process_governance_hash: sha256:2736079f0162f72c26e87b130900e53ca8dad903b11123874f2b21e7b8f389fb
-release_bundle_hash: sha256:c1a2668036cc8243f5ab4c33649481043a73f11b6d5629572fe0c1b4cd273ca6
-release_manifest_hash: sha256:36e0990385e731b07045dc99c4e49053ebf0e81a5798ac06c8cfd1f5a41f1e96
+process_governance_hash: sha256:5fc971013a9e0027c01011dacdd0119e483c95ed169bc45948b6294451891d23
+release_bundle_hash: sha256:9a6b23614af1a11219ebbdef511e2d8a0215c2af166b624132798601bd29b9b5
+release_manifest_hash: sha256:01908cdc666f327d35be71d281cf04d436e7b0b06e719b88b36650be8fea00e3
 artifact_hashes:
 - path: AGENTS.md
   group: process_governance
@@ -69,11 +69,11 @@ artifact_hashes:
   canonicalization: text_lf
 - path: conformance/claims/example-core-producer.yaml
   group: claims
-  hash: sha256:936303cf44c33f0fa31e30a56e4e6016e468e0cf4f9d4d1f7c6a1f0cb7336e38
+  hash: sha256:084a737b2354ed782ee2f98391b85bf40ac831ff6fcf85d7313abae53b13cd40
   canonicalization: text_lf
 - path: conformance/claims/example-reference-gateway.yaml
   group: claims
-  hash: sha256:c4c7e450164f9d6a1e2c260418cd4cd14f0ab379c15922c784f465075bfe26cf
+  hash: sha256:0b77248c8b93a7c83dc3771602c056da2c853f52242853381caa46b780b2fcd3
   canonicalization: text_lf
 - path: conformance/conformance_classes.yaml
   group: conformance_classes
@@ -133,7 +133,7 @@ artifact_hashes:
   canonicalization: text_lf
 - path: docs/zmeta_change_governance.md
   group: process_governance
-  hash: sha256:52a2d4908b9ed5ddc46fea4744762c4a4650cb0b6eaeb5e9b488039514332e6b
+  hash: sha256:3db963d0be3e4f41fe3bfc0d8af54532105afcda3d16abfa57d91f1658952a95
   canonicalization: text_lf
 - path: docs/zmeta_defensive_publication.md
   group: process_governance
@@ -241,7 +241,7 @@ artifact_hashes:
   canonicalization: text_lf
 - path: release/governed-baseline.yaml
   group: release_packaging
-  hash: sha256:fe3446a62a54836cd0441292d7e6319623908e7b26d464ecda6c6e3053fbd816
+  hash: sha256:75acd5032d6581f3e06dc3a006762d61e9406c70b08d179822b80cdaa06c5862
   canonicalization: text_lf
 - path: schema/proto/zmeta_event_v1.proto
   group: encoding_projection_specs
@@ -483,7 +483,7 @@ artifact_groups:
     paths:
     - conformance/claims/example-core-producer.yaml
     - conformance/claims/example-reference-gateway.yaml
-    hash: sha256:5056c52f54a38ee112038348767670b9bf45109159001c9b6493d1d01593ffc0
+    hash: sha256:a42437d8222ac43d7299eebb22015b067635e2cecd3611c76b1e77e714e1bc82
   release_policy:
     description: Human-readable release hash taxonomy and canonicalization policy.
     paths:
@@ -499,7 +499,7 @@ artifact_groups:
     - TRADEMARK.md
     - docs/zmeta_change_governance.md
     - docs/zmeta_defensive_publication.md
-    hash: sha256:2736079f0162f72c26e87b130900e53ca8dad903b11123874f2b21e7b8f389fb
+    hash: sha256:5fc971013a9e0027c01011dacdd0119e483c95ed169bc45948b6294451891d23
   release_packaging:
     description: Formal release signing, attestation, package template, and package validation support.
     paths:
@@ -510,7 +510,7 @@ artifact_groups:
     - spec/release-signing-attestation.md
     - tools/build_release_package.py
     - tools/validate_release_package.py
-    hash: sha256:166221f0136b300604514612383f2bb271b78b2400a07ab62ed26c7c08ed87dd
+    hash: sha256:f2fffbfa7142bdebfec964b8a90f8e1a27dcc82b5295d0fdb9e15c728121a4bd
   release_tools:
     description: Release hash build and validation tooling.
     paths:

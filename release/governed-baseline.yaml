@@ -1,4 +1,4 @@
-baseline_release_id: zmeta-v1.1.18
+baseline_release_id: zmeta-v1.1.19
 generated_by: tools/release_focus_facts.py --write-baseline
 purpose: The published release this working tree is measured against. Committed because CI checks out without tags, so a git-based comparison would pass vacuously there.
 artifact_hashes:
@@ -9,10 +9,10 @@ artifact_hashes:
   TRADEMARK.md: sha256:0085d72ae8c4d11550562a784980275258a99b5b72450a2d6937b0971b91b201
   configs/policy-variants/producer-authority.strict.yaml: sha256:4f9ab94813f97ff30b38bec62f4cfddddbb180b66ff82906a7e4573fdc5c628b
   configs/policy-variants/timing-freshness-profile-L-degrade.yaml: sha256:aaa30e5607a22d006c243403fafbd6b55f6ee8cb9ce0c2aa063ad8af30b64780
-  conformance/adapter-harness/must-pass.jsonl: sha256:c577534ae061630adc14ebc2b62ac414392b221f6023379b956feb3aa41f99af
+  conformance/adapter-harness/must-pass.jsonl: sha256:f4274b5d7d2a1bc32550f0f68255849d270cf4a99da20a4a2cffaa4419dade69
   conformance/bad-events/must-fail.jsonl: sha256:e4863fbee62bb980bd12365551cefc2367309c24a2422bd5fc5ffeabd7b68102
-  conformance/claims/example-core-producer.yaml: sha256:2f7467a9b937e132ccea031425eb07e8ea71da41fa2d11355ee91cace9a5fa98
-  conformance/claims/example-reference-gateway.yaml: sha256:e2b7146dae72a063f0b8335a71ce26ff17c471a1f050b0f47dbc4579c5c8512c
+  conformance/claims/example-core-producer.yaml: sha256:936303cf44c33f0fa31e30a56e4e6016e468e0cf4f9d4d1f7c6a1f0cb7336e38
+  conformance/claims/example-reference-gateway.yaml: sha256:c4c7e450164f9d6a1e2c260418cd4cd14f0ab379c15922c784f465075bfe26cf
   conformance/conformance_classes.yaml: sha256:c3342cc651253962eb2dd93272e7a85d5ee011afb7b3a40c9cefb7601e5b6bc6
   conformance/encoding-negative/compact-must-fail.jsonl: sha256:d282d2d48f3572b7a9f974460946cde6a96cbd944d888221502b3a4091dd755d
   conformance/encoding-negative/context.jsonl: sha256:a08ef68da7067be0e6ccf37e8f4ae349e42156678805aaf7de913cc4fa36e6d3
@@ -27,8 +27,19 @@ artifact_hashes:
   conformance/profile-projection/must-fail.jsonl: sha256:4f20a6d8b0a6e5f73b491389d78313426ee90ba9b13192ca32593650e436acf0
   conformance/profile-projection/must-pass.jsonl: sha256:ac8d80b93480c735b961c72b049dd22a0b3997d03ce72cf53df0be903d15da47
   conformance/profile_projection_field_catalog.yaml: sha256:bd5c6526339863e704bc287c45a35d0b2ff277f47a2ed8f100788ace73fec1b2
-  docs/zmeta_change_governance.md: sha256:28778ba5b68e3bd41f46717208ed79b19ba2cd989226ae7e875a0019ec720a3b
+  docs/zmeta_change_governance.md: sha256:52a2d4908b9ed5ddc46fea4744762c4a4650cb0b6eaeb5e9b488039514332e6b
   docs/zmeta_defensive_publication.md: sha256:4cca30cba78e081c57b73218d5bcb598ff3945a22d8e83299666df7ad9fc00af
+  export/policy/command-evidence.json: sha256:8df7240d2d2707a24cee52265dc1f289947f56d22b8a02b140ce04fd8d89e5ca
+  export/policy/index.json: sha256:0c2c42f197102128d86c554bfd68d6832d602697ec014fa7cccd26b44442122d
+  export/policy/lineage.json: sha256:8fec6c9cacc608f63e02014944df71a4fc3bd9fda8925d4ec60b4834ef13f421
+  export/policy/producer-authority.json: sha256:4f2e403352d4a121f00295dd2a8d8579a8fbe552f6ceb76deaf28f1e818daafa
+  export/policy/profile-precision.json: sha256:5efe1c853167d89279c4e6d0c53da28531193bc75bfa05f00d55c5358ee603f5
+  export/policy/profiles.json: sha256:672cc1a48239850cbec25eff544197791a1f4bb6631bab30d04d5753d8e9aedb
+  export/policy/roles.json: sha256:323d1609131af3c3c870de8b12b424392eb4db18589e6db349f11bc2ecd9ab73
+  export/policy/routing.json: sha256:200943d173f013c3ae038fbd9e0ba11312632b35fafdd8c4067f48d4978f85cd
+  export/policy/semantics.json: sha256:9c29efd6ca0b670db7f3c41faab8a70a8af770d9d2d1a762e8a4ff7bf38913f0
+  export/policy/timing-freshness.json: sha256:61c3c55ea8853764e63352e5280b01804449e0936c0620802172256ac1de5198
+  export/policy/violation-codes.json: sha256:a7daa4aee9b2ef9dc14139c3525cfd28b551a2a60abfead5a23eae20ccab447f
   policy/command-evidence.yaml: sha256:aecc54aee447f21866a26f2d30b53b4edd5b3742514e85dac6208eee86807184
   policy/lineage.yaml: sha256:cbabca448f478c9051b8d24ae38a09bfebe0297f76bfd373485361d549ba94d7
   policy/producer-authority.yaml: sha256:d1ed35df46863b4f908c41a833403a21bff0ec9803e55a0db6b307ec457ee145
@@ -42,6 +53,7 @@ artifact_hashes:
   release/ATTESTATION_TEMPLATE.yaml: sha256:51d83f4f1105ddfb15d437d853a3776fb5f0dcf93421909dd376708721455a05
   release/RELEASE_NOTES_TEMPLATE.md: sha256:72f8508ccbcc44e6845fee7b778e9501cdcbcc70f6dc2012614991f07a3784aa
   release/RELEASE_PACKAGE_README.md: sha256:085a7808594e8d4070fd73af6f7bf19c61fd1656b26d9a8779040f0b77abcc47
+  release/governed-baseline.yaml: sha256:fe3446a62a54836cd0441292d7e6319623908e7b26d464ecda6c6e3053fbd816
   schema/proto/zmeta_event_v1.proto: sha256:abc128fa2dc0058624bc654b422e8b0c7a045aac83e6a71d644a8ccca6672d82
   schema/zmeta-event-1.0.schema.json: sha256:1d2d84164b3a8986874e932c0e9369be3bf392a483a8ff261d464f34bd16d7b5
   schema/zmeta-event-1.1.0.schema.json: sha256:6bb9cac9ff118baf3aaedfdfd5a909a7da2b244af0db65db2b4ffa83db0f1741
@@ -54,9 +66,10 @@ artifact_hashes:
   spec/release-hash-policy.md: sha256:105f61fa8b6ed602c7584d0f4cb1d56a838a93c73aee06f9223e3253507b13ae
   spec/release-signing-attestation.md: sha256:1dfa9170bb8d6b680713bb46982efc817e2ebc42573d1a79debf4c175ec0f061
   spec/semantics-contract.md: sha256:18229a15ab63452932d1cddcf70447d4a9ccbe6395f696e6cc59584e8958e233
-  tools/build_release_manifest.py: sha256:1bf46c0fadd0e1e3f80d0a9c5f663f86b27ea0cd5a5e9a2313f7c89896a678f6
+  tools/build_release_manifest.py: sha256:e00484c20ac6a26d063be0d7d328262aa6cc5d9ffaac4c8f040a9e74f305db1b
   tools/build_release_package.py: sha256:9c67997ba6eb2381ecf688176d70a689bb358f61a7ade11547faf0ae7af5080e
   tools/compute_contract_hash.py: sha256:813cbfa4a98027a1eac0954fc2eb9d42eb43fb4580da56d2ff0363e45ee8f5de
+  tools/export_policy_json.py: sha256:2bb355a3317c2f62670368df3c46c213e5c8047398ecb1ec86514bfcce290432
   tools/filter_risk.py: sha256:cc4412acb9366644ca7e19000858e4a284b6a6d8f1b42558da35b053915be2bd
   tools/validate_adapter_conformance.py: sha256:45d44167eb4f33e535a823dba2e2493a27c7ac864e08aa7ba57310d02d6c2f37
   tools/validate_bad_events.py: sha256:67f32db27a03af99b6ab0a353447a0f449fb2111642a9217faed512b5aafe308
