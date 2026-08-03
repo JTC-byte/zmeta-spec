@@ -2,7 +2,31 @@
 
 ## Current Resume Note
 
-- Last updated: 2026-08-03 (phase 3 validations done; SAPIENT boundary owes three fixes)
+- Last updated: 2026-08-03 (SAPIENT boundary fixes landed; cut-blockers cleared)
+- **2026-08-03 (fix wave) — the boundary paid its debts, and the harness
+  ruled on the proto question.** Both ingress blockers and the egress MAJOR
+  closed red-first, every red demonstrated through the real gateway
+  validators rather than the schema-only path that hid them; that coverage
+  now lives permanently in the SAPIENT suites, mirroring what
+  mavlink/jreap/cot already had. The egress fix rests on a verified fact,
+  not a reading: the dstl Location proto marks x and y mandatory and z
+  not, and the attack pass then serialized a z-less DetectionReport from
+  the real AIS chain through the shim to the live Java harness, which
+  printed VALID DETECTION_REPORT. A bonus laundering defect died en route:
+  the old gate exported a z for the contradictory 2D-plus-alt_m shape,
+  which now refuses. JREAP tightened to distinguish declared 2-D from the
+  ambiguous no-token shape; KLV verified as honest wholesale pass-through
+  and pinned. The idle-gateway metrics fix (produced by a separate agent
+  session, verified and kept on its merits) makes the summary timer-driven.
+  Attack pass on the whole commit: CLEAN, no vacuous pins (2, 3, 2, 1 reds
+  across the four reverts), one informational note (whitespace-padded
+  denylist keys ride on the snake_keys lowercasing and fail closed at the
+  gateway regardless). Battery 1718 passed plus 1081 subtests, gate exit
+  0, examples 51/51. Ripples queued, not lost: JREAP has no lat/lon
+  presence check at all (a geo of only alt_m emits a null-position track),
+  and the ingress suites for kraken, moth, signalhunter and adsb should
+  get the same gateway-pipeline coverage sweep the SAPIENT suite just
+  gained. The push follows this record; phases 4 and 5 remain.
 - **2026-08-03 (phase 3) — the first interop against an implementation we
   did not write, and it paid both ways.** Four validation streams ran
   read-only against 720774e. The headline positive: the independent Java

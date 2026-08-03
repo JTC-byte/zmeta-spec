@@ -44,7 +44,17 @@ audit containers BLOCKER, retask PASS 24/24 on both fielded shapes, and
 the SAPIENT interop achieved the first acceptance by an independent
 implementation while finding the three boundary defects below.
 
-**NEXT SESSION OPENS WITH THE SAPIENT BOUNDARY FIX WAVE, cut-blocking:**
+**THE SAPIENT BOUNDARY FIX WAVE LANDED 2026-08-03** (commit 15f4792,
+attack pass CLEAN including the decisive wire proof: the independent Java
+harness accepted the z-less 2-D DetectionReport). All three cut-blockers
+below are closed, the SAPIENT suites now carry real gateway-validator
+coverage, and the idle-metrics queue item shipped with the same commit.
+New non-blocking ripples queued: JREAP lacks any lat/lon presence check
+(a geo of only alt_m emits a null-position track), and the kraken, moth,
+signalhunter and adsb ingress suites should gain the same
+gateway-pipeline coverage the SAPIENT suite just did. NOTHING CUT-BLOCKING
+REMAINS: phase 4 (documentation refresh) then phase 5 (the cut) are the
+whole board. The original fix specs, kept as the decision record:
 
 1. Ingress, BLOCKER: strip or rename every observation-denylist key
    (confidence is the demonstrated one) inside the vendor extension copies

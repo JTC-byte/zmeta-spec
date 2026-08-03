@@ -2,6 +2,25 @@
 
 ## [Unreleased]
 
+- 2026-08-03 — **The SAPIENT boundary fixes the interop run demanded.**
+  Ingress: classification and behaviour entries no longer carry
+  observation-denylist key names into the vendor extension at any nesting
+  depth (the per-entry `confidence` becomes `native_confidence`, value
+  preserved as the producer claim it is), and INFERENCE_EVENTs stamp
+  `node_role: GATEWAY` as policy requires instead of the always-refused
+  EDGE. Egress: a declared 2-D STATE now exports a SAPIENT DetectionReport
+  without a `z` key, resting on a verified proto fact (the dstl Location
+  message marks x and y mandatory and z not) and confirmed on the wire by
+  the independent Java harness accepting the z-less detection; the
+  2D-with-alt_m contradiction refuses instead of exporting a laundered z.
+  JREAP distinguishes a declared 2-D geo from the ambiguous no-token shape,
+  which now refuses; KLV already carried the 2-D form byte-for-byte and is
+  pinned so it stays that way. The SAPIENT test suites now run emitted
+  events through the real gateway validators, closing the schema-only
+  coverage gap that let both ingress defects ship. The gateway metrics
+  summary is now timer-driven, so an idle gateway reports on schedule
+  instead of reading identical to a wedged one.
+
 - 2026-08-03 — **A vessel reaches the map: the A1-02 2-D form flows end to
   end.** AIS emits declared 2-D canonical geo (`dimensionality: "2D"`, no
   `alt_m`) with `geo_status: VERTICAL_UNAVAILABLE` and a conditional
