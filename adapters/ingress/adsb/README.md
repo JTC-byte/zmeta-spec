@@ -26,12 +26,12 @@ them. It also produces the hard cases continuously and for free:
 
 | Real `aircraft.json` case | What this adapter does |
 |---|---|
-| position + `alt_geom` + `nac_p` | canonical `geo`, error ellipse from the declared NACp bound |
-| position, `alt_baro` only | no canonical `geo` (see open question 2); lat/lon kept as native features, `geo_status: UNAVAILABLE` |
-| position, `alt_geom` outside the plausibility band (roughly -450 m to 20000 m) | no canonical `geo`; lat/lon and the raw `alt_geom` value kept as native features, `geo_status: UNAVAILABLE` |
+| position + `alt_geom` + `nac_p` | canonical 3-D `geo`, error ellipse from the declared NACp bound |
+| position, `alt_baro` only | canonical 2-D `geo` (`dimensionality: "2D"`, no `alt_m`), `geo_status: VERTICAL_UNAVAILABLE` |
+| position, `alt_geom` outside the plausibility band (roughly -450 m to 20000 m) | canonical 2-D `geo`; the raw `alt_geom` value kept as a native feature; `geo_status: VERTICAL_UNAVAILABLE` |
 | Mode S only, no position | a real detection of a real emitter, positionless |
 | `nac_p` absent | no error bound invented |
-| NaN / out-of-range coordinate | not a position, and not demoted to native features either |
+| NaN / out-of-range coordinate | not a position, no canonical `geo` at all |
 | snapshot clock (`now`) below 2000-01-01 | refused entirely; not read as a moment |
 | no `hex` | refused entirely; no subject for the observation |
 
@@ -45,40 +45,50 @@ This adapter rejects `alt_geom` outside a plausibility band of roughly -450 m
 (the Dead Sea shore, the lowest point on Earth's land surface, with margin)
 to 20000 m (above every civil airliner and every known military fixed-wing
 envelope, the U-2 and SR-71 included). A value outside that band is treated
-the same way a missing `alt_geom` is: no canonical `geo`, `geo_status:
-UNAVAILABLE`, and the position demoted to `adsb_lat_deg` / `adsb_lon_deg`.
-The raw altitude also survives, as `adsb_alt_geom_ft`, so the corrupted
-reading is visible rather than silently dropped.
+the same way a missing `alt_geom` is (doctrine A1-02): the horizontal fix
+still gets its canonical home, declared `dimensionality: "2D"` with no
+`alt_m`, and `geo_status: VERTICAL_UNAVAILABLE`. The raw altitude also
+survives, as `adsb_alt_geom_ft`, so the corrupted reading is visible rather
+than silently dropped.
 
 An out-of-range coordinate (for example `lat: 95.0`) is a different case: the
-position itself is not real, so it is refused from both canonical `geo` and
-the native demotion path, the same bounds check in both places.
+position itself is not real, so there is no canonical `geo` at all, and
+nothing is preserved natively either. `_position()`'s bounds check is the one
+place that decides "is this a position", and both the 3-D and 2-D branches of
+`_geo` share it.
 
 ## Field mapping
 
 Canonical, only when honestly derivable:
 
 - `event.ts` ← `now - seen_pos` (position age), else `now - seen`
-- `payload.geo` ← `lat`, `lon`, and `alt_geom` only (feet → metres)
+- `payload.geo` ← `lat`, `lon` always; `alt_geom` (feet → metres) when usable.
+  When `alt_geom` is absent or implausible, `payload.geo` is still emitted,
+  declared `dimensionality: "2D"` with no `alt_m` (doctrine A1-02), rather
+  than omitted.
 - `payload.geo.error_ellipse_m` ← `nac_p`, DO-260B containment radius,
   spelled `semi_major`/`semi_minor`/`orientation_deg` to match the formal
-  contract shape (schema `$defs/error_ellipse`). Attaches only when canonical
-  `geo` exists, since it describes uncertainty about a position, not about a
-  positionless detection.
-- `payload.quality.geo_status` ← `UNAVAILABLE` when there is no canonical geo
+  contract shape (schema `$defs/error_ellipse`). Attaches whenever canonical
+  `geo` exists, 2-D or 3-D, since NACp is a horizontal bound and is
+  meaningful either way; it never attaches to a positionless detection.
+- `payload.quality.geo_status` ← `UNAVAILABLE` when there is no canonical
+  geo at all, `VERTICAL_UNAVAILABLE` when canonical geo is present but
+  declared 2-D
 - `payload.timing_quality` ← degraded fallback unless the deployment supplies
   real clock metadata
 
 ### Conditional `zmeta_version`
 
 The locked v1.0 `geo` definition is `additionalProperties: false` with only
-`lat`/`lon`/`alt_m`; it has no room for `error_ellipse_m`. An entry whose
-`nac_p` yields a usable containment radius therefore stamps
+`lat`/`lon`/`alt_m`; it has no room for `error_ellipse_m` or
+`dimensionality`. An entry whose `nac_p` yields a usable containment radius,
+or whose horizontal fix has no usable `alt_geom`, therefore stamps
 `zmeta_version: "1.1.0"` instead of the adapter's usual `"1.0"`, because that
-is the schema branch that defines the field. An entry with no usable NACp
-bound keeps the `"1.0"` stamp unchanged, and its output is otherwise
-byte-for-byte identical to what this adapter has always produced: the
-promotion adds nothing to the branch that never populates an ellipse.
+is the schema branch that defines those fields. An entry with a full 3-D
+position and no usable NACp bound keeps the `"1.0"` stamp unchanged, and its
+output is otherwise byte-for-byte identical to what this adapter has always
+produced: the promotion adds nothing to the branch that never populates
+either 1.1.0-only field.
 
 The v1.1.0 `NETWORK` observation payload also requires a `features.protocol`
 string that the locked v1.0 payload does not. This adapter supplies
@@ -90,16 +100,15 @@ Native, explicitly named so nothing reads more into them than the data supports:
 `adsb_ground_speed_kt`, `adsb_track_deg_true`, `adsb_baro_rate_fpm`,
 `adsb_message_count`, `adsb_seen_s`, `adsb_seen_pos_s`, `adsb_nac_p`,
 `adsb_nac_v`, `adsb_sil`, `adsb_nic`, `adsb_downlink_hz`, `adsb_receiver_id`,
-`adsb_lat_deg` / `adsb_lon_deg` when the position could not become canonical,
 and `adsb_alt_geom_ft` when `alt_geom` was present but outside the
 plausibility band above.
 
 ## Three open questions this adapter raised
 
 All three are standard-level questions rather than adapter bugs, and all three
-are recorded in `docs/zmeta_doctrine_review_log.md` as cycle A1. None is
-settled. They are listed here so that an adapter author meeting the same wall
-knows it is a known one.
+are recorded in `docs/zmeta_doctrine_review_log.md` as cycle A1. Two are still
+open; the second is now closed for this adapter. They are listed here so that
+an adapter author meeting the same wall knows it is a known one.
 
 ### 1. Modality is `NETWORK`, and that is a workaround
 
@@ -125,18 +134,27 @@ its reference the way `bearing.frame` declares `TRUE_NORTH` and
 covers every SDR. A subtype per sensor family would turn the vocabulary into a
 dictionary rather than an alphabet.
 
-### 2. All-or-nothing geo discards good 2-D positions
+### 2. All-or-nothing geo discarded good 2-D positions -- closed for this adapter
 
-`payload.geo` requires `alt_m` (contract 6.8). A large share of ADS-B targets
-report only barometric altitude, so their usable horizontal fix cannot become a
-canonical position.
+`payload.geo` used to require `alt_m` unconditionally (contract 6.8). A large
+share of ADS-B targets report only barometric altitude, so their usable
+horizontal fix could not become a canonical position and was demoted to
+native features instead.
 
-This is also not specific to ADS-B. AIS is the clearer case: a vessel never has
-a meaningful altitude, so ZMeta cannot carry an AIS position canonically at
-all. Ground radar and most DF systems are 2-D as well.
+The candidate fix recorded here was a declaration: geo declares its
+dimensionality, the way `geo_status` already declares availability. That
+landed as `geo.dimensionality` in `schema/zmeta-event-1.1.0.schema.json`
+(doctrine A1-02), and this adapter now uses it: a barometric-only or
+implausible-`alt_geom` entry gets canonical `geo` declared
+`dimensionality: "2D"` with `geo_status: VERTICAL_UNAVAILABLE`, instead of
+the old full demotion. See "Geometric altitude plausibility" above.
 
-The candidate fix is again a declaration: geo declares its dimensionality, the
-way `geo_status` already declares availability.
+This was not specific to ADS-B, and closing it here does not close it
+everywhere. AIS is the clearer case: a vessel never has a meaningful
+altitude, so an AIS position could not be canonical at all under the old
+all-or-nothing rule. Ground radar and most DF systems are 2-D as well. Those
+adapters have not been changed by this workstream; adopting `dimensionality`
+there is a question for their own workstreams.
 
 ### 3. Translation provenance cannot be recorded canonically
 
@@ -151,8 +169,9 @@ two above. It is listed because an adapter author hits it on their first
 harness run and should know it is a known wall rather than a mistake in their
 fixture.
 
-Whether any of these matter is a field question. It is possible that nobody
-misses the dropped altitudes. Answering that is what the live test is for.
+Whether the remaining two matter is a field question. It is possible that
+nobody misses calibrated RF power or canonical translation lineage.
+Answering that is what the live test is for.
 
 ## Running it against real data
 

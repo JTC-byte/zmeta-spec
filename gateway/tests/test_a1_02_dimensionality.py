@@ -112,6 +112,20 @@ class A102DimensionalityTest(unittest.TestCase):
         for a horizontal-only position."""
         self.assert_invalid(observation_2d(geo_status="AVAILABLE"))
 
+    def test_unavailable_beside_a_present_geo_is_the_third_lie(self):
+        """Queued by the wave-1 attack pass: UNAVAILABLE means no canonical
+        geo at all, and nothing blocked asserting it beside a present geo.
+        Arm 3 does, for 2-D and 3-D alike."""
+        self.assert_invalid(
+            observation_2d(dimensionality=None, alt_m=120.5, geo_status="UNAVAILABLE")
+        )
+        self.assert_invalid(observation_2d(geo_status="UNAVAILABLE"))
+
+    def test_unavailable_without_geo_stays_the_honest_no_fix_statement(self):
+        event = observation_2d(dimensionality=None, geo_status="UNAVAILABLE")
+        del event["payload"]["geo"]
+        self.assert_valid(event)
+
     def test_the_2d_form_does_not_exist_under_the_locked_v10_stamp(self):
         """The locked kernel is untouched: dimensionality is not a v1.0
         member, so the 2-D form rides the 1.1.0 stamp only."""

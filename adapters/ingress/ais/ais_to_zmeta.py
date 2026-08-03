@@ -8,12 +8,12 @@ Input is a decoded message dict, as produced by AIS-catcher's JSON output (the
 common RTL-SDR decoder, same dongle as ADS-B). Raw NMEA `!AIVDM` sentences are
 out of scope: decode first. See the adapter README for the field mapping.
 
-THE ALTITUDE PROBLEM, WHICH IS THE WHOLE STORY HERE
----------------------------------------------------
-Canonical `payload.geo` requires `lat`, `lon` AND `alt_m` together (contract
-6.8, all-or-nothing). **A vessel has no altitude.** Not "missing", not "not
-reported": a surface vessel has no meaningful height above the ellipsoid, and
-the AIS message has no field for one.
+THE ALTITUDE PROBLEM, WHICH WAS THE WHOLE STORY UNDER v1.0
+----------------------------------------------------------
+Canonical `payload.geo` under the locked v1.0 kernel requires `lat`, `lon` AND
+`alt_m` together (contract 6.8, all-or-nothing). **A vessel has no altitude.**
+Not "missing", not "not reported": a surface vessel has no meaningful height
+above the ellipsoid, and the AIS message has no field for one.
 
 Substituting zero would be the worst option available. `alt_m` is height above
 the WGS-84 ellipsoid (contract 6.1/6.2), and the geoid departs from the
@@ -21,26 +21,49 @@ ellipsoid by up to about 100 m, so "sea level" is not ellipsoid zero anywhere on
 Earth. Writing 0.0 would assert a geometric height nobody measured, in a field a
 consumer is entitled to read as measured.
 
-So **every AIS observation omits canonical geo**, and the real horizontal
-position is demoted to explicitly named native features. This is not an edge
-case the way barometric-only ADS-B is an edge case. It is every vessel, every
-message, always. Recorded as doctrine A1-02, for which this adapter is the
-independent second implementation.
+That was doctrine A1-02's wall, and this adapter was its independent second
+implementation: every AIS observation with a usable position demoted that exact
+position to native features and omitted canonical geo entirely, because v1.0
+had no honest way to say "horizontal fix, no vertical" in the canonical field.
+It was not an edge case the way barometric-only ADS-B is an edge case. It was
+every vessel, every message, always.
 
-A CONSEQUENCE WORTH SEEING: the position accuracy AIS declares has nowhere to
-go either. The accuracy bit is a real, standard-defined statement (better or
-worse than 10 m), and `quality.error_ellipse_m` attaches to a canonical geo that
-does not exist here. It is carried natively and cannot be canonical.
+`schema/zmeta-event-1.1.0.schema.json` removed the wall. `geo.dimensionality`
+declares a position `"2D"` (absent means 3D), which prohibits `alt_m` outright
+and pairs with `quality.geo_status: "VERTICAL_UNAVAILABLE"`. A vessel's
+position is exactly that shape, a real, exact horizontal fix with no
+geometric vertical to assert, ever, and a message with a usable position now
+gets a canonical home for it: `payload.geo` as the declared 2-D form, with the
+event stamped `zmeta_version "1.1.0"`. A message with no usable position still
+omits `geo` entirely and stays on the locked v1.0 branch (`geo_status:
+UNAVAILABLE`, no `geo` key), because nothing 1.1.0-only is being asserted and
+nothing forces the newer stamp. A deployment validating strictly against the
+locked v1.0 kernel rather than the 1.1.0 schema never sees the 2-D form and
+keeps the full demotion this section used to describe unconditionally.
+
+`ais_lat_deg`/`ais_lon_deg` are still carried natively on every positioned
+message, on both branches: they are the exact as-broadcast record, independent
+of what canonical geo says, and existing consumers already read them there.
+
+A CONSEQUENCE WORTH SEEING: the position accuracy AIS declares still has
+nowhere canonical to go. The accuracy bit is a real, standard-defined statement
+(better or worse than 10 m), but it is one bit, not a radius category, and
+`quality.error_ellipse_m` (schema/zmeta-event-1.1.0.schema.json) requires a
+formal radius this adapter is not willing to invent from a boolean, so it stays
+`ais_position_accuracy_high`, a native feature, whether or not the position
+next to it is now canonical.
 
 ON `geo_status`
 ---------------
-When canonical geo is omitted, this sets `quality.geo_status = "UNAVAILABLE"`,
-matching the ADS-B adapter. Read it as the status of the canonical geo object,
-which is genuinely unavailable, and not as a claim that the position is unknown,
-because it is not: it is in the native features, exact as broadcast. The
-contract's vocabulary (`AVAILABLE`, `UNAVAILABLE`, `ESTIMATED`, `STALE`,
-`CONFIGURED`) has no token for "horizontally known, vertically absent", so the
-least-wrong one is used and the ambiguity is recorded rather than papered over.
+When canonical geo is omitted, this sets `quality.geo_status = "UNAVAILABLE"`:
+there is no canonical geo object to describe, matching the ADS-B adapter's
+positionless case. When a usable position is present, this sets
+`quality.geo_status = "VERTICAL_UNAVAILABLE"` (doctrine A1-02, coherence arm 1,
+schema/zmeta-event-1.1.0.schema.json): the horizontal fix is real, canonical
+and two-dimensional, and the vertical component genuinely does not exist for a
+surface vessel rather than being merely unmeasured. `AVAILABLE` is never used
+here: a vessel's canonical geo is never three-dimensional, so the token that
+pairs with a full 3-D position never applies.
 
 WHY MODALITY IS `NETWORK` AND NOT `RF`
 --------------------------------------
@@ -142,8 +165,10 @@ def _clean_text(value):
 def _position(msg):
     """The broadcast horizontal position, or None.
 
-    Returns a (lat, lon) pair. It is deliberately NOT canonical geo: see the
-    module docstring. A vessel has no altitude, so `payload.geo` is never built.
+    Returns a (lat, lon) pair. It is the same pair `_geo` builds the declared
+    2-D canonical position from, and that `_native_features` carries as
+    `ais_lat_deg`/`ais_lon_deg` regardless: the native keys are the exact
+    as-broadcast record, independent of what canonical geo says.
     """
     lat = _finite(msg.get("lat"))
     lon = _finite(msg.get("lon"))
@@ -158,6 +183,37 @@ def _position(msg):
     if not (-90.0 <= lat <= 90.0) or not (-180.0 <= lon <= 180.0):
         return None
     return lat, lon
+
+
+def _geo(position):
+    """Canonical geo, or None to omit it entirely.
+
+    A vessel never has a geometric altitude to assert, so canonical geo is
+    never the 3-D form here; when the message carries a usable position, it
+    is emitted as the declared 2-D form (`dimensionality: "2D"`, no `alt_m`,
+    doctrine A1-02) rather than withheld. Geo is omitted entirely only when
+    there is no honest position at all -- mirrors the ADS-B adapter's `_geo`
+    (adapters/ingress/adsb/adsb_to_zmeta.py), which reaches the same 2-D form
+    from the opposite direction (a real fix with no usable geometric
+    altitude, rather than a subject with none to give).
+    """
+    if position is None:
+        return None
+    lat, lon = position
+    return {"lat": lat, "lon": lon, "dimensionality": "2D"}
+
+
+def _quality(geo):
+    """Declared quality, carrying only what the message actually asserts."""
+    if geo is None:
+        # A real detection with no position. Say so rather than stay silent.
+        return {"geo_status": "UNAVAILABLE"}
+    # Canonical geo is present and, for a vessel, always two-dimensional: the
+    # horizontal fix is real and the vertical component does not exist to
+    # measure. Coherence arm 1 (schema/zmeta-event-1.1.0.schema.json, doctrine
+    # A1-02) requires this token to pair with a declared 2-D geo; `_geo` never
+    # produces any other shape, so the pairing always holds.
+    return {"geo_status": "VERTICAL_UNAVAILABLE"}
 
 
 def _epoch_s_to_utc_z(epoch_s):
@@ -221,8 +277,10 @@ def _native_features(msg, mmsi, receiver_id, position):
         features["ais_message_type"] = msg_type
 
     if position is not None:
-        # The real position, demoted rather than discarded. Canonical geo
-        # cannot hold it because a vessel has no altitude.
+        # The exact as-broadcast position, carried here regardless of what
+        # canonical geo does with it: it is the same fix `_geo` may also emit
+        # as the declared 2-D form, kept native so existing consumers of
+        # these two keys keep reading them unchanged.
         features["ais_lat_deg"], features["ais_lon_deg"] = position
 
     sog = _finite(msg.get("speed"))
@@ -254,8 +312,9 @@ def _native_features(msg, mmsi, receiver_id, position):
     accuracy = msg.get("accuracy")
     if isinstance(accuracy, bool):
         # A one-bit declaration: better than 10 m, or not. Carried as declared.
-        # It has no canonical home, because quality.error_ellipse_m attaches to
-        # a geo object this adapter never builds.
+        # It still has no canonical home: quality.error_ellipse_m needs a
+        # formal radius, and one bit is not a radius category, so this stays
+        # native whether or not the position next to it is now canonical.
         features["ais_position_accuracy_high"] = accuracy
 
     second = msg.get("second")
@@ -330,23 +389,42 @@ def translate_message(
         return None
 
     position = _position(msg)
+    geo = _geo(position)
+    # A usable position always uses v1.1.0-only geo vocabulary (the declared
+    # 2-D form, doctrine A1-02): the locked v1.0 canonical geo def is
+    # additionalProperties:false with only lat/lon/alt_m, so declaring
+    # `dimensionality` on it is schema-invalid under v1.0. A positionless
+    # message never touches that vocabulary and stays on the locked v1.0
+    # branch, byte-for-byte what it always was.
+    needs_1_1_0 = geo is not None
+
+    features = _native_features(msg, mmsi, receiver_id, position)
+    if needs_1_1_0:
+        # The locked v1.0 kernel's NETWORK ObservationPayload imposes no
+        # feature vocabulary of its own, but v1.1.0's does, and requires
+        # `protocol` (schema/zmeta-event-1.1.0.schema.json). A positionless
+        # message never leaves the v1.0 branch, so it never gains this key.
+        features["protocol"] = "AIS"
 
     payload = {
         "modality": "NETWORK",
-        "features": _native_features(msg, mmsi, receiver_id, position),
+        "features": features,
         "timing_quality": coerce_timing_quality(timing_quality, event_ts=event_ts),
-        # Canonical geo is never built: a vessel has no alt_m. UNAVAILABLE
-        # describes the canonical geo object, not our knowledge of position,
-        # which is in the native features above.
-        "quality": {"geo_status": "UNAVAILABLE"},
+        # UNAVAILABLE describes the canonical geo object, not our knowledge of
+        # position: when a position exists it is in the native features
+        # above regardless, and now also canonically as the declared 2-D form
+        # (see `_geo`/`_quality`) whenever it is usable.
+        "quality": _quality(geo),
     }
+    if geo is not None:
+        payload["geo"] = geo
 
     source = {"platform_id": platform_id, "node_role": "EDGE", "producer": producer}
     if sensor_id is not None:
         source["sensor_id"] = str(sensor_id)
 
     return {
-        "zmeta_version": "1.0",
+        "zmeta_version": "1.1.0" if needs_1_1_0 else "1.0",
         "event": {
             "event_id": _new_event_id(),
             "event_type": "OBSERVATION_EVENT",

@@ -25,6 +25,11 @@ SCHEMA = json.loads(
 )
 VALIDATOR = jsonschema.Draft202012Validator(SCHEMA)
 
+SCHEMA_110 = json.loads(
+    (ROOT / "schema" / "zmeta-event-1.1.0.schema.json").read_text(encoding="utf-8")
+)
+VALIDATOR_110 = jsonschema.Draft202012Validator(SCHEMA_110)
+
 # Contract 7.7: a STATE projection must not re-carry raw observation artifacts.
 FORBIDDEN_ON_STATE = (
     "features", "raw_features", "modality", "measurement", "measurements",
@@ -55,6 +60,47 @@ def observation(icao="a1b2c3", *, lat=34.05, lon=-118.25, alt_m=3200.4, eid=None
         "source": {
             "platform_id": "adsb-node-01", "node_role": "EDGE",
             "producer": "rf-sensor-adsb-01",
+        },
+        "payload": payload,
+    }
+
+
+def ais_observation(mmsi=366123456, *, lat=34.05, lon=-118.25, eid=None, ts=None,
+                     dimensionality="2D"):
+    """An AIS-shaped OBSERVATION_EVENT: mmsi identity, a declared 2-D position.
+
+    Shaped after the doctrine A1-02 declared-position vocabulary
+    (schema/zmeta-event-1.1.0.schema.json $defs/geo), which is what this
+    projector consumes. It is not shaped after
+    adapters/ingress/ais's *current* output, which still demotes position to
+    native features and omits canonical geo entirely; landing that side of
+    A1-02 is a sibling workstream. The projector's contract is the schema
+    vocabulary, not any one adapter's present-day output.
+    """
+    geo = {"lat": lat, "lon": lon}
+    if dimensionality is not None:
+        geo["dimensionality"] = dimensionality
+    payload = {
+        "modality": "NETWORK",
+        "features": {"ais_mmsi": mmsi, "protocol": "AIS"},
+        "timing_quality": {
+            "time_source": "UNKNOWN", "sync_state": "UNSYNCED",
+            "est_error_ms": 60000, "last_sync_ts": "2026-01-27T23:59:59.700000Z",
+        },
+        "geo": geo,
+        "quality": {"geo_status": "VERTICAL_UNAVAILABLE"},
+    }
+    return {
+        "zmeta_version": "1.1.0",
+        "event": {
+            "event_id": eid or "019fb4bb-4c74-70dd-bb83-ca4f67ee0910",
+            "event_type": "OBSERVATION_EVENT",
+            "event_subtype": "NETWORK",
+            "ts": ts or "2026-01-27T23:59:59.700Z",
+        },
+        "source": {
+            "platform_id": "ais-node-01", "node_role": "EDGE",
+            "producer": "rf-sensor-ais-01",
         },
         "payload": payload,
     }
@@ -240,6 +286,113 @@ class TestSchemaConformance:
         broken = copy.deepcopy(state)
         del broken["payload"]["track_id"]
         assert list(VALIDATOR.iter_errors(broken))
+
+
+class TestTwoDimensionalGeo:
+    """Doctrine A1-02: a declared 2-D position is projectable, not refused.
+
+    A surface vessel has no altitude to report, not a missing one. The
+    historical refusal (canonical geo silently missing alt_m, no explicit
+    token) must keep refusing: only an explicit "2D" dimensionality token
+    changes the outcome.
+    """
+
+    def test_an_ais_shaped_2d_observation_is_projected(self):
+        proj = projector()
+        pair = proj.observe(ais_observation())
+        assert len(pair) == 2
+        assert proj.stats["projected"] == 1
+        assert proj.stats["projected_2d"] == 1
+        assert proj.stats["refused_no_geo"] == 0
+
+    def test_the_2d_pair_is_stamped_1_1_0_and_a_3d_pair_stays_on_1_0(self):
+        fusion_2d, state_2d = projector().observe(ais_observation())
+        assert fusion_2d["zmeta_version"] == "1.1.0"
+        assert state_2d["zmeta_version"] == "1.1.0"
+
+        fusion_3d, state_3d = projector().observe(observation())
+        assert fusion_3d["zmeta_version"] == "1.0"
+        assert state_3d["zmeta_version"] == "1.0"
+
+    def test_the_2d_geo_carries_lat_lon_and_the_token_but_never_alt_m(self):
+        fusion, state = projector().observe(ais_observation(lat=12.5, lon=100.25))
+        for event in (fusion, state):
+            geo = event["payload"]["geo"]
+            assert geo == {"lat": 12.5, "lon": 100.25, "dimensionality": "2D"}
+            assert "alt_m" not in geo
+
+    def test_the_2d_pair_declares_vertical_unavailable(self):
+        fusion, state = projector().observe(ais_observation())
+        assert fusion["payload"]["quality"] == {"geo_status": "VERTICAL_UNAVAILABLE"}
+        assert state["payload"]["quality"] == {"geo_status": "VERTICAL_UNAVAILABLE"}
+
+    def test_a_3d_pair_carries_no_quality_block_at_all(self):
+        """A 3-D observation keeps producing exactly today's output."""
+        fusion, state = projector().observe(observation())
+        assert "quality" not in fusion["payload"]
+        assert "quality" not in state["payload"]
+        assert "geo" not in fusion["payload"]
+
+    def test_the_2d_fusion_and_state_validate_against_the_1_1_0_schema(self):
+        proj = projector()
+        emitted = []
+        for i in range(3):
+            emitted.extend(proj.observe(ais_observation(eid=uid(i))))
+        assert emitted, "nothing was emitted, so this asserts nothing"
+        for event in emitted:
+            errors = sorted(VALIDATOR_110.iter_errors(event), key=lambda e: list(e.path))
+            assert not errors, (
+                f"{event['event']['event_type']} is schema-invalid under 1.1.0: "
+                f"{errors[0].message}"
+            )
+
+    def test_lat_lon_with_no_dimensionality_token_and_no_alt_m_still_refuses(self):
+        """The historical refusal, pinned against the new acceptance path."""
+        proj = projector()
+        assert proj.observe(ais_observation(dimensionality=None)) == []
+        assert proj.stats["refused_no_geo"] == 1
+        assert proj.stats["projected_2d"] == 0
+
+    def test_lat_lon_explicitly_declared_3d_with_no_alt_m_still_refuses(self):
+        """An explicit "3D" token asserts a vertical exists; it still needs alt_m."""
+        proj = projector()
+        assert proj.observe(ais_observation(dimensionality="3D")) == []
+        assert proj.stats["refused_no_geo"] == 1
+
+
+class TestMixedDimensionalityTracks:
+    """A track whose members alternate between 2-D and 3-D sources.
+
+    Modelling choice, documented in README.md: the state reflects only the
+    member that triggered it, which is by construction the most recent
+    position-bearing member, since observe() only proceeds when the incoming
+    observation itself carries a projectable position.
+    """
+
+    def test_a_track_that_gains_a_2d_member_after_a_3d_one_reflects_the_2d_fix(self):
+        proj = projector()
+        proj.observe(observation(icao="a1b2c3", eid=uid(1)))
+        obs = ais_observation(eid=uid(2))
+        obs["payload"]["features"]["adsb_icao24"] = "a1b2c3"
+        del obs["payload"]["features"]["ais_mmsi"]
+        _, state = proj.observe(obs)
+        assert state["payload"]["geo"]["dimensionality"] == "2D"
+        assert "alt_m" not in state["payload"]["geo"]
+        assert state["zmeta_version"] == "1.1.0"
+        assert list(proj.tracks) == ["icao24-a1b2c3"]
+        assert proj.tracks["icao24-a1b2c3"].count == 2
+
+    def test_a_track_that_regains_a_3d_member_after_a_2d_one_reflects_the_3d_fix(self):
+        proj = projector()
+        obs_2d = ais_observation(eid=uid(1))
+        obs_2d["payload"]["features"]["adsb_icao24"] = "a1b2c3"
+        del obs_2d["payload"]["features"]["ais_mmsi"]
+        proj.observe(obs_2d)
+        _, state = proj.observe(observation(icao="a1b2c3", eid=uid(2)))
+        assert state["payload"]["geo"]["alt_m"] == pytest.approx(3200.4)
+        assert "dimensionality" not in state["payload"]["geo"]
+        assert state["zmeta_version"] == "1.0"
+        assert proj.tracks["icao24-a1b2c3"].count == 2
 
 
 class TestExpiry:

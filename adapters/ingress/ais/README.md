@@ -25,12 +25,12 @@ dimensions but no position, so they produce no event on their own. A decoder
 that merges static fields into a position report is welcome to; the merged
 fields are carried natively.
 
-## The altitude problem, which is the whole story
+## The altitude problem, which was the whole story under v1.0
 
-Canonical `payload.geo` requires `lat`, `lon` and `alt_m` together (contract
-6.8). **A vessel has no altitude.** Not missing, not unreported: a surface
-vessel has no meaningful height above the ellipsoid, and AIS has no field for
-one.
+Canonical `payload.geo` under the locked v1.0 kernel requires `lat`, `lon` and
+`alt_m` together (contract 6.8). **A vessel has no altitude.** Not missing, not
+unreported: a surface vessel has no meaningful height above the ellipsoid, and
+AIS has no field for one.
 
 Substituting zero would be the worst option available. `alt_m` is height above
 the WGS-84 ellipsoid, and the geoid departs from the ellipsoid by up to about
@@ -38,36 +38,58 @@ the WGS-84 ellipsoid, and the geoid departs from the ellipsoid by up to about
 assert a geometric height nobody measured, in a field a consumer may read as
 measured.
 
-So **every AIS observation omits canonical geo** and the real horizontal
-position is demoted to `ais_lat_deg` and `ais_lon_deg`.
+That was doctrine **A1-02**'s wall, and this adapter was its independent second
+implementation: **every AIS observation with a usable position omitted
+canonical geo entirely** and demoted the real position to `ais_lat_deg` and
+`ais_lon_deg`. It was not an edge case the way barometric-only ADS-B is an edge
+case. It was every vessel, every message, always.
 
-This is doctrine **A1-02**, and this adapter is its independent second
-implementation. It is also the sharper instance. For ADS-B, barometric-only
-targets are a subset. For AIS it is every vessel, every message, always.
+`schema/zmeta-event-1.1.0.schema.json` removed the wall. `geo.dimensionality`
+declares a position `"2D"` (absent means 3D), which prohibits `alt_m` outright
+and pairs with `quality.geo_status = "VERTICAL_UNAVAILABLE"`. A vessel's
+position is exactly that shape, a real, exact horizontal fix with no geometric
+vertical to assert, ever, and a message with a usable position now gets a
+canonical home for it: `payload.geo` as the declared 2-D form, with the event
+stamped `zmeta_version "1.1.0"`. A message with no usable position still omits
+`geo` entirely and stays on the locked v1.0 branch, because nothing 1.1.0-only
+is being asserted. A deployment validating strictly against the locked v1.0
+kernel rather than the 1.1.0 schema never sees the 2-D form and keeps the full
+demotion this section used to describe unconditionally.
+
+`ais_lat_deg` and `ais_lon_deg` are still carried on every positioned message,
+on both branches: they are the exact as-broadcast record independent of what
+canonical geo says, and existing consumers already read them there.
 
 **The measured consequence**, from the colocated test and reproducible in one
 command: a schema-valid AIS observation whose identity resolves cleanly
-(`mmsi-366123456`) and whose position is exact projects to **zero tracks**
-through `adapters/projector/track`, because a track needs canonical geo. Nothing
-reaches a COP.
+(`mmsi-366123456`) and whose position is exact now projects to a **two-dimensional
+track** through `adapters/projector/track`, a `FUSION_EVENT` and `STATE_EVENT`
+pair carrying `geo.dimensionality = "2D"` and `geo_status =
+"VERTICAL_UNAVAILABLE"`, never a vertical the message never gave. Before
+doctrine A1-02's 2-D form existed, the same observation projected to zero
+tracks, because a track needs canonical geo and none was ever built. A
+positionless observation still projects to zero tracks: there is still no
+honest position to build one from.
 
-A second consequence follows from the first. The position accuracy AIS declares
-is a real, standard-defined statement (better or worse than 10 m), and
-`quality.error_ellipse_m` attaches to a canonical geo object that is never
-built. The declared accuracy is carried natively and cannot be canonical.
+A second consequence, unlike the first, is unresolved by the 2-D form. The
+position accuracy AIS declares is a real, standard-defined statement (better or
+worse than 10 m), but it is one bit, not a radius category, and
+`quality.error_ellipse_m` requires a formal radius this adapter is not willing
+to invent from a boolean. The declared accuracy stays in
+`ais_position_accuracy_high`, native, whether or not the position next to it is
+now canonical.
 
 ## On `geo_status`
 
-When canonical geo is omitted this sets `quality.geo_status = "UNAVAILABLE"`,
-matching the ADS-B adapter.
-
-Read it as the status of the canonical geo object, which is genuinely
-unavailable, and not as a claim that the position is unknown, because it is not:
-it sits in the native features, exact as broadcast. The contract's vocabulary
-(`AVAILABLE`, `UNAVAILABLE`, `ESTIMATED`, `STALE`, `CONFIGURED`) has no token
-for "horizontally known, vertically absent". The least-wrong token is used, the
-two adapters stay consistent with each other, and the ambiguity is recorded for
-the maintainer rather than resolved locally.
+When canonical geo is omitted this sets `quality.geo_status = "UNAVAILABLE"`:
+there is no canonical geo object to describe, matching the ADS-B adapter's
+positionless case. When a usable position is present this sets
+`quality.geo_status = "VERTICAL_UNAVAILABLE"` (doctrine A1-02, coherence arm 1,
+`schema/zmeta-event-1.1.0.schema.json`): the horizontal fix is real, canonical
+and two-dimensional, and the vertical component genuinely does not exist for a
+surface vessel rather than being merely unmeasured. `AVAILABLE` is never used
+here: a vessel's canonical geo is never three-dimensional, so the token that
+pairs with a full 3-D position never applies.
 
 ## Not-available sentinels
 
@@ -93,17 +115,33 @@ Beyond the sentinels, the fields bound what a real report can say: speed 0 to
 102.2 kt, course 0 to 359.9 degrees, heading 0 to 359. A decoded value outside
 those bounds is corruption, not an AIS claim, and the field is dropped.
 
+### Conditional `zmeta_version`
+
+The locked v1.0 `geo` definition is `additionalProperties: false` with only
+`lat`/`lon`/`alt_m`; it has no room for `dimensionality`. A message with a
+usable position therefore stamps `zmeta_version: "1.1.0"` instead of the
+adapter's usual `"1.0"`, because that is the schema branch that defines the
+2-D form. A positionless message keeps the `"1.0"` stamp, and its output is
+otherwise byte-for-byte identical to what this adapter has always produced:
+the promotion adds nothing to the branch that never populates canonical geo
+at all.
+
+The v1.1.0 `NETWORK` observation payload also requires a `features.protocol`
+string that the locked v1.0 payload does not. This adapter supplies `"AIS"`
+there, and only on the 1.1.0-stamped branch, so the field never leaks onto a
+v1.0 event.
+
 ## Native features
 
 | Key | Source |
 |---|---|
 | `ais_mmsi` | the subject; a message without one is refused |
 | `ais_message_type` | AIS message type |
-| `ais_lat_deg` / `ais_lon_deg` | the broadcast position, demoted |
+| `ais_lat_deg` / `ais_lon_deg` | the broadcast position, carried natively on both branches regardless of what canonical geo says |
 | `ais_sog_kt` / `ais_cog_deg_true` / `ais_heading_deg_true` | motion, sentinels removed |
 | `ais_nav_status_code` | declared navigation status, as a code |
 | `ais_shiptype_code` | declared ship type, as a code |
-| `ais_position_accuracy_high` | the one-bit accuracy declaration |
+| `ais_position_accuracy_high` | the one-bit accuracy declaration; still has no canonical home |
 | `ais_second_of_minute` / `ais_second_status` | the `second` field, split by meaning |
 | `ais_signal_power_db` | receiver-relative power, never `power_dbm` |
 | `ais_shipname` / `ais_callsign` | text, `@` padding stripped |

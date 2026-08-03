@@ -82,13 +82,64 @@ inside an adapter is how a private dialect starts.
 | Input | Result | Why |
 |---|---|---|
 | No identity field | nothing, counted `refused_no_identity` | an unnamed subject is not a track |
-| Position with no geometric altitude | nothing, counted `refused_no_geo` | a state requires lat, lon and alt_m; barometric altitude is not a geometric height |
+| Position with no geometric altitude and no `"2D"` token | nothing, counted `refused_no_geo` | a state requires lat, lon and alt_m, unless the geo is explicitly declared 2-D; barometric altitude alone is not a geometric height and is not a declaration either |
 | No position at all | nothing, counted `refused_no_geo` | Mode S targets without position are common |
 | Anything not an `OBSERVATION_EVENT` | nothing, not counted | not this component's input |
 
 Refusals are counted and exposed on `.stats` because an association component
 that silently drops its inputs is indistinguishable from one that is not
 running.
+
+## Two-dimensional tracks (doctrine A1-02)
+
+A surface vessel has no altitude to report, not a missing one, and a
+barometric-only aircraft has a real horizontal fix with nothing to assert
+vertically. `schema/zmeta-event-1.1.0.schema.json` names that shape:
+`geo.dimensionality: "2D"` on the observation, which prohibits `alt_m`
+outright rather than defaulting it. Absent, `dimensionality` means 3D, so an
+observation that is merely missing `alt_m` with no explicit token still hits
+the historical refusal above; only the explicit token changes the outcome.
+
+An observation carrying a declared 2-D position is projected. The
+`FUSION_EVENT` and `STATE_EVENT` it produces both carry:
+
+- `geo`: `lat`, `lon`, `dimensionality: "2D"`, and no `alt_m`;
+- `quality: {"geo_status": "VERTICAL_UNAVAILABLE"}`;
+- `zmeta_version: "1.1.0"`, because that vocabulary is not valid under the
+  locked v1.0 kernel.
+
+A 3-D observation, or one with no dimensionality token at all, produces
+exactly the v1.0-shaped output this projector always emitted: no `geo` on the
+fusion event, no `quality` block on either event, `zmeta_version: "1.0"`. The
+conditional stamp means a deployment that never sees a 2-D source is
+unaffected byte-for-byte.
+
+`.stats["projected_2d"]` counts the 2-D subset of `.stats["projected"]`, so a
+deployment can watch the 2-D share of its traffic without recomputing it from
+events. It is not counted in `refused_no_geo`: a declared 2-D position is
+accepted, not refused.
+
+**Mixed tracks, an explicit modelling choice.** A track can accumulate members
+of both kinds over time, for example an AIS-shaped source today and a future
+sensor contributing a 3-D fix to the same identity tomorrow. Each call to
+`observe()` builds its `FUSION_EVENT`/`STATE_EVENT` pair from the member that
+triggered that call, and only proceeds when that member itself carries a
+projectable position, so the state's dimensionality is always the
+dimensionality of its most recent position-bearing member: a track that just
+took a 2-D observation projects a 2-D state, and the next 3-D observation on
+the same identity projects a 3-D state again, with no memory of the geo shape
+in between.
+
+The alternative considered and rejected was carrying the last known `alt_m`
+forward across a subsequent 2-D observation, so a track never "loses" its
+vertical. That reads as one fresh, single-epoch measurement when it is
+actually a current horizontal fix stapled to a stale vertical one, of unstated
+age, which is exactly the kind of laundering this standard exists to refuse.
+This projector accepts a track's vertical availability flickering with its
+most recent source over carrying a numeric altitude past the observation that
+supported it. Revisit if a deployment finds the flicker more disruptive than
+the honesty is worth; nothing here forecloses a future `estimated_state`-based
+fusion that reconciles both explicitly and says so.
 
 ## Known limit: uncertainty on a v1.0 track
 

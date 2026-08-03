@@ -33,12 +33,28 @@ refuses to do. `FusionPayload.members` is `minItems: 1`, so a single-member
 association is schema-legal and needs no such invention.
 
 WHAT IT REFUSES, ALWAYS. No identity means no track: an observation whose
-identity field is absent is not guessed at. No canonical geo means no track: a
-STATE_EVENT requires lat, lon and alt_m together, so a subject with a position
-but no geometric altitude produces nothing here rather than a track at a
-fabricated height. Both refusals are counted and reported, because an
-association component that silently drops its inputs is indistinguishable from
-one that is not running.
+identity field is absent is not guessed at. No projectable position means no
+track: a STATE_EVENT requires either lat, lon and alt_m together, or a
+declared two-dimensional position (`geo.dimensionality: "2D"`, doctrine
+A1-02), so a subject with a position but no geometric altitude and no explicit
+2-D declaration produces nothing here rather than a track at a fabricated
+height. Both refusals are counted and reported, because an association
+component that silently drops its inputs is indistinguishable from one that is
+not running.
+
+TWO-DIMENSIONAL TRACKS. A surface vessel has no altitude to report, not a
+missing one, and a barometric-only aircraft has a real horizontal fix with no
+geometric vertical. `schema/zmeta-event-1.1.0.schema.json` gives that shape a
+name: `geo.dimensionality: "2D"` on the observation, prohibiting `alt_m`
+outright rather than defaulting it. This projector honours the declaration:
+a 2-D observation produces a FUSION_EVENT and STATE_EVENT pair carrying a 2-D
+`geo` (lat, lon, no `alt_m`) and `quality.geo_status: "VERTICAL_UNAVAILABLE"`,
+stamped `zmeta_version: "1.1.0"` because that vocabulary does not exist under
+the locked v1.0 kernel. A state built from a 2-D observation cannot claim a
+vertical it was never given. A 3-D observation, or one with no explicit
+dimensionality token at all, produces exactly the v1.0-shaped output this
+projector always emitted; see `_projectable_geo` and `README.md` for the
+mixed-track rule when a track's members change dimensionality over time.
 
 KNOWN LIMIT, and it is a version limit rather than a model limit. Under the
 locked v1.0 kernel a STATE_EVENT's `geo` is exactly lat, lon and alt_m with
@@ -143,6 +159,48 @@ def _canonical_geo(payload):
     return {"lat": lat, "lon": lon, "alt_m": alt}
 
 
+def _declared_2d_geo(payload):
+    """A declared two-dimensional position, or nothing.
+
+    Distinct from a canonical geo that is merely missing `alt_m`. Under
+    `schema/zmeta-event-1.1.0.schema.json` ($defs/geo, doctrine A1-02),
+    `dimensionality` absent means 3D, so lat/lon with no `alt_m` and no
+    explicit token is still the historical no-vertical refusal. Only an
+    explicit `"2D"` token names a real, exact horizontal fix with nothing to
+    assert vertically, the shape a surface vessel or a barometric-only
+    aircraft genuinely has, and a "2D" geo prohibits `alt_m` outright rather
+    than merely omitting it.
+    """
+    geo = payload.get("geo")
+    if not isinstance(geo, dict):
+        return None
+    if geo.get("dimensionality") != "2D":
+        return None
+    lat, lon = geo.get("lat"), geo.get("lon")
+    if lat is None or lon is None:
+        return None
+    return {"lat": lat, "lon": lon, "dimensionality": "2D"}
+
+
+def _projectable_geo(payload):
+    """The geo this observation can honestly produce a track from.
+
+    Returns ``(geo, is_2d)``. ``geo`` is ``None`` when this observation has
+    neither a full canonical position nor a declared 2-D position, and
+    ``is_2d`` is meaningless in that case. Canonical geo is checked first: an
+    observation carrying `alt_m` is not schema-declared 2-D (`"2D"` prohibits
+    `alt_m`), so the two cases do not overlap in practice, but the order keeps
+    the 3-D path exactly as it always was regardless.
+    """
+    geo = _canonical_geo(payload)
+    if geo is not None:
+        return geo, False
+    geo_2d = _declared_2d_geo(payload)
+    if geo_2d is not None:
+        return geo_2d, True
+    return None, False
+
+
 class TrackRecord:
     __slots__ = ("track_id", "members", "count", "last_ts", "last_event_ts")
 
@@ -216,6 +274,10 @@ class TrackProjector:
         self.stats = {
             "observed": 0,
             "projected": 0,
+            # A subset of "projected": every 2-D projection is counted in both.
+            # Named here rather than left implicit so a deployment can watch
+            # the 2-D share of its traffic without recomputing it from events.
+            "projected_2d": 0,
             "refused_no_identity": 0,
             "refused_no_geo": 0,
             "evicted": 0,
@@ -254,7 +316,7 @@ class TrackProjector:
             return []
 
         payload = event.get("payload") or {}
-        geo = _canonical_geo(payload)
+        geo, is_2d = _projectable_geo(payload)
         if geo is None:
             self.stats["refused_no_geo"] += 1
             return []
@@ -284,14 +346,16 @@ class TrackProjector:
         record.last_event_ts = _epoch_ms(obs_ts)
 
         timing = payload.get("timing_quality")
-        fusion = self._fusion_event(record, obs_ts, timing)
-        state = self._state_event(record, fusion, geo, payload, obs_ts, timing)
+        fusion = self._fusion_event(record, obs_ts, timing, geo, is_2d)
+        state = self._state_event(record, fusion, geo, payload, obs_ts, timing, is_2d)
         self.stats["projected"] += 1
+        if is_2d:
+            self.stats["projected_2d"] += 1
         return [fusion, state]
 
-    def _fusion_event(self, record, ts, timing):
+    def _fusion_event(self, record, ts, timing, geo, is_2d):
         event = {
-            "zmeta_version": "1.0",
+            "zmeta_version": "1.1.0" if is_2d else "1.0",
             "event": {
                 "event_id": str(uuid7()),
                 "event_type": "FUSION_EVENT",
@@ -317,9 +381,20 @@ class TrackProjector:
         }
         if isinstance(timing, dict):
             event["payload"]["timing_quality"] = copy.deepcopy(timing)
+        if is_2d:
+            # The member that triggered this fusion had only a 2-D position,
+            # and that is real information about the fusion, not only about
+            # the state it produces. `geo_status: VERTICAL_UNAVAILABLE`
+            # requires `geo.dimensionality: "2D"` wherever it appears
+            # (schema/zmeta-event-1.1.0.schema.json coherence arm 1, doctrine
+            # A1-02), so the geo and the version stamp move together; a
+            # 3-D observation never reaches this branch and the fusion event
+            # it produces is byte-for-byte what it always was.
+            event["payload"]["geo"] = geo
+            event["payload"]["quality"] = {"geo_status": "VERTICAL_UNAVAILABLE"}
         return event
 
-    def _state_event(self, record, fusion, geo, payload, ts, timing):
+    def _state_event(self, record, fusion, geo, payload, ts, timing, is_2d):
         # Contract 7.7: a STATE projection must not re-carry raw observation
         # artifacts. Nothing from payload.features, modality, measurements or
         # data_ref is copied here, and that is enforced by construction rather
@@ -329,6 +404,11 @@ class TrackProjector:
             "geo": geo,
             "valid_for_ms": self.valid_for_ms,
         }
+        if is_2d:
+            # A state built from a 2-D observation cannot claim a vertical it
+            # was never given. See the fusion-side comment above: the token
+            # and the version stamp are the same coherence-arm-driven pair.
+            state_payload["quality"] = {"geo_status": "VERTICAL_UNAVAILABLE"}
         if isinstance(timing, dict):
             state_payload["timing_quality"] = copy.deepcopy(timing)
 
@@ -340,7 +420,7 @@ class TrackProjector:
             state_payload["heading_deg"] = heading
 
         return {
-            "zmeta_version": "1.0",
+            "zmeta_version": "1.1.0" if is_2d else "1.0",
             "event": {
                 "event_id": str(uuid7()),
                 "event_type": "STATE_EVENT",

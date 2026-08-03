@@ -106,26 +106,52 @@ def test_ellipse_free_entry_emits_byte_stable_v1_0_output():
     VALIDATOR_1_0.validate(event)
 
 
-def test_barometric_only_refuses_canonical_geo_and_keeps_the_position_natively():
-    """The common case, and the one that decides whether this adapter is honest.
+def test_barometric_only_emits_the_2d_canonical_form():
+    """The common case, and the one that used to hit the all-or-nothing wall.
 
-    Canonical geo requires alt_m (contract 6.8, all-or-nothing) and `alt_baro`
-    is a pressure altitude referenced to 1013.25 hPa -- not a height above the
-    ellipsoid, and not convertible without local QNH the message never carries.
-    So there is no canonical position. The horizontal fix is real, though, so it
-    is preserved under explicitly native keys where it claims nothing canonical.
+    Canonical geo used to require alt_m unconditionally (contract 6.8), and
+    `alt_baro` is a pressure altitude referenced to 1013.25 hPa -- not a
+    height above the ellipsoid, and not convertible without local QNH the
+    message never carries. Doctrine A1-02 gives geo a declared
+    `dimensionality`, so the real horizontal fix now gets a canonical home as
+    the 2-D form instead of being fully demoted to native features. NACp's
+    horizontal bound is about the horizontal fix, not the missing vertical,
+    so it still attaches even though the geo is 2-D.
     """
     entry = {k: v for k, v in FULL.items() if k != "alt_geom"}
     event = translate_aircraft(entry, **BASE)
     features = event["payload"]["features"]
 
-    assert "geo" not in event["payload"]
-    assert event["payload"]["quality"]["geo_status"] == "UNAVAILABLE"
-    assert features["adsb_lat_deg"] == 34.05
-    assert features["adsb_lon_deg"] == -118.25
+    assert event["zmeta_version"] == "1.1.0"
+    assert event["payload"]["geo"] == {
+        "lat": 34.05,
+        "lon": -118.25,
+        "dimensionality": "2D",
+        "error_ellipse_m": {"semi_major": 30.0, "semi_minor": 30.0, "orientation_deg": 0.0},
+    }
+    assert event["payload"]["quality"]["geo_status"] == "VERTICAL_UNAVAILABLE"
+    assert "adsb_lat_deg" not in features
+    assert "adsb_lon_deg" not in features
     # the pressure altitude survives, named as what it is
     assert features["adsb_alt_baro_ft"] == 10000
-    assert "alt_m" not in json.dumps(event["payload"].get("geo", {}))
+    assert features["protocol"] == "ADS-B"
+    VALIDATOR_1_1_0.validate(event)
+
+
+def test_barometric_only_without_a_declared_bound_still_emits_2d_geo():
+    """Same wall, minus NACp: the 2-D form does not depend on an ellipse.
+
+    Confirms the promotion to 1.1.0 is driven by `dimensionality` on its own,
+    not only by the ellipse branch wave 1 shipped.
+    """
+    entry = {k: v for k, v in FULL.items() if k not in ("alt_geom", "nac_p")}
+    event = translate_aircraft(entry, **BASE)
+
+    assert event["zmeta_version"] == "1.1.0"
+    assert event["payload"]["geo"] == {"lat": 34.05, "lon": -118.25, "dimensionality": "2D"}
+    assert event["payload"]["quality"]["geo_status"] == "VERTICAL_UNAVAILABLE"
+    assert event["payload"]["features"]["protocol"] == "ADS-B"
+    VALIDATOR_1_1_0.validate(event)
 
 
 def test_mode_s_only_is_a_real_detection_with_no_position():
@@ -195,37 +221,50 @@ def test_an_implausibly_small_snapshot_clock_refuses_rather_than_dating_near_197
 # --- Geometric altitude plausibility (sibling-parity, AIS altitude doctrine) -
 # A sentinel or a garbled decode (dump1090 has been observed to report
 # alt_geom -9999) must not become a canonical alt_m: -9999 ft is -3047.7 m,
-# a depth no aircraft occupies. Contract 6.8 all-or-nothing then applies the
-# same way a missing alt_geom does: no canonical geo, position demoted
-# natively, geo_status UNAVAILABLE.
+# a depth no aircraft occupies. It is treated the same way a missing
+# alt_geom is (doctrine A1-02): the horizontal fix still gets canonical geo,
+# declared 2-D, geo_status VERTICAL_UNAVAILABLE.
 
 
-def test_a_sentinel_geometric_altitude_is_rejected_like_a_missing_one():
+def test_a_sentinel_geometric_altitude_falls_back_to_the_2d_form():
+    """A sentinel or a garbled decode still leaves a real horizontal fix.
+
+    It is rejected like a missing `alt_geom` (contract: no honest vertical),
+    but doctrine A1-02 means "no honest vertical" is a 2-D geo now, not a
+    full demotion.
+    """
     entry = dict(FULL, alt_geom=-9999)
     event = translate_aircraft(entry, **BASE)
     features = event["payload"]["features"]
+    geo = event["payload"]["geo"]
 
-    assert "geo" not in event["payload"]
-    assert event["payload"]["quality"]["geo_status"] == "UNAVAILABLE"
-    assert features["adsb_lat_deg"] == 34.05
-    assert features["adsb_lon_deg"] == -118.25
+    assert geo["dimensionality"] == "2D"
+    assert "alt_m" not in geo
+    assert event["payload"]["quality"]["geo_status"] == "VERTICAL_UNAVAILABLE"
+    assert "adsb_lat_deg" not in features
+    assert "adsb_lon_deg" not in features
     # the raw declared value survives so the corrupted reading is visible,
     # not silently dropped
     assert features["adsb_alt_geom_ft"] == -9999
+    VALIDATOR_1_1_0.validate(event)
 
 
-def test_a_geometric_altitude_above_the_plausibility_ceiling_is_rejected():
+def test_a_geometric_altitude_above_the_plausibility_ceiling_falls_back_to_the_2d_form():
     """Sustained flight above ~20 km is beyond every civil and known military
 
     fixed-wing envelope, so a value up there is decoder garbage, not a real
-    aircraft.
+    aircraft. The horizontal fix is unaffected by that garbage, so it still
+    gets its canonical 2-D home.
     """
     entry = dict(FULL, alt_geom=200000)  # ~60960 m
     event = translate_aircraft(entry, **BASE)
+    geo = event["payload"]["geo"]
 
-    assert "geo" not in event["payload"]
-    assert event["payload"]["quality"]["geo_status"] == "UNAVAILABLE"
+    assert geo["dimensionality"] == "2D"
+    assert "alt_m" not in geo
+    assert event["payload"]["quality"]["geo_status"] == "VERTICAL_UNAVAILABLE"
     assert event["payload"]["features"]["adsb_alt_geom_ft"] == 200000
+    VALIDATOR_1_1_0.validate(event)
 
 
 def test_geometric_altitude_within_the_plausibility_band_is_unaffected():

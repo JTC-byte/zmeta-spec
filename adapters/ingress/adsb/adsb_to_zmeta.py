@@ -43,7 +43,11 @@ HONESTY RULES ENFORCED HERE
   become ``geo.alt_m``. ``alt_baro`` is a pressure altitude referenced to
   1013.25 hPa and is NOT a height above the ellipsoid; it is carried only as a
   named native feature. This is the altitude-datum defect the July audit found
-  in a fielded stack, refused here at the source.
+  in a fielded stack, refused here at the source. A usable horizontal fix with
+  no usable ``alt_geom`` still gets a canonical home: ``payload.geo`` is
+  emitted as the declared 2-D form (``dimensionality: "2D"``, no ``alt_m``,
+  ``quality.geo_status: VERTICAL_UNAVAILABLE``, doctrine A1-02) rather than
+  withheld or given an invented vertical.
 * **Declared accuracy travels, absence does not become precision.** ``nac_p``
   maps to a declared horizontal bound; when it is absent no bound is invented.
 * **Non-finite is not a value.** NaN/inf in any numeric refuses that field, and
@@ -188,46 +192,59 @@ def _declared_horizontal_ellipse(entry):
 def _geo(entry):
     """Canonical geo, or None to omit it entirely.
 
-    All-or-nothing per contract 6.8: a position with one component missing is
-    not a position. Altitude is included ONLY from ``alt_geom`` (WGS84);
-    ``alt_baro`` is a pressure altitude and never becomes ``alt_m``.
+    A usable horizontal position always gets a canonical home now. Altitude
+    is included ONLY from ``alt_geom`` (WGS84); ``alt_baro`` is a pressure
+    altitude and never becomes ``alt_m``. When there is no usable ``alt_geom``
+    the position is still real, so geo is emitted as the declared 2-D form
+    (``dimensionality: "2D"``, no ``alt_m``) per doctrine A1-02, rather than
+    withheld. Geo is omitted entirely only when there is no honest position
+    at all.
     """
     position = _position(entry)
     if position is None:
         return None
     lat, lon = position
+    geo = {"lat": lat, "lon": lon}
     alt_m = _usable_alt_geom_m(entry)
     if alt_m is None:
-        # Canonical geo requires alt_m (contract 6.8, all-or-nothing). The
-        # common cause is `alt_baro`-only reporting: a PRESSURE altitude
-        # referenced to 1013.25 hPa, which needs local QNH to become a
-        # geometric height and the message does not carry that. The less
-        # common cause is `alt_geom` present but outside the plausibility
-        # band (ALT_GEOM_MIN_M/ALT_GEOM_MAX_M) -- a sentinel or a corrupted
-        # decode, not a real altitude. Either way there is no honest
-        # canonical geo here.
-        #
-        # The horizontal position is real, though, and discarding it would be
-        # its own dishonesty. It is demoted to explicitly named native features
-        # by the caller -- the same convert-or-demote rule the bladeRF adapter
-        # applies to a frame-unlabelled bearing.
-        return None
-    geo = {"lat": lat, "lon": lon, "alt_m": alt_m}
+        # No honest geometric altitude here. The common cause is
+        # `alt_baro`-only reporting: a PRESSURE altitude referenced to
+        # 1013.25 hPa, which needs local QNH to become a geometric height and
+        # the message does not carry that. The less common cause is
+        # `alt_geom` present but outside the plausibility band
+        # (ALT_GEOM_MIN_M/ALT_GEOM_MAX_M) -- a sentinel or a corrupted decode,
+        # not a real altitude. Either way there is no honest vertical
+        # component, but the horizontal fix is real and discarding it would
+        # be its own dishonesty, so it gets its canonical home as a declared
+        # 2-D position instead of an invented vertical or a full demotion to
+        # native features. `_native_features` still preserves the raw
+        # `alt_geom` value (as `adsb_alt_geom_ft`) when it was present but
+        # implausible, so a corrupted reading stays visible.
+        geo["dimensionality"] = "2D"
+    else:
+        geo["alt_m"] = alt_m
     error_ellipse = _declared_horizontal_ellipse(entry)
     if error_ellipse is not None:
-        # Geo uncertainty attaches only where canonical geo exists -- an
-        # ellipse describes how uncertain a position is, and a positionless
-        # entry has no position to be uncertain about. `_quality` carries
-        # `geo_status: UNAVAILABLE` for that case instead.
+        # Geo uncertainty attaches whenever canonical geo exists, 2-D or 3-D
+        # -- NACp declares a horizontal bound, which is meaningful with or
+        # without a vertical component. A positionless entry has no position
+        # to be uncertain about; `_quality` carries `geo_status: UNAVAILABLE`
+        # for that case instead.
         geo["error_ellipse_m"] = error_ellipse
     return geo
 
 
-def _quality(has_geo):
+def _quality(geo):
     """Declared quality, carrying only what the message actually asserts."""
-    if not has_geo:
+    if geo is None:
         # A real detection with no position. Say so rather than stay silent.
         return {"geo_status": "UNAVAILABLE"}
+    if geo.get("dimensionality") == "2D":
+        # Canonical geo is present but two-dimensional: the horizontal fix is
+        # real, the vertical component is not applicable or not measured.
+        # Coherence arm 1 (schema/zmeta-event-1.1.0.schema.json, doctrine
+        # A1-02) requires this token to pair with a declared 2-D geo.
+        return {"geo_status": "VERTICAL_UNAVAILABLE"}
     return None
 
 
@@ -259,17 +276,12 @@ def _native_features(entry, receiver_id):
     if rssi is not None:
         features["rssi_dbfs"] = rssi
 
-    # A horizontal position that could not become canonical geo -- because the
-    # target reported no usable geometric altitude and canonical geo is
-    # all-or-nothing -- is preserved here under explicitly native keys. It
-    # makes no canonical claim, and `quality.geo_status` says the canonical
-    # position is unavailable, so nothing downstream can mistake this for a
-    # ZMeta position. Uses the same bounds-checked `_position()` canonical geo
-    # does, so an out-of-range coordinate is not demoted either -- it is
-    # corruption, not a position worth keeping.
-    position = _position(entry)
-    if position is not None and _usable_alt_geom_m(entry) is None:
-        features["adsb_lat_deg"], features["adsb_lon_deg"] = position
+    # A usable horizontal position now always reaches `payload.geo` (2-D or
+    # 3-D, per `_geo`/doctrine A1-02), so there is no longer a case where a
+    # real position needs demotion to a native key. The bounds-checked
+    # `_position()` still refuses an out-of-range coordinate (for example
+    # `lat: 95.0`) from both canonical geo and here -- it is corruption, not
+    # a position worth keeping in either place.
 
     # Pressure altitude, explicitly named as such so nothing mistakes it for a
     # geometric height.
@@ -350,16 +362,22 @@ def translate_aircraft(
         return None
 
     geo = _geo(entry)
-    quality = _quality(geo is not None)
-    has_ellipse = geo is not None and "error_ellipse_m" in geo
+    quality = _quality(geo)
+    # Either v1.1.0-only geo vocabulary -- a declared ellipse, or the 2-D
+    # form (doctrine A1-02) -- forces the 1.1.0 stamp; an entry using neither
+    # stays on the locked v1.0 branch, unchanged.
+    needs_1_1_0 = geo is not None and (
+        "error_ellipse_m" in geo or geo.get("dimensionality") == "2D"
+    )
 
     features = _native_features(entry, receiver_id)
-    if has_ellipse:
+    if needs_1_1_0:
         # The locked v1.0 kernel's NETWORK ObservationPayload imposes no
         # feature vocabulary of its own, but v1.1.0's does, and requires
-        # `protocol` (schema/zmeta-event-1.1.0.schema.json). An entry with no
-        # declared ellipse never leaves the v1.0 branch, so it never gains
-        # this key -- the v1.0 output stays byte-for-byte what it always was.
+        # `protocol` (schema/zmeta-event-1.1.0.schema.json). An entry that
+        # never touches 1.1.0-only geo vocabulary never leaves the v1.0
+        # branch, so it never gains this key -- the v1.0 output stays
+        # byte-for-byte what it always was.
         features["protocol"] = "ADS-B"
 
     payload = {
@@ -389,13 +407,14 @@ def translate_aircraft(
     if sensor_id is not None:
         source["sensor_id"] = str(sensor_id)
 
-    # `geo.error_ellipse_m` is v1.1.0 vocabulary -- the locked v1.0 `geo` def
-    # is additionalProperties:false with only lat/lon/alt_m, so an event that
-    # populates the ellipse must stamp 1.1.0 or it is schema-invalid the
-    # moment `nac_p` yields a radius. An entry with no declared ellipse keeps
-    # the 1.0 stamp unchanged; only the branch that actually needs 1.1.0's
-    # vocabulary uses it.
-    zmeta_version = "1.1.0" if has_ellipse else "1.0"
+    # `geo.error_ellipse_m` and `geo.dimensionality` are both v1.1.0
+    # vocabulary -- the locked v1.0 `geo` def is additionalProperties:false
+    # with only lat/lon/alt_m, so an event that populates either must stamp
+    # 1.1.0 or it is schema-invalid the moment `nac_p` yields a radius or
+    # `alt_geom` is absent/implausible. An entry with a full 3-D position and
+    # no declared ellipse keeps the 1.0 stamp unchanged; only the branch that
+    # actually needs 1.1.0's vocabulary uses it.
+    zmeta_version = "1.1.0" if needs_1_1_0 else "1.0"
 
     return {
         "zmeta_version": zmeta_version,
