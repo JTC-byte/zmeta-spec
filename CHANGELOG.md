@@ -2,6 +2,19 @@
 
 ## [Unreleased]
 
+- 2026-08-03 — **Phase 4: the documentation describes the stack the push
+  built.** The README's Current Release section no longer attributes the
+  working tree's governed delta to the published v1.1.19 tag: it states
+  plainly that the generated sentence reports main, ahead of v1.1.20, and
+  that the published tag changed one governed artifact. schema/README
+  carries the six-token geo_status vocabulary, the declared-dimensionality
+  form, the four coherence arms, and the adopted registry status of both
+  extensions. AUTHORING's all-or-nothing geo rule is scoped to the locked
+  v1.0 lane with the v1.1 exception stated. The trailing-Z timestamp claim
+  in the CoT and JREAP egress docs is scoped to v1.0, with the v1.1
+  structural shape noted. JREAP gains a loss-notes register mirroring
+  SAPIENT's, closing the asymmetry where it silently dropped the promoted
+  ellipse that CoT projects and SAPIENT documents dropping.
 - 2026-08-03 — **The SAPIENT boundary fixes the interop run demanded.**
   Ingress: classification and behaviour entries no longer carry
   observation-denylist key names into the vendor extension at any nesting

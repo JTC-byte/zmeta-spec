@@ -2,7 +2,18 @@
 
 ## Current Resume Note
 
-- Last updated: 2026-08-03 (SAPIENT boundary fixes landed; cut-blockers cleared)
+- Last updated: 2026-08-03 (pat-down green; phase 4 docs refreshed; the cut remains)
+- **2026-08-03 (pat-down and phase 4).** The pre-refresh pat-down certified
+  green from three angles: battery and every gate by hand, a cross-wave
+  seam probe, and a doc-claims sweep. The seam probe earned its cost: arm 3
+  carried the same estimated_state blind spot arm 2b had closed twenty-two
+  minutes after arm 3 was written, the general lesson recorded in a comment
+  and applied to one arm; both arms now walk both containers, pinned
+  red-first. The doc sweep produced five verified-stale claims, all fixed
+  in phase 4, led by the README attributing the working tree's governed
+  delta to the published v1.1.19 tag, the P2-01 class pointed the other
+  way. JREAP gains the loss-notes register its siblings had. Battery 1720
+  passed plus 1081 subtests, gate exit 0. Only the cut remains.
 - **2026-08-03 (fix wave) — the boundary paid its debts, and the harness
   ruled on the proto question.** Both ingress blockers and the egress MAJOR
   closed red-first, every red demonstrated through the real gateway
