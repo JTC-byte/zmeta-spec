@@ -17,7 +17,7 @@ hash_canonicalization:
   release_bundle_hash: sha256 over sorted 'group_name\nsha256:<group_hash>\n' entries; release manifest file excluded
   release_manifest_hash: sha256 over canonical YAML manifest content with release_manifest_hash set to null
 semantic_contract_hash: sha256:3893bbbdbd25944062581b465d5e23ac65a5ac5df0fe1d704b8540419c0226fa
-schema_bundle_hash: sha256:dbdfddab9f6f25a184ced41f37887bc4191ec43d2b23e426a1bc9ab1e957d302
+schema_bundle_hash: sha256:0de29d219a3c0efed244fffb7bd5c095e8e8645637f257e02938cf5add6ddf52
 policy_bundle_hash: sha256:8b72602699aac56fcb18f93c85a530d42a991300e909ec8d3f1962c08bb034c1
 extension_registry_hash: sha256:149a124a69a46d3ecf531fd6b338cd073a8978c134b5e6b9112393820ca3bf5a
 conformance_class_manifest_hash: sha256:6a3a9d930cc06d5228cb2d1ad8b42a91048425ff1e500bf7bfee3528bf2b4524
@@ -28,8 +28,8 @@ bad_event_corpus_hash: sha256:a14c0492452bfad586a9fdce4a7e199b0baf937325b19af3a2
 adapter_conformance_hash: sha256:d97db4ca864fce4a9f4546175c93f40947083c77d5e19ef1357e285d7bdd181c
 encoding_projection_specs_hash: sha256:54459b03ceed6605d7af49d327b7c7c41395b82b8dadad7fd6a0d9d40c8ecd6d
 process_governance_hash: sha256:2736079f0162f72c26e87b130900e53ca8dad903b11123874f2b21e7b8f389fb
-release_bundle_hash: sha256:bdd28ad69ca286d4ec6c9c4baf61a75cf1ab3e55436dbdbe52fb2da30ee85619
-release_manifest_hash: sha256:0eba6fb35af8922d10854391271f6810c40b68a4843029cd9935f1002ff23596
+release_bundle_hash: sha256:c1a2668036cc8243f5ab4c33649481043a73f11b6d5629572fe0c1b4cd273ca6
+release_manifest_hash: sha256:36e0990385e731b07045dc99c4e49053ebf0e81a5798ac06c8cfd1f5a41f1e96
 artifact_hashes:
 - path: AGENTS.md
   group: process_governance
@@ -253,7 +253,7 @@ artifact_hashes:
   canonicalization: text_lf
 - path: schema/zmeta-event-1.1.0.schema.json
   group: schema_bundle
-  hash: sha256:4385fd66250273d1c44d67d6e6a493f4419c734539db561b82ff5aa3fd4f335e
+  hash: sha256:7369ac62d97acf5d7dbed935a45cec0c175f8cd1fce5a566f30ff4606827d77e
   canonicalization: text_lf
 - path: schema/zmeta-event.schema.json
   group: schema_bundle
@@ -379,7 +379,7 @@ artifact_groups:
     - schema/zmeta-event-1.0.schema.json
     - schema/zmeta-event-1.1.0.schema.json
     - schema/zmeta-event.schema.json
-    hash: sha256:dbdfddab9f6f25a184ced41f37887bc4191ec43d2b23e426a1bc9ab1e957d302
+    hash: sha256:0de29d219a3c0efed244fffb7bd5c095e8e8645637f257e02938cf5add6ddf52
   policy_bundle:
     description: Release-included policy YAML and policy variant baselines.
     paths:

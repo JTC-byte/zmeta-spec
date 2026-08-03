@@ -216,12 +216,17 @@
       },
       "then": {
         "properties": {
-          "payload": { "not": { "required": ["geo"] } }
+          "payload": {
+            "not": { "required": ["geo"] },
+            "properties": {
+              "estimated_state": { "not": { "required": ["geo"] } }
+            }
+          }
         }
       }
     },
     {
-      "$comment": "A1-02 coherence, arm 2b (wave-2 attack pass): the arm-2 lie reproduced one container over, a 2-D estimated_state.geo beside geo_status AVAILABLE. Spatial rules walk every container that carries geo (the R1-11 A-16 lesson). Arm 1's token rule is deliberately not extended to estimated_state until a producer for that container exists.",
+      "$comment": "A1-02 coherence, arm 2b (wave-2 attack pass): the arm-2 lie reproduced one container over, a 2-D estimated_state.geo beside geo_status AVAILABLE. Spatial rules walk every container that carries geo (the R1-11 A-16 lesson). Arm 3 above learned the same lesson one probe later (the cross-wave pat-down): UNAVAILABLE is refused beside a populated estimated_state.geo too. Arm 1's token rule is deliberately not extended to estimated_state until a producer for that container exists.",
       "if": {
         "required": ["payload"],
         "properties": {

@@ -192,6 +192,25 @@ class A102DimensionalityTest(unittest.TestCase):
         )
         self.assert_valid(no_status)
 
+    def test_estimated_state_geo_cannot_be_called_unavailable_either(self):
+        """The cross-wave pat-down found arm 3 carrying the same blind spot
+        arm 2b had closed 22 minutes earlier in this same file: the general
+        lesson (spatial rules walk every container that carries geo) was
+        written down and applied to one arm only. UNAVAILABLE means no
+        canonical geo anywhere, so a populated estimated_state.geo refuses
+        it, 2-D and 3-D alike."""
+        for geo in (
+            {"lat": 33.7, "lon": -118.2, "dimensionality": "2D"},
+            {"lat": 33.7, "lon": -118.2, "alt_m": 120.5},
+        ):
+            self.assert_invalid(self._fusion_event(geo, geo_status="UNAVAILABLE"))
+
+    def test_unavailable_still_stands_when_no_container_carries_geo(self):
+        event = self._fusion_event({"lat": 33.7, "lon": -118.2, "alt_m": 1.0})
+        del event["payload"]["estimated_state"]
+        event["payload"]["quality"] = {"geo_status": "UNAVAILABLE"}
+        self.assert_valid(event)
+
     def test_the_shape_rule_already_binds_inside_estimated_state(self):
         """Inherited from the shared geo def and pinned here so the registry
         entry's estimated_state payload_scope claim is substantiated by a
