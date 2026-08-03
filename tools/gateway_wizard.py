@@ -24,6 +24,7 @@ DEFAULTS = {
     ],
     "strip_optional_fields_profiles": ["L", "M", "H"],
     "strict_validation": False,
+    "ts_plausibility_horizon_ms": 86400000,
     "emit_metrics": True,
     "metrics_interval_sec": 30,
     "rate_limit_per_sec": 0,
@@ -134,6 +135,10 @@ def main():
         True,
     )
     strict_validation = prompt_bool("Strict validation (treat warnings as failures)", DEFAULTS["strict_validation"])
+    ts_plausibility_horizon_ms = prompt_int(
+        "Event ts plausibility horizon in ms, warn-only (0 disables)",
+        DEFAULTS["ts_plausibility_horizon_ms"],
+    )
     emit_metrics = prompt_bool("Emit metrics logs", DEFAULTS["emit_metrics"])
     metrics_interval_sec = prompt_int("Metrics interval (sec)", DEFAULTS["metrics_interval_sec"])
     rate_limit_per_sec = prompt_int("Rate limit per sec (0 = disabled)", DEFAULTS["rate_limit_per_sec"])
@@ -173,6 +178,7 @@ def main():
         "strip_optional_fields": DEFAULTS["strip_optional_fields"] if strip_optional_fields else [],
         "strip_optional_fields_profiles": DEFAULTS["strip_optional_fields_profiles"],
         "strict_validation": strict_validation,
+        "ts_plausibility_horizon_ms": ts_plausibility_horizon_ms,
         "emit_metrics": emit_metrics,
         "metrics_interval_sec": metrics_interval_sec,
         "rate_limit_per_sec": rate_limit_per_sec,

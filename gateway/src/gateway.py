@@ -40,6 +40,7 @@ from validators import (
     ValidationState,
     _find_non_finite,
     _is_non_finite_number,
+    _parse_utc_z,
     apply_command_evidence_policy_action,
     apply_external_promotion_policy_action,
     apply_timing_freshness_degradation,
@@ -105,6 +106,22 @@ SINK_WARNING_RETRY_SEC = DEFAULT_METRICS_INTERVAL_SEC
 # datagrams are still sent unchanged (they may IP-fragment or be dropped by
 # the network; UDP sends above ~65507 bytes fail at the socket layer).
 DEFAULT_WARN_DATAGRAM_BYTES = 0
+# Warn (metrics/log only) when incoming event.ts sits more than this many
+# milliseconds before or after wall-clock now, on ANY zmeta_version. 0
+# disables the check. This is the runtime half of doctrine X1-01: the
+# 1.1.0 schema's utcDateTime pattern (schema/zmeta-event-1.1.0.schema.json)
+# now rejects a corrupted CALENDAR shape (year 0001, month 88), but a
+# structurally valid ts that is simply wrong by years is not a schema
+# question at all -- no pattern can know what "now" is, and v1.0's locked
+# utcDateTime def cannot gain this check either way. Contract 5.7 assigns
+# cross-event plausibility to policy/runtime, which is this check.
+# 24 hours is generous enough to tolerate a real store-and-forward delay or
+# an unsynced clock drifting hours off, while still catching the corruption
+# class this exists for: a decode/scale error off by years lands far outside
+# any horizon an operator would set. Warn-only, never a rejection -- a fast
+# producer clock, a slow link, and a corrupted ts all land here the same
+# way, and this check cannot tell which of the three it is looking at.
+DEFAULT_TS_PLAUSIBILITY_HORIZON_MS = 24 * 60 * 60 * 1000
 
 
 def utc_now():
@@ -954,6 +971,48 @@ def _check_datagram_size(metrics, payload_len, threshold, kind, event_id=None, p
     return True
 
 
+def _check_ts_plausibility(metrics, event, horizon_ms, now=None, event_id=None, producer=None):
+    """Record an EVENT_TS_IMPLAUSIBLE warning; never blocks forwarding.
+
+    Returns True when a warning was recorded. Disabled when `horizon_ms` is
+    falsy/non-positive, when no metrics sink exists, when `event.ts` cannot
+    be parsed as an aware UTC instant (_parse_utc_z), or when `ts` sits
+    inside [now - horizon_ms, now + horizon_ms]. `now` defaults to wall-clock
+    UTC; a caller (tests) may pass a fixed instant instead. Runs on ANY
+    zmeta_version -- this is a runtime check, not a schema one (X1-01,
+    contract 5.7), so v1.0's locked schema and v1.1.0's stricter utcDateTime
+    pattern are both covered the same way.
+    """
+    if not metrics or not horizon_ms or horizon_ms <= 0:
+        return False
+    if now is None or not isinstance(now, datetime):
+        now = datetime.now(timezone.utc)
+    event_block = event.get("event", {}) if isinstance(event, dict) else {}
+    ts_raw = event_block.get("ts") if isinstance(event_block, dict) else None
+    ts = _parse_utc_z(ts_raw)
+    if ts is None:
+        return False
+    delta_ms = (now - ts).total_seconds() * 1000.0
+    if delta_ms > horizon_ms:
+        direction = "past"
+    elif delta_ms < -horizon_ms:
+        direction = "future"
+    else:
+        return False
+    metrics.record_warning(
+        "EVENT_TS_IMPLAUSIBLE",
+        event_id=event_id,
+        producer=producer,
+        details={
+            "ts": ts_raw,
+            "direction": direction,
+            "delta_ms": round(delta_ms),
+            "horizon_ms": horizon_ms,
+        },
+    )
+    return True
+
+
 def _send_datagram(sock, payload, addr, *, metrics=None, kind="forward", event_id=None, producer=None):
     """Send one UDP datagram; drop with an explicit diagnostic instead of crashing.
 
@@ -1658,6 +1717,7 @@ def build_settings(root, args, config):
         "metrics_log_max_bytes": DEFAULT_METRICS_LOG_MAX_BYTES,
         "metrics_log_backups": DEFAULT_METRICS_LOG_BACKUPS,
         "warn_datagram_bytes": DEFAULT_WARN_DATAGRAM_BYTES,
+        "ts_plausibility_horizon_ms": DEFAULT_TS_PLAUSIBILITY_HORIZON_MS,
         "stamp_contract_hash": False,
         "require_schema_hash": None,
         "require_policy_hash": None,
@@ -1748,6 +1808,12 @@ def build_settings(root, args, config):
             settings["warn_datagram_bytes"] = _normalize_int(
                 config["warn_datagram_bytes"], "warn_datagram_bytes", allow_zero=True
             )
+        if "ts_plausibility_horizon_ms" in config:
+            settings["ts_plausibility_horizon_ms"] = _normalize_int(
+                config["ts_plausibility_horizon_ms"],
+                "ts_plausibility_horizon_ms",
+                allow_zero=True,
+            )
         if "stamp_contract_hash" in config:
             settings["stamp_contract_hash"] = bool(config["stamp_contract_hash"])
         if "require_schema_hash" in config:
@@ -1824,6 +1890,10 @@ def build_settings(root, args, config):
         settings["warn_datagram_bytes"] = _normalize_int(
             args.warn_datagram_bytes, "warn_datagram_bytes", allow_zero=True
         )
+    if args.ts_plausibility_horizon_ms is not None:
+        settings["ts_plausibility_horizon_ms"] = _normalize_int(
+            args.ts_plausibility_horizon_ms, "ts_plausibility_horizon_ms", allow_zero=True
+        )
     if args.stamp_contract_hash:
         settings["stamp_contract_hash"] = True
     if args.require_schema_hash:
@@ -1868,6 +1938,13 @@ def build_settings(root, args, config):
         settings["metrics_log_backups"] = DEFAULT_METRICS_LOG_BACKUPS
     if settings["warn_datagram_bytes"] is None or settings["warn_datagram_bytes"] <= 0:
         settings["warn_datagram_bytes"] = 0
+    if settings["ts_plausibility_horizon_ms"] is None:
+        # Unlike warn_datagram_bytes (default off), this check defaults ON
+        # (X1-01). Only an explicit null restores the default; an explicit
+        # 0 is the documented way to disable it and must stay 0.
+        settings["ts_plausibility_horizon_ms"] = DEFAULT_TS_PLAUSIBILITY_HORIZON_MS
+    elif settings["ts_plausibility_horizon_ms"] < 0:
+        settings["ts_plausibility_horizon_ms"] = 0
 
     if not settings["schema_path"].is_file():
         raise FileNotFoundError(f"schema not found: {settings['schema_path']}")
@@ -2192,6 +2269,8 @@ def process_message(
     rate_limiter=None,
     contract_hashes=None,
     stamp_contract_hash=False,
+    ts_plausibility_horizon_ms=0,
+    now=None,
 ):
     try:
         instance = _decode_message(message, input_encoding)
@@ -2333,6 +2412,16 @@ def process_message(
                 event_id=event_id,
                 producer=producer,
             )
+        # X1-01 runtime half, on ANY zmeta_version: warn-only, never blocks
+        # forwarding. See _check_ts_plausibility.
+        _check_ts_plausibility(
+            metrics,
+            instance,
+            ts_plausibility_horizon_ms,
+            now=now,
+            event_id=event_id,
+            producer=producer,
+        )
 
     ok, violations = validate_semantics(instance, policy["semantics"], severity_map)
     if violations:
@@ -2573,6 +2662,7 @@ def parse_args():
     parser.add_argument("--metrics-log-max-bytes", type=int)
     parser.add_argument("--metrics-log-backups", type=int)
     parser.add_argument("--warn-datagram-bytes", type=int)
+    parser.add_argument("--ts-plausibility-horizon-ms", type=int)
     parser.add_argument("--stamp-contract-hash", action="store_true")
     parser.add_argument("--require-schema-hash")
     parser.add_argument("--require-policy-hash")
@@ -2646,6 +2736,10 @@ def main():
         print(f"metrics log: {settings['metrics_log_path']}")
     if settings["strict_validation"]:
         print("strict validation enabled (warnings treated as failures)")
+    if settings["ts_plausibility_horizon_ms"]:
+        print(f"event.ts plausibility horizon: {settings['ts_plausibility_horizon_ms']}ms")
+    else:
+        print("event.ts plausibility check: disabled")
 
     dedupe_cache = TaskDedupeCache()
     event_dedupe_cache = EventDedupeCache()
@@ -2727,6 +2821,7 @@ def main():
                 rate_limiter=producer_rate_limiter,
                 contract_hashes=contract_hashes,
                 stamp_contract_hash=settings["stamp_contract_hash"],
+                ts_plausibility_horizon_ms=settings["ts_plausibility_horizon_ms"],
             )
             for outgoing in out_events:
                 should_stamp_timing = _should_apply(

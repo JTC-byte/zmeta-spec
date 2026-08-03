@@ -63,6 +63,8 @@ The config file keys are:
 - `rate_limit_per_sec` (drop packets above receive rate)
 - `rate_limit_producer_per_sec` (drop per-producer above receive rate)
 - `metrics_log_path`, `metrics_log_max_bytes`, `metrics_log_backups` (JSONL metrics logs)
+- `warn_datagram_bytes` (warn when an outgoing datagram exceeds this size; 0 disables)
+- `ts_plausibility_horizon_ms` (warn when `event.ts` sits outside a window around now; 0 disables; see Event timestamp plausibility below)
 - `stamp_contract_hash` (include schema, policy, semantic-contract, and combined hashes in gateway-generated system events)
 - `require_schema_hash`, `require_policy_hash`, `require_contract_hash` (startup gate)
 - `schema_path` and `policy_dir` (resolved relative to the config file)
@@ -71,7 +73,7 @@ CLI flags like `--profile` and `--listen-port` override the config when needed.
 Additional flags include `--strict-validation`, `--rate-limit-per-sec`,
 `--metrics-interval-sec`, `--no-metrics`, `--rate-limit-producer-per-sec`,
 `--metrics-log-path`, `--metrics-log-max-bytes`, `--metrics-log-backups`,
-and `--self-test`.
+`--warn-datagram-bytes`, `--ts-plausibility-horizon-ms`, and `--self-test`.
 
 ### Encoding
 
@@ -174,6 +176,26 @@ own end - which is why the stderr warning and the console counters exist.
 
 When `strict_validation` is enabled, warnings are treated as failures and the original
 event is not forwarded.
+
+### Event timestamp plausibility
+
+The `zmeta-event-1.1.0.schema.json` `utcDateTime` pattern enforces structural
+calendar shape (year 1970-2999, month 01-12, day 01-31, hour 00-23, minute/second
+00-59), which rejects a corrupted value such as year 0001 or month 88 on the
+1.1.0 branch. `zmeta-event-1.0.schema.json` is locked and does not gain this
+pattern, and neither schema can know what "now" is. A structurally valid `ts`
+that is simply wrong by years is a runtime plausibility question that no
+schema pattern can answer (semantics-contract 5.7).
+
+The gateway closes that gap at runtime, on every `zmeta_version`. Set
+`ts_plausibility_horizon_ms` (default 86400000, 24 hours; 0 disables) to warn
+when an incoming `event.ts` sits more than the configured horizon before or
+after wall-clock now, in either direction. The check never rejects an event
+and never runs under `strict_validation` escalation: it is purely observability,
+the same as `warn_datagram_bytes` above. A hit is counted in metrics under
+`warning_codes` with reason code `EVENT_TS_IMPLAUSIBLE`, carrying the offending
+`ts`, the direction (`past`/`future`), the delta in milliseconds, and the
+configured horizon.
 
 ### Contract hash gate
 

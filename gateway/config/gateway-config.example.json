@@ -35,6 +35,7 @@
     "H"
   ],
   "strict_validation": false,
+  "ts_plausibility_horizon_ms": 86400000,
   "emit_metrics": true,
   "metrics_interval_sec": 30,
   "rate_limit_per_sec": 0,
