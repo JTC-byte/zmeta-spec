@@ -115,15 +115,43 @@ the legacy scalar `measurement_error` plus sibling `error_metric` pattern is not
 valid in v1.1.0.
 
 ### Geo-Absent Support
-`quality.geo_status` enum: `AVAILABLE | UNAVAILABLE | ESTIMATED | STALE | CONFIGURED`.
-Eliminates (0,0,0) sentinel pattern for GPS-denied edges.
+`quality.geo_status` enum: `AVAILABLE | UNAVAILABLE | ESTIMATED | STALE |
+CONFIGURED | VERTICAL_UNAVAILABLE`. Eliminates (0,0,0) sentinel pattern for
+GPS-denied edges. `VERTICAL_UNAVAILABLE` describes a canonical geo that is
+present and two-dimensional: the horizontal fix is real and exact, and the
+vertical component is not applicable or not measured. It requires a geo
+carrying `dimensionality: "2D"` (see "Declared Geo Dimensionality" below),
+and a two-dimensional geo must not carry `AVAILABLE`. Adopted 2026-08-02 by
+maintainer adjudication (doctrine A1-02; contract sections 21.1 and 21.8;
+`spec/extension-registry.yaml` GEO_DIMENSIONALITY entry).
+
+### Declared Geo Dimensionality
+`geo` carries an optional `dimensionality` member with values `"2D"` and
+`"3D"`. Absent means `"3D"`, so every event written before this member
+existed validates unchanged. A `"2D"` geo declares a horizontal-only position
+and prohibits `alt_m` entirely; a `"3D"` or undeclared geo must carry
+`alt_m`. There is no partially declared form. The declaration exists for
+sources whose horizontal fix is real and exact while a geometric vertical
+does not exist to assert: a surface vessel has no height above the
+ellipsoid, and a barometric-only aircraft has pressure altitude, which is
+not HAE. `$defs/geo`'s own conditional enforces the `"2D"`/`alt_m` pairing
+structurally, and four top-level A1-02 coherence arms close the remaining
+semantic gaps: arm 1 requires `VERTICAL_UNAVAILABLE` to pair with a present
+`"2D"` geo, arm 2 blocks a `"2D"` `payload.geo` from carrying `geo_status:
+AVAILABLE`, arm 2b extends that block to a `"2D"` `payload.estimated_state.geo`,
+and arm 3 blocks `geo_status: UNAVAILABLE` from coexisting with any populated
+geo, 2-D or 3-D, in either container. Adopted 2026-08-02 by
+maintainer adjudication (doctrine A1-02; contract section 21.8;
+`spec/extension-registry.yaml` GEO_DIMENSIONALITY entry).
 
 ### Error Ellipse
 `geo` object now allows `error_ellipse_m` with `semi_major`, `semi_minor`,
 `orientation_deg`, and optional `probability` (1_SIGMA/CEP/CE_90/CE_95).
-`geo` remains strict: v1.1.0 permits only `lat`, `lon`, `alt_m`, and the
-controlled `error_ellipse_m` uncertainty block. Alternate datums and altitude
-references are not valid canonical `geo` fields.
+Adopted 2026-08-02 by maintainer adjudication (`spec/extension-registry.yaml`
+ERROR_ELLIPSE_M entry). `geo` remains strict: v1.1.0 permits only `lat`,
+`lon`, `alt_m`, `dimensionality`, and the controlled `error_ellipse_m`
+uncertainty block. Alternate datums and altitude references are not valid
+canonical `geo` fields.
 
 ### Bearing Reference Frame Marker
 `bearing` allows an optional `frame` property asserting the canonical

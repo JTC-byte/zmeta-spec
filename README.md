@@ -192,6 +192,12 @@ nodes.
   (`adapters/ingress/adsb/`) translates `dump1090` and `readsb` snapshots into
   ZMeta, and declines to emit a position, an altitude datum, or a calibrated
   power value it does not have.
+  That paragraph describes the published tag. This checkout is `main`, which
+  is ahead of it and heading for v1.1.20, so the generated sentence below
+  reports the governed delta of the working tree, not of v1.1.19. The
+  published v1.1.19 changed one governed artifact,
+  `conformance/adapter-harness/must-pass.jsonl`, and its release notes are
+  authoritative for what it shipped.
   Governed artifacts changed in this release, relative to zmeta-v1.1.18: conformance/adapter-harness/must-pass.jsonl, conformance/bad-events/must-fail.jsonl, policy/producer-authority.yaml, schema/zmeta-event-1.1.0.schema.json, spec/compact-binary-mapping.md, spec/extension-registry.yaml, spec/semantics-contract.md.
   The locked v1.0 kernel is unchanged. The contract changes are the lock
   provenance note and the v1.1 lane's A1-02 sections; the v1.1.0 schema

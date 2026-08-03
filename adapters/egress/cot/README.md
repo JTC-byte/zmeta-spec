@@ -123,11 +123,18 @@ product must never reach TAK carrying a GPS pedigree.
 **Timestamps.** By default CoT `time`/`start` come from the event's `ts`, because
 event time is authoritative, and replayed or stale data must not render as
 live (semantics contract section 9.5). An event with no `event.ts`, or a
-`ts` that does not parse as an RFC3339 instant (which still passes the schema
-gate because jsonschema does not enforce `format: date-time` without an
-installed `FormatChecker`), is refused (the adapter returns `None`) rather
-than silently stamped with the current time or allowed to escape as a raw
-`ValueError`. Fabricating freshness for malformed input would launder it.
+`ts` that does not parse as an RFC3339 instant, is refused (the adapter
+returns `None`) rather than silently stamped with the current time or
+allowed to escape as a raw `ValueError`. That gap is real on the locked v1.0
+schema branch, where `utcDateTime` enforces only a trailing `Z` and
+jsonschema does not enforce `format: date-time` without an installed
+`FormatChecker`. The v1.1.0 branch tightens the pattern to structural
+calendar shape instead (year/month/day/hour/minute/second ranges, doctrine
+X1-01), so most malformed shapes no longer reach this adapter gate-clean on
+that branch; neither branch is a full calendar validator, so a structurally
+well-formed but calendrically impossible value such as
+`"2026-02-30T00:00:00Z"` still passes both. Fabricating freshness for
+malformed input would launder it.
 `use_wall_clock: True` is an explicit replay-display mode for operators who
 have deliberately selected replay and want TAK to show fresh markers; it
 re-stamps the CoT timestamps to the current time (including for events with

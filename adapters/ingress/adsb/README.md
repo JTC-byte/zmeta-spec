@@ -149,12 +149,16 @@ implausible-`alt_geom` entry gets canonical `geo` declared
 `dimensionality: "2D"` with `geo_status: VERTICAL_UNAVAILABLE`, instead of
 the old full demotion. See "Geometric altitude plausibility" above.
 
-This was not specific to ADS-B, and closing it here does not close it
-everywhere. AIS is the clearer case: a vessel never has a meaningful
-altitude, so an AIS position could not be canonical at all under the old
-all-or-nothing rule. Ground radar and most DF systems are 2-D as well. Those
-adapters have not been changed by this workstream; adopting `dimensionality`
-there is a question for their own workstreams.
+This was not specific to ADS-B, and closing it here did not close it only
+here. AIS is the clearer case: a vessel never has a meaningful altitude, so
+an AIS position could not be canonical at all under the old all-or-nothing
+rule. AIS was in fact adopted by this same workstream, as doctrine A1-02's
+independent second implementation: see `adapters/ingress/ais/README.md`,
+which documents every AIS observation with a usable position now getting
+canonical `geo` declared `dimensionality: "2D"` with `geo_status:
+VERTICAL_UNAVAILABLE`, the identical mechanism this adapter uses. Ground
+radar and most DF systems remain 2-D-shaped and unchanged; adopting
+`dimensionality` there is still a question for their own workstreams.
 
 ### 3. Translation provenance cannot be recorded canonically
 

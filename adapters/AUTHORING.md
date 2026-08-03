@@ -127,8 +127,18 @@ same pack first if you want a known-good diff.
    (contract 7.8), requires `requires_deconfliction: true`, a TTL
    (`valid_for_ms`), and an idempotent `task_id`.
 9. **Units and geodesy** (contract 6): WGS-84, meters HAE, degrees true
-   north, m/s, UTC RFC3339 `Z` timestamps. Canonical geo is all-or-nothing;
-   omit missing values rather than zero-filling them (no `(0,0,0)` sentinels).
+   north, m/s, UTC RFC3339 `Z` timestamps. Under the locked v1.0 kernel,
+   canonical geo is all-or-nothing: omit missing values rather than
+   zero-filling them (no `(0,0,0)` sentinels), and a position with no usable
+   altitude cannot become canonical `geo` at all. The v1.1.0 branch adds a
+   declared-dimensionality exception (contract 21.8, doctrine A1-02): `geo`
+   may carry an explicit `dimensionality: "2D"`, which prohibits `alt_m`
+   entirely and pairs with `quality.geo_status: VERTICAL_UNAVAILABLE`; absent
+   `dimensionality` still means `"3D"` and still requires `alt_m`. Use the
+   declared-2D form for a source whose horizontal fix is real and exact with
+   no geometric vertical to assert (a surface vessel, a barometric-only
+   aircraft), never zero or a geoid guess. See `adapters/ingress/adsb/README.md`
+   and `adapters/ingress/ais/README.md` for worked implementations.
 10. **Schema minimums are per-subtype.** The locked schema defines required
     feature sets per event family and modality (for example, RF observation
     features require `center_freq_hz`, `bandwidth_hz`, AND `power_dbm`).

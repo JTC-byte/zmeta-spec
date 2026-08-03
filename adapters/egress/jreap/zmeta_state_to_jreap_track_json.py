@@ -1,3 +1,16 @@
+"""ZMeta STATE_EVENT to minimal JREAP tactical track JSON egress adapter.
+
+Produces a plain dict shaped like a minimal tactical track for a downstream
+JREAP gateway. This is NOT a Link-16/JREAP encoder; see this package's
+README and `adapters/README.md` for the full picture.
+
+This is a lossy projection (JREAP_EGRESS_LOSS_NOTES below enumerates the
+dropped concerns, mirroring the SAPIENT_EGRESS_LOSS_NOTES register in
+`adapters/egress/sapient/zmeta_state_to_sapient_detection.py`). ZMeta remains
+the source of truth; this projection is one-directional in authority and a
+re-import of it is never equal to the original (semantics contract 4.5.1).
+"""
+
 import math
 from collections.abc import Mapping, Sequence
 from collections.abc import Set as AbstractSet
@@ -8,6 +21,43 @@ from decimal import Decimal
 # branch or every string becomes a walk over its own characters - and a
 # one-character string yields itself, so that walk never terminates.
 _TEXT_LEAF_TYPES = (str, bytes, bytearray)
+
+# Dropped-concern register for this projection. Every key names a ZMeta
+# STATE_EVENT concern this adapter's output has no carrier for; none of this
+# changes what the adapter emits, it documents what was already true. Added
+# to close a documentation gap: `geo.error_ellipse_m` was silently dropped
+# here while the CoT egress projects it and the SAPIENT egress documents
+# dropping it in its own register, an asymmetry with no equivalent note on
+# this adapter until now.
+JREAP_EGRESS_LOSS_NOTES = {
+    "geo_uncertainty": (
+        "geo.error_ellipse_m is dropped; the minimal tactical track JSON "
+        "this adapter produces (track_id, lat, lon, hae_m, timestamp, "
+        "stale_time, track_type, confidence) has no uncertainty carrier. "
+        "adapters/egress/cot projects the same field as point ce/le/"
+        "precisionlocation; adapters/egress/sapient documents dropping it "
+        "under its own geo_uncertainty note."
+    ),
+    "lineage": (
+        "lineage.based_on and lineage.transform are dropped; the track JSON "
+        "has no lineage carrier. Recover provenance through the originating "
+        "ZMeta event, never from the JREAP side."
+    ),
+    "timing_quality": (
+        "payload.timing_quality is dropped; the track JSON has no timing "
+        "carrier."
+    ),
+    "motion_and_summary": (
+        "payload.source_summary, payload.heading_deg, payload.speed_mps, "
+        "and payload.callsign are dropped; this adapter projects only "
+        "track_id, position, altitude, timestamp, stale time, track type, "
+        "and confidence."
+    ),
+    "extensions": (
+        "payload.extensions is dropped; vendor extension content is not "
+        "re-exported across an external boundary."
+    ),
+}
 
 
 def _is_non_finite(value):
