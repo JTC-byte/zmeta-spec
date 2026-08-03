@@ -2102,8 +2102,10 @@ to allow extra properties.
 
 ## 21. v1.1.0 Extension Semantics
 
-This section governs experimental v1.1.0 extension vocabulary. It is valid only
-when `zmeta_version: "1.1.0"` selects that branch.
+This section governs v1.1.0 extension vocabulary. It is valid only when
+`zmeta_version: "1.1.0"` selects that branch. Each extension's maturity is
+recorded in `spec/extension-registry.yaml`: an entry marked `adopted` is formal
+v1.1.0 vocabulary, and an entry marked `experimental` remains provisional.
 
 ### 21.1 Structured Quality Metadata
 
@@ -2114,8 +2116,18 @@ Defined fields include:
 - `measurement_error`: object with explicit `value`, `unit`, and `metric`.
 - `snr_db`: signal-to-noise ratio in decibels.
 - `calibration_state`: `CALIBRATED`, `UNCALIBRATED`, or `DEGRADED`.
-- `geo_status`: `AVAILABLE`, `UNAVAILABLE`, `ESTIMATED`, `STALE`, or
-  `CONFIGURED`.
+- `geo_status`: `AVAILABLE`, `UNAVAILABLE`, `ESTIMATED`, `STALE`,
+  `CONFIGURED`, or `VERTICAL_UNAVAILABLE`.
+
+`geo_status` describes the canonical geo object, not knowledge about
+position. `UNAVAILABLE` means the event carries no canonical geo at all.
+`VERTICAL_UNAVAILABLE` means canonical geo is present and two-dimensional:
+the horizontal fix is real and exact, and the vertical component is not
+applicable or not measured. `VERTICAL_UNAVAILABLE` requires a geo carrying
+`dimensionality: "2D"` (section 21.8), and a two-dimensional geo MUST NOT
+carry `AVAILABLE`, so a consumer that filters on status alone cannot
+mistake a horizontal-only fix for a full one. Adjudicated 2026-08-02
+(doctrine A1-02).
 
 Quality metadata never creates identity, classification, or track persistence.
 
@@ -2190,6 +2202,46 @@ Defined v1.1.0 task types:
 
 Future task types MUST NOT be added without semantic definition and validation
 contract.
+
+### 21.8 Declared Geo Dimensionality
+
+v1.1.0 canonical `geo` carries an optional `dimensionality` member with
+values `"2D"` and `"3D"`. Absent means `"3D"`: every event written before
+this member existed carries `alt_m` and validates unchanged.
+
+`"2D"` declares a horizontal-only position and prohibits `alt_m` entirely.
+The declaration exists for sources whose horizontal fix is real and exact
+while a geometric vertical does not exist to assert: a surface vessel has no
+height above the ellipsoid, and a barometric-only aircraft has pressure
+altitude, which is not HAE and stays in native features. Substituting zero
+or a geoid guess was rejected on the record; a 2-D position is the honest
+complete statement of what such a source measured.
+
+Rules:
+
+- A `"2D"` geo MUST NOT carry `alt_m`, and a `"3D"` or undeclared geo MUST
+  carry it. There is no partially declared form.
+- A producer whose source has no vertical emits `"2D"` explicitly. The
+  absent-means-3D rule is compatibility for the existing corpus, not a
+  producer default.
+- `quality.geo_status` interacts with this member per section 21.1:
+  `VERTICAL_UNAVAILABLE` requires a `"2D"` geo, and a `"2D"` geo MUST NOT
+  claim `AVAILABLE`.
+- `geo.error_ellipse_m` attaches to either form unchanged; it is purely
+  horizontal (section 21.2).
+- WGS-84 and true-north conventions are unchanged. This member never
+  appears under `zmeta_version: "1.0"`.
+
+Basis: doctrine A1-02, two independent adapter implementations meeting the
+promotion bar, maintainer adjudications of 2026-08-02 and the shape approval
+recorded in the refinement handoff. Schema enforcement:
+`schema/zmeta-event-1.1.0.schema.json` (`$defs/geo` and the coherence arms);
+conformance pins: `gateway/tests/test_a1_02_dimensionality.py`. Encodings:
+the compact binary mapping remains v1.0-only and refuses v1.1.0 events, so
+no integer key exists for this member by adjudication; CBOR and protobuf
+lanes carry it as ordinary structure. Projection guidance: egress adapters
+treat a 2-D position exactly as a position whose vertical is unknown (CoT
+renders the unknown-altitude convention, never a fabricated zero).
 
 ## 22. Conformance Classes
 

@@ -101,7 +101,7 @@ entries:
     name: ERROR_ELLIPSE_M
     display_name: Error ellipse meters
     category: state_extension
-    status: experimental
+    status: adopted
     version_branch: "1.1.0"
     introduced_in: "1.1.0"
     semantic_definition: v1.1.0 geospatial uncertainty block under canonical geo objects using meter units and true-north orientation.
@@ -111,11 +111,52 @@ entries:
     schema_status: implemented
     policy_status: not_applicable
     conformance_status: implemented
+    risk_relevant: true
+    profile_projection_behavior: preserve_or_compact
+    security_privacy_notes:
+      - Positional uncertainty drives act-on decisions. An understated ellipse invites action on a fix the source never claimed, and a precise ellipse over a sensitive site reveals collection quality. Coalition or redaction release coarsens the ellipse through governed precision policy, never by silent member removal, and display renderings never zero-fill absent members.
+    fixture_references:
+      - adapters/ingress/adsb/test_adsb_ingress.py
+      - adapters/egress/cot/test_zmeta_to_cot.py
+      - gateway/tests/test_schema_version_discrimination.py
+    migration_notes:
+      - The v1.0-era adapter convention semi_major_m/semi_minor_m inside free-form quality objects is retired. The ADS-B reference writer emits the formal spellings under payload.geo.error_ellipse_m with conditional zmeta_version 1.1.0 stamping as of 2026-08-03. Readers never default absent members to zero.
     references:
       - schema/zmeta-event-1.1.0.schema.json
       - schema/README.md
+      - spec/semantics-contract.md
       - gateway/tests/test_schema_version_discrimination.py
     review_state: approved
+    notes:
+      - Adopted 2026-08-02 by maintainer adjudication (fielded LOB-fusion workflow depends on it; promotion rides the v1.1.20 release). Compact binary stays v1.0-only and refuses v1.1.0 events by the same adjudication, so no integer key exists for this block.
+
+  - <<: *entry_defaults
+    name: GEO_DIMENSIONALITY
+    display_name: Declared geo dimensionality
+    category: state_extension
+    status: adopted
+    version_branch: "1.1.0"
+    introduced_in: "1.1.0"
+    semantic_definition: v1.1.0 canonical geo carries an optional dimensionality member ("2D" or "3D", absent means "3D"); "2D" declares a horizontal-only position and prohibits alt_m entirely, paired with quality.geo_status VERTICAL_UNAVAILABLE per contract sections 21.1 and 21.8.
+    rationale: Sources with a real, exact horizontal fix and no geometric vertical (surface vessels, barometric-only aircraft) were refused canonical geo or forced toward fabricated altitude; a declared 2-D form is the honest complete statement of what such a source measured.
+    allowed_event_types: ["OBSERVATION_EVENT", "FUSION_EVENT", "STATE_EVENT"]
+    payload_scope: ["payload.geo.dimensionality", "payload.estimated_state.geo.dimensionality"]
+    schema_status: implemented
+    policy_status: not_applicable
+    conformance_status: implemented
+    risk_relevant: true
+    profile_projection_behavior: preserve
+    security_privacy_notes:
+      - A consumer that reads a 2-D position as a full fix may act on a vertical that was never claimed. The declaration and the VERTICAL_UNAVAILABLE token must survive projection together; dropping either turns an honest horizontal-only fix into an apparent full fix.
+    fixture_references:
+      - gateway/tests/test_a1_02_dimensionality.py
+    references:
+      - schema/zmeta-event-1.1.0.schema.json
+      - spec/semantics-contract.md
+      - gateway/tests/test_a1_02_dimensionality.py
+    review_state: approved
+    notes:
+      - Doctrine A1-02, promotion bar met by two independent implementations (ADS-B, AIS). Shape approved with rationale 2026-08-02, schema landed red-first 2026-08-03, normative text in contract section 21.8. Absent-means-3D is corpus compatibility, not a producer default.
 
   - <<: *entry_defaults
     name: BEARING_FRAME

@@ -192,11 +192,13 @@ nodes.
   (`adapters/ingress/adsb/`) translates `dump1090` and `readsb` snapshots into
   ZMeta, and declines to emit a position, an altitude datum, or a calibrated
   power value it does not have.
-  Governed artifacts changed in this release, relative to zmeta-v1.1.18: conformance/adapter-harness/must-pass.jsonl, conformance/bad-events/must-fail.jsonl, policy/producer-authority.yaml, schema/zmeta-event-1.1.0.schema.json, spec/compact-binary-mapping.md, spec/semantics-contract.md.
-  The locked v1.0 kernel is unchanged. The contract change is a lock
-  provenance note dating the v1.0 lockdown, not a semantic change; the
-  v1.1.0 schema change is the declared-dimensionality form and the
-  VERTICAL_UNAVAILABLE token (doctrine A1-02), which producers opt into.
+  Governed artifacts changed in this release, relative to zmeta-v1.1.18: conformance/adapter-harness/must-pass.jsonl, conformance/bad-events/must-fail.jsonl, policy/producer-authority.yaml, schema/zmeta-event-1.1.0.schema.json, spec/compact-binary-mapping.md, spec/extension-registry.yaml, spec/semantics-contract.md.
+  The locked v1.0 kernel is unchanged. The contract changes are the lock
+  provenance note and the v1.1 lane's A1-02 sections; the v1.1.0 schema
+  gains the declared-dimensionality form, the VERTICAL_UNAVAILABLE token
+  with its coherence arms, and a structural timestamp shape, all of which
+  producers opt into; the registry adopts ERROR_ELLIPSE_M and
+  GEO_DIMENSIONALITY as formal v1.1.0 vocabulary.
 - Normative contract: v1.0 locked semantic contract, canonical version-discriminated
   JSON schema, v1.0 JSON schema, and policy pack.
 - Experimental extension: `schema/zmeta-event-1.1.0.schema.json` is provided for proposed

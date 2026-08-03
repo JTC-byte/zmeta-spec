@@ -31,7 +31,12 @@ import jsonschema
 ROOT = Path(__file__).resolve().parents[2]
 
 # Moving either anchor requires a maintainer adjudication on the record.
-CONTRACT_SHA256 = "4b44a2be848463df566fb4080bf0a014103b2e8c710890c6b6089e3fcee07495"
+# Contract anchor moved 2026-08-03 under the A1-02 and ellipse-adoption
+# adjudications: section 21.1 gains VERTICAL_UNAVAILABLE with the
+# object-not-knowledge sentence, new section 21.8 defines declared geo
+# dimensionality, and the section 21 preamble defers extension maturity to
+# the registry. The locked v1.0 sections are untouched by that edit.
+CONTRACT_SHA256 = "eb405618a2cbc1421f0947271f75a5b2716a9d7428d5ae9fe10c0963733048d4"
 V1_0_SCHEMA_SHA256 = "1d2d84164b3a8986874e932c0e9369be3bf392a483a8ff261d464f34bd16d7b5"
 
 # Embedded verbatim from the v1.0.5 tag's example corpus. Pre-lock history:
