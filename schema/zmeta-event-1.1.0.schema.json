@@ -161,6 +161,72 @@
     },
     {
       "$ref": "#/$defs/profileExportConsistency"
+    },
+    {
+      "$comment": "A1-02 coherence, arm 1 (adjudicated 2026-08-02): the VERTICAL_UNAVAILABLE token claims a present, two-dimensional canonical geo; asserting it without one is a lie about the geo object.",
+      "if": {
+        "required": ["payload"],
+        "properties": {
+          "payload": {
+            "required": ["quality"],
+            "properties": {
+              "quality": {
+                "required": ["geo_status"],
+                "properties": {
+                  "geo_status": { "const": "VERTICAL_UNAVAILABLE" }
+                }
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "required": ["geo"],
+            "properties": {
+              "geo": {
+                "required": ["dimensionality"],
+                "properties": {
+                  "dimensionality": { "const": "2D" }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "$comment": "A1-02 coherence, arm 2: a declared 2-D geo must not carry geo_status AVAILABLE, so a status-only consumer cannot mistake a horizontal-only fix for a full one. The token is not mandated; the lie is blocked.",
+      "if": {
+        "required": ["payload"],
+        "properties": {
+          "payload": {
+            "required": ["geo"],
+            "properties": {
+              "geo": {
+                "required": ["dimensionality"],
+                "properties": {
+                  "dimensionality": { "const": "2D" }
+                }
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "properties": {
+              "quality": {
+                "properties": {
+                  "geo_status": { "not": { "const": "AVAILABLE" } }
+                }
+              }
+            }
+          }
+        }
+      }
     }
   ],
   "$defs": {
@@ -653,7 +719,17 @@
     "geo": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["lat", "lon", "alt_m"],
+      "required": ["lat", "lon"],
+      "allOf": [
+        {
+          "if": {
+            "required": ["dimensionality"],
+            "properties": { "dimensionality": { "const": "2D" } }
+          },
+          "then": { "not": { "required": ["alt_m"] } },
+          "else": { "required": ["alt_m"] }
+        }
+      ],
       "properties": {
         "lat": {
           "type": "number",
@@ -667,6 +743,11 @@
         },
         "alt_m": {
           "type": "number"
+        },
+        "dimensionality": {
+          "type": "string",
+          "enum": ["2D", "3D"],
+          "description": "Declared dimensionality of this position. Absent means 3D, so every event written before this field existed validates unchanged. \"2D\" declares a horizontal-only position and prohibits alt_m entirely: a surface vessel or a barometric-only aircraft has a real, exact horizontal fix and no geometric vertical to assert. Adjudicated 2026-08-02 (doctrine A1-02)."
         },
         "error_ellipse_m": {
           "$ref": "#/$defs/error_ellipse"
@@ -796,8 +877,8 @@
         },
         "geo_status": {
           "type": "string",
-          "enum": ["AVAILABLE", "UNAVAILABLE", "ESTIMATED", "STALE", "CONFIGURED"],
-          "description": "Provenance of the geo position. UNAVAILABLE means no GPS fix. CONFIGURED means position injected from config (GPS-denied). ESTIMATED means derived from dead reckoning or other indirect source."
+          "enum": ["AVAILABLE", "UNAVAILABLE", "ESTIMATED", "STALE", "CONFIGURED", "VERTICAL_UNAVAILABLE"],
+          "description": "Status of the canonical geo OBJECT, not of knowledge about position. UNAVAILABLE means no canonical geo at all. VERTICAL_UNAVAILABLE means canonical geo is present and two-dimensional: the horizontal fix is real, the vertical component is not applicable or not measured (requires geo.dimensionality \"2D\"; adjudicated 2026-08-02, doctrine A1-02). CONFIGURED means position injected from config (GPS-denied). ESTIMATED means derived from dead reckoning or other indirect source."
         },
         "bearing_frame": {
           "type": "string",
