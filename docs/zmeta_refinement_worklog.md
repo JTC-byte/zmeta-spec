@@ -2,7 +2,21 @@
 
 ## Current Resume Note
 
-- Last updated: 2026-08-03 (pat-down green; phase 4 docs refreshed; the cut remains)
+- Last updated: 2026-08-03 (checkpoint closed; the cut is the whole board)
+- **2026-08-03 (checkpoint closeout).** Final state verified by hand: main
+  and origin synced at 1714866, CI green on the last two pushes, kernel
+  gate all flags exit 0, examples 51/51, pytest 1720 passed plus 1081
+  subtests with the exit code checked, all lints and validators exit 0, no
+  stray worktrees, branches or containers. The v1.1.20 campaign stands at
+  four phases complete: the governed waves, the boundary fixes, the
+  validations including the first independent-implementation acceptance,
+  and the documentation refresh from a certified green state. The whole
+  remaining board is phase 5, the cut: currency pass first, the
+  whole-range fresh-eyes panel over the roughly twenty-three commits since
+  v1.1.19, package validation, release notes, manifest last, and the tag,
+  sign and publish steps at the maintainer's direction. Deliberately held
+  for a fresh session so the heaviest review of the cycle gets a full
+  window and a stable tip.
 - **2026-08-03 (pat-down and phase 4).** The pre-refresh pat-down certified
   green from three angles: battery and every gate by hand, a cross-wave
   seam probe, and a doc-claims sweep. The seam probe earned its cost: arm 3
