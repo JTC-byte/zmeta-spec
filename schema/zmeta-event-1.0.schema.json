@@ -213,6 +213,9 @@
       }
     },
     {
+      "$ref": "#/$defs/eventSubtypeConsistency"
+    },
+    {
       "$ref": "#/$defs/profileExportConsistency"
     }
   ],
@@ -267,6 +270,154 @@
           "$ref": "#/$defs/utcDateTime"
         }
       }
+    },
+    "eventSubtypeConsistency": {
+      "allOf": [
+        {
+          "if": {
+            "required": ["event"],
+            "properties": {
+              "event": {
+                "required": ["event_type"],
+                "properties": {
+                  "event_type": { "const": "OBSERVATION_EVENT" }
+                }
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "event": {
+                "properties": {
+                  "event_subtype": {
+                    "enum": ["RF", "EO", "IR", "ACOUSTIC", "NETWORK"]
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "required": ["event"],
+            "properties": {
+              "event": {
+                "required": ["event_type"],
+                "properties": {
+                  "event_type": { "const": "INFERENCE_EVENT" }
+                }
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "event": {
+                "properties": {
+                  "event_subtype": {
+                    "enum": ["CLASSIFICATION", "ASSOCIATION", "ANOMALY", "BEHAVIOR"]
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "required": ["event"],
+            "properties": {
+              "event": {
+                "required": ["event_type"],
+                "properties": {
+                  "event_type": { "const": "FUSION_EVENT" }
+                }
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "event": {
+                "properties": {
+                  "event_subtype": { "const": "TRACK_FUSION" }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "required": ["event"],
+            "properties": {
+              "event": {
+                "required": ["event_type"],
+                "properties": {
+                  "event_type": { "const": "STATE_EVENT" }
+                }
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "event": {
+                "properties": {
+                  "event_subtype": { "const": "TRACK_STATE" }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "required": ["event"],
+            "properties": {
+              "event": {
+                "required": ["event_type"],
+                "properties": {
+                  "event_type": { "const": "COMMAND_EVENT" }
+                }
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "event": {
+                "properties": {
+                  "event_subtype": {
+                    "enum": ["GOTO", "ORBIT", "HOLD", "SEARCH_BOX"]
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "required": ["event"],
+            "properties": {
+              "event": {
+                "required": ["event_type"],
+                "properties": {
+                  "event_type": { "const": "SYSTEM_EVENT" }
+                }
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "event": {
+                "properties": {
+                  "event_subtype": {
+                    "enum": ["LINK_STATUS", "TIME_STATUS", "SCHEMA_VIOLATION", "TASK_ACK"]
+                  }
+                }
+              }
+            }
+          }
+        },
+        { "$ref": "#/$defs/subtypePayloadMatch/observation" },
+        { "$ref": "#/$defs/subtypePayloadMatch/inference" },
+        { "$ref": "#/$defs/subtypePayloadMatch/command" },
+        { "$ref": "#/$defs/subtypePayloadMatch/system" }
+      ]
     },
     "subtypePayloadMatch": {
       "observation": {

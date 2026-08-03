@@ -2,6 +2,15 @@
 
 **Status:** v1.0 Locked (Normative)
 
+**Lock provenance (adjudicated 2026-08-03):** the locked v1.0 semantics are
+this document as hardened on 2026-05-07 by the semantic contract lockdown
+audit (`docs/zmeta_semantic_contract_lockdown_audit.md`), the baseline every
+subsequent verification descends from and the one that predates all fielded
+adoption. The 2026-04-26 "Locked" stamp predated that hardening; text from
+before the lockdown audit is pre-lock history, not the contract. This note
+exists because the ambiguity between those two dates cost a forensic pass to
+resolve; the contract now dates its own lock so it never costs another.
+
 **Purpose:** This document captures the agreed semantic foundations that govern
 ZMeta v1.0. It constrains the formal schema, policy pack, reference gateway,
 adapters, encodings, and conformance suite.
