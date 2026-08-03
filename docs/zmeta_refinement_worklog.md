@@ -2,7 +2,36 @@
 
 ## Current Resume Note
 
-- Last updated: 2026-08-03 (wave 1 landed; lock baseline adjudicated; X1-02 terminal)
+- Last updated: 2026-08-03 (wave 2 landed; A1-02 and X1-01 closed; vessel reaches the map)
+- **2026-08-03 (later) — wave 2, and the doctrine that opened this cycle
+  closes in the right direction.** Four workstreams landed the 2-D form end
+  to end: AIS and barometric-only ADS-B emit declared 2-D canonical geo
+  with VERTICAL_UNAVAILABLE under conditional 1.1.0 stamping, positionless
+  output byte-stable v1.0 with payload-equality pins; the track projector
+  produces 2-D FUSION and STATE pairs, so A1-02's measured zero-tracks
+  consequence now measures two-dimensional tracks; X1-01 closed at both
+  lawful layers (v1.1.0 structural timestamp shape, gateway plausibility
+  window as EVENT_TS_IMPLAUSIBLE); the contract carries sections 21.1 and
+  21.8 per its own adoption checklist; the registry adopts ERROR_ELLIPSE_M
+  and GEO_DIMENSIONALITY as formal, risk-relevant vocabulary. One process
+  interruption mid-wave (an app restart) was recovered from the workflow
+  journal: two workstreams replayed from cache, two re-ran on cleanly
+  reverted scopes. The cold attack pass verified the end-to-end maritime
+  chain through to CoT (hae renders the unknown convention, never zero),
+  byte-stability claims against the pre-wave adapters, both hash anchors by
+  tampering, and every pin non-vacuous by reverts. It found one MEDIUM gap:
+  the coherence arms ignored payload.estimated_state.geo, so the arm-2 lie
+  validated one container over, and my registry entry had claimed that
+  scope as fixture-pinned when nothing pinned it. Closed red-first the same
+  hour: arm 2b refuses a 2-D estimated_state.geo beside AVAILABLE, two pins
+  substantiate the registry claim (with the schema-path check proving the
+  arm itself is the refuser), and the registry note records the tripwire:
+  an estimated_state producer arriving without arm-1 extension reopens
+  A1-02. My first draft of those pins was itself vacuous, failing on
+  missing required fields rather than the lie, caught by running the
+  honest control; the corrected helper's docstring keeps that lesson.
+  Battery 1706 passed plus 1081 subtests, gate exit 0, examples 51/51,
+  harness 53/53. The push follows this record.
 - **2026-08-03 — wave 1 of the push, and the lock's second, final
   adjudication.** Four Sonnet workstreams plus the A1-02 schema centerpiece
   landed as three commits, every behavior change red-first. A1-02:

@@ -853,7 +853,7 @@ instance, which is what keeps a fix from being an accommodation for one source.
 | # | Tension | Gates in play | Status |
 |---|---|---|---|
 | A1-01 | RF minimum features assume a calibrated receiver | 1, 3 | OPEN |
-| A1-02 | All-or-nothing geo discards good 2-D positions | 1, 2, 3 | **DECIDED 2026-08-02** — declared dimensionality + vocabulary token, lands v1.1.20 |
+| A1-02 | All-or-nothing geo discards good 2-D positions | 1, 2, 3 | **CLOSED 2026-08-03** — shipped end to end: schema, token, coherence arms, contract 21.1/21.8, registry, both adapters, projector |
 | A1-03 | Translation provenance is unsayable for an original observation | 3, 5 | OPEN |
 
 ### A1-01 — `power_dbm` assumes a calibrated receiver · OPEN
@@ -890,7 +890,20 @@ The ADS-B adapter ships on v1.0 using `NETWORK` modality to avoid the
 fabrication. That is a WORKAROUND, not a design — ADS-B is RF — and it is
 recorded as such in the adapter README.
 
-### A1-02 — All-or-nothing geo discards good 2-D positions · DECIDED 2026-08-02
+### A1-02 — All-or-nothing geo discards good 2-D positions · CLOSED 2026-08-03
+
+**Shipped end to end in the v1.1.20 waves, and the measured consequence
+that opened this entry now measures the other way:** the same schema-valid
+AIS observation that projected to zero tracks projects to a
+two-dimensional FUSION_EVENT and STATE_EVENT pair, geo_status
+VERTICAL_UNAVAILABLE, never a vertical the message never gave. The full
+surface: schema/zmeta-event-1.1.0.schema.json ($defs/geo dimensionality
+plus three coherence arms), contract sections 21.1 and 21.8, registry
+entry GEO_DIMENSIONALITY (adopted, risk_relevant), AIS and
+barometric-only ADS-B emitting the form under conditional 1.1.0 stamping,
+and the track projector accepting it. The locked v1.0 lane keeps the
+demotion this entry documented, which is now the adoption-path story, not
+a wall. Original entry as written:
 
 `payload.geo` requires `alt_m` (contract 6.8). A large share of ADS-B targets
 report only `alt_baro`, a pressure altitude referenced to 1013.25 hPa, which is
@@ -992,11 +1005,24 @@ Confirmed independently on both stacks before being written down.
 
 | # | Tension | Gates in play | Status |
 |---|---|---|---|
-| X1-01 | The kernel does not constrain `event.ts` beyond a trailing `Z` | 3, 5, 6 | OPEN |
+| X1-01 | The kernel does not constrain `event.ts` beyond a trailing `Z` | 3, 5, 6 | **CLOSED 2026-08-03** — v1.1.0 structural shape + gateway plausibility window; locked v1.0 untouched by the lock doctrine |
 | X1-02 | A weaker check keeps standing in for a stronger one that exists | 5, 7 | **TERMINAL 2026-08-03 — inventory ran, result recorded on the entry** |
 | X1-03 | The retirement rule reads silence as death, which inverts for constitutional rules | 7 | OPEN |
 
-### X1-01 — The kernel does not constrain `event.ts` · OPEN
+### X1-01 — The kernel does not constrain `event.ts` · CLOSED 2026-08-03
+
+**Closed at both layers the contract allows, and deliberately not at the
+one it does not.** The v1.1.0 utcDateTime pattern now enforces structural
+calendar shape (the year-0001 and month-88 corruption classes die; a
+schema is a shape gate, so February 30 passes and the description says
+so), and the gateway carries a config-gated, warn-only plausibility window
+(ts_plausibility_horizon_ms, EVENT_TS_IMPLAUSIBLE) per section 5.7's
+assignment of cross-event plausibility to the policy and runtime layer.
+The locked v1.0 utcDateTime is untouched: after the lock-baseline
+adjudication, narrowing it was never on the table, and its hash anchor
+would have gone red. The original deferral note below predates that
+adjudication; v1.1.20 is behaviour-changing on the v1.1 lane only.
+Original entry as written:
 
 `utcDateTime` is `{"type":"string","format":"date-time","pattern":"Z$"}`. Under
 JSON Schema 2020-12 `format` is **annotation-only**, so `pattern` is the entire

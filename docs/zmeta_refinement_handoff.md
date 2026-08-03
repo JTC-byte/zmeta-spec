@@ -25,18 +25,17 @@ track-projector harness fixtures are the documented constructed-object
 carve-out, not deferred work. Yesterday's match-rule open question is
 answered by contract 7.3: v1.0 law, machinery stands.
 
-**WAVE 2, next:** the A1-02 normative text per the contract's own adoption
-checklist (section 20.4): the VERTICAL_UNAVAILABLE token into the section
-21.1 enumeration, the dimensionality rule into the v1.1 lane, with the
-contract hash anchor moving under this adjudication; the ellipse registry
-side (status experimental to adopted, risk_relevant to true with its
-required fields); AIS emitting the 2-D form with the token, baro-only
-ADS-B likewise, both on the conditional-stamp pattern wave 1 established;
-the track projector accepting 2-D observations so maritime tracks reach a
-COP; X1-01 shaped per the contract scout's finding (the contract assigns
-cross-event plausibility to the policy/runtime layer, so the constraint
-lands on the v1.1 schema plus a gateway check, never the locked v1.0).
-Then phases 3 through 5 as written below.
+**WAVE 2 LANDED 2026-08-03** (three commits; battery 1704 plus 1081 at the
+wave tip; one process interruption mid-wave recovered via the workflow
+journal, two workstreams replaying from cache and two re-running clean).
+Done: AIS and barometric-only ADS-B emit the declared 2-D form with
+VERTICAL_UNAVAILABLE under conditional 1.1.0 stamping; the track projector
+produces 2-D tracks, closing A1-02's measured consequence in the right
+direction; the third coherence arm; X1-01 closed at both lawful layers;
+contract sections 21.1 and 21.8 drafted per the section 20.4 checklist;
+ERROR_ELLIPSE_M and GEO_DIMENSIONALITY adopted in the registry; both
+doctrine entries CLOSED on the log. Remaining phases as written below:
+validations (phase 3), documentation refresh (phase 4), the cut (phase 5).
 
 The campaign, in order:
 

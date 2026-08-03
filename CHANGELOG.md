@@ -2,6 +2,30 @@
 
 ## [Unreleased]
 
+- 2026-08-03 — **A vessel reaches the map: the A1-02 2-D form flows end to
+  end.** AIS emits declared 2-D canonical geo (`dimensionality: "2D"`, no
+  `alt_m`) with `geo_status: VERTICAL_UNAVAILABLE` and a conditional
+  `zmeta_version: "1.1.0"` stamp for every message with a usable position;
+  barometric-only ADS-B does the same through the same mechanism, pressure
+  altitude staying native; the track projector accepts 2-D observations and
+  produces 2-D `FUSION_EVENT`/`STATE_EVENT` pairs. The measured consequence
+  that opened doctrine A1-02 (a clean AIS observation projecting to zero
+  tracks) now measures two-dimensional tracks. Positionless output on both
+  adapters stays byte-stable v1.0. A third coherence arm refuses
+  `UNAVAILABLE` beside a present geo. The contract carries the normative
+  text (sections 21.1 and 21.8, per the section 20.4 adoption checklist),
+  and the registry adopts `ERROR_ELLIPSE_M` and `GEO_DIMENSIONALITY` as
+  formal v1.1.0 vocabulary, both risk-relevant with their required notes.
+- 2026-08-03 — **A timestamp must look like time (doctrine X1-01,
+  closed).** The v1.1.0 `utcDateTime` pattern enforces structural calendar
+  shape, killing the year-0001 and month-88 corruption classes while
+  staying a shape gate rather than a calendar. The gateway gains a
+  config-gated, warn-only `event.ts` plausibility window
+  (`ts_plausibility_horizon_ms`, default 24 h, 0 disables) counted as
+  `EVENT_TS_IMPLAUSIBLE` with direction, delta and horizon in details,
+  per the contract's assignment of cross-event plausibility to the
+  runtime layer. The locked v1.0 schema is untouched.
+
 - 2026-08-03 — **The lock has a dated birth certificate, and the restoration
   below is reversed on it.** The contract scout surfaced section 7.3's
   normative subtype mandate, and forensics dated the lock's two candidate
