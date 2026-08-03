@@ -12,6 +12,7 @@ import sys
 from pathlib import Path
 
 import pytest
+from jsonschema import Draft202012Validator, FormatChecker
 
 ROOT = Path(__file__).resolve().parents[3]
 if str(ROOT) not in sys.path:
@@ -20,6 +21,17 @@ if str(ROOT) not in sys.path:
 from adapters.ingress.adsb.adsb_to_zmeta import (  # noqa: E402
     translate_aircraft,
     translate_snapshot,
+)
+from adapters.ingress.time_utils import coerce_timing_quality  # noqa: E402
+
+SCHEMA_DIR = ROOT / "schema"
+VALIDATOR_1_0 = Draft202012Validator(
+    json.loads((SCHEMA_DIR / "zmeta-event-1.0.schema.json").read_text(encoding="utf-8")),
+    format_checker=FormatChecker(),
+)
+VALIDATOR_1_1_0 = Draft202012Validator(
+    json.loads((SCHEMA_DIR / "zmeta-event-1.1.0.schema.json").read_text(encoding="utf-8")),
+    format_checker=FormatChecker(),
 )
 
 NOW = 1769558400.0
@@ -34,14 +46,64 @@ FULL = {
 
 
 def test_a_full_report_produces_canonical_geo_with_a_declared_bound():
+    """NACp 9 declares a 30 m containment radius; it is not invented.
+
+    The ellipse is geo uncertainty, so it lives at `payload.geo.error_ellipse_m`
+    with the formal contract spellings (`semi_major`/`semi_minor`/
+    `orientation_deg`), never the old `_m`-suffixed `payload.quality` location.
+    The locked v1.0 `geo` def has no room for it, so an entry that populates
+    the ellipse stamps `zmeta_version: 1.1.0` and must validate against the
+    v1.1.0 schema, not just assert its own shape.
+    """
     event = translate_aircraft(FULL, **BASE)
+    assert event["zmeta_version"] == "1.1.0"
     geo = event["payload"]["geo"]
     assert geo["lat"] == 34.05 and geo["lon"] == -118.25
     # alt_geom is WGS84 and is the only altitude that may become alt_m
     assert geo["alt_m"] == pytest.approx(10500 * 0.3048)
-    # NACp 9 declares a 30 m containment radius; it is not invented
-    ellipse = event["payload"]["quality"]["error_ellipse_m"]
-    assert ellipse["semi_major_m"] == 30.0 and ellipse["semi_minor_m"] == 30.0
+    ellipse = geo["error_ellipse_m"]
+    assert ellipse["semi_major"] == 30.0 and ellipse["semi_minor"] == 30.0
+    assert ellipse["orientation_deg"] == 0.0
+    assert "quality" not in event["payload"]
+    VALIDATOR_1_1_0.validate(event)
+
+
+def test_ellipse_free_entry_emits_byte_stable_v1_0_output():
+    """No usable NACp bound (category 1, ">10 NM"): the promotion must not
+    leak `zmeta_version`, `payload.geo.error_ellipse_m`, or the v1.1.0-only
+    `features.protocol` key onto the branch that never populates an ellipse.
+    The v1.0 payload this adapter has always produced stays unchanged."""
+    entry = dict(FULL, nac_p=1)
+    event = translate_aircraft(entry, **BASE)
+
+    assert event["zmeta_version"] == "1.0"
+    assert event["source"] == {
+        "platform_id": "adsb-node-01",
+        "node_role": "EDGE",
+        "producer": "rf-sensor-adsb-01",
+    }
+    assert event["payload"] == {
+        "modality": "NETWORK",
+        "features": {
+            "adsb_icao24": "a1b2c3",
+            "adsb_downlink_hz": 1090_000_000,
+            "adsb_receiver_id": "rtlsdr-01",
+            "adsb_callsign": "UAL123",
+            "adsb_squawk": "1200",
+            "rssi_dbfs": -18.4,
+            "adsb_alt_baro_ft": 10000,
+            "adsb_ground_speed_kt": 420.5,
+            "adsb_track_deg_true": 95.2,
+            "adsb_message_count": 842,
+            "adsb_seen_s": 0.1,
+            "adsb_seen_pos_s": 0.3,
+            "adsb_nac_p": 1,
+            "adsb_sil": 3,
+        },
+        "timing_quality": coerce_timing_quality(None, event_ts=event["event"]["ts"]),
+        "geo": {"lat": 34.05, "lon": -118.25, "alt_m": 10500 * 0.3048},
+    }
+    VALIDATOR_1_0.validate(event)
 
 
 def test_barometric_only_refuses_canonical_geo_and_keeps_the_position_natively():
@@ -192,14 +254,18 @@ def test_an_out_of_range_coordinate_is_not_demoted_to_native_either():
 
 
 def test_absent_declared_accuracy_produces_no_bound():
-    """NACp absent, or a category that declares no bound, invents nothing."""
+    """NACp absent, or a category that declares no bound, invents nothing.
+
+    No ellipse means no reason to leave the locked v1.0 stamp either.
+    """
     for entry in (
         {k: v for k, v in FULL.items() if k != "nac_p"},
         dict(FULL, nac_p=0),   # "unknown"
         dict(FULL, nac_p=1),   # "> 10 NM", no usable radius
     ):
         event = translate_aircraft(entry, **BASE)
-        assert "error_ellipse_m" not in event["payload"].get("quality", {})
+        assert "error_ellipse_m" not in event["payload"].get("geo", {})
+        assert event["zmeta_version"] == "1.0"
 
 
 def test_timing_is_the_degraded_fallback_unless_the_deployment_supplies_real_metadata():

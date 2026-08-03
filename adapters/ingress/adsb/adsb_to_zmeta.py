@@ -166,6 +166,25 @@ def _usable_alt_geom_m(entry):
     return alt_m
 
 
+def _declared_horizontal_ellipse(entry):
+    """NACp's declared containment radius as a formal geo error ellipse, or
+    None when the category declares no usable bound.
+
+    Spelled to match the locked ``$defs/error_ellipse`` contract
+    (schema/zmeta-event-1.1.0.schema.json: ``semi_major``/``semi_minor``/
+    ``orientation_deg``), not the ``_m``-suffixed convention this adapter
+    used to write under ``payload.quality``. A circular bound is expressed as
+    an ellipse whose two semi-axes are equal.
+    """
+    nac_p = entry.get("nac_p")
+    if not isinstance(nac_p, int) or isinstance(nac_p, bool):
+        return None
+    radius = _NACP_HORIZONTAL_M.get(nac_p)
+    if radius is None:
+        return None
+    return {"semi_major": radius, "semi_minor": radius, "orientation_deg": 0.0}
+
+
 def _geo(entry):
     """Canonical geo, or None to omit it entirely.
 
@@ -193,26 +212,23 @@ def _geo(entry):
         # by the caller -- the same convert-or-demote rule the bladeRF adapter
         # applies to a frame-unlabelled bearing.
         return None
-    return {"lat": lat, "lon": lon, "alt_m": alt_m}
+    geo = {"lat": lat, "lon": lon, "alt_m": alt_m}
+    error_ellipse = _declared_horizontal_ellipse(entry)
+    if error_ellipse is not None:
+        # Geo uncertainty attaches only where canonical geo exists -- an
+        # ellipse describes how uncertain a position is, and a positionless
+        # entry has no position to be uncertain about. `_quality` carries
+        # `geo_status: UNAVAILABLE` for that case instead.
+        geo["error_ellipse_m"] = error_ellipse
+    return geo
 
 
-def _quality(entry, has_geo):
+def _quality(has_geo):
     """Declared quality, carrying only what the message actually asserts."""
-    quality = {}
-    nac_p = entry.get("nac_p")
-    if has_geo and isinstance(nac_p, int) and not isinstance(nac_p, bool):
-        radius = _NACP_HORIZONTAL_M.get(nac_p)
-        if radius is not None:
-            # A declared containment radius, expressed as a circular bound.
-            quality["error_ellipse_m"] = {
-                "semi_major_m": radius,
-                "semi_minor_m": radius,
-                "orientation_deg": 0.0,
-            }
     if not has_geo:
         # A real detection with no position. Say so rather than stay silent.
-        quality["geo_status"] = "UNAVAILABLE"
-    return quality or None
+        return {"geo_status": "UNAVAILABLE"}
+    return None
 
 
 def _native_features(entry, receiver_id):
@@ -334,11 +350,21 @@ def translate_aircraft(
         return None
 
     geo = _geo(entry)
-    quality = _quality(entry, geo is not None)
+    quality = _quality(geo is not None)
+    has_ellipse = geo is not None and "error_ellipse_m" in geo
+
+    features = _native_features(entry, receiver_id)
+    if has_ellipse:
+        # The locked v1.0 kernel's NETWORK ObservationPayload imposes no
+        # feature vocabulary of its own, but v1.1.0's does, and requires
+        # `protocol` (schema/zmeta-event-1.1.0.schema.json). An entry with no
+        # declared ellipse never leaves the v1.0 branch, so it never gains
+        # this key -- the v1.0 output stays byte-for-byte what it always was.
+        features["protocol"] = "ADS-B"
 
     payload = {
         "modality": "NETWORK",
-        "features": _native_features(entry, receiver_id),
+        "features": features,
         # An RTL-SDR ADS-B receiver has no disciplined clock: dump1090 stamps on
         # receipt from the host system clock, and ADS-B messages carry no
         # transmission time. So the honest default is the governed degraded
@@ -363,8 +389,16 @@ def translate_aircraft(
     if sensor_id is not None:
         source["sensor_id"] = str(sensor_id)
 
+    # `geo.error_ellipse_m` is v1.1.0 vocabulary -- the locked v1.0 `geo` def
+    # is additionalProperties:false with only lat/lon/alt_m, so an event that
+    # populates the ellipse must stamp 1.1.0 or it is schema-invalid the
+    # moment `nac_p` yields a radius. An entry with no declared ellipse keeps
+    # the 1.0 stamp unchanged; only the branch that actually needs 1.1.0's
+    # vocabulary uses it.
+    zmeta_version = "1.1.0" if has_ellipse else "1.0"
+
     return {
-        "zmeta_version": "1.0",
+        "zmeta_version": zmeta_version,
         "event": {
             "event_id": str(uuid7()),
             "event_type": "OBSERVATION_EVENT",

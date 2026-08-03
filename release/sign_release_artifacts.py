@@ -1,4 +1,15 @@
-"""Generate checksums and detached signatures for ZMeta release artifacts."""
+"""Generate checksums and detached signatures for ZMeta release artifacts.
+
+Checksums hash each artifact's authoritative content, not always its raw
+on-disk bytes: text assets (the release manifest, RELEASE_NOTES, and
+VALIDATION_REPORT - anything matching TEXT_ASSET_SUFFIXES) are hashed with
+CRLF normalized to LF, matching what git stores and what `git show
+<tag>:<path>` returns on every checkout. Binary assets (the zip bundles) are
+hashed on raw bytes with no normalization. See _sha256() and
+docs/release_checksum_errata.md for why this split exists: a CRLF working
+copy previously baked wrong sums into published checksum files for text
+assets across 15 release tags, from v1.1.0 through v1.1.19.
+"""
 
 from __future__ import annotations
 
@@ -14,6 +25,11 @@ from pathlib import Path
 
 MANIFEST_PATH = Path(__file__).resolve().parent / "zmeta-release-manifest.yaml"
 ROOT = Path(__file__).resolve().parents[1]
+
+# Text-asset suffixes among _artifact_names(): the release manifest and the
+# generated RELEASE_NOTES/VALIDATION_REPORT docs. Everything else (the zip
+# bundles) is binary. See _sha256() for why the split matters.
+TEXT_ASSET_SUFFIXES = frozenset({".yaml", ".yml", ".md", ".txt"})
 
 
 def _release_dir() -> Path:
@@ -69,7 +85,37 @@ def _artifact_names(version: str) -> list[str]:
     ]
 
 
+def _is_text_asset(path: Path) -> bool:
+    """True for release artifacts whose authoritative content is text.
+
+    This repo's working copies can be checked out with CRLF line endings
+    (no committed .gitattributes forces LF), but git itself stores the
+    manifest, RELEASE_NOTES, and VALIDATION_REPORT as LF - `git show
+    <tag>:<path>` and every Linux/CI checkout return LF bytes regardless of
+    what a Windows working tree has on disk. Bundle zips have no
+    line-ending concept and are excluded.
+    """
+    return path.suffix.lower() in TEXT_ASSET_SUFFIXES
+
+
 def _sha256(path: Path) -> str:
+    """SHA-256 of a release artifact's authoritative content.
+
+    Text assets (see _is_text_asset) are hashed on their content with CRLF
+    normalized to LF, so the checksum matches the file's git-committed
+    bytes no matter the working copy's line-ending state at checksum time.
+    Before this normalization, a CRLF working copy baked a CRLF-content
+    hash into the published SHA256SUMS_<version>.txt for
+    zmeta-release-manifest.yaml and/or RELEASE_NOTES_<version>.md across 15
+    release tags (v1.1.0, v1.1.6 through v1.1.19), so `sha256sum -c` failed
+    against a clean checkout for files that were never actually corrupted -
+    see docs/release_checksum_errata.md for the full accounting and
+    corrected values. Binary assets (the zip bundles) are hashed on raw
+    bytes, unchanged: they have no line-ending concept to normalize.
+    """
+    if _is_text_asset(path):
+        content = path.read_bytes().replace(b"\r\n", b"\n")
+        return hashlib.sha256(content).hexdigest()
     hasher = hashlib.sha256()
     with path.open("rb") as handle:
         for chunk in iter(lambda: handle.read(1024 * 1024), b""):

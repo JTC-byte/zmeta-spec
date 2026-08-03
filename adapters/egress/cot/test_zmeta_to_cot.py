@@ -903,6 +903,59 @@ def test_zmeta_to_cot_no_precisionlocation_without_an_ellipse():
     assert ET.fromstring(xml_text).find(".//precisionlocation") is None
 
 
+# Long-queued zero-default fix: remarks and <precisionlocation> read missing
+# ellipse members via `.get(key, 0)`, which fabricates a zero-size ellipse
+# claim for a member the event never asserted. Honest absence means the
+# member's element/line is omitted, not zero-filled -- and a wrong-spelled
+# ellipse dict (no `semi_major` under the name this adapter reads) has no
+# claim to render at all, the same way `ce` already falls back to
+# `default_ce` rather than reading a `0` out of it.
+
+
+def test_zmeta_to_cot_omits_a_missing_ellipse_member_instead_of_zero_filling():
+    """`orientation_deg` absent, `semi_major`/`semi_minor` present: the
+    rendered ellipse must drop the angle, never claim "@ 0deg"."""
+    event = _ellipse_event()
+    del event["payload"]["geo"]["error_ellipse_m"]["orientation_deg"]
+    config = dict(_TEST_CONFIG, geopointsrc="GPS", altsrc="GPS")
+    xml_text = zmeta_to_cot_module.zmeta_to_cot(event, cot_config=config)
+    assert xml_text is not None
+
+    root = ET.fromstring(xml_text)
+    remarks = root.find(".//remarks")
+    assert remarks is not None
+    assert "150m x 80m" in remarks.text
+    assert "0deg" not in remarks.text
+
+    precision = root.find(".//precisionlocation")
+    assert precision is not None
+    assert precision.attrib["ellipse_major"] == "150.0"
+    assert precision.attrib["ellipse_minor"] == "80.0"
+    assert "ellipse_angle" not in precision.attrib
+
+
+def test_zmeta_to_cot_wrong_spelled_ellipse_renders_no_fabricated_claim():
+    """A dict with no `semi_major` under the name this adapter reads (e.g. the
+    legacy `_m`-suffixed ADS-B keys) carries no ellipse this adapter can
+    honestly render -- not a zero-size one. `ce` still falls back to the
+    unknown convention, as it already does when `semi_major` is absent."""
+    event = _ellipse_event()
+    event["payload"]["geo"]["error_ellipse_m"] = {
+        "semi_major_m": 150.0,
+        "semi_minor_m": 80.0,
+        "orientation_deg": 45.0,
+    }
+    config = dict(_TEST_CONFIG, geopointsrc="GPS", altsrc="GPS")
+    xml_text = zmeta_to_cot_module.zmeta_to_cot(event, cot_config=config)
+    assert xml_text is not None
+
+    root = ET.fromstring(xml_text)
+    assert root.find(".//precisionlocation") is None
+    remarks = root.find(".//remarks")
+    assert remarks is None or "Error ellipse" not in remarks.text
+    assert root.find("point").attrib["ce"] == "9999999.0"
+
+
 # Banked _parse_utc MAJOR: jsonschema does not enforce format: date-time
 # without an installed FormatChecker, so a hostile-but-gate-clean event.ts
 # reaches _parse_utc, and the ValueError used to escape the adapter.

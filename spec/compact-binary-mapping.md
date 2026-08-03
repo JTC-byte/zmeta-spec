@@ -389,9 +389,12 @@ those conformance layers are invoked.
 
 These are example sizes from `tools/measure_packet_size.py` using the current
 Profile L examples. Actual sizes vary with field lengths and optional fields.
+Generated via `python tools/measure_packet_size.py --file
+examples/zmeta-profile-L-examples.jsonl --encodings json,cbor,compact`, taking
+the first matching example per event type/subtype in that file's order.
 
 | Event Type | JSON (bytes) | CBOR (bytes) | COMPACT (bytes) | Notes |
 | --- | --- | --- | --- | --- |
-| STATE_EVENT/TRACK_STATE | 558 | 476 | 231 | Tight budgets should drop optional payload fields such as `payload.data_ref`, `source_summary`, `heading_deg`, `speed_mps`, or `class`; keep `confidence` and `lineage`. |
+| STATE_EVENT/TRACK_STATE | 458 | 395 | 150 | Tight budgets should drop optional payload fields such as `payload.data_ref`, `source_summary`, `heading_deg`, `speed_mps`, or `class`; keep `confidence` and `lineage`. |
 | SYSTEM_EVENT/TIME_STATUS | 444 | 373 | 101 | Already within tight budgets. |
-| COMMAND_EVENT/GOTO | 422 | 353 | 115 | Already within tight budgets. |
+| COMMAND_EVENT/GOTO | 414 | 345 | 115 | Already within tight budgets. |

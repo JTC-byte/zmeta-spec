@@ -396,11 +396,27 @@ def zmeta_to_cot(event, cot_config=None):
         confidence_str = f"confidence={confidence}"
         remarks_text = f"{remarks_text}; {confidence_str}" if remarks_text else confidence_str
 
-    if error_ellipse and isinstance(error_ellipse, dict):
-        semi_maj = error_ellipse.get("semi_major", 0)
-        semi_min = error_ellipse.get("semi_minor", 0)
-        orient = error_ellipse.get("orientation_deg", 0)
-        ellipse_str = f"Error ellipse: {semi_maj:.0f}m x {semi_min:.0f}m @ {orient:.0f}deg"
+    # A member absent from `error_ellipse` renders as an omitted fragment,
+    # never a fabricated `0`: `.get(key, 0)` used to turn "this deployment
+    # never asserted an orientation" into "this ellipse has 0 degrees of
+    # orientation", a claim nobody made. `semi_major` anchors the whole
+    # claim -- without it (absent, or under a wrong-spelled/legacy key like
+    # ADS-B's old `semi_major_m`) there is no ellipse this adapter can
+    # honestly describe, so no ellipse text is rendered at all, the same way
+    # `ce` above already falls back to `default_ce` rather than reading a `0`
+    # out of it.
+    ellipse_semi_major = (
+        error_ellipse.get("semi_major") if isinstance(error_ellipse, dict) else None
+    )
+    if error_ellipse and isinstance(error_ellipse, dict) and ellipse_semi_major is not None:
+        ellipse_parts = [f"{ellipse_semi_major:.0f}m"]
+        semi_min = error_ellipse.get("semi_minor")
+        if semi_min is not None:
+            ellipse_parts.append(f"x {semi_min:.0f}m")
+        orient = error_ellipse.get("orientation_deg")
+        if orient is not None:
+            ellipse_parts.append(f"@ {orient:.0f}deg")
+        ellipse_str = "Error ellipse: " + " ".join(ellipse_parts)
         if remarks_text:
             remarks_text += f"; {ellipse_str}"
         else:
@@ -443,18 +459,23 @@ def zmeta_to_cot(event, cot_config=None):
         error_ellipse
         and isinstance(error_ellipse, dict)
         and (geopointsrc is not None or altsrc is not None)
+        and ellipse_semi_major is not None
     ):
+        # Same honest-absence rule as the remarks text above: a member this
+        # dict never asserted is an omitted attribute, never `0.0`.
         src_attrs = ""
         if geopointsrc is not None:
             src_attrs += f' geopointsrc="{_esc(str(geopointsrc))}"'
         if altsrc is not None:
             src_attrs += f' altsrc="{_esc(str(altsrc))}"'
-        precision_xml = (
-            f'\n    <precisionlocation{src_attrs}'
-            f' ellipse_major="{error_ellipse.get("semi_major", 0):.1f}"'
-            f' ellipse_minor="{error_ellipse.get("semi_minor", 0):.1f}"'
-            f' ellipse_angle="{error_ellipse.get("orientation_deg", 0):.1f}" />'
-        )
+        ellipse_attrs = f' ellipse_major="{ellipse_semi_major:.1f}"'
+        semi_min = error_ellipse.get("semi_minor")
+        if semi_min is not None:
+            ellipse_attrs += f' ellipse_minor="{semi_min:.1f}"'
+        orient = error_ellipse.get("orientation_deg")
+        if orient is not None:
+            ellipse_attrs += f' ellipse_angle="{orient:.1f}"'
+        precision_xml = f'\n    <precisionlocation{src_attrs}{ellipse_attrs} />'
 
     # <__group> for ATAK team coloring on friendly platforms
     group_xml = ""

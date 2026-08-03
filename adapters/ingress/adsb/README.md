@@ -60,10 +60,30 @@ Canonical, only when honestly derivable:
 
 - `event.ts` ← `now - seen_pos` (position age), else `now - seen`
 - `payload.geo` ← `lat`, `lon`, and `alt_geom` only (feet → metres)
-- `payload.quality.error_ellipse_m` ← `nac_p`, DO-260B containment radius
+- `payload.geo.error_ellipse_m` ← `nac_p`, DO-260B containment radius,
+  spelled `semi_major`/`semi_minor`/`orientation_deg` to match the formal
+  contract shape (schema `$defs/error_ellipse`). Attaches only when canonical
+  `geo` exists, since it describes uncertainty about a position, not about a
+  positionless detection.
 - `payload.quality.geo_status` ← `UNAVAILABLE` when there is no canonical geo
 - `payload.timing_quality` ← degraded fallback unless the deployment supplies
   real clock metadata
+
+### Conditional `zmeta_version`
+
+The locked v1.0 `geo` definition is `additionalProperties: false` with only
+`lat`/`lon`/`alt_m`; it has no room for `error_ellipse_m`. An entry whose
+`nac_p` yields a usable containment radius therefore stamps
+`zmeta_version: "1.1.0"` instead of the adapter's usual `"1.0"`, because that
+is the schema branch that defines the field. An entry with no usable NACp
+bound keeps the `"1.0"` stamp unchanged, and its output is otherwise
+byte-for-byte identical to what this adapter has always produced: the
+promotion adds nothing to the branch that never populates an ellipse.
+
+The v1.1.0 `NETWORK` observation payload also requires a `features.protocol`
+string that the locked v1.0 payload does not. This adapter supplies
+`"ADS-B"` there, and only on the 1.1.0-stamped branch, so the field never
+leaks onto a v1.0 event either.
 
 Native, explicitly named so nothing reads more into them than the data supports:
 `adsb_icao24`, `adsb_callsign`, `adsb_squawk`, `rssi_dbfs`, `adsb_alt_baro_ft`,

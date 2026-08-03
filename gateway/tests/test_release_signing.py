@@ -168,6 +168,40 @@ def test_write_checksums_uses_lf_line_endings(release_tmp_dir):
     assert b"\r" not in checksum_path.read_bytes()
 
 
+def test_sha256_normalizes_crlf_for_text_assets(release_tmp_dir):
+    # docs/release_checksum_errata.md: git stores this repo's text assets as
+    # LF, but _sha256() previously hashed whatever line endings were on disk
+    # at checksum time. A CRLF working copy - the state a Windows checkout
+    # produces without core.autocrlf=input - baked a CRLF-content hash into
+    # the published SHA256SUMS_<version>.txt while every clean checkout
+    # (Linux CI, `git show <tag>:<path>`) serves LF bytes, so `sha256sum -c`
+    # failed against the file's own committed content across five releases.
+    # A text asset must hash its LF-normalized content so the published sum
+    # matches the file regardless of the authoring machine's line-ending
+    # state.
+    path = release_tmp_dir / "zmeta-release-manifest.yaml"
+    lf_content = b"release_id: zmeta-v9.9.9\nrelease_state: formal_release\n"
+    path.write_bytes(lf_content.replace(b"\n", b"\r\n"))
+
+    actual = signing._sha256(path)
+
+    assert actual == hashlib.sha256(lf_content).hexdigest()
+
+
+def test_sha256_hashes_binary_assets_raw(release_tmp_dir):
+    # The text/binary split must be by asset type, not a blanket
+    # normalization: a bundle zip has no line-ending concept, and rewriting
+    # its bytes on the way to the hasher would corrupt the very content the
+    # checksum is supposed to attest to.
+    path = release_tmp_dir / "zmeta-v9.9.9-dist.zip"
+    raw = b"PK\x03\x04binary\r\ncontent\r\n"
+    path.write_bytes(raw)
+
+    actual = signing._sha256(path)
+
+    assert actual == hashlib.sha256(raw).hexdigest()
+
+
 def test_write_checksums_refuses_to_rewrite_a_published_release(release_tmp_dir, monkeypatch):
     # R1-11 A-23: write_checksums opened SHA256SUMS_<version>.txt in "w"
     # with no existence check, and --version defaults to the manifest
