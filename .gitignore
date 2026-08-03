@@ -212,6 +212,10 @@ __marimo__/
 # Local notes
 LOCAL_NOTES.md
 
+# Local working folder: private session records, exploration notes, build specs.
+# Never published, never governed, never part of a release.
+local/
+
 # Release artifacts
 release/*.zip
 
