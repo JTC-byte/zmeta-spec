@@ -126,6 +126,85 @@ class A102DimensionalityTest(unittest.TestCase):
         del event["payload"]["geo"]
         self.assert_valid(event)
 
+    @staticmethod
+    def _fusion_event(estimated_geo, geo_status=None):
+        """A COMPLETE, otherwise-valid FUSION_EVENT, so each assertion below
+        fails or passes for exactly one reason. The first draft of these
+        pins omitted track_id and stability, which made the negative pin
+        pass vacuously on unrelated required-field errors: the exact defect
+        class this file exists to prevent, caught by running the control."""
+        payload = {
+            "track_id": "mmsi-366123456",
+            "members": ["019c2b5c-c045-7222-be17-463750a407f5"],
+            "stability": 0.9,
+            "last_seen_ts": "2026-08-01T12:00:00Z",
+            "estimated_state": {"geo": estimated_geo},
+            "timing_quality": {
+                "time_source": "UNKNOWN",
+                "sync_state": "UNSYNCED",
+                "est_error_ms": 60000,
+                "last_sync_ts": "2026-08-01T12:00:00Z",
+            },
+        }
+        if geo_status is not None:
+            payload["quality"] = {"geo_status": geo_status}
+        return {
+            "zmeta_version": "1.1.0",
+            "event": {
+                "event_id": "019c2b5c-c045-7222-be17-463750a407f4",
+                "event_type": "FUSION_EVENT",
+                "event_subtype": "TRACK_FUSION",
+                "ts": "2026-08-01T12:00:00Z",
+            },
+            "source": {
+                "platform_id": "fusion-node-01",
+                "node_role": "GATEWAY",
+                "producer": "fusion-engine",
+            },
+            "profile": "H",
+            "confidence": 0.8,
+            "lineage": {
+                "based_on": ["019c2b5c-c045-7222-be17-463750a407f5"],
+                "transform": "fuse:track",
+            },
+            "payload": payload,
+        }
+
+    def test_estimated_state_2d_geo_cannot_claim_available_either(self):
+        """The wave-2 attack pass reproduced the arm-2 lie one container
+        over: FUSION estimated_state.geo declared 2-D beside geo_status
+        AVAILABLE validated clean. Same lie, same refusal (the R1-11 A-16
+        lesson: spatial rules walk every container that carries geo)."""
+        lie = self._fusion_event(
+            {"lat": 33.7, "lon": -118.2, "dimensionality": "2D"},
+            geo_status="AVAILABLE",
+        )
+        self.assert_invalid(lie)
+        control = self._fusion_event(
+            {"lat": 33.7, "lon": -118.2, "dimensionality": "2D"},
+            geo_status="VERTICAL_UNAVAILABLE",
+        )
+        # Arm 1 requires payload.geo for the token today; the estimated_state
+        # producer that would motivate extending it does not exist yet, so
+        # the honest control here uses no status at all.
+        no_status = self._fusion_event(
+            {"lat": 33.7, "lon": -118.2, "dimensionality": "2D"}
+        )
+        self.assert_valid(no_status)
+
+    def test_the_shape_rule_already_binds_inside_estimated_state(self):
+        """Inherited from the shared geo def and pinned here so the registry
+        entry's estimated_state payload_scope claim is substantiated by a
+        fixture, which the attack pass found it was not."""
+        self.assert_invalid(
+            self._fusion_event(
+                {"lat": 33.7, "lon": -118.2, "dimensionality": "2D", "alt_m": 10.0}
+            )
+        )
+        self.assert_valid(
+            self._fusion_event({"lat": 33.7, "lon": -118.2, "alt_m": 10.0})
+        )
+
     def test_the_2d_form_does_not_exist_under_the_locked_v10_stamp(self):
         """The locked kernel is untouched: dimensionality is not a v1.0
         member, so the 2-D form rides the 1.1.0 stamp only."""

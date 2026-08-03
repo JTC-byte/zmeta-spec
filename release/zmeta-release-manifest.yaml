@@ -17,9 +17,9 @@ hash_canonicalization:
   release_bundle_hash: sha256 over sorted 'group_name\nsha256:<group_hash>\n' entries; release manifest file excluded
   release_manifest_hash: sha256 over canonical YAML manifest content with release_manifest_hash set to null
 semantic_contract_hash: sha256:3893bbbdbd25944062581b465d5e23ac65a5ac5df0fe1d704b8540419c0226fa
-schema_bundle_hash: sha256:c5f2bbc16a5b43af62ed89174eae4582090b9650810b614225f90f995ef6a19a
+schema_bundle_hash: sha256:dbdfddab9f6f25a184ced41f37887bc4191ec43d2b23e426a1bc9ab1e957d302
 policy_bundle_hash: sha256:8b72602699aac56fcb18f93c85a530d42a991300e909ec8d3f1962c08bb034c1
-extension_registry_hash: sha256:ff2035613926576fe969df05349efd51c0aab9bb597ec7e7345d6d9ca05b5cbe
+extension_registry_hash: sha256:149a124a69a46d3ecf531fd6b338cd073a8978c134b5e6b9112393820ca3bf5a
 conformance_class_manifest_hash: sha256:6a3a9d930cc06d5228cb2d1ad8b42a91048425ff1e500bf7bfee3528bf2b4524
 profile_projection_catalog_hash: sha256:bae61b3a01cc0a3c2aa1f90391f231d40484175280bce9dbb43371eb0ea04341
 encoding_negative_suite_hash: sha256:d36e2109e535fde0dd191b92fd3a7dbd07839ce3539b3d9fdf5dd8aed04487b0
@@ -28,8 +28,8 @@ bad_event_corpus_hash: sha256:a14c0492452bfad586a9fdce4a7e199b0baf937325b19af3a2
 adapter_conformance_hash: sha256:d97db4ca864fce4a9f4546175c93f40947083c77d5e19ef1357e285d7bdd181c
 encoding_projection_specs_hash: sha256:54459b03ceed6605d7af49d327b7c7c41395b82b8dadad7fd6a0d9d40c8ecd6d
 process_governance_hash: sha256:2736079f0162f72c26e87b130900e53ca8dad903b11123874f2b21e7b8f389fb
-release_bundle_hash: sha256:2d077fb5d170df994b01bde82a0cae3efbad7b76e78cb88e90d1a5bf8facb22b
-release_manifest_hash: sha256:0d710e2d38747036c771a00d3a69972591a7e16939d38da88df20c8f94cc2ef3
+release_bundle_hash: sha256:bdd28ad69ca286d4ec6c9c4baf61a75cf1ab3e55436dbdbe52fb2da30ee85619
+release_manifest_hash: sha256:0eba6fb35af8922d10854391271f6810c40b68a4843029cd9935f1002ff23596
 artifact_hashes:
 - path: AGENTS.md
   group: process_governance
@@ -253,7 +253,7 @@ artifact_hashes:
   canonicalization: text_lf
 - path: schema/zmeta-event-1.1.0.schema.json
   group: schema_bundle
-  hash: sha256:70d967c22e65a37ed963ee8796869b4506610bd4904f944eb2d37ed15ce151c8
+  hash: sha256:4385fd66250273d1c44d67d6e6a493f4419c734539db561b82ff5aa3fd4f335e
   canonicalization: text_lf
 - path: schema/zmeta-event.schema.json
   group: schema_bundle
@@ -265,7 +265,7 @@ artifact_hashes:
   canonicalization: text_lf
 - path: spec/extension-registry.yaml
   group: extension_registry
-  hash: sha256:bf8c21abfce604001ad96ad5a1a41d6a4c8eacafd1fe8a47ac50edf254628fca
+  hash: sha256:496d23d2739c79eeaa134a021225d3d4f0f6f259dcf1e41fc4d039fc7c095508
   canonicalization: text_lf
 - path: spec/future-branch-roadmap.md
   group: future_branch_roadmap
@@ -379,7 +379,7 @@ artifact_groups:
     - schema/zmeta-event-1.0.schema.json
     - schema/zmeta-event-1.1.0.schema.json
     - schema/zmeta-event.schema.json
-    hash: sha256:c5f2bbc16a5b43af62ed89174eae4582090b9650810b614225f90f995ef6a19a
+    hash: sha256:dbdfddab9f6f25a184ced41f37887bc4191ec43d2b23e426a1bc9ab1e957d302
   policy_bundle:
     description: Release-included policy YAML and policy variant baselines.
     paths:
@@ -416,7 +416,7 @@ artifact_groups:
     description: Machine-readable extension and reserved-vocabulary registry.
     paths:
     - spec/extension-registry.yaml
-    hash: sha256:ff2035613926576fe969df05349efd51c0aab9bb597ec7e7345d6d9ca05b5cbe
+    hash: sha256:149a124a69a46d3ecf531fd6b338cd073a8978c134b5e6b9112393820ca3bf5a
   future_branch_roadmap:
     description: Machine-readable future versioned-branch roadmap with promotion evidence and tripwires.
     paths:

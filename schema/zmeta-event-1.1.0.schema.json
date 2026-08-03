@@ -221,6 +221,43 @@
       }
     },
     {
+      "$comment": "A1-02 coherence, arm 2b (wave-2 attack pass): the arm-2 lie reproduced one container over, a 2-D estimated_state.geo beside geo_status AVAILABLE. Spatial rules walk every container that carries geo (the R1-11 A-16 lesson). Arm 1's token rule is deliberately not extended to estimated_state until a producer for that container exists.",
+      "if": {
+        "required": ["payload"],
+        "properties": {
+          "payload": {
+            "required": ["estimated_state"],
+            "properties": {
+              "estimated_state": {
+                "required": ["geo"],
+                "properties": {
+                  "geo": {
+                    "required": ["dimensionality"],
+                    "properties": {
+                      "dimensionality": { "const": "2D" }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "properties": {
+              "quality": {
+                "properties": {
+                  "geo_status": { "not": { "const": "AVAILABLE" } }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
       "$comment": "A1-02 coherence, arm 2: a declared 2-D geo must not carry geo_status AVAILABLE, so a status-only consumer cannot mistake a horizontal-only fix for a full one. The token is not mandated; the lie is blocked.",
       "if": {
         "required": ["payload"],

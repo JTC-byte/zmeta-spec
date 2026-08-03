@@ -157,6 +157,7 @@ entries:
     review_state: approved
     notes:
       - Doctrine A1-02, promotion bar met by two independent implementations (ADS-B, AIS). Shape approved with rationale 2026-08-02, schema landed red-first 2026-08-03, normative text in contract section 21.8. Absent-means-3D is corpus compatibility, not a producer default.
+      - The estimated_state scope is fixture-pinned for the shape rule and the AVAILABLE-lie arm (wave-2 attack pass finding); arm 1's token rule deliberately does not extend to estimated_state until a producer for that container exists, and adding one without extending it reopens this entry.
 
   - <<: *entry_defaults
     name: BEARING_FRAME
