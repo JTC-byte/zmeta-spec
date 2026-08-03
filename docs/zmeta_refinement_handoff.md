@@ -11,6 +11,33 @@ separate repository later; ZMeta already does the enabling work).
 Operator-debug work folds INTO the push where it fits, which it does: the
 TIME_STATUS-to-clock-health linkage is gateway code, not governed.
 
+**WAVE 1 LANDED 2026-08-03** (three commits: A1-02 schema, the four
+workstreams, the lock-baseline adjudication; battery 1655 plus 1074 at the
+wave tip). Done: A1-02 dimensionality + VERTICAL_UNAVAILABLE + coherence
+arms on the v1.1.0 schema, nine pins red-first; signer LF-normalization
+with the generated 15-tag errata (docs/release_checksum_errata.md); ADS-B
+ellipse relocated to geo with formal spellings under conditional 1.1.0
+stamping; CoT zero-default fabrication fixed; two ais-* harness fixtures,
+four jreap/mavlink negative pins, Profile L size table regenerated; the
+lock-baseline forensics and adjudication (L1-01, and X1-02 closed TERMINAL
+with the inventory's result on the entry). The signalhunter and
+track-projector harness fixtures are the documented constructed-object
+carve-out, not deferred work. Yesterday's match-rule open question is
+answered by contract 7.3: v1.0 law, machinery stands.
+
+**WAVE 2, next:** the A1-02 normative text per the contract's own adoption
+checklist (section 20.4): the VERTICAL_UNAVAILABLE token into the section
+21.1 enumeration, the dimensionality rule into the v1.1 lane, with the
+contract hash anchor moving under this adjudication; the ellipse registry
+side (status experimental to adopted, risk_relevant to true with its
+required fields); AIS emitting the 2-D form with the token, baro-only
+ADS-B likewise, both on the conditional-stamp pattern wave 1 established;
+the track projector accepting 2-D observations so maritime tracks reach a
+COP; X1-01 shaped per the contract scout's finding (the contract assigns
+cross-event plausibility to the policy/runtime layer, so the constraint
+lands on the v1.1 schema plus a gateway check, never the locked v1.0).
+Then phases 3 through 5 as written below.
+
 The campaign, in order:
 
 1. **Governed wave** (every gate decision is now made; see below): A1-02,

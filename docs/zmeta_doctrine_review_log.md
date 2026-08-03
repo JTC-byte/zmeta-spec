@@ -993,7 +993,7 @@ Confirmed independently on both stacks before being written down.
 | # | Tension | Gates in play | Status |
 |---|---|---|---|
 | X1-01 | The kernel does not constrain `event.ts` beyond a trailing `Z` | 3, 5, 6 | OPEN |
-| X1-02 | A weaker check keeps standing in for a stronger one that exists | 5, 7 | **DECIDED 2026-08-02** — terminal via one-time gate inventory in the v1.1.20 push |
+| X1-02 | A weaker check keeps standing in for a stronger one that exists | 5, 7 | **TERMINAL 2026-08-03 — inventory ran, result recorded on the entry** |
 | X1-03 | The retirement rule reads silence as death, which inverts for constitutional rules | 7 | OPEN |
 
 ### X1-01 — The kernel does not constrain `event.ts` · OPEN
@@ -1049,7 +1049,29 @@ emitted at either end. Sequencing recorded: tag v1.1.19 as-is, which stays a
 clean additive cut; handle this in v1.1.20, which is then behaviour-changing
 rather than additive — a distinction the consumer's pin-advance review keys on.
 
-### X1-02 — A weaker check keeps standing in for a stronger one · OPEN, PAST THRESHOLD (N=6)
+### X1-02 — A weaker check keeps standing in for a stronger one · TERMINAL 2026-08-03, the inventory ran and this is its result
+
+**The one-time gate inventory the 2026-08-02 adjudication ordered was
+executed in full: 21 cited gates enumerated, the stronger sibling of each
+named, and every safe, local, never-run stronger form actually run.** The
+enumeration and per-row results live in the v1.1.20 push records; the
+outcome in one paragraph: five real defects, two severe, three lesser.
+Severe: every published SHA256SUMS carried wrong text-asset checksums back
+to v1.1.0 (signer fixed, errata published, sixteen entries across fifteen
+tags); and the v1.0 schema's subtype enforcement had drifted from its
+baseline, which forced the lock-baseline adjudication recorded as L1-01
+below and ended with the lock anchored by hash in
+gateway/tests/test_v1_lock_baseline.py. Lesser, queued with owners: the MVP
+bundles carry no hash-pinning of bundle-unique content, gateway --self-test
+runs the weak base pack and is the only in-bundle check, and the CoT
+round-trip laundering the inventory re-demonstrated was fixed in wave 1.
+Also run clean: all 20 conformance-class claims re-executed with matching
+counts, and the bundles byte-verified against all 84 manifest-pinned
+artifacts. **The entry closes with a result, not a shrug: eight instances
+taught that the class does not spare fresh, named, guarded-against checks,
+and the inventory converted "know what each green means" from an aspiration
+into an executed, recorded pass. No standing apparatus was minted, per the
+adjudication; recurrence lands on a fresh entry citing this one.**
 
 **Closeout note, 2026-07-30.** The lifecycle rule below says a tension must
 reach a terminal status on its third recurrence. This entry is at five instances
@@ -1232,6 +1254,38 @@ rarely" applies here: let it earn promotion by recurrence rather than by seeming
 good on the day it was written.
 
 ---
+
+## Cycle L1 — 2026-08-03 (the v1.1.20 push, lock forensics)
+
+| # | Tension | Gates in play | Status |
+|---|---|---|---|
+| L1-01 | A lock without a dated birth certificate invites baseline confusion in both directions | 3, 6, 7 | **CLOSED** — provenance note + dual hash anchors shipped with the adjudication |
+
+### L1-01 — The lock needed a birth certificate · CLOSED 2026-08-03
+
+Two adjudications in two days went opposite directions on the same
+question because the lock's baseline was undated. The 2026-04-26 stamp
+declared the contract locked while it still said any non-empty subtype; the
+2026-05-07 lockdown audit rewrote it into the enforceable form with the
+closed namespace and built the verification apparatus in the same commit;
+and nothing anywhere recorded which of those moments WAS the lock. The
+first adjudication (2026-08-02) read the April tag as the baseline and
+restored free-form subtypes; the contract scout then surfaced section 7.3,
+forensics dated both candidates, and the second adjudication (2026-08-03)
+settled it: the lockdown audit is the lock, because it is the baseline
+every subsequent verification descends from and the one that predates all
+fielded adoption.
+
+Both adjudications were made honestly on the evidence in front of them;
+the defect was that the evidence had to be excavated at all. The closure is
+structural, not procedural: the contract now opens with a lock provenance
+note naming its own hardening date and the audit document that performed
+it, and gateway/tests/test_v1_lock_baseline.py anchors both the contract
+text and the v1.0 schema by content hash, so every future edit to either
+surface arrives with an adjudication or arrives red. The class this closes
+is not subtype vocabulary; it is any future argument about what the lock
+meant, which is now answerable by reading one paragraph instead of running
+two days of forensics.
 
 ## Cycle SIM1 — 2026-07-30 (internal simulation reps)
 

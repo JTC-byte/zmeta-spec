@@ -2,7 +2,34 @@
 
 ## Current Resume Note
 
-- Last updated: 2026-08-02 (lock restored; fourteen adjudications; prep complete)
+- Last updated: 2026-08-03 (wave 1 landed; lock baseline adjudicated; X1-02 terminal)
+- **2026-08-03 — wave 1 of the push, and the lock's second, final
+  adjudication.** Four Sonnet workstreams plus the A1-02 schema centerpiece
+  landed as three commits, every behavior change red-first. A1-02:
+  declared dimensionality and VERTICAL_UNAVAILABLE with two coherence arms
+  on the v1.1.0 schema, nine pins. Signer: text assets hash on
+  line-ending-normalized content; the generated errata found the true
+  blast radius, sixteen wrong entries across fifteen published tags, three
+  times the sampled estimate. Ellipse: relocated to geo with formal
+  spellings under conditional 1.1.0 stamping, CoT zero-fill fabrication
+  ended. Conformance: two AIS fixtures, four jreap/mavlink negative pins,
+  the Profile L table regenerated, the ADS-B fixture re-pinned on the
+  conditional stamp. The contract scout then surfaced section 7.3 and
+  forensics dated the lock: the 2026-04-26 stamp was premature, the
+  2026-05-07 lockdown audit is the baseline everything verifies against,
+  and the maintainer adjudicated it so. Yesterday's restoration reversed
+  forward: schema byte-exact to its enforcing form, the pre-lock record
+  pinned INVALID, contract and schema both hash-anchored in
+  test_v1_lock_baseline.py, the contract opening with its own lock
+  provenance note. L1-01 records the lesson; X1-02 closed TERMINAL with
+  the executed inventory's result on the entry. A cold attack pass on all
+  three commits came back CLEAN: no bypass held (the null-alt_m probe
+  confirmed presence-blocking), no vacuous pin among the four reverts, two
+  errata rows independently recomputed, byte identity confirmed through
+  git. One LOW pre-existing gap queued for wave 2: UNAVAILABLE with geo
+  present has never been schema-blocked despite the description. Battery
+  1655 passed plus 1074 subtests, gate exit 0, harness 53/53. The push
+  follows this record.
 - **2026-08-02 (late) — the lock breach, found and repaired the same day.**
   The X1-02 one-time gate inventory ran the stronger forms that had never
   been run and surfaced five defects, two severe: every published release's

@@ -2,7 +2,50 @@
 
 ## [Unreleased]
 
-- 2026-08-02 — **The locked v1.0 contract is restored.** The v1.1.0 release
+- 2026-08-03 — **The lock has a dated birth certificate, and the restoration
+  below is reversed on it.** The contract scout surfaced section 7.3's
+  normative subtype mandate, and forensics dated the lock's two candidate
+  baselines: the 2026-04-26 "Locked" stamp predated the real hardening,
+  and the 2026-05-07 lockdown audit is the baseline every verification
+  since descends from, older than all fielded adoption. Maintainer
+  adjudication: the lockdown audit is the lock. The v1.0 schema returns
+  byte-exact to its enforcing form, the subtype consistency block standing
+  as lawful enforcement of contract 7.3; the v1.0.5-era free-form record is
+  pre-lock history, pinned INVALID in `gateway/tests/test_v1_lock_baseline.py`,
+  which also anchors both the contract text and the v1.0 schema by hash so
+  moving either is an on-record adjudication. The contract carries a lock
+  provenance note dating its own hardening. Yesterday's open question is
+  answered by the contract itself: the discriminator match is v1.0 law.
+- 2026-08-03 — **A position with no vertical is sayable on v1.1
+  (A1-02, maintainer-approved shape).** Canonical geo gains a declared
+  dimensionality on the v1.1.0 branch: absent means 3D so every existing
+  event validates unchanged; `"2D"` declares a horizontal-only position and
+  prohibits `alt_m`. `quality.geo_status` gains `VERTICAL_UNAVAILABLE`,
+  with the description now stating that geo_status describes the canonical
+  geo object. Two coherence arms block the lies in both directions: the
+  token without a present 2-D geo, and a 2-D geo claiming `AVAILABLE`.
+  Nine pins, red-first. The locked v1.0 schema is untouched.
+- 2026-08-03 — **Wave 1 of the v1.1.20 push.** The release signer hashes
+  text assets on line-ending-normalized content, and
+  `docs/release_checksum_errata.md` records the exhaustively generated
+  blast radius of the old behavior: 16 wrong checksum entries across 15
+  published tags (v1.1.0, v1.1.6 through v1.1.19); published files stay as
+  published, corrected values are on the record, v1.1.20 onward is correct
+  at source. The ADS-B NACp ellipse moves to `payload.geo.error_ellipse_m`
+  with the formal member spellings, stamped `zmeta_version: "1.1.0"` on
+  exactly the events that carry it, ellipse-free output staying v1.0;
+  CoT egress stops zero-filling missing ellipse members into remarks and
+  precisionlocation. Conformance grows: two `ais-*` harness fixtures
+  generated from the real adapter, four negative promotion pins for
+  jreap-ingress and mavlink, the Profile L payload-budget table
+  regenerated from the measurement tool, and the ADS-B fixture regenerated
+  to pin the conditional stamp itself. The signalhunter and track-projector
+  fixtures are the documented constructed-object carve-out and were not
+  faked.
+- 2026-08-02 — **The locked v1.0 contract is restored.**
+  *[Reversed 2026-08-03 by the entry above: the baseline this entry
+  restored to was the premature April stamp, not the lock. Left as
+  written because it records what was believed and done at the time.]* The v1.1.0 release
   had silently added a per-event-type `event_subtype` vocabulary into the
   locked v1.0 schema, narrowing a contract that promised any non-empty
   string: a record from the v1.0.5 tag's own example corpus
