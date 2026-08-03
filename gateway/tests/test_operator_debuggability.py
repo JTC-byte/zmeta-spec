@@ -22,6 +22,7 @@ import contextlib
 import importlib.util
 import io
 import json
+import socket
 import unittest
 from pathlib import Path
 from unittest import mock
@@ -276,6 +277,9 @@ class _LoopSocket:
     def bind(self, _addr):
         return None
 
+    def settimeout(self, _value):
+        return None
+
     def recvfrom(self, _size):
         if self.datagrams:
             return self.datagrams.pop(0), ("127.0.0.1", 40000)
@@ -284,6 +288,36 @@ class _LoopSocket:
     def sendto(self, payload, addr):
         self.sent.append((payload, addr))
         return len(payload)
+
+
+class _IdleThenStopSocket:
+    """sock_in that never receives a datagram: every recvfrom times out.
+
+    Simulates an idle-but-healthy listen socket, the case where the gateway
+    fix under test matters: nothing ever arrives, so the only way
+    GatewayMetrics.maybe_log() can run at all is if the receive loop wakes
+    on its own instead of blocking on recvfrom forever. After one timeout
+    tick this raises _StopReceiveLoop so the test terminates.
+    """
+
+    def __init__(self):
+        self.timed_out = False
+        self.settimeout_calls = []
+
+    def bind(self, _addr):
+        return None
+
+    def settimeout(self, value):
+        self.settimeout_calls.append(value)
+
+    def recvfrom(self, _size):
+        if not self.timed_out:
+            self.timed_out = True
+            raise socket.timeout()
+        raise _StopReceiveLoop()
+
+    def sendto(self, payload, addr):
+        raise AssertionError("an idle gateway must never send")
 
 
 class StartupBannerCotDestinationTest(unittest.TestCase):
@@ -324,6 +358,52 @@ class StartupBannerCotDestinationTest(unittest.TestCase):
             ]
         )
         self.assertNotIn("cot", text.lower())
+
+
+class IdleGatewayEmitsPeriodicMetricsTest(unittest.TestCase):
+    """v1.1.20 phase-3 fix: GatewayMetrics.maybe_log() was reachable only
+    from inside the per-datagram body of the receive loop (and from the
+    backstop's own drop handler), both of which run only once a datagram has
+    arrived. On an idle listen socket, sock_in.recvfrom blocks forever and
+    maybe_log() never runs at all -- so an idle-but-healthy gateway and a
+    wedged one are both silent past the startup banner, and an operator has
+    no periodic signal to tell the two apart.
+
+    The fix wakes the receive loop on the metrics interval even with nothing
+    to receive, and still runs the periodic summary from there.
+    """
+
+    def test_idle_gateway_still_prints_periodic_metrics_summary(self):
+        sock_in = _IdleThenStopSocket()
+        sockets = [sock_in, _LoopSocket()]
+        argv = [
+            "gateway.py", "--profile", "H",
+            "--listen-port", "45705", "--forward-port", "45706",
+            "--metrics-interval-sec", "1",
+        ]
+        out = io.StringIO()
+        with contextlib.ExitStack() as stack:
+            stack.enter_context(mock.patch("sys.argv", argv))
+            stack.enter_context(
+                mock.patch.object(gateway.socket, "socket", lambda *a, **k: sockets.pop(0))
+            )
+            # Exactly two monotonic() reads occur on this path when idle:
+            # GatewayMetrics.__init__ seeds last_log, then maybe_log() reads
+            # "now" once on the timeout tick. Advancing by 10s past the 1s
+            # interval forces maybe_log() to fire without a real sleep.
+            stack.enter_context(
+                mock.patch.object(gateway.time, "monotonic", side_effect=[1000.0, 1010.0])
+            )
+            stack.enter_context(contextlib.redirect_stdout(out))
+            stack.enter_context(contextlib.redirect_stderr(io.StringIO()))
+            with self.assertRaises(_StopReceiveLoop):
+                gateway.main()
+        text = out.getvalue()
+        # recv=0: the summary printed with zero datagrams ever received, so
+        # it could only have come from the idle wake-up, not the ordinary
+        # per-datagram path.
+        self.assertIn("metrics interval=1s recv=0 bytes=0 fwd=0", text)
+        self.assertEqual([1], sock_in.settimeout_calls)
 
 
 if __name__ == "__main__":

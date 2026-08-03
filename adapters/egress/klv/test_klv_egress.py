@@ -1,4 +1,45 @@
+import sys
+from pathlib import Path
+
 from adapters.egress.klv.zmeta_to_klv_tagdict_template import zmeta_observation_to_klv_tagdict
+
+ROOT = Path(__file__).resolve().parents[3]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from adapters.ingress.ais.ais_to_zmeta import translate_message as _ais_translate_message  # noqa: E402
+
+
+# --- A1-02 declared 2-D geo sweep -------------------------------------------
+# The first independent SAPIENT interop run's finding
+# (adapters/egress/sapient) prompted a sweep of the sibling egress adapters
+# for the same all-or-nothing altitude assumption against a 2-D STATE. This
+# adapter has none: `payload.geo` is copied wholesale, unexamined, so a
+# declared 2-D geo (doctrine A1-02, `dimensionality: "2D"`, no `alt_m`)
+# crosses byte-for-byte, dimensionality token included, honestly and without
+# needing a fix. Pinned against a real AIS ingress output, not a hand-rolled
+# fixture, because that is the adapter (`adapters/ingress/ais`) that produces
+# this shape for every vessel.
+
+
+def test_declared_2d_geo_from_real_ais_ingress_passes_through_unchanged():
+    ais_message = {
+        "type": 1, "mmsi": 366123456, "lat": 33.7405, "lon": -118.2712,
+        "rxtime": "20260731120000",
+    }
+    observation = _ais_translate_message(
+        ais_message, platform_id="ais-node-01", receiver_id="rtlsdr-01"
+    )
+    assert observation["payload"]["geo"] == {
+        "lat": 33.7405, "lon": -118.2712, "dimensionality": "2D",
+    }
+
+    tagdict = zmeta_observation_to_klv_tagdict(observation)
+
+    assert tagdict is not None
+    # Wholesale, unexamined pass-through: same object shape as the input,
+    # dimensionality token intact, no alt_m invented and no drop.
+    assert tagdict["geo"] == observation["payload"]["geo"]
 
 
 def test_observation_to_klv_tagdict():

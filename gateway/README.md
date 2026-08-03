@@ -106,6 +106,13 @@ change this behavior.
 The gateway logs periodic metrics (received, forwarded, drops, violations, warnings) at
 `metrics_interval_sec` when `emit_metrics` is true. Use `rate_limit_per_sec` to drop
 packets above a configured receive rate. `rate_limit_producer_per_sec` applies per producer.
+
+The periodic summary prints on schedule even when no datagrams arrive at all. The
+receive loop wakes on `metrics_interval_sec` with nothing to receive and still logs
+the summary from there, so an idle gateway reports `recv=0` on schedule instead of
+going silent past the startup banner. This is what lets an operator tell an
+idle-but-healthy gateway apart from a wedged one, which prints nothing at all.
+
 When CoT emission is enabled, metrics include `cot_skipped` and
 `cot_skip_reasons` for STATE_EVENTs that cannot be projected to CoT, such as
 missing `payload.track_id` or missing `payload.geo`.

@@ -72,14 +72,30 @@ Command lossiness:
 
 ### State projection (STATE_EVENT/TRACK_STATE -> DetectionReport)
 
+Declared 2-D geo (doctrine A1-02) exports honestly, without a fabricated
+altitude: a STATE whose `payload.geo` declares `dimensionality: "2D"` (a
+real, exact horizontal fix with no geometric vertical to assert, ever —
+every AIS vessel, a barometric-only aircraft) projects a `Location` with
+`x`/`y`/`coordinate_system`/`datum` and no `z` key. This matches the BSI
+Flex 335 v2.0 proto (`sapient_msg/bsi_flex_335_v2_0/location.proto`): `x`
+and `y` are `is_mandatory: true`, `z` carries no such marker anywhere in
+the message, so an x-y position with no z is a wire-legal `Location`, not
+an unrepresentable one. Fixed 2026-08 (first independent SAPIENT interop
+run, MAJOR): before this, the geo gate was all-or-nothing (`lat` AND `lon`
+AND `alt_m` all required), so every declared 2-D STATE silently returned
+`None` — invisible to a SAPIENT consumer, no counter, no log, no loss note.
+
 Refusals (returns None):
 
 - Wrong event type/subtype, missing `event.ts`, missing `track_id`.
 - `track_id` not a ULID and not resolved by the caller's `object_map` to
   a valid SAPIENT object ULID (ULID discipline above).
-- Partial geo: `lat`, `lon`, and `alt_m` must all be present. SAPIENT `z`
-  is an explicit claim and the location oneof is mandatory, so a partial
-  position cannot cross without inventing an axis (contract 6.8).
+- Non-finite `lat`/`lon`. An incomplete geo that is missing `alt_m` and is
+  not declared two-dimensional (`geo.dimensionality: "2D"`, doctrine
+  A1-02): the ambiguous case where the vertical is unmeasured rather than
+  nonexistent, and the adapter never invents the missing axis (contract
+  6.8). A `"2D"` geo that also carries an `alt_m` (schema-incoherent — two
+  claims that cannot both be true).
 - `payload.extensions.risk_adjudication` containing a `QUARANTINE_ACCEPT`
   or `REJECTED` decision. Quarantine bounds the consumer set and a
   coalition SAPIENT feed is outside it (contract 3.3).

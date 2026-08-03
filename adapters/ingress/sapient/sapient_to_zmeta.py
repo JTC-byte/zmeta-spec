@@ -162,6 +162,43 @@ def _finite(value):
     return value if _is_number(value) else None
 
 
+# Observation identity denylist (contract 6.x; policy/semantics.yaml
+# observation_event.payload_must_not_contain). The gateway's
+# OBSERVATION_HAS_IDENTITY check walks the whole payload recursively at
+# every nesting depth (gateway/src/validators.py._find_forbidden_key), so a
+# verbatim classification/behaviour entry copied into the vendor extension
+# launders identity the moment it carries any of these names -- most
+# commonly "confidence", but a hierarchical vendor taxonomy (sub_class
+# nested arbitrarily deep) is free to repeat any of them at any level.
+_OBSERVATION_DENYLIST = frozenset(
+    {"track_id", "entity_class", "classification", "label", "class_name", "confidence"}
+)
+
+
+def _rename_denylist_keys(value):
+    """Recursively rename observation-denylist keys to a native_ form.
+
+    Applied to the classification/behaviour entries copied verbatim into
+    the vendor extension: the producer's declared value survives, under a
+    key the observation identity denylist does not match, rather than being
+    dropped. Same dict/list recursion shape as ``_drop_non_finite_inner``
+    over a producer-controlled, JSON-decoded structure with no cycles.
+    """
+    if isinstance(value, dict):
+        out = {}
+        for key, item in value.items():
+            new_key = (
+                f"native_{key}"
+                if isinstance(key, str) and key in _OBSERVATION_DENYLIST
+                else key
+            )
+            out[new_key] = _rename_denylist_keys(item)
+        return out
+    if isinstance(value, list):
+        return [_rename_denylist_keys(item) for item in value]
+    return value
+
+
 _DROP_CONTAINER = object()
 
 
@@ -782,7 +819,12 @@ def _inference_event(
     timing,
     vendor_ext,
 ):
-    event = _envelope("INFERENCE_EVENT", subtype, ts, node_id)
+    # An inference is a gateway-layer claim, never an edge measurement:
+    # policy/roles.yaml permits INFERENCE_EVENT only from node_role GATEWAY
+    # (mirrors the STATE_EVENT promotion envelope in
+    # _promote_fusion_detection, which stamps the same role for the same
+    # reason).
+    event = _envelope("INFERENCE_EVENT", subtype, ts, node_id, node_role="GATEWAY")
     event["payload"] = {
         "inference_type": subtype,
         "claim": claim,
@@ -856,9 +898,12 @@ def _translate_detection(
         if body.get(key) is not None:
             vendor_ext[key] = body[key]
     if body.get("classification"):
-        vendor_ext["native_classification"] = body["classification"]
+        # Renamed, not verbatim: each entry carries its own "confidence"
+        # (contract 8.1 vessel-declared value), which is on the observation
+        # identity denylist. See _rename_denylist_keys.
+        vendor_ext["native_classification"] = _rename_denylist_keys(body["classification"])
     if body.get("behaviour"):
-        vendor_ext["native_behaviour"] = body["behaviour"]
+        vendor_ext["native_behaviour"] = _rename_denylist_keys(body["behaviour"])
     if signals and (rf_features is None or not rf_fully_carried):
         # Either nothing canonical resolved, or something the producer
         # declared did not reach a canonical field. Both keep the whole raw

@@ -1,4 +1,6 @@
+import importlib.util
 import json
+from pathlib import Path
 
 import pytest
 
@@ -16,10 +18,51 @@ TS = "2026-07-20T10:00:00Z"
 
 _PARENT_ID = str(uuid7())
 
+# Real gateway validators + policy, loaded the same way the mavlink/jreap/cot
+# ingress suites do (adapters/ingress/mavlink/test_mavlink_ingress.py): the
+# defect class this file exists to catch is exactly an event that passes
+# schema-only validate() above but never ran through gateway/src/validators.py
+# + policy/*.yaml at all, which is how the identity-laundering and role
+# defects below survived every adapter test suite until the first
+# independent-implementation interop run found them.
+_ROOT = Path(__file__).resolve().parents[3]
+_VALIDATORS_PATH = _ROOT / "gateway" / "src" / "validators.py"
+_spec = importlib.util.spec_from_file_location("zmeta_validators", _VALIDATORS_PATH)
+gateway_validators = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(gateway_validators)
+GATEWAY_POLICY = gateway_validators.load_policy(_ROOT / "policy")
+
 
 def _assert_valid(event):
     status, violations = validate(event)
     assert status == "pass", violations
+
+
+def _assert_gateway_valid(event):
+    """Run one emitted event through the real gateway pipeline.
+
+    Schema-only ``validate()`` cannot see producer-authority or role gates,
+    or a denylisted key nested inside a vendor extension block (the
+    OBSERVATION_HAS_IDENTITY walk is recursive; a top-level-only assertion
+    would not see it). This is the coverage whose absence hid both the
+    identity-laundering and node_role defects from every prior adapter test.
+    """
+    ok, violations = gateway_validators.validate_producer_authority(
+        event, GATEWAY_POLICY["producer_authority"], GATEWAY_POLICY["violation_severities"]
+    )
+    assert ok, ("producer_authority", event["event"]["event_type"], violations)
+
+    ok, violations = gateway_validators.validate_role(
+        event,
+        {"roles": GATEWAY_POLICY["roles"], "deny": GATEWAY_POLICY["deny"]},
+        GATEWAY_POLICY["violation_severities"],
+    )
+    assert ok, ("role", event["event"]["event_type"], violations)
+
+    ok, violations = gateway_validators.validate_semantics(
+        event, GATEWAY_POLICY["semantics"], GATEWAY_POLICY["violation_severities"]
+    )
+    assert ok, ("semantics", event["event"]["event_type"], violations)
 
 
 # ---------------------------------------------------------------------------
@@ -533,10 +576,20 @@ def test_detection_vendor_extension_carries_native_fields_without_denylist():
     assert ext["detection_confidence"] == 0.83
     assert ext["native_classification"][0]["type"] == "UAV"
     assert ext["native_behaviour"][0]["type"] == "loitering"
-    # Denylist names stay out of features and the extension block.
-    denylist = {"confidence", "classification", "track_id", "entity_class", "label"}
+    # Each entry's own confidence is preserved, renamed, not dropped.
+    assert ext["native_classification"][0]["native_confidence"] == 0.9
+    assert ext["native_behaviour"][0]["native_confidence"] == 0.6
+    # Denylist names stay out of features and the extension block -- at
+    # EVERY nesting depth, not just the top level. A top-level-only
+    # `set(ext)` check here is exactly what let a per-entry "confidence"
+    # inside native_classification reach an interop run: the gateway's own
+    # OBSERVATION_HAS_IDENTITY walk is recursive
+    # (gateway/src/validators.py._find_forbidden_key), so the test must be
+    # too.
+    denylist = {"confidence", "classification", "track_id", "entity_class", "label", "class_name"}
     assert not denylist & set(ext)
     assert not denylist & set(events[0]["payload"]["features"])
+    assert gateway_validators._find_forbidden_key(ext, denylist) is None
 
 
 def test_detection_inference_events_carry_model_lineage_and_claims():
@@ -2893,3 +2946,57 @@ def test_wire_mode_named_like_the_synthetic_key_cannot_collide():
     # max(9000, 100) widens by the unnamed bound; the string-key collision
     # produced 5100.0 here.
     assert timing["est_error_ms"] == 14000.0
+
+
+# ---------------------------------------------------------------------------
+# Real gateway pipeline (first independent-implementation interop run):
+# schema-only validate() cannot see producer-authority, role, or a
+# denylisted key nested inside a vendor extension block, and both of the
+# defects below reached that blind spot -- every adapter test suite up to
+# this one only ran schema-only validate(), never gateway/src/validators.py.
+# ---------------------------------------------------------------------------
+
+
+def test_detection_events_pass_the_real_gateway_pipeline_not_schema_only():
+    # Interop-run finding: a realistic DetectionReport with a classification
+    # entry (each entry carries its own "confidence") passed schema-only
+    # validate() while the REAL gateway refused it on two independent
+    # grounds:
+    #
+    # 1. native_classification/native_behaviour copied each entry VERBATIM,
+    #    confidence included. policy/semantics.yaml's observation identity
+    #    denylist (track_id, entity_class, classification, label,
+    #    class_name, confidence) is enforced recursively at every nesting
+    #    depth (gateway/src/validators.py._find_forbidden_key), so the
+    #    verbatim copy fails OBSERVATION_HAS_IDENTITY even though the
+    #    top-level extension keys are all clean.
+    # 2. Every INFERENCE_EVENT defaulted to node_role EDGE via _envelope's
+    #    default, and policy/roles.yaml permits INFERENCE_EVENT only from
+    #    GATEWAY -- so every inference this adapter emits failed
+    #    EVENT_TYPE_NOT_ALLOWED_FOR_ROLE even though producer-authority
+    #    grants sapient-ingress the INFERENCE_EVENT type.
+    events = translate(
+        _detection_msg(), SCHEMA_ID, registration=_store(_rf_registration_msg())
+    )
+    assert [e["event"]["event_type"] for e in events] == [
+        "OBSERVATION_EVENT",
+        "INFERENCE_EVENT",
+        "INFERENCE_EVENT",
+        "INFERENCE_EVENT",
+    ]
+
+    for event in events:
+        # Schema-only: passes today for every event, on both defects -- the
+        # exact vacuous-verification shape that hid them from every prior
+        # adapter test suite (neither defect is a schema violation).
+        _assert_valid(event)
+        # Real gateway pipeline: red on today's code for the OBSERVATION_EVENT
+        # (identity laundering) and every INFERENCE_EVENT (role).
+        _assert_gateway_valid(event)
+
+    # An observation is an edge measurement; an inference is a gateway-layer
+    # claim. Only the latter moves role.
+    obs, classification, behaviour, existence = events
+    assert obs["source"]["node_role"] == "EDGE"
+    for inference in (classification, behaviour, existence):
+        assert inference["source"]["node_role"] == "GATEWAY"

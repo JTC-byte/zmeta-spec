@@ -260,10 +260,15 @@ def zmeta_state_to_sapient_detection(event, *, node_id, use_labels=None, export_
         or None if the event cannot be honestly projected (wrong
         type/subtype, missing ts/track_id, an unparseable ts or one
         outside the ULID timestamp range, no ULID object identity,
-        partial or non-finite geo, quarantined or rejected by policy,
-        export-path use prohibited, a use_labels that is not the
-        documented dict shape, or an honesty self-label that cannot
-        be serialized as honest JSON). This projection never raises.
+        non-finite lat/lon, an incomplete geo that is not declared 2-D
+        (`geo.dimensionality: "2D"`, doctrine A1-02) and is missing or has a
+        non-finite `alt_m`, a "2D" geo that also carries an `alt_m`
+        (schema-incoherent), quarantined or rejected by policy, export-path
+        use prohibited, a use_labels that is not the documented dict shape,
+        or an honesty self-label that cannot be serialized as honest JSON).
+        A geo genuinely declared 2-D projects a `Location` with no `z` key
+        (BSI Flex 335 v2.0 marks `z` optional, unlike `x`/`y`), never a
+        fabricated altitude. This projection never raises.
     """
     if event.get("event", {}).get("event_type") != "STATE_EVENT":
         return None
@@ -295,14 +300,34 @@ def zmeta_state_to_sapient_detection(event, *, node_id, use_labels=None, export_
         if not is_ulid(object_id):
             return None
 
-    # All-or-nothing geo: DetectionReport's location oneof is mandatory and
-    # SAPIENT z is an explicit claim — a partial position cannot be
-    # exported without inventing the missing axis (contract 6.8).
+    # Geo honesty gate (doctrine A1-02; BSI Flex 335 v2.0
+    # sapient_msg/bsi_flex_335_v2_0/location.proto). `location_oneof` is
+    # mandatory on DetectionReport, but INSIDE the `Location` message only
+    # `x` (longitude) and `y` (latitude) are `is_mandatory: true` — `z`
+    # (altitude) carries no such marker anywhere in the proto. SAPIENT's own
+    # wire format permits an honest x-y position with no z at all, so a
+    # ZMeta STATE whose geo declares `dimensionality: "2D"` (a real, exact
+    # horizontal fix with no geometric vertical to assert — every AIS
+    # vessel, a barometric-only aircraft) projects to a DetectionReport
+    # Location WITHOUT z, not to a refusal. A geo that is merely missing
+    # `alt_m` with no explicit "2D" token is the historical ambiguous case
+    # (unmeasured vs. nonexistent vertical) and still refuses: the adapter
+    # never invents a missing axis and never asserts a z the event does not
+    # claim (contract 6.8). A "2D" token paired with a present `alt_m` is
+    # schema-incoherent upstream (schema/zmeta-event-1.1.0.schema.json
+    # coherence arm 1) and refuses rather than silently picking one claim to
+    # believe.
     geo = payload.get("geo") or {}
     lat = geo.get("lat")
     lon = geo.get("lon")
+    if not (_is_finite_number(lat) and _is_finite_number(lon)):
+        return None
+    is_2d = geo.get("dimensionality") == "2D"
     alt_m = geo.get("alt_m")
-    if not (_is_finite_number(lat) and _is_finite_number(lon) and _is_finite_number(alt_m)):
+    if is_2d:
+        if alt_m is not None:
+            return None
+    elif not _is_finite_number(alt_m):
         return None
 
     risk_records = _risk_records(payload)
@@ -367,16 +392,22 @@ def zmeta_state_to_sapient_detection(event, *, node_id, use_labels=None, export_
     except (ValueError, TypeError, OverflowError, OSError):
         return None
 
+    location = {
+        "x": lon,
+        "y": lat,
+        "coordinate_system": "LOCATION_COORDINATE_SYSTEM_LAT_LNG_DEG_M",
+        "datum": "LOCATION_DATUM_WGS84_E",
+    }
+    if not is_2d:
+        # z is an explicit claim (contract 6.8): only asserted when the
+        # event actually carries one. A declared-2D geo never reaches this
+        # branch (see the gate above), so z is never fabricated for it.
+        location["z"] = alt_m
+
     detection = {
         "report_id": report_id,
         "object_id": object_id,
-        "location": {
-            "x": lon,
-            "y": lat,
-            "z": alt_m,
-            "coordinate_system": "LOCATION_COORDINATE_SYSTEM_LAT_LNG_DEG_M",
-            "datum": "LOCATION_DATUM_WGS84_E",
-        },
+        "location": location,
     }
 
     track_class = payload.get("class")

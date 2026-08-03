@@ -257,10 +257,16 @@ NON-authoritative correlation hint, never a `track_id`), `task_id`,
 `signal_additional` (entries past the first when canonical RF features
 were mapped from `signal[0]`), `enu_velocity`, `location`,
 `range_bearing`, `node_location`, `coverage`, `obscuration`). Native classification/behaviour lists are preserved as
-`native_classification` / `native_behaviour`, deliberately renamed so the
-observation denylist names (`confidence`, `classification`, `track_id`,
-`entity_class`, `label`) never appear as extension keys. Extensions are
-safe to ignore: nothing load-bearing lives only in the vendor block.
+`native_classification` / `native_behaviour`, and every observation
+denylist name found inside each entry is also renamed to a `native_`-prefixed
+key, recursively through any nested taxonomy such as `sub_class`. This is
+more than a top-level rename: the gateway's observation identity check
+walks the whole payload at every nesting depth, so a per-entry
+`confidence` field is exactly as much an identity leak as a top-level one,
+and an interop run found the verbatim per-entry copy failing
+`OBSERVATION_HAS_IDENTITY` while every top-level extension key looked
+clean. Extensions are safe to ignore: nothing load-bearing lives only in
+the vendor block.
 
 ### StatusReport mapping
 

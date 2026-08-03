@@ -14,6 +14,12 @@ Notes:
   (`NaN`/`inf`) value anywhere in it refuses the whole tag dict (`None`). A
   footprint or feature measurement that is not a number must not be embedded
   in a video stream as if it were one.
+- Swept for the SAPIENT egress's all-or-nothing altitude defect (first
+  independent SAPIENT interop run, 2026-08) and found clean: `payload.geo`
+  is never examined, only copied, so a declared 2-D geo (doctrine A1-02,
+  `dimensionality: "2D"`, no `alt_m` — every AIS vessel, a barometric-only
+  aircraft) crosses byte-for-byte, dimensionality token included. No fix
+  needed here; pinned in `test_declared_2d_geo_from_real_ais_ingress_passes_through_unchanged`.
 - That walk covers containers by abstract type (`Mapping`, `Set`, `Sequence`,
   CBOR tag wrappers, `Decimal`), not just `dict`/`list`, and carries a
   seen-set so a cyclic structure, reachable via CBOR value-sharing tags on a

@@ -1,5 +1,8 @@
+import importlib.util
 import json
+import sys
 from datetime import datetime, timezone
+from pathlib import Path
 
 import pytest
 
@@ -9,6 +12,33 @@ from adapters.egress.sapient.zmeta_state_to_sapient_detection import (
     SAPIENT_EGRESS_LOSS_NOTES,
     zmeta_state_to_sapient_detection,
 )
+
+# --- real gateway pipeline, for the A1-02 declared-2D-geo tests below -------
+# The interop finding this file's geo tests exist to close: every prior test
+# here proved a shape against schema-only validate(), and the SAPIENT
+# boundary defect (silently dropping a doctrine A1-02 declared 2-D
+# STATE_EVENT) was schema-VALID the whole time, so a schema-only pin would
+# reproduce the exact vacuous verification that hid it. `_assert_gateway_valid`
+# below runs gateway/src/validators.py against policy/*.yaml -- the same
+# checks tools/validate.py runs -- and only that full pipeline can say a
+# fixture is real.
+ROOT = Path(__file__).resolve().parents[3]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from adapters.ingress.ais.ais_to_zmeta import translate_message as _ais_translate_message  # noqa: E402
+from adapters.projector.track.track_projector import TrackProjector  # noqa: E402
+
+_VALIDATORS_PATH = ROOT / "gateway" / "src" / "validators.py"
+_validators_spec = importlib.util.spec_from_file_location(
+    "zmeta_gateway_validators_sapient_geo", _VALIDATORS_PATH
+)
+gateway_validators = importlib.util.module_from_spec(_validators_spec)
+_validators_spec.loader.exec_module(gateway_validators)
+
+_GATEWAY_SCHEMA = gateway_validators.load_schema(ROOT / "schema" / "zmeta-event.schema.json")
+_GATEWAY_POLICY = gateway_validators.load_policy(ROOT / "policy")
+_GATEWAY_SEVERITY = _GATEWAY_POLICY["violation_severities"]
 
 NODE_ID = "0f2c8b4e-9f1d-4e6a-8a3b-1c5d7e9f0a2b"
 DEST_ID = "7a1b3c5d-2e4f-4a6b-8c0d-9e1f3a5b7c9d"
@@ -77,6 +107,92 @@ def _task(event, **kwargs):
 def _detection(event, **kwargs):
     kwargs.setdefault("node_id", NODE_ID)
     return zmeta_state_to_sapient_detection(event, **kwargs)
+
+
+def _assert_gateway_valid(event, gateway_state, profile="H"):
+    """Run `event` through the REAL gateway pipeline and fail loudly on any
+    FAIL-severity violation, mirroring the exact check list tools/validate.py
+    runs (schema, role, profile, timing, semantics, lineage, producer
+    authority, routing). A warn-only violation is accepted the same way the
+    reference gateway accepts one -- and still recorded, so a later event's
+    lineage citation of this one resolves the way it would in a real gateway
+    process.
+    """
+    checks = [
+        gateway_validators.validate_schema(event, _GATEWAY_SCHEMA, _GATEWAY_SEVERITY),
+        gateway_validators.validate_role(
+            event,
+            {"roles": _GATEWAY_POLICY["roles"], "deny": _GATEWAY_POLICY["deny"]},
+            _GATEWAY_SEVERITY,
+        ),
+        gateway_validators.validate_profile(event, profile, _GATEWAY_POLICY["profiles"], _GATEWAY_SEVERITY),
+        gateway_validators.validate_timing_quality(
+            event,
+            _GATEWAY_POLICY["semantics"],
+            state=gateway_state,
+            severity_map=_GATEWAY_SEVERITY,
+            timing_freshness_policy=_GATEWAY_POLICY.get("timing_freshness", {}),
+            profile=profile,
+        ),
+        gateway_validators.validate_semantics(event, _GATEWAY_POLICY["semantics"], _GATEWAY_SEVERITY),
+        gateway_validators.validate_lineage(
+            event,
+            _GATEWAY_POLICY.get("lineage", {}),
+            state=gateway_state,
+            profile=profile,
+            severity_map=_GATEWAY_SEVERITY,
+        ),
+        gateway_validators.validate_producer_authority(
+            event, _GATEWAY_POLICY.get("producer_authority", {}), _GATEWAY_SEVERITY
+        ),
+        gateway_validators.validate_routing(event, _GATEWAY_POLICY["routing"], _GATEWAY_SEVERITY),
+    ]
+    fails = [
+        violation
+        for _ok, violations in checks
+        for violation in violations
+        if violation.get("severity") != "warn"
+    ]
+    assert fails == [], fails
+    gateway_state.record(event)
+
+
+def _ais_class_a_message(**overrides):
+    msg = {
+        "type": 1, "mmsi": 366123456, "lat": 33.7405, "lon": -118.2712,
+        "speed": 12.4, "course": 271.3, "heading": 270, "status": 0,
+        "accuracy": True, "second": 42, "signalpower": -31.2,
+        "rxtime": "20260731120000", "shipname": "EVER GIVEN@@@@@@",
+        "callsign": "H3RC@@@", "shiptype": 70,
+    }
+    msg.update(overrides)
+    return msg
+
+
+def _real_2d_state_event():
+    """A gateway-valid, doctrine A1-02 declared 2-D STATE_EVENT, built the
+    honest way: a decoded AIS position report through the real ingress
+    adapter (`adapters/ingress/ais`) and the real track projector
+    (`adapters/projector/track`), not a hand-rolled fixture. Every AIS
+    vessel produces exactly this shape -- a real, exact horizontal fix with
+    no geometric altitude to assert, ever -- which is the class of event the
+    first independent SAPIENT interop run found this egress silently
+    dropping.
+
+    Returns the STATE_EVENT, already proven gateway-valid (via
+    `_assert_gateway_valid`) alongside the FUSION_EVENT it cites as lineage
+    parent.
+    """
+    observation = _ais_translate_message(
+        _ais_class_a_message(), platform_id="ais-node-01", receiver_id="rtlsdr-01"
+    )
+    projector = TrackProjector(platform_id="ais-node-01", confidence=0.9)
+    fusion_event, state_event = projector.observe(observation)
+
+    gateway_state = gateway_validators.ValidationState()
+    _assert_gateway_valid(fusion_event, gateway_state)
+    _assert_gateway_valid(state_event, gateway_state)
+    return state_event
 
 
 # --- command egress: happy paths -------------------------------------------
@@ -266,6 +382,122 @@ def test_state_velocity_needs_both_heading_and_speed():
     assert "enu_velocity" not in _detection(event)["detection_report"]
 
 
+# --- state egress: declared 2-D geo (doctrine A1-02) ------------------------
+#
+# The MAJOR defect the first independent SAPIENT interop run found: this
+# adapter's geo gate was all-or-nothing (lat AND lon AND alt_m all finite),
+# so a real, gateway-valid, doctrine A1-02 declared 2-D STATE_EVENT -- every
+# AIS vessel, every barometric-only aircraft -- silently returned None. No
+# counter, no log, no loss note: invisible to a SAPIENT consumer with
+# nothing to filter on.
+#
+# The proto fact that decides the fix, read from the dstl DetectionReport
+# proto in the SAPIENT harness clone
+# (proto/sapient_msg/bsi_flex_335_v2_0/location.proto, BSI Flex 335 v2.0):
+#
+#   message Location {
+#       optional double x = 1 [(field_options) = {is_mandatory: true}];
+#       optional double y = 2 [(field_options) = {is_mandatory: true}];
+#       optional double z = 3;
+#       ...
+#   }
+#
+# `x` (longitude) and `y` (latitude) are marked `is_mandatory: true`; `z`
+# (altitude) carries no such marker anywhere in the message. SAPIENT's own
+# wire format permits an x-y position with no z at all, so a declared 2-D
+# STATE is an honest DetectionReport WITHOUT z, not an unrepresentable one --
+# the same shape this adapter's own GOTO->move_to command projection already
+# emits (`test_goto_maps_move_to` above: no `z` key, ever).
+
+
+def test_declared_2d_state_from_real_ais_pipeline_must_export():
+    """The headline pin: a real AIS vessel, ingested and projected through
+    the real gateway-side components, must reach the SAPIENT boundary.
+
+    `_real_2d_state_event` proves gateway-validity through the actual
+    validator pipeline first (schema, role, profile, timing, semantics,
+    lineage, producer authority, routing) -- exactly the pipeline a
+    schema-only test never runs, and exactly the gap the interop finding
+    named. Before the fix this asserts red: `message` is `None`.
+    """
+    state_event = _real_2d_state_event()
+    track_id = state_event["payload"]["track_id"]
+    geo = state_event["payload"]["geo"]
+    assert geo["dimensionality"] == "2D"
+    assert "alt_m" not in geo
+
+    message = _detection(state_event, object_map={track_id: OBJECT_ULID})
+
+    assert message is not None, (
+        "a gateway-valid declared-2D STATE_EVENT must export a "
+        "DetectionReport: SAPIENT z is optional (location.proto), never "
+        "mandatory"
+    )
+    location = message["detection_report"]["location"]
+    assert location["x"] == geo["lon"]
+    assert location["y"] == geo["lat"]
+    assert "z" not in location, (
+        "no fabricated altitude: the event never claimed one, and the "
+        "proto never requires one"
+    )
+    assert location["coordinate_system"] == "LOCATION_COORDINATE_SYSTEM_LAT_LNG_DEG_M"
+    assert location["datum"] == "LOCATION_DATUM_WGS84_E"
+
+
+def test_declared_2d_geo_exports_without_z_unit_level():
+    # A lighter-weight companion to the real-pipeline pin above: the same
+    # disposition, isolated from the AIS/projector machinery.
+    event = _state_event(geo={"lat": 34.0, "lon": -118.0, "dimensionality": "2D"})
+    message = _detection(event)
+
+    assert message is not None
+    location = message["detection_report"]["location"]
+    assert location["x"] == -118.0
+    assert location["y"] == 34.0
+    assert "z" not in location
+    assert location["coordinate_system"] == "LOCATION_COORDINATE_SYSTEM_LAT_LNG_DEG_M"
+    assert location["datum"] == "LOCATION_DATUM_WGS84_E"
+
+
+def test_2d_geo_carrying_an_altitude_is_a_contradiction_and_refuses():
+    # A "2D" token paired with an alt_m is schema-incoherent upstream
+    # (schema/zmeta-event-1.1.0.schema.json coherence arm 1): the geo makes
+    # two claims that cannot both be true. The adapter refuses rather than
+    # silently picking one to believe.
+    event = _state_event(geo={"lat": 34.0, "lon": -118.0, "alt_m": 120.0, "dimensionality": "2D"})
+    assert _detection(event) is None
+
+
+def test_explicit_3d_dimensionality_still_requires_altitude():
+    # Absent dimensionality means 3D (doctrine A1-02); an explicit "3D"
+    # token is the same claim spelled out, so it needs alt_m exactly like
+    # the absent-token case does -- never a reason to relax the gate.
+    event = _state_event(geo={"lat": 34.0, "lon": -118.0, "dimensionality": "3D"})
+    assert _detection(event) is None
+
+
+def test_unknown_dimensionality_token_still_requires_altitude():
+    # An unrecognised token ("2.5D") is schema-invalid upstream and should
+    # never reach this adapter from a real gateway, but a direct embedder
+    # call can hand one in regardless (same defense-in-depth reasoning as
+    # every other refusal in this file). Only the literal "2D" token grants
+    # the no-altitude disposition; anything else stays on the historical
+    # all-or-nothing side of the gate.
+    event = _state_event(geo={"lat": 34.0, "lon": -118.0, "dimensionality": "2.5D"})
+    assert _detection(event) is None
+
+
+def test_2d_geo_with_non_finite_lat_lon_still_refuses():
+    # The finite-number gate on lat/lon applies identically whether or not
+    # the geo is declared 2-D: a NaN/inf horizontal fix is not a real fix
+    # of any dimensionality.
+    for bad in (float("nan"), float("inf"), float("-inf")):
+        event = _state_event(geo={"lat": bad, "lon": -118.0, "dimensionality": "2D"})
+        assert _detection(event) is None
+        event = _state_event(geo={"lat": 34.0, "lon": bad, "dimensionality": "2D"})
+        assert _detection(event) is None
+
+
 # --- state egress: refusals ------------------------------------------------
 
 
@@ -293,6 +525,11 @@ def test_state_missing_track_id_refuses():
 
 
 def test_state_partial_geo_refuses():
+    # None of these carry an explicit "2D" dimensionality token, so this is
+    # the historical ambiguous case doctrine A1-02 leaves refused: an
+    # incomplete geo that never declares itself two-dimensional does not get
+    # the no-altitude disposition by default (see the declared-2-D section
+    # above for the case that does).
     for field in ("lat", "lon", "alt_m"):
         event = _state_event()
         del event["payload"]["geo"][field]

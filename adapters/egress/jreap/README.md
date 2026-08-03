@@ -13,12 +13,28 @@ Notes:
   STATE_EVENT, but the downstream tactical track JSON may omit lineage and may
   carry confidence only when the receiving gateway supports it.
 - A program-of-record JREAP gateway handles real formatting and transport.
+- Declared 2-D geo (doctrine A1-02) projects honestly: a `payload.geo` with
+  `dimensionality: "2D"` (a real, exact horizontal fix with no geometric
+  vertical to assert, ever — every AIS vessel, a barometric-only aircraft)
+  produces `hae_m: null`, never a fabricated altitude. This adapter has no
+  all-or-nothing altitude wall the way the SAPIENT egress once did (fixed
+  2026-08, first independent SAPIENT interop run, MAJOR): it reads
+  `alt_m` directly and always projected a 2-D fix rather than dropping it.
+  What it did lack, until the same sweep tightened it, is telling a genuine
+  2-D declaration apart from the schema-invalid shape a real gateway would
+  already reject — `alt_m` absent with no explicit `"2D"` token — which
+  produced the identical `hae_m: null` track. Only the explicit token earns
+  the no-altitude disposition now; the untelled-apart shape refuses (see the
+  table below), and a `"2D"` token paired with a present `alt_m` refuses too
+  (schema-incoherent — two claims that cannot both be true).
 
 ### Refusals (`None`): fail closed, never substitute
 
 | Condition | Disposition |
 |-----------|-------------|
 | Not a `STATE_EVENT` / `TRACK_STATE`, or missing `track_id`/`geo`/`ts`/`valid_for_ms` | refused |
+| `alt_m` absent and `geo.dimensionality` is not `"2D"` | refused; the ambiguous case (unmeasured vs. nonexistent vertical), schema-invalid upstream, so a real gateway never hands it to this egress |
+| `geo.dimensionality: "2D"` together with a present `alt_m` | refused; schema-incoherent, never picks one claim to believe |
 | `event.ts` unparseable or not UTC-convertible (non-string, calendar/clock-invalid, or a naive pre-1970 instant the platform rejects) | refused; the schema's `utcDateTime` enforces only a trailing `Z` (`format: date-time` is advisory without an RFC 3339 checker), so `"2026-02-30T00:00:00Z"` arrives gate-clean; the timestamp keys both `timestamp` and `stale_time`, and a substituted instant would be a freshness claim the event never made |
 | Non-finite (`NaN`/`inf`) number anywhere in the projected track | refused; a consumer would plot a symbol at coordinates that are not a position, and the JSON handed to it would not be RFC 8259 |
 | `time + valid_for_ms` not representable as a datetime | refused; `payload.valid_for_ms` is `{"type": "integer", "minimum": 1}` with no upper bound, so the kernel forwards windows the `datetime` module cannot express (`10**400` ms, `10**15` ms, or an ordinary 300 000 ms window on `ts="9999-12-31T23:59:59Z"`) |

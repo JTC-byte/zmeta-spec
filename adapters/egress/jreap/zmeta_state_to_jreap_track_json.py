@@ -114,6 +114,34 @@ def _stale_time(time_dt, valid_for_ms):
         return None
 
 
+def _projected_altitude(geo):
+    """(hae_m, ok): the honest altitude claim, or a refusal signal.
+
+    Mirrors the SAPIENT egress gate at the same coherence boundary (doctrine
+    A1-02; schema/zmeta-event-1.1.0.schema.json $defs/geo). `alt_m` present
+    is a 3-D claim and is projected as-is. `dimensionality: "2D"` is a real,
+    exact horizontal fix with no geometric vertical to assert, ever (every
+    AIS vessel, a barometric-only aircraft): `hae_m: null` states that
+    honestly, never a fabricated value. A geo with neither -- `alt_m`
+    missing and no explicit "2D" token -- is the historical ambiguous shape
+    (unmeasured vs. nonexistent vertical); it is also schema-invalid
+    upstream (absent dimensionality means 3D, and 3D requires alt_m), so a
+    real gateway never hands it to egress, but a direct embedder call can,
+    and before this refused nothing: it produced the identical `hae_m: null`
+    as a genuine 2-D declaration, silently treating "we don't know" as if it
+    were "there is nothing to know." A "2D" token that also carries `alt_m`
+    is the same contradiction the other direction and refuses too, rather
+    than silently picking one claim to believe.
+    """
+    alt_m = geo.get("alt_m")
+    is_2d = geo.get("dimensionality") == "2D"
+    if is_2d:
+        return (None, alt_m is None)
+    if alt_m is None:
+        return (None, False)
+    return (alt_m, True)
+
+
 def zmeta_state_to_jreap_track_json(event):
     """
     Convert a ZMeta STATE_EVENT/TRACK_STATE into a minimal tactical track JSON.
@@ -121,8 +149,10 @@ def zmeta_state_to_jreap_track_json(event):
     missing track_id/geo/ts/valid_for_ms, a ts that is not a parseable
     UTC-convertible instant (unparseable, non-string, or one the platform
     cannot convert), a validity window whose stale timestamp is not
-    representable (see _stale_time), or any non-finite (NaN/inf) number in
-    the projected track.
+    representable (see _stale_time), an altitude claim that is neither a
+    present `alt_m` nor a declared 2-D geo (`geo.dimensionality: "2D"`,
+    doctrine A1-02) with `alt_m` absent, or any non-finite (NaN/inf) number
+    in the projected track.
     """
     if event.get("event", {}).get("event_type") != "STATE_EVENT":
         return None
@@ -136,6 +166,10 @@ def zmeta_state_to_jreap_track_json(event):
     valid_for_ms = payload.get("valid_for_ms")
 
     if not track_id or not geo or not ts or valid_for_ms is None:
+        return None
+
+    hae_m, altitude_ok = _projected_altitude(geo)
+    if not altitude_ok:
         return None
 
     # Gate-clean does not mean parseable (banked R1-11 MAJOR): the schema's
@@ -166,7 +200,7 @@ def zmeta_state_to_jreap_track_json(event):
         "track_id": track_id,
         "lat": geo.get("lat"),
         "lon": geo.get("lon"),
-        "hae_m": geo.get("alt_m"),
+        "hae_m": hae_m,
         "timestamp": time_dt.isoformat().replace("+00:00", "Z"),
         "stale_time": stale_dt.isoformat().replace("+00:00", "Z"),
         "track_type": payload.get("class") or "UNKNOWN",

@@ -2703,6 +2703,18 @@ def main():
 
     sock_in = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     sock_in.bind(listen_addr)
+    if settings["emit_metrics"]:
+        # Wake the receive loop on the metrics interval even when nothing
+        # arrives. GatewayMetrics.maybe_log() is otherwise reachable only
+        # from inside the per-datagram body below and from the backstop
+        # (_record_backstop_drop), both of which run only once a datagram
+        # has shown up. Without this, recvfrom blocks indefinitely on an
+        # idle listen socket, the periodic summary never fires, and an
+        # idle-but-healthy gateway is indistinguishable from a wedged one:
+        # both print nothing past the startup banner. When emit_metrics is
+        # false there is no periodic summary to wake up for, so recvfrom
+        # keeps blocking exactly as before.
+        sock_in.settimeout(settings["metrics_interval_sec"])
     sock_out = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
     print(
@@ -2778,7 +2790,22 @@ def main():
     cot_addr = (settings["cot_host"], settings["cot_port"])
 
     while True:
-        data, _addr = sock_in.recvfrom(65535)
+        try:
+            data, _addr = sock_in.recvfrom(65535)
+        except socket.timeout:
+            # Idle tick, not a datagram: recvfrom woke on the metrics
+            # interval (see the settimeout call above) with nothing to
+            # receive. Give the periodic summary a chance to fire here so an
+            # idle gateway still checks in on schedule instead of reading as
+            # indistinguishable from a wedged one. Narrowly scoped to
+            # socket.timeout, never a bare OSError/Exception, so a genuine
+            # recvfrom failure (dead listener socket, closed fd) still
+            # propagates and terminates the process rather than hot-looping
+            # -- the same invariant the backstop below preserves for
+            # everything downstream of recvfrom.
+            if metrics:
+                metrics.maybe_log()
+            continue
         if metrics:
             metrics.record_received(len(data))
         if rate_limit:

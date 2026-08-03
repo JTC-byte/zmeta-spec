@@ -206,3 +206,50 @@ def test_gate_clean_naive_shapes_refuse_not_localize():
         event = _track_state_event()
         event["event"]["ts"] = ts
         assert zmeta_state_to_jreap_track_json(event) is None
+
+
+# --- A1-02 declared 2-D geo sweep -------------------------------------------
+# The first independent SAPIENT interop run's finding
+# (adapters/egress/sapient) prompted a sweep of the sibling egress adapters
+# for the same all-or-nothing altitude assumption against a 2-D STATE. This
+# adapter never had one: it reads `geo.get("alt_m")` directly, so a
+# genuinely 2-D declared position (doctrine A1-02, `dimensionality: "2D"`,
+# no `alt_m`) already projected `hae_m: null`, never a fabricated altitude
+# and never a silent drop. What it did not do is tell that case apart from
+# the schema-invalid shape a real gateway would already have rejected -
+# geo missing `alt_m` with no explicit "2D" token - so both produced the
+# identical `hae_m: null` track. The fix below closes that: only an
+# explicit "2D" token earns the no-altitude disposition.
+
+
+def test_declared_2d_geo_projects_with_null_altitude_not_fabricated():
+    event = _track_state_event()
+    event["payload"]["geo"] = {"lat": 34.0, "lon": -118.0, "dimensionality": "2D"}
+    result = zmeta_state_to_jreap_track_json(event)
+
+    assert result is not None
+    assert result["lat"] == 34.0
+    assert result["lon"] == -118.0
+    assert result["hae_m"] is None
+
+
+def test_2d_geo_carrying_an_altitude_is_a_contradiction_and_refuses():
+    # A "2D" token paired with a present alt_m is schema-incoherent upstream
+    # (schema/zmeta-event-1.1.0.schema.json coherence arm 1): the geo makes
+    # two claims that cannot both be true.
+    event = _track_state_event()
+    event["payload"]["geo"] = {
+        "lat": 34.0, "lon": -118.0, "alt_m": 120.0, "dimensionality": "2D",
+    }
+    assert zmeta_state_to_jreap_track_json(event) is None
+
+
+def test_ambiguous_missing_altitude_without_2d_token_refuses():
+    # Schema-invalid upstream (absent dimensionality means 3D, and 3D
+    # requires alt_m), so a real gateway never hands this shape to egress -
+    # but a direct embedder call can, and before this fix the adapter could
+    # not tell it apart from a genuine 2-D declaration: both produced
+    # `hae_m: null`.
+    event = _track_state_event()
+    event["payload"]["geo"] = {"lat": 34.0, "lon": -118.0}
+    assert zmeta_state_to_jreap_track_json(event) is None

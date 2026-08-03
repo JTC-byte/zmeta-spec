@@ -1343,6 +1343,9 @@ class _LoopSocket:
     def bind(self, _addr):
         return None
 
+    def settimeout(self, _value):
+        return None
+
     def recvfrom(self, _size):
         if self.datagrams:
             return self.datagrams.pop(0), ("127.0.0.1", 40000)
