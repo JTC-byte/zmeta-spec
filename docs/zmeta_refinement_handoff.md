@@ -78,8 +78,17 @@ document it); tools/udp_receiver.py block-buffers when redirected (add
 flushing); sim tooling guidance for the ts-plausibility warning on
 replayed historical corpora (set the horizon to 0 in sims, or note it).
 
-Then phase 4 (documentation refresh) and phase 5 (the cut) as written
-below.
+**PHASE 4 LANDED 2026-08-03** (docs refresh, `72d8e66`; pat-down
+`34bde8b`). **PHASE 5 IN PROGRESS 2026-08-03:** currency pass landed
+(`869af74`), the whole-range fresh-eyes panel ran over the 45-commit
+range (eight lenses, adversarial verify), and the fix wave with its
+attack pass landed (`050704a`). The finding-by-finding record with
+standalone verification commands is
+`docs/v1_1_20_precut_panel_register.md`. Remaining: release notes,
+validation report, manifest last, package-mode validation and checksum
+verification before any tag; tag, sign, publish are the maintainer's.
+After the cut, per maintainer direction: sync local, develop, and main
+(develop is a clean fast-forward, 192 behind and zero ahead).
 
 The campaign, in order:
 

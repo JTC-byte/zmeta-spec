@@ -2,7 +2,42 @@
 
 ## Current Resume Note
 
-- Last updated: 2026-08-03 (checkpoint closed; the cut is the whole board)
+- Last updated: 2026-08-03 (phase 5: panel run, fixes landed, cut
+  mechanics remain)
+- **2026-08-03 (phase 5, panel and fix wave).** The cut opened per the
+  playbook ordering. Currency pass first (`869af74`): manifest rebuilt
+  with the explicit v1.1.20 identity, eighteen stale surfaces flipped by
+  the currency suite's enumeration, governance sentence regenerated. Then
+  the whole-range fresh-eyes panel over v1.1.19..HEAD, 45 commits as one
+  surface: eight independent cold lenses, dedup against the fix floor,
+  one adversarial verifier per floor-passing finding, 23 subagents in
+  all. Nineteen raw findings, eight confirmed, four downgraded but real,
+  two refuted with evidence (one refuter re-ran the battery in a worktree
+  at the checkpoint commit and reproduced the disputed 1720 exactly, so
+  that record stands), three minors. The panel also confirmed the range's
+  load-bearing positives cold: the locked v1.0 schema byte-identical
+  across the range, the A1-02 vocabulary spelled consistently everywhere,
+  the checksum errata table reproducing byte-for-byte. Fix wave landed
+  red-first (`050704a`), then the attack pass on the fix wave found four
+  defects in the fixes themselves, all fixed in the same commit; the
+  full finding-by-finding record with standalone verification commands
+  is `docs/v1_1_20_precut_panel_register.md`, written so a separate
+  session can re-run every check without this session's context.
+  Notable for the AAR: the attack pass caught the lesson-applied-once
+  class occurring inside the wave that was fixing other instances of it
+  (the citation fix covered the two named surfaces and missed four
+  sibling instances), and the content-currency guard caught the panel
+  register itself as an unpinned compat-target carrier the same day it
+  was written. Battery at the fix-wave tip: 1726 passed plus 1081
+  subtests, gates exit 0, examples 51/51, the one red being
+  test_release_artifact_completeness by design until the release
+  artifacts exist. Remaining in phase 5: release notes, validation
+  report, manifest last, package-mode validation and checksum
+  verification before any tag; tag, sign, publish are the maintainer's.
+  Maintainer direction for after the cut: verify local, develop, and
+  main match (develop is 192 commits behind main, zero ahead, a clean
+  fast-forward; the three other remote branches are fully merged into
+  main and are keep-or-prune calls listed for him).
 - **2026-08-03 (checkpoint closeout).** Final state verified by hand: main
   and origin synced at 1714866, CI green on the last two pushes, kernel
   gate all flags exit 0, examples 51/51, pytest 1720 passed plus 1081
