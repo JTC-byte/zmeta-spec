@@ -102,6 +102,15 @@ bytes; the class is the signer defect one layer deeper); the errata
 prose glosses absent-manifest tags as "already matched" where the
 generator skips them as nonexistent.
 
+**REPO STATE AFTER THE PUSH (2026-08-03): MAINTENANCE MODE.** The
+maintainer's direction at hand-off: the stack runs live as published, and
+what the field breaks drives the next scoped waves; no further internal
+hardening cycles are planned. Before the first live event, operators run
+the pre-flight card in `docs/zmeta_live_test_checklist.md` section E; the
+two standing gates are SITL before live GCS-originated tasking and the
+TAK render check of the new detail element (checklist section C). The
+maintainer's development focus moves to the Praesens deployment.
+
 The campaign, in order:
 
 1. **Governed wave** (every gate decision is now made; see below): A1-02,

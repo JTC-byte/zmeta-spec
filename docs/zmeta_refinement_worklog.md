@@ -2,7 +2,23 @@
 
 ## Current Resume Note
 
-- Last updated: 2026-08-03 (v1.1.20 published)
+- Last updated: 2026-08-03 (session closeout; repo enters maintenance mode)
+- **2026-08-03 (session closeout; fire shifts to the deployment).** The
+  post-publish closeout verified the final state by hand: tree clean and
+  synced at the records commit, CI green on main and develop, the battery
+  re-run green at the closeout tree, no running containers (three exited
+  audit containers from the readiness-audit cycle were removed; the two
+  keep-or-prune artifacts, the `backup-pre-scrub` branch and the
+  `.tmp/review-pr-2` worktree, still stand for the maintainer). The
+  session's live-run guidance is condensed into
+  `docs/zmeta_live_test_checklist.md` section E as a pre-flight card and a
+  break-report card, so it survives as a standing artifact rather than a
+  conversation. Maintainer direction recorded: ZMeta runs live as
+  published and enters maintenance mode; field telemetry drives the next
+  scoped waves; the maintainer's development focus moves to the Praesens
+  deployment. The below-floor queue, the section C gates (SITL before
+  live GCS-originated tasking; the TAK render check), and the doctrine
+  log all stand unchanged.
 - **2026-08-03 (v1.1.20 published).** The tag, upload and publish ran at
   the maintainer's direction after an independent verification session,
   fresh eyes separate from the range's authors, re-derived the prepared
