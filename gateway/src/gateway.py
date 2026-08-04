@@ -113,7 +113,7 @@ DEFAULT_WARN_DATAGRAM_BYTES = 0
 # now rejects a corrupted CALENDAR shape (year 0001, month 88), but a
 # structurally valid ts that is simply wrong by years is not a schema
 # question at all -- no pattern can know what "now" is, and v1.0's locked
-# utcDateTime def cannot gain this check either way. Contract 5.7 assigns
+# utcDateTime def cannot gain this check either way. Contract 3.1 ("Actual time-source accuracy") assigns
 # cross-event plausibility to policy/runtime, which is this check.
 # 24 hours is generous enough to tolerate a real store-and-forward delay or
 # an unsynced clock drifting hours off, while still catching the corruption
@@ -980,7 +980,7 @@ def _check_ts_plausibility(metrics, event, horizon_ms, now=None, event_id=None, 
     inside [now - horizon_ms, now + horizon_ms]. `now` defaults to wall-clock
     UTC; a caller (tests) may pass a fixed instant instead. Runs on ANY
     zmeta_version -- this is a runtime check, not a schema one (X1-01,
-    contract 5.7), so v1.0's locked schema and v1.1.0's stricter utcDateTime
+    contract 3.1, "Actual time-source accuracy"), so v1.0's locked schema and v1.1.0's stricter utcDateTime
     pattern are both covered the same way.
     """
     if not metrics or not horizon_ms or horizon_ms <= 0:
@@ -2126,15 +2126,36 @@ def _bounded_diagnostic_error(text):
     return text[:MAX_DIAGNOSTIC_ERROR_CHARS] + "...<truncated>"
 
 
-def build_violation_event(reason_code, original=None, details=None, contract_hashes=None, stamp_contract_hash=False, force_schema_violation=False):
+def build_violation_event(reason_code, original=None, details=None, contract_hashes=None, stamp_contract_hash=False, force_schema_violation=False, policy=None):
     original_event = original.get("event", {}) if isinstance(original, dict) else {}
     original_source = original.get("source", {}) if isinstance(original, dict) else {}
     original_payload = original.get("payload", {}) if isinstance(original, dict) else {}
 
     # force_schema_violation keeps wire-level diagnostics (e.g.
     # ENCODING_UNSUPPORTED) out of the TASK_ACK shape, whose reason_code
-    # vocabulary is deliberately task-limited.
-    is_command = (not force_schema_violation) and original_event.get("event_type") == "COMMAND_EVENT"
+    # vocabulary is deliberately task-limited. TV-09: that vocabulary is not
+    # every reason_code the gateway can stamp (PROFILE_MISMATCH is one), so a
+    # caller that only sets force_schema_violation for the codes it already
+    # knows about leaves every other illegal code to be minted as a TASK_ACK,
+    # rejected by this gateway's own outgoing self-check, and replaced with a
+    # generic SCHEMA_INVALID whose original_event_id points at the
+    # never-transmitted TASK_ACK instead of the real refused event. Passing
+    # the loaded policy lets this function derive legality itself, from the
+    # same task_ack_allowed_reason_codes list the schema mirrors, so every
+    # call site is covered without hardcoding the vocabulary here too.
+    reason_code_is_task_ack_legal = True
+    if policy is not None:
+        task_ack_allowed_reason_codes = (
+            policy.get("semantics", {})
+            .get("system_event", {})
+            .get("task_ack_allowed_reason_codes", [])
+        )
+        reason_code_is_task_ack_legal = reason_code in task_ack_allowed_reason_codes
+    is_command = (
+        (not force_schema_violation)
+        and reason_code_is_task_ack_legal
+        and original_event.get("event_type") == "COMMAND_EVENT"
+    )
     event_subtype = "TASK_ACK" if is_command else "SCHEMA_VIOLATION"
     system_type = "TASK_ACK" if is_command else "SCHEMA_VIOLATION"
 
@@ -2291,6 +2312,7 @@ def process_message(
                 details={"error": _bounded_diagnostic_error(decode_error)},
                 contract_hashes=contract_hashes,
                 stamp_contract_hash=stamp_contract_hash,
+                policy=policy,
             )
         ]
 
@@ -2327,6 +2349,7 @@ def process_message(
                 },
                 contract_hashes=contract_hashes,
                 stamp_contract_hash=stamp_contract_hash,
+                policy=policy,
             )
         ]
 
@@ -2348,6 +2371,7 @@ def process_message(
                     details=violation.get("details"),
                     contract_hashes=contract_hashes,
                     stamp_contract_hash=stamp_contract_hash,
+                    policy=policy,
                 )
             ]
         warnings.extend(warns)
@@ -2368,6 +2392,7 @@ def process_message(
                     details=violation.get("details"),
                     contract_hashes=contract_hashes,
                     stamp_contract_hash=stamp_contract_hash,
+                    policy=policy,
                 )
             ]
         warnings.extend(warns)
@@ -2399,6 +2424,7 @@ def process_message(
                         details=violation.get("details"),
                         contract_hashes=contract_hashes,
                         stamp_contract_hash=stamp_contract_hash,
+                        policy=policy,
                     )
                 ]
             warnings.extend(warns)
@@ -2439,6 +2465,7 @@ def process_message(
                     details=violation.get("details"),
                     contract_hashes=contract_hashes,
                     stamp_contract_hash=stamp_contract_hash,
+                    policy=policy,
                 )
             ]
         warnings.extend(warns)
@@ -2465,6 +2492,7 @@ def process_message(
                     details=violation.get("details"),
                     contract_hashes=contract_hashes,
                     stamp_contract_hash=stamp_contract_hash,
+                    policy=policy,
                 )
             ]
         warnings.extend(warns)
@@ -2528,6 +2556,7 @@ def process_message(
                     details=violation.get("details"),
                     contract_hashes=contract_hashes,
                     stamp_contract_hash=stamp_contract_hash,
+                    policy=policy,
                 )
             ]
         warnings.extend(warns)
@@ -2548,6 +2577,7 @@ def process_message(
                     details=violation.get("details"),
                     contract_hashes=contract_hashes,
                     stamp_contract_hash=stamp_contract_hash,
+                    policy=policy,
                 )
             ]
         warnings.extend(warns)
@@ -2574,14 +2604,10 @@ def process_message(
         # A strict-mode refusal of a COMMAND_EVENT is emitted as a TASK_ACK,
         # whose reason_code vocabulary is deliberately task-limited. A warn
         # code outside that vocabulary (the command-evidence lineage codes
-        # make this reachable) must ride the SCHEMA_VIOLATION shape instead —
+        # make this reachable) must ride the SCHEMA_VIOLATION shape instead,
         # otherwise the gateway's own diagnostic is schema-invalid on the
-        # wire, a refusal the consumer cannot validate.
-        task_ack_codes = (
-            policy.get("semantics", {})
-            .get("system_event", {})
-            .get("task_ack_allowed_reason_codes", [])
-        )
+        # wire, a refusal the consumer cannot validate. build_violation_event
+        # derives the legal-for-TASK_ACK check itself from this same policy.
         return [
             build_violation_event(
                 violation["code"],
@@ -2589,7 +2615,7 @@ def process_message(
                 details=violation.get("details"),
                 contract_hashes=contract_hashes,
                 stamp_contract_hash=stamp_contract_hash,
-                force_schema_violation=violation["code"] not in task_ack_codes,
+                policy=policy,
             )
         ]
 
@@ -2901,6 +2927,7 @@ def main():
                         details=violation.get("details"),
                         contract_hashes=contract_hashes,
                         stamp_contract_hash=settings["stamp_contract_hash"],
+                        policy=policy,
                     )
                     if should_stamp_profile:
                         outgoing["profile"] = settings["profile"]

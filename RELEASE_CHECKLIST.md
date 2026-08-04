@@ -68,6 +68,10 @@ Use this as the template for each release.
       content pruned
 - [ ] SHA256SUMS generated for release assets
 - [ ] SHA256SUMS verified
+- [ ] Verifying a pre-v1.1.20 tag: check `docs/release_checksum_errata.md`
+      first. Its published checksums for text assets are known wrong (no
+      line-ending normalization before v1.1.20), and published files were
+      never rewritten to match.
 - [ ] Signing decision recorded: signed release, or checksums-only with the
       release notes stating that no detached signatures are attached
 - [ ] *(signed releases only)* Detached signatures generated for SHA256SUMS

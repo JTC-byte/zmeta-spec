@@ -6,6 +6,54 @@
 
 ## [1.1.20] - 2026-08-03
 
+- 2026-08-03 — **The pre-cut panel's fix wave: enforcement catches up to the
+  adopted extensions, and two egress honesty gaps close.** The whole-range
+  fresh-eyes panel (8 independent lenses, adversarial verification, register
+  at `docs/v1_1_20_precut_panel_register.md`) confirmed eight findings; the
+  MAJOR/MODERATE set is fixed here, red-first. (1)
+  `policy/profile-precision.yaml` and both projection validators now enforce
+  what the registry's adopted ERROR_ELLIPSE_M and GEO_DIMENSIONALITY entries
+  claim: `payload.geo.dimensionality` and `payload.quality.geo_status` are
+  immutable under profile projection, `payload.geo.error_ellipse_m` is
+  preserve-or-compact with precision ceilings at M and L, and the
+  unconditional `alt_m` requirement gains the A1-02 branch in
+  `tools/validate_projection.py`, the copy that demands projected-event
+  presence (found only when the first fix attempt in
+  `tools/validate_precision_policy.py` failed to make the fixture pass:
+  the same defect class one call-stack layer deeper; the attack pass then
+  proved the precision-side copy inert under its removal semantics and it
+  was restored unconditional with the semantics documented). A declared-2D
+  STATE_EVENT now survives conformance; a projector stripping the
+  declaration, the token, or the ellipse is caught; stripping the
+  declaration and `alt_m` together is caught twice. Nine new precision
+  fixtures pin all of it, and `tools/check_compat.py`'s CoT advisory now
+  matches the adapter's real skip-versus-sentinel behavior. (2) CoT egress learns dimensionality: a declared
+  2-D STATE keeps the wire-required `hae` sentinel for TAK compatibility but
+  now emits a structured `<geo_dimensionality>` detail element carrying the
+  declaration and `geo_status` token, so a consumer can tell declared-no-
+  vertical from unknown-vertical; the ambiguous no-token case is
+  byte-identical to before; the 2-D-with-`alt_m` contradiction refuses at
+  the adapter boundary as it already did in SAPIENT. (3) The gateway never
+  emits a diagnostic its own outgoing validation refuses:
+  `build_violation_event` derives TASK_ACK reason-code legality from the
+  loaded policy, so a PROFILE_MISMATCH on a COMMAND_EVENT now reaches the
+  wire as a schema-valid SYSTEM_EVENT carrying the true reason code and the
+  rejected command's real `original_event_id`, instead of a generic
+  SCHEMA_INVALID pointing at an internal never-transmitted UUID. The class
+  is closed for every non-TASK_ACK-legal code at every call site: the
+  attack pass caught the main-loop rebuild site still omitting the policy,
+  and an AST call-site enumeration test now pins that no
+  `build_violation_event()` call can be written without `policy=` or an
+  explicit `force_schema_violation=True`, alongside the sweep test over
+  every stampable reason code. (4)
+  Docs: the README Integration Notes section describes this release instead
+  of the previous one, the release-focus bullet names the release's one
+  breaking change, `release/README.md` and `RELEASE_CHECKLIST.md` point
+  checksum verifiers of pre-v1.1.20 tags at the errata doc, the README
+  quick-reference `validate.py` command matches its example file's profile,
+  and the ts-plausibility rationale cites contract 3.1 instead of the
+  unrelated 5.7. The v1.1.19 Integration Notes are archived verbatim below
+  instead of repeating the v1.1.17 loss.
 - 2026-08-03 — **Phase 4: the documentation describes the stack the push
   built.** The README's Current Release section no longer attributes the
   working tree's governed delta to the published v1.1.19 tag: it states
@@ -591,6 +639,35 @@
   scoring row in the playbook, which read "validated; the rate is falling",
   is corrected in place — the rate was not falling, the class was being
   counted on one surface only.
+
+### v1.1.19 Integration Notes, archived verbatim from the README at the v1.1.20 cut
+
+The v1.1.18 cut overwrote the v1.1.17 Integration Notes without archiving
+them, a recorded loss. This archives the v1.1.19 section instead of
+repeating that.
+
+- **Nothing previously valid becomes invalid.** v1.0 and v1.1.0 producers
+  and consumers need no change. No schema, policy data, or event-vocabulary
+  changed in this release.
+- **Reading the governed policy without a YAML parser:**
+  `export/policy/*.json` is a generated, verbatim JSON projection of
+  `policy/*.yaml`, with the same names and the same data. It ships in the
+  release bundles and every file is hashed in the release manifest, so you can
+  verify what you fetched. Regenerate with `python tools/export_policy_json.py`;
+  verify with `--check`.
+- **If you hand-maintain a copy of the governed vocabularies**, consume this
+  instead and regenerate on each version advance, rather than re-verifying an
+  alignment by hand. `policy/*.yaml` stays the source of truth: editing the
+  JSON changes nothing and fails `--check`.
+- **Record correction for v1.1.17 and v1.1.18.** Both published trees carry a
+  README "Release focus" bullet held over from v1.1.16 that asserts *"No
+  schema, policy, or event-vocabulary changes"*, which is false for both. Each
+  tag's own `release/RELEASE_NOTES_v<version>.md` is accurate. The release
+  notes, not the README, are the record of what a cut changed. Published
+  checksums are immutable and were not rewritten; full errata in
+  [`CHANGELOG.md`](CHANGELOG.md).
+- `tools/check_compat.py` gains the `v1.1.19` target; current-facing docs
+  re-baseline to the v1.1.19 release manifest.
 
 ## [1.1.18] - 2026-07-27
 

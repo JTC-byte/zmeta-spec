@@ -23,7 +23,7 @@
     {
       "export": "export/policy/profile-precision.json",
       "source": "policy/profile-precision.yaml",
-      "source_sha256": "sha256:e5c5544e9489ad27219a52de3bb4cab5ae71f3a216d2ce5af78c17b655b1d5cb"
+      "source_sha256": "sha256:0b43b16588680449b88fd849ae34718da399aa084fe890c2971f52a9f3d3532a"
     },
     {
       "export": "export/policy/profiles.json",

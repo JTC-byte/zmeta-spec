@@ -119,6 +119,8 @@ entries:
       - adapters/ingress/adsb/test_adsb_ingress.py
       - adapters/egress/cot/test_zmeta_to_cot.py
       - gateway/tests/test_schema_version_discrimination.py
+      - conformance/profile-precision/must-pass.jsonl
+      - conformance/profile-precision/must-fail.jsonl
     migration_notes:
       - The v1.0-era adapter convention semi_major_m/semi_minor_m inside free-form quality objects is retired. The ADS-B reference writer emits the formal spellings under payload.geo.error_ellipse_m with conditional zmeta_version 1.1.0 stamping as of 2026-08-03. Readers never default absent members to zero.
     references:
@@ -150,6 +152,8 @@ entries:
       - A consumer that reads a 2-D position as a full fix may act on a vertical that was never claimed. The declaration and the VERTICAL_UNAVAILABLE token must survive projection together; dropping either turns an honest horizontal-only fix into an apparent full fix.
     fixture_references:
       - gateway/tests/test_a1_02_dimensionality.py
+      - conformance/profile-precision/must-pass.jsonl
+      - conformance/profile-precision/must-fail.jsonl
     references:
       - schema/zmeta-event-1.1.0.schema.json
       - spec/semantics-contract.md

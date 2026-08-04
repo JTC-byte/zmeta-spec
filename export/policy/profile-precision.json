@@ -13,6 +13,21 @@
         "payload.source_summary"
       ]
     },
+    "geo_dimensionality_v1_1_0": {
+      "behavior": "preserve_exactly",
+      "paths": [
+        "payload.geo.dimensionality",
+        "payload.quality.geo_status"
+      ],
+      "zmeta_version_scope": "1.1.0"
+    },
+    "geo_uncertainty_v1_1_0": {
+      "behavior": "preserve_or_compact",
+      "paths": [
+        "payload.geo.error_ellipse_m"
+      ],
+      "zmeta_version_scope": "1.1.0"
+    },
     "geospatial": {
       "behavior": "deterministic_conservative_quantization",
       "paths": [
@@ -85,13 +100,18 @@
     "payload.modality",
     "payload.inference_type",
     "payload.task_type",
-    "payload.system_type"
+    "payload.system_type",
+    "payload.geo.dimensionality",
+    "payload.quality.geo_status"
   ],
   "notes": [
     "Reference defaults require mission review before operational use.",
     "Precision policy is profile/export policy and does not change JSON Schema.",
     "Compact CBOR and protobuf remain encoding projections only.",
-    "Source-limited precision must be declared in fixtures or mission policy; the validator must not invent precision."
+    "Source-limited precision must be declared in fixtures or mission policy; the validator must not invent precision.",
+    {
+      "The v1.1.0 GEO_DIMENSIONALITY and ERROR_ELLIPSE_M surfaces (see v1_1_0_extension_fields) close TV-02": "the registry adopted both fields with declared projection behavior before this policy or its validator knew the fields existed, so profile projection could have silently laundered a 2-D-only position into an apparent full fix."
+    }
   ],
   "packet_budget_guidance": {
     "optimization_order": [
@@ -145,6 +165,18 @@
         "rounding_mode": "nearest_grid"
       },
       "payload.geo.alt_m": {
+        "quantization_step": 5,
+        "rounding_mode": "nearest_grid"
+      },
+      "payload.geo.error_ellipse_m.orientation_deg": {
+        "quantization_step": 5,
+        "rounding_mode": "nearest_grid"
+      },
+      "payload.geo.error_ellipse_m.semi_major": {
+        "quantization_step": 5,
+        "rounding_mode": "nearest_grid"
+      },
+      "payload.geo.error_ellipse_m.semi_minor": {
         "quantization_step": 5,
         "rounding_mode": "nearest_grid"
       },
@@ -227,6 +259,18 @@
         "quantization_step": 1,
         "rounding_mode": "nearest_grid"
       },
+      "payload.geo.error_ellipse_m.orientation_deg": {
+        "quantization_step": 1,
+        "rounding_mode": "nearest_grid"
+      },
+      "payload.geo.error_ellipse_m.semi_major": {
+        "quantization_step": 1,
+        "rounding_mode": "nearest_grid"
+      },
+      "payload.geo.error_ellipse_m.semi_minor": {
+        "quantization_step": 1,
+        "rounding_mode": "nearest_grid"
+      },
       "payload.geo.lat": {
         "max_decimal_places": 5,
         "rounding_mode": "truncate_decimals",
@@ -263,6 +307,9 @@
       }
     }
   },
+  "preserve_or_compact_paths": [
+    "payload.geo.error_ellipse_m"
+  ],
   "profiles": {
     "H": {
       "default_behavior": "preserve_source_precision",
@@ -311,7 +358,10 @@
     "payload.metrics.est_error_ms",
     "payload.features.center_freq_hz",
     "payload.features.bandwidth_hz",
-    "payload.features.power_dbm"
+    "payload.features.power_dbm",
+    "payload.geo.error_ellipse_m.semi_major",
+    "payload.geo.error_ellipse_m.semi_minor",
+    "payload.geo.error_ellipse_m.orientation_deg"
   ],
   "utility_floors": {
     "H": {
@@ -331,7 +381,26 @@
     },
     "source_limited_precision_requires_fixture_ack": true
   },
+  "v1_1_0_extension_fields": {
+    "description": "Enforcement surfaces for the GEO_DIMENSIONALITY and ERROR_ELLIPSE_M extension registry entries (spec/extension-registry.yaml). These paths exist only on the v1.1.0 branch; a v1.0-stamped event never carries them, so the rules below are inert for v1.0 events and the locked v1.0 kernel is untouched.\n",
+    "dimensionality_and_geo_status": {
+      "enforcement": "Listed in immutable_paths above. Stripping either field during profile projection raises PRECISION_POLICY_IMMUTABLE_CHANGED, because dropping the dimensionality declaration or the VERTICAL_UNAVAILABLE token turns an honest horizontal-only fix into an apparent full fix.",
+      "paths": [
+        "payload.geo.dimensionality",
+        "payload.quality.geo_status"
+      ],
+      "profile_projection_behavior": "preserve"
+    },
+    "error_ellipse_m": {
+      "enforcement": "Listed in preserve_or_compact_paths above, so the container must not be silently stripped once a source carries it. Its numeric members (semi_major, semi_minor, orientation_deg) are listed in precision_ceilings for profiles M and L, so they may be conservatively quantized like other geospatial fields but never given more precision than the source declared.",
+      "paths": [
+        "payload.geo.error_ellipse_m"
+      ],
+      "profile_projection_behavior": "preserve_or_compact"
+    }
+  },
   "zmeta_versions": [
-    "1.0"
+    "1.0",
+    "1.1.0"
   ]
 }

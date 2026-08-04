@@ -1028,3 +1028,133 @@ def test_non_string_team_config_does_not_crash_the_projection():
     assert group is not None
     assert group.attrib["name"] == "7"
     assert group.attrib["role"] == "True"
+
+
+# TV-04 (A1-02): the CoT egress was scoped out of the declared-2D sweep that
+# already covers JREAP/KLV. A genuinely-declared-2D geo (dimensionality
+# "2D", quality.geo_status VERTICAL_UNAVAILABLE, no alt_m) and the historical
+# ambiguous absent-altitude shape (no dimensionality token, no alt_m) both
+# rendered hae="9999999.0" with nothing else on the wire to tell them apart -
+# indistinguishable to a TAK operator from a failed altitude sensor. CoT
+# point@hae is a required numeric attribute (unlike JREAP's hae_m, it has no
+# null to reach for), so the sentinel stays; the fix is the honest channel
+# alongside it, per the repo's structure-is-authoritative rule.
+
+
+def _state_event_with_geo(geo, quality=None):
+    payload = {
+        "track_id": "track-2d",
+        "geo": geo,
+        "valid_for_ms": 5000,
+    }
+    if quality is not None:
+        payload["quality"] = quality
+    return {
+        "event": {
+            "event_type": "STATE_EVENT",
+            "event_subtype": "TRACK_STATE",
+            "ts": "2026-08-01T12:00:00Z",
+        },
+        "payload": payload,
+    }
+
+
+def test_declared_2d_is_distinguishable_from_the_ambiguous_absent_alt_case():
+    """The headline red: before the fix both cases render byte-identical
+    <point hae="9999999.0"> with no other trace of the distinction anywhere
+    in the document, so a TAK operator cannot tell a declared horizontal-only
+    fix from a sensor that simply failed to report altitude."""
+    declared_2d = zmeta_to_cot_module.zmeta_to_cot(
+        _state_event_with_geo(
+            {"lat": 33.7405, "lon": -118.2712, "dimensionality": "2D"},
+            quality={"geo_status": "VERTICAL_UNAVAILABLE"},
+        ),
+        cot_config=_TEST_CONFIG,
+    )
+    ambiguous = zmeta_to_cot_module.zmeta_to_cot(
+        _state_event_with_geo({"lat": 33.7405, "lon": -118.2712}),
+        cot_config=_TEST_CONFIG,
+    )
+    assert declared_2d is not None
+    assert ambiguous is not None
+    assert declared_2d != ambiguous, (
+        "declared-2D and ambiguous-absent-alt events must not render "
+        "byte-identical CoT XML"
+    )
+
+    declared_point = ET.fromstring(declared_2d).find("point")
+    ambiguous_point = ET.fromstring(ambiguous).find("point")
+    # Both still carry the required numeric hae sentinel - CoT wire
+    # compatibility for the 2-D case is non-negotiable.
+    assert declared_point.attrib["hae"] == "9999999.0"
+    assert ambiguous_point.attrib["hae"] == "9999999.0"
+
+    marker = ET.fromstring(declared_2d).find(".//geo_dimensionality")
+    assert marker is not None, "declared-2D geo must carry an honest detail marker"
+    assert marker.attrib["value"] == "2D"
+    assert marker.attrib["geo_status"] == "VERTICAL_UNAVAILABLE"
+
+    assert ET.fromstring(ambiguous).find(".//geo_dimensionality") is None
+
+
+def test_ambiguous_absent_altitude_case_stays_byte_compatible():
+    """No dimensionality token, no alt_m: the historical shape's rendered
+    XML must not change at all - no new marker, same sentinel."""
+    event = {
+        "event": {
+            "event_type": "STATE_EVENT",
+            "ts": "2025-01-17T14:30:05Z",
+        },
+        "payload": {
+            "track_id": "track-008",
+            "geo": {"lat": 34.0, "lon": -118.0},
+            "valid_for_ms": 5000,
+        },
+    }
+    xml_text = zmeta_to_cot_module.zmeta_to_cot(event, cot_config=_TEST_CONFIG)
+    assert xml_text is not None
+    assert "geo_dimensionality" not in xml_text
+    root = ET.fromstring(xml_text)
+    assert root.find("point").attrib["hae"] == "9999999.0"
+
+
+def test_declared_2d_without_geo_status_omits_the_status_attribute():
+    """geo_status is asserted only when the event itself carries one - never
+    fabricated onto the marker."""
+    xml_text = zmeta_to_cot_module.zmeta_to_cot(
+        _state_event_with_geo({"lat": 33.7, "lon": -118.2, "dimensionality": "2D"}),
+        cot_config=_TEST_CONFIG,
+    )
+    assert xml_text is not None
+    marker = ET.fromstring(xml_text).find(".//geo_dimensionality")
+    assert marker is not None
+    assert marker.attrib["value"] == "2D"
+    assert "geo_status" not in marker.attrib
+
+
+def test_declared_2d_with_alt_m_is_the_a1_02_contradiction_and_refuses():
+    """Schema-valid input cannot carry both, but the adapter must not
+    silently trust that - mirrors the JREAP sibling's refusal for the same
+    contradiction."""
+    xml_text = zmeta_to_cot_module.zmeta_to_cot(
+        _state_event_with_geo(
+            {"lat": 33.7, "lon": -118.2, "dimensionality": "2D", "alt_m": 120.5}
+        ),
+        cot_config=_TEST_CONFIG,
+    )
+    assert xml_text is None
+
+
+def test_3d_geo_is_unaffected_by_the_2d_marker_logic():
+    """A real alt_m with no dimensionality token (or an explicit "3D" token)
+    renders exactly as before: real hae, no marker."""
+    for geo in (
+        {"lat": 33.7, "lon": -118.2, "alt_m": 1500.0},
+        {"lat": 33.7, "lon": -118.2, "alt_m": 1500.0, "dimensionality": "3D"},
+    ):
+        xml_text = zmeta_to_cot_module.zmeta_to_cot(
+            _state_event_with_geo(geo), cot_config=_TEST_CONFIG
+        )
+        assert xml_text is not None
+        assert "geo_dimensionality" not in xml_text
+        assert ET.fromstring(xml_text).find("point").attrib["hae"] == "1500.0"

@@ -4,7 +4,7 @@ schema/zmeta-event-1.1.0.schema.json now rejects a structurally corrupted
 calendar shape (test_x1_01_ts_structural_shape.py), but a structurally VALID
 ts that is simply wrong by years is not a schema question -- no pattern can
 know what "now" is, and the locked v1.0 schema cannot gain a check like this
-either way (semantics-contract 5.7: cross-event plausibility is
+either way (semantics-contract 3.1, "Actual time-source accuracy": cross-event plausibility is
 policy/runtime enforcement).
 
 `_check_ts_plausibility` closes that gap at the gateway, on ANY

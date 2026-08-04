@@ -18,6 +18,14 @@ Supports:
     when the config explicitly asserts geopointsrc/altsrc - the event model
     carries no geo-source field, so source pedigree is never defaulted to
     "GPS" on positions that may be RF-triangulated fusion products
+  - A declared-2D geo.dimensionality (doctrine A1-02) still emits point@hae
+    as the CoT unknown-value convention (CoT requires a numeric hae), but a
+    <geo_dimensionality> detail marker carries the declared "2D" token (and
+    quality.geo_status when the event asserts one), so a consumer reading
+    <detail> can tell a genuine horizontal-only fix apart from the
+    historical ambiguous absent-altitude case, which keeps emitting no
+    marker at all. A geo that declares "2D" yet still carries alt_m is the
+    A1-02 coherence contradiction and refuses (see _projected_hae)
   - ATAK team coloring (__group element) for friendly platforms
   - Hostile emitter callsign fallback logic
   - Persistent labels for hostile tracks
@@ -208,6 +216,41 @@ def _has_non_finite(value):
     return False
 
 
+def _projected_hae(geo):
+    """(hae, ok, is_2d): the wire point@hae value, a refusal signal, and
+    whether the geo declared "2D".
+
+    CoT `point@hae` is a required NUMERIC attribute -- unlike ce/le it has no
+    documented way to say "not applicable", only "unknown" (the same
+    9999999.0 convention). A `geo.dimensionality: "2D"` geo (doctrine A1-02;
+    schema/zmeta-event-1.1.0.schema.json $defs/geo) is a real, exact
+    horizontal fix with no geometric vertical to assert, ever -- every AIS
+    vessel, a barometric-only aircraft -- which is a different claim than
+    "vertical unmeasured", yet both reach this function wanting the same
+    numeric sentinel on the wire, because refusing the TAK event outright
+    would defeat the vessel-reaches-the-map purpose A1-02 was adjudicated
+    for. The sentinel alone cannot carry that distinction, so the caller
+    pairs it with a <geo_dimensionality> detail marker for a declared "2D"
+    geo (mirrors the JREAP egress sibling's `_projected_altitude`, which has
+    an honest `hae_m: null` to reach for and does not need the marker).
+
+    `alt_m` absent and no "2D" token is the historical ambiguous shape
+    (unmeasured vs. nonexistent vertical); it renders the sentinel with no
+    marker, unchanged from before this function existed. A "2D" token that
+    also carries `alt_m` is the same A1-02 contradiction the JREAP sibling
+    refuses: schema-valid input cannot carry both, but the adapter must not
+    silently trust that, so `ok` is False rather than picking one claim to
+    believe.
+    """
+    alt_m = geo.get("alt_m")
+    is_2d = geo.get("dimensionality") == "2D"
+    if is_2d and alt_m is not None:
+        return (None, False, is_2d)
+    if alt_m is None:
+        return (COT_UNKNOWN_ACCURACY, True, is_2d)
+    return (alt_m, True, is_2d)
+
+
 def zmeta_to_cot(event, cot_config=None):
     """Convert a ZMeta STATE_EVENT into CoT XML.
 
@@ -247,8 +290,9 @@ def zmeta_to_cot(event, cot_config=None):
         event type, prohibited raw payload fields, missing geo/track_id,
         missing or unparseable event.ts outside wall-clock mode - see
         _parse_utc, any non-finite (NaN/inf) number that would become a CoT
-        attribute, or a validity window whose stale timestamp is not
-        representable - see _stale_time).
+        attribute, a validity window whose stale timestamp is not
+        representable - see _stale_time, or a geo.dimensionality "2D"
+        declaration paired with a present alt_m - see _projected_hae).
     """
     if event.get("event", {}).get("event_type") != "STATE_EVENT":
         return None
@@ -341,9 +385,15 @@ def zmeta_to_cot(event, cot_config=None):
     lon = geo["lon"]
     # Absent altitude is emitted as CoT's unknown-value convention (the same
     # treatment ce/le get below), never rendered as a concrete 0 m claim.
-    # A legitimate alt_m of 0.0 passes through unchanged.
-    alt_m = geo.get("alt_m")
-    hae = COT_UNKNOWN_ACCURACY if alt_m is None else alt_m
+    # A legitimate alt_m of 0.0 passes through unchanged. A declared "2D"
+    # geo.dimensionality (doctrine A1-02) also renders the sentinel here -
+    # CoT point@hae is a required numeric attribute with no "not applicable"
+    # convention - but is told apart from the ambiguous absent-altitude case
+    # by the <geo_dimensionality> detail marker built below (see
+    # _projected_hae). A "2D" token paired with a present alt_m refuses.
+    hae, hae_ok, geo_is_2d = _projected_hae(geo)
+    if not hae_ok:
+        return None
 
     # Circular error resolution:
     # 1. geo.error_ellipse_m semi_major — the only schema-valid uncertainty
@@ -502,6 +552,25 @@ def zmeta_to_cot(event, cot_config=None):
             '/Torch Drones/quadcopter.png" />'
         )
 
+    # <geo_dimensionality> is the honest channel alongside the point@hae
+    # sentinel above (doctrine A1-02). point@hae cannot itself distinguish
+    # a declared-2D geo from the ambiguous absent-altitude case - both are
+    # the same required numeric attribute - so a genuinely 2-D geo gets this
+    # structured detail marker naming the declared dimensionality; the
+    # ambiguous case (no dimensionality token, no alt_m) keeps emitting no
+    # marker at all, exactly as before this marker existed. geo_status rides
+    # along only when the event itself asserts one (payload.quality is
+    # unstructured on TrackStatePayload; a member the event never asserted
+    # is an omitted attribute here too, never a fabricated token).
+    geo_dimensionality_xml = ""
+    if geo_is_2d:
+        quality = payload.get("quality")
+        geo_status = quality.get("geo_status") if isinstance(quality, dict) else None
+        geo_status_attr = (
+            f' geo_status="{_esc(str(geo_status))}"' if geo_status is not None else ""
+        )
+        geo_dimensionality_xml = f'\n    <geo_dimensionality value="2D"{geo_status_attr} />'
+
     # CoT `how` is a position-derivation pedigree claim (m-g = machine/GPS
     # derived). Same rule as geopointsrc/altsrc above: the event model
     # carries no geo-source field, so `how` is emitted only when the
@@ -515,7 +584,8 @@ def zmeta_to_cot(event, cot_config=None):
         f'  <point lat="{lat}" lon="{lon}" hae="{hae}" le="{le}" ce="{ce}" />\n'
         f"  <detail>\n"
         f'    <contact callsign="{_esc(callsign)}" />'
-        f"{labels_xml}{remarks_xml}{track_xml}{precision_xml}{group_xml}{usericon_xml}\n"
+        f"{labels_xml}{remarks_xml}{track_xml}{precision_xml}{group_xml}"
+        f"{usericon_xml}{geo_dimensionality_xml}\n"
         f"  </detail>\n"
         f"</event>"
     )

@@ -423,7 +423,7 @@ def check_cot_projection(instance, line, issues):
             "CoT projection will skip STATE_EVENT without payload.track_id",
         )
     geo = payload.get("geo")
-    if not isinstance(geo, dict) or not {"lat", "lon", "alt_m"}.issubset(geo):
+    if not isinstance(geo, dict) or geo.get("lat") is None or geo.get("lon") is None:
         add_issue(
             issues,
             "cot_projection",
@@ -431,7 +431,20 @@ def check_cot_projection(instance, line, issues):
             line,
             event_id(instance),
             "$.payload.geo",
-            "CoT projection will skip STATE_EVENT without payload.geo lat/lon/alt_m",
+            "CoT projection will skip STATE_EVENT without payload.geo lat/lon",
+        )
+    elif geo.get("alt_m") is None and geo.get("dimensionality") != "2D":
+        add_issue(
+            issues,
+            "cot_projection",
+            "warn",
+            line,
+            event_id(instance),
+            "$.payload.geo",
+            "CoT projection renders the unknown-altitude sentinel (9999999.0) "
+            'for a STATE_EVENT with no alt_m and no dimensionality token; '
+            'declare dimensionality "2D" if the vertical genuinely does not '
+            "exist, so the projection carries the geo_dimensionality marker",
         )
 
 

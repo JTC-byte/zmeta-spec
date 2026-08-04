@@ -200,8 +200,12 @@ nodes.
   `docs/release_checksum_errata.md` records the 16 wrong checksum entries
   the old behavior produced across 15 published tags, with published files
   left as published. The ADS-B NACp ellipse moves to
-  `payload.geo.error_ellipse_m` with formal member spellings.
-  Governed artifacts changed in this release, relative to zmeta-v1.1.19: conformance/adapter-harness/must-pass.jsonl, conformance/bad-events/must-fail.jsonl, policy/producer-authority.yaml, schema/zmeta-event-1.1.0.schema.json, spec/compact-binary-mapping.md, spec/extension-registry.yaml, spec/semantics-contract.md.
+  `payload.geo.error_ellipse_m` with formal member spellings. This release's
+  one breaking change: `policy/producer-authority.yaml` drops the
+  `state-projector-*` wildcard producer authorization, so a deployment that
+  relied on it to authorize a state projector must rename or add a named
+  producer stanza.
+  Governed artifacts changed in this release, relative to zmeta-v1.1.19: conformance/adapter-harness/must-pass.jsonl, conformance/bad-events/must-fail.jsonl, conformance/profile-precision/must-fail.jsonl, conformance/profile-precision/must-pass.jsonl, policy/producer-authority.yaml, policy/profile-precision.yaml, schema/zmeta-event-1.1.0.schema.json, spec/compact-binary-mapping.md, spec/extension-registry.yaml, spec/semantics-contract.md.
   The locked v1.0 kernel is unchanged. The contract changes are the lock
   provenance note and the v1.1 lane's A1-02 sections; the v1.1.0 schema
   gains the declared-dimensionality form, the VERTICAL_UNAVAILABLE token
@@ -213,36 +217,64 @@ nodes.
 - Experimental extension: `schema/zmeta-event-1.1.0.schema.json` is provided for proposed
   compatibility testing only; v1.1.0-only fields are not part of the locked v1.0 contract.
 
-## v1.1.19 Integration Notes
+## v1.1.20 Integration Notes
 
-- **Nothing previously valid becomes invalid.** v1.0 and v1.1.0 producers
-  and consumers need no change. No schema, policy data, or event-vocabulary
-  changed in this release.
-- **Reading the governed policy without a YAML parser:**
-  `export/policy/*.json` is a generated, verbatim JSON projection of
-  `policy/*.yaml`, with the same names and the same data. It ships in the
-  release bundles and every file is hashed in the release manifest, so you can
-  verify what you fetched. Regenerate with `python tools/export_policy_json.py`;
-  verify with `--check`.
-- **If you hand-maintain a copy of the governed vocabularies**, consume this
-  instead and regenerate on each version advance, rather than re-verifying an
-  alignment by hand. `policy/*.yaml` stays the source of truth: editing the
-  JSON changes nothing and fails `--check`.
-- **Record correction for v1.1.17 and v1.1.18.** Both published trees carry a
-  README "Release focus" bullet held over from v1.1.16 that asserts *"No
-  schema, policy, or event-vocabulary changes"*, which is false for both. Each
-  tag's own `release/RELEASE_NOTES_v<version>.md` is accurate. The release
-  notes, not the README, are the record of what a cut changed. Published
-  checksums are immutable and were not rewritten; full errata in
-  [`CHANGELOG.md`](CHANGELOG.md).
-- `tools/check_compat.py` gains the `v1.1.19` target; current-facing docs
-  re-baseline to the v1.1.19 release manifest.
+- **One breaking change.** `policy/producer-authority.yaml` drops the
+  `state-projector-*` wildcard producer authorization. It let any producer
+  matching the glob emit `STATE_EVENT`s with no external-promotion evidence
+  and no named identity, and no reference component used it. A deployment
+  that authorized a state projector under the wildcard must rename its
+  producer or add a named producer stanza, the same shape
+  `configs/policy-variants/producer-authority.strict.yaml` already uses.
+- **The MAVLink command translator fails closed on risk-flagged commands by
+  default.** A `COMMAND_EVENT` carrying gateway risk-adjudication records is
+  refused rather than translated into a clean intent. The explicit
+  `allow_flagged` opt-in translates it, with the records stamped into the
+  MissionIntent, so a soft-flagged command can no longer become a clean one
+  by default.
+- **v1.1.0 gains opt-in geo fields; absent-dimensionality v1.0 events are
+  unaffected.** A v1.1.0 event may declare `dimensionality: "2D"` with
+  `quality.geo_status: VERTICAL_UNAVAILABLE` to say a horizontal-only
+  position honestly, and may carry `payload.geo.error_ellipse_m` with the
+  formal member spellings. Both stamp a conditional `zmeta_version: "1.1.0"`
+  only on the events that carry them. A v1.0 event with no declared
+  dimensionality validates and behaves exactly as before this release.
+- **A new warn-only gateway timestamp window.** The gateway counts an
+  `event.ts` more than `ts_plausibility_horizon_ms` (default 24 hours, 0
+  disables) before or after wall-clock now as `EVENT_TS_IMPLAUSIBLE`, with
+  direction, delta, and horizon in the warning details. It never rejects an
+  event and never escalates under `strict_validation`, the same as the
+  existing `warn_datagram_bytes` observability warning. The v1.1.0
+  `utcDateTime` pattern separately enforces structural calendar shape (year
+  1970-2999, month 01-12, and so on), which is a shape gate, not a calendar
+  or plausibility check.
+- **Formerly-accepted shapes now refuse.** AIS message 27's not-available
+  sentinels (speed 63, course 511) are refused instead of carried as motion
+  data; an AIS speed or course value outside the field's real range (a
+  negative speed, a course over 360) is refused as corruption; an AIS
+  `rxtime` that does not parse as fourteen calendar digits, or an epoch
+  `timestamp` before 2000-01-01 or outside datetime range, refuses the
+  message instead of borrowing another clock. JREAP now distinguishes a
+  declared 2-D geo from the ambiguous no-token shape, which refuses instead
+  of being exported as an assumed dimensionality. The v1.1.0 schema's
+  coherence rules refuse a `2D` declaration paired with `alt_m` and refuse
+  `geo_status: UNAVAILABLE` beside a present geo; the SAPIENT and CoT
+  egress adapters refuse the same 2-D-with-`alt_m` contradiction at their
+  own boundaries instead of exporting a laundered `z`.
+- **Published checksums for pre-v1.1.20 tags are known wrong for text
+  assets, and were not rewritten.** `docs/release_checksum_errata.md`
+  records the 16 wrong entries across 15 published tags and the corrected
+  values. The release signer now normalizes line endings before hashing
+  text assets, so v1.1.20 onward is correct at source.
+- `tools/check_compat.py` gains the `v1.1.20` target; current-facing docs
+  re-baseline to the v1.1.20 release manifest.
 
-Integration notes for earlier releases (v1.1.11 through v1.1.18, except
+Integration notes for earlier releases (v1.1.11 through v1.1.19, except
 v1.1.17, whose section was overwritten by the v1.1.18 cut and never
 archived) are in
 [`CHANGELOG.md`](CHANGELOG.md), alongside the full change history for
-each version.
+each version. The v1.1.19 section is archived verbatim under CHANGELOG's
+[1.1.19] entry.
 
 ## Repository Structure
 - `spec/` Core specification and normative text.
@@ -311,7 +343,7 @@ python tools/udp_receiver.py
 python tools/udp_sender.py --file examples/zmeta-command-examples.jsonl
 python tools/replay.py --file examples/zmeta-command-examples.jsonl --delay-ms 200
 python tools/check_compat.py legacy-events.jsonl --target v1.1.20
-python tools/validate.py --file examples/zmeta-command-examples.jsonl --profile H
+python tools/validate.py --file examples/zmeta-command-examples.jsonl --profile L
 python tools/check_adapter.py --events my-adapter-output.jsonl --fixtures my-fixtures.jsonl
 python tools/validate_conformance.py --strict
 python tools/validate_release_manifest.py --manifest release/zmeta-release-manifest.yaml

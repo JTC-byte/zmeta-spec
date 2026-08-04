@@ -12,7 +12,7 @@ The fix lives at the ADJUDICATED layer: schema/zmeta-event-1.1.0.schema.json
 optional fractional seconds, trailing Z). It is deliberately NOT a full
 calendar validator -- Feb 30 still passes, because a regex cannot know which
 months have 30 vs 31 days. Cross-field calendar and cross-event plausibility
-is policy/runtime enforcement (contract 5.7); see
+is policy/runtime enforcement (contract 3.1, "Actual time-source accuracy"); see
 test_ts_plausibility_window.py for that half.
 
 The locked v1.0 schema is out of scope entirely and MUST NOT change: moving

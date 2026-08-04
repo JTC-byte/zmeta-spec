@@ -192,7 +192,8 @@ calendar shape (year 1970-2999, month 01-12, day 01-31, hour 00-23, minute/secon
 1.1.0 branch. `zmeta-event-1.0.schema.json` is locked and does not gain this
 pattern, and neither schema can know what "now" is. A structurally valid `ts`
 that is simply wrong by years is a runtime plausibility question that no
-schema pattern can answer (semantics-contract 5.7).
+schema pattern can answer (semantics-contract 3.1, "Actual time-source
+accuracy").
 
 The gateway closes that gap at runtime, on every `zmeta_version`. Set
 `ts_plausibility_horizon_ms` (default 86400000, 24 hours; 0 disables) to warn

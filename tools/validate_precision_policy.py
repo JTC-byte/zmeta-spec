@@ -90,6 +90,14 @@ REQUIRED_BY_TYPE = {
         "payload.geo",
         "payload.geo.lat",
         "payload.geo.lon",
+        # alt_m needs no A1-02 dimensionality branch HERE: this validator's
+        # required-paths check fires only when the path was present in the
+        # SOURCE and removed by projection (_check_required_removed), so a
+        # declared-2D source, which never carries alt_m, cannot trip it.
+        # The projected-presence requirement that DOES need the branch
+        # lives in tools/validate_projection.py, which compare_precision
+        # delegates to. Proven by the 2026-08-03 attack pass: a conditional
+        # added here was inert either way it resolved.
         "payload.geo.alt_m",
         "payload.valid_for_ms",
         "confidence",
@@ -389,6 +397,31 @@ def _check_immutable(source: dict[str, Any], projected: dict[str, Any], policy: 
                     "immutable semantic path changed during precision projection",
                     path=str(path),
                     details={"source": source_value, "projected": projected_value},
+                )
+            )
+            break
+    return out
+
+
+def _check_preserve_or_compact(
+    source: dict[str, Any], projected: dict[str, Any], policy: dict[str, Any]
+) -> list[dict[str, Any]]:
+    # TV-02: ERROR_ELLIPSE_M is adopted preserve_or_compact (spec/extension-
+    # registry.yaml), so a projection may conservatively quantize its
+    # members but must never make the container itself disappear once a
+    # source carries it. Numeric compaction is checked separately by the
+    # precision_ceilings machinery below; this only guards presence.
+    out: list[dict[str, Any]] = []
+    for path in policy.get("preserve_or_compact_paths", []):
+        path = str(path)
+        if _get_path(source, path) is MISSING:
+            continue
+        if _get_path(projected, path) is MISSING:
+            out.append(
+                _issue(
+                    "PRECISION_POLICY_REQUIRED_FIELD_REMOVED",
+                    "preserve-or-compact field was stripped during precision projection",
+                    path=path,
                 )
             )
             break
@@ -805,6 +838,7 @@ def compare_precision(
         _check_packet_budget(fixture, precision_policy),
         _check_required_removed(source, projected_for_checks),
         _check_immutable(source, projected_for_checks, precision_policy),
+        _check_preserve_or_compact(source, projected_for_checks, precision_policy),
         _check_hidden_defaults(source, projected_for_checks),
         _check_confidence(source, projected_for_checks, rules),
         _check_ttl(source, projected_for_checks, rules),

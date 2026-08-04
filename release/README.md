@@ -63,6 +63,12 @@ instead of detached PGP, in the release notes or another stable channel.
 `SHA256SUMS_<version>.txt` verifies artifact integrity. Detached signatures
 authenticate who produced the manifest/assets.
 
+Pre-v1.1.20 tags carry known-wrong published checksums for text assets: the
+signer hashed raw on-disk bytes with no line-ending normalization, so a clean
+LF checkout of an unchanged file can still fail its published checksum. See
+`docs/release_checksum_errata.md` for the affected tags and corrected values.
+Published files were never rewritten.
+
 Recommended GitHub release verification text:
 
 ```text

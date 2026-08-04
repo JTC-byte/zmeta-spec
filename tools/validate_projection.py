@@ -141,7 +141,6 @@ REQUIRED_BY_EVENT_TYPE = {
         "payload.geo",
         "payload.geo.lat",
         "payload.geo.lon",
-        "payload.geo.alt_m",
         "payload.valid_for_ms",
     ),
     "COMMAND_EVENT": (
@@ -577,6 +576,14 @@ def _required_paths_for_event(event: dict[str, Any]) -> list[str]:
     subtype = _event_subtype(event)
     paths = list(REQUIRED_ALWAYS)
     paths.extend(REQUIRED_BY_EVENT_TYPE.get(event_type or "", ()))
+    if event_type == "STATE_EVENT" and _get_path(event, "payload.geo.dimensionality") != "2D":
+        # A1-02 (adjudicated 2026-08-02): a declared 2-D position lawfully
+        # carries no alt_m, so alt_m is only required when dimensionality
+        # is absent or "3D". Absent dimensionality keeps today's v1.0
+        # behavior: alt_m stays required for every event written before
+        # this field existed. Stripping the declaration re-imposes the
+        # requirement, so a projector cannot escape it by removing both.
+        paths.append("payload.geo.alt_m")
     if event_type == "COMMAND_EVENT":
         paths.extend(COMMAND_REQUIRED_BY_SUBTYPE.get(subtype or "", ()))
     if event_type == "SYSTEM_EVENT":

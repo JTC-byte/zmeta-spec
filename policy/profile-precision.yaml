@@ -4,6 +4,7 @@ policy_status: reference_conformance_default
 requires_mission_review: true
 zmeta_versions:
   - "1.0"
+  - "1.1.0"
 
 profiles:
   H:
@@ -72,6 +73,17 @@ field_families:
       - payload.class
       - payload.source_summary
     behavior: preserve_or_cataloged_omission
+  geo_dimensionality_v1_1_0:
+    paths:
+      - payload.geo.dimensionality
+      - payload.quality.geo_status
+    behavior: preserve_exactly
+    zmeta_version_scope: "1.1.0"
+  geo_uncertainty_v1_1_0:
+    paths:
+      - payload.geo.error_ellipse_m
+    behavior: preserve_or_compact
+    zmeta_version_scope: "1.1.0"
 
 immutable_paths:
   - zmeta_version
@@ -89,6 +101,8 @@ immutable_paths:
   - payload.inference_type
   - payload.task_type
   - payload.system_type
+  - payload.geo.dimensionality
+  - payload.quality.geo_status
 
 unit_locked_paths:
   - payload.geo.alt_m
@@ -104,6 +118,12 @@ unit_locked_paths:
   - payload.features.center_freq_hz
   - payload.features.bandwidth_hz
   - payload.features.power_dbm
+  - payload.geo.error_ellipse_m.semi_major
+  - payload.geo.error_ellipse_m.semi_minor
+  - payload.geo.error_ellipse_m.orientation_deg
+
+preserve_or_compact_paths:
+  - payload.geo.error_ellipse_m
 
 rounding_modes:
   preserve:
@@ -173,6 +193,15 @@ precision_ceilings:
       quantization_step: 0.1
       rounding_mode: nearest_grid
       max_delta: 0.05
+    payload.geo.error_ellipse_m.semi_major:
+      quantization_step: 1
+      rounding_mode: nearest_grid
+    payload.geo.error_ellipse_m.semi_minor:
+      quantization_step: 1
+      rounding_mode: nearest_grid
+    payload.geo.error_ellipse_m.orientation_deg:
+      quantization_step: 1
+      rounding_mode: nearest_grid
   L:
     payload.geo.lat:
       max_decimal_places: 4
@@ -222,6 +251,15 @@ precision_ceilings:
       utility_floor_decimal_places: 5
       rounding_mode: truncate_decimals
       command_geometry: true
+    payload.geo.error_ellipse_m.semi_major:
+      quantization_step: 5
+      rounding_mode: nearest_grid
+    payload.geo.error_ellipse_m.semi_minor:
+      quantization_step: 5
+      rounding_mode: nearest_grid
+    payload.geo.error_ellipse_m.orientation_deg:
+      quantization_step: 5
+      rounding_mode: nearest_grid
 
 utility_floors:
   source_limited_precision_requires_fixture_ack: true
@@ -267,8 +305,37 @@ packet_budget_guidance:
     - measure_packet_size
     - reject_or_omit_if_budget_still_fails
 
+v1_1_0_extension_fields:
+  description: >
+    Enforcement surfaces for the GEO_DIMENSIONALITY and ERROR_ELLIPSE_M
+    extension registry entries (spec/extension-registry.yaml). These paths
+    exist only on the v1.1.0 branch; a v1.0-stamped event never carries
+    them, so the rules below are inert for v1.0 events and the locked v1.0
+    kernel is untouched.
+  dimensionality_and_geo_status:
+    paths:
+      - payload.geo.dimensionality
+      - payload.quality.geo_status
+    profile_projection_behavior: preserve
+    enforcement: Listed in immutable_paths above. Stripping either field
+      during profile projection raises PRECISION_POLICY_IMMUTABLE_CHANGED,
+      because dropping the dimensionality declaration or the
+      VERTICAL_UNAVAILABLE token turns an honest horizontal-only fix into
+      an apparent full fix.
+  error_ellipse_m:
+    paths:
+      - payload.geo.error_ellipse_m
+    profile_projection_behavior: preserve_or_compact
+    enforcement: Listed in preserve_or_compact_paths above, so the container
+      must not be silently stripped once a source carries it. Its numeric
+      members (semi_major, semi_minor, orientation_deg) are listed in
+      precision_ceilings for profiles M and L, so they may be conservatively
+      quantized like other geospatial fields but never given more precision
+      than the source declared.
+
 notes:
   - Reference defaults require mission review before operational use.
   - Precision policy is profile/export policy and does not change JSON Schema.
   - Compact CBOR and protobuf remain encoding projections only.
   - Source-limited precision must be declared in fixtures or mission policy; the validator must not invent precision.
+  - The v1.1.0 GEO_DIMENSIONALITY and ERROR_ELLIPSE_M surfaces (see v1_1_0_extension_fields) close TV-02: the registry adopted both fields with declared projection behavior before this policy or its validator knew the fields existed, so profile projection could have silently laundered a 2-D-only position into an apparent full fix.

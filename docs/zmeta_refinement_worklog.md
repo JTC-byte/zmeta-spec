@@ -13,7 +13,11 @@
   and the documentation refresh from a certified green state. The whole
   remaining board is phase 5, the cut: currency pass first, the
   whole-range fresh-eyes panel over the roughly twenty-three commits since
-  v1.1.19, package validation, release notes, manifest last, and the tag,
+  v1.1.19 [Corrected 2026-08-03, found by the panel it was sizing: the
+  range v1.1.19..HEAD held 44 commits when this was written and 45 at
+  panel time, roughly double the stated figure; the panel was scoped to
+  the measured range, not this sentence], package validation, release
+  notes, manifest last, and the tag,
   sign and publish steps at the maintainer's direction. Deliberately held
   for a fresh session so the heaviest review of the cycle gets a full
   window and a stable tip.
@@ -33,7 +37,11 @@
   closed red-first, every red demonstrated through the real gateway
   validators rather than the schema-only path that hid them; that coverage
   now lives permanently in the SAPIENT suites, mirroring what
-  mavlink/jreap/cot already had. The egress fix rests on a verified fact,
+  mavlink/jreap/cot already had [Corrected 2026-08-03 by the pre-cut
+  panel: they did not have it. No cot/jreap/mavlink/klv egress test loads
+  the gateway validators; all four exercise the pure conversion function
+  only. The SAPIENT suites are the first with real gateway-pipeline
+  coverage, and the sibling sweep stays on the non-blocking queue]. The egress fix rests on a verified fact,
   not a reading: the dstl Location proto marks x and y mandatory and z
   not, and the attack pass then serialized a z-less DetectionReport from
   the real AIS chain through the shim to the live Java harness, which

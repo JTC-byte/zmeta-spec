@@ -38,6 +38,46 @@ required CoT attribute, so the whole event is refused rather
 than published with a substituted default. A fallback to
 `default_valid_for_ms` would assert a freshness bound the event never made.
 
+### Declared 2-D geo (doctrine A1-02)
+
+`payload.geo.dimensionality: "2D"` (schema/zmeta-event-1.1.0.schema.json
+`$defs/geo`) is a real, exact horizontal fix with no geometric vertical to
+assert, ever: every AIS vessel, a barometric-only aircraft. Unlike the
+JREAP egress sibling, this adapter cannot emit a null altitude for it: CoT
+`point@hae` is a required *numeric* attribute, and refusing the TAK event
+outright over an honest horizontal-only fix would defeat the
+vessel-reaches-the-map purpose doctrine A1-02 was adjudicated for. The
+wire value therefore stays `hae="9999999.0"`, the same sentinel the
+historical ambiguous absent-altitude case (no `dimensionality` token, no
+`alt_m`) has always emitted, and always will: that case's rendered XML is
+unchanged by this section, byte for byte.
+
+The sentinel alone cannot tell the two cases apart, so a declared `"2D"` geo
+additionally emits a structured `<detail>` marker naming the declared
+dimensionality: `<geo_dimensionality value="2D" geo_status="…" />`.
+`geo_status` is included only when the event's own
+`payload.quality.geo_status` carries one (typically `VERTICAL_UNAVAILABLE`);
+a value the event never asserted is an omitted attribute, never a fabricated
+token, the same honest-absence rule the ellipse fields above already follow.
+The ambiguous case emits no marker at all, so a consumer that reads
+`<detail>` can now tell a genuine horizontal-only fix apart from a sensor
+that simply failed to report altitude; a consumer that reads only
+`point@hae` sees the same wire-compatible sentinel it always has.
+
+A geo that declares `"2D"` yet still carries `alt_m` is the A1-02 coherence
+contradiction: two claims that cannot both be true. It is schema-invalid
+upstream, so the gateway never hands it to this egress, but a direct
+embedder call can, and this adapter refuses it (`None`) rather than silently
+picking one claim to believe, the same disposition the JREAP egress sibling
+gives the identical contradiction.
+
+| `geo` shape | `point@hae` | `detail` marker | Disposition |
+|---|---|---|---|
+| `alt_m` present, no `dimensionality` (or `"3D"`) | the real `alt_m` | none | unchanged |
+| `dimensionality: "2D"`, `alt_m` absent | `9999999.0` | `<geo_dimensionality value="2D" .../>` | projected |
+| no `dimensionality`, `alt_m` absent (ambiguous) | `9999999.0` | none | unchanged, byte-compatible with the pre-existing behavior |
+| `dimensionality: "2D"` with `alt_m` present | n/a | n/a | refused (`None`); the A1-02 contradiction |
+
 ### Features
 
 | Feature | Details |
@@ -51,6 +91,7 @@ than published with a substituted default. A fallback to
 | Remarks | Source summary, confidence (whenever the event carries one), and error ellipse details |
 | Wall-clock mode | Opt-in replay-display mode (`use_wall_clock: True`) re-stamps CoT timestamps to now; off by default, since event time is authoritative, and an event missing `event.ts` is refused (`None`) outside this mode |
 | Custom icons | Quadcopter icon for drone/sensor platforms (`a-f-A-M-F-Q`) |
+| Declared 2-D geo | `<geo_dimensionality>` detail marker distinguishes a declared horizontal-only fix from the ambiguous absent-altitude case (both still emit `hae="9999999.0"`, CoT `hae` being required and numeric); a `"2D"` geo carrying `alt_m` refuses (doctrine A1-02, see below) |
 
 ### Mapping
 
@@ -58,7 +99,8 @@ than published with a substituted default. A fallback to
 |-------------|-----------|-------|
 | `payload.track_id` | `uid` | |
 | `payload.class` | `type` | Falls back to `a-u-G` |
-| `payload.geo.lat/lon/alt_m` | `point lat/lon/hae` | Absent `alt_m` → `hae="9999999.0"` (CoT unknown-value convention, never a fabricated 0 m claim); a real `alt_m` of `0.0` passes through as `0.0` |
+| `payload.geo.lat/lon/alt_m` | `point lat/lon/hae` | Absent `alt_m` → `hae="9999999.0"` (CoT unknown-value convention, never a fabricated 0 m claim); a real `alt_m` of `0.0` passes through as `0.0`. A declared `geo.dimensionality: "2D"` also renders `hae="9999999.0"` (CoT `hae` is a required numeric attribute with no "not applicable" convention), paired with the `geo_dimensionality` detail marker below so the sentinel is not the whole story; see "Declared 2-D geo" |
+| `payload.geo.dimensionality` | `detail geo_dimensionality` | Emitted only for a declared `"2D"` geo, as `<geo_dimensionality value="2D" geo_status="…" />`; `geo_status` rides along only when `payload.quality.geo_status` is present. Absent `dimensionality` (the historical ambiguous case) emits no marker at all; see "Declared 2-D geo" |
 | `payload.geo.error_ellipse_m` | `point ce` + `precisionlocation` + `remarks` | `semi_major` → `ce` as the **conservative circular bound** (a circle of radius `semi_major` covers the whole ellipse, so `ce` never understates the horizontal error); absent → `9999999.0` (CoT unknown-value convention). `le` is **never** derived from the ellipse: CoT `le` is linear (vertical/HAE) error, the contract's ellipse is purely horizontal (§21.2, orientation from true north), and the event model has no vertical-uncertainty field, so `le` is always `default_le` (`9999999.0` unless the deployment has a real vertical error model). `precisionlocation` is emitted only when a source is asserted (see Configuration). A `semi_minor` or `orientation_deg` the dict never asserted is an omitted fragment/attribute in `remarks`/`precisionlocation`, never a fabricated `0`; a dict with no `semi_major` under that name (missing, or a wrong-spelled key) has no ellipse this adapter can honestly render at all, so nothing is emitted for it, the same way `ce` falls back to `default_ce` rather than reading a `0` out of it |
 | `payload.valid_for_ms` | `stale` | `time + valid_for_ms`; a sum `datetime` cannot represent refuses the event (`None`) rather than substituting the config default |
 | `payload.heading_deg` | `track course` | Frame-preserving: both are degrees true north (see below) |
