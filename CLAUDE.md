@@ -110,6 +110,10 @@ promise.
   flat or slightly higher, never compress. Two exceptions: quotations are
   copied exactly, tics included, and process records are never restyled,
   because rewriting them falsifies what was true when they were written.
+  This standard also applies to commit subjects, tag annotations, and
+  release titles (maintainer direction, 2026-08-03): describe the change
+  in plain terms, with no aphorisms or taglines. Earlier commit history
+  uses an aphoristic subject style; do not imitate it in new commits.
 - **Commit attribution is human-only.** Attribute commits and PRs to the human
   maintainer alone. Do **not** add `Co-Authored-By` trailers naming Claude, and
   do not list the agent as a contributor. Every contributor in the stack works

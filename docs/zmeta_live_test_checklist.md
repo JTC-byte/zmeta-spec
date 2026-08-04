@@ -180,11 +180,12 @@ ones that happened to catch the eye.
 
 ## E. Pre-flight card and break-report card for live runs
 
-Added 2026-08-03 at the v1.1.20 field hand-off, when the maintainer set
-the direction: run the stack live as published and let the field find what
-the reviews could not. The two cards condense the traps this file and the
-release records have already paid for into a form an operator can run top
-to bottom. Nothing here is new doctrine; each line cites recorded work.
+Added 2026-08-03 for the v1.1.20 field deployments. The maintainer's
+direction at hand-off: run the stack live as published and collect field
+defects, rather than continuing internal hardening cycles. The two lists
+below collect the known deployment failure modes from this file and the
+release records into a sequence an operator can execute in order. Each
+line cites recorded work; none of it is new doctrine.
 
 **Pre-flight, in order, before the first live event:**
 
@@ -210,17 +211,19 @@ to bottom. Nothing here is new doctrine; each line cites recorded work.
    warn-only ts-plausibility window by design. Set
    `ts_plausibility_horizon_ms: 0` for sims and replays; keep the default
    for live sensors.
-6. **Know the silence modes.** The metrics line is datagram-driven, so an
-   idle or short-replay node prints nothing at any interval setting
-   (section B). The real delivery check is the far consumer's count.
+6. **Expect console silence on healthy idle nodes.** The metrics line is
+   datagram-driven, so an idle or short-replay node prints nothing at any
+   interval setting (section B). The delivery check is the far consumer's
+   received count, not console output.
 7. **Capacity margin.** Loss above capacity happens upstream of the
    process, so `drops=0` can accompany heavy loss (section B; saturation
    near 422 events/s, one x86 host, Profile H; no Pi datum exists yet,
    section C). Measure offered versus received at the far end.
-8. **Two gates stay closed until run:** SITL before any live
-   GCS-originated tasking, with no-op-versus-failure telemetry built
-   first, and the TAK render check of the `<geo_dimensionality>` detail
-   element on a fielded client. Both live in section C.
+8. **Complete the two open preconditions before the activities they
+   gate:** SITL before any live GCS-originated tasking, with
+   no-op-versus-failure telemetry built first, and the TAK render check
+   of the `<geo_dimensionality>` detail element on a fielded client
+   before relying on it operationally. Both are recorded in section C.
 
 **Break report, captured at the moment of failure:**
 
@@ -229,12 +232,13 @@ to bottom. Nothing here is new doctrine; each line cites recorded work.
 - Egress loss notes and counters.
 - Ten raw input events around the failure, the exact configs in use, and
   the version or tag of every node.
-- The one distinction that makes the report actionable: did the event
-  arrive and get refused (a violation with a reason code), or never
-  arrive (nothing anywhere)? "No violations" alone cannot mean healthy
-  until that is answered.
-- Field reports are telemetry per the intake doctrine; an issue carrying
-  the artifacts above is a complete contribution.
+- Record whether the failing event arrived and was refused (a violation
+  record with a reason code exists) or never arrived (no record on any
+  node). A report that does not answer this cannot be acted on, because
+  "no violations" is also what a delivery failure looks like.
+- Field reports are handled as telemetry under the contribution intake
+  process; an issue carrying the artifacts above is a complete
+  contribution.
 
 ---
 
