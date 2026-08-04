@@ -28,8 +28,8 @@ bad_event_corpus_hash: sha256:a14c0492452bfad586a9fdce4a7e199b0baf937325b19af3a2
 adapter_conformance_hash: sha256:d97db4ca864fce4a9f4546175c93f40947083c77d5e19ef1357e285d7bdd181c
 encoding_projection_specs_hash: sha256:54459b03ceed6605d7af49d327b7c7c41395b82b8dadad7fd6a0d9d40c8ecd6d
 process_governance_hash: sha256:5fc971013a9e0027c01011dacdd0119e483c95ed169bc45948b6294451891d23
-release_bundle_hash: sha256:35fcb510d892de1583311571c34c7e2b69c585c6f3a91954187bc2badb19a351
-release_manifest_hash: sha256:a838f819dab1928c13384ecc8e96f338e70d374621f85b4c1c696f2acd36bc46
+release_bundle_hash: sha256:b839a84d874f5385d3ea64e74b355854d65e6a609e74249082b7ab3937f3c4b7
+release_manifest_hash: sha256:86a4a9298ca8bb9004f8384d6e9fc782996fe38c11ae89c7c76db09b3d40d419
 artifact_hashes:
 - path: AGENTS.md
   group: process_governance
@@ -293,7 +293,7 @@ artifact_hashes:
   canonicalization: text_lf
 - path: tools/build_release_manifest.py
   group: release_tools
-  hash: sha256:e00484c20ac6a26d063be0d7d328262aa6cc5d9ffaac4c8f040a9e74f305db1b
+  hash: sha256:63cb4d554e265cfd2fc7376eac9b2ca21db0adc26c27133f610fd4cbd79df100
   canonicalization: text_lf
 - path: tools/build_release_package.py
   group: release_packaging
@@ -517,7 +517,7 @@ artifact_groups:
     - tools/build_release_manifest.py
     - tools/compute_contract_hash.py
     - tools/validate_release_manifest.py
-    hash: sha256:2e6a7a484d30ee8c16b2f6ffbd01f3238bc54aaac52098c012b5bd4d008fad1b
+    hash: sha256:a1747364a655fe8facb9815158af2c79615265665e4143b39d2029b3271eec81
   conformance_tools:
     description: Conformance validators included in the reference baseline.
     paths:

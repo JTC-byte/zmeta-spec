@@ -27,7 +27,13 @@
   declaration, the token, or the ellipse is caught; stripping the
   declaration and `alt_m` together is caught twice. Nine new precision
   fixtures pin all of it, and `tools/check_compat.py`'s CoT advisory now
-  matches the adapter's real skip-versus-sentinel behavior. (2) CoT egress learns dimensionality: a declared
+  matches the adapter's real skip-versus-sentinel behavior. At the cut
+  itself, the pre-tag `sha256sum -c` step caught the manifest builder
+  writing platform newlines, which made the on-disk manifest disagree
+  with the signer's LF-normalized hash on the exact machine that uploads
+  the asset; the builder now writes LF explicitly, so the raw hash and
+  the normalized hash agree on every platform.
+  (2) CoT egress learns dimensionality: a declared
   2-D STATE keeps the wire-required `hae` sentinel for TAK compatibility but
   now emits a structured `<geo_dimensionality>` detail element carrying the
   declaration and `geo_status` token, so a consumer can tell declared-no-

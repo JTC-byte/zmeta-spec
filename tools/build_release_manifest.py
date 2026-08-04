@@ -535,7 +535,13 @@ def main() -> int:
         sys.stdout.write(text)
         return 0
     output.parent.mkdir(parents=True, exist_ok=True)
-    output.write_text(text, encoding="utf-8")
+    # LF explicitly: the signer hashes text assets on LF-normalized content,
+    # and the manifest is itself a checksummed release asset. Platform-default
+    # newlines on Windows wrote CRLF to disk, which made a raw `sha256sum -c`
+    # disagree with the signer's normalized hash on the exact machine that
+    # uploads the asset. Caught by the pre-tag `sha256sum -c` step at the
+    # v1.1.20 cut.
+    output.write_text(text, encoding="utf-8", newline="\n")
     print(f"wrote {output}")
     return 0
 
