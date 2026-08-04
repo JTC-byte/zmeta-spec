@@ -5,9 +5,12 @@ Release target: `v1.1.20`
 
 ## Scope
 
-This report covers the ZMeta v1.1.20 release: the 48 commits after the
+This report covers the ZMeta v1.1.20 release: every commit after the
 published `v1.1.19` tag, landed as a phased campaign against a ten-axis
-readiness audit. Governed waves (the A1-02 declared-dimensionality form,
+readiness audit. The count is deliberately not asserted here; it is
+derivable (`git rev-list --count v1.1.19..v1.1.20`), and a frozen
+document asserting a number that each correcting commit changes is the
+exact moving-fact class this cut's own review panel flagged. Governed waves (the A1-02 declared-dimensionality form,
 the ERROR_ELLIPSE_M promotion, the X1-01 timestamp closure, the v1.0 lock
 restoration), the SAPIENT boundary fix wave the interop run demanded, a
 validation phase, a documentation refresh, and the cut itself, which ran
