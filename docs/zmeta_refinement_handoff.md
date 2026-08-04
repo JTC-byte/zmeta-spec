@@ -79,16 +79,28 @@ flushing); sim tooling guidance for the ts-plausibility warning on
 replayed historical corpora (set the horizon to 0 in sims, or note it).
 
 **PHASE 4 LANDED 2026-08-03** (docs refresh, `72d8e66`; pat-down
-`34bde8b`). **PHASE 5 IN PROGRESS 2026-08-03:** currency pass landed
-(`869af74`), the whole-range fresh-eyes panel ran over the 45-commit
-range (eight lenses, adversarial verify), and the fix wave with its
-attack pass landed (`050704a`). The finding-by-finding record with
-standalone verification commands is
-`docs/v1_1_20_precut_panel_register.md`. Remaining: release notes,
-validation report, manifest last, package-mode validation and checksum
-verification before any tag; tag, sign, publish are the maintainer's.
-After the cut, per maintainer direction: sync local, develop, and main
-(develop is a clean fast-forward, 192 behind and zero ahead).
+`34bde8b`). **PHASE 5 COMPLETE, v1.1.20 PUBLISHED 2026-08-03:** currency
+pass (`869af74`), the whole-range fresh-eyes panel over the 45-commit
+range (eight lenses, adversarial verify), the fix wave with its attack
+pass (`050704a`), the release triad and checksums (`a7d1806`,
+`677f3ca`, `887446f`). The finding-by-finding record with standalone
+verification commands is `docs/v1_1_20_precut_panel_register.md`. An
+independent verification session then re-derived the prepared cut's
+claims from scratch (register re-executed, errata confirmed on all
+sixteen rows, first-run walk clean, battery 1727 plus 1081 at
+`887446f`, package mode ok, checksums both ways) before the annotated
+tag was created on `887446f` at the maintainer's direction and the
+GitHub release published with eight assets, each downloaded back and
+re-verified against the published checksums. `develop` is
+fast-forwarded to `main`. Queued from the post-publish verification,
+below the floor: the combined conformance command prints no success
+line for `--release-manifest`/`--release-package` (they run and fail
+loudly; success is silent); the dist and release-package builders copy
+working-tree text with builder-machine line endings while edge and
+gateway normalize (v1.1.20's checksums match its actual published
+bytes; the class is the signer defect one layer deeper); the errata
+prose glosses absent-manifest tags as "already matched" where the
+generator skips them as nonexistent.
 
 The campaign, in order:
 

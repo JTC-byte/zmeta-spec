@@ -2,8 +2,35 @@
 
 ## Current Resume Note
 
-- Last updated: 2026-08-03 (phase 5: panel run, fixes landed, cut
-  mechanics remain)
+- Last updated: 2026-08-03 (v1.1.20 published)
+- **2026-08-03 (v1.1.20 published).** The tag, upload and publish ran at
+  the maintainer's direction after an independent verification session,
+  fresh eyes separate from the range's authors, re-derived the prepared
+  cut's claims: the panel register re-executed end to end with every
+  entry matching its expected output; the checksum errata confirmed on
+  all sixteen rows by two independent methods with the generated table
+  reproducing byte-identically; a first-run stranger walk through the
+  README, tools reference, deployment checklist and release verification
+  walkthrough with every documented command working as written; battery
+  1727 passed plus 1081 subtests at `887446f`, kernel gates exit 0,
+  examples 51/51, release package valid in package mode, checksums
+  verified raw and normalized. The annotated tag `v1.1.20` was then
+  created on `887446f`, pushed, and the GitHub release published with
+  eight assets; the published assets were downloaded back and every
+  checksum verified against the published `SHA256SUMS_v1.1.20.txt`.
+  `develop` fast-forwarded to `main`. Three below-floor observations
+  from the verification are queued, deliberately not fixed pre-tag: the
+  combined conformance command prints no success line for its
+  `--release-manifest` and `--release-package` flags (both run and fail
+  loudly; success is silent, indistinguishable from not-wired-up); the
+  dist and release-package zip builders copy working-tree text with the
+  builder machine's line endings while the edge and gateway builders
+  normalize (the v1.1.20 checksums match the actual published bytes, so
+  this release is unaffected; it is the signer defect's class one layer
+  deeper); and the errata prose glosses absent-manifest tags as "already
+  matched" where the generator actually skips them as nonexistent. One
+  hygiene act pre-tag: a stray gitignored `__pycache__` bytecode file
+  left by the red-proof testing was cleared.
 - **2026-08-03 (phase 5, panel and fix wave).** The cut opened per the
   playbook ordering. Currency pass first (`869af74`): manifest rebuilt
   with the explicit v1.1.20 identity, eighteen stale surfaces flipped by
