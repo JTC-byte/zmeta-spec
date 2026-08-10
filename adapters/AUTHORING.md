@@ -386,6 +386,65 @@ name will not. Do not read its success as proof your naming is fine.
   colocated tests, harness fixtures, and changelog/worklog/handoff entries
   together.
 
+## From A Green Ladder To A Display: The Identity Gate
+
+A green ladder means your events are valid. It does not mean they will
+appear on a map, and the gap between those two is the most common silent
+wall a new integration hits. Read this before your first field test, not
+after it.
+
+The reference pipeline reaches an operator display in two hops:
+observations become tracks (`adapters/projector/track/`), and tracks
+become CoT (`adapters/egress/cot/`). CoT egress projects `STATE_EVENT`
+only, deliberately: a raw observation is not an operator-facing track,
+and TAK renders nothing for it. So whether your sensor's output reaches
+TAK is decided entirely by whether the track projector will accept it,
+and that turns on one question:
+
+**Does your subject broadcast a stable identity?**
+
+- **Yes** (ADS-B ICAO24, AIS MMSI, or any per-emitter key your source
+  carries): the projector works. The stock identity paths are
+  `features.adsb_icao24` and `features.ais_mmsi`; a deployment adds its
+  own via the projector's `identity_paths` parameter. Before you widen
+  it, read the warning below.
+- **No** (an anonymous RF emitter, an energy detection, a
+  bearing-only contact): **there is no track path today.** This is a
+  recorded, deliberate limit (doctrine log B1-01 and the projector
+  README), not a bug in your adapter. Your events are still valid,
+  still forwarded, and still consumable by any ZMeta-native consumer;
+  they will simply never appear in TAK through the reference CoT path,
+  because a detection with no subject cannot honestly become a track.
+
+What you will observe in the failing case: your adapter passes the
+ladder, the gateway forwards with `drops=0`, the console says nothing,
+and TAK stays empty. The one signal that speaks is the projector's
+`.stats` counter `refused_no_identity`, which counts every observation
+it declined for this reason. Check it before concluding anything else
+is broken. A rehearsal against the example corpus will still show one
+CoT event, because that corpus contains a `STATE_EVENT`; do not read
+that as evidence your observation feed will render.
+
+**The warning about widening `identity_paths`:** the projector copies
+observation `geo` into the track position, which assumes `geo` is the
+observed subject's position. Bearing-only and direction-finding
+adapters in this repository (kraken, moth, bladerf) put the sensor's
+own position there instead, a recorded ambiguity (doctrine log B1-01).
+Widening `identity_paths` over such a source places tracks on your
+sensor and looks correct on the map while being wrong. Widen it only
+for sources whose `geo` is the subject.
+
+**Honest options for anonymous detections, today:** consume the
+observations ZMeta-natively (a websocket consumer or COP that renders
+`OBSERVATION_EVENT`s directly; a fielded Cesium-based COP does exactly
+this), render them as sensor-anchored indications (a range ring or
+activity panel, never a point implying the emitter is at the sensor),
+or run your own association stage that assigns deployment-scoped track
+identities and emits `FUSION_EVENT`/`STATE_EVENT` pairs downstream of
+your adapter. Inventing a fake per-detection identity to force the
+reference projector is the one option that is always wrong: it mints
+tracks nothing observed.
+
 ## 9. Notes For AI Agents
 
 - Decide from the contract text in this pinned checkout, not from memory or

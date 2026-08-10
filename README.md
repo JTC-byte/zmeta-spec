@@ -263,6 +263,15 @@ Adapter semantic mapping:
 - Mission tasking maps to `COMMAND_EVENT` only through deconfliction.
 - Health, timing, link, validation, and task acknowledgement reports map to `SYSTEM_EVENT`.
 
+**If TAK shows nothing for your live feed**, the cause is almost always
+one of two documented facts, not a broken adapter: CoT egress projects
+`STATE_EVENT` only (raw observations never render), and the track
+projector only promotes observations whose subject broadcasts an
+identity, so anonymous detections have no track path today. The
+projector counts what it declines (`refused_no_identity`). The decision
+table, the failure signature, and the honest workarounds are in
+`adapters/AUTHORING.md` ("From A Green Ladder To A Display").
+
 ZMeta is strict about semantic invariants and flexible through ignorable,
 namespaced, non-semantic extensions. Extensions must not redefine core event
 meaning, authority boundaries, units, lineage, profile behavior, or command

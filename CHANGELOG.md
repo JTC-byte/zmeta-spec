@@ -6,6 +6,21 @@
 
 ## [1.1.21] - 2026-08-09
 
+- 2026-08-09 — **The identity gate is documented where a cold-start
+  author will actually hit it.** A new integration whose sensor does not
+  broadcast a subject identity passes every validation surface and then
+  sees an empty TAK screen with no error: CoT projects STATE_EVENT only,
+  and the track projector refuses identity-less observations by design.
+  That silent wall is now documented at the three surfaces such an
+  author (or their AI agent) reads: adapters/AUTHORING.md gains the
+  "From A Green Ladder To A Display" section with the identity decision
+  table, the failure signature (`refused_no_identity`), the
+  identity_paths widening route and its B1-01 sensor-position warning,
+  and the honest display options for anonymous detections; the README
+  adapter section gains the "if TAK shows nothing" callout; the
+  projector README documents widening and its warning. No behavior
+  changes; the limit itself stays recorded as deliberate.
+
 - 2026-08-09 — **Doctrine cycle B1 opens: the referent of observation
   `geo` is unstated, and the record now says so.** The contract never
   states whose position `payload.geo` is on an OBSERVATION_EVENT, and

@@ -88,7 +88,25 @@ inside an adapter is how a private dialect starts.
 
 Refusals are counted and exposed on `.stats` because an association component
 that silently drops its inputs is indistinguishable from one that is not
-running.
+running. In a live deployment, check `refused_no_identity` before
+concluding a silent map means a broken adapter: it is the one signal
+this limit emits.
+
+**Widening `identity_paths`.** The constructor accepts additional
+`(label, dotted.path)` identity sources beyond the stock ADS-B and AIS
+pair, and that is the supported route for a source whose subjects carry
+any stable per-emitter key. One warning travels with it (doctrine log
+B1-01): this projector copies observation `geo` into the track position,
+which assumes `geo` is the observed subject's position. The
+direction-finding adapters in this repository (kraken, moth, bladerf)
+put the sensor's own position in `geo`, so widening `identity_paths`
+over such a source places every track on the sensor itself, plausibly
+and wrongly. Widen only for sources whose `geo` is the subject; a
+bearing-only source needs an association stage that produces a position
+before anything here applies. Anonymous sources with no identity at all
+have no track path through this component by design; the honest display
+options are listed in `adapters/AUTHORING.md` ("From A Green Ladder To
+A Display").
 
 ## Two-dimensional tracks (doctrine A1-02)
 
