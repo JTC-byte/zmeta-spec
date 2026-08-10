@@ -25,7 +25,7 @@ design waves, then hygiene, then anything genuinely waiting on field evidence.
    convention), bladerf, and eo-cv carried live paths; moth, kraken, and the
    teaching surfaces carried the undocumented-boundary form. Full record and
    the standing lesson in doctrine entry C1-12; the sweep's secondary notes
-   are triaged as item 16 below.
+   are triaged as item 18 below.
 
 3. **Specify canonicalization (C1-07).** Both shipped CBOR backends satisfy
    every bullet of the determinism section and emit different bytes for the
@@ -116,7 +116,30 @@ design waves, then hygiene, then anything genuinely waiting on field evidence.
 15. **`CallSitePolicyCoverage` `policy=` hardening.** Banked from the v1.1.21
     pre-cut panel and still open.
 
-16. **Triage the datum sweep's secondary notes.** The sweep's finders logged
+16. **Command-evidence conformance vectors need runner wiring first.** The
+    2026-08-10 apparatus audit's sharpest coverage finding was that two
+    adjudicated features had no conformance vectors. The A1-02
+    dimensionality half landed the same day (one declared-2D must-pass
+    vector generated through the real AIS adapter, three coherence
+    must-fail vectors). The command-evidence half
+    (`COMMAND_EVIDENCE_UNRESOLVED` / `COMMAND_EVIDENCE_PROHIBITED`) cannot
+    land as corpus lines alone: `tools/validate_conformance.py`'s
+    `_run_checks` wires the lineage policy but not `command_evidence`, so
+    the codes are unreachable from the corpus runner today. The fix is a
+    deliberate governed-tool change (wire the command-evidence adjudication
+    into `_run_checks`, likely with `preload` seed events as the evidence
+    index) plus the vectors, as one scoped wave.
+
+17. **Apparatus-audit decision items.** The audit report (private,
+    `local/apparatus_audit_2026-08-10.md`) carries six retire-on-condition
+    items with drafted conditions and six maintainer-call items, plus the
+    two structural levers not yet taken: full battery single-sourcing
+    beyond the `--kernel-gate` alias (doc copies still exist, now stable),
+    and release-bundle curation (blocked on the
+    `conformance_classes.yaml` evidence-pointer decision). All decisions
+    are the maintainer's.
+
+18. **Triage the datum sweep's secondary notes.** The sweep's finders logged
     non-altitude instances of the same laundered-plausible-value class plus
     adjacent hygiene, recorded in C1-12's wave and preserved with the sweep
     record. The standouts, none fixed in the wave because its charter was the

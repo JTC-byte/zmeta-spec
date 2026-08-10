@@ -13,6 +13,16 @@ spec.loader.exec_module(validators)
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Validate conformance pack.")
+    parser.add_argument(
+        "--kernel-gate",
+        action="store_true",
+        help="Run the full kernel protection gate: --strict plus every "
+        "sub-check flag below. This is the single named form of the gate, "
+        "so the battery definition is one stable token instead of a "
+        "hand-copied flag string; a new sub-check joins the gate here, in "
+        "one place, rather than in every document that quotes the command "
+        "(apparatus audit, 2026-08-10).",
+    )
     parser.add_argument("--strict", action="store_true", help="Treat warnings as failures.")
     parser.add_argument(
         "--profile-projection",
@@ -69,7 +79,30 @@ def parse_args():
         default=str(ROOT / "conformance" / "must-fail.jsonl"),
         help="Path to must-fail JSONL",
     )
-    return parser.parse_args()
+    args = parser.parse_args()
+    if args.kernel_gate:
+        # KERNEL_GATE_CHECKS is the one authoritative list; the equivalence
+        # test pins that expanding the alias enables exactly these flags.
+        for flag in KERNEL_GATE_CHECKS:
+            setattr(args, flag, True)
+    return args
+
+
+# The kernel protection gate, as data: --kernel-gate sets --strict plus every
+# flag named here. Adding a sub-check means adding it to this tuple (and its
+# implementation block below); no document needs editing.
+KERNEL_GATE_CHECKS = (
+    "strict",
+    "profile_projection",
+    "extension_registry",
+    "conformance_classes",
+    "encoding_negative",
+    "precision_policy",
+    "release_manifest",
+    "release_package",
+    "bad_events",
+    "adapter_harness",
+)
 
 
 def _iter_jsonl(path):

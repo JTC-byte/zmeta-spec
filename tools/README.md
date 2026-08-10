@@ -173,7 +173,7 @@ python tools/validate_examples.py --strict
 
 ```
 python tools/validate_conformance.py --strict
-python tools/validate_conformance.py --strict --profile-projection --extension-registry --conformance-classes --encoding-negative --precision-policy --release-manifest --release-package --bad-events --adapter-harness
+python tools/validate_conformance.py --kernel-gate
 ```
 
 The optional flags validate governed support surfaces without changing default

@@ -209,9 +209,13 @@ nodes.
   them as the evidence, and a format checker installed at a dozen call sites
   validated nothing. Doctrine cycle C1 closes the release at twelve entries,
   seeded by an independent technical review of ZMeta against ten comparable
-  standards. Governed artifacts changed in this release, relative to
+  standards. An apparatus audit then hardened the machinery itself: the
+  kernel gate gained its single named form (`--kernel-gate`), the corpus
+  gained the declared-2D vectors an adopter could not previously verify
+  against, and the release tooling closes the packaging traps the audit
+  caught live. Governed artifacts changed in this release, relative to
   zmeta-v1.1.21: conformance/adapter-harness/must-pass.jsonl,
-  conformance/must-fail.jsonl.
+  conformance/must-fail.jsonl, conformance/must-pass.jsonl.
 - Normative contract: v1.0 locked semantic contract, canonical version-discriminated
   JSON schema, v1.0 JSON schema, and policy pack.
 - Experimental extension: `schema/zmeta-event-1.1.0.schema.json` is provided for proposed
@@ -384,7 +388,7 @@ Use this to lock down schema, policy, and semantic-contract drift and verify a c
 1. Validate the governed release baseline: `python tools/validate_release_manifest.py --manifest release/zmeta-release-manifest.yaml`
 1. Validate formal release package templates or generated package output before distribution.
 1. Run self-test: `python tools/run_gateway.py --profile H --self-test`
-1. Run conformance: `python tools/validate_conformance.py --strict --profile-projection --extension-registry --conformance-classes --encoding-negative --precision-policy --release-manifest --release-package --bad-events --adapter-harness`
+1. Run conformance: `python tools/validate_conformance.py --kernel-gate`
 1. Verify consumer risk posture where needed: `python tools/filter_risk.py --input gateway-output.jsonl --preset command --fail-on-drop`
 1. Start gateway with strict mode (optional): `python tools/run_gateway.py --config configs/gateway-config.json --strict-validation`
 1. Verify metrics and drops in logs (enable `metrics_log_path` if needed).

@@ -144,7 +144,13 @@ def test_ensure_package_zip_builds_missing_package_zip(release_tmp_dir):
     assert package_zip.is_file()
 
 
-def test_ensure_package_zip_never_overwrites_existing_package_zip(release_tmp_dir):
+def test_ensure_package_zip_refuses_a_stale_zip_and_never_overwrites(release_tmp_dir):
+    # The v1.1.22 re-cut rebuilt the package directory while an older zip
+    # stayed in place, and the checksums recorded a package whose metadata
+    # the tree no longer contained. A zip staler than the package directory
+    # now refuses the run (fail closed) instead of being silently kept and
+    # checksummed. The never-overwrite guarantee is unchanged: the refusal
+    # leaves the existing zip byte-identical.
     version = "v9.9.9"
     _write_artifacts(release_tmp_dir, version)
     package_zip = release_tmp_dir / f"zmeta-release-package-{version}.zip"
@@ -152,6 +158,34 @@ def test_ensure_package_zip_never_overwrites_existing_package_zip(release_tmp_di
     package_dir = release_tmp_dir / f"package-{version}"
     package_dir.mkdir()
     (package_dir / "release-package.json").write_text("{}\n", encoding="utf-8")
+
+    try:
+        signing._ensure_package_zip(release_tmp_dir, version)
+    except RuntimeError as exc:
+        assert "stale package zip" in str(exc)
+    else:
+        raise AssertionError(
+            "a package zip older than the package directory must refuse, "
+            "not be silently checksummed"
+        )
+
+    assert package_zip.read_bytes() == original
+
+
+def test_ensure_package_zip_keeps_a_current_zip_untouched(release_tmp_dir):
+    # The complement: a zip at least as new as every package-directory file
+    # is the normal in-flight state and passes through without rebuild or
+    # refusal.
+    version = "v9.9.9"
+    _write_artifacts(release_tmp_dir, version)
+    package_zip = release_tmp_dir / f"zmeta-release-package-{version}.zip"
+    package_dir = release_tmp_dir / f"package-{version}"
+    package_dir.mkdir()
+    stale_file = package_dir / "release-package.json"
+    stale_file.write_text("{}\n", encoding="utf-8")
+    old = package_zip.stat().st_mtime
+    os.utime(stale_file, (old - 60, old - 60))
+    original = package_zip.read_bytes()
 
     signing._ensure_package_zip(release_tmp_dir, version)
 

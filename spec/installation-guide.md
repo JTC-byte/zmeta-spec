@@ -186,7 +186,7 @@ For governed repository changes, run the full kernel gate from `AGENTS.md` and
 `docs/zmeta_change_governance.md`:
 
 ```text
-python tools/validate_conformance.py --strict --profile-projection --extension-registry --conformance-classes --encoding-negative --precision-policy --release-manifest --release-package --bad-events --adapter-harness
+python tools/validate_conformance.py --kernel-gate
 python -m pytest -q
 git diff --check
 ```

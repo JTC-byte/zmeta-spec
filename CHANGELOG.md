@@ -6,6 +6,41 @@
 
 ## [1.1.22] - 2026-08-10
 
+- 2026-08-10 — **The apparatus audit's fix wave: the kernel gate becomes
+  one named flag, the corpus gains the A1-02 vectors it lacked, and the
+  release tooling closes the traps the audit caught.** An apparatus-wide
+  audit (114 items, four retirement questions each, with a catch-record
+  evidence pass) found the growth mechanics broken rather than the check
+  inventory bloated, and this wave lands its no-decision-needed fixes.
+  `validate_conformance.py --kernel-gate` is now the single named form of
+  the full kernel protection gate (`KERNEL_GATE_CHECKS` is the one
+  authoritative list, pinned by an equivalence test), and the eleven
+  current-facing copies of the ten-flag command string now carry the
+  alias, so adding a sub-check stops requiring synchronized edits across
+  every document that quotes the command. The conformance corpus gains
+  the declared-2D coverage an adopter could not previously verify: one
+  must-pass vector generated through the real AIS adapter and three
+  must-fail vectors pinning the A1-02 coherence arms (2D beside alt_m,
+  2D beside geo_status AVAILABLE, VERTICAL_UNAVAILABLE beside a 3-D
+  geo), all expecting SCHEMA_INVALID. The command-evidence half of that
+  coverage gap is recorded as backlog item 16: the corpus runner does
+  not wire the command_evidence policy today, so those vectors need a
+  governed-tool change first. The release tooling closes both traps from
+  the audit's live catch: the package build step documents
+  `--release-state formal_release`, a new test refuses a built package
+  whose self-described state disagrees with the manifest, and
+  `sign_release_artifacts.py` refuses to checksum a package zip staler
+  than its package directory instead of silently keeping it. Also: the
+  Makefile packet-size target matches CI's stronger flag form, the docs
+  index gains the seven files it was missing (the machine-parsed
+  process-records section is the repo's one working retirement
+  mechanism, so the index it depends on has to be current), the
+  records-currency guard excludes the gitignored `local/` folder, and
+  the audit playbook's one-third introduction cap is reclassified from
+  active machinery to a written backstop per its own 2026-07-30 watch
+  item. The audit report itself is a private maintainer record; its
+  decision items are backlog item 17.
+
 - 2026-08-10 — **The altitude-datum class is swept across every remaining
   adapter surface, and every confirmed instance is fixed.** A fix proves
   its instance, and this class had already needed three appearances, so

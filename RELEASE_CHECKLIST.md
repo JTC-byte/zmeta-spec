@@ -20,7 +20,7 @@ Use this as the template for each release.
 - [ ] Examples and conformance corpus validate locally:
       `python tools/validate_examples.py --strict --require-all`
 - [ ] Full kernel-protection conformance passes:
-      `python tools/validate_conformance.py --strict --profile-projection --extension-registry --conformance-classes --encoding-negative --precision-policy --release-manifest --release-package --bad-events --adapter-harness`
+      `python tools/validate_conformance.py --kernel-gate`
 - [ ] Consumer risk-filter presets verified:
       `python -m pytest -q gateway/tests/test_risk_filter_cli.py`
 - [ ] Gateway self-test passes locally
@@ -30,11 +30,17 @@ Use this as the template for each release.
 - [ ] Edge deployment bundle built
 - [ ] Gateway deployment bundle built
 - [ ] Formal release package metadata built in no-signature mode
-      (`tools/build_release_package.py ... --no-signatures --allow-dirty
-      --clean-output` during release prep; the
+      (`tools/build_release_package.py --release-notes
+      release/RELEASE_NOTES_v<version>.md --release-state formal_release
+      --no-signatures --allow-dirty --clean-output` during release prep;
+      the `--release-state` flag is required because the builder defaults
+      to `release_candidate`, and the v1.1.22 re-cut shipped a
+      checksummed package self-describing `release_candidate` beside a
+      `formal_release` manifest by omitting it; the
       `zmeta-release-package-<version>.zip` asset is built automatically
       from the package directory by `release/sign_release_artifacts.py
-      --write-checksums`, never by hand)
+      --write-checksums`, never by hand, and the signer refuses a stale
+      zip rather than checksumming it)
 - [ ] Package ships the REAL release notes, not the template: pass
       `--release-notes release/RELEASE_NOTES_v<version>.md` to
       `tools/build_release_package.py`. Without it the template is copied

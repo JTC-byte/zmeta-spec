@@ -85,7 +85,7 @@ Run the narrowest focused checks first. Before handoff for governed changes,
 run:
 
 ```powershell
-python tools\validate_conformance.py --strict --profile-projection --extension-registry --conformance-classes --encoding-negative --precision-policy --release-manifest --release-package --bad-events --adapter-harness
+python tools\validate_conformance.py --kernel-gate
 python -m pytest -q
 git diff --check
 ```

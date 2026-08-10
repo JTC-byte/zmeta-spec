@@ -350,3 +350,33 @@ def test_default_strict_conformance_unchanged():
 
     assert result.returncode == 0, result.stdout + result.stderr
     assert "conformance ok" in result.stdout
+
+
+def test_built_package_state_matches_manifest_status():
+    # The apparatus audit (2026-08-10) found the v1.1.22 re-cut shipping a
+    # checksummed package that self-described release_state:
+    # release_candidate beside a manifest saying formal_release, because the
+    # package build omitted --release-state and nothing compared the two.
+    # This is that comparison: whenever a versioned package directory exists
+    # for the manifest's release, its self-description must agree with the
+    # manifest. Skips when no package directory has been built, so a fresh
+    # clone is unaffected.
+    manifest = yaml.safe_load(
+        (ROOT / "release" / "zmeta-release-manifest.yaml").read_text(encoding="utf-8")
+    )
+    release_id = manifest["release_id"]  # e.g. zmeta-v1.1.22
+    version = release_id.replace("zmeta-", "")
+    package_dir = ROOT / "release" / f"package-{version}"
+    if not package_dir.is_dir():
+        pytest.skip(f"no built package directory for {release_id}")
+
+    for name in ("ATTESTATION.yaml", "zmeta-release-package.yaml"):
+        meta_path = package_dir / name
+        assert meta_path.is_file(), f"{package_dir.name}/{name} is missing"
+        meta = yaml.safe_load(meta_path.read_text(encoding="utf-8"))
+        assert meta.get("release_state") == manifest.get("release_status"), (
+            f"{package_dir.name}/{name} self-describes release_state="
+            f"{meta.get('release_state')!r} but the manifest says "
+            f"release_status={manifest.get('release_status')!r}; the package "
+            f"build must pass --release-state to match"
+        )

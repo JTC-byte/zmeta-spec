@@ -22,7 +22,7 @@ validate-conformance:
 	python tools/validate_conformance.py --strict
 
 validate-kernel:
-	python tools/validate_conformance.py --strict --profile-projection --extension-registry --conformance-classes --encoding-negative --precision-policy --release-manifest --release-package --bad-events --adapter-harness
+	python tools/validate_conformance.py --kernel-gate
 	python tools/validate_future_roadmap.py
 
 # The roadmap is a governed artifact: it is where a deferred need is booked,
@@ -42,7 +42,7 @@ validate-roadmap:
 # names a reference budget, not a blessed transport: ZMeta stays
 # transport-agnostic.
 measure-packets:
-	python tools/measure_packet_size.py --file examples/zmeta-profile-L-examples.jsonl --encodings compact --max-bytes 236 --summary-only --validate
+	python tools/measure_packet_size.py --file examples/zmeta-profile-L-examples.jsonl --encodings compact,proto --max-bytes 236 --max-bytes-encoding compact --summary-only --validate
 
 release-bundle:
 	python release/build_release_bundle.py

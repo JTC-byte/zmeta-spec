@@ -52,7 +52,18 @@ def manifest_release_version() -> str:
     return release_id[len("zmeta-"):]
 
 # Snapshot / duplicate trees are not the canonical stack (CLAUDE.md).
-_IGNORED_PARTS = {".tmp", "bundles", "dist", "__pycache__", ".git", "node_modules"}
+_IGNORED_PARTS = {
+    ".tmp",
+    "bundles",
+    "dist",
+    "__pycache__",
+    ".git",
+    "node_modules",
+    # Gitignored private session records: a local-only markdown file must
+    # not be able to trip a public currency guard on a local battery run
+    # (apparatus audit, 2026-08-10).
+    "local",
+}
 
 
 def _read(rel_path: str) -> str:

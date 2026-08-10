@@ -144,11 +144,29 @@ def _ensure_package_zip(release_dir: Path, version: str) -> None:
     but no archive, while the zip is a required checksum/release asset.
     Building it here at checksum time closes that gap without touching the
     governed builder. An existing zip is never overwritten, so a published
-    artifact cannot be silently rebuilt.
+    artifact cannot be silently rebuilt -- but a zip STALER than the package
+    directory refuses the run rather than being checksummed: during the
+    v1.1.22 re-cut a package rebuild updated the directory while the older
+    zip stayed in place, and the checksums recorded a package whose
+    metadata the tree no longer contained. Delete the stale zip and re-run;
+    this function then rebuilds it from the current directory.
     """
     zip_path = release_dir / f"zmeta-release-package-{version}.zip"
     package_dir = release_dir / f"package-{version}"
-    if zip_path.is_file() or not package_dir.is_dir():
+    if not package_dir.is_dir():
+        return
+    if zip_path.is_file():
+        zip_mtime = zip_path.stat().st_mtime
+        newer = [
+            p for p in package_dir.rglob("*") if p.is_file() and p.stat().st_mtime > zip_mtime
+        ]
+        if newer:
+            raise RuntimeError(
+                f"{zip_path.name} is older than {len(newer)} file(s) in "
+                f"{package_dir.name}/ (e.g. {newer[0].relative_to(package_dir)}); "
+                "refusing to checksum a stale package zip. Delete the zip and "
+                "re-run to rebuild it from the current package directory."
+            )
         return
     shutil.make_archive(str(zip_path.with_suffix("")), "zip", root_dir=package_dir)
     print(f"built {zip_path.name} from {package_dir.name}/")

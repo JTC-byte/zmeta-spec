@@ -27,13 +27,13 @@ profile_precision_policy_hash: sha256:8c4dcb6ee305b31cb08d4cc429138fd9d1ed149024
 bad_event_corpus_hash: sha256:a14c0492452bfad586a9fdce4a7e199b0baf937325b19af3a2b1d03a16cbdc5f
 adapter_conformance_hash: sha256:b1c8ff49878facbd699a5ab323c3ab3bbadfbf4a3fafc606816240b191191a97
 encoding_projection_specs_hash: sha256:5e14298cb0ffb42b84f2d835bc4d1266c629f1a1468e0416caaaadc449e29cce
-process_governance_hash: sha256:fa1ffe5a868cb6d8b0866aef48588adbbe3ecd872a9d72647023f853523c08cb
-release_bundle_hash: sha256:5dbb06cc76070265e6337110b17293ed128297b1c9a26fdc44a4667666202379
-release_manifest_hash: sha256:d153a5ecd27b64bd5d002d05c42459695083fd35b17974d2e5aa2a299d1cbdf0
+process_governance_hash: sha256:a87cca88fd9fb9adb3883b1ec68fb55400f91c0aa43b07ddfbcbe30af3115911
+release_bundle_hash: sha256:d4684baa5f5748660dc980d663ebb79234aebc7eb0c6676f6d9a5c78e0caa3ae
+release_manifest_hash: sha256:d3a0de16cc2263d27ca83d8c9941a53be9111a68743431202db81cc9eb5addcc
 artifact_hashes:
 - path: AGENTS.md
   group: process_governance
-  hash: sha256:017f3ae0912892015407b707666189efbd943123b9c8074b1c53181560be6867
+  hash: sha256:2fff4619260a36548a47ddc2708dcb451e185cb36eb81758beee6f1346a01da0
   canonicalization: text_lf
 - path: CONFORMANCE.md
   group: process_governance
@@ -41,7 +41,7 @@ artifact_hashes:
   canonicalization: text_lf
 - path: CONTRIBUTING.md
   group: process_governance
-  hash: sha256:9356d74652299062650641ff855ccea760034e79755b7fd048ca5cefe313edc0
+  hash: sha256:09780422263072a350400673df72cff10cd0fb16d30cb4c182c1b6782a7dce71
   canonicalization: text_lf
 - path: IP_POLICY.md
   group: process_governance
@@ -97,11 +97,11 @@ artifact_hashes:
   canonicalization: text_lf
 - path: conformance/must-fail.jsonl
   group: core_conformance
-  hash: sha256:1e6d4b66f631dddc6f39e5b4f8494ad149b2f8672e3bcf08ad7a73419eb47608
+  hash: sha256:6fbe5f200a24ff2dedf96bd79b245484857761e598ad300dd06f69131a75165a
   canonicalization: text_lf
 - path: conformance/must-pass.jsonl
   group: core_conformance
-  hash: sha256:ca53751311824c5a941e652bfdec89c6566233e5e6e06649547993606b4138ff
+  hash: sha256:d1b4abb264493d97274537eca1dd5306319491467357ac0d3287ccc3411071d4
   canonicalization: text_lf
 - path: conformance/profile-precision/context.jsonl
   group: profile_precision
@@ -133,7 +133,7 @@ artifact_hashes:
   canonicalization: text_lf
 - path: docs/zmeta_change_governance.md
   group: process_governance
-  hash: sha256:5ce067786e265cc491839258e6362f978039c5fa3f1d2120bdd022911935ee4b
+  hash: sha256:9e4a6391fd697d4ddcb6696a918f0abbb679cc266edc59d6515fc7920f2d1e1e
   canonicalization: text_lf
 - path: docs/zmeta_defensive_publication.md
   group: process_governance
@@ -321,7 +321,7 @@ artifact_hashes:
   canonicalization: text_lf
 - path: tools/validate_conformance.py
   group: conformance_tools
-  hash: sha256:dea36ae847c03ad64f335c9aa6a1bcb84068c7c96938d53093b13667efd80c9b
+  hash: sha256:444956d3126a947a26c96f03d5a2d0388c2ad857bd884846dbd849edac5b2e80
   canonicalization: text_lf
 - path: tools/validate_conformance_classes.py
   group: conformance_tools
@@ -433,7 +433,7 @@ artifact_groups:
     paths:
     - conformance/must-fail.jsonl
     - conformance/must-pass.jsonl
-    hash: sha256:f2e0bccd9bef5de5cc4d4c6fd69edce459853c3ae6cb8130cb0a2fc7e62490dc
+    hash: sha256:3d0a4388c20a64d76e96d0c29d9f79aab985f36aa75eeb40c03f45fda198dee5
   profile_projection:
     description: Profile projection field catalog and source/projected fixtures.
     paths:
@@ -499,7 +499,7 @@ artifact_groups:
     - TRADEMARK.md
     - docs/zmeta_change_governance.md
     - docs/zmeta_defensive_publication.md
-    hash: sha256:fa1ffe5a868cb6d8b0866aef48588adbbe3ecd872a9d72647023f853523c08cb
+    hash: sha256:a87cca88fd9fb9adb3883b1ec68fb55400f91c0aa43b07ddfbcbe30af3115911
   release_packaging:
     description: Formal release signing, attestation, package template, and package validation support.
     paths:
@@ -531,7 +531,7 @@ artifact_groups:
     - tools/validate_future_roadmap.py
     - tools/validate_precision_policy.py
     - tools/validate_projection.py
-    hash: sha256:1f3a61bb66713d25522e819337b1acd3c95c5cabaefafdc9d1be10d5bfc7cb48
+    hash: sha256:2b12c5d8f6469fdc3295602e9c1b3a536772d5a2d18bda41bc88dd640383755c
 tool_versions:
   python: 3.14.0
   builder: tools/build_release_manifest.py

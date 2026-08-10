@@ -27,6 +27,8 @@ Advisory, current-facing documents for users of the standard:
   (governed; manifest-hashed).
 - `zmeta_defensive_publication.md`: public prior-art posture (governed;
   manifest-hashed).
+- `zmeta_audit_playbook.md`: how audit cycles are run (wave scoping, the
+  rule set with per-cycle scoring, sustains and changes).
 
 ## Process records (history and audit)
 
@@ -45,4 +47,14 @@ made, and not required reading for using the standard:
 - `v*_precut_panel_register.md`: the per-cut pre-release panel record,
   findings and fixes with standalone verification commands, frozen to the
   cut it reviewed.
+- `zmeta_doctrine_review_log.md`: the standing pressure log on the guiding
+  documents. Entries are point-in-time by design; the log's own "How to
+  read this log" header governs interpretation, and status lines are
+  authoritative.
+- `zmeta_after_action_log.md`: the standing after-action record across
+  audit cycles (public half; the private half lives outside the repo).
+- `zmeta_live_test_checklist.md`: the staging checklist for the SITL and
+  live-fire gates; retires into the playbook once those gates have run.
+- `release_checksum_errata.md` and `release_notes_errata.md`: corrections
+  to published release records, which are never rewritten in place.
 - `diagrams/`, `img/`: supporting assets.

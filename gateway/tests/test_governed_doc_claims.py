@@ -287,10 +287,17 @@ def test_every_checklist_flag_exists_in_the_script_it_is_given_to():
         for item in _CHECKLIST_ITEM.split(text)
         if _SCRIPT.search(item)
     )
-    assert inspected >= 15, (
-        f"only {inspected} checklist flags inspected; the release checklist has "
-        "always carried the ten-flag kernel gate plus the package-build flags, "
-        "so this guard has gone vacuous"
+    # Floor recalibrated 2026-08-10: the kernel gate collapsed from a
+    # ten-flag string to the single --kernel-gate alias (apparatus audit,
+    # battery single-sourcing), so the checklist legitimately carries fewer
+    # literal flags. The floor still guards this test's own vacuity: the
+    # alias, the package-build flags, and the examples flags must keep it
+    # comfortably above zero.
+    assert inspected >= 10, (
+        f"only {inspected} checklist flags inspected; the release checklist "
+        "carries the --kernel-gate alias plus the package-build and examples "
+        "flags, so a count this low means the item parser or the checklist "
+        "has broken and this guard has gone vacuous"
     )
     offenders = undeclared_checklist_flags(text)
     assert offenders == [], (

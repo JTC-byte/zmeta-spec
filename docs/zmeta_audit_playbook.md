@@ -6,9 +6,11 @@ review the ZMeta stack. It does not define conformance and does not replace
 here" section of `CLAUDE.md` with an operational cadence.
 
 > **Adopted 2026-07-22** from the R1-11 after-action review. The three-tier
-> cadence, the MAJOR/MODERATE severity floor and the one-third introduction-rate
-> cap are in force. The wave partition is provisional and under observation for
-> the first few audits — see Status at the end.
+> cadence and the MAJOR/MODERATE severity floor are in force. The one-third
+> introduction-rate cap stands as a written backstop rather than active
+> machinery (reclassified 2026-08-10; see the discipline list). The wave
+> partition is provisional and under observation for the first few audits —
+> see Status at the end.
 
 ## Why this exists
 
@@ -134,6 +136,12 @@ only the stopping point.
   **stops, freezes, and re-scopes** rather than spawning another fix round.
   R1-11 ran 7% → 56% → 74%; a one-third cap ends it after the second round, and
   most of the third round's introduced defects are never created.
+  *(Reclassified 2026-08-10, apparatus audit: never fired across every scored
+  cycle since adoption. Per the 2026-07-30 watch item and the X1-03 caution,
+  silence from a constitutional rule is not evidence of uselessness, so the
+  cap stays written; but it is no longer cited as active machinery. The
+  severity floor and the small-wave discipline are the operating controls,
+  and the cap is the backstop behind them.)*
 - **Prefer a known-good over a tangled knot.** When a fix has introduced a
   defect, revert to the last known-good and re-derive — do not patch the patch.
   Patience over forward momentum: there is no time crunch, and momentum in the
@@ -245,7 +253,8 @@ the property R1-11 proved matters most.
 - The three-tier cadence — closeout, refresh, full wave audit before a cut.
 - The six-wave partition along doctrinal seams.
 - Severity floor: fix MAJOR and MODERATE, defer the rest.
-- Introduction-rate cap: one third.
+- Introduction-rate cap: one third (reclassified to a written backstop,
+  2026-08-10).
 
 **Under observation** — watch-items, not open questions; the cadence runs on the
 adopted settings until observation says otherwise. Revisit after the first few

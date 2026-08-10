@@ -14,17 +14,16 @@ SITL exercise recorded in `docs/zmeta_live_test_checklist.md`.
 
 Full test battery:
 `python -m pytest -q`
-Result: 1782 passed, 2 skipped, 1105 subtests passed.
+Result: 1787 passed, 2 skipped, 1105 subtests passed.
 
 Kernel protection gates:
-`python tools/validate_conformance.py --strict --profile-projection
---extension-registry --conformance-classes --encoding-negative
---precision-policy --release-manifest --release-package --bad-events
---adapter-harness`
+`python tools/validate_conformance.py --kernel-gate`
+(the single named form of the full gate, introduced this release; an
+equivalence test pins it to the historical ten-flag invocation)
 Result: exit 0. Projection conformance 37, extension registry 63 entries,
 conformance classes 34 with 2 claims, encoding negative 50, profile precision
 policy 41, bad-event corpus 34, adapter conformance 53, core conformance
-pass=20 fail=39.
+pass=21 fail=42.
 
 Examples:
 `python tools/validate_examples.py --strict --require-all`

@@ -4,11 +4,13 @@
 
 This release fixes an altitude-datum defect in the MAVLink ingress, sweeps the
 same defect class across every other adapter surface and fixes what the sweep
-confirmed, and corrects three places where the stack claimed more than its
-evidence supported. The locked kernel does not move: `schema/*.json`,
-`policy/*.yaml` and `spec/semantics-contract.md` are byte-identical to
-v1.1.21. Two governed artifacts changed: the conformance corpus gained twelve
-negative timestamp vectors, and the adapter-harness fixtures moved to the
+confirmed, corrects three places where the stack claimed more than its
+evidence supported, and lands the no-decision fixes from an apparatus-wide
+audit of the check and governance machinery. The locked kernel does not move:
+`schema/*.json`, `policy/*.yaml` and `spec/semantics-contract.md` are
+byte-identical to v1.1.21. Three governed artifacts changed: the core
+conformance corpus gained twelve negative timestamp vectors and the four
+A1-02 dimensionality vectors, and the adapter-harness fixtures moved to the
 datum-qualified altitude keys the swept adapters now require.
 
 The work was seeded by an independent technical review comparing ZMeta against
@@ -200,9 +202,44 @@ egress README no longer suggests that installing a format checker closes a gap
 it cannot close. Each of these invited a specific misreading in the external
 review, which is the evidence they were unclear rather than merely terse.
 
+## Apparatus hardening
+
+An audit of the verification and governance apparatus itself (114 items,
+each answering what it guards, whether it is the sole guard, whether an
+adopter needs it, and what retires it, argued against a documented record of
+twenty real catches) found the check inventory sound and the growth
+mechanics broken. The fixes that needed no maintainer decision land here:
+
+- The full kernel protection gate has one named form,
+  `python tools/validate_conformance.py --kernel-gate`. The flag list lives
+  in one place in the tool, an equivalence test pins the alias to the
+  historical ten-flag invocation, and the current-facing documents now
+  quote the alias, so the gate's definition stops being a hand-copied
+  moving fact. Frozen process records keep the historical command verbatim.
+- The conformance corpus now covers declared-2D geo (doctrine A1-02): a
+  must-pass vector generated through the real AIS adapter, and three
+  must-fail vectors pinning the coherence arms. An independent
+  implementation can now verify the feature from the corpus alone, which
+  it previously could not.
+- The release tooling closes the two traps behind this release's own
+  packaging defect: the documented package build names
+  `--release-state formal_release`, a test refuses a built package whose
+  self-description disagrees with the manifest, and the checksum step
+  refuses a package zip staler than its package directory rather than
+  silently checksumming it.
+- Smaller alignments: the Makefile packet-size target matches CI's flag
+  form, the docs index is complete again (its process-records section is
+  machine-parsed and freezes what it lists), the records-currency guard
+  ignores the gitignored private-records folder, and the audit playbook's
+  never-fired one-third introduction cap is reclassified to a written
+  backstop per its own watch item.
+
+The audit's remaining output is maintainer decisions, recorded on the
+backlog, not code.
+
 ## Verification
 
-Full battery: 1782 passed, 2 skipped, 1105 subtests passed.
+Full battery: 1787 passed, 2 skipped, 1105 subtests passed.
 
 Kernel gates exit 0:
 `python tools/validate_conformance.py --strict --profile-projection
@@ -211,7 +248,7 @@ Kernel gates exit 0:
 --adapter-harness`
 
 Examples 51/51 under `--strict --require-all`. Roadmap validator ok at 19
-candidates. Conformance corpus at pass=20 fail=39.
+candidates. Conformance corpus at pass=21 fail=42.
 
 The MAVLink change was verified end to end rather than at the unit boundary: a
 2-D event projected through CoT egress emits `hae="9999999.0"`, the documented

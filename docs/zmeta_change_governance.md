@@ -312,7 +312,7 @@ Minimum gate for governed changes:
 ```powershell
 python tools\validate_release_manifest.py --manifest release\zmeta-release-manifest.yaml
 python tools\validate_release_package.py --manifest release\zmeta-release-manifest.yaml --templates-only
-python tools\validate_conformance.py --strict --profile-projection --extension-registry --conformance-classes --encoding-negative --precision-policy --release-manifest --release-package --bad-events --adapter-harness
+python tools\validate_conformance.py --kernel-gate
 python -m pytest -q
 git diff --check
 ```

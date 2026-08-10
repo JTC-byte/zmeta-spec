@@ -309,7 +309,7 @@ python tools/check_compat.py <your-events>.jsonl --target <pinned-release>
 python tools/validate_adapter_conformance.py --fixtures <your-fixtures>.jsonl
 
 # 5. Full kernel gate (prove nothing else regressed)
-python tools/validate_conformance.py --strict --profile-projection --extension-registry --conformance-classes --encoding-negative --precision-policy --release-manifest --release-package --bad-events --adapter-harness
+python tools/validate_conformance.py --kernel-gate
 ```
 
 Non-Python adapters: steps 2-3 validate your emitted JSONL regardless of
