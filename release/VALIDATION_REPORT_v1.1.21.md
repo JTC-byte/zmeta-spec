@@ -18,9 +18,10 @@ The locked v1.0 kernel is unchanged: `git diff v1.1.20..HEAD` over
 `schema/zmeta-event-1.0.schema.json` and the locked contract sections is
 empty, and the byte-identity anchors in
 `gateway/tests/test_v1_lock_baseline.py` hold. Governed artifacts changed
-relative to `zmeta-v1.1.20`: `policy/semantics.yaml`,
-`policy/violation-codes.yaml`, `schema/zmeta-event-1.1.0.schema.json`,
-`spec/compact-binary-mapping.md`, `spec/extension-registry.yaml`.
+relative to `zmeta-v1.1.20`: `policy/command-evidence.yaml`,
+`policy/semantics.yaml`, `policy/violation-codes.yaml`,
+`schema/zmeta-event-1.1.0.schema.json`, `spec/compact-binary-mapping.md`,
+`spec/extension-registry.yaml`.
 
 ## Validation executed at the cut (2026-08-09, local)
 

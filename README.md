@@ -201,7 +201,7 @@ nodes.
   reference bearer budget. Records catch up to v1.1.20: two doctrine
   entries close, two errata are recorded (published files stay as
   published), and the mapping spec states the measured fact that float
-  quantization saves zero bytes. Governed artifacts changed in this release, relative to zmeta-v1.1.20: policy/semantics.yaml, policy/violation-codes.yaml, schema/zmeta-event-1.1.0.schema.json, spec/compact-binary-mapping.md, spec/extension-registry.yaml.
+  quantization saves zero bytes. Governed artifacts changed in this release, relative to zmeta-v1.1.20: policy/command-evidence.yaml, policy/semantics.yaml, policy/violation-codes.yaml, schema/zmeta-event-1.1.0.schema.json, spec/compact-binary-mapping.md, spec/extension-registry.yaml.
 - Normative contract: v1.0 locked semantic contract, canonical version-discriminated
   JSON schema, v1.0 JSON schema, and policy pack.
 - Experimental extension: `schema/zmeta-event-1.1.0.schema.json` is provided for proposed

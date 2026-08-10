@@ -8,7 +8,7 @@
     {
       "export": "export/policy/command-evidence.json",
       "source": "policy/command-evidence.yaml",
-      "source_sha256": "sha256:aecc54aee447f21866a26f2d30b53b4edd5b3742514e85dac6208eee86807184"
+      "source_sha256": "sha256:667e773864cda4e621afefc00a4b71cc12e2bc249ac2303c7b272bc457f90970"
     },
     {
       "export": "export/policy/lineage.json",

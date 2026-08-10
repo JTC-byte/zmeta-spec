@@ -37,9 +37,10 @@ full evidence table and the maintainer's disposition (normative sentence
 in a later wave, with adapter conformance work).
 
 Governed artifacts changed in this release, relative to zmeta-v1.1.20:
-policy/semantics.yaml, policy/violation-codes.yaml,
-schema/zmeta-event-1.1.0.schema.json, spec/compact-binary-mapping.md,
-spec/extension-registry.yaml. The locked v1.0 kernel is unchanged.
+policy/command-evidence.yaml, policy/semantics.yaml,
+policy/violation-codes.yaml, schema/zmeta-event-1.1.0.schema.json,
+spec/compact-binary-mapping.md, spec/extension-registry.yaml. The locked
+v1.0 kernel is unchanged.
 
 ## The reason-code mint, diagnostic-first
 

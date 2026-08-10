@@ -28,8 +28,8 @@ bad_event_corpus_hash: sha256:a14c0492452bfad586a9fdce4a7e199b0baf937325b19af3a2
 adapter_conformance_hash: sha256:d97db4ca864fce4a9f4546175c93f40947083c77d5e19ef1357e285d7bdd181c
 encoding_projection_specs_hash: sha256:5e14298cb0ffb42b84f2d835bc4d1266c629f1a1468e0416caaaadc449e29cce
 process_governance_hash: sha256:1198e125cef662bcf16d03c464fa3f0dd10b908eeec5c2a2e9a6325a39eb0202
-release_bundle_hash: sha256:035a72d5929879428de3dbf1e5498c717f0c1c8447e810b846c47a7b1eef30b6
-release_manifest_hash: sha256:5d19edc154581f0869506ba2ed23a01e267f75c2029949b35e4024c296f3d524
+release_bundle_hash: sha256:ab0cedc6115b84ac24d8f61ace0af448ee9b55a1145f2bb8503598289dcd40d4
+release_manifest_hash: sha256:f4bae8a8837f3b70017ca1dbb6c2caad345ba37fa7d3b56ecf52dbb7291a605c
 artifact_hashes:
 - path: AGENTS.md
   group: process_governance
@@ -145,7 +145,7 @@ artifact_hashes:
   canonicalization: text_lf
 - path: export/policy/index.json
   group: policy_json_export
-  hash: sha256:4bc38e2c16395de3880f6b91245a3703e8415bcee4e57f24f3c14611373008b9
+  hash: sha256:e9c2b54ade9fe4c56da8429ca29d2c3ce39251906f2ef7323e3360df9b4c636b
   canonicalization: text_lf
 - path: export/policy/lineage.json
   group: policy_json_export
@@ -411,7 +411,7 @@ artifact_groups:
     - export/policy/timing-freshness.json
     - export/policy/violation-codes.json
     - tools/export_policy_json.py
-    hash: sha256:ca44aa3028047b5696921eeddfeb28e4ba884fe959cb16bb4e209e856b11c19e
+    hash: sha256:f176fb5cd09a14104f83c3705f46b87e94c9afb79f42b932e268981d653c8d12
   extension_registry:
     description: Machine-readable extension and reserved-vocabulary registry.
     paths:
