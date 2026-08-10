@@ -1177,10 +1177,10 @@ Current stack status:
   bearing/heading fields unless callers explicitly assert `TRUE_NORTH`;
   unasserted native values remain auditable under explicitly named
   non-canonical fields.
-- Use tag `v1.1.21` for current formal release assets and checksums **once it
-  exists — it does not yet.** v1.1.21 is prepared in-tree, not published: no
-  tag, no signature, no upload. Until then `v1.1.20` (published 2026-08-03)
-  is the published release and the one to clone for byte-exact verification.
+- Use tag `v1.1.21` for current formal release assets and checksums.
+  Published 2026-08-09: tag, release assets, and checksums are up;
+  checksums-only per the recorded signing decision. `v1.1.20` (published
+  2026-08-03) is the baseline before it.
   *This line is machine-pinned on its version literal only, so it went on
   naming a tag that had never been created while the pin stayed green — the
   prose-beside-a-pinned-literal blind spot this cycle was convened to fix,
