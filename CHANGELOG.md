@@ -6,6 +6,25 @@
 
 ## [1.1.21] - 2026-08-09
 
+- 2026-08-09 — **A1-01 runs its experimental split: power declares its
+  reference.** The v1.1.0 experimental branch gains
+  `features.power_reference` on RF observations (`DBM_ABSOLUTE`, `DBFS`,
+  `DB_RELATIVE`; absent keeps the contract 7.4 calibrated-dBm status quo),
+  registered as POWER_REFERENCE (experimental, maintainer-directed
+  2026-08-09). The ADS-B reference adapter emits either form by flag:
+  `rf_power_reference=True` produces RF-modality observations for entries
+  carrying `rssi`, with `power_dbm` holding the dBFS value and its
+  reference declared beside it under a forced 1.1.0 stamp; entries
+  without `rssi` keep the NETWORK form, and default output is
+  byte-for-byte unchanged. The registry entry records on its face that
+  the in-repo instances are same-origin and do not meet the independence
+  bar: this is the experiment that gathers consumer evidence, not a
+  promotion. The doctrine log's A1-01 entry stays OPEN with the
+  disposition recorded; the fielded kraken adapter is deliberately
+  unchanged. Four new adapter pins cover the flagged form, the
+  rssi-less fallback, default-path stability, and the enum refusing an
+  undeclared token.
+
 - 2026-08-09 — **The R1-11-01 Class B batch: three reason codes minted,
   diagnostic-first on the wire.** Maintainer adjudication at the forced
   occurrence count closes the reuse-vs-mint class: `NON_FINITE_VALUE`

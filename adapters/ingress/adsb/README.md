@@ -134,6 +134,19 @@ its reference the way `bearing.frame` declares `TRUE_NORTH` and
 covers every SDR. A subtype per sensor family would turn the vocabulary into a
 dictionary rather than an alphabet.
 
+**The experimental split is running as of 2026-08-09.** The discriminator
+exists on the v1.1.0 branch as `features.power_reference` (`DBM_ABSOLUTE`,
+`DBFS`, or `DB_RELATIVE`; registry entry POWER_REFERENCE, experimental,
+maintainer-directed). Passing `rf_power_reference=True` to
+`translate_aircraft` or `translate_snapshot` emits the RF form for entries
+that carry `rssi`: modality `RF`, the full contract 7.4 minimum feature
+set, `power_dbm` holding the dBFS value with `power_reference: "DBFS"`
+declared beside it, stamped `zmeta_version: 1.1.0`. Entries without `rssi`
+keep the NETWORK form, and the default output is unchanged. The point of
+the flag is the experiment cycle A1 approved: the same capture emitted both
+ways, with downstream consumers deciding whether the declared form earns
+promotion. NETWORK remains the default until that evidence arrives.
+
 ### 2. All-or-nothing geo discarded good 2-D positions -- closed for this adapter
 
 `payload.geo` used to require `alt_m` unconditionally (contract 6.8). A large

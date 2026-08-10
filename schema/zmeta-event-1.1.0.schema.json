@@ -1176,6 +1176,10 @@
                   "center_freq_hz": { "type": "number" },
                   "bandwidth_hz": { "type": "number" },
                   "power_dbm": { "type": "number" },
+                  "power_reference": {
+                    "type": "string",
+                    "enum": ["DBM_ABSOLUTE", "DBFS", "DB_RELATIVE"]
+                  },
                   "signature_hash": { "type": "string" }
                 }
               }

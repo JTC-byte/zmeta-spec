@@ -3,7 +3,7 @@ generated_for_zmeta_versions:
   - "1.0"
   - "1.1.0"
 authority: spec/semantics-contract.md
-last_updated: "2026-07-07"
+last_updated: "2026-08-09"
 status_values:
   - reserved
   - proposed
@@ -187,6 +187,36 @@ entries:
     notes:
       - Experimental v1.1.0 only; v1.0 bearing objects are locked and reject the frame key.
       - v1.0 producers may record frame provenance only via free-form quality.bearing_frame and quality.heading_source.
+
+  - <<: *entry_defaults
+    name: POWER_REFERENCE
+    display_name: Power reference declaration
+    category: observation_feature_contract
+    status: experimental
+    version_branch: "1.1.0"
+    introduced_in: "1.1.0"
+    semantic_definition: v1.1.0 optional features.power_reference marker on RF observations declaring the reference of power_dbm ("DBM_ABSOLUTE", "DBFS", or "DB_RELATIVE"); absent means the contract section 7.4 status quo, absolute dBm from a calibrated receiver.
+    rationale: power_dbm assumes a calibrated receiver, and most fielded SDRs report uncalibrated full-scale or relative power. A declaration of reference makes the uncalibrated value sayable without laundering it into absolute dBm, the same shape as bearing.frame and quality.calibration_state. It constrains the meaning, not the source, so one optional discriminator covers every SDR.
+    allowed_event_types: ["OBSERVATION_EVENT"]
+    payload_scope: ["payload.features.power_reference"]
+    schema_status: implemented
+    policy_status: not_applicable
+    conformance_status: implemented
+    risk_relevant: true
+    profile_projection_behavior: preserve
+    security_privacy_notes:
+      - An undeclared power reference invites cross-sensor comparison of incommensurable quantities. Minus forty from a calibrated receiver and minus forty from a DoA chain's RSSI are different physical claims, and the difference appears exactly when a second sensor's power meets the first in one consumer, the interoperability case ZMeta exists for. The declaration must survive projection with the value; dropping it restores the ambiguity this marker removes.
+    fixture_references:
+      - adapters/ingress/adsb/test_adsb_ingress.py
+      - gateway/tests/test_schema_version_discrimination.py
+    references:
+      - schema/zmeta-event-1.1.0.schema.json
+      - spec/semantics-contract.md
+      - docs/zmeta_doctrine_review_log.md
+    date_added: "2026-08-09"
+    review_state: approved
+    notes:
+      - Doctrine A1-01, experimental split directed by maintainer adjudication 2026-08-09. The in-repo instances (kraken RSSI dB, ADS-B dBFS) demonstrate the need but share one codebase, author and organization, so they do not meet the Promotion Evidence Requirements independence definition; this entry is the experiment that gathers consumer evidence, not a promotion. The ADS-B reference adapter emits the marker by flag (rf_power_reference) under conditional zmeta_version 1.1.0 stamping; the fielded kraken adapter is deliberately unchanged.
 
   - <<: *entry_defaults
     name: DATA_REF_FORMAL_BEHAVIOR

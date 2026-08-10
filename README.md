@@ -185,20 +185,23 @@ nodes.
 
 - Current release: `v1.1.21`
 - Release notes and assets: <https://github.com/JTC-byte/zmeta-spec/releases/tag/v1.1.21>
-- Release focus: the reason-code mint. The R1-11-01 Class B batch adds
-  `NON_FINITE_VALUE` and the command-evidence pair
-  (`COMMAND_EVIDENCE_UNRESOLVED`, `COMMAND_EVIDENCE_PROHIBITED`) to the
-  governed diagnostic vocabulary, closing the reuse-vs-mint question at
-  its forced occurrence count. Wire posture is diagnostic-first: the
-  locked v1.0 enum cannot grow, so a v1.0-stamped diagnostic keeps its
-  documented legacy code and carries the minted code in
-  `metrics.diagnostic_code`, while JSONL diagnostics and the 1.1.0 enum
-  carry it natively. The packet-size gate now validates events before
-  measuring them and runs at the documented 236-byte reference bearer
-  budget. Records catch up to v1.1.20: two doctrine entries close, two
-  errata are recorded (published files stay as published), and the
-  mapping spec states the measured fact that float quantization saves
-  zero bytes. Governed artifacts changed in this release, relative to zmeta-v1.1.20: policy/semantics.yaml, policy/violation-codes.yaml, schema/zmeta-event-1.1.0.schema.json, spec/compact-binary-mapping.md.
+- Release focus: the reason-code mint and the power-reference experiment.
+  The R1-11-01 Class B batch adds `NON_FINITE_VALUE` and the
+  command-evidence pair (`COMMAND_EVIDENCE_UNRESOLVED`,
+  `COMMAND_EVIDENCE_PROHIBITED`) to the governed diagnostic vocabulary,
+  closing the reuse-vs-mint question at its forced occurrence count. Wire
+  posture is diagnostic-first: the locked v1.0 enum cannot grow, so a
+  v1.0-stamped diagnostic keeps its documented legacy code and carries the
+  minted code in `metrics.diagnostic_code`, while JSONL diagnostics and
+  the 1.1.0 enum carry it natively. The A1-01 experimental split runs:
+  `features.power_reference` (v1.1.0, registry POWER_REFERENCE) lets an
+  uncalibrated SDR declare what its power number means, and the ADS-B
+  adapter emits either form by flag. The packet-size gate now validates
+  events before measuring them and runs at the documented 236-byte
+  reference bearer budget. Records catch up to v1.1.20: two doctrine
+  entries close, two errata are recorded (published files stay as
+  published), and the mapping spec states the measured fact that float
+  quantization saves zero bytes. Governed artifacts changed in this release, relative to zmeta-v1.1.20: policy/semantics.yaml, policy/violation-codes.yaml, schema/zmeta-event-1.1.0.schema.json, spec/compact-binary-mapping.md, spec/extension-registry.yaml.
 - Normative contract: v1.0 locked semantic contract, canonical version-discriminated
   JSON schema, v1.0 JSON schema, and policy pack.
 - Experimental extension: `schema/zmeta-event-1.1.0.schema.json` is provided for proposed

@@ -901,7 +901,7 @@ instance, which is what keeps a fix from being an accommodation for one source.
 
 | # | Tension | Gates in play | Status |
 |---|---|---|---|
-| A1-01 | RF minimum features assume a calibrated receiver | 1, 3 | OPEN |
+| A1-01 | RF minimum features assume a calibrated receiver | 1, 3 | OPEN — experimental discriminator shipped 2026-08-09 |
 | A1-02 | All-or-nothing geo discards good 2-D positions | 1, 2, 3 | **CLOSED 2026-08-03** — shipped end to end: schema, token, coherence arms, contract 21.1/21.8, registry, both adapters, projector |
 | A1-03 | Translation provenance is unsayable for an original observation | 3, 5 | OPEN |
 
@@ -938,6 +938,25 @@ not the source.**
 The ADS-B adapter ships on v1.0 using `NETWORK` modality to avoid the
 fabrication. That is a WORKAROUND, not a design — ADS-B is RF — and it is
 recorded as such in the adapter README.
+
+**DECIDED 2026-08-09, maintainer adjudication: the experimental split runs.**
+The discriminator this entry recommends is minted on the v1.1.0
+experimental branch as `features.power_reference` (`DBM_ABSOLUTE` / `DBFS`
+/ `DB_RELATIVE`; registry entry POWER_REFERENCE, experimental), and the
+ADS-B adapter emits either form by flag (`rf_power_reference`) under
+conditional 1.1.0 stamping, exactly the mechanism the experiment section
+below proposed and A1-02 has since proven end to end. Two things stay on
+the record. First, the independence caveat from the A1-02 erratum applies
+here in full: the experiment section's claim that this entry "already
+clears" the promotion bar cites kraken and ADS-B, which share one
+codebase, author and organization, so the bar is NOT met under the
+registry's independence definition; the discriminator enters as an
+experiment gathering consumer evidence, not as a promotion. Second, the
+entry stays OPEN: the tension is the formal vocabulary's calibrated-power
+assumption, and it closes when field evidence answers the checklist A1-01
+question in either direction — promotion on real consumer need, or the
+registry's served-in-place disposition if nobody compares power across
+sensors. The fielded kraken adapter is deliberately unchanged either way.
 
 ### A1-02 — All-or-nothing geo discards good 2-D positions · CLOSED 2026-08-03
 

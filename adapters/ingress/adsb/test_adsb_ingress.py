@@ -352,3 +352,62 @@ def test_the_default_producer_satisfies_reference_producer_authority():
     event = translate_aircraft(FULL, **BASE)
     assert event["source"]["producer"].startswith("rf-sensor-")
     assert event["source"]["node_role"] == "EDGE"
+
+
+def test_rf_power_reference_flag_emits_the_declared_rf_form():
+    """The A1-01 experimental split: dBFS in power_dbm is sayable only with
+    its reference declared beside it (registry POWER_REFERENCE, v1.1.0).
+
+    The RF minimum feature set is complete and each member exactly as honest
+    as the data: real downlink frequency, the documented not-measured 0.0
+    bandwidth sentinel, and the rssi value with power_reference "DBFS". The
+    stamp is forced to 1.1.0 because the discriminator is 1.1.0 vocabulary,
+    and the event must validate there, not just assert its own shape.
+    """
+    event = translate_aircraft(FULL, rf_power_reference=True, **BASE)
+    assert event["zmeta_version"] == "1.1.0"
+    assert event["payload"]["modality"] == "RF"
+    assert event["event"]["event_subtype"] == "RF"
+    features = event["payload"]["features"]
+    assert features["center_freq_hz"] == 1090_000_000.0
+    assert features["bandwidth_hz"] == 0.0
+    assert features["power_dbm"] == -18.4
+    assert features["power_reference"] == "DBFS"
+    # The native claim stays alongside the canonical one; removing it would
+    # delete information the default form has always carried.
+    assert features["rssi_dbfs"] == -18.4
+    VALIDATOR_1_1_0.validate(event)
+
+
+def test_rf_flag_without_rssi_keeps_the_network_form():
+    """An RF observation without its required power claim would have to
+    fabricate one, so an rssi-less entry keeps the NETWORK form under the
+    flag rather than inventing power_dbm."""
+    entry = {k: v for k, v in FULL.items() if k != "rssi"}
+    event = translate_aircraft(entry, rf_power_reference=True, **BASE)
+    assert event["payload"]["modality"] == "NETWORK"
+    assert event["event"]["event_subtype"] == "NETWORK"
+    features = event["payload"]["features"]
+    assert "power_dbm" not in features
+    assert "power_reference" not in features
+
+
+def test_rf_flag_off_never_emits_the_discriminator():
+    """Default output is byte-for-byte the established behavior: no RF form,
+    no power_reference, rssi only under its explicitly named native key."""
+    event = translate_aircraft(FULL, **BASE)
+    assert event["payload"]["modality"] == "NETWORK"
+    features = event["payload"]["features"]
+    assert "power_dbm" not in features
+    assert "power_reference" not in features
+    assert features["rssi_dbfs"] == -18.4
+
+
+def test_power_reference_enum_rejects_an_undeclared_token():
+    """Red proof for the schema enum: a token outside DBM_ABSOLUTE / DBFS /
+    DB_RELATIVE fails 1.1.0 validation, so a producer cannot mint private
+    reference vocabulary through this member."""
+    event = translate_aircraft(FULL, rf_power_reference=True, **BASE)
+    event["payload"]["features"]["power_reference"] = "DBM"
+    errors = list(VALIDATOR_1_1_0.iter_errors(event))
+    assert errors, "an undeclared power_reference token validated"

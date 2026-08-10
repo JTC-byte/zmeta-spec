@@ -45,6 +45,11 @@ change to the standard and none should move without field evidence.
       dB" into `power_dbm` and it translates, fuses and maps correctly in TAK
       today. Put a second RF sensor beside it in one consumer and see whether
       anything actually breaks.
+      *State change 2026-08-09, question unchanged:* the experimental
+      discriminator now exists (`features.power_reference` on the v1.1.0
+      branch, registry POWER_REFERENCE; ADS-B emits it by flag). The test
+      is now concrete: run the flagged form beside kraken in one consumer
+      and see whether the declared reference changes what anyone does.
 - [x] **A1-02: does anyone miss the dropped 2-D positions?** ADS-B targets
       reporting only barometric altitude produce no canonical `geo`.
       *Question:* run the adapter against live traffic, count how many targets

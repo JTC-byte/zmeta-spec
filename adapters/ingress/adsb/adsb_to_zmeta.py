@@ -23,6 +23,25 @@ explicitly named native feature, ``rssi_dbfs``, never as ``power_dbm``.
 A deployment with a calibrated receiver could honestly emit RF; that is a later
 refinement, not something to fake here.
 
+THE A1-01 EXPERIMENTAL SPLIT (``rf_power_reference=True``)
+----------------------------------------------------------
+The v1.1.0 experimental branch carries the discriminator the paragraph
+above was missing: ``features.power_reference`` declares whether
+``power_dbm`` holds absolute dBm, full-scale dBFS, or relative dB
+(extension registry POWER_REFERENCE; doctrine A1-01, maintainer-directed
+2026-08-09). With the reference declared, the dBFS number in ``power_dbm``
+is no longer laundering, because the claim travels with the value. Passing
+``rf_power_reference=True`` emits the RF form for exactly the entries that
+carry ``rssi``: modality/subtype ``RF``, ``center_freq_hz`` from the
+downlink constant, the documented ``bandwidth_hz: 0.0`` not-measured
+sentinel, ``power_dbm`` holding the dBFS value, and
+``power_reference: "DBFS"``, all under a forced ``zmeta_version: 1.1.0``
+stamp. Entries without ``rssi`` keep the NETWORK form: an RF observation
+without its required power claim would have to fabricate one. The default
+path is byte-for-byte unchanged; this flag exists so the same capture can
+be emitted both ways and downstream consumers, not argument, decide the
+promotion question (the experiment mechanism doctrine cycle A1 approved).
+
 WHY ``OBSERVATION_EVENT`` AND NOT ``STATE_EVENT``
 -------------------------------------------------
 The MAVLink adapter maps a platform's self-reported position to
@@ -323,6 +342,7 @@ def translate_aircraft(
     receiver_id=None,
     sensor_id=None,
     timing_quality=None,
+    rf_power_reference=False,
 ):
     """Translate one ``aircraft.json`` entry into a ZMeta OBSERVATION_EVENT.
 
@@ -338,6 +358,12 @@ def translate_aircraft(
         timing_quality: real clock metadata when the deployment has it. Absent,
             the governed degraded fallback is used -- never a synchronization
             claim nobody made.
+        rf_power_reference: the A1-01 experimental split (module docstring).
+            When true, an entry carrying ``rssi`` is emitted as an RF
+            observation with ``power_dbm`` plus the declared
+            ``power_reference: "DBFS"`` under a 1.1.0 stamp; entries without
+            ``rssi`` keep the NETWORK form. Default false: output is
+            byte-for-byte the established behavior.
 
     Returns:
         The event dict, or ``None`` when the entry cannot honestly become one:
@@ -363,25 +389,46 @@ def translate_aircraft(
 
     geo = _geo(entry)
     quality = _quality(geo)
-    # Either v1.1.0-only geo vocabulary -- a declared ellipse, or the 2-D
-    # form (doctrine A1-02) -- forces the 1.1.0 stamp; an entry using neither
-    # stays on the locked v1.0 branch, unchanged.
-    needs_1_1_0 = geo is not None and (
-        "error_ellipse_m" in geo or geo.get("dimensionality") == "2D"
+    # The A1-01 experimental split: RF form only where the power claim
+    # actually exists. An entry without `rssi` cannot honestly satisfy the
+    # RF minimum feature set (contract 7.4 requires power_dbm), so it keeps
+    # the NETWORK form even under the flag.
+    rssi_value = _finite(entry.get("rssi")) if rf_power_reference else None
+    emit_rf = rssi_value is not None
+    # v1.1.0-only vocabulary forces the 1.1.0 stamp: a declared ellipse, the
+    # 2-D form (doctrine A1-02), or the power-reference discriminator
+    # (doctrine A1-01). An entry using none stays on the locked v1.0 branch,
+    # unchanged.
+    needs_1_1_0 = emit_rf or (
+        geo is not None
+        and ("error_ellipse_m" in geo or geo.get("dimensionality") == "2D")
     )
 
     features = _native_features(entry, receiver_id)
-    if needs_1_1_0:
+    if needs_1_1_0 and not emit_rf:
         # The locked v1.0 kernel's NETWORK ObservationPayload imposes no
         # feature vocabulary of its own, but v1.1.0's does, and requires
         # `protocol` (schema/zmeta-event-1.1.0.schema.json). An entry that
-        # never touches 1.1.0-only geo vocabulary never leaves the v1.0
+        # never touches 1.1.0-only vocabulary never leaves the v1.0
         # branch, so it never gains this key -- the v1.0 output stays
         # byte-for-byte what it always was.
         features["protocol"] = "ADS-B"
+    if emit_rf:
+        # The RF minimum feature set, each member exactly as honest as the
+        # data allows: the downlink frequency is protocol fact, bandwidth is
+        # not measured by dump1090 and takes the documented 0.0 sentinel
+        # (the kraken/moth/signalhunter convention, adapters/AUTHORING.md;
+        # the schema requires the member, so omission is not available), and
+        # power_dbm carries the dBFS value WITH its reference declared,
+        # which is what makes this form sayable at all (registry
+        # POWER_REFERENCE, v1.1.0 experimental).
+        features["center_freq_hz"] = float(ADSB_DOWNLINK_HZ)
+        features["bandwidth_hz"] = 0.0
+        features["power_dbm"] = rssi_value
+        features["power_reference"] = "DBFS"
 
     payload = {
-        "modality": "NETWORK",
+        "modality": "RF" if emit_rf else "NETWORK",
         "features": features,
         # An RTL-SDR ADS-B receiver has no disciplined clock: dump1090 stamps on
         # receipt from the host system clock, and ADS-B messages carry no
@@ -421,7 +468,7 @@ def translate_aircraft(
         "event": {
             "event_id": str(uuid7()),
             "event_type": "OBSERVATION_EVENT",
-            "event_subtype": "NETWORK",
+            "event_subtype": "RF" if emit_rf else "NETWORK",
             "ts": ts,
         },
         "source": source,
