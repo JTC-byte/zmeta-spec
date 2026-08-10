@@ -4,4 +4,4 @@ units:
   power_dbm: dbm
   lat: degrees
   lon: degrees
-  alt_m: meters_hae
+  alt_hae_m: meters_hae

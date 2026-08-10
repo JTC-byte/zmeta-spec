@@ -741,6 +741,21 @@ def test_geo_geoid_datum_is_omitted():
     assert ext["location"]["omitted_reason"] == "GEOID_DATUM"
 
 
+def test_geo_unspecified_coordinate_system_emits_documented_tag():
+    # Pins the omitted_reason tag to the mapping-pack vocabulary
+    # (enums.yaml / pack README: COORDINATE_SYSTEM_UNSPECIFIED). The code
+    # emitted UNITS_UNSPECIFIED for this disposition while the docs said
+    # otherwise, so a consumer filtering on the documented tag never
+    # matched; this test keeps the two from drifting again.
+    obs = _obs_for_location(
+        _location(coordinate_system="LOCATION_COORDINATE_SYSTEM_UNSPECIFIED")
+    )
+
+    assert "geo" not in obs["payload"]
+    ext = obs["payload"]["extensions"]["vendor.sapient"]
+    assert ext["location"]["omitted_reason"] == "COORDINATE_SYSTEM_UNSPECIFIED"
+
+
 def test_geo_missing_altitude_is_omitted():
     location = _location()
     location.pop("z")

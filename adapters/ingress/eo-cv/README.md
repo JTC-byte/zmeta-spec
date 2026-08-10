@@ -41,10 +41,19 @@ The adapter implements a multi-tier GPS fallback:
 The `payload.claim.geo_source` field records which tier was used:
 `"detection"`, `"fc_fallback"`, or `"unavailable"`.
 
+Altitude datum (contract 6.2): only a vertical the caller declared WGS-84
+HAE reaches canonical `claim.geo.alt_m`. The datum-qualified keys are
+`altitude_hae_m` on the detection and `alt_hae_m` in `sensor_geo`. The
+legacy keys carry no HAE claim: the detection's `altitude` declares no
+datum, and `sensor_geo`'s `alt_m` is a flight controller GPS altitude,
+which MAVLink defines as MSL. A legacy-only vertical degrades the position
+to the declared 2-D form (`dimensionality: "2D"`, 1.1.0 stamp) with the
+value preserved as `quality.eo_cv_alt_unspecified_datum_m` or
+`quality.eo_cv_sensor_alt_msl_m`.
+
 Canonical geo is all-or-nothing (contract 6.8): a resolved position missing
-any of `lat`, `lon`, or `alt_m` (for example a detection GPS with no
-`altitude`) is omitted entirely rather than zero-filled, with
-`geo_source: "unavailable"`.
+`lat`, `lon`, or every vertical is omitted entirely rather than
+zero-filled, with `geo_source: "unavailable"`.
 
 ### Key mappings
 
@@ -53,6 +62,7 @@ any of `lat`, `lon`, or `alt_m` (for example a detection GPS with no
 | class_name | `payload.claim.label` | Semantic classification |
 | confidence | top-level `confidence` | Required; refused when absent, null, or non-numeric; numeric values subject to `confidence_floor` filter |
 | gps | `payload.claim.geo` | Destructured from [lat, lon] array |
+| altitude_hae_m | `payload.claim.geo.alt_m` | WGS-84 HAE only (contract 6.2); the legacy `altitude` key never reaches `alt_m` |
 | bbox | `payload.claim.bbox` | Detected object box; not an EO observation `roi_px` |
 | track_id | `payload.claim.source_object_id` | Source tracker/object ID, not ZMeta `track_id` |
 | stream_id | `source.sensor_id` | Camera/stream identifier |
@@ -65,7 +75,7 @@ from adapters.ingress.eo_cv.eo_cv_to_zmeta import translate
 event = translate(
     {"class_name": "person", "confidence": 0.92, "gps": [43.49, -112.04]},
     platform_id="uav-01",
-    sensor_geo={"lat": 43.50, "lon": -112.05, "alt_m": 1500},
+    sensor_geo={"lat": 43.50, "lon": -112.05, "alt_hae_m": 1433.0},
     confidence_floor=0.5,
 )
 ```

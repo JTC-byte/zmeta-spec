@@ -15,8 +15,19 @@ every producer — contract-required ``payload.timing_quality``, a UUIDv7
 canonical geo, and omit-or-refuse lineage.
 
 Input format (schema_id ``vendor:example_rf:v1``):
-  JSON object: {platform_id, sensor_id, ts, lat, lon, alt_m,
+  JSON object: {platform_id, sensor_id, ts, lat, lon, alt_hae_m,
                 center_freq_hz, bandwidth_hz, power_dbm}
+
+The vendor altitude key is datum-qualified by design: ``alt_hae_m`` is
+declared WGS-84 Height Above Ellipsoid by the pack's ``units.yaml``, and
+only a known-HAE value may occupy canonical ``payload.geo.alt_m``
+(contract 6.2). A source field named plainly ``alt``/``altitude``/``alt_m``
+carries no such guarantee — the MAVLink reference adapter now reads a bare
+``alt_m`` input as MSL precisely because trusting it as HAE was a published
+defect (the C1-01 altitude-datum class; see
+``adapters/ingress/mavlink/mavlink_to_zmeta_template.py``). An adapter
+whose source reports MSL, barometric, or AGL altitude must convert it or
+omit canonical geo, never pass it through unlabeled.
 
 ``bandwidth_hz`` is required: the locked schema's RF minimum feature set
 (contract 7.4) is center_freq_hz + bandwidth_hz + power_dbm, so a reading
@@ -42,7 +53,7 @@ _SIGNATURE_KEYS = {
     "bandwidth_hz",
     "power_dbm",
 }
-_GEO_KEYS = ("lat", "lon", "alt_m")
+_GEO_KEYS = ("lat", "lon", "alt_hae_m")
 
 _SCHEMA_PATH = Path(__file__).resolve().parents[3] / "schema" / "zmeta-event-1.0.schema.json"
 _schema_cache = None
@@ -111,12 +122,14 @@ def translate(input_obj, schema_id, *, based_on=None, timing_quality=None):
     }
 
     # Canonical geo is all-or-nothing (contract 6.8): omit it entirely rather
-    # than zero-fill when any component is missing.
+    # than zero-fill when any component is missing. The vertical crosses the
+    # decode boundary under its datum-qualified name (contract 6.2): only the
+    # declared-HAE alt_hae_m may become canonical alt_m.
     if all(input_obj.get(key) is not None for key in _GEO_KEYS):
         payload["geo"] = {
             "lat": float(input_obj["lat"]),
             "lon": float(input_obj["lon"]),
-            "alt_m": float(input_obj["alt_m"]),
+            "alt_m": float(input_obj["alt_hae_m"]),
         }
 
     event = {

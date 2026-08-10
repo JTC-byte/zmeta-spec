@@ -2,9 +2,10 @@
 
 ## PRIORITIZED BACKLOG after doctrine cycle C1 (2026-08-10)
 
-Written at the close of the C1 fix wave. The wave itself is landed; this is
-what it left behind, merged with the backlog that already existed, in the order
-it should be worked. Nothing below was started.
+Written at the close of the C1 fix wave, updated at the close of the
+altitude-datum sweep wave later the same day. Items landed by the sweep wave
+are marked DONE inline with a pointer to their record; everything unmarked
+remains unstarted.
 
 Ordering rule, stated so it can be argued with: fielded-safety classes first,
 then work that unblocks other work, then decisions that need no new data, then
@@ -16,19 +17,15 @@ design waves, then hygiene, then anything genuinely waiting on field evidence.
    Maintainer-only. Everything else in the cut is prepared and green.
 
 2. **Sweep every remaining ingress adapter for the altitude-datum class.**
-   C1-01 was the third appearance: the July audit found it in a fielded stack,
-   ADS-B was hardened at the source, and MAVLink carried the identical defect
-   unfixed in the same repository. The reason it survived is now understood and
-   is the reusable part: every anti-fabrication guard in this stack keys on
-   **absence**, and a wrong-datum value is present, finite, in range and
-   plausible, so it passes all of them. The guard that works is naming the
-   datum at the ingest boundary rather than at the destination, which is what
-   `alt_msl_m` versus `alt_hae_m` does. Read klv, jreap, cot, moth, kraken,
-   bladerf, signalhunter, sapient and example-vendor against that standard,
-   not against the absence-shaped one. KLV is the most likely next hit, since
-   MISB 0601 carries both HAE and MSL tags and the template is already
-   recorded as unqualified about which it reads. This is a fielded-safety
-   class, so it outranks everything below it.
+   **DONE 2026-08-10.** Twelve surfaces swept (ingress, egress, command,
+   projector), every finding verified through three adversarial lenses: 21
+   findings, 20 confirmed, 1 refuted, and every confirmed finding fixed in
+   the same wave to the C1-01 pattern with per-surface regression tests. KLV
+   was indeed the predicted hit; JREAP, CoT (the 9999999.0 unknown-altitude
+   convention), bladerf, and eo-cv carried live paths; moth, kraken, and the
+   teaching surfaces carried the undocumented-boundary form. Full record and
+   the standing lesson in doctrine entry C1-12; the sweep's secondary notes
+   are triaged as item 16 below.
 
 3. **Specify canonicalization (C1-07).** Both shipped CBOR backends satisfy
    every bullet of the determinism section and emit different bytes for the
@@ -73,8 +70,10 @@ design waves, then hygiene, then anything genuinely waiting on field evidence.
    with the sentence deferred. Landing it makes kraken, moth, bladeRF and the
    example-vendor reference retroactively non-conforming, moves the contract
    hash anchor, and needs an agreed home for a sensor's own position first.
-   Note the coupling that is now visible: item 2's datum sweep touches the
-   same adapters, so these two should probably be one wave rather than two.
+   The coupling with the datum sweep is now resolved in one direction: the
+   sweep landed first, so the B1-01 sentence arrives on adapters whose
+   altitude boundaries are already named. The KLV README now states the
+   sensor-position referent explicitly, which is a down payment on this item.
 
 9. **Event signing envelope design.** Depends on item 3. The shape is
    constrained and the constraint is worth carrying into the design: the event
@@ -94,17 +93,16 @@ design waves, then hygiene, then anything genuinely waiting on field evidence.
 
 ### Tier 4 — cheap, and mostly documentation
 
-11. **A PROV crosswalk.** Genuinely unbooked and now asked for by two
-    independent external surveys in ten days. Non-normative, touches no
-    governed artifact, and `docs/zmeta_vocabulary_crosswalk.md` is the
-    obvious home. Maps `based_on[]` and `transform` onto `wasDerivedFrom`
-    and `Activity`. Cheapest credibility win on this list.
+11. **A PROV crosswalk.** **DONE 2026-08-10.** Landed as the "Crosswalk: W3C
+    PROV" section of `docs/zmeta_vocabulary_crosswalk.md`: `based_on[]` to
+    `wasDerivedFrom`, `transform` to `Activity`, with the non-goals stated.
 
-12. **A current-state header on the doctrine pressure log (C1-09).** Two
-    outside reviewers in ten days have now read the log as the defect list
-    rather than as open questions with authoritative status lines. Publishing
-    the log is right; letting it be misread as an inventory of failures is
-    avoidable with a paragraph.
+12. **A current-state header on the doctrine pressure log (C1-09).**
+    **DONE 2026-08-10.** The log now opens with "How to read this log"
+    (entries are point-in-time, status lines authoritative, terminal bodies
+    describe resolved past states), and C1-09 carries a dated addendum; the
+    entry itself stays open until the next external survey tests whether the
+    header changes the reading.
 
 13. **C1-10, the altitude asymmetry.** After the C1-01 fix, an absent
     altitude refuses emission while an unusable one degrades to 2-D. Needs a
@@ -117,6 +115,24 @@ design waves, then hygiene, then anything genuinely waiting on field evidence.
 
 15. **`CallSitePolicyCoverage` `policy=` hardening.** Banked from the v1.1.21
     pre-cut panel and still open.
+
+16. **Triage the datum sweep's secondary notes.** The sweep's finders logged
+    non-altitude instances of the same laundered-plausible-value class plus
+    adjacent hygiene, recorded in C1-12's wave and preserved with the sweep
+    record. The standouts, none fixed in the wave because its charter was the
+    altitude class: the KLV ingress hardcodes EO subtype/modality regardless
+    of `sensor_mode` (an IR stream publishes as EO, and the old test pinned
+    it vacuously); the track projector maps ADS-B ground track into
+    `heading_deg`, which diverges from airframe heading by the crab angle;
+    the CoT egress emits a `course="0.0"` placeholder when heading is absent;
+    the command-egress `_ALTITUDE_FIELDS` denylist omits `z`, the one synonym
+    SAPIENT itself uses for its vertical (a policy-list question); kraken and
+    signalhunter publish uncalibrated RSSI under `power_dbm` (the booked
+    power-reference alphabet gap, now at n=3); the track projector drops
+    observation `quality.*` in synthesis, so preserved non-canonical MSL
+    context dies at the fusion boundary; and `mapping-packs/README.md` marks
+    `units.yaml` optional while it is the sole carrier of a load-bearing
+    datum declaration for any pack with an altitude field.
 
 ### Tier 5 — genuinely field-gated, or belongs to another repository
 

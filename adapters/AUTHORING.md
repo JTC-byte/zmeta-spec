@@ -127,7 +127,16 @@ same pack first if you want a known-good diff.
    (contract 7.8), requires `requires_deconfliction: true`, a TTL
    (`valid_for_ms`), and an idempotent `task_id`.
 9. **Units and geodesy** (contract 6): WGS-84, meters HAE, degrees true
-   north, m/s, UTC RFC3339 `Z` timestamps. Under the locked v1.0 kernel,
+   north, m/s, UTC RFC3339 `Z` timestamps. The HAE rule has an ingest-side
+   half that "meters HAE" alone does not convey: a source altitude field is
+   only HAE if the source standard defines it as ellipsoidal height. MSL,
+   barometric, AGL, and datum-unspecified altitudes must be converted, kept
+   in an explicitly datum-named non-canonical field (`alt_msl_m` style, or a
+   `quality.*` key naming the datum), or the position degraded to the
+   declared-2D form below; they never occupy `alt_m` as-is. Name the datum
+   at the decode boundary (`alt_hae_m` vs `alt_msl_m`) so the code cannot
+   confuse them; `adapters/ingress/mavlink/mavlink_to_zmeta_template.py` is
+   the reference implementation. Under the locked v1.0 kernel,
    canonical geo is all-or-nothing: omit missing values rather than
    zero-filling them (no `(0,0,0)` sentinels), and a position with no usable
    altitude cannot become canonical `geo` at all. The v1.1.0 branch adds a
@@ -206,6 +215,21 @@ check your adapter against it before calling it done.
   field), course `0` to `359.9` degrees, heading `0` to `359` degrees; values
   outside those ranges are refused even when they are not one of the
   standard's own not-available sentinels.
+- **Datum-unlabeled plausible values.** A wrong-datum altitude is present,
+  finite, in range, and plausible, so it passes schema validation,
+  plausibility bands, and every anti-zero-fill guard: all of those key on
+  absence, and this value is not absent, it is wrong. The MAVLink adapter
+  shipped exactly this defect (a generic `alt_m` input documented as AMSL
+  written straight into canonical HAE `alt_m`; fixed at v1.1.22 in
+  `ingress/mavlink/mavlink_to_zmeta_template.py`, then swept across every
+  other adapter surface). The only guard that works is naming the datum at
+  the decode boundary (`alt_hae_m` vs `alt_msl_m`, rule 9) so that a value
+  of unproven datum structurally cannot reach the canonical field. The same
+  shape applies to any labeled-by-position quantity: magnetic heading under
+  a true-north name, knots under an m/s name, relative RSSI under a dBm
+  name. When your source's field definition does not match the canonical
+  field's datum, unit, or reference, convert, demote to an explicitly
+  named native field, or omit; never map by name similarity.
 
 ## Start From A Mapping Pack, Not A Blank File
 

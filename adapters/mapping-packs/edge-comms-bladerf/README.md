@@ -28,6 +28,19 @@ Sensor geo on this flight was unavailable (null or null-island). Expected
 events omit `payload.geo` and set `quality.geo_status: UNAVAILABLE` rather
 than inventing coordinates (contract 6.8).
 
+Sensor altitude datum (convert-or-omit, contract 6.2): `sensor_alt_m`
+asserts no datum. The rf_detection position is UAS flight-telemetry
+derived (the sibling metadata carries `alt_agl_m` and an interpolated
+heading from the same stream), and the natural altitude source in that
+stack, MAVLink global position, is MSL, so the value cannot be trusted as
+WGS-84 HAE. Canonical `geo.alt_m` is never emitted from it: a real fix
+degrades to the declared 2-D geo form (`geo.dimensionality: "2D"`,
+zmeta_version 1.1.0, `quality.geo_status: VERTICAL_UNAVAILABLE`) with the
+native value preserved as `features.native_sensor_alt_m`, the same
+demotion the frame-unlabeled bearing gets below. A deployment that can
+prove its altitude is HAE supplies `sensor_alt_hae_m`, the only key that
+maps to canonical `alt_m`.
+
 Canonical bearing is omitted in BOTH cases (maintainer review, PR #7):
 the native bearing is heading-derived (uas heading plus a fixed antenna
 offset) and the source's `heading_source: "interpolated"` names a

@@ -45,6 +45,17 @@ def _detail_value(track, key, default=None):
 def jreap_track_dict_to_zmeta_track_state(track: dict) -> dict:
     """
     Template: Convert a decoded JREAP-like track dict into a ZMeta TRACK_STATE event.
+
+    Altitude datum (contract 6.2, doctrine C1-01): ``hae_m`` SHALL be WGS-84
+    Height Above Ellipsoid in metres and is the only input key that may occupy
+    canonical payload.geo.alt_m. Link-16/JREAP native track altitudes carry
+    their own datums (typically barometric or MSL-referenced heights), so the
+    decode layer feeding this template must convert them to HAE or supply the
+    value under the legacy ``alt_m`` key, which is treated as datum-unlabeled:
+    it never reaches canonical alt_m, the event degrades to the declared 2-D
+    form (doctrine A1-02, forced 1.1.0 stamp), and the value is preserved as
+    non-canonical quality.jreap_alt_unlabeled_datum_m. No altitude of any kind
+    still refuses the promotion.
     """
     if not isinstance(track, dict):
         raise ValueError("track must be a dict")
@@ -55,10 +66,16 @@ def jreap_track_dict_to_zmeta_track_state(track: dict) -> dict:
 
     lat = track.get("lat")
     lon = track.get("lon")
+    # The datum-qualified key and the legacy unlabeled key are read into
+    # separate names and only the first can reach canonical geo. The old
+    # behavior fell back to `alt_m` and wrote it unconverted into alt_m,
+    # which is the altitude-datum laundering class the MAVLink template
+    # names at adapters/ingress/mavlink/mavlink_to_zmeta_template.py:438-446:
+    # present, finite, plausible, and wrong-datum in the Link-16 domain,
+    # where native track altitudes are typically barometric/MSL.
     hae_m = track.get("hae_m")
-    if hae_m is None:
-        hae_m = track.get("alt_m")
-    if lat is None or lon is None or hae_m is None:
+    alt_unlabeled_m = track.get("alt_m") if hae_m is None else None
+    if lat is None or lon is None or (hae_m is None and alt_unlabeled_m is None):
         raise ValueError("track must include lat/lon/hae_m")
 
     base_ts = track.get("timestamp") or track.get("time") or track.get("ts")
@@ -99,20 +116,44 @@ def jreap_track_dict_to_zmeta_track_state(track: dict) -> dict:
     if source_zmeta_event_id:
         promotion["source_zmeta_event_id"] = str(source_zmeta_event_id)
 
+    if hae_m is not None:
+        # Datum-proper path: hae_m is HAE by this template's input contract,
+        # so it maps to canonical alt_m unconverted under the 1.0 stamp.
+        geo = {"lat": lat, "lon": lon, "alt_m": hae_m}
+        zmeta_version = "1.0"
+        quality = None
+    else:
+        # A reported vertical of unlabeled datum: the horizontal fix is still
+        # real and publishes as the declared 2-D form rather than withheld or
+        # laundered. dimensionality is v1.1.0 vocabulary, so this branch must
+        # stamp 1.1.0 (the locked v1.0 geo def is additionalProperties:false
+        # over lat/lon/alt_m). The value is preserved under a datum-named
+        # non-canonical key; a consumer that knows the source's altitude
+        # convention can still use it, and nothing downstream can mistake it
+        # for canonical HAE.
+        geo = {"lat": lat, "lon": lon, "dimensionality": "2D"}
+        zmeta_version = "1.1.0"
+        quality = {
+            "geo_status": "VERTICAL_UNAVAILABLE",
+            "jreap_alt_unlabeled_datum_m": alt_unlabeled_m,
+        }
+
     payload = {
         "track_id": str(track_id),
-        "geo": {"lat": lat, "lon": lon, "alt_m": hae_m},
+        "geo": geo,
         "valid_for_ms": valid_for_ms,
         "timing_quality": coerce_timing_quality(track.get("timing_quality"), event_ts=ts),
         "extensions": {"external_promotion": promotion},
     }
+    if quality is not None:
+        payload["quality"] = quality
     track_type = track.get("track_type")
     if track_type:
         payload["class"] = str(track_type)
 
     event_id = str(uuid7())
     event = {
-        "zmeta_version": "1.0",
+        "zmeta_version": zmeta_version,
         "event": {
             "event_id": event_id,
             "event_type": "STATE_EVENT",

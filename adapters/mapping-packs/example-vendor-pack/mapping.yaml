@@ -15,7 +15,7 @@ payload:
   modality: RF
   geo.lat: input.lat
   geo.lon: input.lon
-  geo.alt_m: input.alt_m
+  geo.alt_m: input.alt_hae_m  # datum-qualified: only declared HAE reaches canonical alt_m (contract 6.2)
   features.center_freq_hz: input.center_freq_hz
   features.bandwidth_hz: input.bandwidth_hz
   features.power_dbm: input.power_dbm

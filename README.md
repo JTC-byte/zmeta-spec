@@ -188,22 +188,29 @@ nodes.
 
 - Current release: `v1.1.22`
 - Release notes and assets: <https://github.com/JTC-byte/zmeta-spec/releases/tag/v1.1.22>
-- Release focus: the altitude datum, and three claims the evidence did not
-  support. The MAVLink ingress published `GLOBAL_POSITION_INT.alt`, which
-  MAVLink defines as height above mean sea level, into canonical
-  `payload.geo.alt_m`, which semantic contract 6.2 reserves for Height Above
-  Ellipsoid. The two datums are now separated at the decode boundary, only
-  `GPS_RAW_INT.alt_ellipsoid` reaches canonical geo, and an MSL-only fix is
-  published as the declared 2-D form rather than as a false vertical. This was
-  the third appearance of the class the ADS-B adapter already refuses at the
-  source. Alongside it, three surfaces stopped claiming more than they
-  enforced: the v1.1.20 notes credited a runtime timestamp check that returned
-  before measuring an unparseable value, the conformance corpora carried no
-  malformed-timestamp vectors while the crosswalk cited them as the evidence,
-  and a format checker installed at a dozen call sites validated nothing.
-  Doctrine cycle C1 opens with eleven entries, seeded by an independent
-  technical review of ZMeta against ten comparable standards. Governed
-  artifacts changed in this release, relative to zmeta-v1.1.21:
+- Release focus: the altitude datum, swept as a class, and three claims the
+  evidence did not support. The MAVLink ingress published
+  `GLOBAL_POSITION_INT.alt`, which MAVLink defines as height above mean sea
+  level, into canonical `payload.geo.alt_m`, which semantic contract 6.2
+  reserves for Height Above Ellipsoid. The two datums are now separated at
+  the decode boundary, only `GPS_RAW_INT.alt_ellipsoid` reaches canonical
+  geo, and an MSL-only fix is published as the declared 2-D form rather than
+  as a false vertical. This was the third appearance of the class the ADS-B
+  adapter already refuses at the source, so the twelve remaining adapter
+  surfaces were then swept against the same standard with adversarial
+  verification of every finding: 20 of 21 findings confirmed and fixed, from
+  the KLV ingress mapping MISB ST 0601's MSL tags to canonical altitude to
+  the CoT ingress promoting the 9999999.0 unknown-altitude convention as a
+  real altitude claim, with each swept adapter now naming its altitude datum
+  at the decode boundary. Alongside it, three surfaces stopped claiming more
+  than they enforced: the v1.1.20 notes credited a runtime timestamp check
+  that returned before measuring an unparseable value, the conformance
+  corpora carried no malformed-timestamp vectors while the crosswalk cited
+  them as the evidence, and a format checker installed at a dozen call sites
+  validated nothing. Doctrine cycle C1 closes the release at twelve entries,
+  seeded by an independent technical review of ZMeta against ten comparable
+  standards. Governed artifacts changed in this release, relative to
+  zmeta-v1.1.21: conformance/adapter-harness/must-pass.jsonl,
   conformance/must-fail.jsonl.
 - Normative contract: v1.0 locked semantic contract, canonical version-discriminated
   JSON schema, v1.0 JSON schema, and policy pack.

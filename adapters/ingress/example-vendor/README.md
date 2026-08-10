@@ -8,7 +8,7 @@ Per `adapters/mapping-packs/README.md`, no runtime engine executes
 code like this carries it out.
 
 Input (schema_id `vendor:example_rf:v1`): a flat JSON RF reading:
-`{platform_id, sensor_id, ts, lat, lon, alt_m, center_freq_hz, bandwidth_hz,
+`{platform_id, sensor_id, ts, lat, lon, alt_hae_m, center_freq_hz, bandwidth_hz,
 power_dbm}`. Output: one `OBSERVATION_EVENT` / `RF`.
 
 ## What to learn from the diff against the pack fixture
@@ -29,7 +29,7 @@ exactly the gap a new author must close:
   (contract 3.4), so the adapter leaves it to the gateway like the
   production references do;
 - all-or-nothing canonical geo (contract 6.8): geo is omitted entirely when
-  any of `lat`/`lon`/`alt_m` is missing, never zero-filled;
+  any of `lat`/`lon`/`alt_hae_m` is missing, never zero-filled;
 - omit-or-refuse lineage (contract 4.8): no `lineage` block unless the caller
   supplies real parent ids, in which case
   `lineage.transform = "translate:<schema_id>@<adapter_version>"`;

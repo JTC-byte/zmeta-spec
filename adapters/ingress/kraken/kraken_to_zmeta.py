@@ -57,6 +57,59 @@ def _apply_bearing_frame(payload, doa_deg, platform_heading_deg, array_offset_de
         payload["quality"]["heading_source"] = heading_source
 
 
+def _resolve_sensor_geo(sensor_geo):
+    """Apply the altitude-datum boundary (contract 6.2, doctrine C1-01) to the
+    caller-supplied sensor position.
+
+    Only a vertical declared WGS-84 HAE (``alt_hae_m``) may occupy canonical
+    ``geo.alt_m``. The legacy ``alt_m`` key asserts no datum -- a typical
+    caller has a GPS-derived or surveyed site elevation, which is
+    MSL-referenced, not HAE -- so it never reaches ``alt_m``: the position
+    degrades to the declared 2-D form (doctrine A1-02) with the value
+    preserved non-canonically. This is the vertical instance of the
+    discipline the bearing already gets from the heading-frame gate: no
+    evidence, no canonical claim. A position with no vertical of any kind
+    stays omitted (absence is refused, not degraded).
+
+    Returns ``(geo_or_None, preserved_alt_or_None, needs_1_1_0)``.
+    """
+    if not sensor_geo:
+        return None, None, False
+    lat = sensor_geo.get("lat")
+    lon = sensor_geo.get("lon")
+    if lat is None or lon is None:
+        return None, None, False
+    alt_hae_m = sensor_geo.get("alt_hae_m")
+    if alt_hae_m is not None:
+        return {"lat": lat, "lon": lon, "alt_m": alt_hae_m}, None, False
+    alt_unspecified_m = sensor_geo.get("alt_m")
+    if alt_unspecified_m is not None:
+        return {"lat": lat, "lon": lon, "dimensionality": "2D"}, alt_unspecified_m, True
+    return None, None, False
+
+
+def _apply_sensor_geo(event, geo, preserved_alt_m, needs_1_1_0):
+    """Attach the resolved position, its status, and the version stamp.
+
+    The declared 2-D branch stamps 1.1.0 (``dimensionality`` is v1.1.0
+    vocabulary) and cannot sit beside ``geo_status: AVAILABLE`` (A1-02
+    coherence arm 2), so the status says VERTICAL_UNAVAILABLE and the
+    undeclared-datum vertical rides along as
+    ``quality.kraken_sensor_alt_unspecified_datum_m``.
+    """
+    quality = event["payload"]["quality"]
+    if geo:
+        event["payload"]["geo"] = geo
+        if needs_1_1_0:
+            event["zmeta_version"] = "1.1.0"
+            quality["geo_status"] = "VERTICAL_UNAVAILABLE"
+            quality["kraken_sensor_alt_unspecified_datum_m"] = preserved_alt_m
+        else:
+            quality["geo_status"] = "AVAILABLE"
+    else:
+        quality["geo_status"] = "UNAVAILABLE"
+
+
 def _confidence_to_error_deg(conf_0_99):
     """Map Kraken confidence (0-99) to a conservative angular error estimate.
 
@@ -108,7 +161,12 @@ def translate_csv_row(
             [3] RSSI dB
             [4] centre frequency Hz
         platform_id: Platform identifier string.
-        sensor_geo: Optional dict {lat, lon, alt_m} for sensor position.
+        sensor_geo: Optional sensor-position dict. ``{lat, lon, alt_hae_m}``
+            when the deployment can assert WGS-84 HAE (contract 6.2); the
+            legacy ``alt_m`` key asserts no datum and never reaches
+            canonical ``alt_m`` (the position degrades to the declared 2-D
+            form with the value preserved as
+            ``quality.kraken_sensor_alt_unspecified_datum_m``).
         sensor_id: Optional sensor identifier (defaults to "krakensdr_rf").
         platform_heading_deg: Platform heading in degrees true north. When
             provided, the array-relative DOA is rotated to true north and
@@ -159,7 +217,7 @@ def translate_csv_row(
     err_deg = _confidence_to_error_deg(conf)
     ts_iso = epoch_ms_to_utc_z(ts_ms)
 
-    geo = dict(sensor_geo) if sensor_geo else None
+    geo, preserved_alt_m, needs_1_1_0 = _resolve_sensor_geo(sensor_geo)
     sid = sensor_id or DEFAULT_SENSOR_ID
 
     event = {
@@ -193,7 +251,6 @@ def translate_csv_row(
                     "metric": "1_SIGMA",
                 },
                 "calibration_state": calibration_state,
-                "geo_status": "AVAILABLE" if geo else "UNAVAILABLE",
             },
             "timing_quality": coerce_timing_quality(event_ts=ts_iso),
         },
@@ -206,8 +263,7 @@ def translate_csv_row(
     _apply_bearing_frame(
         event["payload"], doa_deg, platform_heading_deg, array_offset_deg, heading_source
     )
-    if geo:
-        event["payload"]["geo"] = geo
+    _apply_sensor_geo(event, geo, preserved_alt_m, needs_1_1_0)
     return event
 
 
@@ -233,7 +289,10 @@ def translate_json(
         raw: Dict with keys like bearing_deg, power_dbm, center_freq_hz,
             timestamp_ms, bearing_error_deg, metadata, etc.
         platform_id: Platform identifier string.
-        sensor_geo: Optional dict {lat, lon, alt_m}.
+        sensor_geo: Optional sensor-position dict; same altitude-datum
+            boundary as ``translate_csv_row`` (only ``alt_hae_m`` reaches
+            canonical ``alt_m``; the legacy ``alt_m`` key degrades to the
+            declared 2-D form).
         sensor_id: Optional sensor identifier.
         platform_heading_deg: Platform heading in degrees true north
             (None omits the canonical bearing; see translate_csv_row).
@@ -282,7 +341,7 @@ def translate_json(
 
     ts_iso = epoch_ms_to_utc_z(ts_ms)
 
-    geo = dict(sensor_geo) if sensor_geo else None
+    geo, preserved_alt_m, needs_1_1_0 = _resolve_sensor_geo(sensor_geo)
     sid = sensor_id or meta.get("zmeta_sensor_id", DEFAULT_SENSOR_ID)
 
     features = {
@@ -341,9 +400,7 @@ def translate_json(
     _apply_bearing_frame(
         event["payload"], doa_deg, platform_heading_deg, array_offset_deg, heading_source
     )
-    quality["geo_status"] = "AVAILABLE" if geo else "UNAVAILABLE"
-    if geo:
-        event["payload"]["geo"] = geo
+    _apply_sensor_geo(event, geo, preserved_alt_m, needs_1_1_0)
     return event
 
 

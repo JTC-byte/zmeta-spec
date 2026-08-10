@@ -213,4 +213,17 @@ def zmeta_command_to_mission_intent(event, allow_flagged=False):
     if _has_non_finite(mission):
         return None
 
+    # The altitude walk covers the whole built mission, mirroring the
+    # _has_non_finite placement above, so the verbatim-copy paths
+    # (risk_adjudication records, geometry contents beyond the top-level
+    # walk) share the same guarantee as target_geo: no vertical intent
+    # reaches the mission-intent output (contract 7.8 forbids altitude
+    # fields anywhere in a command payload, extensions included). The
+    # gateway's whole-payload COMMAND_HAS_ALTITUDE gate is the authoritative
+    # screen; this module documents itself as defence-in-depth for the
+    # direct-wired case, and until this walk existed the copied records were
+    # the one conduit that guarantee did not cover.
+    if _contains_altitude(mission):
+        raise ValueError("mission intent must not carry altitude fields")
+
     return mission

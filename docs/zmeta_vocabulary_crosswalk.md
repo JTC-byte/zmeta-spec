@@ -119,6 +119,47 @@ Cross-cutting rules that shape every mapping below:
 |---|---|---|
 | `lora_nodedb`, `ingestor_fleet`, fleet/entity snapshot containers | Per-entity events: one entity, one event | ZMeta's unit of meaning is the event about one subject. A node database or fleet roster decomposes into per-entity events, each with its own identity, lineage, and TTL: platforms with position project as individual `STATE_EVENT` / `TRACK_STATE` events (through promotion if sourced from an external mesh/telemetry feed); per-node radio or service health projects as individual `SYSTEM_EVENT` status events. An aggregate "snapshot" container - one event whose payload holds an `entries[]` array wholesale-replacing prior state - is **not** current ZMeta vocabulary. It is a future-extension concept in the contract 3.3 sense: non-claimable until an approved version branch defines its semantics, schema, policy, adapter behavior, and conformance tests. Snapshot-replacement delivery (for example, MQTT retained messages) remains available as deployment transport behavior for the per-entity events without any new vocabulary. |
 
+## Crosswalk: W3C PROV
+
+Consumers whose audit stores are built on W3C PROV can project ZMeta lineage
+into PROV terms. The mapping below is a read-only egress projection in the
+contract Section 4 sense: it is one-directional in authority, and a PROV graph
+re-imported into a ZMeta system is an external report subject to the same
+promotion rules as any other projection. Nothing here changes what ZMeta
+requires; it states how the constructs correspond for a consumer that already
+speaks PROV-DM / PROV-O.
+
+| ZMeta construct | Nearest PROV term | Notes |
+|---|---|---|
+| ZMeta event (any family) | `prov:Entity` | One event, one entity, identified by `event.event_id` (UUIDv7). Append-only immutability (contract 4.2) matches the PROV model, in which an entity's provenance is fixed once asserted. |
+| `lineage.based_on` | `prov:wasDerivedFrom` | One derivation edge per parent ID. `based_on` references immediate parents only (contract 4.8), so full ancestry in PROV is reconstructed by following derivation edges across events, never by expanding one event's lineage into a transitive closure. Unresolved parents are permitted under constrained profiles (contract 9.1); a PROV consumer must tolerate derivation edges whose source entity is not in the store. |
+| `lineage.transform` | `prov:Activity`, via `prov:qualifiedDerivation` | The transform label names the activity that produced this event from its parents (for example `promote:<adapter>:<policy>`, contract 4.5.1). In PROV terms the event `prov:wasGeneratedBy` that activity and the activity `prov:used` the parent entities. |
+| `source.producer`, `source.platform_id`, `source.sensor_id` | `prov:Agent` + `prov:wasAttributedTo` | The producing node/sensor is the agent the entity is attributed to. `source` fields are immutable and source-authored (contract 7.1), which is what makes the attribution trustworthy enough to export. |
+| `payload.model.name` / `payload.model.version` (INFERENCE_EVENT) | `prov:SoftwareAgent` + `prov:wasAssociatedWith` | The model identified by the mandatory AI-provenance fields (contract 11.1) is the software agent associated with the generating activity. |
+| `payload.data_ref` / `payload.data_refs` | `prov:hadPrimarySource` | The retained raw artifact is itself an entity, and the observation event derives from it as a primary source. Pointers may be unresolved without invalidating the event (contract 9.3); the PROV projection inherits that tolerance. |
+| External promotion (contract 4.5.1) | `prov:qualifiedDerivation` with the promotion as the `prov:Activity` | The `payload.extensions.external_promotion` evidence block (origin kind, promotion policy ID, trust reference, loop/reflection status) describes the promotion activity. It travels as attributes of the qualified derivation, not as a bare `wasDerivedFrom`, because the whole point of the evidence is that this derivation crossed an authority boundary. |
+| `event.ts` | `prov:generatedAtTime`, with a caveat | `ts` is the time of measurement or assertion (contract 5.1), which is the closest PROV concept but not an exact one: PROV has no phenomenon-time notion. `t_publish` and `t_receive` are transport timestamps PROV does not model; do not project them as generation times. |
+
+What deliberately does not map:
+
+- **Confidence and uncertainty.** PROV asserts what happened and carries no
+  strength-of-belief semantics. ZMeta `confidence`, timing quality, and the
+  honesty labels must not be flattened into PROV structure, and the presence
+  of a well-formed PROV chain must never be read back as confidence. This is
+  the contract 8.5 trust/confidence separation applied to an external
+  vocabulary.
+- **Authority.** PROV records provenance after the fact. ZMeta policy
+  constrains which producers may emit which event families before the fact
+  (contract 4.5). A valid PROV graph says nothing about whether its asserting
+  agent was authorized, so producer-authority checks cannot be delegated to a
+  PROV store.
+- **Invalidation.** ZMeta events are append-only and are never invalidated;
+  `prov:invalidatedAtTime` has no ZMeta source. TTL governs display validity,
+  not provenance.
+- **Bundles.** ZMeta defines no named-graph or bundle construct. Grouping
+  projected events into PROV bundles is a deployment packaging choice with no
+  semantic significance.
+
 ## Reserved but Invalid: Future Modalities
 
 `RADAR`, `LIDAR`, `MAGNETIC`, `SEISMIC`, `CYBER`, and `SIGINT` are reserved

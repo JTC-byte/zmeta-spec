@@ -505,7 +505,13 @@ def _canonical_geo(location):
     if units == "UTM_M":
         return None, "UTM_UNSUPPORTED"
     if units not in ("LAT_LNG_DEG_M", "LAT_LNG_RAD_M"):
-        return None, "UNITS_UNSPECIFIED"
+        # The tag matches the mapping-pack vocabulary (enums.yaml, pack
+        # README): the branch covers an unspecified or unrecognized
+        # coordinate system, not units generally. The code used to emit
+        # "UNITS_UNSPECIFIED" here while the docs said
+        # "COORDINATE_SYSTEM_UNSPECIFIED", so a consumer filtering the
+        # provenance block on the documented tag never matched.
+        return None, "COORDINATE_SYSTEM_UNSPECIFIED"
     datum = enum_tail(location.get("datum"), "LOCATION_DATUM_")
     if datum == "WGS84_G":
         return None, "GEOID_DATUM"

@@ -13,6 +13,9 @@ SCHEMA_PATH = ROOT / "schema" / "zmeta-event-1.0.schema.json"
 SCHEMA = json.loads(SCHEMA_PATH.read_text(encoding="utf-8"))
 # No format_checker: `date-time` is annotation-only without an RFC 3339 checker.
 VALIDATOR = Draft202012Validator(SCHEMA)
+VALIDATOR_1_1_0 = Draft202012Validator(
+    json.loads((ROOT / "schema" / "zmeta-event-1.1.0.schema.json").read_text(encoding="utf-8"))
+)
 VALIDATORS_PATH = ROOT / "gateway" / "src" / "validators.py"
 spec = importlib.util.spec_from_file_location("zmeta_validators", VALIDATORS_PATH)
 validators = importlib.util.module_from_spec(spec)
@@ -78,3 +81,44 @@ def test_jreap_ingress_normalizes_utc_offset_timestamp():
     assert event["payload"]["valid_for_ms"] == 5000
     assert event["payload"]["timing_quality"]["last_sync_ts"] == "2025-01-17T15:20:00Z"
     VALIDATOR.validate(event)
+
+
+def test_unlabeled_alt_m_never_reaches_canonical_alt_m():
+    # The legacy `alt_m` input key asserts no datum, and Link-16 native track
+    # altitudes are typically barometric/MSL. Before this boundary existed the
+    # template fell back to it and published the value as canonical HAE (the
+    # C1-01 laundering class); it now degrades to the declared 2-D form with
+    # the value preserved under a datum-named non-canonical key.
+    track = _jreap_track()
+    del track["hae_m"]
+    track["alt_m"] = 7620.0
+
+    event = jreap_track_dict_to_zmeta_track_state(track)
+
+    geo = event["payload"]["geo"]
+    assert geo == {"lat": 34.0, "lon": -118.0, "dimensionality": "2D"}
+    assert "alt_m" not in geo
+    assert event["payload"]["quality"]["jreap_alt_unlabeled_datum_m"] == 7620.0
+    assert event["payload"]["quality"]["geo_status"] == "VERTICAL_UNAVAILABLE"
+    assert event["zmeta_version"] == "1.1.0"
+    VALIDATOR_1_1_0.validate(event)
+
+
+def test_hae_m_wins_over_the_unlabeled_key():
+    event = jreap_track_dict_to_zmeta_track_state(_jreap_track(alt_m=7620.0))
+
+    assert event["payload"]["geo"]["alt_m"] == 120.0
+    assert "quality" not in event["payload"]
+    assert event["zmeta_version"] == "1.0"
+    VALIDATOR.validate(event)
+
+
+def test_no_altitude_of_any_kind_refuses():
+    track = _jreap_track()
+    del track["hae_m"]
+    try:
+        jreap_track_dict_to_zmeta_track_state(track)
+    except ValueError as exc:
+        assert "hae_m" in str(exc)
+    else:
+        raise AssertionError("a track with no altitude of any kind must refuse")

@@ -100,6 +100,61 @@ def detect(input_bytes):
     return None
 
 
+def _resolve_sensor_geo(position):
+    """Apply the altitude-datum boundary (contract 6.2, doctrine C1-01) to a
+    caller-supplied sensor position dict.
+
+    Only a vertical declared WGS-84 HAE (``alt_hae_m``) may occupy canonical
+    ``geo.alt_m``. The legacy ``alt_m`` key asserts no datum -- in this
+    adapter's documented Z-ISR UAS origin the natural position source is
+    autopilot telemetry, whose MAVLink global-position altitude is MSL -- so
+    it never reaches ``alt_m``: the position degrades to the declared 2-D
+    form (doctrine A1-02) with the value preserved non-canonically. This is
+    the discipline the bearing axis already gets via the TRUE_NORTH gate: a
+    frame or datum claim is asserted only on explicit evidence. A position
+    with no vertical of any kind stays omitted (absence is refused, not
+    degraded).
+
+    Returns ``(geo_or_None, preserved_alt_or_None, needs_1_1_0)``.
+    """
+    if not position:
+        return None, None, False
+    lat = position.get("lat")
+    lon = position.get("lon")
+    if lat is None or lon is None:
+        return None, None, False
+    alt_hae_m = position.get("alt_hae_m")
+    if alt_hae_m is not None:
+        return {"lat": lat, "lon": lon, "alt_m": alt_hae_m}, None, False
+    alt_unspecified_m = position.get("alt_m")
+    if alt_unspecified_m is not None:
+        return {"lat": lat, "lon": lon, "dimensionality": "2D"}, alt_unspecified_m, True
+    return None, None, False
+
+
+def _apply_sensor_geo(event, geo, preserved_alt_m, needs_1_1_0):
+    """Attach the resolved position, its status, and the version stamp.
+
+    The declared 2-D branch stamps 1.1.0 (``dimensionality`` is v1.1.0
+    vocabulary; the locked v1.0 geo def is additionalProperties:false over
+    lat/lon/alt_m) and cannot sit beside ``geo_status: AVAILABLE`` (A1-02
+    coherence arm 2), so the status says VERTICAL_UNAVAILABLE and the
+    undeclared-datum vertical rides along as
+    ``quality.moth_sensor_alt_unspecified_datum_m``.
+    """
+    quality = event["payload"].setdefault("quality", {})
+    if geo:
+        event["payload"]["geo"] = geo
+        if needs_1_1_0:
+            event["zmeta_version"] = "1.1.0"
+            quality["geo_status"] = "VERTICAL_UNAVAILABLE"
+            quality["moth_sensor_alt_unspecified_datum_m"] = preserved_alt_m
+        else:
+            quality["geo_status"] = "AVAILABLE"
+    else:
+        quality["geo_status"] = "UNAVAILABLE"
+
+
 def translate_serial_line(line, *, platform_id, sensor_geo=None, sensor_id=None,
                           timestamp_ms=None, based_on=None):
     """Translate a single Moth serial output line into a ZMeta event.
@@ -159,7 +214,7 @@ def translate_serial_line(line, *, platform_id, sensor_geo=None, sensor_id=None,
     ts_ms = timestamp_ms or int(time.time() * 1000)
     ts_iso = epoch_ms_to_utc_z(ts_ms)
 
-    geo = dict(sensor_geo) if sensor_geo else None
+    geo, preserved_alt_m, needs_1_1_0 = _resolve_sensor_geo(sensor_geo)
     sid = sensor_id or DEFAULT_SENSOR_ID
 
     event = {
@@ -188,9 +243,7 @@ def translate_serial_line(line, *, platform_id, sensor_geo=None, sensor_id=None,
                 "source_format": "serial",
                 "peak_freq_mhz": peak_freq_mhz,
             },
-            "quality": {
-                "geo_status": "AVAILABLE" if geo else "UNAVAILABLE",
-            },
+            "quality": {},
             "timing_quality": coerce_timing_quality(event_ts=ts_iso),
         },
     }
@@ -199,8 +252,7 @@ def translate_serial_line(line, *, platform_id, sensor_geo=None, sensor_id=None,
             "based_on": [str(item) for item in based_on],
             "transform": f"translate:{SCHEMA_ID_SERIAL}@{ADAPTER_VERSION}",
         }
-    if geo:
-        event["payload"]["geo"] = geo
+    _apply_sensor_geo(event, geo, preserved_alt_m, needs_1_1_0)
     return event
 
 
@@ -234,7 +286,7 @@ def translate_tunnel_payload(payload_bytes, *, platform_id, sensor_geo=None,
     ts_ms = timestamp_ms or int(time.time() * 1000)
     ts_iso = epoch_ms_to_utc_z(ts_ms)
 
-    geo = dict(sensor_geo) if sensor_geo else None
+    geo, preserved_alt_m, needs_1_1_0 = _resolve_sensor_geo(sensor_geo)
     sid = sensor_id or DEFAULT_SENSOR_ID
 
     features = {
@@ -297,11 +349,7 @@ def translate_tunnel_payload(payload_bytes, *, platform_id, sensor_geo=None,
             "based_on": [str(item) for item in based_on],
             "transform": f"translate:{SCHEMA_ID_TUNNEL}@{ADAPTER_VERSION}",
         }
-    if geo:
-        event["payload"]["geo"] = geo
-        quality["geo_status"] = "AVAILABLE"
-    else:
-        quality["geo_status"] = "UNAVAILABLE"
+    _apply_sensor_geo(event, geo, preserved_alt_m, needs_1_1_0)
 
     if bearing is not None:
         event["payload"]["bearing"] = bearing
@@ -350,7 +398,7 @@ def translate_custom_mavlink(frame_bytes, *, platform_id, sensor_geo=None,
     ts_ms = timestamp_ms or int(time.time() * 1000)
     ts_iso = epoch_ms_to_utc_z(ts_ms)
 
-    geo = dict(sensor_geo) if sensor_geo else None
+    geo, preserved_alt_m, needs_1_1_0 = _resolve_sensor_geo(sensor_geo)
     sid = sensor_id or DEFAULT_SENSOR_ID
 
     event = {
@@ -379,9 +427,7 @@ def translate_custom_mavlink(frame_bytes, *, platform_id, sensor_geo=None,
                 "source_format": "mavlink_custom",
                 "peak_freq_mhz": freq_mhz,
             },
-            "quality": {
-                "geo_status": "AVAILABLE" if geo else "UNAVAILABLE",
-            },
+            "quality": {},
             "timing_quality": coerce_timing_quality(event_ts=ts_iso),
         },
     }
@@ -390,8 +436,7 @@ def translate_custom_mavlink(frame_bytes, *, platform_id, sensor_geo=None,
             "based_on": [str(item) for item in based_on],
             "transform": f"translate:{SCHEMA_ID_MAVLINK}@{ADAPTER_VERSION}",
         }
-    if geo:
-        event["payload"]["geo"] = geo
+    _apply_sensor_geo(event, geo, preserved_alt_m, needs_1_1_0)
     return event
 
 
@@ -416,11 +461,15 @@ def translate_json_replay(raw, *, platform_id, sensor_geo=None, sensor_id=None,
     ``features.angular_error_deg`` and ``quality.measurement_error``
     entirely (both are schema-optional; an error bound is never invented).
 
-    Canonical ``geo`` is all-or-nothing (semantics contract section 6.8):
-    ``sensor_position`` maps to ``payload.geo`` only when ``lat``, ``lon``,
-    and ``alt_m`` are all present; otherwise ``geo`` is omitted entirely
-    and ``quality.geo_status`` is ``UNAVAILABLE``. Missing values are never
-    zero-filled.
+    Canonical ``geo`` is all-or-nothing (contract 6.8) and datum-gated
+    (contract 6.2): ``sensor_position`` yields a full 3-D ``payload.geo``
+    only when ``lat``, ``lon``, and a declared-HAE ``alt_hae_m`` are all
+    present. The replay format never declares an altitude datum, so a
+    legacy ``alt_m`` vertical degrades the position to the declared 2-D
+    form (``dimensionality: "2D"``, 1.1.0 stamp) with the value preserved
+    as ``quality.moth_sensor_alt_unspecified_datum_m``; no vertical of any
+    kind omits ``geo`` entirely with ``quality.geo_status: UNAVAILABLE``.
+    Missing values are never zero-filled.
 
     Args:
         raw: Dict with keys like bearing.az_deg, frequency.center_hz,
@@ -447,16 +496,18 @@ def translate_json_replay(raw, *, platform_id, sensor_geo=None, sensor_id=None,
 
     ts_iso = epoch_ms_to_utc_z(ts_ms)
 
-    # Canonical geo is all-or-nothing (semantics contract section 6.8):
-    # use sensor_position only when lat, lon, AND alt_m are all present;
-    # never zero-fill missing values.
-    if sensor_geo:
-        geo = dict(sensor_geo)
-    elif all(sensor_pos.get(key) is not None for key in ("lat", "lon", "alt_m")):
-        geo = {"lat": sensor_pos["lat"], "lon": sensor_pos["lon"],
-               "alt_m": sensor_pos["alt_m"]}
-    else:
-        geo = None
+    # Canonical geo is all-or-nothing (contract 6.8) and datum-gated
+    # (contract 6.2, doctrine C1-01): the caller's sensor_geo takes
+    # precedence over the replay record's sensor_position, and both go
+    # through the same boundary -- only a declared-HAE alt_hae_m becomes
+    # canonical alt_m, a legacy alt_m degrades to the declared 2-D form
+    # with the value preserved, no vertical of any kind omits geo. The
+    # replay format never declares an altitude datum, so its sensor_position
+    # gets the same treatment the format's bearing already gets from the
+    # bearing_frame gate: no evidence, no claim.
+    geo, preserved_alt_m, needs_1_1_0 = _resolve_sensor_geo(
+        sensor_geo if sensor_geo else sensor_pos
+    )
 
     sid = sensor_id or DEFAULT_SENSOR_ID
 
@@ -530,11 +581,7 @@ def translate_json_replay(raw, *, platform_id, sensor_geo=None, sensor_id=None,
         }
     if bearing is not None:
         event["payload"]["bearing"] = bearing
-    if geo:
-        event["payload"]["geo"] = geo
-        quality["geo_status"] = "AVAILABLE"
-    else:
-        quality["geo_status"] = "UNAVAILABLE"
+    _apply_sensor_geo(event, geo, preserved_alt_m, needs_1_1_0)
 
     if bearing_obj.get("confidence") is not None:
         quality["sensor_confidence"] = bearing_obj["confidence"]

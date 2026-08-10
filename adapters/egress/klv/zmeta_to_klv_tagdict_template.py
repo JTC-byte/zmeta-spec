@@ -69,6 +69,14 @@ def _has_non_finite(value):
 def zmeta_observation_to_klv_tagdict(event: dict) -> dict | None:
     """
     Template: Convert ZMeta OBSERVATION_EVENT into a decoded KLV tag dict.
+
+    Altitude datum at the handoff (contract 6.2): the output's geo.alt_m is
+    WGS-84 HAE, copied unconverted from canonical payload.geo. An MISB ST
+    0601 embedder must map it to an HAE-defined tag (Tag 75 Sensor Ellipsoid
+    Height, or Tag 78 for a frame-center referent), never to the MSL-defined
+    Tag 15 / Tag 25 / Tag 42 without an explicit geoid conversion, which
+    this template does not ship. features values stay source-native and
+    carry no such guarantee. See the README for the full disposition.
     """
     if not isinstance(event, dict):
         raise ValueError("event must be a dict")

@@ -18,9 +18,15 @@ Input format:
 
   Optional detection fields:
     - gps ([lat, lon]): detection position array
-    - altitude (float): altitude in metres. Canonical geo is
-      all-or-nothing (contract 6.8), so a detection position without an
-      altitude yields no ``claim.geo`` — never a zero-filled ``alt_m``.
+    - altitude_hae_m (float): altitude in metres above the WGS-84
+      ellipsoid. The only detection vertical that reaches canonical
+      ``claim.geo.alt_m`` (contract 6.2).
+    - altitude (float): legacy altitude in metres with no declared datum.
+      Never canonical: the position degrades to the declared 2-D form
+      (doctrine A1-02, 1.1.0 stamp) with the value preserved as
+      ``quality.eo_cv_alt_unspecified_datum_m``. Canonical geo stays
+      all-or-nothing (contract 6.8): a detection position without any
+      vertical yields no ``claim.geo`` — never a zero-filled ``alt_m``.
     - bbox ([x1, y1, x2, y2]): bounding box in image coordinates
     - track_id (str|int): object tracker ID
     - stream_id (str): camera/stream identifier
@@ -48,7 +54,6 @@ _UUID7_RE = re.compile(
 )
 
 _GEO_MAX_SENSOR_DELTA_M = 10000.0
-_GEO_KEYS = ("lat", "lon", "alt_m")
 
 
 def _utc_now():
@@ -108,16 +113,32 @@ def translate(
          fall back to sensor_geo.
       4. If neither is available, omit geo and set geo_source="unavailable".
 
+    Altitude datum (contract 6.2, doctrine C1-01): only a vertical the
+    caller declared WGS-84 HAE may occupy canonical ``claim.geo.alt_m``.
+    The datum-qualified keys are ``altitude_hae_m`` on the detection and
+    ``alt_hae_m`` in ``sensor_geo``. The legacy keys carry no HAE claim:
+    the detection's ``altitude`` declares no datum at all, and
+    ``sensor_geo["alt_m"]`` is read as MSL because its documented source
+    is a flight controller GPS position, whose global-position altitude
+    MAVLink defines as MSL. A legacy-only vertical degrades the position
+    to the declared 2-D form (doctrine A1-02: ``dimensionality: "2D"``,
+    no ``alt_m``, forced 1.1.0 stamp) with the value preserved under
+    ``quality.eo_cv_alt_unspecified_datum_m`` or
+    ``quality.eo_cv_sensor_alt_msl_m``.
+
     Canonical geo is all-or-nothing (contract 6.8): a resolved position
-    missing any of lat, lon, or alt_m — for example a detection GPS with
-    no altitude — is never zero-filled; ``claim.geo`` is omitted entirely
-    and geo_source is set to "unavailable".
+    missing lat, lon, or every vertical is never zero-filled;
+    ``claim.geo`` is omitted entirely and geo_source is set to
+    "unavailable".
 
     Args:
         detection: Raw detection dict. Supports both wrapped envelope
             ({"type": "detection", "payload": {...}}) and flat format.
         platform_id: Platform identifier string.
-        sensor_geo: Optional FC/platform GPS position {lat, lon, alt_m}.
+        sensor_geo: Optional FC/platform GPS position. ``{lat, lon,
+            alt_hae_m}`` when the deployment can assert WGS-84 HAE (e.g.
+            from GPS_RAW_INT.alt_ellipsoid); the legacy ``alt_m`` key is
+            read as MSL and never reaches canonical ``alt_m``.
         confidence_floor: Minimum confidence to accept (default 0.0).
         strip_thumbnail: Remove heavyweight thumbnail field (default True).
         strip_embedding: Remove heavyweight embedding field (default True).
@@ -169,43 +190,91 @@ def translate(
     if strip_embedding:
         payload.pop("embedding", None)
 
-    # Resolve geo position with fallback logic
+    # Resolve the position source with the existing fallback logic, keeping
+    # the vertical inputs separate so the altitude datum can be gated below
+    # (contract 6.2, doctrine C1-01).
     gps = payload.get("gps")
-    altitude = payload.get("altitude")
-    geo: Dict[str, Any]
     geo_source = "detection"
+    position = None  # (lat, lon, alt_hae_m, alt_other_m, preserved_key)
+
+    def _sensor_position():
+        # sensor_geo carries the FC/platform GPS position. alt_hae_m is a
+        # deployment assertion of WGS-84 HAE (e.g. GPS_RAW_INT.alt_ellipsoid)
+        # and is the only vertical that may reach canonical alt_m. The legacy
+        # alt_m key is read as MSL: the documented source is a flight
+        # controller, whose global-position altitude MAVLink defines as MSL
+        # (see adapters/ingress/mavlink/mavlink_to_zmeta_template.py).
+        return (
+            sensor_geo.get("lat"),
+            sensor_geo.get("lon"),
+            sensor_geo.get("alt_hae_m"),
+            sensor_geo.get("alt_m"),
+            "eo_cv_sensor_alt_msl_m",
+        )
 
     if gps and isinstance(gps, (list, tuple)) and len(gps) >= 2:
         lat, lon = gps[0], gps[1]
         if lat == 0 and lon == 0:
             if sensor_geo:
-                geo = dict(sensor_geo)
+                position = _sensor_position()
                 geo_source = "fc_fallback"
             else:
-                geo = {}
                 geo_source = "unavailable"
         else:
-            detection_geo = {"lat": lat, "lon": lon, "alt_m": altitude}
             if (
                 sensor_geo
-                and _geo_distance_m(detection_geo, sensor_geo) > _GEO_MAX_SENSOR_DELTA_M
+                and _geo_distance_m({"lat": lat, "lon": lon}, sensor_geo)
+                > _GEO_MAX_SENSOR_DELTA_M
             ):
-                geo = dict(sensor_geo)
+                position = _sensor_position()
                 geo_source = "fc_fallback"
             else:
-                geo = detection_geo
+                # The detection's own vertical: altitude_hae_m is the
+                # datum-qualified key; the legacy generic `altitude` key
+                # asserts no datum at all and never reaches canonical alt_m.
+                position = (
+                    lat,
+                    lon,
+                    payload.get("altitude_hae_m"),
+                    payload.get("altitude"),
+                    "eo_cv_alt_unspecified_datum_m",
+                )
     elif sensor_geo:
-        geo = dict(sensor_geo)
+        position = _sensor_position()
         geo_source = "fc_fallback"
     else:
-        geo = {}
         geo_source = "unavailable"
 
-    # Canonical geo is all-or-nothing (contract 6.8): if any of lat, lon,
-    # or alt_m is missing, omit geo entirely — never zero-fill.
-    if geo and any(geo.get(key) is None for key in _GEO_KEYS):
-        geo = {}
-        geo_source = "unavailable"
+    # Altitude-datum gate plus the all-or-nothing rule (contracts 6.2, 6.8):
+    # only a vertical the caller declared HAE occupies canonical alt_m; a
+    # vertical under a legacy or unlabeled key yields the declared 2-D form
+    # (doctrine A1-02, forced 1.1.0 stamp, since dimensionality is v1.1.0
+    # vocabulary) with the value preserved under a datum-named non-canonical
+    # quality key; no vertical of any kind omits geo entirely, never
+    # zero-filled. Building geo field-by-field here also stops extra caller
+    # keys riding into claim.geo, which the old dict(sensor_geo) copy allowed.
+    # Invalid value types stay left to schema validation (ladder step 2) by
+    # design.
+    geo: Dict[str, Any] = {}
+    quality: Dict[str, Any] = {}
+    needs_1_1_0 = False
+    if position is not None:
+        lat, lon, alt_hae_m, alt_other_m, preserved_key = position
+        if lat is None or lon is None:
+            geo_source = "unavailable"
+        elif alt_hae_m is not None:
+            geo = {"lat": lat, "lon": lon, "alt_m": alt_hae_m}
+        elif alt_other_m is not None:
+            # The 2-D fact travels in claim.geo.dimensionality alone: the
+            # A1-02 geo_status token VERTICAL_UNAVAILABLE is coupled to
+            # payload.geo by the adjudicated schema coherence rule (arm 1),
+            # and this event's geo is claim-scoped, so asserting the token
+            # here would be schema-invalid rather than honest.
+            geo = {"lat": lat, "lon": lon, "dimensionality": "2D"}
+            needs_1_1_0 = True
+            quality[preserved_key] = alt_other_m
+        else:
+            geo_source = "unavailable"
 
     claim: Dict[str, Any] = {
         "label": payload.get("class_name", "unknown"),
@@ -240,8 +309,24 @@ def translate(
     if not parents or not all(_UUID7_RE.match(item) for item in parents):
         return None
 
+    payload_out: Dict[str, Any] = {
+        "inference_type": "CLASSIFICATION",
+        "claim": claim,
+        "model": {
+            "name": str(payload.get("model_name") or "eo-cv"),
+            "version": str(payload.get("model_version") or ADAPTER_VERSION),
+        },
+        "based_on": parents,
+        "timing_quality": coerce_timing_quality(
+            payload.get("timing_quality"),
+            event_ts=ts,
+        ),
+    }
+    if quality:
+        payload_out["quality"] = quality
+
     return {
-        "zmeta_version": "1.0",
+        "zmeta_version": "1.1.0" if needs_1_1_0 else "1.0",
         "event": {
             "event_id": str(uuid7()),
             "event_type": "INFERENCE_EVENT",
@@ -254,19 +339,7 @@ def translate(
             "producer": "eo-cv-adapter",
             "sensor_id": sid,
         },
-        "payload": {
-            "inference_type": "CLASSIFICATION",
-            "claim": claim,
-            "model": {
-                "name": str(payload.get("model_name") or "eo-cv"),
-                "version": str(payload.get("model_version") or ADAPTER_VERSION),
-            },
-            "based_on": parents,
-            "timing_quality": coerce_timing_quality(
-                payload.get("timing_quality"),
-                event_ts=ts,
-            ),
-        },
+        "payload": payload_out,
         "confidence": confidence,
         "lineage": {
             "based_on": parents,

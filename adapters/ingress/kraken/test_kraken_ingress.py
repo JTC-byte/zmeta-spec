@@ -280,3 +280,44 @@ def test_events_validate_against_v1_0_schema():
         _json_event(),
     ):
         VALIDATOR.validate(event)
+
+
+# The C1-01 altitude-datum boundary on the caller-supplied sensor position:
+# only a declared WGS-84 HAE vertical (alt_hae_m) may occupy canonical
+# geo.alt_m; the legacy alt_m key asserts no datum and degrades to the
+# declared 2-D form with the value preserved. Both translate paths share the
+# boundary.
+
+VALIDATOR_1_1_0 = Draft202012Validator(
+    json.loads((ROOT / "schema" / "zmeta-event-1.1.0.schema.json").read_text(encoding="utf-8"))
+)
+
+
+def test_legacy_sensor_geo_alt_m_never_reaches_canonical_alt_m():
+    for event in (
+        _csv_event(sensor_geo={"lat": 43.49, "lon": -112.04, "alt_m": 1500.0}),
+        _json_event(sensor_geo={"lat": 43.49, "lon": -112.04, "alt_m": 1500.0}),
+    ):
+        geo = event["payload"]["geo"]
+        assert geo == {"lat": 43.49, "lon": -112.04, "dimensionality": "2D"}
+        assert "alt_m" not in geo
+        quality = event["payload"]["quality"]
+        assert quality["kraken_sensor_alt_unspecified_datum_m"] == 1500.0
+        assert quality["geo_status"] == "VERTICAL_UNAVAILABLE"
+        assert event["zmeta_version"] == "1.1.0"
+        VALIDATOR_1_1_0.validate(event)
+
+
+def test_declared_hae_sensor_geo_maps_to_canonical_alt_m():
+    for event in (
+        _csv_event(sensor_geo={"lat": 43.49, "lon": -112.04, "alt_hae_m": 1433.0}),
+        _json_event(sensor_geo={"lat": 43.49, "lon": -112.04, "alt_hae_m": 1433.0}),
+    ):
+        assert event["payload"]["geo"] == {
+            "lat": 43.49,
+            "lon": -112.04,
+            "alt_m": 1433.0,
+        }
+        assert event["payload"]["quality"]["geo_status"] == "AVAILABLE"
+        assert event["zmeta_version"] == "1.0"
+        VALIDATOR.validate(event)

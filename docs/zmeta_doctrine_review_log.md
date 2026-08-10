@@ -2,6 +2,19 @@
 
 **Standing artifact. Accumulates across cycles. Advisory / non-normative.**
 
+## How to read this log
+
+Entries are point-in-time records. Each body describes the repository as it
+stood when the entry was written, and later cycles append rather than rewrite,
+because rewriting a process record falsifies what was true at the time. The
+status marker on an entry's heading is the authoritative current state: a body
+that describes a defect in the present tense under a terminal status (CHANGED,
+MINTED, HELD-FIRM, DROPPED) is describing a past state that has since been
+resolved. Reading the open entries as an inventory of current defects will
+systematically overstate what is broken; C1-09 records an external review that
+made exactly that error. For current state, consult the CHANGELOG, the release
+notes, and the conformance corpus at the tag you are evaluating.
+
 ## What this is
 
 A record of every point where the guiding documents came under real pressure —
@@ -1781,6 +1794,7 @@ findings. They are what verifying its findings turned up.
 | C1-09 | An outside reader treats a published pressure log as the defect list | 5 | **OPEN** |
 | C1-10 | An absent altitude refuses while an unusable one degrades to 2-D | 2, 3 | **OPEN** |
 | C1-11 | Lineage cycle prevention covers self-reference on one path, not cycles | 3 | **OPEN** |
+| C1-12 | A verified fix proves its instance while the class stays unswept | 3, 7 | **OPEN** |
 
 ### C1-01 — The MAVLink ingress publishes an MSL altitude as canonical HAE · **MINTED 2026-08-10**
 
@@ -2008,6 +2022,14 @@ normative documents attach, and the field dictionary still described
 `dimensionality` shipped. All three were corrected this cycle. This is the
 second external survey in ten days, so the pattern is already n=2.
 
+*Addendum 2026-08-10: the current-state header now exists ("How to read this
+log", top of this file), which lands the first of the two remedies named
+above. The second, disclosures on the current-facing documents, was corrected
+within cycle C1 as the body records. The entry stays open because the finding
+concerns a recurring reading pattern rather than a missing sentence, and the
+pattern sits at n=2; the next external survey tests whether the header changes
+the outcome.*
+
 ### C1-10 — An absent altitude refuses while an unusable one degrades to 2-D · **OPEN**
 
 Raised by C1-01's fix rather than by the review. After this cycle the MAVLink
@@ -2051,6 +2073,65 @@ rewritten identifiers, a test fixture, or a hostile producer, and the last of
 those is the adversarial posture the contract already defers. Recorded so that
 the deferral is a decision rather than an assumption, and so a future signing
 or trust branch inherits it as a known open edge instead of rediscovering it.
+
+### C1-12 — A verified fix proves its instance while the class stays unswept · **OPEN**
+
+Raised by C1-01's own closing paragraph rather than by the review. After the
+MAVLink fix landed, that entry said the remaining adapters "should be read
+against that standard". Nothing in the apparatus makes that reading happen.
+Every check verifies that a thing was done: the regression test pins the fixed
+file, the corpus pins the fixed vector, the release gates verify the fixed
+artifact's hash. No check verifies that the thing was done everywhere it
+applies. The altitude-datum class needed three appearances (the July 2026
+fielded-stack audit, then ADS-B hardened, then MAVLink found carrying the same
+defect) before a class-wide sweep ran, and the third appearance sat one
+directory away from the second the whole time.
+
+This is the sibling of the cross-repo claims rule in the Praesens playbook:
+that rule says the number of places a moving fact is asserted is the future
+defect count. This one says the number of sibling surfaces sharing a fixed
+defect's shape is the future recurrence count. Both are countable on the day
+of the fix, and neither count was being taken.
+
+The first execution ran this cycle: a sweep of the twelve remaining adapter
+surfaces (ingress, egress, command, and projector) against the C1-01
+standard, one finder per surface, every finding then adversarially verified
+through three independent lenses (format-datum fact, code-path reachability,
+existing-guard coverage). The result was 21 findings, 20 confirmed by at
+least two of three lenses, 1 refuted. The refutation is itself evidence the
+class definition holds: the refuting lenses showed the claimed value is
+schema-invalid before any datum gate is consulted, which removes it from a
+class whose danger is precisely that its values pass schema validation. Of
+the confirmed findings: the KLV ingress carried the full defect (MISB ST
+0601's dominant altitude tags are MSL, and the generic decoded key reached
+canonical `alt_m` unqualified); the JREAP ingress still performed the exact
+legacy-key fallback the MAVLink fix names as the laundering class; the CoT
+ingress promoted CoT's documented 9999999.0 unknown-altitude convention as a
+real nine-million-metre HAE claim; the bladerf adapter mapped a
+datum-unverified flight-telemetry altitude to canonical; the eo-cv fallback
+laundered a documented flight-controller MSL position; moth and kraken
+accepted caller altitudes with no datum obligation anywhere on their
+surfaces; and the teaching surfaces (the example-vendor exemplar, the
+authoring guide, the template README) taught the unqualified mapping to every
+future author. All of it was fixed within the cycle to the C1-01 pattern,
+with the boundary named in each adapter's documentation, pinned by
+per-surface regression tests, and taught in AUTHORING.md's new
+"datum-unlabeled plausible values" residue class.
+
+One coupling the wave surfaced is logged here so it is a record rather than a
+session memory: the A1-02 `VERTICAL_UNAVAILABLE` token is bound to
+`payload.geo` by the adjudicated schema coherence rule, so the eo-cv
+INFERENCE surface, whose geo is claim-scoped, carries its 2-D declaration in
+`claim.geo.dimensionality` alone and asserts no `geo_status` token. Lawful,
+and the schema said so before any code tried otherwise, but the token's scope
+is narrower than the vocabulary's natural reading. Doctrine held; no mint.
+
+The entry stays open because the sweep ran once and nothing makes it recur.
+No rule yet requires the next within-class fix to trigger a class sweep, and
+where that mechanism should live (an audit-playbook rule, a fix-wave
+checklist item, a check with a defined retirement condition) is exactly the
+shape of the pending apparatus review, which should adjudicate it deliberately
+rather than this wave deciding it inside its own momentum.
 
 ---
 

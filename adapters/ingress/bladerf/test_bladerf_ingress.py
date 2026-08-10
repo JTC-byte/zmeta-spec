@@ -34,6 +34,9 @@ ROOT = Path(__file__).resolve().parents[3]
 SCHEMA_PATH = ROOT / "schema" / "zmeta-event-1.0.schema.json"
 # No format_checker: `date-time` is annotation-only without an RFC 3339 checker.
 VALIDATOR = Draft202012Validator(json.loads(SCHEMA_PATH.read_text(encoding="utf-8")))
+VALIDATOR_1_1_0 = Draft202012Validator(
+    json.loads((ROOT / "schema" / "zmeta-event-1.1.0.schema.json").read_text(encoding="utf-8"))
+)
 
 PACK = ROOT / "adapters" / "mapping-packs" / "edge-comms-bladerf" / "tests"
 CASES = ["case-01-vhf-orbit", "case-02-cband-fft"]
@@ -137,15 +140,44 @@ def test_null_island_sensor_position_refuses_geo():
     assert event["payload"]["quality"]["geo_status"] == "UNAVAILABLE"
 
 
-def test_real_sensor_position_emits_geo():
-    # Proves the geo gate is not stuck off: a genuine fix DOES map to canonical
-    # geo with status AVAILABLE (contract 6.8 all-or-nothing, satisfied here).
+def test_real_sensor_position_emits_declared_2d_geo():
+    # Proves the geo gate is not stuck off, at the fixed behavior: the native
+    # sensor_alt_m asserts no datum (the rf_detection position is UAS
+    # flight-telemetry derived, where the natural altitude source is MSL), so
+    # a genuine fix maps to the declared 2-D form (doctrine A1-02) with the
+    # native vertical preserved as an explicitly named feature -- never as
+    # canonical alt_m (contract 6.2, doctrine C1-01).
     raw, _ = _load("case-02-cband-fft")
     raw = copy.deepcopy(raw)
     raw["sensor_lat"], raw["sensor_lon"], raw["sensor_alt_m"] = 43.49, -112.04, 1450.0
     event = translate(raw, SCHEMA_ID, platform_id=PLATFORM_ID)[0]
-    assert event["payload"]["geo"] == {"lat": 43.49, "lon": -112.04, "alt_m": 1450.0}
+    assert event["payload"]["geo"] == {
+        "lat": 43.49,
+        "lon": -112.04,
+        "dimensionality": "2D",
+    }
+    assert "alt_m" not in event["payload"]["geo"]
+    assert event["payload"]["features"]["native_sensor_alt_m"] == 1450.0
+    assert event["payload"]["quality"]["geo_status"] == "VERTICAL_UNAVAILABLE"
+    assert event["zmeta_version"] == "1.1.0"
+    VALIDATOR_1_1_0.validate(event)
+
+
+def test_deployment_asserted_hae_regains_canonical_alt_m():
+    # The only path back to a 3-D geo is the datum-qualified key: a deployment
+    # that can prove its altitude is WGS-84 HAE supplies sensor_alt_hae_m and
+    # regains canonical alt_m under the 1.0 stamp, mirroring the MAVLink
+    # alt_hae_m-wins logic.
+    raw, _ = _load("case-02-cband-fft")
+    raw = copy.deepcopy(raw)
+    raw["sensor_lat"], raw["sensor_lon"] = 43.49, -112.04
+    raw["sensor_alt_hae_m"] = 1433.0
+    raw["sensor_alt_m"] = 1450.0
+    event = translate(raw, SCHEMA_ID, platform_id=PLATFORM_ID)[0]
+    assert event["payload"]["geo"] == {"lat": 43.49, "lon": -112.04, "alt_m": 1433.0}
+    assert "native_sensor_alt_m" not in event["payload"]["features"]
     assert event["payload"]["quality"]["geo_status"] == "AVAILABLE"
+    assert event["zmeta_version"] == "1.0"
     VALIDATOR.validate(event)
 
 

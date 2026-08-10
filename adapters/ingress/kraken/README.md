@@ -100,12 +100,22 @@ fields = ["1712600000.0", "135.2", "85", "-52.3", "433000000"]
 event = translate_csv_row(
     fields,
     platform_id="sensor-01",
-    sensor_geo={"lat": 43.49, "lon": -112.04, "alt_m": 1500},
+    sensor_geo={"lat": 43.49, "lon": -112.04, "alt_hae_m": 1433.0},
     platform_heading_deg=270.0,   # from AHRS; omit to suppress canonical bearing
     array_offset_deg=0.0,
     heading_source="AHRS_TRUE",
 )
 ```
+
+Sensor altitude datum (contract 6.2): `sensor_geo` yields a full 3-D
+`payload.geo` only with a declared WGS-84 HAE `alt_hae_m`. The legacy
+`alt_m` key asserts no datum (a typical caller has a GPS-derived or
+surveyed site elevation, which is MSL-referenced), so it never reaches
+canonical `alt_m`: the position degrades to the declared 2-D form
+(`dimensionality: "2D"`, 1.1.0 stamp) with the value preserved as
+`quality.kraken_sensor_alt_unspecified_datum_m`. This is the vertical
+instance of the rule the bearing already follows: no frame or datum
+evidence, no canonical claim.
 
 ### Source
 

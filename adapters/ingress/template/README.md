@@ -46,7 +46,17 @@ carries a local `validate()`.
   parent omits lineage entirely, and event families whose lineage is
   mandatory (INFERENCE/FUSION/STATE, contract 4.8) must refuse to emit
   rather than invent a parent id.
-- Must apply Units & Geodesy rules (WGS-84, meters HAE, degrees, meters/sec).
+- Must apply Units & Geodesy rules (WGS-84, meters HAE, degrees true north,
+  meters/sec). "Meters HAE" is an obligation on the input, not just a
+  property of the output: only a value the source standard defines as
+  WGS-84 ellipsoidal height may be written to `payload.geo.alt_m`. Name the
+  datum at the decode boundary (`alt_hae_m` vs `alt_msl_m`); convert MSL,
+  barometric, or AGL values, keep them in explicitly datum-named
+  non-canonical fields, or degrade to the declared-2D geo form when no HAE
+  exists (contract 6.2; worked pattern in
+  `adapters/ingress/mavlink/mavlink_to_zmeta_template.py`). A source field
+  named plainly `alt`/`altitude` carries no datum claim and must not be
+  mapped to `alt_m` on name similarity.
 - Must normalize timestamps with shared helpers such as
   `adapters.ingress.time_utils.normalize_utc_z()` or `epoch_ms_to_utc_z()`.
 - Must expose timing quality per event or through periodic `TIME_STATUS`.

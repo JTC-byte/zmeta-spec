@@ -157,23 +157,44 @@ def _resolve_ts(timestamp_ms):
         return None
 
 
-def _resolve_geo(lat, lon, alt_m):
-    """Apply the all-or-nothing canonical geo rule (contract 6.8).
+def _resolve_geo(lat, lon, alt_hae_m, alt_native_m):
+    """Apply the all-or-nothing geo rule (contract 6.8) and the altitude-datum
+    boundary (contract 6.2, doctrine C1-01).
 
-    Returns a ``{lat, lon, alt_m}`` dict only when all three are present,
-    finite numerics, and the fix is not the null-island ``(0,0)`` sentinel;
-    otherwise ``None`` so geo is omitted entirely. Missing, non-finite, or
-    uninterpretable components are never zero-filled and never guessed -- a
-    NaN/inf coordinate is not a position, so it refuses geo like any other
-    unusable fix rather than shipping under ``geo_status: AVAILABLE``.
+    The horizontal fix must be present, finite numerics, and not the
+    null-island ``(0,0)`` sentinel, or geo is omitted entirely. Missing,
+    non-finite, or uninterpretable components are never zero-filled and never
+    guessed -- a NaN/inf coordinate is not a position, so it refuses geo like
+    any other unusable fix rather than shipping under ``geo_status:
+    AVAILABLE``.
+
+    The vertical is datum-gated. ``sensor_alt_hae_m`` is a deployment
+    assertion of WGS-84 HAE and is the only value that may occupy canonical
+    ``alt_m`` (a full 3-D geo, 1.0 stamp). The native ``sensor_alt_m``
+    asserts no datum -- the rf_detection position is UAS flight-telemetry
+    derived, where the natural altitude source (MAVLink global position) is
+    MSL -- so it never reaches ``alt_m``: a real fix publishes as the
+    declared 2-D form (doctrine A1-02) and the caller preserves the native
+    value under ``features.native_sensor_alt_m``, the same demotion this
+    adapter applies to its frame-unlabeled bearing. A fix with no vertical of
+    any kind stays omitted (absence is refused, not degraded; same
+    disposition as the MAVLink reference implementation).
+
+    Returns ``(geo_or_None, needs_1_1_0)``; the 2-D branch needs the 1.1.0
+    stamp because ``dimensionality`` is v1.1.0 vocabulary and the locked v1.0
+    geo def is additionalProperties:false over lat/lon/alt_m.
     """
-    if lat is None or lon is None or alt_m is None:
-        return None
-    if not all(_finite_number(value) for value in (lat, lon, alt_m)):
-        return None
+    if lat is None or lon is None:
+        return None, False
+    if not all(_finite_number(value) for value in (lat, lon)):
+        return None, False
     if float(lat) == 0.0 and float(lon) == 0.0:
-        return None
-    return {"lat": float(lat), "lon": float(lon), "alt_m": float(alt_m)}
+        return None, False
+    if alt_hae_m is not None and _finite_number(alt_hae_m):
+        return {"lat": float(lat), "lon": float(lon), "alt_m": float(alt_hae_m)}, False
+    if alt_native_m is not None and _finite_number(alt_native_m):
+        return {"lat": float(lat), "lon": float(lon), "dimensionality": "2D"}, True
+    return None, False
 
 
 def _degraded_timing(ts_iso, supplied=None):
@@ -282,9 +303,17 @@ def translate_detection(
         ):
             features["native_bearing_error_deg"] = raw["bearing_error_deg"]
 
-    geo = _resolve_geo(
-        raw.get("sensor_lat"), raw.get("sensor_lon"), raw.get("sensor_alt_m")
+    alt_native_m = raw.get("sensor_alt_m")
+    geo, needs_1_1_0 = _resolve_geo(
+        raw.get("sensor_lat"),
+        raw.get("sensor_lon"),
+        raw.get("sensor_alt_hae_m"),
+        alt_native_m,
     )
+    if needs_1_1_0:
+        # The datum-unlabeled native vertical survives as an explicitly named
+        # feature (the bearing demotion's sibling), never as canonical alt_m.
+        features["native_sensor_alt_m"] = float(alt_native_m)
 
     quality = {}
     if raw.get("snr_db") is not None:
@@ -294,7 +323,15 @@ def translate_detection(
             # (same value-honesty rule as geo above).
             return None
         quality["snr_db"] = raw["snr_db"]
-    quality["geo_status"] = "AVAILABLE" if geo else "UNAVAILABLE"
+    # A declared 2-D geo cannot sit beside geo_status AVAILABLE (A1-02
+    # coherence arm 2): the horizontal fix is real, the vertical is not
+    # canonically statable, and the status says so.
+    if geo is None:
+        quality["geo_status"] = "UNAVAILABLE"
+    elif needs_1_1_0:
+        quality["geo_status"] = "VERTICAL_UNAVAILABLE"
+    else:
+        quality["geo_status"] = "AVAILABLE"
     quality["calibration_state"] = "UNCALIBRATED"
 
     sid = sensor_id or meta.get("zmeta_sensor_id")
@@ -317,7 +354,7 @@ def translate_detection(
         payload["geo"] = geo
 
     event = {
-        "zmeta_version": "1.0",
+        "zmeta_version": "1.1.0" if needs_1_1_0 else "1.0",
         "event": {
             "event_id": str(uuid7()),
             "event_type": "OBSERVATION_EVENT",

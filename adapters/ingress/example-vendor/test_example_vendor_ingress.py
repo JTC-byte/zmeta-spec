@@ -68,7 +68,7 @@ def test_translate_adds_contract_obligations_beyond_pack_fixture():
 
 def test_translate_omits_geo_when_any_component_missing():
     reading = dict(PACK_INPUT)
-    del reading["alt_m"]
+    del reading["alt_hae_m"]
     event = example_vendor.translate(reading, example_vendor.SCHEMA_ID)[0]
     assert "geo" not in event["payload"]
 

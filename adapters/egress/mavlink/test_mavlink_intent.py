@@ -279,6 +279,27 @@ def test_risk_flagged_command_with_override_translates_and_stamps():
     assert result["risk_adjudication"] == [RISK_ADJUDICATION_RECORD]
 
 
+def test_altitude_inside_risk_record_refused_even_under_override():
+    # The copied risk_adjudication records were the one conduit the module's
+    # "no vertical intent reaches the mission-intent output" guarantee did
+    # not cover: under allow_flagged=True they were deep-copied verbatim
+    # with no _contains_altitude walk, so an altitude key inside a record
+    # projected despite contract 7.8's whole-payload prohibition. The
+    # whole-mission walk now refuses it.
+    event = _command_event()
+    record = dict(RISK_ADJUDICATION_RECORD)
+    record["target_alt_m"] = 120.0
+    event["payload"]["extensions"] = {"risk_adjudication": [record]}
+    try:
+        zmeta_command_to_mission_intent(event, allow_flagged=True)
+    except ValueError:
+        pass
+    else:
+        raise AssertionError(
+            "an altitude key inside a risk_adjudication record must refuse"
+        )
+
+
 def test_unflagged_command_unchanged_by_allow_flagged_param():
     default_result = zmeta_command_to_mission_intent(_command_event())
     override_result = zmeta_command_to_mission_intent(_command_event(), allow_flagged=True)

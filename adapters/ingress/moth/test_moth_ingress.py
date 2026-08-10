@@ -19,9 +19,16 @@ SCHEMA_PATH = ROOT / "schema" / "zmeta-event-1.0.schema.json"
 SCHEMA = json.loads(SCHEMA_PATH.read_text(encoding="utf-8"))
 # No format_checker: `date-time` is annotation-only without an RFC 3339 checker.
 VALIDATOR = Draft202012Validator(SCHEMA)
+VALIDATOR_1_1_0 = Draft202012Validator(
+    json.loads((ROOT / "schema" / "zmeta-event-1.1.0.schema.json").read_text(encoding="utf-8"))
+)
 
 TS_MS = 1737127200123
-GEO = {"lat": 34.0, "lon": -118.0, "alt_m": 120.0}
+# The datum-qualified caller position: only a declared-HAE vertical reaches
+# canonical geo.alt_m (contract 6.2, doctrine C1-01). The legacy alt_m key is
+# exercised by the degrade tests below.
+GEO = {"lat": 34.0, "lon": -118.0, "alt_hae_m": 120.0}
+GEO_CANONICAL = {"lat": 34.0, "lon": -118.0, "alt_m": 120.0}
 
 # bearing_deg, bearing_err_deg, freq_hz, bw_hz, power_dbm, snr_db, el_deg, confidence
 TUNNEL_BYTES = struct.pack(
@@ -75,7 +82,7 @@ def test_serial_features_and_geo_intact():
     assert features["peak_freq_mhz"] == pytest.approx(2437.0)
     assert features["sensor_hw"] == "moth"
     assert features["source_format"] == "serial"
-    assert event["payload"]["geo"] == GEO
+    assert event["payload"]["geo"] == GEO_CANONICAL
     assert event["payload"]["quality"]["geo_status"] == "AVAILABLE"
 
 
@@ -84,6 +91,23 @@ def test_serial_without_geo_marks_unavailable():
 
     assert "geo" not in event["payload"]
     assert event["payload"]["quality"]["geo_status"] == "UNAVAILABLE"
+
+
+def test_legacy_sensor_geo_alt_m_never_reaches_canonical_alt_m():
+    # The legacy alt_m key asserts no datum, and this adapter's documented
+    # UAS origin makes autopilot MSL the natural source: the position
+    # degrades to the declared 2-D form with the value preserved, mirroring
+    # the discipline the bearing axis gets from the TRUE_NORTH gate.
+    event = _serial_event(sensor_geo={"lat": 34.0, "lon": -118.0, "alt_m": 120.0})
+
+    geo = event["payload"]["geo"]
+    assert geo == {"lat": 34.0, "lon": -118.0, "dimensionality": "2D"}
+    assert "alt_m" not in geo
+    quality = event["payload"]["quality"]
+    assert quality["moth_sensor_alt_unspecified_datum_m"] == 120.0
+    assert quality["geo_status"] == "VERTICAL_UNAVAILABLE"
+    assert event["zmeta_version"] == "1.1.0"
+    VALIDATOR_1_1_0.validate(event)
 
 
 # --- Non-finite readings (R1-11 sibling-parity with adsb/ais/bladerf) -------
@@ -293,13 +317,32 @@ def test_json_replay_partial_sensor_position_omits_geo():
         VALIDATOR.validate(event)
 
 
-def test_json_replay_full_sensor_position_maps_geo_unchanged():
+def test_json_replay_declared_hae_sensor_position_maps_geo():
     replay = dict(REPLAY_WITHOUT_BEARING)
-    replay["sensor_position"] = {"lat": 34.0, "lon": -118.0, "alt_m": 120.0}
+    replay["sensor_position"] = {"lat": 34.0, "lon": -118.0, "alt_hae_m": 120.0}
     event = translate_json_replay(replay, platform_id="uav-01")
 
     assert event["payload"]["geo"] == {"lat": 34.0, "lon": -118.0, "alt_m": 120.0}
     assert event["payload"]["quality"]["geo_status"] == "AVAILABLE"
+    assert event["zmeta_version"] == "1.0"
+
+
+def test_json_replay_undeclared_datum_sensor_position_degrades_to_2d():
+    # The replay format never declares an altitude datum; the adapter demands
+    # frame evidence for the same format's bearing, and the vertical now gets
+    # the same rule: no evidence, no canonical claim.
+    replay = dict(REPLAY_WITHOUT_BEARING)
+    replay["sensor_position"] = {"lat": 34.0, "lon": -118.0, "alt_m": 120.0}
+    event = translate_json_replay(replay, platform_id="uav-01")
+
+    geo = event["payload"]["geo"]
+    assert geo == {"lat": 34.0, "lon": -118.0, "dimensionality": "2D"}
+    assert "alt_m" not in geo
+    quality = event["payload"]["quality"]
+    assert quality["moth_sensor_alt_unspecified_datum_m"] == 120.0
+    assert quality["geo_status"] == "VERTICAL_UNAVAILABLE"
+    assert event["zmeta_version"] == "1.1.0"
+    VALIDATOR_1_1_0.validate(event)
 
 
 def test_events_validate_against_v1_0_schema():

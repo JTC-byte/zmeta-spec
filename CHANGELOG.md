@@ -6,6 +6,52 @@
 
 ## [1.1.22] - 2026-08-10
 
+- 2026-08-10 — **The altitude-datum class is swept across every remaining
+  adapter surface, and every confirmed instance is fixed.** A fix proves
+  its instance, and this class had already needed three appearances, so
+  the twelve surfaces beyond MAVLink (ingress, egress, command, and
+  projector) were audited against the C1-01 standard, with each finding
+  adversarially verified through three independent lenses: 21 findings,
+  20 confirmed, 1 refuted. The confirmed set: the KLV ingress mapped a
+  generic decoded `alt_m` to canonical while MISB ST 0601's dominant
+  altitude tags are MSL (the boundary now names the datum, with the
+  tag-to-key table and sensor-position referent in the README); the JREAP
+  ingress still carried the legacy `alt_m` fallback the MAVLink fix
+  names as the laundering class; the CoT ingress promoted the 9999999.0
+  unknown-altitude convention as a real altitude claim and now degrades
+  it to the declared 2-D form, reads the egress sibling's
+  `<geo_dimensionality>` marker for the round trip, and refuses the
+  marker-beside-real-altitude contradiction; bladerf, eo-cv, moth and
+  kraken accepted datum-unverified caller or telemetry altitudes and now
+  degrade them with the vertical preserved under datum-named
+  non-canonical keys, with `alt_hae_m`-style qualified keys as the only
+  canonical paths; the MAVLink command egress ran no altitude walk over
+  `risk_adjudication` records under `allow_flagged=True` and now walks
+  the whole built mission; the SAPIENT ingress emitted an undocumented
+  `omitted_reason` spelling and now emits the documented
+  `COORDINATE_SYSTEM_UNSPECIFIED`; and the teaching surfaces
+  (example-vendor exemplar, AUTHORING.md, template README) taught the
+  unqualified mapping and now teach the boundary rule, including a new
+  "datum-unlabeled plausible values" residue class. The adapter-harness
+  fixtures moved to the qualified keys, a governed-corpus change.
+  signalhunter and the SAPIENT location path came back clean with
+  evidence. Doctrine C1-12 records the sweep and the standing lesson:
+  the apparatus verified each fix was done, and nothing verified a fix
+  was done everywhere it applied. Behavior-changing for deployments
+  feeding datum-unqualified altitudes to the swept adapters, which move
+  from a false 3-D position to an honest 2-D one.
+
+- 2026-08-10 — **The doctrine log opens with a reading rule, and the
+  crosswalk speaks PROV.** Two external reviews in ten days read the
+  published pressure log as a defect inventory. The log now opens with
+  "How to read this log" (entries are point-in-time, the heading's
+  status marker is authoritative, terminal bodies describe resolved
+  past states), the C1-09 remedy, with the entry left open until the
+  next survey tests whether the header changes the reading. The
+  vocabulary crosswalk gained the W3C PROV section both reviews asked
+  for: `lineage.based_on[]` to `prov:wasDerivedFrom`,
+  `lineage.transform` to a `prov:Activity` label, non-goals stated.
+
 - 2026-08-10 — **The MAVLink ingress stops publishing a mean-sea-level
   altitude as canonical HAE.** Contract 6.2 is a `SHALL`: canonical
   altitude is Height Above Ellipsoid, and an adapter ingesting MSL "must

@@ -76,11 +76,19 @@ pattern.)
 | `frequency.bandwidth_hz` | Emitted with the documented 0.0 sentinel (above) |
 | `bearing_error_deg` (in `bearing_frame="TRUE_NORTH"` mode) | Emitted without `features.angular_error_deg` and `quality.measurement_error` -- an error bound is never invented |
 
-Canonical `geo` is all-or-nothing (semantics contract section 6.8):
-`sensor_position` maps to `payload.geo` only when `lat`, `lon`, and `alt_m`
-are all present. If any of the three is missing, `geo` is omitted entirely
-and `quality.geo_status` is `UNAVAILABLE` -- missing values are never
-zero-filled.
+Canonical `geo` is all-or-nothing (contract 6.8) and datum-gated (contract
+6.2): a caller-supplied `sensor_geo` or replay `sensor_position` yields a
+full 3-D `payload.geo` only when `lat`, `lon`, and a declared WGS-84 HAE
+`alt_hae_m` are all present. The legacy `alt_m` key asserts no datum -- in
+this adapter's UAS origin the natural position source is autopilot
+telemetry, whose MAVLink global-position altitude is MSL -- so it never
+reaches canonical `alt_m`: the position degrades to the declared 2-D form
+(`dimensionality: "2D"`, 1.1.0 stamp, `quality.geo_status:
+VERTICAL_UNAVAILABLE`) with the value preserved as
+`quality.moth_sensor_alt_unspecified_datum_m`. This is the same rule the
+bearing axis gets from the frame gate below: no evidence, no claim. A
+position with no vertical of any kind omits `geo` entirely with
+`quality.geo_status: UNAVAILABLE` -- missing values are never zero-filled.
 
 ### Bearing frame
 
@@ -107,7 +115,7 @@ from adapters.ingress.moth.moth_to_zmeta import translate_serial_line
 event = translate_serial_line(
     '{"peakDbm": -52.3, "peakFreqMhz": 2437.0}',
     platform_id="uav-01",
-    sensor_geo={"lat": 43.49, "lon": -112.04, "alt_m": 1500},
+    sensor_geo={"lat": 43.49, "lon": -112.04, "alt_hae_m": 1433.0},
 )
 ```
 

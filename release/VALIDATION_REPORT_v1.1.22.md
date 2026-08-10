@@ -14,7 +14,7 @@ SITL exercise recorded in `docs/zmeta_live_test_checklist.md`.
 
 Full test battery:
 `python -m pytest -q`
-Result: 1756 passed, 2 skipped, 1105 subtests passed.
+Result: 1782 passed, 2 skipped, 1105 subtests passed.
 
 Kernel protection gates:
 `python tools/validate_conformance.py --strict --profile-projection
@@ -68,6 +68,20 @@ deployment does, and the resulting 2-D event was projected through CoT egress
 to confirm it emits the documented unknown-altitude sentinel rather than a
 fabricated zero.
 
+The class sweep that followed was verified rather than trusted: each of the
+twelve surface audits produced findings with file-and-line evidence, and
+every finding was then adversarially checked by three independent verifiers
+with distinct lenses (does the source format define the field as the claimed
+datum; does the value reach the claimed destination on a traced code path,
+executed where practical; does any existing test, validator, policy rule or
+gateway check already catch it). A finding needed at least two of three
+confirmations to enter the fix wave: 20 of 21 did, and the one refutation
+was accepted and recorded rather than fixed, because its refuting lenses
+showed the claimed value is rejected by schema validation before any datum
+gate, which removes it from the class. Each fix carries per-surface
+regression tests, including a CoT egress-to-ingress round trip across the
+wire format for the declared-2D case.
+
 ## Known limits of this validation
 
 The locked v1.0 lane still accepts any string ending in `Z` as `event.ts`. This
@@ -81,11 +95,16 @@ for the same reason. An independent implementation validating v1.0 traffic
 receives no corpus signal on timestamp shape, because there is no shape to
 enforce there.
 
-The altitude-datum sweep in this release covers the MAVLink ingress only. The
-remaining ingress adapters that write canonical altitude have not been read
-against the naming-at-the-boundary standard this cycle established. That work
-is queued as the second item in the prioritized backlog and should be assumed
-outstanding.
+The altitude-datum sweep covered every adapter surface in this repository,
+and its scope boundary is the repository: a downstream decoder feeding the
+KLV or JREAP templates, or a caller wiring positions into the sensor_geo
+interfaces, can still mislabel a datum upstream of the boundary these fixes
+name. The documentation on each surface now states the caller's obligation,
+which is the strongest guard available without executing the caller. The
+sweep's non-altitude secondary observations (the same laundered-plausible-
+value shape on headings, power references, and course-vs-heading) are
+recorded and triaged in the backlog, deliberately unfixed here because the
+wave's charter was the altitude class.
 
 Cross-encoding equality is verified as object and value equality, not as byte
 identity. Two conforming CBOR backends in this repository emit different bytes

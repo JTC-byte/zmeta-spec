@@ -18,7 +18,16 @@ payload:
   # are null or null-island (0,0); do not invent coordinates.
   geo.lat: input.sensor_lat
   geo.lon: input.sensor_lon
-  geo.alt_m: input.sensor_alt_m
+  # Sensor altitude datum (convert-or-omit, contract 6.2): sensor_alt_m
+  # asserts no datum -- the position is UAS flight-telemetry derived, where
+  # the natural altitude source (MAVLink global position) is MSL -- so
+  # canonical geo.alt_m is NEVER emitted from it. A real fix degrades to the
+  # declared 2-D form (geo.dimensionality "2D", zmeta_version 1.1.0,
+  # quality.geo_status VERTICAL_UNAVAILABLE) and the native value travels
+  # under the explicitly named feature below, the same demotion the bearing
+  # gets. Only a deployment-asserted WGS-84 HAE key regains 3-D geo:
+  #   geo.alt_m: input.sensor_alt_hae_m   (when the deployment can prove HAE)
+  features.native_sensor_alt_m: input.sensor_alt_m
   # Canonical bearing is NOT emitted by this pack. The native bearing is
   # heading-derived (uas heading + fixed antenna offset) and the source
   # asserts no reference frame (metadata.heading_source "interpolated"
