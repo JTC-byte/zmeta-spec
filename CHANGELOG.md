@@ -6,6 +6,22 @@
 
 ## [1.1.21] - 2026-08-09
 
+- 2026-08-09 — **Doctrine cycle B1 opens: the referent of observation
+  `geo` is unstated, and the record now says so.** The contract never
+  states whose position `payload.geo` is on an OBSERVATION_EVENT, and
+  every shipped ingress adapter answered the question itself: subject
+  position (adsb, ais, sapient), sensor position (kraken, moth, bladerf),
+  omitted-with-an-ad-hoc-home (signalhunter), or unqualified (klv, the
+  example-vendor reference). The track projector reads the subject
+  convention and is protected from placing tracks on sensors only by its
+  narrow identity-path list. Entry B1-01 records the full evidence table
+  with file:line citations and the maintainer's 2026-08-09 disposition:
+  the doctrine entry lands now, and the one-line normative sentence (geo
+  is the subject's position) waits for a governed wave that also brings
+  the sensor-position adapters into conformance, because landing it today
+  would make fielded adapters retroactively non-conforming with no home
+  for a sensor's own position.
+
 - 2026-08-09 — **A1-01 runs its experimental split: power declares its
   reference.** The v1.1.0 experimental branch gains
   `features.power_reference` on RF observations (`DBM_ABSOLUTE`, `DBFS`,

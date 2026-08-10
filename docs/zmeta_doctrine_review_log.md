@@ -1673,7 +1673,72 @@ stays open on the field checklist, unmoved by this closure.
 
 ---
 
-## Lifecycle — these logs terminate, they do not accumulate
+## Cycle B1 — 2026-08-09
+
+Seeded outside an audit. A 2026-08-03 bespoke-sensor planning session hit
+this wall from two independent design lanes, and the 2026-08-09 register
+sweep confirmed the silence was recorded nowhere in the repository's open
+registers. The evidence table was built by reading every shipped ingress
+adapter's emission code, with file and line cited for each. One entry.
+
+| # | Tension | Gates in play | Status |
+|---|---|---|---|
+| B1-01 | The referent of `payload.geo` on an OBSERVATION_EVENT is unstated | 2, 3, 5 | **DECIDED 2026-08-09** |
+
+### B1-01 — The referent of `payload.geo` on an OBSERVATION_EVENT is unstated · **DECIDED 2026-08-09**
+
+The contract defines `geo`'s datum (6.1), units (6.2), completeness rule
+(6.8) and, since v1.1.20, its dimensionality (21.8). It never says whose
+position it is. Section 7.4 lists `geo?` on ObservationPayload with no
+relationship stated to the observation's subject or to the observing
+sensor, and a search of the normative text for any referent statement
+returns nothing. Every shipped ingress adapter had to answer the question
+anyway, and they split four ways, correlated with sensor class:
+
+| Adapter | Reading of observation `geo` | Evidence |
+|---|---|---|
+| adsb | subject: the aircraft's broadcast position; receiver position never emitted | `adsb_to_zmeta.py:192-234` |
+| ais | subject: the vessel's broadcast position | `ais_to_zmeta.py:165-203` |
+| sapient | subject: `DetectionReport.location`; the node's own position is explicitly extension-only ("never canonical geo") | `sapient_to_zmeta.py:872-873, 1243-1246` |
+| kraken | the sensor's own position (`sensor_geo` kwarg, "sensor position" in its docstring); the emitter gets only a line of bearing | `kraken_to_zmeta.py:162, 210` |
+| moth | the sensor's own position | `moth/README.md:79-83` |
+| bladerf | the sensor's own position (`geo.lat: input.sensor_lat` in the mapping pack) | `bladerf_to_zmeta.py:285-287`; `edge-comms-bladerf/mapping.yaml:19-21` |
+| signalhunter | neither: `geo` never emitted, `geo_status: UNAVAILABLE` hardcoded, and the sensor position parked in an ad-hoc unregistered key `payload.quality.sensor_position_2d` | `signalhunter_to_zmeta.py:421-425` |
+| eo-cv | subject preferred, sensor fallback, and the only adapter that labels which: `claim.geo_source` is `detection` / `fc_fallback` / `unavailable` | `eo_cv_to_zmeta.py:173-214` |
+| klv | unqualified: MISB 0601 offers sensor position, frame center and target location, and the template never says which it reads | `klv_to_zmeta_template.py:26-28` |
+| example-vendor | unqualified, de facto sensor position — the reference adapter new authors copy is silent on exactly this ambiguity | `example_vendor_to_zmeta.py:115-120` |
+
+**The downstream consequence is what makes this gate 2 and 3 rather than
+tidiness.** The one shipped ZMeta-to-ZMeta consumer,
+`adapters/projector/track/track_projector.py`, copies observation `geo`
+straight into a track's `STATE_EVENT` geo: it reads the subject
+convention. Feed it a kraken, moth or bladeRF event and it would place a
+track on the sensor. The only thing preventing that today is accidental:
+`DEFAULT_IDENTITY_PATHS` is limited to `adsb_icao24` and `ais_mmsi`, so
+the sensor-position adapters are refused as `refused_no_identity` before
+their geo is ever read. Any deployment that widens `identity_paths`
+loses that protection silently.
+
+**The missing sentence is one line of normative text:** on an
+OBSERVATION_EVENT, `payload.geo` is the position of the observation's
+subject; a sensor's own position is not a subject position, and it
+travels under source or extension vocabulary, never canonical geo. The
+sapient adapter already implements exactly this reading and the eo-cv
+adapter labels its deviation from it, so the sentence ratifies the
+strictest existing practice rather than inventing one.
+
+**DECIDED 2026-08-09, maintainer adjudication: this entry now, the
+normative sentence in a scheduled governed wave.** Landing the sentence
+is wire-compatible but makes kraken, moth, bladeRF and the
+example-vendor reference retroactively non-conforming, moves the
+contract hash anchor, and needs an agreed home for a sensor's own
+position before the old one is closed (signalhunter's unregistered
+`sensor_position_2d` is what pressure invents in the absence of one). So
+it is a wave with adapter work, not a records edit. Until that wave
+lands, this entry is the record a fielding party can find: a
+line-of-bearing adapter's `geo` is the sensor, not the emitter, and a
+consumer that widens the track projector's identity paths must know
+that before it does.
 
 The value of this log is the pattern over time. But a log that only ever grows
 is a swamp: questions go in and never come out. So both the tensions here and
