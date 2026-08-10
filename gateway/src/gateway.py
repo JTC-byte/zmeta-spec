@@ -975,13 +975,23 @@ def _check_ts_plausibility(metrics, event, horizon_ms, now=None, event_id=None, 
     """Record an EVENT_TS_IMPLAUSIBLE warning; never blocks forwarding.
 
     Returns True when a warning was recorded. Disabled when `horizon_ms` is
-    falsy/non-positive, when no metrics sink exists, when `event.ts` cannot
-    be parsed as an aware UTC instant (_parse_utc_z), or when `ts` sits
+    falsy/non-positive, when no metrics sink exists, or when `ts` sits
     inside [now - horizon_ms, now + horizon_ms]. `now` defaults to wall-clock
     UTC; a caller (tests) may pass a fixed instant instead. Runs on ANY
     zmeta_version -- this is a runtime check, not a schema one (X1-01,
     contract 3.1, "Actual time-source accuracy"), so v1.0's locked schema and v1.1.0's stricter utcDateTime
     pattern are both covered the same way.
+
+    A `ts` that _parse_utc_z cannot read as an aware UTC instant takes the
+    same code, reported with `direction: "unparseable"` and no `delta_ms`,
+    because there is no instant to measure a delta against. This arm is the
+    one the locked v1.0 lane needs. v1.0's `utcDateTime` is gated by the
+    pattern `Z$` with annotation-only `format`, so `ts: "garbageZ"` validates
+    clean there, and returning silently here left that event with no runtime
+    diagnostic on either layer. A timestamp that cannot be read is
+    implausible on its face, so the existing warn-only code carries it rather
+    than a new one; `direction` is what tells an operator "unreadable" from
+    "outside the horizon".
     """
     if not metrics or not horizon_ms or horizon_ms <= 0:
         return False
@@ -991,7 +1001,23 @@ def _check_ts_plausibility(metrics, event, horizon_ms, now=None, event_id=None, 
     ts_raw = event_block.get("ts") if isinstance(event_block, dict) else None
     ts = _parse_utc_z(ts_raw)
     if ts is None:
-        return False
+        # `direction` and `reason` lead the details dict on purpose: a v1.0
+        # `ts` has no length bound in schema, and _bounded_metrics_detail
+        # truncates the tail at MAX_METRICS_DETAIL_CHARS, so an oversized
+        # offending value must not be able to push the distinguishing fields
+        # out of the record.
+        metrics.record_warning(
+            "EVENT_TS_IMPLAUSIBLE",
+            event_id=event_id,
+            producer=producer,
+            details={
+                "direction": "unparseable",
+                "reason": "ts is not a readable aware UTC instant with a trailing Z",
+                "horizon_ms": horizon_ms,
+                "ts": ts_raw,
+            },
+        )
+        return True
     delta_ms = (now - ts).total_seconds() * 1000.0
     if delta_ms > horizon_ms:
         direction = "past"

@@ -957,7 +957,7 @@ def test_zmeta_to_cot_wrong_spelled_ellipse_renders_no_fabricated_claim():
 
 
 # Banked _parse_utc MAJOR: jsonschema does not enforce format: date-time
-# without an installed FormatChecker, so a hostile-but-gate-clean event.ts
+# without an RFC 3339 checker, so a hostile-but-gate-clean event.ts
 # reaches _parse_utc, and the ValueError used to escape the adapter.
 
 _UNPARSEABLE_TS = (

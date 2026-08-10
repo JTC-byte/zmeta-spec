@@ -48,10 +48,14 @@ jobs:
         run: |
           python tools/validate_examples.py --strict --require-all
 
+      - name: Validate future-branch roadmap
+        run: |
+          python tools/validate_future_roadmap.py
+
       - name: Check migration compatibility
         run: |
           for file in examples/*.jsonl; do
-            python tools/check_compat.py --target v1.1.21 --strict "$file"
+            python tools/check_compat.py --target v1.1.22 --strict "$file"
           done
 
       - name: Validate v1.1 examples

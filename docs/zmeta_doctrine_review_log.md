@@ -1750,6 +1750,310 @@ line-of-bearing adapter's `geo` is the sensor, not the emitter, and a
 consumer that widens the track projector's identity paths must know
 that before it does.
 
+---
+
+## Cycle C1 — 2026-08-10
+
+Seeded by an independent technical review that compared ZMeta against CoT,
+MISB ST 0601, STANAG 4676, OGC/ISO OMS, W3C PROV, Sparkplug B, MAVLink,
+ASTERIX, C2PA and CloudEvents. The review had no raw-byte access to the
+normative files and worked from the README, the professional overview,
+CONFORMANCE.md, the CHANGELOG and this log. Every claim it made was then
+verified against the tree at `8b24da5` with file and line cited.
+
+The review's own findings were roughly a third accurate: it was correct that
+no per-event integrity exists and that covariance and sequence primitives are
+absent, wrong about the UUIDv7 version nibble, schema-level laundering guards,
+deduplication and deterministic CBOR, and stale on 2-D geo, the `event.ts`
+pattern and the v1.1.21 code mint. The entries below are mostly not its
+findings. They are what verifying its findings turned up.
+
+| # | Tension | Gates in play | Status |
+|---|---|---|---|
+| C1-01 | The MAVLink ingress publishes an MSL altitude as canonical HAE | 3, 5 | **MINTED 2026-08-10** |
+| C1-02 | A release-notes claim credits a runtime layer that no-ops on the class it names | 3 | **MINTED 2026-08-10** (erratum) |
+| C1-03 | The governed corpora carry no malformed-timestamp vectors, while the crosswalk cites them as the evidence | 3, 7 | **MINTED 2026-08-10** |
+| C1-04 | Fusion and state uncertainty cannot express a correlated distribution, and the gap is unbooked | 2 | **OPEN — decision-due** |
+| C1-05 | Gap detection is booked only under adversarial trust, so a cooperative-link reliability need has no home | 2, 6 | **MINTED 2026-08-10** |
+| C1-06 | Per-event signing provably cannot be met in the outer rings, because the event root is closed | 1, 6 | **OPEN** |
+| C1-07 | Float width is unspecified, so two conforming CBOR backends emit different bytes for one event | 4, 7 | **OPEN — decision-due** |
+| C1-08 | A format checker is installed at a dozen sites and validates nothing | 3 | **DECIDED 2026-08-10** |
+| C1-09 | An outside reader treats a published pressure log as the defect list | 5 | **OPEN** |
+| C1-10 | An absent altitude refuses while an unusable one degrades to 2-D | 2, 3 | **OPEN** |
+| C1-11 | Lineage cycle prevention covers self-reference on one path, not cycles | 3 | **OPEN** |
+
+### C1-01 — The MAVLink ingress publishes an MSL altitude as canonical HAE · **MINTED 2026-08-10**
+
+Contract 6.2 is a `SHALL`: canonical altitude is Height Above Ellipsoid, and
+MSL "is not permitted in canonical ZMeta v1.0 `geo`", with the remedy stated
+in the same sentence, "it must convert them or omit canonical `geo`". The
+MAVLink template did neither. Its docstring described its own `alt_m` input as
+"metres AMSL" (`mavlink_to_zmeta_template.py:364`), it wrote that value
+unconverted into `payload.geo.alt_m` (`:459`), and the decoder derived it from
+`GLOBAL_POSITION_INT.alt`, which MAVLink defines as height above mean sea
+level (`:600-606`). No conversion utility exists anywhere in the repository.
+
+**This is the third appearance of the altitude-datum class.** The July 2026
+audit found it in a fielded stack; the ADS-B ingress was then hardened to
+refuse it at the source, and says so on its face: `alt_baro` is a pressure
+altitude and "never becomes `alt_m`", with the module docstring naming the
+fielded finding as its reason (`adsb_to_zmeta.py:64-69`). MAVLink was the same
+class, in the same repository, left unfixed. The occurrence rule therefore
+forced a terminal status on sight rather than after further instances.
+
+What makes it worse than an ordinary mapping bug is that the surrounding code
+is scrupulous. The same function refuses a missing altitude rather than
+zero-filling it, refuses the null-island no-fix signature, refuses an
+unreported speed rather than asserting a standstill, and refuses a heading
+whose frame is undeclared. Every honesty class this template guards is one
+where the *absence* of a value was the hazard. The datum defect is the one
+where a present, well-formed, plausible number is wrong, and that shape passed
+every guard the file has.
+
+**Fixed this cycle, and the fix is the A1-02 mechanism doing the job it was
+built for.** The two datums are now separated at the decode boundary:
+`GLOBAL_POSITION_INT.alt` decodes to `alt_msl_m` and can never reach canonical
+geo, while `GPS_RAW_INT.alt_ellipsoid`, which MAVLink defines as height above
+the WGS-84 ellipsoid, decodes to `alt_hae_m` and is the only value admitted to
+`payload.geo.alt_m`. When only MSL is available the horizontal fix is still
+real, so the position is emitted as the declared 2-D form, `dimensionality:
+"2D"` with `geo_status: VERTICAL_UNAVAILABLE` under a `1.1.0` stamp, and the
+reported MSL value is preserved as non-canonical
+`quality.mavlink_alt_msl_m`. The legacy `alt_m` input key is read as MSL, so
+an existing caller degrades to the honest form instead of continuing to
+publish a wrong-datum HAE claim. Nine tests pin the behavior, including the
+decode-to-translate composition, because a decoder that mislabels a datum
+defeats a translator-only guard.
+
+**The general lesson is worth more than the fix.** Every anti-fabrication
+guard in this repository keys on absence: a missing value must not become a
+zero. A wrong-datum value is present, finite, in range and plausible, so it
+passes all of them. The guard that catches it is naming the datum at the
+boundary rather than at the destination, which is what `alt_msl_m` versus
+`alt_hae_m` does. The remaining ingress adapters that write canonical
+altitude should be read against that standard rather than against the
+absence-shaped one.
+
+### C1-02 — A release-notes claim credits a runtime layer that no-ops on the class it names · **MINTED 2026-08-10** (erratum)
+
+`release/RELEASE_NOTES_v1.1.20.md:126-131` states that the X1-01 closure
+"lands at both lawful layers", the schema pattern on the v1.1.0 branch and a
+gateway plausibility window that counts an implausible `ts` on every
+`zmeta_version`. The window is version-agnostic as described. It also returns
+before doing anything on precisely the malformed class the locked v1.0 lane
+still admits: `gateway.py:992-994` parses `ts` and returns `False` when the
+parse fails, so an unparseable value is never compared and never counted.
+Verified against the shipped module: `garbageZ` and a bare `Z` produce no
+warning, while a well-formed out-of-horizon timestamp produces one.
+
+The consequence is narrow but exact. A v1.0 event carrying `ts="garbageZ"`
+passes schema validation clean, because the locked pattern is `Z$`, and then
+produces zero runtime diagnostics. The fail-closed behavior the X1-01 entry
+credits exists only in the egress adapters, which refuse; anything consuming
+the forwarded canonical event is unprotected and unwarned.
+
+This is the vacuous-verification class (P2-D1) appearing inside a published
+claim rather than inside a test. Published files are not rewritten, so the
+correction lands in `docs/release_notes_errata.md` and the gateway now emits
+its existing implausible-timestamp diagnostic for the unparseable case, with a
+distinguishing detail so an operator can tell an unreadable timestamp from an
+out-of-horizon one. No code was minted for it: the occurrence rule reserves
+new vocabulary for the third instance, and an unparseable timestamp is
+honestly implausible.
+
+### C1-03 — The governed corpora carry no malformed-timestamp vectors · **MINTED 2026-08-10**
+
+Every record in `conformance/must-fail.jsonl` and
+`conformance/bad-events/must-fail.jsonl` was parsed against the v1.1.0
+structural pattern. Exactly one row had a non-conforming `event.ts`, the
+UTC-offset form that even the weak `Z$` pattern rejects. The entire X1-01
+corruption class was covered only by
+`gateway/tests/test_x1_01_ts_structural_shape.py`, a unit test outside the
+governed corpora, while `docs/zmeta_contract_to_stack_crosswalk.md:93` marked
+the trailing-`Z` requirement "Enforced" and cited the corpus as its evidence.
+
+The gap is the one that matters most for an outside implementer: conformance
+vectors are what an independent stack runs, and on timestamp shape they said
+nothing. Vectors covering a garbage string, a bare `Z`, an impossible month,
+an impossible hour and an out-of-range year were added on the v1.1.0 lane,
+where the pattern actually rejects them, and the crosswalk row now describes
+enforcement by layer instead of citing a corpus that did not carry it. No
+v1.0-stamped equivalents were added, because the locked schema deliberately
+accepts them and a fixture asserting otherwise would be a lie about the lane.
+
+### C1-04 — Fusion and state uncertainty cannot express a correlated distribution · **OPEN — decision-due**
+
+Covariance appears nowhere in `spec/`, `docs/`, `policy/` or `schema/`; the
+only occurrence in the repository is inside a figure-generation script.
+`ERROR_ELLIPSE_M` is adopted but horizontal-only, with no vertical and no
+velocity term, and `FusionPayload.estimated_state` admits only `geo`,
+`bearing`, `heading_deg` and `speed_mps`. A fusion consumer receives a scalar
+`confidence` and, at best, a horizontal ellipse. Neither the roadmap's
+`rejected_or_deferred` list nor the extension registry records the absence,
+so this is the one item in the review that was both correct and genuinely new
+information.
+
+It is a real gate 2 question rather than an obvious addition. Consumer
+sufficiency argues that a fusion consumer cannot responsibly propagate
+uncertainty without correlation structure. The alphabet gate argues the
+opposite, that a full covariance matrix is a dictionary entry and belongs in a
+namespaced extension. Recorded now, per maintainer adjudication 2026-08-10, as
+decision-due rather than field-gated: no deployment has to report a problem
+before this can be decided, because the modelling question is answerable from
+the contract alone.
+
+### C1-05 — Gap detection is booked only under adversarial trust · **MINTED 2026-08-10**
+
+Sequence counters exist in the record exactly once, as a security concern:
+contract 16.3 lists "Source sequence counters or anti-replay windows" under
+future mesh trust, the roadmap candidate is `event-signing-anti-replay`, and
+the registry reserves `ANTI_REPLAY_NONCE`. That candidate's tripwire fires on
+"deployments requiring an adversarial trust boundary rather than the current
+cooperative-producer posture".
+
+The need the review actually identified is not adversarial. It is a
+cooperative node losing events on a degraded link with no way for the consumer
+to know. That tripwire will never fire on it, because no adversary is
+involved, so the need had no roadmap home at all. The repository already
+measures the consequence and states it plainly:
+`docs/zmeta_two_node_quickstart.md:259` records that `drops=0` alongside a
+consumer clearly missing events is expected, because "drops counts what the
+gateway discarded, not what never reached it", and reports 44% arrival with
+`drops=0` at 1000 events/s. Undetected loss is a known, measured property.
+
+A distinct roadmap candidate for cooperative-mesh gap detection was added per
+maintainer adjudication 2026-08-10, with its own tripwire keyed to a
+deployment losing events undetectably rather than to a trust boundary. The
+misfiling, not the absence, was the finding: a booked item under the wrong
+heading reads as covered and never comes due.
+
+### C1-06 — Per-event signing cannot be met in the outer rings · **OPEN**
+
+Design Gate 6 directs every need to policy, config, profiles, adapter mappings
+and namespaced extensions before schema or core semantics. Per-event signing
+is one of the few needs that provably cannot be met there. The event root sets
+`additionalProperties: false`, as do `$defs/event`, `$defs/source` and
+`$defs/lineage`, so an adopter cannot attach a signature envelope as a
+namespaced extension. The schema rejects any unknown top-level member.
+
+The roadmap half-states this. `event-signing-anti-replay` notes that the
+"envelope-or-sidecar decision is structural" without saying that schema
+closure is what forces the decision. Recorded here so the next reader of Gate
+6 does not spend the effort rediscovering that the outer rings are closed on
+this one. Two adjacent facts belong with it: the candidate carries
+`promotion_evidence: []`, so nothing has been banked toward it, and its
+tripwire names the adversarial trust boundary as the trigger, which is
+precisely the deployment class most likely to be evaluating ZMeta.
+
+### C1-07 — Float width is unspecified across conforming encoders · **OPEN — decision-due**
+
+`spec/compact-binary-mapping.md:66-73` specifies deterministic CBOR as
+definite-length containers, no indefinite-length forms, and canonically
+ordered map keys. It says nothing about float width. Both shipped backends
+satisfy every bullet and disagree: `zmeta_cbor.py:83` always emits float64,
+while the documented `cbor2` fallback emits shortest-float. On the repository's
+own fixture value `120.0` that is `fb405e000000000000` against `f95780`.
+
+Two conforming nodes therefore emit different bytes for the same event. This
+costs nothing today, because the contract defines cross-encoding equality as
+object equality with ordering explicitly non-semantic, and no feature in the
+tree hashes an event. It is load-bearing for anything that later signs one,
+which is why it is recorded next to C1-06 rather than as an encoding footnote.
+The determinism section is also SHOULD-level, so tightening it is a governed
+decision about strength as well as content.
+
+### C1-08 — A format checker is installed at a dozen sites and validates nothing · **DECIDED 2026-08-10**
+
+`format_checker=FormatChecker()` was passed at roughly a dozen call sites,
+including the gateway's central validator factory. It reads as if format
+validation is enabled. It validates nothing for `date-time`, because
+`jsonschema` registers no `date-time` checker unless the separate
+`rfc3339-validator` package is installed, and that package is not declared.
+Confirmed directly: `'date-time' in FormatChecker().checkers` is `False`.
+
+Behavior was never affected, since `pattern` is the real gate on both
+branches. The defect is that the presence implies a guarantee it does not
+deliver, which is the P2-D1 class exactly. **Maintainer adjudication
+2026-08-10: leave the format inert and remove the misleading argument.**
+Declaring the dependency was the considered alternative and was rejected for
+now: it would make `date-time` genuinely enforce, which would close the v1.0
+residual at the validator layer without moving locked bytes, but it would also
+start rejecting v1.0 producers whose timestamps are currently tolerated. That
+is a fielded behavior change and belongs in a wave that can absorb it. The
+question stays available on this entry rather than being lost with the
+argument.
+
+### C1-09 — An outside reader treats a published pressure log as the defect list · **OPEN**
+
+This is a finding about the review's method rather than about ZMeta, and it
+will recur, so it is recorded rather than remembered. The reviewer had no
+raw-byte access and read this log and the CHANGELOG as current state. The
+result is systematic: it was stalest on exactly the items most recently
+fixed, and reported as live defects the 2-D geo gap closed in v1.1.20, the
+`event.ts` pattern closed in the same release, and the violation-code names
+superseded by the v1.1.21 mint. Candor about open questions was converted into
+an inventory of failures.
+
+That is a real cost of publishing the log, and it is not an argument for
+hiding it. It is an argument for two cheap things. The log should carry a
+current-state header saying that entries are open questions at the time of
+writing and that status lines are authoritative. And the current-facing
+documents should carry their own disclosures, because several of the reviewer's
+errors were invited by our own summaries rather than invented: the schema
+README stated one timestamp rule for both branches without noting that the
+v1.0 lane accepts any string ending in `Z`, the README and professional
+overview said "identical canonical JSON" without the qualifier the two
+normative documents attach, and the field dictionary still described
+`error_ellipse_m` as the only canonical geo extension nine days after
+`dimensionality` shipped. All three were corrected this cycle. This is the
+second external survey in ten days, so the pattern is already n=2.
+
+### C1-10 — An absent altitude refuses while an unusable one degrades to 2-D · **OPEN**
+
+Raised by C1-01's fix rather than by the review. After this cycle the MAVLink
+translator refuses to emit when no altitude of any datum was reported, which
+is the R1-11 A-06 behavior, but emits the declared 2-D form when an altitude
+was reported in a datum it cannot state canonically. Both cases have a real
+horizontal fix and no canonical vertical, so the asymmetry needs a reason or
+needs removing.
+
+The reason it was left in place this cycle is scope: A-06 is pinned by an
+existing test and the adjudicated remedy covered the datum case only. The
+argument for keeping it is that a reported MSL value is positive evidence of a
+working three-dimensional positioning solution, whereas silence may mean a
+degraded telemetry stream, and A1-02's `VERTICAL_UNAVAILABLE` should not
+become a way to launder "we never heard an altitude" into "this platform has
+no vertical". The argument against is that `dimensionality: "2D"` describes
+the geometry rather than the reason, and the horizontal fix is equally real
+either way. Left open for the maintainer, with no instance count yet.
+
+### C1-11 — Lineage cycle prevention covers self-reference on one path, not cycles · **OPEN**
+
+`lineage.based_on` is a set of parent identifiers, which makes a lineage graph
+a DAG only by convention. What the stack actually enforces is narrower than
+that. The reference validator treats an event whose own `event_id` appears in
+its lineage as loop risk and forces a reject, and contract 4.5.1 requires a
+reflected projection to prove it is not the same semantic event returning
+through a lossy adapter path. Both of those guard the external-promotion path
+and the one-hop case.
+
+Nothing detects a multi-hop cycle. If A cites B and B cites A, or a longer
+ring forms across three or more events, no schema keyword, policy rule or
+conformance vector rejects it. JSON Schema cannot express acyclicity, so this
+is a policy or runtime question by construction, not a kernel one.
+
+The honest severity is low today and the reason is worth recording, because it
+is the reason this stayed open rather than being fixed in this cycle. Building
+a cycle requires citing an identifier that did not exist when the parent was
+minted, so a cooperative producer using UUIDv7 identity essentially cannot
+create one by accident. The realistic sources are a replayed corpus with
+rewritten identifiers, a test fixture, or a hostile producer, and the last of
+those is the adversarial posture the contract already defers. Recorded so that
+the deferral is a decision rather than an assumption, and so a future signing
+or trust branch inherits it as a known open edge instead of rediscovering it.
+
+---
+
 The value of this log is the pattern over time. But a log that only ever grows
 is a swamp: questions go in and never come out. So both the tensions here and
 the rules in `docs/zmeta_audit_playbook.md` carry a defined end state, and reach

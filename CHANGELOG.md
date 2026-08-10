@@ -4,6 +4,141 @@
 
 (Nothing yet — the next work lands here.)
 
+## [1.1.22] - 2026-08-10
+
+- 2026-08-10 — **The MAVLink ingress stops publishing a mean-sea-level
+  altitude as canonical HAE.** Contract 6.2 is a `SHALL`: canonical
+  altitude is Height Above Ellipsoid, and an adapter ingesting MSL "must
+  convert them or omit canonical `geo`". The template did neither. Its
+  own docstring described its `alt_m` input as "metres AMSL", it wrote
+  that value unconverted into `payload.geo.alt_m`, and the decoder took
+  it from `GLOBAL_POSITION_INT.alt`, which MAVLink defines as height
+  above mean sea level. No geoid model ships here, so the value could not
+  be converted and should not have been published. The two datums are now
+  separated at the decode boundary: `GLOBAL_POSITION_INT.alt` decodes to
+  `alt_msl_m` and can never reach canonical geo, while
+  `GPS_RAW_INT.alt_ellipsoid` decodes to `alt_hae_m` and is the only
+  value admitted to `payload.geo.alt_m`. When only MSL is available the
+  horizontal fix is still real, so the position is emitted as the
+  declared 2-D form (`dimensionality: "2D"`, `geo_status:
+  VERTICAL_UNAVAILABLE`, `zmeta_version: "1.1.0"`) with the reported
+  value preserved as non-canonical `quality.mavlink_alt_msl_m`. The
+  legacy `alt_m` input key is read as MSL, so an existing caller degrades
+  to the honest form rather than continuing to publish a wrong-datum
+  claim. This is the third appearance of the altitude-datum class: the
+  July 2026 audit found it in a fielded stack, the ADS-B ingress was
+  hardened to refuse it at the source and says so on its face, and this
+  template was the same class left unfixed in the same repository.
+  Doctrine C1-01. Behavior-changing for MSL-only MAVLink deployments,
+  which move from a false 3-D position to an honest 2-D one.
+
+- 2026-08-10 — **An unparseable `event.ts` now produces a diagnostic
+  instead of silence.** The v1.1.20 release notes stated that the X1-01
+  closure landed "at both lawful layers", the schema pattern and a
+  gateway plausibility window counting an implausible `ts` on every
+  `zmeta_version`. The window returned before comparing anything when the
+  timestamp could not be parsed, which is exactly the malformed class the
+  locked v1.0 lane still admits, so a v1.0 event carrying `ts="garbageZ"`
+  passed schema validation clean and produced no runtime signal at all.
+  The gateway now records its existing `EVENT_TS_IMPLAUSIBLE` warning for
+  that case with `direction: "unparseable"` and no delta. No new
+  violation code was minted: the occurrence rule reserves governed
+  vocabulary for a third instance, and an unparseable timestamp is
+  honestly implausible. The published notes are not rewritten; the
+  correction is recorded in `docs/release_notes_errata.md`. Doctrine
+  C1-02.
+
+- 2026-08-10 — **The governed conformance corpora gain the
+  malformed-timestamp class they never carried.** Every record in the
+  two must-fail corpora was parsed against the v1.1.0 structural pattern
+  and exactly one had a non-conforming `event.ts`, the UTC-offset form
+  that even the weak `Z$` pattern rejects, while the contract-to-stack
+  crosswalk marked the requirement "Enforced" and cited that corpus as
+  its evidence. Twelve v1.1.0-stamped vectors were added covering a
+  garbage string, a bare `Z`, an out-of-range year, an impossible month,
+  an impossible hour and related shapes, each expecting `SCHEMA_INVALID`.
+  No v1.0-stamped equivalents were added, because the locked schema
+  deliberately accepts them and a fixture asserting otherwise would
+  misstate the lane; `conformance/README.md` records that asymmetry. The
+  crosswalk row now describes enforcement by layer instead of citing a
+  corpus that did not carry it. Doctrine C1-03.
+
+- 2026-08-10 — **A format checker that validated nothing is removed from
+  a dozen call sites.** `format_checker=FormatChecker()` was passed at
+  the gateway's central validator factory, the adapter template that new
+  adapters are copied from, and ten test harnesses. It validated nothing
+  for `date-time`, because `jsonschema` registers no checker for that
+  format unless the separate `rfc3339-validator` package is installed and
+  no requirements file declares it. `date-time` is the only format
+  assertion in the ZMeta schemas, so removal is behavior-neutral and the
+  `pattern` on `$defs/utcDateTime` remains the real gate. Declaring the
+  dependency was considered and deferred: it would make the format
+  genuinely enforce and close the v1.0 residual at the validator layer
+  without moving locked bytes, but it would also begin rejecting v1.0
+  producers whose timestamps are currently tolerated, which is a fielded
+  behavior change. Doctrine C1-08.
+
+- 2026-08-10 — **The ADS-B adapter stops silently minting UUIDv4 event
+  ids.** An `ImportError` fallback aliased `uuid4` to the name `uuid7`,
+  so a copy of the adapter without `zmeta_uuid` minted v4 identifiers.
+  The schema pattern pins the version nibble, so these failed closed,
+  but at the schema boundary with an opaque pattern error rather than at
+  the adapter with a legible message, and a `# pragma: no cover` marker
+  meant no test exercised the path. The fallback now raises with a
+  message naming the RFC 9562 requirement and the ways to supply a
+  generator, and three tests cover it.
+
+- 2026-08-10 — **Cooperative-mesh gap detection gets a roadmap home.**
+  Sequence counters were booked only as a security concern, under future
+  mesh trust and the `event-signing-anti-replay` candidate, whose
+  tripwire fires on "deployments requiring an adversarial trust boundary".
+  The need is not adversarial: a cooperating node losing events on a
+  degraded link leaves the consumer unable to tell, and that tripwire will
+  never fire on it. The repository already measures the consequence, in
+  the two-node quickstart's record of `drops=0` alongside a consumer
+  clearly missing events. A distinct `cooperative-stream-gap-detection`
+  candidate now carries the need with its own tripwire. Doctrine C1-05.
+
+- 2026-08-10 — **`tools/validate_future_roadmap.py` returns to the gate
+  battery.** It existed from v1.1.13 and was dropped from the per-release
+  command set at v1.1.16, so the governed artifact that records what
+  ZMeta has deliberately not built was the one surface no gate read. It
+  is now wired into the `validate-kernel` target, its own
+  `validate-roadmap` target, and CI.
+
+- 2026-08-10 — **Four current-facing documents stopped under-disclosing.**
+  `schema/README.md` stated one timestamp rule for both branches and named
+  only the two forms that actually fail on v1.0; it now splits the
+  branches and states that the locked lane accepts any string ending in
+  `Z`, with the lock-doctrine reason. `README.md` and the professional
+  overview said the four encodings "decode back to the identical
+  canonical JSON" without the qualifier the two normative documents
+  attach, that equality is field and value equality and ordering is not
+  semantic. `spec/field-dictionary.md` still described `error_ellipse_m`
+  as the only canonical geo extension nine days after `dimensionality`
+  shipped. The CoT egress README told readers that installing a
+  `FormatChecker` would close a gap it cannot close. Each of these
+  invited a specific misreading in an external technical review, which is
+  the evidence they were unclear rather than merely terse. Doctrine C1-09.
+
+- 2026-08-10 — **Doctrine cycle C1 opens with ten entries.** Seeded by an
+  independent technical review comparing ZMeta against CoT, MISB ST 0601,
+  STANAG 4676, OGC/ISO OMS, W3C PROV, Sparkplug B, MAVLink, ASTERIX, C2PA
+  and CloudEvents. Three entries are decided or minted above. The
+  remaining open ones: fusion and state uncertainty cannot express a
+  correlated distribution and the gap was unbooked anywhere (C1-04,
+  decision-due); per-event signing provably cannot be met in the outer
+  rings because the event root is a closed object, which Design Gate 6
+  does not acknowledge (C1-06); float width is unspecified, so both
+  shipped CBOR backends satisfy the determinism rules and emit different
+  bytes for the same event (C1-07, decision-due); an outside reader
+  treats a published pressure log as the defect list, which made the
+  review systematically stale on recently fixed items (C1-09); the
+  MAVLink fix leaves an asymmetry where an absent altitude refuses while
+  an unusable one degrades to 2-D (C1-10); and lineage cycle prevention
+  covers self-reference on the promotion path but no multi-hop cycle
+  (C1-11).
+
 ## [1.1.21] - 2026-08-09
 
 - 2026-08-09 — **The identity gate is documented where a cold-start

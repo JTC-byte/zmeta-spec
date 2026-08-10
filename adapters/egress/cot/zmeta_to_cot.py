@@ -36,9 +36,9 @@ Supports:
     TAK shows fresh markers during historical replay (contract section 9.5).
     An event with no ts - or a ts that does not parse as an RFC3339
     instant, which passes the schema gate because jsonschema does not
-    enforce format without a FormatChecker - is refused (returns None)
-    unless wall-clock mode is on - the adapter never fabricates freshness
-    for malformed input
+    enforce format without an RFC 3339 checker - is refused (returns
+    None) unless wall-clock mode is on - the adapter never fabricates
+    freshness for malformed input
 
 Source: Z-ISR zisr/transport/publisher.py (_builtin_zmeta_to_cot)
 """
@@ -77,8 +77,12 @@ def _parse_utc(ts):
     """Parse an RFC3339/ISO-8601 `ts` to an aware UTC datetime, or None.
 
     The schema types `event.ts` as `format: date-time`, but jsonschema does
-    not enforce `format` without an explicitly installed FormatChecker, so a
-    gate-clean event can still carry a string `fromisoformat` rejects (e.g.
+    not enforce `format` without an RFC 3339 checker, which this stack does
+    not depend on. Installing a bare `FormatChecker()` does not close that
+    gap: jsonschema registers no `date-time` checker at all unless the
+    separate checker library is present, so `format` stays annotation-only
+    and the `utcDateTime` `pattern` is the real gate. A gate-clean event can
+    therefore still carry a string `fromisoformat` rejects (e.g.
     "2026-07-27T99:99:99Z"). That used to escape this adapter as a raw
     ValueError. The disposition for "this cannot be projected" is the
     documented refusal signal (None) - the same one a missing ts gets -

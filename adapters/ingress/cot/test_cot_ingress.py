@@ -2,7 +2,7 @@ import json
 import importlib.util
 from pathlib import Path
 
-from jsonschema import Draft202012Validator, FormatChecker
+from jsonschema import Draft202012Validator
 
 from adapters.ingress.cot.cot_to_zmeta_template import cot_dict_to_zmeta_track_state
 from zmeta_uuid import uuid7
@@ -11,7 +11,8 @@ from zmeta_uuid import uuid7
 ROOT = Path(__file__).resolve().parents[3]
 SCHEMA_PATH = ROOT / "schema" / "zmeta-event-1.0.schema.json"
 SCHEMA = json.loads(SCHEMA_PATH.read_text(encoding="utf-8"))
-VALIDATOR = Draft202012Validator(SCHEMA, format_checker=FormatChecker())
+# No format_checker: `date-time` is annotation-only without an RFC 3339 checker.
+VALIDATOR = Draft202012Validator(SCHEMA)
 VALIDATORS_PATH = ROOT / "gateway" / "src" / "validators.py"
 spec = importlib.util.spec_from_file_location("zmeta_validators", VALIDATORS_PATH)
 validators = importlib.util.module_from_spec(spec)

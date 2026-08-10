@@ -380,9 +380,12 @@ def validate(zmeta_event):
         Path(__file__).resolve().parents[3] / "schema" / "zmeta-event-1.0.schema.json"
     )
     schema = json.loads(schema_path.read_text(encoding="utf-8"))
-    validator = jsonschema.Draft202012Validator(
-        schema, format_checker=jsonschema.FormatChecker()
-    )
+    # No format_checker is installed. `date-time` is the only `format`
+    # assertion in the ZMeta schemas, and jsonschema registers no `date-time`
+    # checker without an RFC 3339 checker library, which this stack does not
+    # depend on. The `utcDateTime` `pattern` is the real gate on timestamps;
+    # `format` is annotation-only here.
+    validator = jsonschema.Draft202012Validator(schema)
     violations = [
         f"{'/'.join(str(p) for p in error.absolute_path)}: {error.message}"
         for error in validator.iter_errors(zmeta_event)

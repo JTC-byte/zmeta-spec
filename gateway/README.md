@@ -202,8 +202,17 @@ after wall-clock now, in either direction. The check never rejects an event
 and never runs under `strict_validation` escalation: it is purely observability,
 the same as `warn_datagram_bytes` above. A hit is counted in metrics under
 `warning_codes` with reason code `EVENT_TS_IMPLAUSIBLE`, carrying the offending
-`ts`, the direction (`past`/`future`), the delta in milliseconds, and the
-configured horizon.
+`ts`, the direction (`past`/`future`/`unparseable`), the delta in milliseconds,
+and the configured horizon.
+
+A timestamp the gateway cannot parse at all records the same code with
+direction `unparseable` and no delta, because there is no instant to measure
+against. That case matters most on the locked v1.0 lane, where `utcDateTime`
+gates `event.ts` with the pattern `Z$` alone and any string ending in `Z`
+validates. Before this warning existed, such a value passed schema validation
+clean and produced no runtime signal either, so the only component that
+noticed was an egress adapter refusing to project it (doctrine C1-02,
+`docs/release_notes_errata.md`).
 
 ### Contract hash gate
 

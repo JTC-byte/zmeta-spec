@@ -9,7 +9,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 import yaml
-from jsonschema import Draft202012Validator, FormatChecker
+from jsonschema import Draft202012Validator
 from referencing import Registry, Resource
 from referencing.jsonschema import DRAFT202012
 
@@ -204,7 +204,12 @@ def load_schema(schema_path):
             )
 
     registry = Registry().with_resources(resources)
-    return Draft202012Validator(schema, registry=registry, format_checker=FormatChecker())
+    # No format_checker is installed, and installing one would not change what
+    # this validator accepts. `date-time` is the only `format` assertion in the
+    # ZMeta schemas, and jsonschema registers no `date-time` checker without an
+    # RFC 3339 checker library, which this stack does not depend on. The real
+    # gate on `utcDateTime` is its `pattern`; `format` is annotation-only here.
+    return Draft202012Validator(schema, registry=registry)
 
 
 def load_yaml(path):

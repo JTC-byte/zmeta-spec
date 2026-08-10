@@ -1,4 +1,4 @@
-# ZMeta Specification (v1.0 Locked, current release v1.1.21)
+# ZMeta Specification (v1.0 Locked, current release v1.1.22)
 
 ZMeta is a free, open, transport-agnostic semantic standard for resilient ISR.
 It defines one honest event model that heterogeneous sensors, analytics,
@@ -55,7 +55,10 @@ flowchart LR
 ![Bar chart comparing the byte size of one Profile L STATE_EVENT encoded as JSON, CBOR, compact CBOR, and protobuf.](docs/img/b3-encoding-sizes.svg)
 
 The chart shows the same Profile L `STATE_EVENT` in four wire formats. All four
-decode back to the identical canonical JSON. Encoding does not create
+decode back to the same canonical JSON event, field for field and value for
+value. Ordering is not semantic, so map order, wire field order, compact
+integer keys, and protobuf field order may differ between them
+(`spec/semantics-contract.md` section 3.5). Encoding does not create
 authority: a compact packet is valid only if the decoded event passes the same
 schema, policy, and conformance checks that a JSON event does.
 
@@ -183,53 +186,58 @@ nodes.
 
 ## Current Release
 
-- Current release: `v1.1.21`
-- Release notes and assets: <https://github.com/JTC-byte/zmeta-spec/releases/tag/v1.1.21>
-- Release focus: the reason-code mint and the power-reference experiment.
-  The R1-11-01 Class B batch adds `NON_FINITE_VALUE` and the
-  command-evidence pair (`COMMAND_EVIDENCE_UNRESOLVED`,
-  `COMMAND_EVIDENCE_PROHIBITED`) to the governed diagnostic vocabulary,
-  closing the reuse-vs-mint question at its forced occurrence count. Wire
-  posture is diagnostic-first: the locked v1.0 enum cannot grow, so a
-  v1.0-stamped diagnostic keeps its documented legacy code and carries the
-  minted code in `metrics.diagnostic_code`, while JSONL diagnostics and
-  the 1.1.0 enum carry it natively. The A1-01 experimental split runs:
-  `features.power_reference` (v1.1.0, registry POWER_REFERENCE) lets an
-  uncalibrated SDR declare what its power number means, and the ADS-B
-  adapter emits either form by flag. The packet-size gate now validates
-  events before measuring them and runs at the documented 236-byte
-  reference bearer budget. Records catch up to v1.1.20: two doctrine
-  entries close, two errata are recorded (published files stay as
-  published), and the mapping spec states the measured fact that float
-  quantization saves zero bytes. Governed artifacts changed in this release, relative to zmeta-v1.1.20: policy/command-evidence.yaml, policy/semantics.yaml, policy/violation-codes.yaml, schema/zmeta-event-1.1.0.schema.json, spec/compact-binary-mapping.md, spec/extension-registry.yaml.
+- Current release: `v1.1.22`
+- Release notes and assets: <https://github.com/JTC-byte/zmeta-spec/releases/tag/v1.1.22>
+- Release focus: the altitude datum, and three claims the evidence did not
+  support. The MAVLink ingress published `GLOBAL_POSITION_INT.alt`, which
+  MAVLink defines as height above mean sea level, into canonical
+  `payload.geo.alt_m`, which semantic contract 6.2 reserves for Height Above
+  Ellipsoid. The two datums are now separated at the decode boundary, only
+  `GPS_RAW_INT.alt_ellipsoid` reaches canonical geo, and an MSL-only fix is
+  published as the declared 2-D form rather than as a false vertical. This was
+  the third appearance of the class the ADS-B adapter already refuses at the
+  source. Alongside it, three surfaces stopped claiming more than they
+  enforced: the v1.1.20 notes credited a runtime timestamp check that returned
+  before measuring an unparseable value, the conformance corpora carried no
+  malformed-timestamp vectors while the crosswalk cited them as the evidence,
+  and a format checker installed at a dozen call sites validated nothing.
+  Doctrine cycle C1 opens with eleven entries, seeded by an independent
+  technical review of ZMeta against ten comparable standards. Governed
+  artifacts changed in this release, relative to zmeta-v1.1.21:
+  conformance/must-fail.jsonl.
 - Normative contract: v1.0 locked semantic contract, canonical version-discriminated
   JSON schema, v1.0 JSON schema, and policy pack.
 - Experimental extension: `schema/zmeta-event-1.1.0.schema.json` is provided for proposed
   compatibility testing only; v1.1.0-only fields are not part of the locked v1.0 contract.
 
-## v1.1.21 Integration Notes
+## v1.1.22 Integration Notes
 
-- **No breaking changes.** Wire `reason_code` values are unchanged for
-  v1.0 consumers. Refusal diagnostics for the three minted conditions
-  (`NON_FINITE_VALUE`, `COMMAND_EVIDENCE_UNRESOLVED`,
-  `COMMAND_EVIDENCE_PROHIBITED`) carry one additional metrics member,
-  `diagnostic_code`, naming the specific condition beside the documented
-  legacy `reason_code`. A consumer that ignores unknown metrics members
-  sees the same stream as before; a consumer that wants the specific
-  condition reads `diagnostic_code`. Gateway JSONL diagnostics use the
-  minted codes natively.
-- **v1.1.0 gains an opt-in RF power-reference declaration.** An RF
-  observation may declare `features.power_reference` (`DBM_ABSOLUTE`,
-  `DBFS`, `DB_RELATIVE`) stating what its `power_dbm` value means;
-  absent keeps the calibrated-dBm reading of contract 7.4. Experimental
-  (registry POWER_REFERENCE). The ADS-B adapter emits it behind an
-  explicit `rf_power_reference` flag and its default output is
-  unchanged.
-- **The packet-size gate validates before measuring.**
-  `tools/measure_packet_size.py --validate` checks each event against
-  the schema its own version stamp names before counting bytes, and the
-  Makefile and CI gates run it at the documented 236-byte reference
-  bearer budget. Calls without `--validate` behave exactly as before.
+- **One behavior change, scoped to MAVLink ingress.** A deployment whose
+  MAVLink bridge supplies only `GLOBAL_POSITION_INT.alt` moves from a 3-D
+  position stamped `1.0` to a declared 2-D position stamped `1.1.0`
+  (`geo.dimensionality: "2D"`, no `alt_m`, `quality.geo_status:
+  VERTICAL_UNAVAILABLE`), with the reported value preserved as non-canonical
+  `quality.mavlink_alt_msl_m`. The horizontal fix is unchanged. To keep a
+  canonical vertical, supply `GPS_RAW_INT.alt_ellipsoid`, which the decoder
+  reads as `alt_hae_m`. CoT egress already handled this correctly: a 2-D
+  position projects with the documented unknown-altitude sentinel rather than
+  a fabricated zero. No other adapter changed behavior.
+- **An unparseable `event.ts` now warns instead of passing silently.** The
+  gateway records its existing `EVENT_TS_IMPLAUSIBLE` warning with
+  `direction: "unparseable"` and no delta. The check remains warn-only and
+  never rejects an event, so a consumer sees one additional metrics record and
+  no change in forwarding. This matters most on the locked v1.0 lane, where
+  `utcDateTime` gates `event.ts` with the pattern `Z$` alone.
+- **No schema, policy or wire changes.** The only governed artifact that
+  changed is the conformance corpus, which gained twelve v1.1.0-stamped
+  malformed-timestamp negative vectors. An implementation already passing
+  v1.1.21 conformance passes v1.1.22 unless it accepted a malformed
+  timestamp on the v1.1.0 lane, which the schema already rejected.
+- **A vacuous format checker was removed from a dozen call sites.**
+  `format_checker=FormatChecker()` validated nothing, because `date-time` is
+  the only format assertion in the ZMeta schemas and `jsonschema` registers no
+  checker for it without a separate RFC 3339 package that this repository does
+  not declare. Removal is behavior-neutral; `pattern` was and remains the gate.
 
 ## Repository Structure
 - `spec/` Core specification and normative text.
@@ -306,7 +314,7 @@ python tools/run_gateway.py --profile H
 python tools/udp_receiver.py
 python tools/udp_sender.py --file examples/zmeta-command-examples.jsonl
 python tools/replay.py --file examples/zmeta-command-examples.jsonl --delay-ms 200
-python tools/check_compat.py legacy-events.jsonl --target v1.1.21
+python tools/check_compat.py legacy-events.jsonl --target v1.1.22
 python tools/validate.py --file examples/zmeta-command-examples.jsonl --profile L
 python tools/check_adapter.py --events my-adapter-output.jsonl --fixtures my-fixtures.jsonl
 python tools/validate_conformance.py --strict
@@ -354,10 +362,10 @@ Deployment helpers:
 - Config templates: `configs/edge-config.json`, `configs/gateway-config.json`
 - Docker Compose: `deploy/edge/docker-compose.yml`, `deploy/gateway/docker-compose.yml`
 - Bundle builders:
-    - `python release/build_mvp_packages.py --version v1.1.21` produces `zmeta-edge-v1.1.21.zip` and `zmeta-gateway-v1.1.21.zip`
-    - `python release/build_release_bundle.py --version 1.1.21` produces `zmeta-v1.1.21-dist.zip`
-    - `python tools/build_release_package.py --manifest release/zmeta-release-manifest.yaml --output-dir release/package-v1.1.21 --release-id zmeta-v1.1.21 --release-state formal_release --no-signatures --release-notes release/RELEASE_NOTES_v1.1.21.md` builds formal package metadata without creating signatures. `--release-notes` is mandatory for `formal_release`: omit it and the unpopulated notes template is copied verbatim, which `tools/validate_release_package.py` refuses with `RELEASE_PACKAGE_NOTES_PLACEHOLDER`.
-    - `python release/sign_release_artifacts.py --version v1.1.21 --write-checksums --sign --target all` signs release assets with detached PGP signatures when an approved signing key is available.
+    - `python release/build_mvp_packages.py --version v1.1.22` produces `zmeta-edge-v1.1.22.zip` and `zmeta-gateway-v1.1.22.zip`
+    - `python release/build_release_bundle.py --version 1.1.22` produces `zmeta-v1.1.22-dist.zip`
+    - `python tools/build_release_package.py --manifest release/zmeta-release-manifest.yaml --output-dir release/package-v1.1.22 --release-id zmeta-v1.1.22 --release-state formal_release --no-signatures --release-notes release/RELEASE_NOTES_v1.1.22.md` builds formal package metadata without creating signatures. `--release-notes` is mandatory for `formal_release`: omit it and the unpopulated notes template is copied verbatim, which `tools/validate_release_package.py` refuses with `RELEASE_PACKAGE_NOTES_PLACEHOLDER`.
+    - `python release/sign_release_artifacts.py --version v1.1.22 --write-checksums --sign --target all` signs release assets with detached PGP signatures when an approved signing key is available.
 
 ## Deployment Checklist (Compact)
 

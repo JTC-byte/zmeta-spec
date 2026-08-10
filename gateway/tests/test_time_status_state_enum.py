@@ -29,7 +29,7 @@ import json
 import unittest
 from pathlib import Path
 
-from jsonschema import Draft202012Validator, FormatChecker
+from jsonschema import Draft202012Validator
 from referencing import Registry, Resource
 from referencing.jsonschema import DRAFT202012
 from zmeta_uuid import uuid7
@@ -90,7 +90,6 @@ def load_unified_validator():
     return Draft202012Validator(
         unified_schema,
         registry=registry,
-        format_checker=FormatChecker(),
     )
 
 

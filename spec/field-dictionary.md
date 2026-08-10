@@ -40,7 +40,15 @@ validation rules, see the JSON schemas in `schema/` and the semantic contract in
 
 - `track_id` (string) - globally unique track identifier assigned by a fusion node; not reused.
 - `geo` (object) - `lat`, `lon`, `alt_m` (numbers); experimental v1.1.0 also
-  allows `error_ellipse_m` as the only canonical `geo` extension.
+  allows `dimensionality` and `error_ellipse_m`, the only canonical `geo`
+  extensions.
+- `geo.dimensionality` (enum, optional, v1.1.0 only) - `2D` or `3D`. Absent
+  means `3D`, so every event written before this member existed validates
+  unchanged. A `2D` geo declares a horizontal-only position and prohibits
+  `alt_m` entirely; a `3D` or undeclared geo must carry `alt_m`. There is no
+  partially declared form. The partner token is
+  `quality.geo_status: VERTICAL_UNAVAILABLE`, which requires a present `2D`
+  geo; a `2D` geo must not carry `geo_status: AVAILABLE`.
 - `valid_for_ms` (int) - freshness window.
 - `class` (string, optional) - CoT type or platform class.
 - `source_summary` (string array, optional) - short provenance hints.

@@ -1,7 +1,7 @@
 # Cross-Sensor Correlation With Existing Vocabulary - The Association Bond Pattern
 
 Status: advisory pattern guide (Docs/advisory change class, non-normative).
-Current release context: ZMeta v1.1.21.
+Current release context: ZMeta v1.1.22.
 
 This document describes how to solve fielded cross-sensor correlation --
 stable entity identity assigned by a fusion engine, propagated to the sensors

@@ -2,6 +2,32 @@
 
 ## Current Resume Note
 
+- Last updated: 2026-08-10 (v1.1.22 cut prepared; doctrine cycle C1)
+- **2026-08-10 (external review, fix wave, v1.1.22 prepared).** An
+  independent technical review compared ZMeta against ten standards without
+  raw-byte access to the normative files. Its own findings were roughly a
+  third accurate: correct that no per-event integrity exists and that
+  covariance and sequence primitives are absent, wrong on the UUIDv7 version
+  nibble, schema-level laundering guards, deduplication and deterministic
+  CBOR, and stale on 2-D geo, the `event.ts` pattern and the v1.1.21 code
+  mint. Every claim was verified against the tree with file and line before
+  anything was acted on, and most of what shipped came from that verification
+  rather than from the review. Landed: the MAVLink altitude-datum fix (MSL
+  was being published as canonical HAE, the third appearance of a class ADS-B
+  already refuses at the source), a gateway diagnostic for an unparseable
+  `event.ts` that had been passing schema-clean and silent on the locked v1.0
+  lane, twelve malformed-timestamp conformance vectors the governed corpora
+  never carried, removal of a format checker that validated nothing at a
+  dozen call sites, a roadmap home for cooperative-mesh gap detection, and
+  the return of `validate_future_roadmap.py` to the gate battery. Doctrine
+  cycle C1 opens with eleven entries, six left open with their evidence.
+  The kernel does not move: schemas, policy and the contract are
+  byte-identical, and the only governed artifact that changed is the
+  conformance corpus. Battery 1757 passed with zero failures, kernel gates
+  exit 0, examples 51/51. v1.1.22 is cut and unpublished: notes, report,
+  manifest and verified checksums exist; tag, signing and upload remain the
+  maintainer's. The prioritized backlog this left is the top section of
+  `docs/zmeta_refinement_handoff.md`.
 - Last updated: 2026-08-03 (session closeout; repo enters maintenance mode)
 - **2026-08-03 (session closeout; fire shifts to the deployment).** The
   post-publish closeout verified the final state by hand: tree clean and

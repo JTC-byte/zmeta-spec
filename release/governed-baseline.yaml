@@ -1,4 +1,4 @@
-baseline_release_id: zmeta-v1.1.20
+baseline_release_id: zmeta-v1.1.21
 generated_by: tools/release_focus_facts.py --write-baseline
 purpose: The published release this working tree is measured against. Committed because CI checks out without tags, so a git-based comparison would pass vacuously there.
 artifact_hashes:
@@ -11,8 +11,8 @@ artifact_hashes:
   configs/policy-variants/timing-freshness-profile-L-degrade.yaml: sha256:aaa30e5607a22d006c243403fafbd6b55f6ee8cb9ce0c2aa063ad8af30b64780
   conformance/adapter-harness/must-pass.jsonl: sha256:603b0ac5da3f2a28669dc11c03bab4025aa28cf6c7215606de4fb26717878c50
   conformance/bad-events/must-fail.jsonl: sha256:9663ff32172a26b071b0c90bd5d43c818335f64bf6f965073bf52956de91d9b8
-  conformance/claims/example-core-producer.yaml: sha256:acc2e4bef08f7164ef448b93ef9c55039beb12142ebe576446eb1c983e5810ad
-  conformance/claims/example-reference-gateway.yaml: sha256:45258f0b169d9b1ed06571f4378c1d72dc132daff3909c78eb7cc5c5302e9c14
+  conformance/claims/example-core-producer.yaml: sha256:ea4512a4899fe6dd72848bdbe4a7e1ca95c32b1a5fe9340e13e4d9b48426ddca
+  conformance/claims/example-reference-gateway.yaml: sha256:7b3199b7e09dfc173c80aeb126a0e50284b836890fe5cf832aa4a3e999abe175
   conformance/conformance_classes.yaml: sha256:c3342cc651253962eb2dd93272e7a85d5ee011afb7b3a40c9cefb7601e5b6bc6
   conformance/encoding-negative/compact-must-fail.jsonl: sha256:d282d2d48f3572b7a9f974460946cde6a96cbd944d888221502b3a4091dd755d
   conformance/encoding-negative/context.jsonl: sha256:a08ef68da7067be0e6ccf37e8f4ae349e42156678805aaf7de913cc4fa36e6d3
@@ -27,39 +27,39 @@ artifact_hashes:
   conformance/profile-projection/must-fail.jsonl: sha256:4f20a6d8b0a6e5f73b491389d78313426ee90ba9b13192ca32593650e436acf0
   conformance/profile-projection/must-pass.jsonl: sha256:ac8d80b93480c735b961c72b049dd22a0b3997d03ce72cf53df0be903d15da47
   conformance/profile_projection_field_catalog.yaml: sha256:bd5c6526339863e704bc287c45a35d0b2ff277f47a2ed8f100788ace73fec1b2
-  docs/zmeta_change_governance.md: sha256:3db963d0be3e4f41fe3bfc0d8af54532105afcda3d16abfa57d91f1658952a95
+  docs/zmeta_change_governance.md: sha256:620476bfbb7fba52a0fc80078d59d1e45296d6e5fd669825d5ff58ddd27a3faf
   docs/zmeta_defensive_publication.md: sha256:4cca30cba78e081c57b73218d5bcb598ff3945a22d8e83299666df7ad9fc00af
   export/policy/command-evidence.json: sha256:8df7240d2d2707a24cee52265dc1f289947f56d22b8a02b140ce04fd8d89e5ca
-  export/policy/index.json: sha256:c45ae46e148813cc965e041089f4b865ae89e0c72badfb38f4931bc42ea184f2
+  export/policy/index.json: sha256:e9c2b54ade9fe4c56da8429ca29d2c3ce39251906f2ef7323e3360df9b4c636b
   export/policy/lineage.json: sha256:8fec6c9cacc608f63e02014944df71a4fc3bd9fda8925d4ec60b4834ef13f421
   export/policy/producer-authority.json: sha256:1188c56184d8180819eb1977d6309a414295be487e742435922ea9266ed8c905
   export/policy/profile-precision.json: sha256:04cdd98c8941e22e3ac48c8c80381b861d33be8cd004035862768aa2b0a2706d
   export/policy/profiles.json: sha256:672cc1a48239850cbec25eff544197791a1f4bb6631bab30d04d5753d8e9aedb
   export/policy/roles.json: sha256:323d1609131af3c3c870de8b12b424392eb4db18589e6db349f11bc2ecd9ab73
   export/policy/routing.json: sha256:200943d173f013c3ae038fbd9e0ba11312632b35fafdd8c4067f48d4978f85cd
-  export/policy/semantics.json: sha256:9c29efd6ca0b670db7f3c41faab8a70a8af770d9d2d1a762e8a4ff7bf38913f0
+  export/policy/semantics.json: sha256:da75dcec8d18b636c09e0ef08ff1ea092fc27e9a19b270cbd5dbd7e42baae554
   export/policy/timing-freshness.json: sha256:61c3c55ea8853764e63352e5280b01804449e0936c0620802172256ac1de5198
-  export/policy/violation-codes.json: sha256:a7daa4aee9b2ef9dc14139c3525cfd28b551a2a60abfead5a23eae20ccab447f
-  policy/command-evidence.yaml: sha256:aecc54aee447f21866a26f2d30b53b4edd5b3742514e85dac6208eee86807184
+  export/policy/violation-codes.json: sha256:2b58d632c0cd783801c450103153c1235df587ae384e347ada9d3a9ee3fa1758
+  policy/command-evidence.yaml: sha256:667e773864cda4e621afefc00a4b71cc12e2bc249ac2303c7b272bc457f90970
   policy/lineage.yaml: sha256:cbabca448f478c9051b8d24ae38a09bfebe0297f76bfd373485361d549ba94d7
   policy/producer-authority.yaml: sha256:9b8145daae15fcc4fb63b13d1b1d5797eae19e9b92c10f4f550cf9dd17366b48
   policy/profile-precision.yaml: sha256:0b43b16588680449b88fd849ae34718da399aa084fe890c2971f52a9f3d3532a
   policy/profiles.yaml: sha256:e45555013347b80157437aba35493c9430ac758690026d81aca889301ce4bfab
   policy/roles.yaml: sha256:7e274c3fac81ae2f8bac96bb3f0260a1ce034919e69359b54c270c8a8492af2b
   policy/routing.yaml: sha256:5ea05c34cd25defe9ebf1ab74c8a836f9a48e86340cc0ee42f996d8f33109ae2
-  policy/semantics.yaml: sha256:7309d8d94c5bc38738d8de58763e5ce5335e8b56faf7dcda962ab9f5678a9f5c
+  policy/semantics.yaml: sha256:c36738e49fff35738d8a4f16a378c27b901d3b737a7538c8c15c5a17aae0a643
   policy/timing-freshness.yaml: sha256:5a3102b5eae5c6577f6f7fffecd864efde10c63cf125ac7e9f5220b2d50fe348
-  policy/violation-codes.yaml: sha256:5dd4e1be591f1efe04d3165f243f0e7d2dfdae6abbb65f1f273a952d9b8f2774
+  policy/violation-codes.yaml: sha256:e1c78889c775fad76f0d1dd724b14ac8200cdff577e08b5b6f40dcf83b686832
   release/ATTESTATION_TEMPLATE.yaml: sha256:51d83f4f1105ddfb15d437d853a3776fb5f0dcf93421909dd376708721455a05
   release/RELEASE_NOTES_TEMPLATE.md: sha256:72f8508ccbcc44e6845fee7b778e9501cdcbcc70f6dc2012614991f07a3784aa
   release/RELEASE_PACKAGE_README.md: sha256:085a7808594e8d4070fd73af6f7bf19c61fd1656b26d9a8779040f0b77abcc47
-  release/governed-baseline.yaml: sha256:75acd5032d6581f3e06dc3a006762d61e9406c70b08d179822b80cdaa06c5862
+  release/governed-baseline.yaml: sha256:ae6fe55ce677fce58e0b3844efd9338ea00e539d945a1a5b3d58cad8f9baf87b
   schema/proto/zmeta_event_v1.proto: sha256:abc128fa2dc0058624bc654b422e8b0c7a045aac83e6a71d644a8ccca6672d82
   schema/zmeta-event-1.0.schema.json: sha256:1d2d84164b3a8986874e932c0e9369be3bf392a483a8ff261d464f34bd16d7b5
-  schema/zmeta-event-1.1.0.schema.json: sha256:454797c83c2a797d2ab43f06ddafb9e4297bc8fbc4bca96a9afa31108834df40
+  schema/zmeta-event-1.1.0.schema.json: sha256:e10c151dce8e167b1df76c8c8f27dc28f39d0b1e210a8adfb50ae1c61a1b195f
   schema/zmeta-event.schema.json: sha256:bbaaa2c4c3b639e25dfb58971e5904ac17e9ddfe69cac0b48eda18c27691f793
-  spec/compact-binary-mapping.md: sha256:e34a4b1daa733a2f2a9d4dc2fd29ab017c3c08121a0b0597985596e9098cb6ea
-  spec/extension-registry.yaml: sha256:685c38a9fc5fb72a9dedc252c02720d17653e1c87a3e46453809094e942340fe
+  spec/compact-binary-mapping.md: sha256:fd56207c421b0b7d6a6fe081ad9e6efe71af957850234e962b8cc2a41831bcb4
+  spec/extension-registry.yaml: sha256:286e714a4d039012d95eea5ddc1e117f992b8930795207a9407921ff597bb4bc
   spec/future-branch-roadmap.md: sha256:ae1ce2abd06ed10036b9a1658bbb873b2d4f4e60a722921f3adf60488dd98d42
   spec/future-branch-roadmap.yaml: sha256:72caec3d5374a7d4914524eaaa1e016cc5787ec4e97a640487597207dc01c170
   spec/protobuf-encoding.md: sha256:9e31d7e20847f0d6278ef91c6c598effafcce9a33d382da33cd36b64e4fa4de1

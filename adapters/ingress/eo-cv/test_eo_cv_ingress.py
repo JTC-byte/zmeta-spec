@@ -2,13 +2,14 @@ import importlib.util
 import json
 from pathlib import Path
 
-from jsonschema import Draft202012Validator, FormatChecker
+from jsonschema import Draft202012Validator
 
 
 ROOT = Path(__file__).resolve().parents[3]
 SCHEMA_PATH = ROOT / "schema" / "zmeta-event-1.0.schema.json"
 SCHEMA = json.loads(SCHEMA_PATH.read_text(encoding="utf-8"))
-VALIDATOR = Draft202012Validator(SCHEMA, format_checker=FormatChecker())
+# No format_checker: `date-time` is annotation-only without an RFC 3339 checker.
+VALIDATOR = Draft202012Validator(SCHEMA)
 
 MODULE_PATH = Path(__file__).resolve().parent / "eo_cv_to_zmeta.py"
 spec = importlib.util.spec_from_file_location("eo_cv_to_zmeta", MODULE_PATH)

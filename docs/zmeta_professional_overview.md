@@ -1,7 +1,7 @@
 # ZMeta Professional Overview
 
 Status: advisory overview for engineers, operators, and leadership.
-Current release context: ZMeta v1.1.21.
+Current release context: ZMeta v1.1.22.
 
 This document explains what ZMeta is, why it exists, how the reference stack
 works, and what operational workflows it enables. It is not the normative
@@ -453,7 +453,10 @@ ZMeta separates event meaning from wire format.
 
 *Figure: the same Profile L `STATE_EVENT` across four wire formats. Byte counts
 are measured with the repo encoders (`zmeta_cbor`, `zmeta_compact`,
-`zmeta_proto`); every format decodes back to the identical canonical JSON.*
+`zmeta_proto`); every format decodes back to the same canonical JSON event,
+field for field and value for value. Ordering is not semantic, so map order,
+wire field order, compact integer keys, and protobuf field order may differ
+between them (semantic contract section 3.5).*
 
 All encodings must decode to canonical ZMeta JSON before validation. Encoding
 does not create authority. A compact or protobuf packet is valid only if the

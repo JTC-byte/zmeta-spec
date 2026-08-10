@@ -17,6 +17,18 @@ policy/violation-codes.yaml severity machinery: a fast producer clock, a
 slow store-and-forward link, and a genuinely corrupted ts all land here the
 same way, and the check cannot tell which of the three it is looking at, so
 warn-only observability is the ceiling, not an escalatable policy decision.
+
+The window also has to speak for the class the locked v1.0 lane still
+admits. v1.0's `utcDateTime` is gated by the pattern `Z$` with
+annotation-only `format`, so `ts: "garbageZ"` validates clean on that
+branch; the window used to return silently on anything _parse_utc_z could
+not read, which left that event with no diagnostic on either layer. An
+unreadable timestamp now takes the same EVENT_TS_IMPLAUSIBLE code with
+`direction: "unparseable"` and no `delta_ms`, since there is no instant to
+measure a delta against. Reuse is deliberate: minting a second code for the
+same warn-only observation would be governed vocabulary bought for nothing,
+and `direction` already separates "unreadable" from "outside the horizon"
+for an operator reading the metrics record.
 """
 
 import importlib.util
@@ -143,16 +155,147 @@ class CheckTsPlausibilityUnitTest(unittest.TestCase):
             gateway._check_ts_plausibility(None, event, ONE_HOUR_MS, now=NOW)
         )
 
-    def test_unparsable_ts_is_a_noop_not_a_crash(self):
-        metrics = gateway.GatewayMetrics(interval_sec=30, emit=False)
-        for bad_ts in ("not-a-timestamp", None, "2025-01-17T14:40:00-05:00"):
+    def test_unparsable_ts_warns_rather_than_passing_silently(self):
+        """The v1.0 gap this window exists to cover.
+
+        Every value here is one _parse_utc_z cannot read as an aware UTC
+        instant. "garbageZ" is the load-bearing case: it satisfies v1.0's
+        `Z$` pattern, so it clears that schema and used to clear the window
+        too, leaving the event with zero diagnostics on either layer.
+        """
+        unreadable = (
+            "garbageZ",          # schema-clean on v1.0, meaningless as an instant
+            "Z",                 # the pattern's minimum: nothing but the marker
+            "",                  # empty string
+            "not-a-timestamp",
+            "2025-01-17T14:40:00-05:00",  # a real instant, but not trailing-Z UTC
+            "1969-12-31Z",       # fromisoformat-parsable, naive, so refused
+            None,                # ts absent (schema-unreachable, pure-gate reachable)
+            12345,               # non-string
+        )
+        for bad_ts in unreadable:
             with self.subTest(ts=bad_ts):
-                event = state_event(bad_ts if bad_ts is not None else "2025-01-17T14:40:00Z")
+                metrics = gateway.GatewayMetrics(interval_sec=30, emit=False)
+                event = state_event("2026-08-03T11:59:00Z")
                 event["event"]["ts"] = bad_ts
+                self.assertTrue(
+                    gateway._check_ts_plausibility(
+                        metrics, event, ONE_HOUR_MS, now=NOW
+                    )
+                )
+                self.assertEqual(1, metrics.window["warnings"])
+                self.assertEqual(
+                    {"EVENT_TS_IMPLAUSIBLE": 1}, metrics.window["warning_codes"]
+                )
+
+    def test_ts_key_entirely_missing_warns(self):
+        metrics = gateway.GatewayMetrics(interval_sec=30, emit=False)
+        event = state_event("2026-08-03T11:59:00Z")
+        del event["event"]["ts"]
+        self.assertTrue(
+            gateway._check_ts_plausibility(metrics, event, ONE_HOUR_MS, now=NOW)
+        )
+        self.assertEqual({"EVENT_TS_IMPLAUSIBLE": 1}, metrics.window["warning_codes"])
+
+    def test_unparsable_record_is_distinguishable_from_out_of_horizon(self):
+        """One code, two readings. The metrics record has to say which."""
+        logger_records = []
+
+        class _ListLogger:
+            def write(self, record):
+                logger_records.append(record)
+
+        metrics = gateway.GatewayMetrics(interval_sec=30, emit=False, logger=_ListLogger())
+        event = state_event("garbageZ")
+        gateway._check_ts_plausibility(
+            metrics, event, ONE_HOUR_MS, now=NOW, event_id="evt-7", producer="prod-7"
+        )
+        record = logger_records[-1]
+        self.assertEqual("warning", record["type"])
+        self.assertEqual("EVENT_TS_IMPLAUSIBLE", record["code"])
+        self.assertEqual("evt-7", record["event_id"])
+        self.assertEqual("prod-7", record["producer"])
+        self.assertIn("'direction': 'unparseable'", record["details"])
+        self.assertIn("garbageZ", record["details"])
+        # No delta is reported, because there is no instant to subtract.
+        self.assertNotIn("delta_ms", record["details"])
+
+    def test_an_oversized_unreadable_ts_cannot_truncate_the_distinguishing_detail(self):
+        """v1.0 puts no length bound on `ts`, and metrics details are bounded
+        at MAX_METRICS_DETAIL_CHARS, so the offending value must not be able
+        to push `direction` out of the record."""
+        logger_records = []
+
+        class _ListLogger:
+            def write(self, record):
+                logger_records.append(record)
+
+        metrics = gateway.GatewayMetrics(interval_sec=30, emit=False, logger=_ListLogger())
+        event = state_event("x" * (gateway.MAX_METRICS_DETAIL_CHARS * 4) + "Z")
+        self.assertTrue(
+            gateway._check_ts_plausibility(metrics, event, ONE_HOUR_MS, now=NOW)
+        )
+        record = logger_records[-1]
+        self.assertIn("'direction': 'unparseable'", record["details"])
+
+    def test_disabled_threshold_never_warns_on_an_unreadable_ts_either(self):
+        """The config gate still wins: 0 disables the whole check."""
+        metrics = gateway.GatewayMetrics(interval_sec=30, emit=False)
+        event = state_event("garbageZ")
+        self.assertFalse(gateway._check_ts_plausibility(metrics, event, 0, now=NOW))
+        self.assertFalse(gateway._check_ts_plausibility(metrics, event, None, now=NOW))
+        self.assertEqual(0, metrics.window["warnings"])
+
+    def test_missing_metrics_is_a_noop_on_an_unreadable_ts_too(self):
+        event = state_event("garbageZ")
+        self.assertFalse(
+            gateway._check_ts_plausibility(None, event, ONE_HOUR_MS, now=NOW)
+        )
+
+    def test_well_formed_in_horizon_ts_still_does_not_warn(self):
+        """Regression guard on the clean path: widening the check to cover
+        unreadable values must not make a good timestamp start warning."""
+        metrics = gateway.GatewayMetrics(interval_sec=30, emit=False)
+        for good_ts in (
+            "2026-08-03T12:00:00Z",       # exactly now
+            "2026-08-03T11:59:00Z",       # inside, past side
+            "2026-08-03T12:30:00.250Z",   # inside, future side, fractional seconds
+            "2026-08-03T11:00:00Z",       # the past edge, inclusive
+            "2026-08-03T13:00:00Z",       # the future edge, inclusive
+        ):
+            with self.subTest(ts=good_ts):
                 self.assertFalse(
-                    gateway._check_ts_plausibility(metrics, event, ONE_HOUR_MS, now=NOW)
+                    gateway._check_ts_plausibility(
+                        metrics, state_event(good_ts), ONE_HOUR_MS, now=NOW
+                    )
                 )
         self.assertEqual(0, metrics.window["warnings"])
+        self.assertEqual({}, metrics.window["warning_codes"])
+
+    def test_out_of_horizon_records_keep_their_direction_and_delta(self):
+        """Regression guard on the warning path: the past/future arms still
+        report a measured delta, which is what separates them from the
+        unreadable arm sharing the code."""
+        logger_records = []
+
+        class _ListLogger:
+            def write(self, record):
+                logger_records.append(record)
+
+        metrics = gateway.GatewayMetrics(interval_sec=30, emit=False, logger=_ListLogger())
+        for ts, direction in (
+            ("2025-01-17T14:40:00Z", "past"),
+            ("2027-01-17T14:40:00Z", "future"),
+        ):
+            with self.subTest(ts=ts):
+                self.assertTrue(
+                    gateway._check_ts_plausibility(
+                        metrics, state_event(ts), ONE_HOUR_MS, now=NOW
+                    )
+                )
+                record = logger_records[-1]
+                self.assertIn("'direction': '%s'" % direction, record["details"])
+                self.assertIn("delta_ms", record["details"])
 
     def test_default_now_falls_back_to_wall_clock(self):
         # No `now` passed: an event stamped far in the past against a small
@@ -262,6 +405,52 @@ class TsPlausibilityEndToEndTest(unittest.TestCase):
         event = state_event("2025-01-17T14:40:00Z")
         out, metrics = self._process(event, now=NOW, ts_plausibility_horizon_ms=0)
         self.assertEqual(1, len(out))
+        self.assertEqual(0, metrics.window["warnings"])
+
+    def test_a_schema_clean_garbage_ts_on_v1_0_is_flagged_at_runtime(self):
+        """The defect this arm closes, end to end on the locked lane.
+
+        `garbageZ` satisfies v1.0's `Z$` pattern, so schema validation passes
+        and the event is forwarded. The runtime window is the only layer left
+        that can say anything about it, and it now does.
+        """
+        event = state_event("garbageZ")
+        out, metrics = self._process(
+            event, now=NOW, ts_plausibility_horizon_ms=ONE_HOUR_MS
+        )
+        self.assertEqual(1, len(out))
+        self.assertEqual(event, out[0])
+        self.assertEqual(1, metrics.window["warnings"])
+        self.assertEqual({"EVENT_TS_IMPLAUSIBLE": 1}, metrics.window["warning_codes"])
+        self.assertEqual(0, metrics.window["violations"])
+
+    def test_the_same_garbage_ts_is_refused_by_the_1_1_0_schema(self):
+        """The other lawful layer. v1.1.0's utcDateTime pattern rejects the
+        value outright, so the pair of layers is pinned from both sides."""
+        validator_11 = validators.load_schema(
+            ROOT / "schema" / "zmeta-event-1.1.0.schema.json"
+        )
+        event = state_event("garbageZ", version="1.1.0")
+        raw = json.dumps(event).encode("utf-8")
+        metrics = gateway.GatewayMetrics(interval_sec=30, emit=False)
+        out = gateway.process_message(
+            raw,
+            validator_11,
+            self.policy,
+            "L",
+            {},
+            "json",
+            metrics=metrics,
+            now=NOW,
+            ts_plausibility_horizon_ms=ONE_HOUR_MS,
+        )
+        self.assertEqual(1, len(out))
+        self.assertEqual("SYSTEM_EVENT", out[0]["event"]["event_type"])
+        self.assertEqual("SCHEMA_VIOLATION", out[0]["event"]["event_subtype"])
+        self.assertEqual(1, metrics.window["violations"])
+        # Named, so the test cannot pass on some other rejection reason.
+        self.assertEqual({"SCHEMA_INVALID": 1}, metrics.window["violation_codes"])
+        # Schema refusal is terminal: the runtime window never ran here.
         self.assertEqual(0, metrics.window["warnings"])
 
     def test_runs_on_the_1_1_0_branch_too(self):

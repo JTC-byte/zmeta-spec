@@ -5,7 +5,7 @@ from adapters.ingress.time_utils import utc_now_z
 from zmeta_uuid import uuid7
 
 import yaml
-from jsonschema import Draft202012Validator, FormatChecker
+from jsonschema import Draft202012Validator
 
 
 SCHEMA_PATH = Path(__file__).resolve().parents[3] / "schema" / "zmeta-event-1.0.schema.json"
@@ -92,7 +92,13 @@ def load_mapping_pack(schema_id):
 
 def _load_schema_validator():
     schema = json.loads(SCHEMA_PATH.read_text(encoding="utf-8"))
-    return Draft202012Validator(schema, format_checker=FormatChecker())
+    # No format_checker is installed here on purpose. `date-time` is the only
+    # `format` assertion in the ZMeta schemas, and jsonschema registers no
+    # `date-time` checker without an RFC 3339 checker library, which this stack
+    # does not depend on. The `utcDateTime` `pattern` is the real gate on
+    # timestamps; `format` is annotation-only here. Passing a bare
+    # FormatChecker() would validate nothing and would imply otherwise.
+    return Draft202012Validator(schema)
 
 
 def _utc_now():

@@ -102,8 +102,30 @@ event = translate_platform_state(
 - Ingress is telemetry/status only; do not emit `COMMAND_EVENT` from MAVLink.
 - GPS fix type maps to confidence: 3D+ = 0.8, 2D = 0.5, lower = 0.2.
 - When `gps_fix_type < 3`, `payload.quality.geo_status` is set to `STALE`.
+- Altitude datum is load-bearing and the two datums are kept apart. Semantic
+  contract 6.2 is a `SHALL`: canonical altitude is Height Above Ellipsoid, and
+  MSL "is not permitted in canonical ZMeta v1.0 `geo`". MAVLink defines
+  `GLOBAL_POSITION_INT.alt` as height above mean sea level, so it decodes to
+  `alt_msl_m` and never reaches `payload.geo.alt_m`. HAE comes from
+  `GPS_RAW_INT.alt_ellipsoid`, decoded as `alt_hae_m`, and only that value
+  becomes canonical `alt_m`. When a bridge supplies both, HAE wins.
+- When only MSL is available, the horizontal fix is real and the vertical is
+  not expressible, so the position is published as the declared 2-D form
+  (`geo.dimensionality: "2D"`, no `alt_m`, `quality.geo_status:
+  VERTICAL_UNAVAILABLE`, doctrine A1-02) rather than withheld or given an
+  invented vertical. That branch stamps `zmeta_version: "1.1.0"`, because
+  `dimensionality` is 1.1.0 vocabulary and the locked v1.0 `geo` definition
+  admits only `lat`/`lon`/`alt_m`. A full 3-D position keeps the `1.0` stamp.
+  The reported MSL value is preserved as non-canonical
+  `quality.mavlink_alt_msl_m`, the same treatment a heading with no declared
+  frame receives, so a consumer holding its own geoid model can still use it
+  and nothing downstream can mistake it for HAE. The legacy `alt_m` input key
+  is read as MSL and takes this path: it was previously documented as AMSL and
+  written straight into canonical `geo.alt_m`, which published a wrong-datum
+  value as though it were ellipsoidal.
 - `translate_platform_state()` refuses to fabricate a position (returns
-  `None`, no event) when any of `lat`/`lon`/`alt_m` is absent, or when
+  `None`, no event) when `lat` or `lon` is absent, when no altitude of any
+  datum was reported, or when
   `gps_fix_type < 2` with `lat == 0.0` and `lon == 0.0` (the ArduPilot
   pre-lock "null island" signature). Canonical `geo` is all-or-nothing
   (semantics contract 6.8: "If any of `lat`, `lon`, or `alt_m` is missing,
@@ -112,7 +134,10 @@ event = translate_platform_state(
   a complete usable position must not be emitted rather than defaulted to
   `(0, 0, 0)`. A fabricated `alt_m: 0.0` is not harmless padding: CoT egress
   re-projects it as a concrete `hae="0.0"` altitude claim, and deconfliction,
-  terrain masking and 3D fusion all consume it. `decode_global_position_int()`
+  terrain masking and 3D fusion all consume it. The 2-D form above is not a
+  way around this refusal: it applies only when an altitude was reported in a
+  datum that cannot be stated canonically, never when none was reported at all.
+  `decode_global_position_int()`
   likewise decodes absent `lat`/`lon`/`alt` to `None` instead of `0.0`.
   Stale-but-real coordinates without a current fix are still emitted with
   `geo_status: STALE` and floor confidence. This follows the kraken/moth

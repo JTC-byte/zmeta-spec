@@ -73,6 +73,11 @@ HONESTY RULES ENFORCED HERE
   refuses the whole event where the field is required.
 * **The emitter identity is required.** Without ``hex`` there is no subject for
   the observation, so the entry is refused rather than emitted anonymous.
+* **The event id is a real UUIDv7 or the module does not load.** ``event_id``
+  is a UUIDv7 per RFC 9562, and the schema pattern pins the version nibble.
+  When a UUIDv7 generator is not importable this module raises at import with
+  that requirement named, rather than substituting ``uuid.uuid4`` and letting
+  every event fail schema validation on an opaque pattern error.
 """
 
 from __future__ import annotations
@@ -82,10 +87,28 @@ from datetime import datetime, timezone
 
 from adapters.ingress.time_utils import coerce_timing_quality
 
-try:  # pragma: no cover - import shape differs in-repo vs copied out
+# ZMeta `event_id` values are UUIDv7 (RFC 9562), and the schema's `$defs/uuid`
+# pattern pins the version nibble, so a UUIDv4 minted under the name `uuid7`
+# produces events that fail validation on every entry. This guard used to
+# alias `uuid.uuid4` when `zmeta_uuid` was not importable, which reported a
+# missing dependency as an opaque pattern error one layer away from the cause.
+# The alias could not have rescued that case anyway: the `time_utils` import
+# above needs the same repository layout, so a copy-out that loses
+# `zmeta_uuid.py` has already failed a line earlier. State the requirement
+# here, where the cause is legible, and mint nothing rather than mint an id of
+# the wrong version.
+try:
     from zmeta_uuid import uuid7
-except ImportError:  # pragma: no cover
-    from uuid import uuid4 as uuid7
+except ImportError as exc:
+    raise ImportError(
+        "ADS-B ingress requires a UUIDv7 generator importable as "
+        "zmeta_uuid.uuid7 (RFC 9562). ZMeta event_id values are UUIDv7 and the "
+        "schema pattern pins the version nibble, so a UUIDv4 minted in its "
+        "place is rejected by validation on every event. Run the adapter with "
+        "the repository root on sys.path, copy zmeta_uuid.py alongside the "
+        "adapters tree, or provide your own RFC 9562 UUIDv7 generator under "
+        "that module name."
+    ) from exc
 
 ADAPTER_VERSION = "1.0.0"
 

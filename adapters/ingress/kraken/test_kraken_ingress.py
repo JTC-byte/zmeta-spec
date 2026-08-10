@@ -2,7 +2,7 @@ import json
 from pathlib import Path
 
 import pytest
-from jsonschema import Draft202012Validator, FormatChecker
+from jsonschema import Draft202012Validator
 
 from adapters.ingress.kraken.kraken_to_zmeta import (
     translate_csv_row,
@@ -14,7 +14,8 @@ from adapters.ingress.kraken.kraken_to_zmeta import (
 ROOT = Path(__file__).resolve().parents[3]
 SCHEMA_PATH = ROOT / "schema" / "zmeta-event-1.0.schema.json"
 SCHEMA = json.loads(SCHEMA_PATH.read_text(encoding="utf-8"))
-VALIDATOR = Draft202012Validator(SCHEMA, format_checker=FormatChecker())
+# No format_checker: `date-time` is annotation-only without an RFC 3339 checker.
+VALIDATOR = Draft202012Validator(SCHEMA)
 
 CSV_FIELDS = ["1737127200.123", "123.4", "80", "-55.0", "433000000"]
 JSON_RAW = {

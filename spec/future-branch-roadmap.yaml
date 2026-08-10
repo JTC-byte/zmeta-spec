@@ -148,6 +148,49 @@ candidates:
       envelope-or-sidecar decision is structural.
     notes: Negative fixtures for bad/missing signatures required.
 
+  - id: cooperative-stream-gap-detection
+    display_name: Cooperative-mesh gap detection / stream continuity
+    status: proposed
+    priority: near_term
+    purpose: >
+      Let a consumer detect that an event never arrived, on a cooperative link,
+      without inferring order or freshness from identity.
+    affected_events: [OBSERVATION_EVENT, INFERENCE_EVENT, FUSION_EVENT, STATE_EVENT, SYSTEM_EVENT]
+    registry_refs: []
+    depends_on: []
+    required_surfaces: default
+    promotion_evidence: []
+    tripwires:
+      - >
+        Meets the promotion evidence bar; a deployment losing events
+        undetectably on a degraded or intermittent link is the expected
+        evidence source. Explicitly NOT a trust-boundary condition: this fires
+        between cooperating nodes with no adversary present, which is why it
+        cannot ride the event-signing-anti-replay tripwire.
+    recommendation: >
+      Keep separate from event-signing-anti-replay even though both would
+      introduce a counter. That branch answers "did someone forge or replay
+      this", and its tripwire needs an adversarial trust boundary; this one
+      answers "did I miss one", and a cooperative packet-loss deployment will
+      never fire that condition. Filing the reliability need under the
+      security branch made it read as covered while remaining unreachable
+      (doctrine C1-05). Contract 13.2 already defines deduplication on
+      immutable identity, and 4.3 forbids inferring ordering or freshness from
+      UUIDv7 timestamp bits, so gap detection is the one stream property with
+      no primitive at all today.
+    notes: >
+      Measured evidence already exists in-repo: docs/zmeta_two_node_quickstart.md
+      records drops=0 alongside a consumer clearly missing events, because the
+      counter measures what the gateway discarded rather than what never
+      arrived, and reports 44% arrival with drops=0 at 1000 events/s. Design
+      question is whether continuity is envelope vocabulary (a per-producer
+      monotonic counter, which the closed event root would require a versioned
+      change to add) or a SYSTEM_EVENT-carried periodic assertion, which stays
+      in the outer rings. Prefer the outer-ring form unless it proves
+      insufficient. Negative fixtures must cover a gap, a duplicate, and a
+      producer restart, since a restart and a gap are indistinguishable
+      without a session identifier.
+
   - id: mesh-trust-quarantine
     display_name: Mesh trust / quarantine
     status: proposed

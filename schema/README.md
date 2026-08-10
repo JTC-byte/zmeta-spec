@@ -25,7 +25,39 @@ still validate against the JSON Schema and policy pack.
 Timestamp fields use the shared `utcDateTime` definition. Values must be RFC
 3339 date-time strings serialized in UTC with a trailing `Z`, for example
 `2025-01-17T14:30:00Z` or `2025-01-17T14:30:00.123Z`. Offset forms such as
-`2025-01-17T09:30:00-05:00` and timezone-less strings are schema-invalid.
+`2025-01-17T09:30:00-05:00` and timezone-less strings are schema-invalid on
+both branches.
+
+How much beyond the trailing `Z` is actually checked differs by branch, and an
+integrator validating v1.0 traffic needs that difference before relying on
+`ts`. `format: date-time` is annotation-only in this stack: `jsonschema`
+registers no `date-time` checker unless the optional `rfc3339-validator`
+package is installed, and that package is declared in no requirements file
+here. The `pattern` keyword is the entire gate on both branches.
+
+- **v1.0** (`zmeta-event-1.0.schema.json`) constrains `utcDateTime` with
+  `"pattern": "Z$"` and nothing else. Any string ending in `Z` validates,
+  including `garbageZ`, a bare `Z`, `2026-13-01T00:00:00Z`, and a corruption
+  that decodes to year 0001. A consumer that reads `ts` for freshness,
+  staleness, ordering, or TTL after a successful v1.0 validation must parse and
+  range-check the value itself.
+- **v1.1.0** (`zmeta-event-1.1.0.schema.json`) constrains `utcDateTime` with a
+  structural calendar pattern: year 1970-2999, month 01-12, day 01-31, hour
+  00-23, minute and second 00-59, optional fractional seconds, trailing `Z`.
+  The corruption classes listed above fail on this branch. The pattern is a
+  shape gate rather than a calendar validator, so a structurally well-formed
+  impossible date such as `2026-02-30T00:00:00Z` still passes.
+
+The v1.0 pattern was left alone deliberately. v1.0 is the locked normative
+contract, so narrowing its `utcDateTime` would change the schema bytes and move
+the lock hash anchor that `gateway/tests/test_v1_lock_baseline.py` pins. The
+split was adjudicated under doctrine X1-01 (`docs/zmeta_doctrine_review_log.md`,
+closed 2026-08-03), and `gateway/tests/test_x1_01_ts_structural_shape.py` pins
+both sides, including a test asserting that the permissive v1.0 behavior is
+still present. Cross-event plausibility is assigned to the runtime layer instead
+of the schema: the reference gateway carries a warn-only `ts` plausibility
+window (setting `ts_plausibility_horizon_ms`, warning `EVENT_TS_IMPLAUSIBLE`)
+that runs on both versions and never blocks forwarding.
 
 Observation windows must provide `t_start` and `t_end` as a pair. RF windowed
 observations are also checked by semantic validation: `event.ts` must equal the

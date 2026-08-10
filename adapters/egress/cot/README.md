@@ -169,8 +169,11 @@ live (semantics contract section 9.5). An event with no `event.ts`, or a
 returns `None`) rather than silently stamped with the current time or
 allowed to escape as a raw `ValueError`. That gap is real on the locked v1.0
 schema branch, where `utcDateTime` enforces only a trailing `Z` and
-jsonschema does not enforce `format: date-time` without an installed
-`FormatChecker`. The v1.1.0 branch tightens the pattern to structural
+`format: date-time` is advisory without an RFC 3339 checker. Installing a
+`FormatChecker` does not close it: `jsonschema` registers no `date-time`
+checker unless the optional `rfc3339-validator` package is present, that
+package is declared in no requirements file here, and an unregistered format
+silently conforms. The v1.1.0 branch tightens the pattern to structural
 calendar shape instead (year/month/day/hour/minute/second ranges, doctrine
 X1-01), so most malformed shapes no longer reach this adapter gate-clean on
 that branch; neither branch is a full calendar validator, so a structurally

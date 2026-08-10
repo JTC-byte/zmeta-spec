@@ -77,6 +77,32 @@ applied effects. This lets deployments accept degraded data under edge
 conditions while consumers can still reject, warn, quarantine, or filter by
 explicit labels.
 
+Timestamp-shape fixtures cover the `event.ts` corruption class. `must-fail.jsonl`
+carries twelve vectors whose only defect is the timestamp: arbitrary text ending
+in `Z`, a bare `Z`, a year below the 1970 floor, a year above the 2999 ceiling,
+the year-0001 corruption demonstrated on a live ingress path, month 13, month 88,
+day 32, hour 24, minute 60, second 60, and a value with no trailing `Z`. Each
+expects `SCHEMA_INVALID`. Each is stamped `zmeta_version: "1.1.0"`, because the
+structural pattern that rejects them lives in `schema/zmeta-event-1.1.0.schema.json`
+at `$defs/utcDateTime`. Unit-level coverage of the same class, including the
+positive cases that keep the pattern from over-rejecting, is in
+`gateway/tests/test_x1_01_ts_structural_shape.py`.
+
+The two version lanes differ here, and the difference is deliberate rather than
+a corpus gap. The locked v1.0 schema constrains `event.ts` with the
+pattern `Z$` alone, so it accepts eleven of those twelve values, the year-0001
+corruption among them. The v1.0 kernel is locked and its bytes cannot move, so
+structural calendar shape is a v1.1.0 adjudication and the vectors sit on the
+v1.1.0 lane where the rejection is real. A v1.0-stamped copy of these vectors
+would assert a failure that correctly does not happen, and adding one would break
+the suite rather than strengthen it. The single value both lanes reject is the
+timestamp with no trailing `Z`; `must-fail.jsonl` also carries the v1.0
+UTC-offset form of that case. The pattern enforces structural shape and not the
+calendar, so a structurally well-formed but calendrically impossible value such
+as `2026-02-30T12:00:00Z` still validates on both lanes. Cross-field calendar and
+cross-event plausibility validation is policy and runtime enforcement, not
+schema.
+
 Consumer-side risk filtering is available through:
 
 ```

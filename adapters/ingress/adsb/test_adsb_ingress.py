@@ -6,13 +6,15 @@ target with no position, and a target reporting only barometric altitude. Both
 are common, and both are where an adapter is tempted to fill in a number.
 """
 
+import importlib.util
 import json
 import math
+import re
 import sys
 from pathlib import Path
 
 import pytest
-from jsonschema import Draft202012Validator, FormatChecker
+from jsonschema import Draft202012Validator
 
 ROOT = Path(__file__).resolve().parents[3]
 if str(ROOT) not in sys.path:
@@ -25,17 +27,27 @@ from adapters.ingress.adsb.adsb_to_zmeta import (  # noqa: E402
 from adapters.ingress.time_utils import coerce_timing_quality  # noqa: E402
 
 SCHEMA_DIR = ROOT / "schema"
+# No format_checker: `date-time` is the only format assertion in the ZMeta
+# schemas and jsonschema registers no checker for it without an RFC 3339
+# checker library this stack does not depend on, so a bare FormatChecker()
+# validated nothing while implying otherwise. `pattern` is the real gate.
 VALIDATOR_1_0 = Draft202012Validator(
     json.loads((SCHEMA_DIR / "zmeta-event-1.0.schema.json").read_text(encoding="utf-8")),
-    format_checker=FormatChecker(),
 )
 VALIDATOR_1_1_0 = Draft202012Validator(
     json.loads((SCHEMA_DIR / "zmeta-event-1.1.0.schema.json").read_text(encoding="utf-8")),
-    format_checker=FormatChecker(),
 )
 
 NOW = 1769558400.0
 BASE = dict(now_epoch_s=NOW, platform_id="adsb-node-01", receiver_id="rtlsdr-01")
+
+ADAPTER_PATH = Path(__file__).with_name("adsb_to_zmeta.py")
+# Mirrors schema $defs/uuid (UUIDv7 per RFC 9562), re-stated here the way the
+# EO-CV adapter re-states it, so the requirement is readable beside the pin.
+UUID7_RE = re.compile(
+    r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-7[0-9a-fA-F]{3}"
+    r"-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$"
+)
 
 FULL = {
     "hex": "a1b2c3", "flight": "UAL123 ", "lat": 34.05, "lon": -118.25,
@@ -411,3 +423,86 @@ def test_power_reference_enum_rejects_an_undeclared_token():
     event["payload"]["features"]["power_reference"] = "DBM"
     errors = list(VALIDATOR_1_1_0.iter_errors(event))
     assert errors, "an undeclared power_reference token validated"
+
+
+# --- Event id minting (schema $defs/uuid: UUIDv7 per RFC 9562) ---------------
+# The id the adapter mints is the one field no input can supply, so the only
+# place its version can be checked is here.
+
+_MISSING = object()
+
+
+def _load_adapter_copy(name):
+    """Execute a fresh copy of the adapter module under a throwaway name.
+
+    Loading a copy rather than reloading the imported module leaves the
+    adapter the rest of this file exercises untouched.
+    """
+    spec = importlib.util.spec_from_file_location(name, ADAPTER_PATH)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def _load_adapter_copy_without_a_uuid7_generator(name):
+    """Load a copy of the adapter with ``zmeta_uuid`` made unimportable.
+
+    Binding ``sys.modules["zmeta_uuid"]`` to ``None`` makes the import
+    machinery raise for that name, which reproduces the copied-out shape the
+    adapter's import guard exists for without moving any file. The entry is
+    restored to whatever it was before, present or absent.
+    """
+    saved = sys.modules.get("zmeta_uuid", _MISSING)
+    sys.modules["zmeta_uuid"] = None
+    try:
+        return _load_adapter_copy(name)
+    finally:
+        if saved is _MISSING:
+            del sys.modules["zmeta_uuid"]
+        else:
+            sys.modules["zmeta_uuid"] = saved
+
+
+def test_the_minted_event_id_is_a_uuidv7():
+    """Version nibble 7 and the RFC 4122 variant, which is what the schema
+    pattern pins. Sibling-parity with the bladeRF adapter's pin: the schema
+    validation elsewhere in this file would also catch a wrong version, but
+    only as a pattern failure on a long string, so the requirement is stated
+    directly as well.
+    """
+    event_id = translate_aircraft(FULL, **BASE)["event"]["event_id"]
+    assert UUID7_RE.match(event_id), event_id
+    assert event_id[14] == "7"
+    assert event_id[19] in "89ab"
+
+
+def test_a_missing_uuid7_generator_refuses_to_load_rather_than_minting_a_v4():
+    """The copied-out case, reported where the cause is legible.
+
+    This guard used to alias ``uuid.uuid4`` to the name ``uuid7``, so a
+    deployment without ``zmeta_uuid`` minted UUIDv4 event ids. The schema
+    pattern pins the version nibble, so those events failed validation rather
+    than laundering a v4 id as a v7 one, but the failure surfaced one layer
+    away from the missing dependency and named a regular expression instead of
+    the requirement. The module now refuses to load and says what is needed.
+    """
+    with pytest.raises(ImportError) as excinfo:
+        _load_adapter_copy_without_a_uuid7_generator("adsb_to_zmeta_without_uuid7")
+
+    message = str(excinfo.value)
+    assert "UUIDv7" in message
+    assert "zmeta_uuid" in message
+    assert "RFC 9562" in message
+
+
+def test_the_adapter_loads_and_mints_v7_when_the_generator_is_present():
+    """The control for the refusal above, and the restore half of it.
+
+    A refusal test that blocks an import proves nothing about the refusal
+    unless the same load succeeds with the import available; it would pass
+    just as well if the adapter were broken outright. Blocking the name must
+    also leave nothing poisoned for the next importer.
+    """
+    module = _load_adapter_copy("adsb_to_zmeta_reloaded")
+    event_id = module.translate_aircraft(FULL, **BASE)["event"]["event_id"]
+    assert UUID7_RE.match(event_id), event_id

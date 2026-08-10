@@ -361,7 +361,24 @@ def translate_platform_state(
             platform telemetry. Expected fields:
               lat (float): degrees; absent/None refuses emission (no default)
               lon (float): degrees; absent/None refuses emission (no default)
-              alt_m (float): metres AMSL; absent/None refuses emission
+              alt_hae_m (float): metres above the WGS-84 ellipsoid, from
+                GPS_RAW_INT.alt_ellipsoid. This is the only altitude datum
+                contract 6.2 permits in canonical geo, so it is the only one
+                that becomes payload.geo.alt_m. Present means a full 3-D
+                position under the 1.0 stamp.
+              alt_msl_m (float): metres above mean sea level, from
+                GLOBAL_POSITION_INT.alt. Never written to payload.geo.alt_m.
+                MSL is not HAE, and no geoid model ships with this template,
+                so contract 6.2 leaves two lawful options: convert, or omit
+                canonical geo. Present without alt_hae_m yields the declared
+                2-D form (dimensionality "2D", no alt_m) under a 1.1.0 stamp,
+                with the reported value preserved as non-canonical
+                quality.mavlink_alt_msl_m.
+              alt_m (float): legacy input key, read as MSL. It was documented
+                as AMSL and written straight into canonical payload.geo.alt_m,
+                which published a wrong-datum value as though it were HAE. An
+                existing caller now degrades to the honest 2-D form instead.
+                Absent altitude of every kind still refuses emission
                 (no default). Canonical geo is all-or-nothing (contract 6.8).
               heading_deg (float, optional): 0-360; None, absent, or outside
                 0-360 (655.35 is the UINT16_MAX "hdg unknown" sentinel a
@@ -410,7 +427,23 @@ def translate_platform_state(
     heading_frame = _assert_true_north_heading_frame(heading_frame)
     lat = _get("lat")
     lon = _get("lon")
-    alt_m = _get("alt_m")
+    # Altitude datum is load-bearing, so the two datums are read into separate
+    # names and only one of them can reach canonical geo. Contract 6.2: "All
+    # altitude values SHALL be Height Above Ellipsoid (HAE) in meters ... MSL,
+    # AGL, terrain-relative, pressure altitude, or local-frame altitude are not
+    # permitted in canonical ZMeta v1.0 `geo`. If an adapter ingests such
+    # values, it must convert them or omit canonical `geo`."
+    alt_hae_m = _get("alt_hae_m")
+    alt_msl_m = _get("alt_msl_m")
+    if alt_msl_m is None:
+        # The legacy `alt_m` key was documented as "metres AMSL" and written
+        # unconverted into payload.geo.alt_m. That is the altitude-datum
+        # laundering class the ADS-B ingress already refuses at the source
+        # (alt_baro never becomes alt_m); this template carried the same defect
+        # for GLOBAL_POSITION_INT.alt, which MAVLink defines as MSL. Reading
+        # the legacy key as MSL degrades an existing caller to the honest 2-D
+        # form rather than leaving it publishing a wrong-datum HAE claim.
+        alt_msl_m = _get("alt_m")
     # heading_deg comes from GLOBAL_POSITION_INT.hdg, which reports the value
     # as unknown (UINT16_MAX -> None after decode). An unknown heading is
     # omitted from the payload, never fabricated as a 0.0 (due-north) default.
@@ -451,12 +484,26 @@ def translate_platform_state(
     #   and drives deconfliction, terrain masking and 3D fusion;
     # - ArduPilot reports lat=0, lon=0 before GPS lock (fix types 0/1), the
     #   "null island" no-fix signature.
-    if lat is None or lon is None or alt_m is None:
+    if lat is None or lon is None:
+        return None
+    if alt_hae_m is None and alt_msl_m is None:
         return None
     if fix_for_decisions < 2 and lat == 0.0 and lon == 0.0:
         return None
 
-    geo = {"lat": lat, "lon": lon, "alt_m": alt_m}
+    # Only an ellipsoidal altitude may occupy canonical geo.alt_m. When the
+    # telemetry carried MSL instead, the horizontal fix is still real and is
+    # published as the declared 2-D form (doctrine A1-02) rather than withheld
+    # or given an invented vertical. `dimensionality` is v1.1.0 vocabulary and
+    # the locked v1.0 geo def is additionalProperties:false over lat/lon/alt_m,
+    # so that branch must stamp 1.1.0 or it is schema-invalid. A full 3-D
+    # position keeps the 1.0 stamp unchanged.
+    if alt_hae_m is not None:
+        geo = {"lat": lat, "lon": lon, "alt_m": alt_hae_m}
+        needs_1_1_0 = False
+    else:
+        geo = {"lat": lat, "lon": lon, "dimensionality": "2D"}
+        needs_1_1_0 = True
     confidence = _gps_fix_confidence(fix_for_decisions)
 
     quality = {}
@@ -469,10 +516,24 @@ def translate_platform_state(
     # below are guarded on both sides.
     if _uint8_measurement_or_none(satellites_visible) is not None:
         quality["satellites_visible"] = satellites_visible
+    # Coherence arm 2 (schema/zmeta-event-1.1.0.schema.json, doctrine A1-02)
+    # refuses a declared 2-D geo beside geo_status AVAILABLE, so a status-only
+    # consumer cannot read a horizontal-only fix as a full one. STALE keeps
+    # priority on the degraded branch because staleness has no other carrier in
+    # this payload, while the 2-D fact still travels in geo.dimensionality.
     if fix_for_decisions < 3:
         quality["geo_status"] = "STALE"
+    elif needs_1_1_0:
+        quality["geo_status"] = "VERTICAL_UNAVAILABLE"
     else:
         quality["geo_status"] = "AVAILABLE"
+    if alt_hae_m is None and alt_msl_m is not None:
+        # The reported vertical is preserved as non-canonical source context
+        # rather than discarded, the same treatment a heading with no declared
+        # frame gets in quality.mavlink_hdg_frame_unknown_deg below. A consumer
+        # that knows its own geoid model can still use it; nothing downstream
+        # can mistake it for canonical HAE.
+        quality["mavlink_alt_msl_m"] = alt_msl_m
 
     # Optional attitude fields
     for attr in ("roll_deg", "pitch_deg", "yaw_deg", "vx", "vy", "vz"):
@@ -532,7 +593,7 @@ def translate_platform_state(
         return None
 
     event = {
-        "zmeta_version": "1.0",
+        "zmeta_version": "1.1.0" if needs_1_1_0 else "1.0",
         "event": {
             "event_id": str(uuid7()),
             "event_type": "STATE_EVENT",
@@ -581,6 +642,13 @@ def decode_global_position_int(msg_dict):
     ArduPilot sends lat/lon as int32 (degE7), alt as int32 (mm),
     velocities as int16 (cm/s), heading as uint16 (cdeg, 65535=unknown).
 
+    The decoded altitude is named ``alt_msl_m``, not ``alt_m``. MAVLink defines
+    GLOBAL_POSITION_INT.alt as height above mean sea level, and contract 6.2
+    permits only Height Above Ellipsoid in canonical geo, so this value is not
+    eligible for ``payload.geo.alt_m`` and the name says so at the boundary.
+    A caller wanting a canonical 3-D position supplies ``alt_hae_m``, which
+    decode_gps_raw_int derives from GPS_RAW_INT.alt_ellipsoid.
+
     The MAVLink common message definition describes ``hdg`` only as
     "vehicle heading (yaw angle)" in centidegrees; it does not declare a
     true-vs-magnetic north reference. The decoded ``heading_deg`` therefore
@@ -603,7 +671,10 @@ def decode_global_position_int(msg_dict):
     vz_raw = msg_dict.get("vz")
     lat = lat_raw / 1e7 if lat_raw is not None else None
     lon = lon_raw / 1e7 if lon_raw is not None else None
-    alt_m = alt_raw / 1000.0 if alt_raw is not None else None
+    # GLOBAL_POSITION_INT.alt is documented by MAVLink as "Altitude (MSL)", so
+    # it decodes to alt_msl_m and never to the canonical alt_m name. HAE comes
+    # from GPS_RAW_INT.alt_ellipsoid, decoded in decode_gps_raw_int.
+    alt_msl_m = alt_raw / 1000.0 if alt_raw is not None else None
     vx = vx_raw / 100.0 if vx_raw is not None else None
     vy = vy_raw / 100.0 if vy_raw is not None else None
     vz = vz_raw / 100.0 if vz_raw is not None else None
@@ -613,7 +684,7 @@ def decode_global_position_int(msg_dict):
     return {
         "lat": lat,
         "lon": lon,
-        "alt_m": alt_m,
+        "alt_msl_m": alt_msl_m,
         "heading_deg": heading_deg,
         "speed_mps": speed_mps,
         "vx": vx,
@@ -674,6 +745,15 @@ def decode_gps_raw_int(msg_dict):
     satellites_visible = _uint8_measurement_or_none(msg_dict.get("satellites_visible"))
     if satellites_visible is not None:
         decoded["satellites_visible"] = satellites_visible
+    # GPS_RAW_INT.alt_ellipsoid is documented by MAVLink as "Altitude (above
+    # WGS84, EGM96 ellipsoid)", which is the HAE datum contract 6.2 requires,
+    # so it is the only MAVLink altitude that may reach canonical geo.alt_m.
+    # An absent field decodes to an omitted key, never to 0.0, on the same rule
+    # as every other value in this module: translate_platform_state then falls
+    # back to the declared 2-D form rather than inventing a vertical.
+    alt_ellipsoid_raw = msg_dict.get("alt_ellipsoid")
+    if alt_ellipsoid_raw is not None:
+        decoded["alt_hae_m"] = alt_ellipsoid_raw / 1000.0
     return decoded
 
 

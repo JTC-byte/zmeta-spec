@@ -1,4 +1,4 @@
-.PHONY: gateway-run gateway-live-test udp-recv replay-core replay-command validate-examples validate-conformance validate-kernel measure-packets release-bundle
+.PHONY: gateway-run gateway-live-test udp-recv replay-core replay-command validate-examples validate-conformance validate-kernel validate-roadmap measure-packets release-bundle
 
 gateway-run:
 	python tools/run_gateway.py --profile H
@@ -23,6 +23,16 @@ validate-conformance:
 
 validate-kernel:
 	python tools/validate_conformance.py --strict --profile-projection --extension-registry --conformance-classes --encoding-negative --precision-policy --release-manifest --release-package --bad-events --adapter-harness
+	python tools/validate_future_roadmap.py
+
+# The roadmap is a governed artifact: it is where a deferred need is booked,
+# and a booking nobody verifies can drift out of agreement with the extension
+# registry without anything going red. This validator existed from v1.1.13 and
+# was dropped from the per-release command set at v1.1.16, so between then and
+# now the file that records what ZMeta has deliberately not built was the one
+# governed surface no gate read (doctrine C1-05).
+validate-roadmap:
+	python tools/validate_future_roadmap.py
 
 # 236 is the smallest documented application-payload budget among fielded
 # candidate bearers (goTenna Mesh: the structural bound is 237, a one-byte

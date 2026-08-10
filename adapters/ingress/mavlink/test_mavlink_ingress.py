@@ -3,7 +3,7 @@ import importlib.util
 import math
 from pathlib import Path
 
-from jsonschema import Draft202012Validator, FormatChecker
+from jsonschema import Draft202012Validator
 
 import pytest
 
@@ -22,7 +22,48 @@ from adapters.ingress.mavlink.mavlink_to_zmeta_template import (
 ROOT = Path(__file__).resolve().parents[3]
 SCHEMA_PATH = ROOT / "schema" / "zmeta-event-1.0.schema.json"
 SCHEMA = json.loads(SCHEMA_PATH.read_text(encoding="utf-8"))
-VALIDATOR = Draft202012Validator(SCHEMA, format_checker=FormatChecker())
+SCHEMA_1_1_0 = json.loads(
+    (ROOT / "schema" / "zmeta-event-1.1.0.schema.json").read_text(encoding="utf-8")
+)
+
+# No format_checker is installed. `format: date-time` is annotation-only in this
+# stack (jsonschema registers no `date-time` checker without the separate
+# rfc3339-validator package, which this repo does not declare), so passing a
+# bare FormatChecker() implied a guarantee it never delivered. The `pattern` on
+# $defs/utcDateTime is the real gate on both branches.
+_VALIDATOR_BY_VERSION = {
+    "1.0": Draft202012Validator(SCHEMA),
+    "1.1.0": Draft202012Validator(SCHEMA_1_1_0),
+}
+
+
+class _LaneValidator:
+    """Validate each event against the schema its own `zmeta_version` selects.
+
+    The adapter emits on both lanes: a full 3-D position keeps the 1.0 stamp,
+    and the declared 2-D form the MSL-only branch produces is 1.1.0 vocabulary
+    (doctrine A1-02). Pinning this suite to the v1.0 schema would have made the
+    1.1.0 branch untestable and, worse, would have passed a 2-D event through a
+    validator that cannot see the A1-02 coherence arms at all. Dispatching by
+    the event's own stamp is what the canonical entry schema does in
+    production, so the test harness now agrees with it.
+    """
+
+    @staticmethod
+    def _for(event):
+        version = event.get("zmeta_version", "1.0") if isinstance(event, dict) else "1.0"
+        if version not in _VALIDATOR_BY_VERSION:
+            raise AssertionError(f"event carries unknown zmeta_version {version!r}")
+        return _VALIDATOR_BY_VERSION[version]
+
+    def validate(self, event):
+        return self._for(event).validate(event)
+
+    def iter_errors(self, event):
+        return self._for(event).iter_errors(event)
+
+
+VALIDATOR = _LaneValidator()
 VALIDATORS_PATH = ROOT / "gateway" / "src" / "validators.py"
 spec = importlib.util.spec_from_file_location("zmeta_validators", VALIDATORS_PATH)
 validators = importlib.util.module_from_spec(spec)
@@ -81,7 +122,10 @@ def test_mavlink_platform_state_promotion_authority_valid():
 _BASE_STATE = {
     "lat": 34.0,
     "lon": -118.0,
-    "alt_m": 120.0,
+    # Ellipsoidal altitude, the only datum contract 6.2 admits into canonical
+    # geo. These cases were written to exercise the full 3-D position on the
+    # 1.0 lane, so they supply HAE; the MSL-only behavior has its own tests.
+    "alt_hae_m": 120.0,
     "speed_mps": 12.0,
     "gps_fix_type": 3,
     "satellites_visible": 10,
@@ -370,7 +414,7 @@ def test_mavlink_refuses_missing_alt_m_instead_of_zero_filling():
     # A-06, the reported exemplar: a real lat/lon with no altitude must not
     # become a concrete 0 m AMSL claim. geo is all-or-nothing and the v1.0
     # schema requires geo on TRACK_STATE, so the event refuses.
-    state = {k: v for k, v in _BASE_STATE.items() if k != "alt_m"}
+    state = {k: v for k, v in _BASE_STATE.items() if k != "alt_hae_m"}
     assert translate_platform_state(
         state, platform_id="uav-1", ts="2025-01-17T15:20:00+00:00"
     ) is None
@@ -379,7 +423,7 @@ def test_mavlink_refuses_missing_alt_m_instead_of_zero_filling():
 def test_mavlink_refuses_explicit_none_alt_m():
     # A decoder that maps an invalid-altitude flag to None reaches the same
     # refusal as an absent key - the guard is value-scoped, not key-scoped.
-    assert _state_event(alt_m=None) is None
+    assert _state_event(alt_hae_m=None) is None
 
 
 def test_mavlink_absent_speed_omitted_not_asserted_stationary():
@@ -559,7 +603,7 @@ def test_mavlink_minimum_state_emits_no_undeclared_leaf_anywhere():
     state = {
         "lat": 34.0517,
         "lon": -118.2437,
-        "alt_m": 412.5,
+        "alt_hae_m": 412.5,
         "based_on": [_PARENT_EVENT_ID],
         "loop_status": "CHECKED_NOT_REFLECTION",
     }
@@ -604,7 +648,7 @@ def test_mavlink_every_emitted_leaf_traces_to_input_or_declaration():
     state = {
         "lat": 34.0517,
         "lon": -118.2437,
-        "alt_m": 412.5,
+        "alt_hae_m": 412.5,
         "speed_mps": 18.25,
         "heading_deg": 137.5,
         "gps_fix_type": 4,
@@ -664,7 +708,7 @@ def test_mavlink_attribute_state_refuses_missing_alt_m():
     # translate_platform_state accepts an object as well as a dict, and the
     # object branch uses a different accessor (getattr, not dict.get). A guard
     # that only holds on the dict branch is half a guard.
-    fields = {k: v for k, v in _BASE_STATE.items() if k != "alt_m"}
+    fields = {k: v for k, v in _BASE_STATE.items() if k != "alt_hae_m"}
     assert translate_platform_state(
         _AttributeState(**fields), platform_id="uav-1", ts="2025-01-17T15:20:00+00:00"
     ) is None
@@ -701,7 +745,7 @@ def test_decode_global_position_int_absent_alt_and_velocity_yield_none():
     # definite 0.0 the translator cannot tell from a measurement.
     decoded = decode_global_position_int({"lat": 340000000, "lon": -1180000000})
 
-    assert decoded["alt_m"] is None
+    assert decoded["alt_msl_m"] is None
     assert decoded["vx"] is None
     assert decoded["vy"] is None
     assert decoded["vz"] is None
@@ -731,7 +775,7 @@ def test_decode_global_position_int_reported_values_preserved():
          "vx": 500, "vy": 0, "vz": -100, "hdg": 9000}
     )
 
-    assert decoded["alt_m"] == 120.0
+    assert decoded["alt_msl_m"] == 120.0
     assert decoded["vx"] == 5.0
     assert decoded["vy"] == 0.0
     assert decoded["vz"] == -1.0
@@ -1532,7 +1576,7 @@ def test_decode_attitude_unreported_axis_clobbers_rather_than_carrying_stale():
     state = {
         "lat": 34.0517,
         "lon": -118.2437,
-        "alt_m": 412.5,
+        "alt_hae_m": 412.5,
         "gps_fix_type": 3,
         "based_on": [_PARENT_EVENT_ID],
         "loop_status": "CHECKED_NOT_REFLECTION",
@@ -1721,3 +1765,160 @@ def test_mavlink_decoded_link_status_refuses_rather_than_emits_invalid():
         _link_status_event(state="DOWN", reason_code="BROKEN")
     with pytest.raises(ValueError, match="cannot carry metrics.reason_code"):
         _link_status_event(state="UP", reason_code="JAMMED")
+
+
+# ---------------------------------------------------------------------------
+# ALTITUDE DATUM: MSL IS NOT HAE
+#
+# Contract 6.2 is an explicit SHALL: "All altitude values SHALL be Height Above
+# Ellipsoid (HAE) in meters ... MSL, AGL, terrain-relative, pressure altitude,
+# or local-frame altitude are not permitted in canonical ZMeta v1.0 `geo`. If
+# an adapter ingests such values, it must convert them or omit canonical `geo`."
+#
+# The defect these tests pin: this template documented its own `alt_m` input as
+# "metres AMSL" and wrote it unconverted into payload.geo.alt_m, publishing a
+# mean-sea-level number as though it were ellipsoidal. It is the same class the
+# ADS-B ingress already refuses at the source (alt_baro never becomes alt_m),
+# missed here because GLOBAL_POSITION_INT.alt carries no datum in its name.
+#
+# No geoid model ships with this template, so "convert" is unavailable and the
+# lawful remedy is to keep the horizontal fix and decline the vertical: the
+# declared 2-D form of doctrine A1-02, which is 1.1.0 vocabulary.
+# ---------------------------------------------------------------------------
+
+
+def _msl_state(**overrides):
+    state = {k: v for k, v in _BASE_STATE.items() if k != "alt_hae_m"}
+    state.update(overrides)
+    return translate_platform_state(
+        state, platform_id="uav-1", ts="2025-01-17T15:20:00+00:00"
+    )
+
+
+def test_mavlink_msl_altitude_never_becomes_canonical_alt_m():
+    # The exemplar. An MSL reading must not occupy the field the contract
+    # reserves for HAE, in any spelling of the input key.
+    for key in ("alt_msl_m", "alt_m"):
+        event = _msl_state(**{key: 120.0})
+
+        assert event is not None, f"{key} should degrade, not refuse"
+        assert "alt_m" not in event["payload"]["geo"], (
+            f"{key} reached canonical geo.alt_m as though it were HAE"
+        )
+        assert event["payload"]["geo"]["dimensionality"] == "2D"
+        assert event["payload"]["geo"]["lat"] == 34.0
+        assert event["payload"]["geo"]["lon"] == -118.0
+        # 1.1.0 vocabulary, so the stamp must move with it or the event is
+        # schema-invalid: the locked v1.0 geo def is additionalProperties:false
+        # over lat/lon/alt_m and has no `dimensionality`.
+        assert event["zmeta_version"] == "1.1.0"
+        VALIDATOR.validate(event)
+
+
+def test_mavlink_msl_value_is_preserved_as_non_canonical_context():
+    # Declining the canonical vertical must not silently discard the reading.
+    # Same treatment a frameless heading gets: kept, clearly marked non-canonical.
+    event = _msl_state(alt_msl_m=120.0)
+
+    assert event["payload"]["quality"]["mavlink_alt_msl_m"] == 120.0
+    assert "alt_m" not in event["payload"]["geo"]
+
+
+def test_mavlink_two_dimensional_geo_declares_vertical_unavailable():
+    # A1-02 coherence arm 1: the VERTICAL_UNAVAILABLE token claims a present,
+    # two-dimensional canonical geo. Arm 2: a declared 2-D geo must never carry
+    # geo_status AVAILABLE, so a status-only consumer cannot read a horizontal
+    # fix as a full one. Both are schema-enforced; this pins that the adapter
+    # produces the honest pairing rather than relying on the schema to catch it.
+    event = _msl_state(alt_msl_m=120.0, gps_fix_type=4)
+
+    assert event["payload"]["quality"]["geo_status"] == "VERTICAL_UNAVAILABLE"
+    VALIDATOR.validate(event)
+
+
+def test_mavlink_degraded_fix_keeps_stale_over_vertical_unavailable():
+    # Staleness has no other carrier in this payload, while the 2-D fact still
+    # travels in geo.dimensionality, so a degraded fix keeps STALE. The pairing
+    # stays schema-legal because arm 2 only forbids AVAILABLE beside a 2-D geo.
+    event = _msl_state(alt_msl_m=120.0, gps_fix_type=2)
+
+    assert event["payload"]["quality"]["geo_status"] == "STALE"
+    assert event["payload"]["geo"]["dimensionality"] == "2D"
+    VALIDATOR.validate(event)
+
+
+def test_mavlink_hae_altitude_keeps_the_three_dimensional_v1_0_form():
+    # The honest path must not pay for the refusal: a genuine ellipsoidal
+    # altitude still produces a full 3-D position on the locked 1.0 lane.
+    event = _msl_state(alt_hae_m=412.5, gps_fix_type=4)
+
+    assert event["payload"]["geo"]["alt_m"] == 412.5
+    assert "dimensionality" not in event["payload"]["geo"]
+    assert event["payload"]["quality"]["geo_status"] == "AVAILABLE"
+    assert event["zmeta_version"] == "1.0"
+    VALIDATOR.validate(event)
+
+
+def test_mavlink_hae_wins_when_both_datums_are_reported():
+    # A bridge that supplies both must not have the MSL value chosen, and the
+    # unused reading must not be restated as canonical anywhere.
+    event = _msl_state(alt_hae_m=412.5, alt_msl_m=380.0, gps_fix_type=4)
+
+    assert event["payload"]["geo"]["alt_m"] == 412.5
+    assert event["zmeta_version"] == "1.0"
+    assert "mavlink_alt_msl_m" not in event["payload"]["quality"]
+    VALIDATOR.validate(event)
+
+
+def test_mavlink_no_altitude_of_any_datum_still_refuses():
+    # The A-06 refusal is unchanged: absent altitude is not a licence to emit a
+    # 2-D position. Only a reported-but-unusable datum degrades; a reported
+    # nothing still refuses, so the 2-D form can never become a way to launder
+    # "we never heard an altitude" into "this platform has no vertical".
+    assert _msl_state() is None
+    assert _msl_state(alt_msl_m=None, alt_m=None, alt_hae_m=None) is None
+
+
+def test_decode_gps_raw_int_derives_hae_from_alt_ellipsoid():
+    # GPS_RAW_INT.alt_ellipsoid is "Altitude (above WGS84, EGM96 ellipsoid)",
+    # the only MAVLink altitude eligible for canonical geo.
+    decoded = decode_gps_raw_int(
+        {"fix_type": 3, "satellites_visible": 12, "alt_ellipsoid": 412500}
+    )
+    assert decoded["alt_hae_m"] == 412.5
+
+    # Absent decodes to an omitted key, never to 0.0, on the same rule as every
+    # other value in the module.
+    assert "alt_hae_m" not in decode_gps_raw_int({"fix_type": 3})
+
+
+def test_decode_pipeline_picks_the_lane_from_the_reported_datum():
+    # End-to-end composition of the documented decode -> translate pipeline.
+    # A decoder that mislabels the datum defeats a translator-only guard, so
+    # the pin runs through both halves the way a deployment does.
+    def _piped(gps_raw):
+        state = decode_global_position_int(
+            {"lat": 340000000, "lon": -1180000000, "alt": 120000, "hdg": 65535}
+        )
+        state.update(decode_gps_raw_int(gps_raw))
+        state["based_on"] = [_PARENT_EVENT_ID]
+        state["loop_status"] = "CHECKED_NOT_REFLECTION"
+        return translate_platform_state(
+            state, platform_id="uav-1", ts="2025-01-17T15:20:00+00:00"
+        )
+
+    # GLOBAL_POSITION_INT.alt alone is MSL: 2-D, and the reading is preserved.
+    msl_only = _piped({"fix_type": 3, "satellites_visible": 12})
+    assert msl_only["payload"]["geo"]["dimensionality"] == "2D"
+    assert "alt_m" not in msl_only["payload"]["geo"]
+    assert msl_only["payload"]["quality"]["mavlink_alt_msl_m"] == 120.0
+    assert msl_only["zmeta_version"] == "1.1.0"
+    VALIDATOR.validate(msl_only)
+
+    # With alt_ellipsoid present the same capture becomes a full 3-D position.
+    with_hae = _piped(
+        {"fix_type": 3, "satellites_visible": 12, "alt_ellipsoid": 412500}
+    )
+    assert with_hae["payload"]["geo"]["alt_m"] == 412.5
+    assert with_hae["zmeta_version"] == "1.0"
+    VALIDATOR.validate(with_hae)

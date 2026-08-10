@@ -5,6 +5,51 @@ release-notes files. Published release artifacts are never rewritten
 (AGENTS.md release limits), so corrections live here, dated, with the
 evidence that establishes the accurate state.
 
+## v1.1.20: the X1-01 closure section credits a runtime layer that no-ops on the class it names
+
+Recorded 2026-08-10. Found while verifying an external technical review's
+claim that a malformed `event.ts` validates; the claim was stale for the
+v1.1.0 branch and accurate for the locked v1.0 branch, and checking why led
+here. Full entry: `docs/zmeta_doctrine_review_log.md`, cycle C1, entry C1-02.
+
+`release/RELEASE_NOTES_v1.1.20.md`, section on the X1-01 closure, states that
+the closure "lands at both lawful layers" and describes the second layer as a
+gateway plausibility window that counts an implausible `ts` on every
+`zmeta_version`.
+
+The window is version-agnostic, as described. It also does nothing at all on
+the malformed class the locked v1.0 branch still admits. `gateway/src/gateway.py`
+parses the timestamp and returns before any comparison when the parse fails,
+so an unparseable value is never measured against the horizon and never
+counted. Verified against the shipped module rather than read from the source:
+
+- `ts="garbageZ"` produces no warning and zero counted warnings.
+- `ts="Z"` produces no warning and zero counted warnings.
+- `ts="2020-01-01T00:00:00Z"`, a well-formed but out-of-horizon value,
+  produces one warning, which is the behavior the section describes.
+
+The accurate state of the shipped v1.1.20 tree is therefore narrower than the
+published sentence. On the v1.1.0 branch the closure is real and schema-level:
+the structural pattern rejects the whole corruption class. On the locked v1.0
+branch, which was deliberately left untouched under the lock doctrine, a
+malformed `ts` passed schema validation and produced no runtime diagnostic
+either. The fail-closed behavior the section credits existed only in the
+egress adapters, which refuse such events; anything consuming the forwarded
+canonical event was unprotected and unwarned.
+
+Corrected forward rather than by rewriting the published file: the gateway now
+emits its existing implausible-timestamp diagnostic for the unparseable case,
+with a detail distinguishing an unreadable timestamp from an out-of-horizon
+one, and `gateway/tests/test_ts_plausibility_window.py` pins it. No new
+violation code was minted, because the occurrence rule reserves new governed
+vocabulary for a third instance and an unparseable timestamp is honestly
+implausible.
+
+For the current state of `ts` enforcement, the authoritative records are the
+`$defs/utcDateTime` description in `schema/zmeta-event-1.1.0.schema.json`, the
+Timestamp Handling section of `schema/README.md`, and cycle X1 entry X1-01 in
+the doctrine log. The published release-notes file stays exactly as published.
+
 ## v1.1.20: the lock-restoration section describes a reversed state as final
 
 Recorded 2026-08-09. Found by a full-register sweep of the repository's

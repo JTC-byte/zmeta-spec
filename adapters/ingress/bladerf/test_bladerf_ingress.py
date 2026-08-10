@@ -19,7 +19,7 @@ import json
 from pathlib import Path
 
 import pytest
-from jsonschema import Draft202012Validator, FormatChecker
+from jsonschema import Draft202012Validator
 
 from adapters.ingress.bladerf.bladerf_to_zmeta import (
     ADAPTER_VERSION,
@@ -32,9 +32,8 @@ from adapters.ingress.bladerf.bladerf_to_zmeta import (
 
 ROOT = Path(__file__).resolve().parents[3]
 SCHEMA_PATH = ROOT / "schema" / "zmeta-event-1.0.schema.json"
-VALIDATOR = Draft202012Validator(
-    json.loads(SCHEMA_PATH.read_text(encoding="utf-8")), format_checker=FormatChecker()
-)
+# No format_checker: `date-time` is annotation-only without an RFC 3339 checker.
+VALIDATOR = Draft202012Validator(json.loads(SCHEMA_PATH.read_text(encoding="utf-8")))
 
 PACK = ROOT / "adapters" / "mapping-packs" / "edge-comms-bladerf" / "tests"
 CASES = ["case-01-vhf-orbit", "case-02-cband-fft"]

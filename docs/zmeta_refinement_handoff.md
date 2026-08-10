@@ -1,5 +1,141 @@
 # ZMeta Refinement Handoff Notes
 
+## PRIORITIZED BACKLOG after doctrine cycle C1 (2026-08-10)
+
+Written at the close of the C1 fix wave. The wave itself is landed; this is
+what it left behind, merged with the backlog that already existed, in the order
+it should be worked. Nothing below was started.
+
+Ordering rule, stated so it can be argued with: fielded-safety classes first,
+then work that unblocks other work, then decisions that need no new data, then
+design waves, then hygiene, then anything genuinely waiting on field evidence.
+
+### Tier 1 — next, and two of the three are cheap
+
+1. **Finish the v1.1.22 cut.** Tag, optional signing, push, upload assets.
+   Maintainer-only. Everything else in the cut is prepared and green.
+
+2. **Sweep every remaining ingress adapter for the altitude-datum class.**
+   C1-01 was the third appearance: the July audit found it in a fielded stack,
+   ADS-B was hardened at the source, and MAVLink carried the identical defect
+   unfixed in the same repository. The reason it survived is now understood and
+   is the reusable part: every anti-fabrication guard in this stack keys on
+   **absence**, and a wrong-datum value is present, finite, in range and
+   plausible, so it passes all of them. The guard that works is naming the
+   datum at the ingest boundary rather than at the destination, which is what
+   `alt_msl_m` versus `alt_hae_m` does. Read klv, jreap, cot, moth, kraken,
+   bladerf, signalhunter, sapient and example-vendor against that standard,
+   not against the absence-shaped one. KLV is the most likely next hit, since
+   MISB 0601 carries both HAE and MSL tags and the template is already
+   recorded as unqualified about which it reads. This is a fielded-safety
+   class, so it outranks everything below it.
+
+3. **Specify canonicalization (C1-07).** Both shipped CBOR backends satisfy
+   every bullet of the determinism section and emit different bytes for the
+   same event, demonstrated on the repository's own fixture value `120.0`.
+   Pin float width, and decide whether the determinism rules move from SHOULD
+   to MUST. Worth doing before the signing question rather than inside it: a
+   signature over an undefined byte form proves nothing, so this blocks item 9
+   and is independently correct regardless of whether signing is ever built.
+
+### Tier 2 — decisions that need no new data, only the maintainer
+
+4. **Covariance for fusion and state uncertainty (C1-04).** Recorded
+   decision-due. `error_ellipse_m` is horizontal-only with no vertical and no
+   velocity term, and `estimated_state` admits no correlation structure. The
+   real question is gate 2 against gate 1: consumer-sufficiency says a fusion
+   consumer cannot responsibly propagate uncertainty without it, the alphabet
+   gate says a covariance matrix is a dictionary entry belonging in a
+   namespaced extension. Both are arguable and neither needs field data.
+
+5. **The 15-concept experimental registry adoption session.** The oldest
+   outstanding item, queued since 2026-07-08 under the standing direction to
+   decide all of them in one session rather than prolonging. It was the sole
+   remaining decision-due kernel item before this cycle and it still is.
+
+6. **Decide whether the signing tripwire has fired (C1-06).** The
+   `event-signing-anti-replay` candidate carries `promotion_evidence: []` and
+   a tripwire naming deployments that need an adversarial trust boundary. If
+   ZMeta is being evaluated for coalition or contested use, that condition is
+   arguably already met, and "it is on the roadmap" is a weak answer to that
+   adopter. This is a yes-or-no call, not a build.
+
+7. **Declare `rfc3339-validator`, or do not (C1-08 residue).** Deferred by
+   adjudication this cycle. Declaring it makes `format: date-time` genuinely
+   enforce, which closes the locked v1.0 lane's timestamp residual at the
+   validator layer without moving locked bytes. It also starts rejecting v1.0
+   producers whose timestamps are currently tolerated, which is a fielded
+   behavior change and belongs in a wave that can absorb it.
+
+### Tier 3 — governed waves, each with real adapter work behind it
+
+8. **The B1-01 geo-referent normative sentence.** Already DECIDED as an entry
+   with the sentence deferred. Landing it makes kraken, moth, bladeRF and the
+   example-vendor reference retroactively non-conforming, moves the contract
+   hash anchor, and needs an agreed home for a sensor's own position first.
+   Note the coupling that is now visible: item 2's datum sweep touches the
+   same adapters, so these two should probably be one wave rather than two.
+
+9. **Event signing envelope design.** Depends on item 3. The shape is
+   constrained and the constraint is worth carrying into the design: the event
+   root is `additionalProperties: false`, so this provably cannot be met in
+   the outer rings and is one of the few genuine Design Gate 6 exceptions.
+   Recommended split, recorded here so the wave does not relitigate it:
+   canonicalization normative in the spec, an optional signature member on a
+   versioned schema branch, and everything about keys, algorithms, trust
+   anchors and failure behavior in policy where deployments legitimately
+   differ. Adopt COSE and JWS wholesale; write no cryptography.
+
+10. **Cooperative-mesh gap detection.** Now booked as its own roadmap
+    candidate with its own tripwire. The design question recorded there is
+    whether continuity is envelope vocabulary or a SYSTEM_EVENT-carried
+    periodic assertion, with the outer-ring form preferred unless it proves
+    insufficient. Relevant to the multi-UxS fielding work.
+
+### Tier 4 — cheap, and mostly documentation
+
+11. **A PROV crosswalk.** Genuinely unbooked and now asked for by two
+    independent external surveys in ten days. Non-normative, touches no
+    governed artifact, and `docs/zmeta_vocabulary_crosswalk.md` is the
+    obvious home. Maps `based_on[]` and `transform` onto `wasDerivedFrom`
+    and `Activity`. Cheapest credibility win on this list.
+
+12. **A current-state header on the doctrine pressure log (C1-09).** Two
+    outside reviewers in ten days have now read the log as the defect list
+    rather than as open questions with authoritative status lines. Publishing
+    the log is right; letting it be misread as an inventory of failures is
+    avoidable with a paragraph.
+
+13. **C1-10, the altitude asymmetry.** After the C1-01 fix, an absent
+    altitude refuses emission while an unusable one degrades to 2-D. Needs a
+    reason or needs removing.
+
+14. **C1-11, lineage acyclicity.** Self-reference is guarded on the
+    external-promotion path; no multi-hop cycle is detected anywhere. Low
+    severity for a cooperative producer using UUIDv7 identity, which is why it
+    is here and not higher.
+
+15. **`CallSitePolicyCoverage` `policy=` hardening.** Banked from the v1.1.21
+    pre-cut panel and still open.
+
+### Tier 5 — genuinely field-gated, or belongs to another repository
+
+16. **Praesens: the CesiumJS transition and the pin-advance review.** The pin
+    is now three releases behind, and v1.1.22 changes MAVLink ingress
+    behavior, so the advance review has new content to consider.
+17. **The SITL gate** before any live command-path exercise.
+18. **A1-03 translation provenance**, the roadmap candidates sitting at n=1,
+    and the held-firm tripwires. These are correctly waiting on field data and
+    should not be pulled forward.
+
+### What this cycle says about the backlog itself
+
+Two of the three Tier 1 items came from verifying an external review rather
+than from the review's own findings. The review's specific claims were roughly
+a third accurate; its value was almost entirely in the questions it forced
+someone to check. That is worth remembering the next time an outside read
+arrives: the findings are not the deliverable, the audit path is.
+
 ## THE BIG PUSH: v1.1.20 closes every audit gap and the release delta
 
 Maintainer's direction, 2026-08-02, in his framing: this effort is the big
@@ -1177,10 +1313,12 @@ Current stack status:
   bearing/heading fields unless callers explicitly assert `TRUE_NORTH`;
   unasserted native values remain auditable under explicitly named
   non-canonical fields.
-- Use tag `v1.1.21` for current formal release assets and checksums.
-  Published 2026-08-09: tag, release assets, and checksums are up;
-  checksums-only per the recorded signing decision. `v1.1.20` (published
-  2026-08-03) is the baseline before it.
+- Use tag `v1.1.22` for current formal release assets and checksums.
+  Prepared 2026-08-10 and not yet published: the identity is open, the
+  manifest is rebuilt against the working tree, and the tag, release
+  assets and checksums remain the maintainer's to create. `v1.1.21`
+  (published 2026-08-09, checksums-only per the recorded signing
+  decision) is the baseline before it.
   *This line is machine-pinned on its version literal only, so it went on
   naming a tag that had never been created while the pin stayed green — the
   prose-beside-a-pinned-literal blind spot this cycle was convened to fix,
