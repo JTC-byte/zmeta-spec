@@ -207,64 +207,29 @@ nodes.
 - Experimental extension: `schema/zmeta-event-1.1.0.schema.json` is provided for proposed
   compatibility testing only; v1.1.0-only fields are not part of the locked v1.0 contract.
 
-## v1.1.20 Integration Notes
+## v1.1.21 Integration Notes
 
-- **One breaking change.** `policy/producer-authority.yaml` drops the
-  `state-projector-*` wildcard producer authorization. It let any producer
-  matching the glob emit `STATE_EVENT`s with no external-promotion evidence
-  and no named identity, and no reference component used it. A deployment
-  that authorized a state projector under the wildcard must rename its
-  producer or add a named producer stanza, the same shape
-  `configs/policy-variants/producer-authority.strict.yaml` already uses.
-- **The MAVLink command translator fails closed on risk-flagged commands by
-  default.** A `COMMAND_EVENT` carrying gateway risk-adjudication records is
-  refused rather than translated into a clean intent. The explicit
-  `allow_flagged` opt-in translates it, with the records stamped into the
-  MissionIntent, so a soft-flagged command can no longer become a clean one
-  by default.
-- **v1.1.0 gains opt-in geo fields; absent-dimensionality v1.0 events are
-  unaffected.** A v1.1.0 event may declare `dimensionality: "2D"` with
-  `quality.geo_status: VERTICAL_UNAVAILABLE` to say a horizontal-only
-  position honestly, and may carry `payload.geo.error_ellipse_m` with the
-  formal member spellings. Both stamp a conditional `zmeta_version: "1.1.0"`
-  only on the events that carry them. A v1.0 event with no declared
-  dimensionality validates and behaves exactly as before this release.
-- **A new warn-only gateway timestamp window.** The gateway counts an
-  `event.ts` more than `ts_plausibility_horizon_ms` (default 24 hours, 0
-  disables) before or after wall-clock now as `EVENT_TS_IMPLAUSIBLE`, with
-  direction, delta, and horizon in the warning details. It never rejects an
-  event and never escalates under `strict_validation`, the same as the
-  existing `warn_datagram_bytes` observability warning. The v1.1.0
-  `utcDateTime` pattern separately enforces structural calendar shape (year
-  1970-2999, month 01-12, and so on), which is a shape gate, not a calendar
-  or plausibility check.
-- **Formerly-accepted shapes now refuse.** AIS message 27's not-available
-  sentinels (speed 63, course 511) are refused instead of carried as motion
-  data; an AIS speed or course value outside the field's real range (a
-  negative speed, a course over 360) is refused as corruption; an AIS
-  `rxtime` that does not parse as fourteen calendar digits, or an epoch
-  `timestamp` before 2000-01-01 or outside datetime range, refuses the
-  message instead of borrowing another clock. JREAP now distinguishes a
-  declared 2-D geo from the ambiguous no-token shape, which refuses instead
-  of being exported as an assumed dimensionality. The v1.1.0 schema's
-  coherence rules refuse a `2D` declaration paired with `alt_m` and refuse
-  `geo_status: UNAVAILABLE` beside a present geo; the SAPIENT and CoT
-  egress adapters refuse the same 2-D-with-`alt_m` contradiction at their
-  own boundaries instead of exporting a laundered `z`.
-- **Published checksums for pre-v1.1.20 tags are known wrong for text
-  assets, and were not rewritten.** `docs/release_checksum_errata.md`
-  records the 16 wrong entries across 15 published tags and the corrected
-  values. The release signer now normalizes line endings before hashing
-  text assets, so v1.1.20 onward is correct at source.
-- `tools/check_compat.py` gains the `v1.1.20` target; current-facing docs
-  re-baseline to the v1.1.20 release manifest.
-
-Integration notes for earlier releases (v1.1.11 through v1.1.19, except
-v1.1.17, whose section was overwritten by the v1.1.18 cut and never
-archived) are in
-[`CHANGELOG.md`](CHANGELOG.md), alongside the full change history for
-each version. The v1.1.19 section is archived verbatim under CHANGELOG's
-[1.1.19] entry.
+- **No breaking changes.** Wire `reason_code` values are unchanged for
+  v1.0 consumers. Refusal diagnostics for the three minted conditions
+  (`NON_FINITE_VALUE`, `COMMAND_EVIDENCE_UNRESOLVED`,
+  `COMMAND_EVIDENCE_PROHIBITED`) carry one additional metrics member,
+  `diagnostic_code`, naming the specific condition beside the documented
+  legacy `reason_code`. A consumer that ignores unknown metrics members
+  sees the same stream as before; a consumer that wants the specific
+  condition reads `diagnostic_code`. Gateway JSONL diagnostics use the
+  minted codes natively.
+- **v1.1.0 gains an opt-in RF power-reference declaration.** An RF
+  observation may declare `features.power_reference` (`DBM_ABSOLUTE`,
+  `DBFS`, `DB_RELATIVE`) stating what its `power_dbm` value means;
+  absent keeps the calibrated-dBm reading of contract 7.4. Experimental
+  (registry POWER_REFERENCE). The ADS-B adapter emits it behind an
+  explicit `rf_power_reference` flag and its default output is
+  unchanged.
+- **The packet-size gate validates before measuring.**
+  `tools/measure_packet_size.py --validate` checks each event against
+  the schema its own version stamp names before counting bytes, and the
+  Makefile and CI gates run it at the documented 236-byte reference
+  bearer budget. Calls without `--validate` behave exactly as before.
 
 ## Repository Structure
 - `spec/` Core specification and normative text.

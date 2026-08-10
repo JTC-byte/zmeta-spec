@@ -140,3 +140,43 @@ def test_convert_encoding_reports_the_compact_refusal(workdir):
         workdir / "out.bin",
     )
     _assert_reported_refusal(result, "conversion refused: ")
+
+
+def test_measure_packet_size_validate_refuses_an_illegal_strip():
+    """The anti-vacuity mode must be red-provable in-repo: a byte count for
+    an event that could never exist is a budget verdict about nothing
+    (P2-D1). --strip removes a required member before validation runs, so
+    the run must refuse with exit 1 and name the missing member."""
+    result = _run(
+        ROOT / "tools" / "measure_packet_size.py",
+        "--file",
+        ROOT / "examples" / "zmeta-profile-H-examples.jsonl",
+        "--encodings",
+        "compact",
+        "--strip",
+        "source.producer",
+        "--validate",
+        "--summary-only",
+    )
+    combined = result.stdout + result.stderr
+    assert result.returncode == 1, combined
+    assert "Traceback (most recent call last)" not in combined, combined
+    assert "--validate:" in combined, combined
+    assert "producer" in combined, combined
+
+
+def test_measure_packet_size_validate_passes_the_legal_corpus():
+    # Positive control at the exact gate invocation the Makefile and CI
+    # run: shipped corpus, validation on, documented budget.
+    result = _run(
+        ROOT / "tools" / "measure_packet_size.py",
+        "--file",
+        V10_CORPUS,
+        "--encodings",
+        "compact",
+        "--max-bytes",
+        "236",
+        "--validate",
+        "--summary-only",
+    )
+    assert result.returncode == 0, result.stdout + result.stderr

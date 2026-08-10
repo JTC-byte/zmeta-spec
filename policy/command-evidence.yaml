@@ -6,12 +6,19 @@
 # retasking automation's command provably rests on evidence that permitted it:
 #
 #   - a cited parent the gateway never saw (or evicted from its bounded
-#     evidence index) -> LINEAGE_PARENT_UNRESOLVED per unresolved_parent_mode;
+#     evidence index) -> COMMAND_EVIDENCE_UNRESOLVED per
+#     unresolved_parent_mode (minted 2026-08-09, R1-11-01 Class B batch;
+#     rode LINEAGE_PARENT_UNRESOLVED before it);
 #   - a cited parent whose event_type cannot motivate a command
 #     -> LINEAGE_PARENT_TYPE_INVALID per parent_type_mismatch_mode;
 #   - a cited parent whose risk_adjudication records carry a use limit
 #     prohibiting command basis (COMMAND_BASIS / AUTONOMY_TASKING)
-#     -> LINEAGE_MISMATCH per prohibited_use_mode.
+#     -> COMMAND_EVIDENCE_PROHIBITED per prohibited_use_mode (minted
+#     2026-08-09; rode LINEAGE_MISMATCH before it).
+#
+# On a v1.0-stamped wire diagnostic the minted codes ride their documented
+# legacy fallbacks with metrics.diagnostic_code carrying the specific
+# condition (policy/semantics.yaml, schema_violation_v1_0_wire_fallback).
 #
 # A bare command with NO cited parents stays legal by default: a human
 # operator's direct tasking has no fused parent. Deployments gating automation

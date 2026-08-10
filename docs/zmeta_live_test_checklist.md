@@ -201,9 +201,10 @@ line cites recorded work; none of it is new doctrine.
 
 **Pre-flight, in order, before the first live event:**
 
-1. **Pin and verify the release.** Deploy from the v1.1.20 tag or bundle,
-   then `sha256sum -c SHA256SUMS_v1.1.20.txt` against the published
-   assets. Anyone verifying an older tag reads
+1. **Pin and verify the release.** Deploy from the current formal
+   release tag or bundle (`release/README.md` names it), then
+   `sha256sum -c SHA256SUMS_<version>.txt` against the published assets.
+   Anyone verifying a pre-v1.1.20 tag reads
    `docs/release_checksum_errata.md` first.
 2. **Projector stage present.** CoT projects STATE_EVENT only. An ingress
    feed with no fusion or track stage shows nothing on TAK, and a

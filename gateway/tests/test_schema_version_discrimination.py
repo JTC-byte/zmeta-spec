@@ -738,6 +738,31 @@ class SchemaVersionDiscriminationTest(unittest.TestCase):
 
         self.assert_invalid(event)
 
+    def test_v1_1_0_rf_power_reference_tokens_pass(self):
+        for token in ["DBM_ABSOLUTE", "DBFS", "DB_RELATIVE"]:
+            event = valid_rf_observation("1.1.0")
+            event["payload"]["features"]["power_reference"] = token
+
+            self.assert_valid(event)
+
+    def test_v1_1_0_rf_power_reference_rejects_an_undeclared_token(self):
+        event = valid_rf_observation("1.1.0")
+        event["payload"]["features"]["power_reference"] = "DBM"
+
+        self.assert_invalid(event)
+
+    def test_v1_0_rf_power_reference_rides_the_open_features_namespace(self):
+        # The locked v1.0 RF features contract is additionalProperties: true
+        # and cannot gain the enum, so a v1.0 event carrying the key
+        # validates as free-form content with no reference semantics
+        # attached. The formal contract exists only on 1.1.0 (registry
+        # POWER_REFERENCE); this pin records the boundary rather than
+        # pretending v1.0 enforces it.
+        event = valid_rf_observation("1.0")
+        event["payload"]["features"]["power_reference"] = "ANYTHING"
+
+        self.assert_valid(event)
+
     def test_state_speed_mps_zero_and_positive_pass(self):
         for version in ["1.0", "1.1.0"]:
             for speed in [0, 12.5]:

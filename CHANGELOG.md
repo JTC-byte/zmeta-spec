@@ -12,7 +12,8 @@
   every shipped ingress adapter answered the question itself: subject
   position (adsb, ais, sapient), sensor position (kraken, moth, bladerf),
   omitted-with-an-ad-hoc-home (signalhunter), or unqualified (klv, the
-  example-vendor reference). The track projector reads the subject
+  example-vendor reference), with eo-cv preferring the subject and
+  labeling its sensor fallback. The track projector reads the subject
   convention and is protected from placing tracks on sensors only by its
   narrow identity-path list. Entry B1-01 records the full evidence table
   with file:line citations and the maintainer's 2026-08-09 disposition:
@@ -84,7 +85,8 @@
   ticked as overtaken by promotion, with the render check carried forward.
   `tools/measure_packet_size.py` gains `--validate` (schema legality,
   version-mapped from each event's own stamp, before any byte is counted;
-  proven to refuse a required-field strip) and its help now states plainly
+  the required-field-strip refusal and the passing gate corpus are pinned
+  in gateway/tests/test_encoding_cli_refusals.py) and its help now states plainly
   that unvalidated byte counts are not legality; the Makefile
   `measure-packets` gate runs `--validate` and moves from the arbitrary
   240 to the documented 236-byte reference bearer budget, with the reason

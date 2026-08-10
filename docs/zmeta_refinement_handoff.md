@@ -1178,13 +1178,16 @@ Current stack status:
   unasserted native values remain auditable under explicitly named
   non-canonical fields.
 - Use tag `v1.1.21` for current formal release assets and checksums **once it
-  exists — it does not yet.** v1.1.20 is prepared, not published: no tag, no
-  signature, no upload. Until then `v1.1.19` is the published release and the
-  one to clone for byte-exact verification.
+  exists — it does not yet.** v1.1.21 is prepared in-tree, not published: no
+  tag, no signature, no upload. Until then `v1.1.20` (published 2026-08-03)
+  is the published release and the one to clone for byte-exact verification.
   *This line is machine-pinned on its version literal only, so it went on
   naming a tag that had never been created while the pin stayed green — the
   prose-beside-a-pinned-literal blind spot this cycle was convened to fix,
-  found inside the record announcing the fix.* Use tag `v1.1.18` for the baseline before that. Use tag
+  found inside the record announcing the fix. Second instance, 2026-08-09:
+  the v1.1.21 wave bumped the pinned literal and left this prose asserting
+  v1.1.20 unpublished after it had shipped; five lenses of the pre-cut
+  panel caught it and it was corrected the same day.* Use tag `v1.1.18` for the baseline before that. Use tag
   `v1.1.15` for the SAPIENT-bridge baseline and `v1.1.14` for the
   audit-driven honesty-hardening baseline.
 - Use current `main` for the latest integration baseline with bearing-frame

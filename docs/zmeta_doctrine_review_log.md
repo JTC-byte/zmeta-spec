@@ -166,8 +166,10 @@ and `LINEAGE_MISMATCH` respectively; the mapping is policy data at
 hardcoded) and carries the minted code in `metrics.diagnostic_code`,
 while the gateway's JSONL diagnostics and the 1.1.0 enum carry it
 natively. The filterability gate 3 was tracking is restored at the layer
-the operator filters, and no fielded v1.0 consumer sees a byte it did not
-see before. Two residues, named rather than implied: the
+the operator filters. On the wire, reason_code values are unchanged for
+v1.0 consumers; the diagnostic gains one new metrics member,
+diagnostic_code, which is schema-legal free-form metrics content that a
+consumer ignoring unknown members never sees. Two residues, named rather than implied: the
 require_evidence refusal (citations absent under the strict knob) keeps
 `LINEAGE_MISMATCH`, a policy-strictness refusal outside the adjudicated
 pair and filterable via `policy_ref`; and `NON_FINITE_CONFIDENCE`
@@ -956,7 +958,15 @@ entry stays OPEN: the tension is the formal vocabulary's calibrated-power
 assumption, and it closes when field evidence answers the checklist A1-01
 question in either direction — promotion on real consumer need, or the
 registry's served-in-place disposition if nobody compares power across
-sensors. The fielded kraken adapter is deliberately unchanged either way.
+sensors. The fielded kraken adapter is deliberately unchanged either way. One
+further tension, logged rather than smoothed: the registry's Promotion
+Evidence Requirements make independent demonstrated need a necessary
+condition for experimental standing, and this entry enters experimental
+with that condition unmet, by explicit maintainer adjudication. The
+clause was written for promotion from reserved or proposed and did not
+anticipate direct-to-experimental creation; whether it should govern
+that path too belongs to the registry's next revision, and this
+sentence is the record that the pressure existed.
 
 ### A1-02 — All-or-nothing geo discards good 2-D positions · CLOSED 2026-08-03
 
