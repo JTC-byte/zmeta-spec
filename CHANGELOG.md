@@ -2,7 +2,30 @@
 
 ## [Unreleased]
 
-(Nothing yet — the next work lands here.)
+- 2026-08-09 — **Records pass: the log catches up to v1.1.20, and the
+  packet gate starts meaning what it says.** Doctrine log entries whose
+  implementing waves landed in v1.1.20 move to terminal (SIM1-05,
+  R1-11-08); R1-11-07 records its fourth class survival; the A1-02
+  promotion record gains a post-cut erratum stating that the "two
+  independent implementations" citation does not meet the registry's
+  independence definition (same codebase, author, organization) and that
+  the promotion rests on the 2026-08-02 maintainer adjudication and the
+  readiness audit's maritime finding. `docs/release_notes_errata.md` is
+  new: the published v1.1.20 release notes describe the reversed
+  lock-restoration state as final (the shipped v1.0 schema is
+  byte-identical across the release and keeps the subtype consistency
+  block; every claim generated from the tree). The checklist A1-02 item is
+  ticked as overtaken by promotion, with the render check carried forward.
+  `tools/measure_packet_size.py` gains `--validate` (schema legality,
+  version-mapped from each event's own stamp, before any byte is counted;
+  proven to refuse a required-field strip) and its help now states plainly
+  that unvalidated byte counts are not legality; the Makefile
+  `measure-packets` gate runs `--validate` and moves from the arbitrary
+  240 to the documented 236-byte reference bearer budget, with the reason
+  named in a comment. `spec/compact-binary-mapping.md` records the
+  measured fact that decimal quantization saves zero bytes under the
+  fixed-width reference float encoding, so precision reduction is an
+  honesty lever, not a size lever.
 
 ## [1.1.20] - 2026-08-03
 

@@ -90,7 +90,8 @@ jobs:
 
       - name: Packet size summary
         run: |
-          python tools/measure_packet_size.py --file examples/zmeta-profile-L-examples.jsonl --encodings compact,proto --max-bytes 240 --max-bytes-encoding compact --summary-only
+          # 236: the documented reference bearer budget (see Makefile measure-packets).
+          python tools/measure_packet_size.py --file examples/zmeta-profile-L-examples.jsonl --encodings compact,proto --max-bytes 236 --max-bytes-encoding compact --summary-only --validate
 
       - name: Release package smoke
         run: |

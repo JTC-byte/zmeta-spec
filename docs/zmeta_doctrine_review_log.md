@@ -95,7 +95,7 @@ and `policy/semantics.yaml` are untouched across the entire fix pass.
 | R1-11-05 | `TASK_ACK` has no `UNKNOWN` state | 1, 3 | **HELD** |
 | R1-11-06 | Adapter refusals are invisible to the wire | 3, 6 | OPEN |
 | R1-11-07 | `bandwidth_hz: 0.0` sentinel is a documented convention | 3 | **HELD-FIRM** |
-| R1-11-08 | CoT `error_ellipse` zero defaults | 3, 4 | OPEN |
+| R1-11-08 | CoT `error_ellipse` zero defaults | 3, 4 | **CLOSED 2026-08-09** |
 | R1-11-09 | New `metrics_sink_gap` JSONL record type | 1, 6 | **CHANGED** |
 | R1-11-10 | `risk_dimension: routing` — existing vocabulary or new? | 1 | OPEN |
 | R1-11-11 | Policy `event_subtype` vocabulary: open or closed? | 1, 6 | OPEN |
@@ -271,7 +271,14 @@ unmeasurable quantity should be omitted, not reported as zero.
 now been closed in moth (R1-10), signalhunter (R1-11 wave 3) and MAVLink
 (R1-11 wave 6) while this documented convention survived each time.
 
-### R1-11-08 — CoT `error_ellipse` zero defaults · OPEN (rescoped 2026-07-27)
+**Fourth survival, recorded 2026-08-09.** The class closed a fourth time in
+v1.1.20 (CoT egress ellipse zero-fill, R1-11-08) while this convention stood,
+and the convention is now codified for new adapters in `adapters/AUTHORING.md`
+alongside the kraken, moth and signalhunter READMEs. A future in-repo adapter
+that omits rather than zero-fills would be the first counter-example, and
+earns a line here if it arrives.
+
+### R1-11-08 — CoT `error_ellipse` zero defaults · **CLOSED 2026-08-09** (rescoped 2026-07-27)
 
 **Rescope and anchor refresh (cold re-read CR-20 + the health wave).** The
 line anchors this entry originally carried matched no committed tree. Half the
@@ -291,6 +298,16 @@ rendering `ellipse_major="0.0"` — a **sub-metre precision claim on an ATAK
 screen** — for a partially populated ellipse. Same class as R1-11-07, on the
 egress side, where gate 4 (egress is a lossy projection, never an upgrade in
 apparent certainty) also applies.
+
+**CLOSED 2026-08-09 (records pass; the fix landed 2026-08-03 in v1.1.20).**
+The surviving member closed in the v1.1.20 fix wave: CoT egress stopped
+zero-filling missing ellipse members into `<precisionlocation>` and remarks
+(`CHANGELOG.md` `[1.1.20]`: "CoT egress stops zero-filling missing ellipse
+members into remarks and precisionlocation"; `zmeta_to_cot.py` now renders
+`ellipse_minor` and `ellipse_angle` only when the member is present). The
+point-level `ce`/`le` half was already closed by the health wave and the
+`cot.config` knob, as rescoped above. This status line is bookkeeping
+catching up: the entry was not moved to terminal when its wave landed.
 
 ### R1-11-09 — New `metrics_sink_gap` JSONL record type · **CHANGED 2026-07-27**
 
@@ -966,7 +983,27 @@ spoofable broadcast). The urgency input was the readiness audit's finding
 that maritime tracks cannot reach a COP through the reference pipeline at
 all. Lands in the v1.1.20 governed wave, which is already
 behaviour-changing under X1-01. Lineage was confirmed a non-issue: the
-single-member FUSION path is legal and instant; the wall was geometry only. — Translation provenance is unsayable for an original observation · OPEN
+single-member FUSION path is legal and instant; the wall was geometry only.
+
+**Record correction 2026-08-09 (post-cut erratum).** The promotion-bar
+citation above ("SECOND INDEPENDENT IMPLEMENTATION LANDED ... it clears the
+promotion bar") does not meet the independence definition in
+`spec/extension-registry.md` (Promotion Evidence Requirements, item 1: two
+implementations "not derived from the same codebase, vendor, or
+organization"). The ADS-B and AIS adapters share one codebase, one author
+and one organization; they are two instances of the need, not two
+independent implementations. The private planning record that flagged this
+asked for the correction before the cut; the cut happened with the citation
+intact, so the correction lands here, dated. The decision itself is not
+disturbed: the promotion rests on the 2026-08-02 maintainer adjudication
+and the readiness audit's finding that maritime tracks could not reach a
+COP through the reference pipeline at all, which is the evidence this
+record should have led with. The same caveat applies to the experiment
+section's claim below that A1-01 "already clears" the bar with kraken and
+ADS-B: those are likewise same-origin, and the A1-01 entry now carries the
+caveat where its disposition is recorded.
+
+### A1-03 — Translation provenance is unsayable for an original observation · OPEN
 
 `lineage` requires `based_on` with `minItems: 1`, and `transform` lives inside
 it. An original observation has no ZMeta parent, so an adapter cannot record
@@ -1341,7 +1378,7 @@ were defects with a known fix and not tensions between gates.
 | SIM1-02 | A counter that can only see what arrived is read as a loss counter | 3 | OPEN (observation) |
 | SIM1-03 | The rehearsal corpus exercises a path the real input does not | 5, 7 | OPEN (observation) |
 | SIM1-04 | Operational tooling accumulating inside a data standard | 1, 7 | OPEN (maintainer, criterion set) |
-| SIM1-05 | A v1.0 deployment cannot carry uncertainty the v1.1.0 branch already can | 2, 3 | OPEN |
+| SIM1-05 | A v1.0 deployment cannot carry uncertainty the v1.1.0 branch already can | 2, 3 | **CLOSED 2026-08-09** |
 
 ### SIM1-01 — `confidence` reaches CoT only as free text · OPEN
 
@@ -1463,7 +1500,7 @@ Worth stating because it is easy to lose: the surface being protected is not
 disk space. It is that a reader can tell, in one look, which parts of this
 repository define the standard and which parts merely help you operate it.
 
-### SIM1-05 — A v1.0 deployment cannot carry uncertainty the v1.1.0 branch already can · OPEN
+### SIM1-05 — A v1.0 deployment cannot carry uncertainty the v1.1.0 branch already can · **CLOSED 2026-08-09**
 
 Found while building `adapters/projector/track`, which is the first component
 that has to carry a measured accuracy from an observation onto a track.
@@ -1571,6 +1608,17 @@ moment to verify it, not the moment to stop.**
 event act differently on a track with a 30 m ellipse than on one with an unknown
 one? If everything is treated as approximate anyway, the v1.0 limit costs
 nothing and the adoption question answers itself.
+
+**CLOSED 2026-08-09 (records pass).** The implementing wave landed in
+v1.1.20: the promotion decided above shipped with the ADS-B NACp ellipse
+moved to `payload.geo.error_ellipse_m` under the formal member spellings,
+conditional `zmeta_version: "1.1.0"` stamping on exactly the events that
+carry it, and the registry entry adopted (`CHANGELOG.md` `[1.1.20]`
+wave-1 entry; `spec/extension-registry.yaml` ERROR_ELLIPSE_M). Under the
+lifecycle rule a DECIDED entry goes terminal when its wave lands; the wave
+landed in the push that closed the cycle, and this status line is the
+bookkeeping catching up. The live operator question the entry ends on
+stays open on the field checklist, unmoved by this closure.
 
 ---
 

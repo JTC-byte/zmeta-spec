@@ -24,8 +24,13 @@ validate-conformance:
 validate-kernel:
 	python tools/validate_conformance.py --strict --profile-projection --extension-registry --conformance-classes --encoding-negative --precision-policy --release-manifest --release-package --bad-events --adapter-harness
 
+# 236 is the smallest documented application-payload budget among fielded
+# candidate bearers (goTenna Mesh: a one-byte TLV length field minus the
+# mandatory 18-byte HEAD element; the vendor SDK documents 236). The prior
+# 240 was an arbitrary round number. This names a reference budget, not a
+# blessed transport: ZMeta stays transport-agnostic.
 measure-packets:
-	python tools/measure_packet_size.py --file examples/zmeta-profile-L-examples.jsonl --encodings compact --max-bytes 240 --summary-only
+	python tools/measure_packet_size.py --file examples/zmeta-profile-L-examples.jsonl --encodings compact --max-bytes 236 --summary-only --validate
 
 release-bundle:
 	python release/build_release_bundle.py

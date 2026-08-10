@@ -379,6 +379,16 @@ to be stripped. Compact packets must still expand to canonical JSON and pass
 schema, policy, projection, encoding-negative, and precision-policy checks when
 those conformance layers are invoked.
 
+One measured caveat on quantization as a size lever (recorded 2026-08-09):
+under the reference encoders every float is a fixed-width IEEE 754 double
+(CBOR major type 7, `0xFB`, nine bytes on the wire regardless of value), so
+reducing the decimal precision of `lat`, `lon` or `alt_m` changes no byte
+count at all. Measured on the shipped Profile H RF observation in compact
+encoding, 6, 4, 3, 2 and 1 decimal places all encode to the same size.
+Quantization under the precision policy serves honesty, not claiming digits
+nobody measured; it is not a packet-budget tool on these encoders. Omitting
+an optional field saves bytes; rounding a float does not.
+
 ## Versioning
 
 - `compact_version` (top-level key `1`) enables forward compatibility.

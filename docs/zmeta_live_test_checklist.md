@@ -45,12 +45,19 @@ change to the standard and none should move without field evidence.
       dB" into `power_dbm` and it translates, fuses and maps correctly in TAK
       today. Put a second RF sensor beside it in one consumer and see whether
       anything actually breaks.
-- [ ] **A1-02: does anyone miss the dropped 2-D positions?** ADS-B targets
+- [x] **A1-02: does anyone miss the dropped 2-D positions?** ADS-B targets
       reporting only barometric altitude produce no canonical `geo`.
       *Question:* run the adapter against live traffic, count how many targets
       lose their position, then ask whether the operator or the COP notices.
       *Second leg:* AIS on the same dongle. A vessel never has an altitude, so
       that is where the answer is unambiguous.
+      *Answered 2026-08-02, tick recorded 2026-08-09:* overtaken by promotion
+      rather than settled in the field. The AIS adapter was the unambiguous
+      second leg, the maintainer adjudicated the declared-dimensionality shape
+      on 2026-08-02, and v1.1.20 shipped it end to end (doctrine log A1-02,
+      CLOSED). What remains for the field is the render check, not this
+      question: whether consumers show a declared 2-D position honestly
+      (the section C TAK item's `<geo_dimensionality>` detail element).
 - [ ] **A1-03: does anyone need translation provenance canonically?**
       `lineage` requires `based_on`, so an original observation cannot say what
       format it came from. It is expressible natively. *Question:* does any

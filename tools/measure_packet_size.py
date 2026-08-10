@@ -1,5 +1,13 @@
 """
 Measure packet sizes for ZMeta JSONL across JSON, CBOR, compact, and protobuf encodings.
+
+Byte counts are not legality. Without --validate this tool reports a size for
+whatever JSON it is fed, including events that could never validate against
+any shipped schema (a stripped required field still encodes). A green
+max-bytes gate on unvalidated input proves only that the bytes fit, not that
+a legal event fits. Pass --validate to check each event against the schema
+its own zmeta_version stamp names before it is measured, so the budget
+verdict speaks about events that could actually exist on the wire.
 """
 
 from __future__ import annotations
@@ -78,9 +86,62 @@ def _summary(values: List[int]) -> str:
     return f"min={min(values)} avg={avg:.1f} max={max(values)}"
 
 
+_VALIDATOR_CACHE: Dict[str, Any] = {}
+
+
+def _validator_for(version: str) -> Any:
+    if version not in _VALIDATOR_CACHE:
+        schema_path = ROOT / "schema" / f"zmeta-event-{version}.schema.json"
+        if not schema_path.exists():
+            raise SystemExit(
+                f"--validate: no schema for zmeta_version {version!r} "
+                f"(expected {schema_path.name}); refusing to measure an event "
+                "whose legality cannot be checked"
+            )
+        import jsonschema
+
+        schema = json.loads(schema_path.read_text(encoding="utf-8"))
+        _VALIDATOR_CACHE[version] = jsonschema.Draft202012Validator(schema)
+    return _VALIDATOR_CACHE[version]
+
+
+def _validate_event(event: Dict[str, Any], label: str) -> None:
+    version = str(event.get("zmeta_version", ""))
+    validator = _validator_for(version)
+    errors = list(validator.iter_errors(event))
+    if errors:
+        first = errors[0]
+        path = ".".join(str(part) for part in first.absolute_path) or "<root>"
+        raise SystemExit(
+            f"--validate: {label} is not a valid zmeta_version {version} event "
+            f"({len(errors)} error(s); first at {path}: {first.message}). "
+            "A byte count for an illegal event would be a budget verdict about "
+            "nothing; fix the event or measure without --validate."
+        )
+
+
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Measure ZMeta packet sizes.")
+    parser = argparse.ArgumentParser(
+        description=(
+            "Measure ZMeta packet sizes. Without --validate, sizes are "
+            "reported for whatever JSON is supplied, legal or not; a "
+            "max-bytes pass on unvalidated input is not evidence a legal "
+            "event fits."
+        )
+    )
     parser.add_argument("--file", required=True, help="Path to JSONL file.")
+    parser.add_argument(
+        "--validate",
+        action="store_true",
+        help=(
+            "Validate each event against the schema named by its own "
+            "zmeta_version stamp (schema/zmeta-event-<version>.schema.json) "
+            "before measuring; refuse the run on the first illegal event. "
+            "Stripping (--strip) is applied before validation, so a strip "
+            "that removes a required field fails here rather than producing "
+            "a size for an impossible event."
+        ),
+    )
     parser.add_argument(
         "--encodings",
         default="json,cbor,compact,proto",
@@ -137,6 +198,8 @@ def main() -> None:
             continue
         trimmed = _strip_paths(event, args.strip)
         label = _event_label(trimmed)
+        if args.validate:
+            _validate_event(trimmed, label)
         sizes: Dict[str, int] = {}
         # The compact codec deliberately refuses events it cannot carry
         # honestly (non-1.0 zmeta_version, out-of-range integers). Report

@@ -69,6 +69,11 @@ LF checkout of an unchanged file can still fail its published checksum. See
 `docs/release_checksum_errata.md` for the affected tags and corrected values.
 Published files were never rewritten.
 
+Content corrections to published release notes are recorded in
+`docs/release_notes_errata.md`, same rule: the published file stays as
+published, the correction is dated and carries its evidence. One entry
+exists, against v1.1.20's lock-restoration section.
+
 Recommended GitHub release verification text:
 
 ```text
