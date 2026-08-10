@@ -88,7 +88,7 @@ and `policy/semantics.yaml` are untouched across the entire fix pass.
 
 | # | Tension | Gates in play | Status |
 |---|---|---|---|
-| R1-11-01 | No governed reason code for a non-finite value | 1 vs 3 | OPEN |
+| R1-11-01 | No governed reason code for a non-finite value | 1 vs 3 | **MINTED 2026-08-09** |
 | R1-11-02 | CBOR value-sharing tags 28/29 undefined; backends disagree | 4, 6 | **CHANGED** |
 | R1-11-03 | Compact mapping declares no maximum nesting depth | 4, 6 | **CHANGED** |
 | R1-11-04 | `timing_quality` cannot say "bound unresolved" | 2, 3 | OPEN |
@@ -103,7 +103,7 @@ and `policy/semantics.yaml` are untouched across the entire fix pass.
 | R1-11-13 | CHANGELOG claim true-as-scoped, false read repo-wide | 3, 5 | OPEN |
 | R1-11-14 | `--strict` makes a *tolerated* warn unrepresentable in the corpus | 3, 7 | OPEN |
 
-### R1-11-01 — No governed reason code for a non-finite value · OPEN
+### R1-11-01 — No governed reason code for a non-finite value · **MINTED 2026-08-09**
 
 **Two gates pull against each other, which is what makes this the interesting
 one.** Gate 3 (honesty) says a refusal must be filterable by the consumer.
@@ -153,6 +153,27 @@ the pass that surfaced it): the decision is either MINT the narrow codes
 HELD-FIRM on reuse with the reasoning recorded once so the class stops being
 re-litigated. The multi-UxS event is the natural evidence window — an operator
 who cannot filter these apart in the field settles it either way.
+
+**MINTED 2026-08-09, maintainer adjudication at the forced count.**
+`NON_FINITE_VALUE` (fail) and the command-evidence pair
+`COMMAND_EVIDENCE_UNRESOLVED` (warn) / `COMMAND_EVIDENCE_PROHIBITED` (fail)
+enter `policy/violation-codes.yaml` and the 1.1.0 schema enum as one
+Class B batch. The wire posture is diagnostic-first, because the locked
+v1.0 reason-code enum cannot grow: a v1.0-stamped wire diagnostic keeps
+its documented legacy code (`SCHEMA_INVALID`, `LINEAGE_PARENT_UNRESOLVED`
+and `LINEAGE_MISMATCH` respectively; the mapping is policy data at
+`policy/semantics.yaml` `schema_violation_v1_0_wire_fallback`, never
+hardcoded) and carries the minted code in `metrics.diagnostic_code`,
+while the gateway's JSONL diagnostics and the 1.1.0 enum carry it
+natively. The filterability gate 3 was tracking is restored at the layer
+the operator filters, and no fielded v1.0 consumer sees a byte it did not
+see before. Two residues, named rather than implied: the
+require_evidence refusal (citations absent under the strict knob) keeps
+`LINEAGE_MISMATCH`, a policy-strictness refusal outside the adjudicated
+pair and filterable via `policy_ref`; and `NON_FINITE_CONFIDENCE`
+remains the more specific code for the confidence sites, unchanged.
+H1-08 closes with this batch. R2-30's outer-ring resolution is
+undisturbed.
 
 ### R1-11-02 — CBOR value-sharing tags 28/29 undefined · **CHANGED 2026-07-27**
 
@@ -665,7 +686,7 @@ no governed artifact was modified to produce any of them.
 | H1-05 | CoT `how`/pedigree omission vs consumer expectations | 4 | OPEN |
 | H1-06 | `_normalized_uses` member-shape tolerance is mirrored in filter_risk | 3 | OPEN |
 | H1-07 | Gateway plain-`cbor` envelope ingress still interprets tags on cbor2-only installs | 4, 6 | **CHANGED** |
-| H1-08 | Command-evidence refusals ride lineage codes; TASK_ACK cannot name them | 1, 3 | OPEN |
+| H1-08 | Command-evidence refusals ride lineage codes; TASK_ACK cannot name them | 1, 3 | **MINTED 2026-08-09** |
 
 ### H1-01 — ADAPTER_VERSION bump discipline · OPEN
 
@@ -730,7 +751,7 @@ branch call sites still reach bare `cbor2.loads` pre-decode on
 cbor2-only installs; resource-knob parity; the scanner-absent install
 combination).
 
-### H1-08 — Command-evidence refusals ride lineage codes · OPEN
+### H1-08 — Command-evidence refusals ride lineage codes · **MINTED 2026-08-09**
 
 The command-evidence check (2026-07-27, maintainer-directed) reuses
 LINEAGE_MISMATCH / LINEAGE_PARENT_UNRESOLVED for its two new refusal
@@ -744,6 +765,17 @@ force_schema_violation SCHEMA_VIOLATION shape; and risk_dimension reuses
 'lineage' pending the R1-11-10 dimension-boundary question. Adjudicate
 together with R1-11-01/-10 when the pattern is visible — the multi-UxS
 event is the natural evidence window.
+
+**MINTED 2026-08-09, with the R1-11-01 batch.** The two riding conditions
+carry their own codes now: `COMMAND_EVIDENCE_UNRESOLVED` for a citation
+the gateway cannot resolve, `COMMAND_EVIDENCE_PROHIBITED` for evidence
+whose adjudicated use limits prohibit command basis, each with the v1.0
+wire fallback and `diagnostic_code` detail recorded in the R1-11-01
+closure. Deliberately untouched, so the residue stays legible: evidence
+refusals keep riding the documented force_schema_violation
+SCHEMA_VIOLATION shape (extending the TASK_ACK vocabulary was outside
+the adjudicated batch), and the `risk_dimension: lineage` reuse stays
+pending R1-11-10, which this batch does not decide.
 
 ### H1-06 — Member-shape tolerance mirrored across two surfaces · OPEN
 

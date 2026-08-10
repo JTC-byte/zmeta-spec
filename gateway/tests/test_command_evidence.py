@@ -4,17 +4,23 @@ A COMMAND_EVENT may cite the inference/fusion evidence that motivated it via
 the EXISTING lineage vocabulary (lineage.based_on); the gateway checks those
 citations against what it saw upstream (policy/command-evidence.yaml):
 
-- cited parent never seen or evicted -> LINEAGE_PARENT_UNRESOLVED per mode;
+- cited parent never seen or evicted -> COMMAND_EVIDENCE_UNRESOLVED per
+  mode (minted 2026-08-09; rode LINEAGE_PARENT_UNRESOLVED before the
+  R1-11-01 Class B batch);
 - cited parent whose event_type cannot motivate a command
-  -> LINEAGE_PARENT_TYPE_INVALID per mode;
+  -> LINEAGE_PARENT_TYPE_INVALID per mode (honest reuse, kept);
 - cited parent whose risk_adjudication carries a use limit prohibiting
   command basis (COMMAND_BASIS / AUTONOMY_TASKING, the S1-15
-  blocked-from-command-basis posture) -> LINEAGE_MISMATCH per mode.
+  blocked-from-command-basis posture) -> COMMAND_EVIDENCE_PROHIBITED per
+  mode (minted 2026-08-09; rode LINEAGE_MISMATCH before the batch).
 
 A bare command with NO cited parents stays legal by default (a human
 operator's direct tasking has no fused parent); the require_evidence knob is
-the deployment-side gate for automation. Every reason code, use token, and
-risk dimension here is pre-existing vocabulary - nothing minted.
+the deployment-side gate for automation, and its refusal keeps
+LINEAGE_MISMATCH: a policy-strictness refusal, not an evidence
+adjudication. On the v1.0 wire the minted codes ride their documented
+legacy fallbacks with metrics.diagnostic_code carrying the specific
+condition; the gateway-layer tests below pin exactly that.
 """
 
 import copy
@@ -220,7 +226,7 @@ class CommandEvidenceValidatorTest(unittest.TestCase):
         self.assertTrue(ok, violations)
         self.assertEqual(1, len(violations))
         violation = violations[0]
-        self.assertEqual("LINEAGE_PARENT_UNRESOLVED", violation["code"])
+        self.assertEqual("COMMAND_EVIDENCE_UNRESOLVED", violation["code"])
         self.assertEqual("warn", violation["severity"])
         details = violation["details"]
         self.assertEqual([missing], details["unresolved"])
@@ -243,7 +249,7 @@ class CommandEvidenceValidatorTest(unittest.TestCase):
         ok, violations = self.check(cmd, recorded_state(), policy=policy)
 
         self.assertFalse(ok)
-        self.assertEqual("LINEAGE_PARENT_UNRESOLVED", violations[0]["code"])
+        self.assertEqual("COMMAND_EVIDENCE_UNRESOLVED", violations[0]["code"])
         self.assertEqual("fail", violations[0]["severity"])
         self.assertEqual("REJECTED", violations[0]["details"]["policy_decision"])
 
@@ -278,7 +284,7 @@ class CommandEvidenceValidatorTest(unittest.TestCase):
 
         self.assertFalse(ok)
         violation = violations[0]
-        self.assertEqual("LINEAGE_MISMATCH", violation["code"])
+        self.assertEqual("COMMAND_EVIDENCE_PROHIBITED", violation["code"])
         self.assertEqual("fail", violation["severity"])
         details = violation["details"]
         self.assertEqual("REJECTED", details["policy_decision"])
@@ -313,7 +319,7 @@ class CommandEvidenceValidatorTest(unittest.TestCase):
         ok, violations = self.check(command([parent["event"]["event_id"]]), state, policy=policy)
 
         self.assertTrue(ok)
-        self.assertEqual("LINEAGE_MISMATCH", violations[0]["code"])
+        self.assertEqual("COMMAND_EVIDENCE_PROHIBITED", violations[0]["code"])
         self.assertEqual("warn", violations[0]["severity"])
         self.assertEqual("WARN_ACCEPT", violations[0]["details"]["policy_decision"])
         self.assertIn("AUTONOMY_TASKING", violations[0]["details"]["prohibited_uses"])
@@ -341,7 +347,7 @@ class CommandEvidenceValidatorTest(unittest.TestCase):
         self.assertEqual(1, len(records))
         record = records[0]
         self.assertEqual("lineage", record["risk_dimension"])
-        self.assertEqual("LINEAGE_MISMATCH", record["reason_code"])
+        self.assertEqual("COMMAND_EVIDENCE_PROHIBITED", record["reason_code"])
         self.assertEqual("DEGRADED_ACCEPT", record["policy_decision"])
         self.assertIn("AUTONOMY_TASKING", record["prohibited_uses"])
         # The stamped command is still a valid instance of the contract.
@@ -416,7 +422,7 @@ class CommandEvidenceValidatorTest(unittest.TestCase):
 
         ok, violations = self.check(command([first["event"]["event_id"]]), state)
         self.assertTrue(ok)
-        self.assertEqual("LINEAGE_PARENT_UNRESOLVED", violations[0]["code"])
+        self.assertEqual("COMMAND_EVIDENCE_UNRESOLVED", violations[0]["code"])
 
         # The survivors still resolve cleanly.
         ok, violations = self.check(command([third["event"]["event_id"]]), state)
@@ -442,7 +448,7 @@ class CommandEvidenceValidatorTest(unittest.TestCase):
         )
 
         self.assertFalse(ok, "a destroyed policy block must not disable the check")
-        self.assertEqual("LINEAGE_MISMATCH", violations[0]["code"])
+        self.assertEqual("COMMAND_EVIDENCE_PROHIBITED", violations[0]["code"])
         self.assertIn("policy_error", violations[0]["details"])
 
     def test_explicit_disable_is_honoured(self):
@@ -466,9 +472,9 @@ class CommandEvidencePolicyLintTest(unittest.TestCase):
 
     def test_ignore_mode_is_flagged_as_material_risk(self):
         for key, code in (
-            ("unresolved_parent_mode", "LINEAGE_PARENT_UNRESOLVED"),
+            ("unresolved_parent_mode", "COMMAND_EVIDENCE_UNRESOLVED"),
             ("parent_type_mismatch_mode", "LINEAGE_PARENT_TYPE_INVALID"),
-            ("prohibited_use_mode", "LINEAGE_MISMATCH"),
+            ("prohibited_use_mode", "COMMAND_EVIDENCE_PROHIBITED"),
             ("require_evidence_mode", "LINEAGE_MISMATCH"),
         ):
             with self.subTest(key=key):
@@ -536,7 +542,7 @@ class CommandEvidencePolicyLintTest(unittest.TestCase):
             severity_map=policy["violation_severities"],
         )
         self.assertFalse(ok)
-        self.assertEqual("LINEAGE_MISMATCH", violations[0]["code"])
+        self.assertEqual("COMMAND_EVIDENCE_PROHIBITED", violations[0]["code"])
 
 
 class CommandEvidenceGatewayTest(unittest.TestCase):
@@ -599,7 +605,10 @@ class CommandEvidenceGatewayTest(unittest.TestCase):
         self.assertEqual("SCHEMA_VIOLATION", diagnostic["event"]["event_subtype"])
         self.assertEqual("REJECTED", diagnostic["payload"]["state"])
         metrics = diagnostic["payload"]["metrics"]
+        # Diagnostic-first posture: the v1.0 wire keeps the documented
+        # fallback code; the minted code rides diagnostic_code.
         self.assertEqual("LINEAGE_MISMATCH", metrics["reason_code"])
+        self.assertEqual("COMMAND_EVIDENCE_PROHIBITED", metrics["diagnostic_code"])
         self.assertEqual(cmd["event"]["event_id"], metrics["original_event_id"])
         # Task correlation survives the SCHEMA_VIOLATION shape (the lineage
         # codes are not in the deliberately task-limited TASK_ACK vocabulary).
@@ -620,6 +629,7 @@ class CommandEvidenceGatewayTest(unittest.TestCase):
         self.assertEqual("WARNING", warning["payload"]["state"])
         metrics = warning["payload"]["metrics"]
         self.assertEqual("LINEAGE_PARENT_UNRESOLVED", metrics["reason_code"])
+        self.assertEqual("COMMAND_EVIDENCE_UNRESOLVED", metrics["diagnostic_code"])
         self.assertEqual([missing], metrics["unresolved"])
         self.assertEqual([], list(self.validator.iter_errors(warning)))
 
@@ -634,7 +644,7 @@ class CommandEvidenceGatewayTest(unittest.TestCase):
         self.assertEqual(2, len(out))
         forwarded = out[0]
         records = forwarded["payload"]["extensions"]["risk_adjudication"]
-        self.assertEqual("LINEAGE_MISMATCH", records[0]["reason_code"])
+        self.assertEqual("COMMAND_EVIDENCE_PROHIBITED", records[0]["reason_code"])
         self.assertEqual("DEGRADED_ACCEPT", records[0]["policy_decision"])
         self.assertIn("AUTONOMY_TASKING", records[0]["prohibited_uses"])
         self.assertEqual([], list(self.validator.iter_errors(forwarded)))
@@ -701,7 +711,7 @@ class CommandEvidenceStickyLabelTest(unittest.TestCase):
         state = recorded_state(parent)
         ok, violations = self.check(command(parent_ids=[parent_id]), state)
         self.assertFalse(ok)
-        self.assertEqual("LINEAGE_MISMATCH", violations[0]["code"])
+        self.assertEqual("COMMAND_EVIDENCE_PROHIBITED", violations[0]["code"])
 
         # The attack: same event_id, no risk_adjudication at all.
         clean_copy = track_state(event_id=parent_id)
@@ -717,7 +727,7 @@ class CommandEvidenceStickyLabelTest(unittest.TestCase):
             command(parent_ids=[parent_id]), state
         )
         self.assertFalse(ok_after, "a re-send erased the recorded prohibition")
-        self.assertEqual("LINEAGE_MISMATCH", violations_after[0]["code"])
+        self.assertEqual("COMMAND_EVIDENCE_PROHIBITED", violations_after[0]["code"])
 
     def test_labels_union_across_resends_rather_than_replace(self):
         parent = track_state(risk_records=[COMMAND_PROHIBITING_RECORD])
@@ -753,7 +763,7 @@ class CommandEvidenceStickyLabelTest(unittest.TestCase):
         )
         ok, violations = self.check(command(parent_ids=[parent_id]), state)
         self.assertFalse(ok)
-        self.assertEqual("LINEAGE_MISMATCH", violations[0]["code"])
+        self.assertEqual("COMMAND_EVIDENCE_PROHIBITED", violations[0]["code"])
 
 
 class CommandEvidenceKeyLintTest(unittest.TestCase):

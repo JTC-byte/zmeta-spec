@@ -2,6 +2,37 @@
 
 ## [Unreleased]
 
+(Nothing yet — the next work lands here.)
+
+## [1.1.21] - 2026-08-09
+
+- 2026-08-09 — **The R1-11-01 Class B batch: three reason codes minted,
+  diagnostic-first on the wire.** Maintainer adjudication at the forced
+  occurrence count closes the reuse-vs-mint class: `NON_FINITE_VALUE`
+  (fail) and the command-evidence pair `COMMAND_EVIDENCE_UNRESOLVED`
+  (warn) / `COMMAND_EVIDENCE_PROHIBITED` (fail) enter
+  `policy/violation-codes.yaml`, `policy/semantics.yaml`, and the 1.1.0
+  schema's SCHEMA_VIOLATION enum. The locked v1.0 enum cannot grow and
+  every gateway wire diagnostic is stamped v1.0, so the wire posture is
+  diagnostic-first: the wire keeps the documented legacy code
+  (`SCHEMA_INVALID` / `LINEAGE_PARENT_UNRESOLVED` / `LINEAGE_MISMATCH`,
+  mapped by the new policy key `schema_violation_v1_0_wire_fallback`,
+  applied by `build_violation_event`/`build_warning_event`) and carries
+  the minted code in `metrics.diagnostic_code`; validator-layer JSONL
+  diagnostics carry the minted code natively, which is where operators
+  filter. No fielded v1.0 consumer sees a changed byte in `reason_code`.
+  The require_evidence refusal keeps `LINEAGE_MISMATCH` on the record as
+  a policy-strictness refusal outside the adjudicated pair. Test pins
+  move with the codes red-first across the non-finite family, the
+  command-evidence family, the risk-mode lint, and the reason-code
+  sweeps; the E2E pins now assert the fallback pair on the wire.
+  Doctrine log R1-11-01 and H1-08 close MINTED; VW-17 records partial
+  satisfaction with the pairing difference stated. The tree opens the
+  v1.1.21 identity with this batch (manifest, governed baseline against
+  the v1.1.20 tag, and the full release-currency surface set), with
+  artifact completeness deliberately red until the notes, report, and
+  checksums land at cut prep.
+
 - 2026-08-09 — **Records pass: the log catches up to v1.1.20, and the
   packet gate starts meaning what it says.** Doctrine log entries whose
   implementing waves landed in v1.1.20 move to terminal (SIM1-05,

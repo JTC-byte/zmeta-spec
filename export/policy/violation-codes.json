@@ -227,6 +227,18 @@
     {
       "code": "TASK_ACK_DUPLICATE",
       "severity": "fail"
+    },
+    {
+      "code": "NON_FINITE_VALUE",
+      "severity": "fail"
+    },
+    {
+      "code": "COMMAND_EVIDENCE_UNRESOLVED",
+      "severity": "warn"
+    },
+    {
+      "code": "COMMAND_EVIDENCE_PROHIBITED",
+      "severity": "fail"
     }
   ]
 }

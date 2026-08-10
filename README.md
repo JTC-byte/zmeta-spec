@@ -1,4 +1,4 @@
-# ZMeta Specification (v1.0 Locked, current release v1.1.20)
+# ZMeta Specification (v1.0 Locked, current release v1.1.21)
 
 ZMeta is a free, open, transport-agnostic semantic standard for resilient ISR.
 It defines one honest event model that heterogeneous sensors, analytics,
@@ -183,35 +183,22 @@ nodes.
 
 ## Current Release
 
-- Current release: `v1.1.20`
-- Release notes and assets: <https://github.com/JTC-byte/zmeta-spec/releases/tag/v1.1.20>
-- Release focus: the audit-closure cut. A position with no vertical is
-  sayable on the v1.1.0 branch (`dimensionality: "2D"`, `quality.geo_status:
-  VERTICAL_UNAVAILABLE`), and AIS and barometric-only ADS-B now emit it end
-  to end through the track projector to 2-D `FUSION_EVENT`/`STATE_EVENT`
-  pairs. The v1.1.0 `utcDateTime` pattern enforces structural calendar
-  shape, and the gateway gains a warn-only `event.ts` plausibility window.
-  The locked v1.0 contract and schema are restored byte-exact to the
-  2026-05-07 lockdown-audit baseline, with a dated provenance note and hash
-  anchors on both. SAPIENT boundary defects found by the first
-  independent-implementation interop run are closed, including a z-less
-  2-D `DetectionReport` confirmed on the wire by that harness. The release
-  signer now hashes text assets on line-ending-normalized content;
-  `docs/release_checksum_errata.md` records the 16 wrong checksum entries
-  the old behavior produced across 15 published tags, with published files
-  left as published. The ADS-B NACp ellipse moves to
-  `payload.geo.error_ellipse_m` with formal member spellings. This release's
-  one breaking change: `policy/producer-authority.yaml` drops the
-  `state-projector-*` wildcard producer authorization, so a deployment that
-  relied on it to authorize a state projector must rename or add a named
-  producer stanza.
-  Governed artifacts changed in this release, relative to zmeta-v1.1.19: conformance/adapter-harness/must-pass.jsonl, conformance/bad-events/must-fail.jsonl, conformance/profile-precision/must-fail.jsonl, conformance/profile-precision/must-pass.jsonl, policy/producer-authority.yaml, policy/profile-precision.yaml, schema/zmeta-event-1.1.0.schema.json, spec/compact-binary-mapping.md, spec/extension-registry.yaml, spec/semantics-contract.md.
-  The locked v1.0 kernel is unchanged. The contract changes are the lock
-  provenance note and the v1.1 lane's A1-02 sections; the v1.1.0 schema
-  gains the declared-dimensionality form, the VERTICAL_UNAVAILABLE token
-  with its coherence arms, and a structural timestamp shape, all of which
-  producers opt into; the registry adopts ERROR_ELLIPSE_M and
-  GEO_DIMENSIONALITY as formal v1.1.0 vocabulary.
+- Current release: `v1.1.21`
+- Release notes and assets: <https://github.com/JTC-byte/zmeta-spec/releases/tag/v1.1.21>
+- Release focus: the reason-code mint. The R1-11-01 Class B batch adds
+  `NON_FINITE_VALUE` and the command-evidence pair
+  (`COMMAND_EVIDENCE_UNRESOLVED`, `COMMAND_EVIDENCE_PROHIBITED`) to the
+  governed diagnostic vocabulary, closing the reuse-vs-mint question at
+  its forced occurrence count. Wire posture is diagnostic-first: the
+  locked v1.0 enum cannot grow, so a v1.0-stamped diagnostic keeps its
+  documented legacy code and carries the minted code in
+  `metrics.diagnostic_code`, while JSONL diagnostics and the 1.1.0 enum
+  carry it natively. The packet-size gate now validates events before
+  measuring them and runs at the documented 236-byte reference bearer
+  budget. Records catch up to v1.1.20: two doctrine entries close, two
+  errata are recorded (published files stay as published), and the
+  mapping spec states the measured fact that float quantization saves
+  zero bytes. Governed artifacts changed in this release, relative to zmeta-v1.1.20: policy/semantics.yaml, policy/violation-codes.yaml, schema/zmeta-event-1.1.0.schema.json, spec/compact-binary-mapping.md.
 - Normative contract: v1.0 locked semantic contract, canonical version-discriminated
   JSON schema, v1.0 JSON schema, and policy pack.
 - Experimental extension: `schema/zmeta-event-1.1.0.schema.json` is provided for proposed
@@ -342,7 +329,7 @@ python tools/run_gateway.py --profile H
 python tools/udp_receiver.py
 python tools/udp_sender.py --file examples/zmeta-command-examples.jsonl
 python tools/replay.py --file examples/zmeta-command-examples.jsonl --delay-ms 200
-python tools/check_compat.py legacy-events.jsonl --target v1.1.20
+python tools/check_compat.py legacy-events.jsonl --target v1.1.21
 python tools/validate.py --file examples/zmeta-command-examples.jsonl --profile L
 python tools/check_adapter.py --events my-adapter-output.jsonl --fixtures my-fixtures.jsonl
 python tools/validate_conformance.py --strict
@@ -390,10 +377,10 @@ Deployment helpers:
 - Config templates: `configs/edge-config.json`, `configs/gateway-config.json`
 - Docker Compose: `deploy/edge/docker-compose.yml`, `deploy/gateway/docker-compose.yml`
 - Bundle builders:
-    - `python release/build_mvp_packages.py --version v1.1.20` produces `zmeta-edge-v1.1.20.zip` and `zmeta-gateway-v1.1.20.zip`
-    - `python release/build_release_bundle.py --version 1.1.20` produces `zmeta-v1.1.20-dist.zip`
-    - `python tools/build_release_package.py --manifest release/zmeta-release-manifest.yaml --output-dir release/package-v1.1.20 --release-id zmeta-v1.1.20 --release-state formal_release --no-signatures --release-notes release/RELEASE_NOTES_v1.1.20.md` builds formal package metadata without creating signatures. `--release-notes` is mandatory for `formal_release`: omit it and the unpopulated notes template is copied verbatim, which `tools/validate_release_package.py` refuses with `RELEASE_PACKAGE_NOTES_PLACEHOLDER`.
-    - `python release/sign_release_artifacts.py --version v1.1.20 --write-checksums --sign --target all` signs release assets with detached PGP signatures when an approved signing key is available.
+    - `python release/build_mvp_packages.py --version v1.1.21` produces `zmeta-edge-v1.1.21.zip` and `zmeta-gateway-v1.1.21.zip`
+    - `python release/build_release_bundle.py --version 1.1.21` produces `zmeta-v1.1.21-dist.zip`
+    - `python tools/build_release_package.py --manifest release/zmeta-release-manifest.yaml --output-dir release/package-v1.1.21 --release-id zmeta-v1.1.21 --release-state formal_release --no-signatures --release-notes release/RELEASE_NOTES_v1.1.21.md` builds formal package metadata without creating signatures. `--release-notes` is mandatory for `formal_release`: omit it and the unpopulated notes template is copied verbatim, which `tools/validate_release_package.py` refuses with `RELEASE_PACKAGE_NOTES_PLACEHOLDER`.
+    - `python release/sign_release_artifacts.py --version v1.1.21 --write-checksums --sign --target all` signs release assets with detached PGP signatures when an approved signing key is available.
 
 ## Deployment Checklist (Compact)
 

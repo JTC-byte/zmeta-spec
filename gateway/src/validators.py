@@ -2059,7 +2059,7 @@ def lint_policy_risk_modes(policy):
             "command_evidence",
             command_evidence,
             "unresolved_parent_mode",
-            ["LINEAGE_PARENT_UNRESOLVED"],
+            ["COMMAND_EVIDENCE_UNRESOLVED"],
             "lineage",
         )
     )
@@ -2077,7 +2077,7 @@ def lint_policy_risk_modes(policy):
             "command_evidence",
             command_evidence,
             "prohibited_use_mode",
-            ["LINEAGE_MISMATCH"],
+            ["COMMAND_EVIDENCE_PROHIBITED"],
             "lineage",
         )
     )
@@ -3301,22 +3301,24 @@ def validate_semantics(event, semantics_policy, severity_map=None):
     # Detection is value scoped (see _find_non_finite); only the reported code
     # is path sensitive, so the confidence fields keep their more specific
     # NON_FINITE_CONFIDENCE. Every other non-finite value is reported as
-    # SCHEMA_INVALID: the datagram carries a token that is not a JSON number,
-    # so the instance is not a valid instance of the contract's data model,
-    # and the fault is the producer's. (R1-11 A-01. The vocabulary has no code
-    # that names "non-finite value" generally; minting one is a governed
-    # Class B change and is escalated, not assumed.)
+    # NON_FINITE_VALUE (R1-11-01: the general code was escalated as a
+    # governed Class B change and minted by maintainer adjudication
+    # 2026-08-09 at occurrence count 3): the datagram carries a token that
+    # is not a JSON number, so the instance is not a valid instance of the
+    # contract's data model, and the fault is the producer's. On a
+    # v1.0-stamped wire diagnostic the code rides its documented fallback
+    # SCHEMA_INVALID with the minted code in metrics.diagnostic_code
+    # (diagnostic-first posture; policy/semantics.yaml
+    # schema_violation_v1_0_wire_fallback). This diagnostic layer carries
+    # the minted code natively, which is where the operator filters.
     #
     # Severity is pinned rather than resolved from the severity map. Every
     # other code is operator-tunable because "warn and forward" is a coherent
     # operating point for it; for a non-finite value it is not. Downgrading
     # this to warn forwards the event verbatim, so `"lat":NaN` goes on the
-    # wire with a warning beside it - laundering by configuration. It also
-    # matters because the generic branch reports under SCHEMA_INVALID, a broad
-    # code an operator may well have quieted for schema nits it has decided to
-    # tolerate; that decision must not silently extend to a coordinate that is
-    # not a coordinate. (The `severity=` override is the same mechanism the
-    # risk-adjudication gate below uses.)
+    # wire with a warning beside it - laundering by configuration. (The
+    # `severity=` override is the same mechanism the risk-adjudication gate
+    # below uses.)
     non_finite_path = _find_non_finite(event)
     if non_finite_path is not None:
         conf_path = _find_non_finite_confidence(event)
@@ -3332,7 +3334,7 @@ def validate_semantics(event, semantics_policy, severity_map=None):
             ]
         return False, [
             _violation(
-                "SCHEMA_INVALID",
+                "NON_FINITE_VALUE",
                 "non-finite number (NaN/inf) has no canonical value and no RFC 8259 "
                 "wire form; refusing rather than forwarding a value that is not a value",
                 details={"field": non_finite_path},
@@ -3897,14 +3899,22 @@ def validate_lineage(event, lineage_policy, state=None, profile=None, severity_m
 # inference/fusion parents via the EXISTING lineage vocabulary
 # (lineage.based_on); this check makes the citation auditable: the command
 # provably rests on evidence the gateway saw and whose adjudicated use limits
-# permitted command basis. Every reason code below is pre-existing governed
-# vocabulary; the conditions are reported under the closest honest code:
-#   - never seen / evicted        -> LINEAGE_PARENT_UNRESOLVED
-#   - type cannot motivate        -> LINEAGE_PARENT_TYPE_INVALID
-#   - use limits prohibit command -> LINEAGE_MISMATCH (the citation
-#     mismatches the cited evidence's adjudicated permitted uses; a
-#     condition-specific code would be a governed Class B mint — escalated,
-#     not assumed)
+# permitted command basis. Reason codes as updated by the R1-11-01/H1-08
+# Class B batch (maintainer-adjudicated 2026-08-09; the escalation this
+# comment used to record):
+#   - never seen / evicted        -> COMMAND_EVIDENCE_UNRESOLVED (minted;
+#     rode LINEAGE_PARENT_UNRESOLVED until the batch)
+#   - type cannot motivate        -> LINEAGE_PARENT_TYPE_INVALID (kept: a
+#     parent type that cannot motivate is honestly a lineage type fault)
+#   - use limits prohibit command -> COMMAND_EVIDENCE_PROHIBITED (minted;
+#     rode LINEAGE_MISMATCH until the batch)
+#   - citations absent under require_evidence -> LINEAGE_MISMATCH (kept: a
+#     policy-strictness refusal rather than an evidence adjudication;
+#     filterable via policy_ref, and a third code was outside the
+#     adjudicated pair)
+# On a v1.0-stamped wire diagnostic the minted codes ride their documented
+# legacy fallbacks with metrics.diagnostic_code carrying the specific
+# condition (policy/semantics.yaml schema_violation_v1_0_wire_fallback).
 # A bare command with NO citations stays legal unless the deployment enables
 # the require_evidence knob: a human operator's direct tasking has no fused
 # parent, and refusing it by default would break every fielded display loop.
@@ -3914,7 +3924,8 @@ _COMMAND_EVIDENCE_POLICY_REF = "policy/command-evidence.yaml"
 # per-check default rather than silently widening acceptance.
 _COMMAND_EVIDENCE_MODES = {"reject", "warn", "degrade"}
 _COMMAND_EVIDENCE_CODES = {
-    "LINEAGE_PARENT_UNRESOLVED",
+    "COMMAND_EVIDENCE_UNRESOLVED",
+    "COMMAND_EVIDENCE_PROHIBITED",
     "LINEAGE_PARENT_TYPE_INVALID",
     "LINEAGE_MISMATCH",
 }
@@ -4064,7 +4075,7 @@ def validate_command_evidence(
 
     if unresolved:
         _emit(
-            "LINEAGE_PARENT_UNRESOLVED",
+            "COMMAND_EVIDENCE_UNRESOLVED",
             "COMMAND_EVENT cites motivating evidence that is not available in "
             "the gateway's bounded evidence index",
             "unresolved_parent_mode",
@@ -4084,7 +4095,7 @@ def validate_command_evidence(
         )
     if prohibited:
         _emit(
-            "LINEAGE_MISMATCH",
+            "COMMAND_EVIDENCE_PROHIBITED",
             "COMMAND_EVENT cites evidence whose risk adjudication prohibits "
             "command basis",
             "prohibited_use_mode",

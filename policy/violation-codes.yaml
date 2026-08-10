@@ -115,3 +115,15 @@ violation_codes:
     severity: fail
   - code: TASK_ACK_DUPLICATE
     severity: fail
+  # R1-11-01 Class B batch, maintainer-adjudicated 2026-08-09 at occurrence
+  # count 3. Wire posture is diagnostic-first: a v1.0-stamped diagnostic
+  # carries the documented legacy code (see semantics.yaml
+  # schema_violation_v1_0_wire_fallback) with the minted code in
+  # metrics.diagnostic_code; JSONL diagnostics and the 1.1.0 schema enum
+  # carry the minted code natively.
+  - code: NON_FINITE_VALUE
+    severity: fail
+  - code: COMMAND_EVIDENCE_UNRESOLVED
+    severity: warn
+  - code: COMMAND_EVIDENCE_PROHIBITED
+    severity: fail

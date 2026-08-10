@@ -67,6 +67,15 @@ class ReasonCodeTest(unittest.TestCase):
     V1_1_ONLY_SCHEMA_VIOLATION_CODES = {
         "SENSOR_STATUS_STATE_MISMATCH",
         "PLATFORM_STATUS_POWER_MISSING",
+        # R1-11-01 Class B batch (2026-08-09): minted after the v1.0 lock,
+        # so native only in the 1.1.0 enum. On the v1.0 wire each rides its
+        # documented fallback (policy/semantics.yaml
+        # schema_violation_v1_0_wire_fallback) with the minted code in
+        # metrics.diagnostic_code; build_violation_event applies it when
+        # given policy, which test_violation_event_self_validity sweeps.
+        "NON_FINITE_VALUE",
+        "COMMAND_EVIDENCE_UNRESOLVED",
+        "COMMAND_EVIDENCE_PROHIBITED",
     }
 
     # Codes in policy/violation-codes.yaml that are legitimately NOT

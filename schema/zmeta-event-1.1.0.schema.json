@@ -1913,7 +1913,10 @@
                       "RF_WINDOW_MIDPOINT_MISMATCH",
                       "EVENT_DUPLICATE",
                       "TASK_DUPLICATE",
-                      "TASK_ACK_DUPLICATE"
+                      "TASK_ACK_DUPLICATE",
+                      "NON_FINITE_VALUE",
+                      "COMMAND_EVIDENCE_UNRESOLVED",
+                      "COMMAND_EVIDENCE_PROHIBITED"
                     ]
                   },
                   "original_event_id": { "type": "string", "minLength": 1 },

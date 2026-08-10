@@ -134,12 +134,20 @@
         "RF_WINDOW_MIDPOINT_MISMATCH",
         "EVENT_DUPLICATE",
         "TASK_DUPLICATE",
-        "TASK_ACK_DUPLICATE"
+        "TASK_ACK_DUPLICATE",
+        "NON_FINITE_VALUE",
+        "COMMAND_EVIDENCE_UNRESOLVED",
+        "COMMAND_EVIDENCE_PROHIBITED"
       ],
       "schema_violation_required_metrics_fields": [
         "reason_code",
         "original_event_id"
       ],
+      "schema_violation_v1_0_wire_fallback": {
+        "COMMAND_EVIDENCE_PROHIBITED": "LINEAGE_MISMATCH",
+        "COMMAND_EVIDENCE_UNRESOLVED": "LINEAGE_PARENT_UNRESOLVED",
+        "NON_FINITE_VALUE": "SCHEMA_INVALID"
+      },
       "task_ack_allowed_reason_codes": [
         "SCHEMA_INVALID",
         "EVENT_TYPE_NOT_ALLOWED_FOR_ROLE",

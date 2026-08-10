@@ -124,7 +124,7 @@ class ValueScopedNonFiniteTest(unittest.TestCase):
                     event = _put(_state_event(), path, value)
                     ok, violations = self._semantics(event)
                     self.assertFalse(ok)
-                    self.assertEqual("SCHEMA_INVALID", violations[0]["code"])
+                    self.assertEqual("NON_FINITE_VALUE", violations[0]["code"])
                     self.assertEqual("fail", violations[0]["severity"])
                     # The refusal must name the offending location, not the
                     # offending value: details flow verbatim into the
@@ -165,7 +165,7 @@ class ValueScopedNonFiniteTest(unittest.TestCase):
         event["payload"]["extensions"] = {float("nan"): 1}
         ok, violations = self._semantics(event)
         self.assertFalse(ok)
-        self.assertEqual("SCHEMA_INVALID", violations[0]["code"])
+        self.assertEqual("NON_FINITE_VALUE", violations[0]["code"])
         self.assertTrue(violations[0]["details"]["field"].endswith("<key>"))
 
     def test_non_finite_inside_a_list_refuses(self):
@@ -177,7 +177,7 @@ class ValueScopedNonFiniteTest(unittest.TestCase):
         ]
         ok, violations = self._semantics(event)
         self.assertFalse(ok)
-        self.assertEqual("SCHEMA_INVALID", violations[0]["code"])
+        self.assertEqual("NON_FINITE_VALUE", violations[0]["code"])
 
     def test_deep_nesting_does_not_recurse(self):
         # A sender-controlled nesting depth must be a memory cost, never a
@@ -191,7 +191,7 @@ class ValueScopedNonFiniteTest(unittest.TestCase):
         node["bad"] = float("nan")
         ok, violations = self._semantics(event)
         self.assertFalse(ok)
-        self.assertEqual("SCHEMA_INVALID", violations[0]["code"])
+        self.assertEqual("NON_FINITE_VALUE", violations[0]["code"])
         # The reported path is sender-controlled and ships inside the
         # diagnostic; it must be bounded and the truncation must be visible.
         field = violations[0]["details"]["field"]
@@ -251,8 +251,14 @@ class NonFiniteEndToEndTest(unittest.TestCase):
         event = _put(_state_event(), ["payload", "geo", "lat"], float("nan"))
         event = _put(event, ["payload", "geo", "alt_m"], float("inf"))
         diagnostic = self._assert_refused_and_clean(self._process(event))
+        # Diagnostic-first posture (R1-11-01 mint): the v1.0-stamped wire
+        # diagnostic keeps the documented fallback code, and the minted code
+        # rides metrics.diagnostic_code so the operator can still filter.
         self.assertEqual(
             "SCHEMA_INVALID", diagnostic["payload"]["metrics"]["reason_code"]
+        )
+        self.assertEqual(
+            "NON_FINITE_VALUE", diagnostic["payload"]["metrics"]["diagnostic_code"]
         )
 
     def test_json_wire_never_carries_the_nan_token(self):
@@ -292,7 +298,7 @@ class NonFiniteEndToEndTest(unittest.TestCase):
         # identical exposure. Both severities are now pinned.
         policy = copy.deepcopy(self.policy)
         policy["violation_severities"] = dict(policy["violation_severities"])
-        for code in ("SCHEMA_INVALID", "NON_FINITE_CONFIDENCE"):
+        for code in ("SCHEMA_INVALID", "NON_FINITE_CONFIDENCE", "NON_FINITE_VALUE"):
             policy["violation_severities"][code] = "warn"
 
         for path, value in (
@@ -327,7 +333,7 @@ class NonFiniteEndToEndTest(unittest.TestCase):
             event, self.validator, self.policy, "L"
         )
         self.assertTrue(violations)
-        self.assertEqual("SCHEMA_INVALID", violations[0]["code"])
+        self.assertEqual("NON_FINITE_VALUE", violations[0]["code"])
 
 
 class NonFiniteHelperTest(unittest.TestCase):

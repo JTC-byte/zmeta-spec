@@ -134,6 +134,19 @@ semantics:
       - EVENT_DUPLICATE
       - TASK_DUPLICATE
       - TASK_ACK_DUPLICATE
+      - NON_FINITE_VALUE
+      - COMMAND_EVIDENCE_UNRESOLVED
+      - COMMAND_EVIDENCE_PROHIBITED
+    # Diagnostic-first wire posture for codes minted after the v1.0 lock
+    # (R1-11-01 Class B batch, adjudicated 2026-08-09). The locked v1.0
+    # reason_code enum cannot grow, and gateway wire diagnostics are stamped
+    # zmeta_version 1.0, so on the wire each minted code rides its documented
+    # legacy fallback below and travels natively in metrics.diagnostic_code,
+    # in the gateway's JSONL diagnostics, and in the 1.1.0 schema enum.
+    schema_violation_v1_0_wire_fallback:
+      NON_FINITE_VALUE: SCHEMA_INVALID
+      COMMAND_EVIDENCE_UNRESOLVED: LINEAGE_PARENT_UNRESOLVED
+      COMMAND_EVIDENCE_PROHIBITED: LINEAGE_MISMATCH
     task_ack_required_metrics_fields:
       - task_id
       - original_event_id

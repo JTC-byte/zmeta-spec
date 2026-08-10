@@ -2126,10 +2126,43 @@ def _bounded_diagnostic_error(text):
     return text[:MAX_DIAGNOSTIC_ERROR_CHARS] + "...<truncated>"
 
 
+def _v1_0_wire_reason(reason_code, policy):
+    """Diagnostic-first posture for codes minted after the v1.0 lock
+    (R1-11-01 Class B batch, maintainer-adjudicated 2026-08-09).
+
+    The locked v1.0 reason_code enum cannot grow, and every wire diagnostic
+    this gateway builds is stamped zmeta_version 1.0, so a minted code in
+    reason_code would make the gateway's own diagnostic schema-invalid and
+    the outgoing self-check would destroy it (the GEO_ZERO_FILL_SUSPECTED
+    regression class). The wire event keeps the documented legacy code;
+    the minted code travels in metrics.diagnostic_code, in the JSONL
+    diagnostics natively, and in the 1.1.0 schema enum. The mapping is
+    policy data, never hardcoded here (the TV-09 lesson).
+
+    Returns (wire_reason_code, minted_code_or_None). A missing or broken
+    policy block means no fallback is applied, which fails loudly at the
+    outgoing self-check rather than silently renaming a code.
+    """
+    if not isinstance(policy, dict):
+        return reason_code, None
+    fallback = (
+        policy.get("semantics", {})
+        .get("system_event", {})
+        .get("schema_violation_v1_0_wire_fallback", {})
+    )
+    if not isinstance(fallback, dict):
+        return reason_code, None
+    wire = fallback.get(reason_code)
+    if not isinstance(wire, str) or not wire:
+        return reason_code, None
+    return wire, reason_code
+
+
 def build_violation_event(reason_code, original=None, details=None, contract_hashes=None, stamp_contract_hash=False, force_schema_violation=False, policy=None):
     original_event = original.get("event", {}) if isinstance(original, dict) else {}
     original_source = original.get("source", {}) if isinstance(original, dict) else {}
     original_payload = original.get("payload", {}) if isinstance(original, dict) else {}
+    reason_code, minted_code = _v1_0_wire_reason(reason_code, policy)
 
     # force_schema_violation keeps wire-level diagnostics (e.g.
     # ENCODING_UNSUPPORTED) out of the TASK_ACK shape, whose reason_code
@@ -2160,6 +2193,8 @@ def build_violation_event(reason_code, original=None, details=None, contract_has
     system_type = "TASK_ACK" if is_command else "SCHEMA_VIOLATION"
 
     metrics = {"reason_code": reason_code}
+    if minted_code:
+        metrics["diagnostic_code"] = minted_code
     if is_command:
         metrics["task_id"] = (
             original_payload.get("task_id") if isinstance(original_payload, dict) else None
@@ -2196,11 +2231,17 @@ def build_violation_event(reason_code, original=None, details=None, contract_has
     }
 
 
-def build_warning_event(reason_code, original=None, details=None, contract_hashes=None, stamp_contract_hash=False):
+def build_warning_event(reason_code, original=None, details=None, contract_hashes=None, stamp_contract_hash=False, policy=None):
     original_event = original.get("event", {}) if isinstance(original, dict) else {}
     original_source = original.get("source", {}) if isinstance(original, dict) else {}
 
+    # Same diagnostic-first fallback as build_violation_event: a warn-mode
+    # minted code (COMMAND_EVIDENCE_UNRESOLVED) must not make the gateway's
+    # own warning event schema-invalid on the v1.0 wire.
+    reason_code, minted_code = _v1_0_wire_reason(reason_code, policy)
     metrics = {"reason_code": reason_code, "original_event_id": original_event.get("event_id") or "UNKNOWN"}
+    if minted_code:
+        metrics["diagnostic_code"] = minted_code
     if original_source.get("platform_id"):
         metrics["source_platform_id"] = original_source.get("platform_id")
     if original_source.get("producer"):
@@ -2519,10 +2560,12 @@ def process_message(
                 metrics.record_violation(
                     violation["code"], event_id=event_id, producer=producer, details=violation.get("message")
                 )
-            # The evidence-lineage reason codes are not in the deliberately
+            # The evidence reason codes are not in the deliberately
             # task-limited TASK_ACK vocabulary, so this refusal rides the
             # SCHEMA_VIOLATION shape (the documented force_schema_violation
-            # path); task correlation stays in details.task_id.
+            # path); task correlation stays in details.task_id. policy is
+            # passed so the minted codes (COMMAND_EVIDENCE_*) take their
+            # v1.0 wire fallback rather than invalidating the diagnostic.
             return [
                 build_violation_event(
                     violation["code"],
@@ -2531,6 +2574,7 @@ def process_message(
                     contract_hashes=contract_hashes,
                     stamp_contract_hash=stamp_contract_hash,
                     force_schema_violation=True,
+                    policy=policy,
                 )
             ]
         warnings.extend(warns)
@@ -2654,6 +2698,7 @@ def process_message(
                 details=warning.get("details"),
                 contract_hashes=contract_hashes,
                 stamp_contract_hash=stamp_contract_hash,
+                policy=policy,
             )
         )
     return outgoing

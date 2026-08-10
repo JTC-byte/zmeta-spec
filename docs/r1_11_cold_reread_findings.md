@@ -773,6 +773,15 @@ Command-loop pair (2026-07-27, post-v1.1.17) attack residuals:
   LINEAGE_PARENT_UNRESOLVED honestly; the TASK_ACK vocabulary cannot name an
   evidence refusal (rides the documented force_schema_violation shape); and
   `risk_dimension: lineage` reuse pending the R1-11-10 boundary question.
+  **Partially satisfied 2026-08-09** by the R1-11-01 Class B batch:
+  `COMMAND_EVIDENCE_PROHIBITED` and `COMMAND_EVIDENCE_UNRESOLVED` are
+  minted (doctrine log R1-11-01/H1-08 closures, diagnostic-first wire
+  posture). Note the pairing difference, recorded rather than smoothed:
+  this entry wanted a code for evidence-required-but-absent, and the
+  adjudicated pair instead covers the unresolved-citation condition; the
+  required-but-absent refusal keeps LINEAGE_MISMATCH as a
+  policy-strictness refusal, filterable via `policy_ref`. The TASK_ACK
+  seam and the `risk_dimension` reuse stay banked pending R1-11-10.
   Also: a command-evidence corpus example awaits the strict-warn
   representability decision (doctrine R1-11-14/19), and
   `policy/lineage.yaml` `allowed_parent_event_types` has no COMMAND_EVENT
