@@ -13,8 +13,14 @@ design waves, then hygiene, then anything genuinely waiting on field evidence.
 
 ### Tier 1 — next, and two of the three are cheap
 
-1. **Finish the v1.1.22 cut.** Tag, optional signing, push, upload assets.
-   Maintainer-only. Everything else in the cut is prepared and green.
+1. **Finish the v1.1.22 cut.** **DONE 2026-08-10.** Tagged on the final
+   cut, seven assets uploaded, checksums verified. Signing was skipped
+   because no signing key has ever been configured (verified against git
+   config, the keyring, and every published release's asset list);
+   setting one up before the next release is the recorded follow-up, and
+   the tooling already supports it
+   (`release/sign_release_artifacts.py --sign`). ZMeta is relocked for
+   field testing: telemetry drives the next wave.
 
 2. **Sweep every remaining ingress adapter for the altitude-datum class.**
    **DONE 2026-08-10.** Twelve surfaces swept (ingress, egress, command,
@@ -1353,11 +1359,11 @@ Current stack status:
   unasserted native values remain auditable under explicitly named
   non-canonical fields.
 - Use tag `v1.1.22` for current formal release assets and checksums.
-  Prepared 2026-08-10 and not yet published: the identity is open, the
-  manifest is rebuilt against the working tree, and the tag, release
-  assets and checksums remain the maintainer's to create. `v1.1.21`
-  (published 2026-08-09, checksums-only per the recorded signing
-  decision) is the baseline before it.
+  Published 2026-08-10 at the maintainer's direction: tag `v1.1.22` on the
+  final cut, seven release assets uploaded, checksums-only per the
+  recorded signing decision (no signing key exists; setting one up is a
+  recorded follow-up). `v1.1.21` (published 2026-08-09) is the baseline
+  before it.
   *This line is machine-pinned on its version literal only, so it went on
   naming a tag that had never been created while the pin stayed green — the
   prose-beside-a-pinned-literal blind spot this cycle was convened to fix,
