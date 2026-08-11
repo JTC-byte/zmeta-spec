@@ -1,5 +1,6 @@
 import importlib.util
 import json
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -10,6 +11,7 @@ VALIDATE_PROJECTION_PATH = ROOT / "tools" / "validate_projection.py"
 CATALOG_PATH = ROOT / "conformance" / "profile_projection_field_catalog.yaml"
 PASS_PATH = ROOT / "conformance" / "profile-projection" / "must-pass.jsonl"
 FAIL_PATH = ROOT / "conformance" / "profile-projection" / "must-fail.jsonl"
+README_PATH = ROOT / "conformance" / "profile-projection" / "README.md"
 
 spec = importlib.util.spec_from_file_location("validate_projection", VALIDATE_PROJECTION_PATH)
 validate_projection = importlib.util.module_from_spec(spec)
@@ -166,3 +168,28 @@ def test_projection_rejects_semantic_layer_collapse_and_raw_state_fields():
         "inference-to-state-same-id-fail"
     )
     assert "PROJECTION_PROHIBITED_FIELD_ADDED" in _codes("raw-state-fields-fail")
+
+
+def _readme_documented_failure_codes():
+    section = README_PATH.read_text(encoding="utf-8").split("## Failure Codes", 1)[1]
+    return set(re.findall(r"`(PROJECTION_[A-Z_]+)`", section))
+
+
+def test_readme_failure_code_list_matches_the_validator_exactly():
+    """The README's own doc claims to be the stable-string reference.
+
+    A code the tool can raise and the fixture corpus asserts on, but the
+    README omits, misleads a fixture author cross-referencing the doc rather
+    than the source, and a listed code the tool cannot raise is a dead
+    reference. Both directions matter, so this is set equality, not
+    subset.
+    """
+    documented = _readme_documented_failure_codes()
+    implemented = set(validate_projection.FAILURE_CODES)
+
+    assert documented == implemented, (
+        "conformance/profile-projection/README.md Failure Codes list diverges "
+        "from tools/validate_projection.py FAILURE_CODES: "
+        f"documented-but-not-implemented={sorted(documented - implemented)}, "
+        f"implemented-but-not-documented={sorted(implemented - documented)}"
+    )
