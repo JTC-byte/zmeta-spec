@@ -143,7 +143,7 @@ tell the quiet node from the broken one.
   Anything else omits geo entirely; the raw native `location` is preserved
   under the vendor extension with an `omitted_reason` tag
   (`GEOID_DATUM`, `NO_ALTITUDE`, `UTM_UNSUPPORTED`, `ZERO_FILL_SUSPECT`,
-  `UNITS_UNSPECIFIED`, `DATUM_UNSPECIFIED`, `COORDS_MISSING`,
+  `COORDINATE_SYSTEM_UNSPECIFIED`, `DATUM_UNSPECIFIED`, `COORDS_MISSING`,
   `RANGE_INVALID`).
 - **Canonical bearing only for TRUE north** (contract 6.4):
   `RANGE_BEARING_DATUM_TRUE` maps to `payload.bearing.az_deg`
