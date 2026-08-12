@@ -2,7 +2,22 @@
 
 ## Current Resume Note
 
-- Last updated: 2026-08-10 (v1.1.22 cut prepared; doctrine cycle C1)
+- Last updated: 2026-08-11 (external verification follow-up; three drift fixes)
+- **2026-08-11 (external verification, documentation consistency).** A field
+  verification pass found three documentation and scan-consistency defects.
+  The governed-document profile scan included stale repository copies under
+  `.claude/worktrees/`; that snapshot path is now excluded with the other
+  non-current trees. The profile-projection README omitted
+  `PROJECTION_POLICY_RISK_LABEL_REMOVED` and
+  `PROJECTION_EXTERNAL_PROMOTION_EVIDENCE_REMOVED` from the failure-code list
+  it presents as the stable reference, and the SAPIENT README named
+  `UNITS_UNSPECIFIED` where the adapter emits
+  `COORDINATE_SYSTEM_UNSPECIFIED`. Both README fixes add set-equality tests
+  against their implementation sources, so missing, extra, and misspelled
+  entries fail together. The review initially asked for a record of four fixes.
+  Maintainer review held the fourth proposal because its runtime diagnostic is
+  intentionally outside policy severity machinery; the branch now contains
+  and records the three accepted fixes.
 - **2026-08-10 (external review, fix wave, v1.1.22 prepared).** An
   independent technical review compared ZMeta against ten standards without
   raw-byte access to the normative files. Its own findings were roughly a

@@ -2,7 +2,16 @@
 
 ## [Unreleased]
 
-(Nothing yet — the next work lands here.)
+- 2026-08-11: **Three documentation-consistency fixes from external
+  verification.** The governed-document scan now excludes stale copies under
+  `.claude/worktrees/`, the profile-projection README lists the two implemented
+  risk and external-promotion failure codes it omitted, and the SAPIENT README
+  uses the `COORDINATE_SYSTEM_UNSPECIFIED` omission reason emitted by the
+  adapter. The two README corrections include set-equality tests that detect
+  missing, extra, or misspelled entries. The review originally referred to four
+  fixes; maintainer review held the fourth proposal because its runtime
+  diagnostic is intentionally outside policy severity machinery, so this
+  branch records the three accepted fixes.
 
 ## [1.1.22] - 2026-08-10
 
