@@ -55,6 +55,7 @@ made, and not required reading for using the standard:
   audit cycles (public half; the private half lives outside the repo).
 - `zmeta_live_test_checklist.md`: the staging checklist for the SITL and
   live-fire gates; retires into the playbook once those gates have run.
-- `release_checksum_errata.md` and `release_notes_errata.md`: corrections
-  to published release records, which are never rewritten in place.
+- `release_checksum_errata.md`, `release_notes_errata.md` and
+  `release_claims_errata.md`: corrections to published release records,
+  which are never rewritten in place.
 - `diagrams/`, `img/`: supporting assets.

@@ -13,7 +13,14 @@ Use this as the template for each release.
       baseline snapshots the new tree under the previous id and reports a
       governed change as clean. `gateway/tests/test_release_currency.py` pins that the baseline
       names the immediately previous published release.
-- [ ] Release manifest built and validated
+- [ ] Release manifest built and validated, with the example claims
+      refreshed in the same run: invoke `tools/build_release_manifest.py`
+      with `--update-claims` and commit the refreshed
+      `conformance/claims/example-*.yaml` beside the manifest. The v1.1.22
+      cut rebuilt the manifest without refreshing the claims, and the stale
+      `release_hashes` shipped in every published v1.1.22 bundle
+      (`docs/release_claims_errata.md`). Nothing reads `release_hashes`
+      back against the manifest yet, so this step is the only control.
 - [ ] Release package templates or generated package output validated
 - [ ] Schema validates against examples
 - [ ] Policy pack validation run locally
@@ -78,10 +85,20 @@ Use this as the template for each release.
       first. Its published checksums for text assets are known wrong (no
       line-ending normalization before v1.1.20), and published files were
       never rewritten to match.
-- [ ] Signing decision recorded: signed release, or checksums-only with the
-      release notes stating that no detached signatures are attached
+- [ ] Signing decision recorded in the release notes, naming the release
+      authority and the date: signed release, or checksums-only with the
+      notes stating that no detached signatures are attached. Never carry a
+      prior release's answer forward. Sixteen releases (v1.1.5 through
+      v1.1.22) shipped checksums-only citing a "recorded signing decision"
+      that was never made; doctrine pressure log X2-02 records the chain.
+- [ ] Key existence re-derived at this cut, never inherited from a prior
+      record: `release/sign_release_artifacts.py --sign --dry-run` prints
+      the exact gpg invocation it will run; list the secret keys with that
+      same gpg binary before recording the decision. A different gpg on the
+      same machine can resolve a different, empty keyring.
 - [ ] *(signed releases only)* Detached signatures generated for SHA256SUMS
-      and release assets
+      and release assets, passing an explicit key id when the keyring holds
+      more than one key
 - [ ] *(signed releases only)* Detached signatures verified
 - [ ] *(signed releases only)* Signing key fingerprint or Sigstore identity
       documented in release notes

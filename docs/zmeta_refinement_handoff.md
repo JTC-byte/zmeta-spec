@@ -21,6 +21,17 @@ design waves, then hygiene, then anything genuinely waiting on field evidence.
    the tooling already supports it
    (`release/sign_release_artifacts.py --sign`). ZMeta is relocked for
    field testing: telemetry drives the next wave.
+   *(Correction 2026-08-12: the signing claim above is false. A release
+   signing key was configured on 2026-04-28 and signed v1.1.2 through
+   v1.1.4; its public half ships in the tree as
+   `release/ZMETA_RELEASE_SIGNING_KEY_v1.1.2.asc` through `_v1.1.4.asc`.
+   The keyring named as verified was the shell's, which is empty; the
+   keyring `release/sign_release_artifacts.py` resolves held the key
+   throughout. The key was test-verified end to end on 2026-08-12 and is
+   the signing key going forward. Doctrine pressure log X2-02 records the
+   full failure chain; `RELEASE_CHECKLIST.md` now requires the signing
+   decision to name the release authority and the date, and requires key
+   existence to be re-derived at each cut.)*
 
 2. **Sweep every remaining ingress adapter for the altitude-datum class.**
    **DONE 2026-08-10.** Twelve surfaces swept (ingress, egress, command,
@@ -1364,6 +1375,10 @@ Current stack status:
   recorded signing decision (no signing key exists; setting one up is a
   recorded follow-up). `v1.1.21` (published 2026-08-09) is the baseline
   before it.
+  *(Correction 2026-08-12: "no signing key exists" was false, and the
+  "recorded signing decision" resolves to no decision by the release
+  authority. See the Tier 1 correction near the top of this document and
+  doctrine pressure log X2-02.)*
   *This line is machine-pinned on its version literal only, so it went on
   naming a tag that had never been created while the pin stayed green — the
   prose-beside-a-pinned-literal blind spot this cycle was convened to fix,

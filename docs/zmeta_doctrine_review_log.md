@@ -2133,6 +2133,106 @@ checklist item, a check with a defined retirement condition) is exactly the
 shape of the pending apparatus review, which should adjudicate it deliberately
 rather than this wave deciding it inside its own momentum.
 
+## Cycle X2 — 2026-08-12 (second external contribution, PR #8 review)
+
+Seeded by PR #8 (barrettdowns, Torch): four fixes against published
+v1.1.22, submitted with field telemetry relayed by text. The telemetry was
+the strongest field news the standard has had. The altitude-datum fix held
+under a deliberate adversarial test on real ISR sensor logs across four
+ingestion paths, the conformance gate drove three fixes inside the
+contributor's own codebase, and encoding round-trips on real traffic were
+lossless. The review verdicts and asks are on the PR itself (review
+4920530322). The entries below record what verifying the PR exposed in
+this repository's own records. The PR's governed commit, a metrics-only
+code offered registry membership, is under maintainer adjudication and
+logs here at disposition, with the merge wave.
+
+| # | Tension | Gates in play | Status |
+|---|---|---|---|
+| X2-01 | A hash pin was accepted as proof of claim currency, and refuted a true finding | 3 | OPEN |
+| X2-02 | The signing record cites a decision that was never made | 3, 5 | **CHANGED 2026-08-12** |
+| X2-03 | The changelog guard skips on a convention an external contributor cannot know | 3 | OPEN |
+
+### X2-01 — A hash pin was accepted as proof of claim currency · OPEN
+
+Both example conformance claims carry `release_hashes` entries that
+disagree with the release manifest beside them: `adapter_conformance_hash`
+and `process_governance_hash` are stale in both files at the published
+v1.1.22 tag. The drift entered at the first v1.1.22 cut commit
+(`f0f5134`), which rebuilt the manifest without refreshing the claims, and
+it shipped in every published v1.1.22 bundle. v1.1.21 has no divergence.
+`docs/release_claims_errata.md` records the values and the reproduction.
+
+Two prior verifications said this could not happen, and both passed for
+reasons other than the ones claimed. The R1-11 audit refuted the finding
+"conformance claims' `release_hashes` are never cross-checked against the
+manifest" 3/3, partly on the ground that the claim files sit in the
+manifest's hash-pinned claims group. The pin is real and certifies the
+wrong property: it proves the stale bytes are intact, which is integrity,
+while the finding was about currency. The refutation's other ground, that
+the only documented command includes `--update-claims`, was falsified by
+the v1.1.22 cut itself. This is the vacuous-verification class (P2-D1)
+operating at the audit layer: the refutation was a check that could not
+fail. A dated correction now sits on the refuted finding in
+`docs/r1_11_full_stack_audit.md`.
+
+No gate can catch the class today, because nothing in the repository reads
+`release_hashes` back. Queued for the next fix wave: a currency check that
+parses each example claim's `release_hashes` and asserts equality with the
+manifest it sits beside. `RELEASE_CHECKLIST.md` gained the
+`--update-claims` step this cycle as the interim human control.
+
+### X2-02 — The signing record cites a decision that was never made · **CHANGED 2026-08-12**
+
+Sixteen releases, v1.1.5 through v1.1.22, shipped checksums-only while
+their records cited "the recorded signing decision". No such decision
+exists. v1.1.2 through v1.1.4 shipped seven detached signatures each, made
+with a release signing key created 2026-04-28 whose public half is tracked
+in `release/` today. Signing stopped at v1.1.5, the first agent-executed
+cut, and the maintainer reports having believed that releases were still
+being signed.
+
+The "recorded decision" resolves only to restatements of itself. Each
+release's notes cited the convention, and the refinement handoff asserted
+"no signing key has ever been configured (verified against git config, the
+keyring, and every published release's asset list)". That sentence carried
+its own verification credentials and was still wrong: the keyring checked
+was the shell's, which is empty, while the keyring the signing tooling
+resolves held the original key throughout, and the tracked public-key
+files contradicted "never configured" from three directory entries away.
+
+Two failure classes compounded. A negative existence claim was verified in
+one environment and asserted for all environments, which is the
+vacuous-verification class (P2-D1). And an inference was promoted to a
+"recorded decision" with no decider and no date, which is the laundering
+gate pointed at the project's own process records: an unlabeled inference
+travelled as an adjudicated fact.
+
+Resolution this cycle, hence the CHANGED status: `RELEASE_CHECKLIST.md`'s
+signing items now require the decision to name the release authority and
+the date, forbid carrying a prior release's answer forward, and require
+key existence to be re-derived at each cut with the same gpg binary the
+signing tooling resolves. The handoff's false passages carry dated
+corrections. The key itself was verified end to end on 2026-08-12, so the
+next release can ship signed. Queued for the fix wave: a completeness-gate
+extension so a release that drops detached signatures relative to its
+predecessor fails unless its notes carry the attributed decision.
+
+### X2-03 — The changelog guard skips on a convention an external contributor cannot know · OPEN
+
+PR #8's governed change arrived with no CHANGELOG entry, and
+`test_changelog_keeps_up` skipped instead of failing. The guard keys on
+the worklog's `- Last updated:` sentinel line; the contributor added a
+dated 2026-08-11 entry above a sentinel still reading 2026-08-10, and a
+stale sentinel is the guard's documented skip condition. No document
+explains the sentinel convention, so an external contributor can satisfy
+it only by accident. The apparatus audit already carries this guard's
+failure-to-catch record as a maintainer-call item; this instance is the
+first at the contributor boundary, where the convention is least knowable,
+which raises its weight. Queued recommendation: derive the worked-on date
+from the newest dated worklog entry instead of the sentinel, so the guard
+keys on what contributors actually write.
+
 ---
 
 The value of this log is the pattern over time. But a log that only ever grows
