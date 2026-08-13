@@ -1369,16 +1369,14 @@ Current stack status:
   bearing/heading fields unless callers explicitly assert `TRUE_NORTH`;
   unasserted native values remain auditable under explicitly named
   non-canonical fields.
-- Use tag `v1.1.22` for current formal release assets and checksums.
-  Published 2026-08-10 at the maintainer's direction: tag `v1.1.22` on the
-  final cut, seven release assets uploaded, checksums-only per the
-  recorded signing decision (no signing key exists; setting one up is a
-  recorded follow-up). `v1.1.21` (published 2026-08-09) is the baseline
-  before it.
-  *(Correction 2026-08-12: "no signing key exists" was false, and the
-  "recorded signing decision" resolves to no decision by the release
-  authority. See the Tier 1 correction near the top of this document and
-  doctrine pressure log X2-02.)*
+- Use tag `v1.1.23` for current formal release assets and checksums.
+  Published 2026-08-13 at the maintainer's direction: PR #8 merged with its
+  record wave completed, and the release signed with the Incept.IO release
+  key, the first signed release since v1.1.4. The signing decision names
+  the release authority and date in the release notes, per the hardened
+  checklist. `v1.1.22` (published 2026-08-10, checksums-only, see the
+  claims erratum and doctrine pressure log X2-02) is the baseline before
+  it.
   *This line is machine-pinned on its version literal only, so it went on
   naming a tag that had never been created while the pin stayed green — the
   prose-beside-a-pinned-literal blind spot this cycle was convened to fix,

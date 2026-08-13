@@ -195,7 +195,7 @@ Answering that is what the live test is for.
 ```
 python -m pytest adapters/ingress/adsb -q
 python tools/validate.py --file your-adsb-events.jsonl --profile H
-python tools/check_compat.py your-adsb-events.jsonl --target v1.1.22 --strict
+python tools/check_compat.py your-adsb-events.jsonl --target v1.1.23 --strict
 ```
 
 `--strict` will report `timing_quality_fallback` for every event unless the

@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+(Nothing yet - the next work lands here.)
+
+## [1.1.23] - 2026-08-13
+
 - 2026-08-13 — **PR #8 merged: the first fully external fix wave lands.**
   The force-pushed branch was re-reviewed end to end before merge: the three
   accepted commits are byte-identical to the first review, the withdrawn

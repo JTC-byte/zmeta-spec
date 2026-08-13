@@ -141,7 +141,7 @@ Supported invocation patterns:
 
 ```
 python -m pytest adapters
-python tools/check_compat.py examples/zmeta-v1.1-examples.jsonl --target v1.1.22
+python tools/check_compat.py examples/zmeta-v1.1-examples.jsonl --target v1.1.23
 PYTHONPATH=. python adapters/ingress/<adapter>/<script>.py
 ```
 

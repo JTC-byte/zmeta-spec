@@ -2,7 +2,7 @@
 
 **Standing artifact. Advisory / non-normative.**
 
-Current release context: ZMeta v1.1.22.
+Current release context: ZMeta v1.1.23.
 
 ## Why this file exists
 

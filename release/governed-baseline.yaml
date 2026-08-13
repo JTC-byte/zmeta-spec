@@ -1,15 +1,15 @@
-baseline_release_id: zmeta-v1.1.21
+baseline_release_id: zmeta-v1.1.22
 generated_by: tools/release_focus_facts.py --write-baseline
 purpose: The published release this working tree is measured against. Committed because CI checks out without tags, so a git-based comparison would pass vacuously there.
 artifact_hashes:
-  AGENTS.md: sha256:017f3ae0912892015407b707666189efbd943123b9c8074b1c53181560be6867
+  AGENTS.md: sha256:2fff4619260a36548a47ddc2708dcb451e185cb36eb81758beee6f1346a01da0
   CONFORMANCE.md: sha256:23fc4da8d17370024624eebb414139a94b70b67b83669c8b1db8d5f268e6e49e
-  CONTRIBUTING.md: sha256:9356d74652299062650641ff855ccea760034e79755b7fd048ca5cefe313edc0
+  CONTRIBUTING.md: sha256:09780422263072a350400673df72cff10cd0fb16d30cb4c182c1b6782a7dce71
   IP_POLICY.md: sha256:5f81bd201183e03f15401f5228928d33fff60f2102651959d1ed66b77699ca90
   TRADEMARK.md: sha256:0085d72ae8c4d11550562a784980275258a99b5b72450a2d6937b0971b91b201
   configs/policy-variants/producer-authority.strict.yaml: sha256:4f9ab94813f97ff30b38bec62f4cfddddbb180b66ff82906a7e4573fdc5c628b
   configs/policy-variants/timing-freshness-profile-L-degrade.yaml: sha256:aaa30e5607a22d006c243403fafbd6b55f6ee8cb9ce0c2aa063ad8af30b64780
-  conformance/adapter-harness/must-pass.jsonl: sha256:603b0ac5da3f2a28669dc11c03bab4025aa28cf6c7215606de4fb26717878c50
+  conformance/adapter-harness/must-pass.jsonl: sha256:95923e9e7546bb8a7ccf906a788a9712070ef0c935348caba3b02f35c19070cc
   conformance/bad-events/must-fail.jsonl: sha256:9663ff32172a26b071b0c90bd5d43c818335f64bf6f965073bf52956de91d9b8
   conformance/claims/example-core-producer.yaml: sha256:ea4512a4899fe6dd72848bdbe4a7e1ca95c32b1a5fe9340e13e4d9b48426ddca
   conformance/claims/example-reference-gateway.yaml: sha256:7b3199b7e09dfc173c80aeb126a0e50284b836890fe5cf832aa4a3e999abe175
@@ -18,8 +18,8 @@ artifact_hashes:
   conformance/encoding-negative/context.jsonl: sha256:a08ef68da7067be0e6ccf37e8f4ae349e42156678805aaf7de913cc4fa36e6d3
   conformance/encoding-negative/gateway-must-fail.jsonl: sha256:dc9800d7ed7399e89733adf12aea442128fde330dcfab4e9f21889364d02d061
   conformance/encoding-negative/protobuf-must-fail.jsonl: sha256:c36f7e710158d31fd17162fc020afc0c015c1f9df68d3706adf78ea9030516fc
-  conformance/must-fail.jsonl: sha256:59f59c3041b14454da59b5066b64be1d1c2739d73e4feb9fd4a06a9d5686c21d
-  conformance/must-pass.jsonl: sha256:ca53751311824c5a941e652bfdec89c6566233e5e6e06649547993606b4138ff
+  conformance/must-fail.jsonl: sha256:6fbe5f200a24ff2dedf96bd79b245484857761e598ad300dd06f69131a75165a
+  conformance/must-pass.jsonl: sha256:d1b4abb264493d97274537eca1dd5306319491467357ac0d3287ccc3411071d4
   conformance/profile-precision/context.jsonl: sha256:e6c7489abaffe2416e1f75c74cb7f8cf6a078911a0100200dc45098f4721433f
   conformance/profile-precision/must-fail.jsonl: sha256:401468a0cd175766c97b12eb9722fd753bcc80573867ddbfd897d692a9f62977
   conformance/profile-precision/must-pass.jsonl: sha256:fe9a267ec9964ae9e4ddb7275eec78efb6d0d68cd715c41cee0507fae206eb5e
@@ -27,7 +27,7 @@ artifact_hashes:
   conformance/profile-projection/must-fail.jsonl: sha256:4f20a6d8b0a6e5f73b491389d78313426ee90ba9b13192ca32593650e436acf0
   conformance/profile-projection/must-pass.jsonl: sha256:ac8d80b93480c735b961c72b049dd22a0b3997d03ce72cf53df0be903d15da47
   conformance/profile_projection_field_catalog.yaml: sha256:bd5c6526339863e704bc287c45a35d0b2ff277f47a2ed8f100788ace73fec1b2
-  docs/zmeta_change_governance.md: sha256:620476bfbb7fba52a0fc80078d59d1e45296d6e5fd669825d5ff58ddd27a3faf
+  docs/zmeta_change_governance.md: sha256:9e4a6391fd697d4ddcb6696a918f0abbb679cc266edc59d6515fc7920f2d1e1e
   docs/zmeta_defensive_publication.md: sha256:4cca30cba78e081c57b73218d5bcb598ff3945a22d8e83299666df7ad9fc00af
   export/policy/command-evidence.json: sha256:8df7240d2d2707a24cee52265dc1f289947f56d22b8a02b140ce04fd8d89e5ca
   export/policy/index.json: sha256:e9c2b54ade9fe4c56da8429ca29d2c3ce39251906f2ef7323e3360df9b4c636b
@@ -53,7 +53,7 @@ artifact_hashes:
   release/ATTESTATION_TEMPLATE.yaml: sha256:51d83f4f1105ddfb15d437d853a3776fb5f0dcf93421909dd376708721455a05
   release/RELEASE_NOTES_TEMPLATE.md: sha256:72f8508ccbcc44e6845fee7b778e9501cdcbcc70f6dc2012614991f07a3784aa
   release/RELEASE_PACKAGE_README.md: sha256:085a7808594e8d4070fd73af6f7bf19c61fd1656b26d9a8779040f0b77abcc47
-  release/governed-baseline.yaml: sha256:ae6fe55ce677fce58e0b3844efd9338ea00e539d945a1a5b3d58cad8f9baf87b
+  release/governed-baseline.yaml: sha256:77b5b0a4eabb335f3bd29fd2f607036499b44326b070b092c2e76efb177662c1
   schema/proto/zmeta_event_v1.proto: sha256:abc128fa2dc0058624bc654b422e8b0c7a045aac83e6a71d644a8ccca6672d82
   schema/zmeta-event-1.0.schema.json: sha256:1d2d84164b3a8986874e932c0e9369be3bf392a483a8ff261d464f34bd16d7b5
   schema/zmeta-event-1.1.0.schema.json: sha256:e10c151dce8e167b1df76c8c8f27dc28f39d0b1e210a8adfb50ae1c61a1b195f
@@ -61,7 +61,7 @@ artifact_hashes:
   spec/compact-binary-mapping.md: sha256:fd56207c421b0b7d6a6fe081ad9e6efe71af957850234e962b8cc2a41831bcb4
   spec/extension-registry.yaml: sha256:286e714a4d039012d95eea5ddc1e117f992b8930795207a9407921ff597bb4bc
   spec/future-branch-roadmap.md: sha256:ae1ce2abd06ed10036b9a1658bbb873b2d4f4e60a722921f3adf60488dd98d42
-  spec/future-branch-roadmap.yaml: sha256:72caec3d5374a7d4914524eaaa1e016cc5787ec4e97a640487597207dc01c170
+  spec/future-branch-roadmap.yaml: sha256:7e22e07ea9801842654c206dcf4c6845b80e9e24b359f283b508cf40923d3a18
   spec/protobuf-encoding.md: sha256:9e31d7e20847f0d6278ef91c6c598effafcce9a33d382da33cd36b64e4fa4de1
   spec/release-hash-policy.md: sha256:105f61fa8b6ed602c7584d0f4cb1d56a838a93c73aee06f9223e3253507b13ae
   spec/release-signing-attestation.md: sha256:1dfa9170bb8d6b680713bb46982efc817e2ebc42573d1a79debf4c175ec0f061
@@ -73,7 +73,7 @@ artifact_hashes:
   tools/filter_risk.py: sha256:cc4412acb9366644ca7e19000858e4a284b6a6d8f1b42558da35b053915be2bd
   tools/validate_adapter_conformance.py: sha256:45d44167eb4f33e535a823dba2e2493a27c7ac864e08aa7ba57310d02d6c2f37
   tools/validate_bad_events.py: sha256:67f32db27a03af99b6ab0a353447a0f449fb2111642a9217faed512b5aafe308
-  tools/validate_conformance.py: sha256:dea36ae847c03ad64f335c9aa6a1bcb84068c7c96938d53093b13667efd80c9b
+  tools/validate_conformance.py: sha256:444956d3126a947a26c96f03d5a2d0388c2ad857bd884846dbd849edac5b2e80
   tools/validate_conformance_classes.py: sha256:fb29d61b729b797aa68b08c202e2b68aa015593687e315d2c301a41a49aca059
   tools/validate_encoding_negative.py: sha256:887fa4b388f10cd66019f5cd5aa75b8aef5606a317a3ff4c6c3a3b39a0783745
   tools/validate_extension_registry.py: sha256:23e52cec5c22c0914531b17189f7743e288a9a0a6cbd6f89e9144b14ef61e0f5
