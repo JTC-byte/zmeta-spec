@@ -313,6 +313,8 @@ Minimum gate for governed changes:
 python tools\validate_release_manifest.py --manifest release\zmeta-release-manifest.yaml
 python tools\validate_release_package.py --manifest release\zmeta-release-manifest.yaml --templates-only
 python tools\validate_conformance.py --kernel-gate
+python tools\validate_examples.py --strict --require-all
+python tools\validate_future_roadmap.py
 python -m pytest -q
 git diff --check
 ```

@@ -2,6 +2,18 @@
 
 ## [Unreleased]
 
+- 2026-08-13 — **Lockdown completion: the battery is single-sourced and
+  the container path is verified.** The six documents defining the
+  governed battery state the same four commands, with
+  `tools/validate_future_roadmap.py` restored to every copy and the
+  examples validator added where omitted; a new guard holds the canon and
+  fails on omission, the direction the old check could not see. The
+  containerized gateway wire path is verified at v1.1.24 and recorded in
+  the live-test checklist. The worklog retention pass archives the
+  pre-2026-08-10 resume-note entries verbatim. The release manifest is
+  regenerated under the published v1.1.24 identity for the three hashed
+  governance documents, per the post-release rule; published checksums
+  are untouched.
 - 2026-08-13 — **The apparatus audit's retire-or-keep decisions land.**
   Deployment bundles curate out the simulation harnesses and the demo
   wizard (the wizard stays in the dist bundle as onboarding), pinned at

@@ -86,6 +86,8 @@ run:
 
 ```powershell
 python tools\validate_conformance.py --kernel-gate
+python tools\validate_examples.py --strict --require-all
+python tools\validate_future_roadmap.py
 python -m pytest -q
 git diff --check
 ```

@@ -125,8 +125,13 @@ class ChangelogKeepsUpTest(unittest.TestCase):
         text = WORKLOG.read_text(encoding="utf-8")
         dated_bold = re.findall(r"^- \*\*\d{4}-\d{2}-\d{2}.*$", text, re.M)
         matched = WORKLOG_ENTRY.findall(text)
+        # Floor re-derived at the 2026-08-13 retention pass: the live resume
+        # note keeps only the current release family (older entries move
+        # verbatim to the archive), so a handful of entries is the healthy
+        # state. Retention must never archive the newest entry: worked_on is
+        # computed from the live file only.
         self.assertGreaterEqual(
-            len(dated_bold), 30, "the worklog shrank; is this the right file?"
+            len(dated_bold), 3, "the worklog shrank; is this the right file?"
         )
         self.assertEqual(
             len(matched), len(dated_bold),

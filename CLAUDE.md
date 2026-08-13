@@ -83,8 +83,9 @@ promise.
   `release/bundles/`, `release/dist/`, `pytest-cache-files-*/`, `__pycache__/`.
   The canonical stack is the top-level tree.
 - Before proposing governed changes as done, run the kernel gates:
-  `python tools/validate_conformance.py --kernel-gate`
-  and `python tools/validate_examples.py --strict --require-all`,
+  `python tools/validate_conformance.py --kernel-gate`,
+  `python tools/validate_examples.py --strict --require-all`,
+  and `python tools/validate_future_roadmap.py`,
   then `python -m pytest -q` (full invocation in `AGENTS.md`).
 - Never create tags, push branches, upload releases, generate signatures, or
   rewrite published checksums unless explicitly asked (see `AGENTS.md` release

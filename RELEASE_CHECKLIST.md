@@ -28,6 +28,8 @@ Use this as the template for each release.
       `python tools/validate_examples.py --strict --require-all`
 - [ ] Full kernel-protection conformance passes:
       `python tools/validate_conformance.py --kernel-gate`
+- [ ] Future-branch roadmap validates:
+      `python tools/validate_future_roadmap.py`
 - [ ] Consumer risk-filter presets verified:
       `python -m pytest -q gateway/tests/test_risk_filter_cli.py`
 - [ ] Gateway self-test passes locally

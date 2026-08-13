@@ -27,13 +27,13 @@ profile_precision_policy_hash: sha256:8c4dcb6ee305b31cb08d4cc429138fd9d1ed149024
 bad_event_corpus_hash: sha256:a14c0492452bfad586a9fdce4a7e199b0baf937325b19af3a2b1d03a16cbdc5f
 adapter_conformance_hash: sha256:b1c8ff49878facbd699a5ab323c3ab3bbadfbf4a3fafc606816240b191191a97
 encoding_projection_specs_hash: sha256:5e14298cb0ffb42b84f2d835bc4d1266c629f1a1468e0416caaaadc449e29cce
-process_governance_hash: sha256:938c81bfae3e84f3a822a14e4ebfd4d9307fb4ba9ebe48350ea6726a1335e2f4
-release_bundle_hash: sha256:589e2959c445ed3f334a4815e9ca2784f3d0e6ac0ef6bc932d7659daaf21b1f6
-release_manifest_hash: sha256:a776ea7cedf7b26b1781752e93f055c3959d89f864d21b4ff6da26a6fa476bd4
+process_governance_hash: sha256:7fd8efcf7b987af045996389fde8bb6b03ac962ed3a00a6350f24f2e8b7ea51a
+release_bundle_hash: sha256:cfb1e35241e42ec70b6fe6a1f63f090246c3429b35d42828d9ea95bd884b3c8a
+release_manifest_hash: sha256:f59f2c78cebb1b6230f4fa9a04c91eb28888f795687c29877f90bda0cb2c2114
 artifact_hashes:
 - path: AGENTS.md
   group: process_governance
-  hash: sha256:2fff4619260a36548a47ddc2708dcb451e185cb36eb81758beee6f1346a01da0
+  hash: sha256:6a76334f27c86d86bd1f86998a8a7c28421f6076e6a9cfaeec86c1609b681f42
   canonicalization: text_lf
 - path: CONFORMANCE.md
   group: process_governance
@@ -41,7 +41,7 @@ artifact_hashes:
   canonicalization: text_lf
 - path: CONTRIBUTING.md
   group: process_governance
-  hash: sha256:289fdde13433909fccd71440db6ecde93adda3a99e215b4e0af643fd2170b472
+  hash: sha256:caac5845160bbb4a805e1f27ae9c76a14b6ceaa4ce4805f6b542c709c7d566f7
   canonicalization: text_lf
 - path: IP_POLICY.md
   group: process_governance
@@ -69,11 +69,11 @@ artifact_hashes:
   canonicalization: text_lf
 - path: conformance/claims/example-core-producer.yaml
   group: claims
-  hash: sha256:3c15182df7c6ce24f94d795e029c8ed7cf2190aa705e9e640379b8d40c0a5456
+  hash: sha256:5fc52b7be7c43ae300d6f75263974720d44b7cd6cbb6ee4c1ae77ac5c1a8f44d
   canonicalization: text_lf
 - path: conformance/claims/example-reference-gateway.yaml
   group: claims
-  hash: sha256:6e8057545c222f7b093703130cd6a00debdac72490f53a62893c0429a19b8a5a
+  hash: sha256:7959af4d4d930736682c95ad00788fefb37858aa91627c1ef56de7f6eba91fd5
   canonicalization: text_lf
 - path: conformance/conformance_classes.yaml
   group: conformance_classes
@@ -133,7 +133,7 @@ artifact_hashes:
   canonicalization: text_lf
 - path: docs/zmeta_change_governance.md
   group: process_governance
-  hash: sha256:e76dd0c70a37213944bdc21e66246d7ac8fd331d7b28e4c91ba891adf9047ace
+  hash: sha256:7a42107ce85e8492ca37870ce6a3f43065b5ce8bfac5b5492867d492a9fd689b
   canonicalization: text_lf
 - path: docs/zmeta_defensive_publication.md
   group: process_governance
@@ -483,7 +483,7 @@ artifact_groups:
     paths:
     - conformance/claims/example-core-producer.yaml
     - conformance/claims/example-reference-gateway.yaml
-    hash: sha256:8891b26cd4fbe3bc1af02f994a57a909818d9ab002ef8ccf9e106cf65138cc7f
+    hash: sha256:9356316d812a76c5a3f6c2de696b85eb05e969a2b7d0466c271276aca3d15a5e
   release_policy:
     description: Human-readable release hash taxonomy and canonicalization policy.
     paths:
@@ -499,7 +499,7 @@ artifact_groups:
     - TRADEMARK.md
     - docs/zmeta_change_governance.md
     - docs/zmeta_defensive_publication.md
-    hash: sha256:938c81bfae3e84f3a822a14e4ebfd4d9307fb4ba9ebe48350ea6726a1335e2f4
+    hash: sha256:7fd8efcf7b987af045996389fde8bb6b03ac962ed3a00a6350f24f2e8b7ea51a
   release_packaging:
     description: Formal release signing, attestation, package template, and package validation support.
     paths:

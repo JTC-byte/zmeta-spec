@@ -70,6 +70,16 @@ change to the standard and none should move without field evidence.
 
 ## B. Deployment path
 
+- [x] **Containerized gateway wire path — verified 2026-08-13 at v1.1.24.**
+      `docker compose -f deploy/gateway/docker-compose.yml up` on Docker
+      29.7.2: the container boots and prints the release's contract hashes,
+      a valid OBSERVATION_EVENT sent to the published 5555/udp listener
+      came back out the forward stream on the host with its event_id
+      intact (the `host.docker.internal` override doing its job), and a
+      profile-mismatched event produced a wire-visible `SCHEMA_VIOLATION`
+      SYSTEM_EVENT diagnostic rather than a silent drop. This clears the
+      Docker known-limits item the v1.1.23 and v1.1.24 validation reports
+      disclosed.
 - [ ] **Stock profile choice.** Both nodes now ship Profile H so adapter
       observations flow. *Question:* does a real bandwidth-constrained link
       want L instead, and if so what does a team lose by having to choose?
