@@ -326,10 +326,27 @@ def test_timing_is_the_degraded_fallback_unless_the_deployment_supplies_real_met
     assert timing["time_source"] == "UNKNOWN"
     assert timing["sync_state"] == "UNSYNCED"
 
+    supplied = {"time_source": "GPS_NMEA", "sync_state": "LOCKED", "est_error_ms": 5}
+    event = translate_aircraft(FULL, **dict(BASE, timing_quality=supplied))
+    assert event["payload"]["timing_quality"]["time_source"] == "GPS_NMEA"
+    assert event["payload"]["timing_quality"]["sync_state"] == "LOCKED"
+    assert event["payload"]["timing_quality"]["est_error_ms"] == 5
+
+
+def test_an_invalid_supplied_time_source_degrades_instead_of_surviving_to_fail_schema():
+    """The field-verification finding on this exact fixture (PR #8).
+
+    "GPS" is not a schema token (GPS_PPS and GPS_NMEA are); it previously
+    survived translation and failed schema validation far from its cause.
+    It now degrades to UNKNOWN with the error bound widened, because the
+    bound was predicated on the source claim that failed vocabulary.
+    """
     supplied = {"time_source": "GPS", "sync_state": "LOCKED", "est_error_ms": 5}
     event = translate_aircraft(FULL, **dict(BASE, timing_quality=supplied))
-    assert event["payload"]["timing_quality"]["time_source"] == "GPS"
-    assert event["payload"]["timing_quality"]["sync_state"] == "LOCKED"
+    timing = event["payload"]["timing_quality"]
+    assert timing["time_source"] == "UNKNOWN"
+    assert timing["sync_state"] == "LOCKED"
+    assert timing["est_error_ms"] == 60_000
 
 
 def test_position_age_moves_the_timestamp_back_not_the_snapshot_time():

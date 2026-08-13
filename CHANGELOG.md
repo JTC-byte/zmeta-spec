@@ -4,6 +4,38 @@
 
 (Nothing yet - the next work lands here.)
 
+## [1.1.24] - 2026-08-13
+
+- 2026-08-13 — **The health-and-hygiene fix wave: the queued guards land
+  and the stack relocks for field feedback.** The validate CLI now selects
+  the schema lane from the event's declared zmeta_version and prints every
+  violation, with its path whenever the defect is below the document root,
+  so a nested defect names itself instead of printing the whole event
+  dict; the union message survives only for events declaring no known
+  lane, with a hint. `coerce_timing_quality()`
+  degrades a supplied-but-invalid enum value (unknown time_source to
+  UNKNOWN, unknown sync_state to UNSYNCED, error bound widened, with a
+  whitespace-and-case fold first) instead of passing it through to fail
+  schema validation far from its cause, closing the PR #8 timing-helper
+  finding; a claim whose error bound is poisoned is never partially
+  cleaned and passes through whole for downstream refusal; the authoring
+  guide and adapter README now name the legal tokens exactly. New guards: the example conformance
+  claims' `release_hashes` are asserted against the manifest beside them
+  (the reader the v1.1.22 claims drift never had, doctrine X2-01 CHANGED);
+  the changelog guard derives its worked-on date from the newest dated
+  worklog entry and fails loudly on a stale sentinel instead of skipping
+  (doctrine X2-03 CHANGED); the release-completeness gate requires the
+  tracked signature set from v1.1.23 on, with checksums-only possible only
+  through an attributed in-code exemption; author-facing prose naming enum
+  tokens beside a vocabulary slot is checked against the schema (the check
+  caught two more live instances of the GPS prose defect on landing); and
+  both repo-wide markdown walkers share one snapshot-tree exclusion list.
+  Publish-path hardening: `.gitattributes` pins release artifacts against
+  line-ending smudge, and the checklist gains the no-branch-switch and
+  verify-as-published steps that the v1.1.23 upload incident proved
+  necessary. An RF zero-fill policy check is booked as a governed proposal
+  (handoff item 19), not minted here.
+
 ## [1.1.23] - 2026-08-13
 
 - 2026-08-13 — **PR #8 merged: the first fully external fix wave lands.**

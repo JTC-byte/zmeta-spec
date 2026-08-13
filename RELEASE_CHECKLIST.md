@@ -91,6 +91,11 @@ Use this as the template for each release.
       prior release's answer forward. Sixteen releases (v1.1.5 through
       v1.1.22) shipped checksums-only citing a "recorded signing decision"
       that was never made; doctrine pressure log X2-02 records the chain.
+      From v1.1.23 the completeness gate requires the tracked signature
+      trio; a deliberate checksums-only release additionally needs an
+      attributed entry in ATTRIBUTED_CHECKSUMS_ONLY in
+      `gateway/tests/test_release_artifact_completeness.py`, or the
+      battery fails the cut.
 - [ ] Key existence re-derived at this cut, never inherited from a prior
       record: `release/sign_release_artifacts.py --sign --dry-run` prints
       the exact gpg invocation it will run; list the secret keys with that
@@ -100,6 +105,16 @@ Use this as the template for each release.
       and release assets, passing an explicit key id when the keyring holds
       more than one key
 - [ ] *(signed releases only)* Detached signatures verified
+- [ ] No branch switch between signing and asset upload. A checkout
+      re-smudges tracked text files to CRLF on Windows, silently changing
+      the bytes the signatures were made over; the v1.1.23 publish shipped
+      mangled copies this way. If any checkout happened after signing,
+      restore the exact committed bytes (`git show HEAD:release/<file> >
+      <file>`) and re-run `--verify-signatures` before uploading
+- [ ] Published assets re-verified AS PUBLISHED: download the release's own
+      copies, run `sha256sum -c` on the downloaded checksum file, and
+      `gpg --verify` the downloaded signature pair. This step, not any
+      local check, is what caught the v1.1.23 upload mangling
 - [ ] *(signed releases only)* Signing key fingerprint or Sigstore identity
       documented in release notes
 - [ ] Release manifest and release package artifact attached or otherwise published

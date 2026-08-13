@@ -2,6 +2,48 @@
 
 ## Current Resume Note
 
+- Last updated: 2026-08-13 (fix wave; guards landed; v1.1.24 cut)
+- **2026-08-13 (fix wave: the queued guards land, the stack relocks).**
+  The post-merge fix wave, all outer-ring: no schema, policy, contract, or
+  corpus file moves. Landed: the validate CLI lane fix with its guard
+  tests (the CLI had diverged from the gateway's lane validation and was
+  the one surface losing branch diagnostics); the timing-helper degrade
+  fix with helper-level and adapter-level tests, closing the PR #8 open
+  finding per the maintainer's contract decision (degrade, widen the
+  bound, document that the invalid token is not preserved); the claims
+  release-hashes currency gate (X2-01 CHANGED); the changelog-guard
+  mechanism fix (X2-03 CHANGED, worked-on date from entries, loud sentinel
+  mismatch); the signing-continuity extension to the completeness gate
+  with attributed-exemption escape; the slot-scoped doc-token guard, which
+  caught two further live instances of the GPS prose defect in
+  adapters/README.md on its first run; the shared snapshot-exclusion
+  module unifying both markdown walkers, with the stale-worktree
+  reproduction pinned in-repo (the P2-D1 artifact the carve-out lacked);
+  check_adapter discoverability lines in CONTRIBUTING.md and the
+  mapping-packs README; and the publish-path CRLF hardening
+  (.gitattributes plus two checklist steps) from the v1.1.23 upload
+  incident. The RF zero-fill check is deliberately not minted: it is
+  booked as handoff item 19 with its design caveat, because the predicate
+  needs adjudication that a fix wave should not decide in its own
+  momentum. The pre-cut adversarial pass then caught two blocking
+  regressions in the wave's own first draft and both were fixed before
+  the cut: the degrade guard crashed on unhashable wire values (the A-14
+  class the repo had already named), and a NaN error bound rode the
+  degrade into a schema-clean event that the previous code's schema gate
+  had rejected, a laundering regression in exactly the direction design
+  gate 3 forbids. The NaN fix itself then collided with SAPIENT's pinned
+  refusal contract (degradation never substitutes a clean value for a
+  poisoned one) and the battery adjudicated: the shipped mechanism passes
+  a claim with a poisoned bound through untouched for downstream refusal
+  instead of partially cleaning it, which also restores the pre-wave
+  schema rejection. The same pass corrected a false historical claim in the
+  completeness gate's comment (v1.1.2 through v1.1.4 track all three
+  signatures, so they are now a checked signed regime), widened the
+  worklog-entry regex to the em-dash heading form it had missed, pinned
+  the claims gate to an exact key set after a deletion probe walked past
+  its floor, and scoped the snapshot prefix rules to directories. The
+  wave's own guards were verified by mutation before the cut: every
+  reverted fix kills its test.
 - Last updated: 2026-08-13 (PR #8 merged; record corrections; v1.1.23 cut)
 - **2026-08-13 (PR #8 merged; record corrections).** The force-pushed branch
   was re-reviewed end to end: the three accepted commits are byte-identical

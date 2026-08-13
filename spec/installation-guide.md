@@ -1,7 +1,7 @@
 # ZMeta Installation And Packaging Guide
 
 This guide covers repeatable local installs, deterministic gateway settings, and
-device configuration packs for the current `v1.1.23` release baseline and
+device configuration packs for the current `v1.1.24` release baseline and
 current `main` integration docs. It is an installation guide, not a release
 publication workflow; do not create tags, signatures, GitHub releases, or
 published checksum updates from these steps.
@@ -218,10 +218,10 @@ Formal release package tooling is available for release-authority workflows and
 local verification:
 
 ```text
-python release/build_mvp_packages.py --version v1.1.23
-python release/build_release_bundle.py --version 1.1.23
-python tools/build_release_package.py --manifest release/zmeta-release-manifest.yaml --output-dir release/package-v1.1.23 --release-id zmeta-v1.1.23 --release-state formal_release --no-signatures --release-notes release/RELEASE_NOTES_v1.1.23.md
-python tools/validate_release_package.py --manifest release/zmeta-release-manifest.yaml --package-dir release/package-v1.1.23
+python release/build_mvp_packages.py --version v1.1.24
+python release/build_release_bundle.py --version 1.1.24
+python tools/build_release_package.py --manifest release/zmeta-release-manifest.yaml --output-dir release/package-v1.1.24 --release-id zmeta-v1.1.24 --release-state formal_release --no-signatures --release-notes release/RELEASE_NOTES_v1.1.24.md
+python tools/validate_release_package.py --manifest release/zmeta-release-manifest.yaml --package-dir release/package-v1.1.24
 ```
 
 `--release-notes` is required whenever `--release-state formal_release` is

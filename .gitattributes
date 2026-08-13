@@ -1,0 +1,12 @@
+# Release integrity artifacts are byte-exact: checksums are computed and
+# signatures are made over the working-tree bytes, so autocrlf smudging on a
+# branch switch must never rewrite them. The v1.1.23 publish shipped
+# CRLF-mangled copies of every tracked text asset because a post-signing
+# branch switch re-smudged the working tree and the upload followed it;
+# the published-set signature verification caught it. These rules pin the
+# working tree to the committed bytes for the release surfaces.
+release/SHA256SUMS_*.txt -text
+release/RELEASE_NOTES_*.md -text
+release/VALIDATION_REPORT_*.md -text
+release/zmeta-release-manifest.yaml -text
+*.asc -text

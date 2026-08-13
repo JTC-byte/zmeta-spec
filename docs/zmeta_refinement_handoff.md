@@ -174,6 +174,24 @@ design waves, then hygiene, then anything genuinely waiting on field evidence.
     `units.yaml` optional while it is the sole carrier of a load-bearing
     datum declaration for any pack with an altitude field.
 
+19. **RF zero-fill policy check (proposal, maintainer decision to mint).**
+    Booked 2026-08-13 from the PR #8 field-evidence pass, with credit to
+    Barrett Downs (Torch). Evidence: a naive line-of-bearing mapping
+    carrying four laundering instances (zero-filled `bandwidth_hz` and
+    `power_dbm` fabricated from source records that carry neither field, a
+    datum-unqualified `alt_m` 0.0, and a `1_SIGMA` metric asserted from a
+    bare error bound) produced fifteen warnings, all
+    `BEARING_FRAME_UNLABELED`, and nothing else. Policy has
+    `GEO_ZERO_FILL_SUSPECTED` and no RF analogue. Design caveat that makes
+    this a decision rather than a fix: `power_dbm` 0.0 is a physically
+    legitimate value (one milliwatt), so the geo null-island predicate does
+    not transfer; candidate predicates are exact-zero `bandwidth_hz` alone,
+    or the co-occurrence signature (both fields exactly 0.0 together). The
+    mint is a Class B governed vocabulary change (a warn-severity,
+    wire-materialized code parallel to the geo check) plus must-fail corpus
+    vectors, which must be synthesized fresh: the motivating event lives in
+    a private not-for-publication bundle.
+
 ### Tier 5 — genuinely field-gated, or belongs to another repository
 
 16. **Praesens: the CesiumJS transition and the pin-advance review.** The pin
@@ -1369,7 +1387,7 @@ Current stack status:
   bearing/heading fields unless callers explicitly assert `TRUE_NORTH`;
   unasserted native values remain auditable under explicitly named
   non-canonical fields.
-- Use tag `v1.1.23` for current formal release assets and checksums.
+- Use tag `v1.1.24` for current formal release assets and checksums.
   Published 2026-08-13 at the maintainer's direction: PR #8 merged with its
   record wave completed, and the release signed with the Incept.IO release
   key, the first signed release since v1.1.4. The signing decision names

@@ -218,6 +218,12 @@ local/
 
 # Release artifacts
 release/*.zip
+# Signatures over gitignored or per-cut-regenerated assets ship as GitHub
+# release assets only; the TRACKED signature set is the versioned trio
+# (RELEASE_NOTES/VALIDATION_REPORT/SHA256SUMS .asc), which the
+# completeness gate enforces from v1.1.23 on.
+release/*.zip.asc
+release/zmeta-release-manifest.yaml.asc
 
 # Local git config override
 .gitconfig-local

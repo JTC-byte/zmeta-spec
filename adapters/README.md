@@ -92,13 +92,14 @@ and external promotion evidence for CoT/JREAP/MAVLink state projections.
 Ingress adapters normalize timestamp inputs to the schema-required UTC `Z`
 format before emission. Operational events also carry explicit fallback
 `payload.timing_quality` when the source stream does not provide a better timing
-authority; deployments with GPS/NTP/PTP timing should supply those stronger
-values or emit `TIME_STATUS` from the same source tuple.
+authority; deployments with a disciplined clock should supply the stronger
+values using the schema tokens exactly (`GPS_PPS`, `GPS_NMEA`, `NTP`, `PTP`)
+or emit `TIME_STATUS` from the same source tuple.
 
 Fallback timing is intentionally degraded timing. `time_source: UNKNOWN` and
 `sync_state: UNSYNCED` prove that timing quality was exposed, but operators and
-fusion consumers should treat it as a bridge until source-provided GPS/NTP/PTP
-timing or periodic `TIME_STATUS` is available.
+fusion consumers should treat it as a bridge until source-provided `GPS_PPS`,
+`GPS_NMEA`, `NTP`, or `PTP` timing or periodic `TIME_STATUS` is available.
 
 ## Frame Assertions And Anti-Fabrication
 
@@ -141,7 +142,7 @@ Supported invocation patterns:
 
 ```
 python -m pytest adapters
-python tools/check_compat.py examples/zmeta-v1.1-examples.jsonl --target v1.1.23
+python tools/check_compat.py examples/zmeta-v1.1-examples.jsonl --target v1.1.24
 PYTHONPATH=. python adapters/ingress/<adapter>/<script>.py
 ```
 

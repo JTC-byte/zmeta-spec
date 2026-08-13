@@ -34,17 +34,40 @@ def load_json(path):
         return json.load(handle)
 
 
+LANE_SCHEMAS = {
+    "1.0": "zmeta-event-1.0.schema.json",
+    "1.1.0": "zmeta-event-1.1.0.schema.json",
+}
+
+UNION_FALLBACK_HINT = (
+    "event declares no known zmeta_version, so it was validated against the "
+    "version-discriminated union; declare zmeta_version as one of "
+    + "/".join(sorted(LANE_SCHEMAS))
+    + " for branch-level diagnostics"
+)
+
+
 def _detail(violation):
-    """The violation's message, when it carries one worth showing.
+    """The violation's message and path, when it carries ones worth showing.
 
     Step 2 of the adapter ladder printed the reason_code alone, so an author
     hitting PRODUCER_NOT_ALLOWED saw a bare code and nothing pointing at the
     policy file, the reference wildcards, or AUTHORING.md section 7 -- while
     step 3 printed the full message. The diagnostic that explains the wall
-    should reach the first step that hits it, not the third.
+    should reach the first step that hits it, not the third. The same
+    lesson repeated for schema failures: the path was recorded in the
+    violation and dropped here, so a nested enum mismatch printed as an
+    opaque event dump (the PR #8 field pass reported walking branch-level
+    diagnostics by hand for twelve events).
     """
     message = violation.get("message")
-    return "\n  " + message if message else ""
+    path = (violation.get("details") or {}).get("path")
+    parts = ""
+    if path:
+        parts += "\n  at: " + path
+    if message:
+        parts += "\n  " + message
+    return parts
 
 
 def event_id_from_instance(instance):
@@ -59,6 +82,10 @@ def main():
     policy_dir = ROOT / "policy"
 
     validator = validators.load_schema(schema_path)
+    lane_validators = {
+        lane: validators.load_schema(ROOT / "schema" / filename)
+        for lane, filename in LANE_SCHEMAS.items()
+    }
     policy = validators.load_policy(policy_dir)
     severity_map = policy.get("violation_severities", {})
     state = validators.ValidationState()
@@ -101,12 +128,24 @@ def main():
             print(f"WARN SCHEMA_INVALID event_id=UNKNOWN line={line_no}")
             continue
 
-        ok, violations = validators.validate_schema(instance, validator, severity_map)
+        declared_version = instance.get("zmeta_version")
+        lane_validator = (
+            lane_validators.get(declared_version)
+            if isinstance(declared_version, str)
+            else None
+        )
+        union_fallback = lane_validator is None
+        ok, violations = validators.validate_schema(
+            instance, validator if union_fallback else lane_validator, severity_map
+        )
         if violations:
             failed += 1
             event_id = event_id_from_instance(instance)
-            print(f"FAIL {violations[0]['code']} event_id={event_id}"
-                  + _detail(violations[0]))
+            for violation in violations:
+                print(f"FAIL {violation['code']} event_id={event_id}"
+                      + _detail(violation))
+            if union_fallback:
+                print("  " + UNION_FALLBACK_HINT)
             continue
 
         checks = [

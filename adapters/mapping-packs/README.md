@@ -16,6 +16,11 @@ conformance evidence that the adapter implements the pack faithfully.
 the pack executable by itself. Plan adapter implementation effort
 accordingly.
 
+To validate an adapter and its pack samples end to end, run
+`python tools/check_adapter.py`: it wraps the `adapters/AUTHORING.md`
+validation ladder (fixture lint, schema and policy validation,
+compatibility, adapter conformance, kernel gate) in one command.
+
 ### schema_id naming convention
 
 Use a stable, vendor-scoped identifier:

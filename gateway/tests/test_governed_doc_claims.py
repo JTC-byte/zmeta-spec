@@ -48,6 +48,8 @@ from pathlib import Path
 
 import yaml
 
+from snapshot_exclusions import is_snapshot_path
+
 
 ROOT = Path(__file__).resolve().parents[2]
 MANIFEST_PATH = ROOT / "release" / "zmeta-release-manifest.yaml"
@@ -394,9 +396,7 @@ def _profile_claims_in_docs():
     configs = _shipped_config_profiles()
     for path in sorted(ROOT.rglob("*.md")):
         rel = path.relative_to(ROOT).as_posix()
-        if any(part in rel for part in (".tmp/", "release/dist", "release/bundles",
-                                        "release/package-", "pytest-cache",
-                                        ".claude/worktrees")):
+        if is_snapshot_path(rel):
             continue
         for number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
             claim = _PROFILE_CLAIM.search(line)
@@ -441,4 +441,149 @@ def test_the_config_profile_check_would_catch_a_wrong_claim():
     assert claim.group(1) != actual, (
         "the demonstration's doctored claim matches the real config, so it "
         "proves nothing"
+    )
+
+
+# --------------------------------------------------------------------------
+# Enum-slot tokens in author-facing prose (PR #8 timing-helper finding)
+# --------------------------------------------------------------------------
+# AUTHORING.md told authors to supply "source GPS/NTP/PTP metadata": NTP and
+# PTP are time_source tokens, GPS is not, and an author who followed the
+# prose landed an invalid value that failed schema validation far from its
+# cause. A backtick-scoped check would have been vacuous on that exact
+# sentence, because GPS was not backticked; the scope here is semantic: any
+# line that names a checked slot or uses one of its member tokens has every
+# capitalized token on it checked against the union of the slots it invokes.
+#
+# Known limits, documented rather than engineered around: the matcher is
+# line-scoped, so a token on a continuation line that names neither a slot
+# nor a member escapes; a line invoking two slots validates against their
+# union, so a member of one slot beside the other slot's name passes; and
+# lowercase misuse is invisible, because the token pattern is all-caps.
+# Each is the price of a lexical check on prose; the schema stays the
+# vocabulary authority - members are extracted from both lanes, never
+# restated here.
+
+_SLOT_DOC_SURFACES = (
+    "adapters/AUTHORING.md",
+    "adapters/README.md",
+    "adapters/mapping-packs/README.md",
+    "adapters/mapping-packs/edge-comms-bladerf/README.md",
+    "adapters/mapping-packs/sapient-bsi-flex-335/README.md",
+    "docs/zmeta_two_node_quickstart.md",
+)
+_SLOT_NAMES = ("time_source", "sync_state", "calibration_state", "geo_status")
+_CAPS_TOKEN = re.compile(r"\b[A-Z][A-Z0-9_]{2,}\b")
+
+# Deliberate non-members that legitimately share a line with a slot. Every
+# entry needs a reason; an entry without one is the vacuity coming back.
+_SLOT_TOKEN_ALLOWLIST = {
+    # Prose acronyms that are not vocabulary claims.
+    "UTC",      # timestamps discussed beside timing slots
+    "JSON",     # serialization prose
+    "YAML",     # serialization prose
+    "AUTHORING",  # the guide referring to itself by filename stem
+    "SAPIENT",  # the standard's name, not a token; its pack README
+                # discusses timing slots in prose that names the standard
+    "TIME_STATUS",  # a real schema token from a different vocabulary (the
+                    # system event_subtype), legitimately co-mentioned with
+                    # timing slots as the periodic timing-report event
+}
+
+
+def _schema_slot_enums():
+    enums = {slot: set() for slot in _SLOT_NAMES}
+    for lane in ("zmeta-event-1.0.schema.json", "zmeta-event-1.1.0.schema.json"):
+        data = json.loads((ROOT / "schema" / lane).read_text(encoding="utf-8"))
+
+        def walk(node):
+            if isinstance(node, dict):
+                props = node.get("properties")
+                if isinstance(props, dict):
+                    for slot in _SLOT_NAMES:
+                        spec = props.get(slot)
+                        if isinstance(spec, dict) and isinstance(spec.get("enum"), list):
+                            enums[slot].update(
+                                value for value in spec["enum"] if isinstance(value, str)
+                            )
+                for value in node.values():
+                    walk(value)
+            elif isinstance(node, list):
+                for value in node:
+                    walk(value)
+
+        walk(data)
+    return {slot: members for slot, members in enums.items() if members}
+
+
+def _slot_token_offences(text, enums):
+    offences = []
+    for number, line in enumerate(text.splitlines(), 1):
+        triggered = [
+            slot
+            for slot, members in enums.items()
+            if slot in line or any(
+                member in _CAPS_TOKEN.findall(line) for member in members
+            )
+        ]
+        if not triggered:
+            continue
+        allowed = set().union(*(enums[slot] for slot in triggered))
+        for token in _CAPS_TOKEN.findall(line):
+            if token in allowed or token in _SLOT_TOKEN_ALLOWLIST:
+                continue
+            offences.append((number, "+".join(triggered), token))
+    return offences
+
+
+def test_author_facing_prose_uses_only_schema_tokens_beside_a_slot():
+    enums = _schema_slot_enums()
+    # Non-vacuity floors: the slots must resolve from the schema, and the
+    # scan must actually see slot-invoking lines, or green means blind.
+    assert len(enums) >= 3, f"slot extraction collapsed: {sorted(enums)}"
+    for slot, members in enums.items():
+        assert len(members) >= 2, f"{slot} extracted {members}, too small to be real"
+
+    offences = []
+    scanned_lines = 0
+    for rel in _SLOT_DOC_SURFACES:
+        path = ROOT / rel
+        assert path.is_file(), f"scoped surface {rel} is gone; update the list deliberately"
+        text = path.read_text(encoding="utf-8")
+        hits = _slot_token_offences(text, enums)
+        offences.extend((rel, *hit) for hit in hits)
+        scanned_lines += sum(
+            1
+            for line in text.splitlines()
+            if any(slot in line for slot in enums)
+        )
+    assert scanned_lines >= 5, (
+        f"only {scanned_lines} slot-naming lines found across the scoped "
+        "surfaces; the scan has gone vacuous"
+    )
+    assert offences == [], (
+        "author-facing prose names tokens outside the schema vocabulary "
+        "beside a checked slot. Use the schema tokens exactly, or add a "
+        f"justified allowlist entry: {offences}"
+    )
+
+
+def test_the_slot_token_matcher_catches_the_exact_authoring_defect():
+    """Self-test against the pre-fix text, per this file's own rule.
+
+    The guidance that misled the field pass named no slot, so a
+    slot-name-only trigger would miss it. Reproduced with the real
+    pre-fix line break: GPS/NTP/PTP sat on the second line, so the
+    member tokens NTP and PTP on that same line are what trigger the
+    check there, and GPS is the non-member that must be flagged.
+    """
+    enums = _schema_slot_enums()
+    pre_fix = (
+        "   `coerce_timing_quality()`'s `UNKNOWN`/`UNSYNCED` fallback is deliberately\n"
+        "   degraded; replace it with source GPS/NTP/PTP metadata when available, never\n"
+        "   with an invented clean value.\n"
+    )
+    offences = _slot_token_offences(pre_fix, enums)
+    assert [token for (_, _, token) in offences] == ["GPS"], (
+        f"the matcher must flag exactly GPS on the pre-fix text, got {offences}"
     )

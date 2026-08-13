@@ -52,18 +52,10 @@ def manifest_release_version() -> str:
     return release_id[len("zmeta-"):]
 
 # Snapshot / duplicate trees are not the canonical stack (CLAUDE.md).
-_IGNORED_PARTS = {
-    ".tmp",
-    "bundles",
-    "dist",
-    "__pycache__",
-    ".git",
-    "node_modules",
-    # Gitignored private session records: a local-only markdown file must
-    # not be able to trip a public currency guard on a local battery run
-    # (apparatus audit, 2026-08-10).
-    "local",
-}
+# The list itself is single-sourced in snapshot_exclusions.py: this walker
+# and the profile-claims walker had diverged in mechanism and content, and
+# a stale worktree tripped this guard while the other stayed immune.
+from snapshot_exclusions import is_snapshot_path
 
 
 def _read(rel_path: str) -> str:
@@ -74,13 +66,11 @@ def _markdown_surfaces() -> list[Path]:
     out = []
     for path in ROOT.rglob("*.md"):
         rel = path.relative_to(ROOT)
-        if any(part in _IGNORED_PARTS for part in rel.parts):
+        if is_snapshot_path(rel):
             continue
         if rel.parts[0] == "release" and rel.parts[-1].startswith("VALIDATION_REPORT_"):
             # Historical run records. They document what WAS run, so they must
             # not be rewritten - doing so is the A-18 defect, not a fix.
-            continue
-        if rel.parts[0] == "pytest-cache-files":
             continue
         out.append(path)
     return sorted(out)

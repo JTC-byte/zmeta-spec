@@ -92,3 +92,10 @@ git diff --check
 
 Document any check you cannot run.
 
+Contributing an adapter or mapping pack: `python tools\check_adapter.py`
+wraps the whole validation ladder from `adapters/AUTHORING.md` in one
+command (fixture lint, schema and policy validation, compatibility against
+the current release, adapter conformance, and the kernel gate). Run it
+before opening the PR; a careful external verification pass in 2026-08
+never found it from this document, which is why it is named here.
+

@@ -1,4 +1,4 @@
-# ZMeta Specification (v1.0 Locked, current release v1.1.23)
+# ZMeta Specification (v1.0 Locked, current release v1.1.24)
 
 ZMeta is a free, open, transport-agnostic semantic standard for resilient ISR.
 It defines one honest event model that heterogeneous sensors, analytics,
@@ -186,54 +186,61 @@ nodes.
 
 ## Current Release
 
-- Current release: `v1.1.23`
-- Release notes and assets: <https://github.com/JTC-byte/zmeta-spec/releases/tag/v1.1.23>
-- Release focus: the first fully external fix wave, and the first signed
-  release since v1.1.4. PR #8 (Barrett Downs, Torch) landed three
-  documentation and scan-consistency fixes from a field verification pass
-  against published v1.1.22: the SAPIENT adapter README now names the
-  `COORDINATE_SYSTEM_UNSPECIFIED` omission reason the adapter emits, the
-  profile-projection README lists all 28 implemented failure codes rather
-  than 26, and the governed-document profile scan excludes stale repository
-  snapshots under `.claude/worktrees/`. Each fix carries a set-equality
-  guard test, so missing, extra, and misspelled entries fail together. A
-  fourth proposal was withdrawn after maintainer review; the doctrine
-  pressure log (cycle X2) records the disposition and the queued in-house
-  follow-up. The maintainer-side records completed the wave: the claims and
-  signing errata recorded on 2026-08-12 gained their changelog entry, and
-  this cut runs under the hardened release checklist those errata produced,
-  including the refreshed example claims and the attributed signing
-  decision. No governed artifact changed in this release: the semantic
+- Current release: `v1.1.24`
+- Release notes and assets: <https://github.com/JTC-byte/zmeta-spec/releases/tag/v1.1.24>
+- Release focus: the health-and-hygiene fix wave that closes out the PR #8
+  field-verification cycle and relocks the stack for field feedback. The
+  validate CLI now selects the schema lane from the event's declared
+  `zmeta_version` and prints every violation with its location, so a nested
+  defect names itself instead of printing the whole event; the shared
+  `coerce_timing_quality()` helper degrades a supplied-but-invalid timing
+  token instead of letting it fail schema validation far from its cause,
+  while a claim carrying a poisoned error bound passes through whole for
+  downstream refusal. New standing guards: the example conformance claims'
+  `release_hashes` are checked against the manifest beside them, the
+  changelog guard derives its worked-on date from the newest worklog entry
+  and fails loudly on a stale resume note, the release-completeness gate
+  requires the tracked signature set for signed regimes, author-facing
+  prose naming vocabulary tokens is checked against the schema enums, and
+  both repo-wide markdown scans share one snapshot-exclusion list. Every
+  fix in the wave was adversarially verified before this cut, and the two
+  regressions that pass found in the wave's own first draft were fixed and
+  pinned. No governed artifact changed in this release: the semantic
   contract, the schemas, policy data, the extension registry, the
   conformance corpora and the encoding projections are byte-identical to
-  zmeta-v1.1.22.
+  zmeta-v1.1.23.
 - Normative contract: v1.0 locked semantic contract, canonical version-discriminated
   JSON schema, v1.0 JSON schema, and policy pack.
 - Experimental extension: `schema/zmeta-event-1.1.0.schema.json` is provided for proposed
   compatibility testing only; v1.1.0-only fields are not part of the locked v1.0 contract.
 
-## v1.1.23 Integration Notes
+## v1.1.24 Integration Notes
 
-- **No behavior changes for producers or consumers.** No schema, policy, or
-  wire changes; no adapter changed behavior. Every governed artifact is
-  byte-identical to v1.1.22. An implementation passing v1.1.22 conformance
-  passes v1.1.23 unchanged.
-- **The SAPIENT README now documents the tag the adapter emits.** The
-  adapter has emitted `COORDINATE_SYSTEM_UNSPECIFIED` for an unspecified
-  coordinate system since v1.1.22; the README said `UNITS_UNSPECIFIED`, so a
-  consumer filtering on the documented spelling never matched. The README
-  now matches the code, and a set-equality test pins the two together.
-- **The projection README's failure-code list is complete.** Consumers that
-  enumerate projection failure codes from
-  `conformance/profile-projection/README.md` gain the two implemented codes
-  it omitted: `PROJECTION_POLICY_RISK_LABEL_REMOVED` and
-  `PROJECTION_EXTERNAL_PROMOTION_EVIDENCE_REMOVED`.
+- **No schema, policy, or wire changes.** Every governed artifact is
+  byte-identical to v1.1.23 (and to v1.1.22). An implementation passing
+  v1.1.22 conformance passes v1.1.24 unchanged.
+- **One reference-adapter behavior change, on invalid input only.**
+  `coerce_timing_quality()` now degrades a supplied timing token that is
+  outside the schema vocabulary (after a whitespace-and-case fold): an
+  unknown `time_source` becomes `UNKNOWN`, an unknown `sync_state` becomes
+  `UNSYNCED`, and the error bound widens when either degrades. Previously
+  the invalid token survived translation and failed schema validation
+  downstream. A deployment supplying valid tokens sees no change. A timing
+  claim whose `est_error_ms` is poisoned (wrong type, non-finite, or
+  negative) is never repaired; it passes through whole so schema validation
+  or an adapter's refusal gate rejects the event.
+- **The validate CLI reports actionable diagnostics.** `tools/validate.py`
+  selects the schema lane from the event's declared `zmeta_version` and
+  prints every violation with its location, matching what the gateway
+  already reported. Events declaring no known lane still validate against
+  the version-discriminated union, with a hint. Exit codes and
+  accept/reject behavior are unchanged, so scripted callers are
+  unaffected; `tools/check_adapter.py` inherits the improvement.
 - **This release ships signed.** Detached signatures accompany the release
   assets, made with the Incept.IO ZMeta release signing key
   (`A3B150AF2A0E1CA413C4B7F112BE81F54654B96E`), the same key that signed
-  v1.1.2 through v1.1.4. Verify against `SHA256SUMS_v1.1.23.txt` and its
-  signature. The v1.1.22 example-claims erratum
-  (`docs/release_claims_errata.md`) is corrected at source in this release.
+  v1.1.2 through v1.1.4. Verify against `SHA256SUMS_v1.1.24.txt` and its
+  signature.
 
 ## Repository Structure
 - `spec/` Core specification and normative text.
@@ -310,7 +317,7 @@ python tools/run_gateway.py --profile H
 python tools/udp_receiver.py
 python tools/udp_sender.py --file examples/zmeta-command-examples.jsonl
 python tools/replay.py --file examples/zmeta-command-examples.jsonl --delay-ms 200
-python tools/check_compat.py legacy-events.jsonl --target v1.1.23
+python tools/check_compat.py legacy-events.jsonl --target v1.1.24
 python tools/validate.py --file examples/zmeta-command-examples.jsonl --profile L
 python tools/check_adapter.py --events my-adapter-output.jsonl --fixtures my-fixtures.jsonl
 python tools/validate_conformance.py --strict
@@ -358,10 +365,10 @@ Deployment helpers:
 - Config templates: `configs/edge-config.json`, `configs/gateway-config.json`
 - Docker Compose: `deploy/edge/docker-compose.yml`, `deploy/gateway/docker-compose.yml`
 - Bundle builders:
-    - `python release/build_mvp_packages.py --version v1.1.23` produces `zmeta-edge-v1.1.23.zip` and `zmeta-gateway-v1.1.23.zip`
-    - `python release/build_release_bundle.py --version 1.1.23` produces `zmeta-v1.1.23-dist.zip`
-    - `python tools/build_release_package.py --manifest release/zmeta-release-manifest.yaml --output-dir release/package-v1.1.23 --release-id zmeta-v1.1.23 --release-state formal_release --no-signatures --release-notes release/RELEASE_NOTES_v1.1.23.md` builds formal package metadata without creating signatures. `--release-notes` is mandatory for `formal_release`: omit it and the unpopulated notes template is copied verbatim, which `tools/validate_release_package.py` refuses with `RELEASE_PACKAGE_NOTES_PLACEHOLDER`.
-    - `python release/sign_release_artifacts.py --version v1.1.23 --write-checksums --sign --target all` signs release assets with detached PGP signatures when an approved signing key is available.
+    - `python release/build_mvp_packages.py --version v1.1.24` produces `zmeta-edge-v1.1.24.zip` and `zmeta-gateway-v1.1.24.zip`
+    - `python release/build_release_bundle.py --version 1.1.24` produces `zmeta-v1.1.24-dist.zip`
+    - `python tools/build_release_package.py --manifest release/zmeta-release-manifest.yaml --output-dir release/package-v1.1.24 --release-id zmeta-v1.1.24 --release-state formal_release --no-signatures --release-notes release/RELEASE_NOTES_v1.1.24.md` builds formal package metadata without creating signatures. `--release-notes` is mandatory for `formal_release`: omit it and the unpopulated notes template is copied verbatim, which `tools/validate_release_package.py` refuses with `RELEASE_PACKAGE_NOTES_PLACEHOLDER`.
+    - `python release/sign_release_artifacts.py --version v1.1.24 --write-checksums --sign --target all` signs release assets with detached PGP signatures when an approved signing key is available.
 
 ## Deployment Checklist (Compact)
 

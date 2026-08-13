@@ -50,6 +50,30 @@ REQUIRED_TEMPLATES = (
     "SHA256SUMS_{version}.txt",
 )
 
+# Signing continuity (doctrine pressure log X2-02). Sixteen releases shipped
+# checksums-only citing a decision that was never made, and the regression
+# from seven detached signatures to zero at v1.1.5 was invisible to every
+# gate. Signed releases must track the text-artifact signature trio, so a
+# release that silently drops them fails here. Two signed regimes exist:
+# v1.1.2 through v1.1.4 (the original signed span; all three .asc are
+# tracked for each, verified against git ls-files when this landed) and
+# v1.1.23 onward, where signing resumed. The unsigned span between them is
+# history that is correct as published and stays exempt. A deliberate
+# checksums-only release after the baseline is possible, but only by adding
+# its version to ATTRIBUTED_CHECKSUMS_ONLY with the release authority and
+# date, which is the attributed decision the old chain never had.
+SIGNED_HISTORICAL_SPAN = ((1, 1, 2), (1, 1, 4))
+SIGNED_BASELINE = (1, 1, 23)
+SIGNATURE_TEMPLATES = (
+    "RELEASE_NOTES_{version}.md.asc",
+    "VALIDATION_REPORT_{version}.md.asc",
+    "SHA256SUMS_{version}.txt.asc",
+)
+ATTRIBUTED_CHECKSUMS_ONLY: dict[str, str] = {
+    # "vX.Y.Z": "decided by <release authority>, <YYYY-MM-DD>, recorded in
+    #            RELEASE_NOTES_vX.Y.Z.md",
+}
+
 
 def _version_key(tag: str) -> tuple[int, ...]:
     return tuple(int(part) for part in tag.lstrip("v").split("."))
@@ -64,9 +88,24 @@ def manifest_release_version() -> str:
     return release_id[len("zmeta-"):]
 
 
+def _signing_required(version: str) -> bool:
+    key = _version_key(version)
+    if SIGNED_HISTORICAL_SPAN[0] <= key <= SIGNED_HISTORICAL_SPAN[1]:
+        return True
+    return key >= SIGNED_BASELINE and version not in ATTRIBUTED_CHECKSUMS_ONLY
+
+
 def required_artifacts(version: str) -> list[str]:
-    """The artifact filenames a given release must track."""
-    return [template.format(version=version) for template in REQUIRED_TEMPLATES]
+    """The artifact filenames a given release must track.
+
+    An exemption entry relaxes only the signature trio; the notes,
+    validation report, and checksums stay required for every release
+    since the convention began.
+    """
+    names = [template.format(version=version) for template in REQUIRED_TEMPLATES]
+    if _signing_required(version):
+        names.extend(template.format(version=version) for template in SIGNATURE_TEMPLATES)
+    return names
 
 
 def missing_artifacts(release_dir: Path, version: str) -> list[str]:
@@ -133,27 +172,29 @@ def test_completeness_detector_actually_fires(tmp_path: Path):
     that only notices a missing checksum file would have passed the exact tree
     that motivated this module.
     """
-    version = "v9.9.9"
-    names = required_artifacts(version)
-    assert len(names) == 3, "expected three required artifacts per release"
-
-    for name in names:
-        fake = tmp_path / name.replace(".", "_")  # unique dir per arm
-        fake.mkdir()
-        for other in names:
-            if other != name:
-                (fake / other).write_text("x", encoding="utf-8")
-        assert missing_artifacts(fake, version) == [name], (
-            f"detector failed to report {name} as missing"
+    for version, expected_count in (("v1.1.9", 3), ("v1.1.3", 6), ("v9.9.9", 6)):
+        names = required_artifacts(version)
+        assert len(names) == expected_count, (
+            f"{version}: expected {expected_count} required artifacts, got {names}"
         )
 
-    complete = tmp_path / "complete"
-    complete.mkdir()
-    for other in names:
-        (complete / other).write_text("x", encoding="utf-8")
-    assert missing_artifacts(complete, version) == [], (
-        "detector reported a missing artifact on a complete set"
-    )
+        for name in names:
+            fake = tmp_path / f"{version}-{name}".replace(".", "_")  # unique dir per arm
+            fake.mkdir()
+            for other in names:
+                if other != name:
+                    (fake / other).write_text("x", encoding="utf-8")
+            assert missing_artifacts(fake, version) == [name], (
+                f"detector failed to report {name} as missing for {version}"
+            )
+
+        complete = tmp_path / f"{version}-complete".replace(".", "_")
+        complete.mkdir()
+        for other in names:
+            (complete / other).write_text("x", encoding="utf-8")
+        assert missing_artifacts(complete, version) == [], (
+            f"detector reported a missing artifact on a complete {version} set"
+        )
 
 
 def test_required_set_is_not_silently_narrowed():
@@ -166,3 +207,41 @@ def test_required_set_is_not_silently_narrowed():
         "the required-artifact set changed; update RELEASE_CHECKLIST.md in the "
         "same commit so the manual checklist and this guard cannot disagree"
     )
+    assert set(SIGNATURE_TEMPLATES) == {
+        "RELEASE_NOTES_{version}.md.asc",
+        "VALIDATION_REPORT_{version}.md.asc",
+        "SHA256SUMS_{version}.txt.asc",
+    }, (
+        "the signature set changed; update RELEASE_CHECKLIST.md and the X2-02 "
+        "record in the same commit"
+    )
+
+
+def test_a_checksums_only_exemption_must_be_attributed():
+    """An empty string in the exemption dict is the unattributed decision
+    this extension exists to forbid; the entry must name its authority."""
+    for version, decision in ATTRIBUTED_CHECKSUMS_ONLY.items():
+        assert re.fullmatch(r"v\d+\.\d+\.\d+", version), version
+        assert "decided by" in decision and re.search(r"\d{4}-\d{2}-\d{2}", decision), (
+            f"{version}: the exemption must name the release authority and date, "
+            f"got {decision!r}"
+        )
+
+
+def test_an_exemption_relaxes_only_the_signatures_never_the_trio():
+    """The escape hatch must not let the base artifact set lapse with it.
+
+    Exercised through the same public functions the real checks use, with
+    the exemption injected and removed around the probe.
+    """
+    version = "v9.9.8"
+    assert len(required_artifacts(version)) == 6, "probe version must be post-baseline"
+    ATTRIBUTED_CHECKSUMS_ONLY[version] = "decided by Test Authority, 2026-08-13"
+    try:
+        names = required_artifacts(version)
+        assert names == [t.format(version=version) for t in REQUIRED_TEMPLATES], (
+            f"exempt release must still require exactly the trio, got {names}"
+        )
+    finally:
+        del ATTRIBUTED_CHECKSUMS_ONLY[version]
+    assert len(required_artifacts(version)) == 6, "the probe exemption leaked"

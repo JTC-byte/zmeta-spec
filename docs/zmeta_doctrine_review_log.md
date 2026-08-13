@@ -2149,11 +2149,11 @@ logs here at disposition, with the merge wave.
 
 | # | Tension | Gates in play | Status |
 |---|---|---|---|
-| X2-01 | A hash pin was accepted as proof of claim currency, and refuted a true finding | 3 | OPEN |
+| X2-01 | A hash pin was accepted as proof of claim currency, and refuted a true finding | 3 | **CHANGED 2026-08-13** |
 | X2-02 | The signing record cites a decision that was never made | 3, 5 | **CHANGED 2026-08-12** |
-| X2-03 | The changelog guard skips on a convention an external contributor cannot know | 3 | OPEN |
+| X2-03 | The changelog guard skips on a convention an external contributor cannot know | 3 | **CHANGED 2026-08-13** |
 
-### X2-01 — A hash pin was accepted as proof of claim currency · OPEN
+### X2-01 — A hash pin was accepted as proof of claim currency · **CHANGED 2026-08-13**
 
 Both example conformance claims carry `release_hashes` entries that
 disagree with the release manifest beside them: `adapter_conformance_hash`
@@ -2176,11 +2176,18 @@ operating at the audit layer: the refutation was a check that could not
 fail. A dated correction now sits on the refuted finding in
 `docs/r1_11_full_stack_audit.md`.
 
-No gate can catch the class today, because nothing in the repository reads
-`release_hashes` back. Queued for the next fix wave: a currency check that
-parses each example claim's `release_hashes` and asserts equality with the
-manifest it sits beside. `RELEASE_CHECKLIST.md` gained the
-`--update-claims` step this cycle as the interim human control.
+No gate could catch the class when this entry was written, because nothing
+in the repository read `release_hashes` back. Queued for the next fix wave:
+a currency check that parses each example claim's `release_hashes` and
+asserts equality with the manifest it sits beside. `RELEASE_CHECKLIST.md`
+gained the `--update-claims` step this cycle as the interim human control.
+
+Resolution 2026-08-13, hence the CHANGED status: the reader exists.
+`gateway/tests/test_claims_release_hashes_currency.py` asserts every claim
+hash against the manifest beside it, pins the deliberate
+`release_manifest_hash` circularity omission, and demonstrates itself red
+on the exact stale-hash state that shipped in v1.1.22. The checklist step
+remains as the human control; the gate is the mechanical one.
 
 ### X2-02 — The signing record cites a decision that was never made · **CHANGED 2026-08-12**
 
@@ -2218,7 +2225,17 @@ next release can ship signed. Queued for the fix wave: a completeness-gate
 extension so a release that drops detached signatures relative to its
 predecessor fails unless its notes carry the attributed decision.
 
-### X2-03 — The changelog guard skips on a convention an external contributor cannot know · OPEN
+Addendum 2026-08-13: the extension landed, with a different mechanism than
+queued. `gateway/tests/test_release_artifact_completeness.py` requires the
+tracked signature trio for the signed regimes (v1.1.2 through v1.1.4, and
+v1.1.23 onward); a checksums-only release after the baseline is possible
+only through an in-code exemption entry that must name the release
+authority and the date, which a dedicated test enforces. The
+predecessor-relative comparison was not built: an explicit regime is
+simpler to reason about, and the exemption dict is the attributed decision
+in artifact form rather than a prose sentence a test would have to parse.
+
+### X2-03 — The changelog guard skips on a convention an external contributor cannot know · **CHANGED 2026-08-13**
 
 PR #8's governed change arrived with no CHANGELOG entry, and
 `test_changelog_keeps_up` skipped instead of failing. The guard keys on
@@ -2241,6 +2258,19 @@ sentinel bump would have turned the guard green over a record missing two
 days of maintainer work, so the guard's skip condition converts one side's
 omission into a false currency assertion the moment the other side does the
 right thing. The record was completed at the merge wave. Occurrence count: 2.
+
+Resolution 2026-08-13, hence the CHANGED status: the queued recommendation
+landed in `gateway/tests/test_changelog_keeps_up.py`. The worked-on date
+now derives from the newest dated worklog entry heading, which is what
+contributors actually write, and a top sentinel that disagrees with the
+newest entry is a hard failure whose message teaches the convention at the
+moment it matters, instead of a silent skip. The red demonstration is the
+exact contributor-boundary state from this entry. The both-surfaces-lag
+blind spot from instance two remains and is documented in the guard's
+known-limits paragraph: a maintainer wave that writes neither an entry nor
+a changelog line is still invisible to date comparison, and closing that
+would take git-awareness the guard's own docstring rules out for CI
+reasons.
 
 ### Disposition — the PR #8 governed commit · 2026-08-13
 

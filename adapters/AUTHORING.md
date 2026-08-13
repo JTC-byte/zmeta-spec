@@ -112,8 +112,19 @@ same pack first if you want a known-good diff.
    `CALIBRATED`/`DEGRADED` only when the deployment can substantiate it.
 5. **Degraded timing stays visible** (contract 5.3).
    `coerce_timing_quality()`'s `UNKNOWN`/`UNSYNCED` fallback is deliberately
-   degraded; replace it with source GPS/NTP/PTP metadata when available, never
-   with an invented clean value.
+   degraded; replace it with the source's real timing metadata when
+   available, using the schema tokens exactly (`time_source` is one of
+   `GPS_PPS`, `GPS_NMEA`, `NTP`, `PTP`, `MANUAL`, `UNKNOWN`), never an
+   invented clean value. A supplied value outside that vocabulary degrades
+   field-locally, after a whitespace-and-case fold: an unknown
+   `time_source` becomes `UNKNOWN`, an unknown `sync_state` becomes
+   `UNSYNCED`, a valid sibling claim survives, and the error bound widens
+   whenever either degrades. A claim whose `est_error_ms` is poisoned
+   (wrong type, non-finite, or negative) is never repaired at all; it
+   passes through untouched so schema validation or an adapter's refusal
+   gate rejects the whole event. The invalid token is not preserved, so
+   record the raw source token under a named non-canonical `quality.*`
+   key before the call if it must stay auditable.
 6. **External state needs promotion evidence** (contract 4.5.1). CoT, JREAP,
    MAVLink, or vendor-COP ingress emitting `STATE_EVENT` must attach
    `payload.extensions.external_promotion` and a `promote:*` lineage

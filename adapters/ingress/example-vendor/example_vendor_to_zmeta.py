@@ -89,7 +89,10 @@ def translate(input_obj, schema_id, *, based_on=None, timing_quality=None):
     fabricated identity string. Identity and feature values pass through
     uncoerced; wrong value types (for example a string frequency or a
     numeric ``sensor_id``) are left to schema validation (ladder step 2) by
-    design.
+    design. The one exception is ``timing_quality``: the shared
+    ``coerce_timing_quality`` helper degrades a supplied token outside the
+    schema vocabulary (AUTHORING.md section 3, rule 5) instead of leaving
+    it for step 2, because that failure surfaces far from its cause.
 
     ``based_on`` is caller-supplied real parent event ids. Lineage is never
     fabricated (contract 4.8): with no parents, ``lineage`` is omitted

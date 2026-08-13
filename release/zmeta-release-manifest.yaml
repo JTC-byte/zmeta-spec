@@ -1,6 +1,6 @@
 manifest_version: 1
-release_id: zmeta-v1.1.23
-release_name: ZMeta v1.1.23
+release_id: zmeta-v1.1.24
+release_name: ZMeta v1.1.24
 release_status: formal_release
 release_date: '2026-08-13'
 zmeta_versions:
@@ -27,9 +27,9 @@ profile_precision_policy_hash: sha256:8c4dcb6ee305b31cb08d4cc429138fd9d1ed149024
 bad_event_corpus_hash: sha256:a14c0492452bfad586a9fdce4a7e199b0baf937325b19af3a2b1d03a16cbdc5f
 adapter_conformance_hash: sha256:b1c8ff49878facbd699a5ab323c3ab3bbadfbf4a3fafc606816240b191191a97
 encoding_projection_specs_hash: sha256:5e14298cb0ffb42b84f2d835bc4d1266c629f1a1468e0416caaaadc449e29cce
-process_governance_hash: sha256:a8b3a55a3ffbb587935fe4ba52fbaa4a93a9ea76fffa068278a2db37060c34b4
-release_bundle_hash: sha256:4d947e2ad680c46f5e4803976248d464a12e894b9cbc729f49dbb1d8e103ba0d
-release_manifest_hash: sha256:e72276ca942e1f42eb695b091fa33041dbfcb077c7480852306925e0f7dd70e7
+process_governance_hash: sha256:938c81bfae3e84f3a822a14e4ebfd4d9307fb4ba9ebe48350ea6726a1335e2f4
+release_bundle_hash: sha256:589e2959c445ed3f334a4815e9ca2784f3d0e6ac0ef6bc932d7659daaf21b1f6
+release_manifest_hash: sha256:a776ea7cedf7b26b1781752e93f055c3959d89f864d21b4ff6da26a6fa476bd4
 artifact_hashes:
 - path: AGENTS.md
   group: process_governance
@@ -41,7 +41,7 @@ artifact_hashes:
   canonicalization: text_lf
 - path: CONTRIBUTING.md
   group: process_governance
-  hash: sha256:09780422263072a350400673df72cff10cd0fb16d30cb4c182c1b6782a7dce71
+  hash: sha256:289fdde13433909fccd71440db6ecde93adda3a99e215b4e0af643fd2170b472
   canonicalization: text_lf
 - path: IP_POLICY.md
   group: process_governance
@@ -69,11 +69,11 @@ artifact_hashes:
   canonicalization: text_lf
 - path: conformance/claims/example-core-producer.yaml
   group: claims
-  hash: sha256:fed54f8825233adf89823acbd92f12e2974b9322a03c7a4cf545e2a5a5f8751d
+  hash: sha256:3c15182df7c6ce24f94d795e029c8ed7cf2190aa705e9e640379b8d40c0a5456
   canonicalization: text_lf
 - path: conformance/claims/example-reference-gateway.yaml
   group: claims
-  hash: sha256:28dee66975b1f5ecddb5eedc32d936f75288326696b0b0913d704a35ff72a354
+  hash: sha256:6e8057545c222f7b093703130cd6a00debdac72490f53a62893c0429a19b8a5a
   canonicalization: text_lf
 - path: conformance/conformance_classes.yaml
   group: conformance_classes
@@ -133,7 +133,7 @@ artifact_hashes:
   canonicalization: text_lf
 - path: docs/zmeta_change_governance.md
   group: process_governance
-  hash: sha256:e48d6dd500b46fe127095ac5fc7ea2c786247cf4ba3158f9bef651ea7adf769a
+  hash: sha256:e76dd0c70a37213944bdc21e66246d7ac8fd331d7b28e4c91ba891adf9047ace
   canonicalization: text_lf
 - path: docs/zmeta_defensive_publication.md
   group: process_governance
@@ -241,7 +241,7 @@ artifact_hashes:
   canonicalization: text_lf
 - path: release/governed-baseline.yaml
   group: release_packaging
-  hash: sha256:84d4aba5a9a04da8ba6776ee2b3db0565ed04e2c0eb47ea52261af955411ab54
+  hash: sha256:7b5952c4529f7073797fec08de0910e2b6b0f59cd941b602dfe94b6c71c595ff
   canonicalization: text_lf
 - path: schema/proto/zmeta_event_v1.proto
   group: encoding_projection_specs
@@ -483,7 +483,7 @@ artifact_groups:
     paths:
     - conformance/claims/example-core-producer.yaml
     - conformance/claims/example-reference-gateway.yaml
-    hash: sha256:d4440cc3aa01e8f01c583bb01fc4cf3fd0b511105d56055ef668a2b123847f3c
+    hash: sha256:8891b26cd4fbe3bc1af02f994a57a909818d9ab002ef8ccf9e106cf65138cc7f
   release_policy:
     description: Human-readable release hash taxonomy and canonicalization policy.
     paths:
@@ -499,7 +499,7 @@ artifact_groups:
     - TRADEMARK.md
     - docs/zmeta_change_governance.md
     - docs/zmeta_defensive_publication.md
-    hash: sha256:a8b3a55a3ffbb587935fe4ba52fbaa4a93a9ea76fffa068278a2db37060c34b4
+    hash: sha256:938c81bfae3e84f3a822a14e4ebfd4d9307fb4ba9ebe48350ea6726a1335e2f4
   release_packaging:
     description: Formal release signing, attestation, package template, and package validation support.
     paths:
@@ -510,7 +510,7 @@ artifact_groups:
     - spec/release-signing-attestation.md
     - tools/build_release_package.py
     - tools/validate_release_package.py
-    hash: sha256:bcf39ced7320dbeb081076bb4ee52a2c1c549238719ede4dd9c0e48f43947c17
+    hash: sha256:0aafcbd557e71a1fd710cca9bf93b68070085a7884bf3cfd7093fd17a980a905
   release_tools:
     description: Release hash build and validation tooling.
     paths:
