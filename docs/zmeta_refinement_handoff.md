@@ -186,17 +186,14 @@ design waves, then hygiene, then anything genuinely waiting on field evidence.
     into `_run_checks`, likely with `preload` seed events as the evidence
     index) plus the vectors, as one scoped wave.
 
-17. **Apparatus-audit decision items.** The audit report (private,
-    `local/apparatus_audit_2026-08-10.md`) carries six retire-on-condition
-    items with drafted conditions and six maintainer-call items, plus the
-    two structural levers not yet taken: full battery single-sourcing
-    beyond the `--kernel-gate` alias (doc copies still exist, now stable),
-    and release-bundle curation (blocked on the
-    `conformance_classes.yaml` evidence-pointer decision). All decisions
-    are the maintainer's. One of the six maintainer calls resolved itself
-    on 2026-08-13: the `test_changelog_keeps_up` question is closed by
-    the X2-03 mechanism change (entry-derived dates, hard failure on a
-    stale sentinel), so five maintainer calls remain.
+17. **Apparatus-audit decision items. CLOSED 2026-08-13.** The maintainer
+    adopted the full recommendation set and the executable items landed
+    the same day (commits `07b0dd5` and `75dcd0f`): retirements, bundle
+    curation, the runtime-harness re-wiring, the records freeze, battery
+    single-sourcing (lever 1, with its guard), and the recorded keeps.
+    The one item still open is a single hygiene call: the
+    `backup-pre-scrub` branch is an unmerged pre-scrub snapshot, kept
+    until the maintainer explicitly decides its fate.
 
 18. **Triage the datum sweep's secondary notes.** The sweep's finders logged
     non-altitude instances of the same laundered-plausible-value class plus
