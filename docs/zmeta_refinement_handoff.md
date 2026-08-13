@@ -1,5 +1,44 @@
 # ZMeta Refinement Handoff Notes
 
+## CURRENT STATE (2026-08-13, post v1.1.24): RELOCKED FOR FIELD TESTING
+
+Two signed releases published on 2026-08-13, both sets verified against
+their published assets:
+
+- **v1.1.23** (tag `0f97e3b`): the PR #8 external fix wave merged
+  (Barrett Downs, Torch: three doc/scan-consistency fixes, each with a
+  set-equality guard), the maintainer record corrections that the merge
+  probe surfaced, and the first signed release since v1.1.4.
+- **v1.1.24** (tag `9118e19`): the health-and-hygiene wave that converts
+  this cycle's process findings into mechanisms. Validate CLI lane
+  diagnostics; `coerce_timing_quality` degrade with poisoned-bound
+  pass-through; claims `release_hashes` currency gate (X2-01 CHANGED);
+  changelog-guard entry-derived dates with loud sentinel mismatch (X2-03
+  CHANGED); signature-trio completeness for signed regimes (X2-02
+  addendum); slot-scoped vocabulary-token guard; single-sourced
+  snapshot exclusions; `.gitattributes` and checklist publish-path
+  hardening. No governed artifact moved in either release.
+
+The stack is relocked: field telemetry drives the next waves. Items
+below stay decision-due or field-gated unless marked otherwise. The
+items most likely to fire next, in order of proximity:
+
+1. **Barrett's follow-ups** (external, timing theirs): the sanitized
+   fixture/provenance exchange (shape agreed on the PR thread; our
+   provenance field sketch is in the posted reply), a fresh live capture
+   after their producer fixes land, and his list of twelve validate.py
+   diagnostic cases, which become test vectors for the landed lane fix.
+2. **Item 19 below**: the RF zero-fill policy check, a Class B mint
+   awaiting a focused adjudication session.
+3. **Item 17 below**: the apparatus audit's retire-or-keep decisions.
+4. The 15-concept experimental registry session (item 5), deliberately
+   deferred by the maintainer until adoption clarifies priorities.
+
+Session records for the 2026-08-11 through 2026-08-13 cycle live in the
+gitignored `local/` folder; the public record is the worklog entries for
+those dates, doctrine pressure log cycle X2, and the two releases'
+notes and validation reports.
+
 ## PRIORITIZED BACKLOG after doctrine cycle C1 (2026-08-10)
 
 Written at the close of the C1 fix wave, updated at the close of the
@@ -154,7 +193,10 @@ design waves, then hygiene, then anything genuinely waiting on field evidence.
     beyond the `--kernel-gate` alias (doc copies still exist, now stable),
     and release-bundle curation (blocked on the
     `conformance_classes.yaml` evidence-pointer decision). All decisions
-    are the maintainer's.
+    are the maintainer's. One of the six maintainer calls resolved itself
+    on 2026-08-13: the `test_changelog_keeps_up` question is closed by
+    the X2-03 mechanism change (entry-derived dates, hard failure on a
+    stale sentinel), so five maintainer calls remain.
 
 18. **Triage the datum sweep's secondary notes.** The sweep's finders logged
     non-altitude instances of the same laundered-plausible-value class plus
