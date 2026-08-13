@@ -776,6 +776,37 @@ def test_geo_utm_is_omitted():
     assert ext["location"]["omitted_reason"] == "UTM_UNSUPPORTED"
 
 
+def test_readme_omitted_reason_list_matches_the_source():
+    """README.md's omitted_reason tag list must match _canonical_geo exactly.
+
+    The list previously said UNITS_UNSPECIFIED where the code emits
+    COORDINATE_SYSTEM_UNSPECIFIED (fixed alongside this test); this pins the
+    whole list, not just that one tag, so the two cannot drift again in
+    either direction.
+    """
+    import re
+
+    readme = (_ROOT / "adapters" / "ingress" / "sapient" / "README.md").read_text(
+        encoding="utf-8"
+    )
+    tag_list_text = readme.split("omitted_reason", 1)[1].split(").", 1)[0]
+    documented = set(re.findall(r"`([A-Z_]+)`", tag_list_text))
+
+    source = (_ROOT / "adapters" / "ingress" / "sapient" / "sapient_to_zmeta.py").read_text(
+        encoding="utf-8"
+    )
+    canonical_geo_body = source.split("def _canonical_geo(", 1)[1].split("\ndef ", 1)[0]
+    implemented = set(re.findall(r'return None, "([A-Z_]+)"', canonical_geo_body))
+
+    assert implemented, "no omitted_reason tags found in _canonical_geo; parser broke"
+    assert documented == implemented, (
+        "adapters/ingress/sapient/README.md's omitted_reason tag list diverges "
+        "from _canonical_geo's actual return values: "
+        f"documented-but-not-implemented={sorted(documented - implemented)}, "
+        f"implemented-but-not-documented={sorted(implemented - documented)}"
+    )
+
+
 def test_geo_radians_are_converted_to_degrees():
     import math
 

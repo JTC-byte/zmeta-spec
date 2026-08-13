@@ -395,7 +395,8 @@ def _profile_claims_in_docs():
     for path in sorted(ROOT.rglob("*.md")):
         rel = path.relative_to(ROOT).as_posix()
         if any(part in rel for part in (".tmp/", "release/dist", "release/bundles",
-                                        "release/package-", "pytest-cache")):
+                                        "release/package-", "pytest-cache",
+                                        ".claude/worktrees")):
             continue
         for number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
             claim = _PROFILE_CLAIM.search(line)
