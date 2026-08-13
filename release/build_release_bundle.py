@@ -156,12 +156,19 @@ def write_manifest(dist, rel_paths):
     manifest_path.write_text("\n".join(manifest_lines) + "\n", encoding="utf-8")
 
 
-def _ignore_build_residue(_dir, names):
-    return {
+def _ignore_build_residue(dir_path, names):
+    ignored = {
         name
         for name in names
         if name in ("__pycache__", ".pytest_cache") or name.endswith((".pyc", ".pyo"))
     }
+    # The simulation harnesses are development scaffolding, not part of the
+    # specification distribution (apparatus audit lever, maintainer decision
+    # 2026-08-13). They stay in the repository; the demo wizard stays here
+    # in dist as onboarding but is curated out of the deployment bundles.
+    if Path(dir_path).name == "tools":
+        ignored.update(name for name in names if name == "sim")
+    return ignored
 
 
 def copy_tree(src, dest):

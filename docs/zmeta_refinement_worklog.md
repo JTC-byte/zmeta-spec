@@ -2,6 +2,34 @@
 
 ## Current Resume Note
 
+- Last updated: 2026-08-13 (apparatus decisions executed; first-contact guidance; relock holds)
+- **2026-08-13 (apparatus retire-or-keep decisions, first-contact guidance).**
+  The maintainer adopted the full recommendation set for the apparatus
+  audit's retire-on-condition and maintainer-call items, and the
+  executable ones landed the same day. Retired or consolidated: the
+  one-test packaging module folded into the release-package suite; the
+  r1_11 closure probe archived out of docs/ (playbook citation updated,
+  the frozen records untouched). Curated: deployment bundles exclude the
+  simulation harnesses and the demo wizard, the dist bundle excludes the
+  harnesses and keeps the wizard as onboarding, pinned at the builders'
+  ignore seam; the wholesale-docs concern from the audit was measured
+  already-solved (the PC-09 file-by-file listing ships the declared
+  seven-file process-governance set, of which exactly two live under
+  docs/, rather than the whole docs/ tree). Re-wired: the two live runtime harnesses become
+  a named checklist step for runtime-code cuts. Declared: the s1_*/r1_*
+  records are frozen with their evidence-pointer guarantee, and the
+  records-currency guard documents its r1_11 coupling in place. Kept with
+  recorded reasons: the governed baseline (load-bearing since the
+  baseline-before-bump rule), the public worklog archive, the live-test
+  checklist (the exercise it stages has not run), and the sim import
+  boundary, whose drafted retirement condition inverted once curation
+  landed: with sim out of every bundle, the guard is the only in-repo
+  detector of a governed import that would break shipped bundles while
+  the repo battery stays green. The compat module pair closed as no-twin
+  (CLI wraps library, both referenced). Separately, the authoring guide
+  gained a first-contact section teaching the two failure classes the
+  external replay measured, and the slot-token guard now checks
+  event_subtype and event_type vocabulary on lines naming those slots.
 - Last updated: 2026-08-13 (fix wave; guards landed; v1.1.24 cut)
 - **2026-08-13 (fix wave: the queued guards land, the stack relocks).**
   The post-merge fix wave, all outer-ring: no schema, policy, contract, or

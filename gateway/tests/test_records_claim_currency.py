@@ -4,6 +4,12 @@ These guard three *documentation defect classes* that the R1-11 cycle
 reproduced repeatedly. None of them is about code behaviour; all three are
 about a doc making a claim that reality does not keep.
 
+COUPLING, recorded per the apparatus audit's maintainer call (2026-08-13):
+this file's non-vacuity floors are satisfied by figures inside the r1_11
+process records, so the records and this check retire in pairs. Anyone
+moving or archiving an r1_11 record must re-derive the floors here in the
+same commit, or this guard goes vacuous while staying green.
+
 - **A-13 — frozen counts attributed to a moving ref.** Five separate
   recurrences: a record froze ``NN files, +NNNN / -NNN`` for
   ``origin/main..HEAD``, and the very commit that wrote the figure moved

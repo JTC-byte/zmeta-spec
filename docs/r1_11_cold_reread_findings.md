@@ -798,3 +798,11 @@ compact encode/decode depth guards differing by one nesting level
 not read (use limits reach the stamp via violation details); and the
 bladeRF adapter's unconditional `calibration_state: UNCALIBRATED`
 (kraken precedent, conservative direction, now noted in its README).
+
+---
+
+Correction note (2026-08-13): `docs/r1_11_closure_probe.py` was archived
+out of `docs/` on 2026-08-13 once its findings were confirmed recorded
+(apparatus audit retirement condition). The reproduction commands above
+that invoke it run as written at any tag up to and including v1.1.24; the
+record itself is unchanged.

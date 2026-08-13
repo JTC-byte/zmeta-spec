@@ -380,3 +380,54 @@ def test_built_package_state_matches_manifest_status():
             f"release_status={manifest.get('release_status')!r}; the package "
             f"build must pass --release-state to match"
         )
+
+
+# --------------------------------------------------------------------------
+# Bundle composition (folded from test_release_packaging.py, retired 2026-08-13
+# per the apparatus audit's consolidation condition)
+# --------------------------------------------------------------------------
+
+def _load_builder(filename):
+    return _load_tool("zmeta_" + filename.replace(".py", ""), f"release/{filename}")
+
+
+def test_mvp_bundles_include_self_test_dependencies():
+    build_mvp = _load_builder("build_mvp_packages.py")
+    required = {
+        "conformance",
+        "release/sign_release_artifacts.py",
+    }
+    assert required.issubset(set(build_mvp.COMMON_PATHS))
+
+
+def test_deployment_bundles_curate_out_development_scaffolding():
+    """The maintainer curation decisions of 2026-08-13, pinned at the seam.
+
+    The simulation harnesses and the demo wizard are repo tooling: the
+    deployment bundles exclude both, the dist bundle excludes sim and keeps
+    the wizard as onboarding. Pinned against the ignore callbacks the
+    builders actually pass to copytree, so a rename of the seam fails here
+    rather than silently re-shipping scaffolding.
+    """
+    build_mvp = _load_builder("build_mvp_packages.py")
+    dist = _load_builder("build_release_bundle.py")
+    tools_listing = ["sim", "gateway_wizard.py", "validate.py", "check_compat.py"]
+
+    mvp_ignored = build_mvp._ignore_func(str(ROOT / "tools"), tools_listing)
+    assert {"sim", "gateway_wizard.py"} <= mvp_ignored
+    assert "validate.py" not in mvp_ignored
+
+    dist_ignored = dist._ignore_build_residue(str(ROOT / "tools"), tools_listing)
+    assert "sim" in dist_ignored
+    assert "gateway_wizard.py" not in dist_ignored, "the wizard stays in dist as onboarding"
+
+    elsewhere = build_mvp._ignore_func(str(ROOT / "gateway"), ["sim", "wizard.py"])
+    assert "sim" not in elsewhere, "the exclusion is tools-scoped, not name-global"
+    # The scope test is by directory NAME, so a nested */tools/ directory
+    # would also be curated; today none exists outside the repo root, and
+    # this pin turns a future nested-tools regression into a named failure
+    # instead of a silent exclusion.
+    nested = build_mvp._ignore_func(str(ROOT / "gateway" / "tools"), ["sim", "helper.py"])
+    assert "sim" in nested, (
+        "the name-scoped exclusion changed shape; re-derive the curation pins"
+    )

@@ -256,7 +256,9 @@ traffic through them: `two_node.py` for the wire path and `throughput.py` for
 capacity. They answer questions the validators here cannot, because a schema
 check cannot tell you that a containerized node is delivering its output to a
 loopback nothing can read. See `tools/sim/README.md` for how to run them and
-for the rule that keeps them separable.
+for the rule that keeps them separable. The harnesses are repository
+tooling and are not included in the release bundles; run them from a
+repository clone.
 
 Everything else on this page defines or enforces the standard. The simulation
 harnesses do not, and nothing governed may depend on them. That separation is

@@ -14,6 +14,14 @@ Nothing governed may read tools/sim.
 validators and kernel-gate tools in tools/, the conformance corpora, and the
 gateway runtime. If that set is ever redrawn, redraw it here too.
 
+Retirement condition evaluated and DECLINED (2026-08-13). The apparatus
+audit drafted "retires if tools/sim is curated out of bundles". The
+curation landed that day, and it inverts the condition instead of meeting
+it: with sim absent from every shipped bundle, a governed import of
+tools/sim would leave the in-repo battery green (sim exists in the repo)
+while every shipped bundle breaks at import. This guard is now the only
+in-repo detector of that state, so it stays.
+
 The scope question this protects is recorded as doctrine log SIM1-04.
 """
 
@@ -57,7 +65,19 @@ def governed_files():
 
 class SimBoundaryTest(unittest.TestCase):
     def test_the_sim_directory_exists_and_has_content(self):
-        """Non-vacuity: with no harnesses present every assertion below is trivially true."""
+        """Non-vacuity: with no harnesses present every assertion below is trivially true.
+
+        A release bundle is the one place the harnesses are legitimately
+        absent: they are curated out of every bundle (2026-08-13), the
+        bundles ship this battery, and a bundle root carries the
+        VERSION.txt the builders write. There the check skips by name
+        instead of alarming an operator about a directory the bundle
+        deliberately does not carry. In a repository checkout (no
+        VERSION.txt at root) a missing tools/sim stays a hard failure,
+        so the floor cannot go quietly vacuous where the guard matters.
+        """
+        if not SIM.is_dir() and (ROOT / "VERSION.txt").is_file():
+            self.skipTest("tools/sim is curated out of release bundles by design")
         self.assertTrue(SIM.is_dir(), "tools/sim is missing")
         harnesses = sorted(p.name for p in SIM.glob("*.py"))
         self.assertTrue(harnesses, "tools/sim contains no harnesses, so this file guards nothing")

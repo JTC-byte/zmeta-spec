@@ -14,7 +14,15 @@ IGNORE_NAMES = (
 IGNORE_PATTERNS = ("*.pyc", "*.pyo", "pytest-cache-files-*")
 
 
-def _ignore_func(_dir, names):
+# Development scaffolding curated out of the deployment bundles (apparatus
+# audit levers, maintainer decisions 2026-08-13): the simulation harnesses
+# and the demo wizard are repo tooling, not runtime, and a deployment
+# package should carry only what a deployment runs. Both stay in the
+# repository; the wizard also stays in the dist bundle as onboarding.
+TOOLS_DIR_EXCLUDES = ("sim", "gateway_wizard.py")
+
+
+def _ignore_func(dir_path, names):
     ignored = set()
     for name in names:
         if name in IGNORE_NAMES:
@@ -22,6 +30,8 @@ def _ignore_func(_dir, names):
         for pattern in IGNORE_PATTERNS:
             if Path(name).match(pattern):
                 ignored.add(name)
+    if Path(dir_path).name == "tools":
+        ignored.update(name for name in names if name in TOOLS_DIR_EXCLUDES)
     return ignored
 
 

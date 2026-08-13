@@ -72,7 +72,10 @@ Notes:
 
 ## Gateway Install With Wizard Output
 
-Use the wizard when you need a local config generated interactively:
+Use the wizard when you need a local config generated interactively. The
+wizard ships in a repository clone and in the dist bundle; the edge and
+gateway deployment bundles do not carry it, so generate the config from a
+clone or the dist bundle and copy it over:
 
 ```text
 python tools/gateway_wizard.py --output gateway-config.json

@@ -187,7 +187,10 @@ Formalized from what demonstrably worked across R1-09, R1-10 and R1-11:
    vacuous pin inside the fix for a vacuous pin. Pre-2026-07-27 pins are not
    retro-fitted and must not be assumed non-vacuous.
 6. **Author is not grader.** Closure is verified by a probe written by one
-   party and executed by another (`docs/r1_11_closure_probe.py`).
+   party and executed by another (the R1-11 instance was
+   `docs/r1_11_closure_probe.py`, archived out of docs/ on 2026-08-13 once
+   its findings were confirmed recorded; it remains retrievable at any
+   pre-archive tag).
 7. **No minting; log the collision.** A fix that wants a governed change
    (a `reason_code`, an enum entry, normative text) implements what doctrine
    permits and records the tension in `docs/zmeta_doctrine_review_log.md`. It

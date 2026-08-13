@@ -43,7 +43,12 @@ made, and not required reading for using the standard:
 - `zmeta_semantic_contract_lockdown_audit.md` and the dated `s1_*.md` /
   `r1_*.md` files: per-task plan/audit/release records referenced from the
   worklog and, in a few cases, from `conformance/conformance_classes.yaml`
-  evidence entries.
+  evidence entries. **Frozen as of 2026-08-13** (apparatus audit
+  maintainer call): these are completed task records; they take dated
+  correction notes but are never rewritten, renamed, or moved, because
+  the conformance-class evidence entries reference them by path and the
+  records-currency guard derives its non-vacuity floors from figures
+  inside them. Evidence pointers into this set stay valid at every tag.
 - `v*_precut_panel_register.md`: the per-cut pre-release panel record,
   findings and fixes with standalone verification commands, frozen to the
   cut it reviewed.

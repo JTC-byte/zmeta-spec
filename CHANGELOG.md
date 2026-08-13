@@ -2,6 +2,20 @@
 
 ## [Unreleased]
 
+- 2026-08-13 — **The apparatus audit's retire-or-keep decisions land.**
+  Deployment bundles curate out the simulation harnesses and the demo
+  wizard (the wizard stays in the dist bundle as onboarding), pinned at
+  the builders' ignore seam; the one-test packaging module folds into the
+  release-package suite; the r1_11 closure probe archives out of docs/;
+  the two live runtime harnesses re-wire as a named checklist step for
+  runtime-code cuts; the `s1_*`/`r1_*` process records are declared
+  frozen with their evidence-pointer guarantee; and the records-currency
+  guard documents its coupling to the r1_11 figures. Three keeps are
+  recorded with reasons: the governed baseline (now load-bearing), the
+  worklog archive (public history stays public), and the sim import
+  boundary, whose drafted retirement condition inverted on inspection.
+  The compat module pair closes as no-twin: the CLI wraps the library and
+  both are referenced.
 - 2026-08-13 — **First-contact guidance in the authoring guide.** A new
   section names the two classes that dominated the first external replay's
   rejections: product terms supplied as `event_subtype`, and offset-form

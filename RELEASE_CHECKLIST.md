@@ -121,5 +121,12 @@ Use this as the template for each release.
 - [ ] GitHub Release body includes checksum/signature verification instructions
 - [ ] GitHub CI passes for the release commit
 - [ ] Gateway Docker build + run verified
+- [ ] *(runtime-code cuts only)* Live runtime harnesses executed:
+      `python tools/test_gateway_live.py` and
+      `python tools/test_workflow_end_to_end.py`. These were release
+      evidence from v1.1.6 through v1.1.16 and then run by nothing; this
+      step is their deliberate re-wiring (apparatus audit maintainer call,
+      2026-08-13). Docs-only and guard-only cuts may skip them, stating so
+      in the validation report
 - [ ] Tag created
 - [ ] GitHub Release created with zips, SHA256SUMS, and signatures

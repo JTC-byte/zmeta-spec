@@ -33,7 +33,9 @@ python gateway/src/gateway.py --profile H --self-test --require-contract-hash <H
 
 ### Config file (recommended)
 
-Generate a deterministic config with the wizard:
+Generate a deterministic config with the wizard (ships in a repository
+clone and the dist bundle, not in the deployment bundles; generate there
+and copy the config over):
 
 ```
 python tools/gateway_wizard.py --output gateway-config.json
