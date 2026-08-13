@@ -40,6 +40,28 @@ literal raw IQ support is recorded future work. (Egress differs:
 with `payload.data_ref` pointer metadata (semantics contract Appendix A).
 Never carry raw payload data in-event.
 
+## First Contact: The Two Failures Everyone Hits
+
+The first external replay of real archived producer traffic against a
+published release was rejected almost entirely on two classes (PR #8 field
+verification). Check both before anything else:
+
+1. **`event_subtype` is schema vocabulary, not your product's word for the
+   thing.** The subtype must be one of the schema tokens for the declared
+   event type. A bearing line is `event_subtype: RF` on an
+   OBSERVATION_EVENT, never a product term like a bare bearing label; a
+   displayed track is `event_subtype: TRACK_STATE` on a STATE_EVENT; a
+   health report uses the SYSTEM_EVENT tokens (`LINK_STATUS`,
+   `TIME_STATUS`, `SCHEMA_VIOLATION`, `TASK_ACK`). The authoritative list
+   is the schema lane you declare (`schema/zmeta-event-1.0.schema.json`),
+   and `tools/validate.py` names the failing path and the legal tokens
+   when you get it wrong.
+2. **`event.ts` ends in `Z`.** The schema requires UTC with a trailing
+   `Z`: `2026-08-13T14:30:00Z`, never an offset form like
+   `2026-08-13T14:30:00+00:00`. `coerce_timing_quality()`'s sibling
+   helpers (`format_utc_z`, `normalize_utc_z`, `epoch_ms_to_utc_z`) emit
+   the required form from datetimes, ISO strings, and epoch milliseconds.
+
 ## 2. Choose The Layer
 
 Emit at the layer that describes what your input is, never the layer you wish

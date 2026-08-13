@@ -2,7 +2,13 @@
 
 ## [Unreleased]
 
-(Nothing yet - the next work lands here.)
+- 2026-08-13 — **First-contact guidance in the authoring guide.** A new
+  section names the two classes that dominated the first external replay's
+  rejections: product terms supplied as `event_subtype`, and offset-form
+  timestamps. The slot-token guard now checks `event_subtype` and
+  `event_type` vocabulary on lines that name those slots, so the new
+  guidance (and any future prose like it) is verified against the schema
+  enums rather than trusted.
 
 ## [1.1.24] - 2026-08-13
 

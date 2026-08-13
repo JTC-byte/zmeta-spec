@@ -473,6 +473,12 @@ _SLOT_DOC_SURFACES = (
     "docs/zmeta_two_node_quickstart.md",
 )
 _SLOT_NAMES = ("time_source", "sync_state", "calibration_state", "geo_status")
+# Slots whose member tokens are too common in ordinary prose to serve as
+# triggers (RF, EO, TRACK_STATE appear in tables everywhere): only a line
+# that literally names the slot is checked. The two are paired because a
+# line discussing subtypes legitimately names event types beside them, so
+# either one triggering admits both vocabularies.
+_NAME_ONLY_SLOTS = ("event_subtype", "event_type")
 _CAPS_TOKEN = re.compile(r"\b[A-Z][A-Z0-9_]{2,}\b")
 
 # Deliberate non-members that legitimately share a line with a slot. Every
@@ -492,7 +498,8 @@ _SLOT_TOKEN_ALLOWLIST = {
 
 
 def _schema_slot_enums():
-    enums = {slot: set() for slot in _SLOT_NAMES}
+    every_slot = _SLOT_NAMES + _NAME_ONLY_SLOTS
+    enums = {slot: set() for slot in every_slot}
     for lane in ("zmeta-event-1.0.schema.json", "zmeta-event-1.1.0.schema.json"):
         data = json.loads((ROOT / "schema" / lane).read_text(encoding="utf-8"))
 
@@ -500,11 +507,14 @@ def _schema_slot_enums():
             if isinstance(node, dict):
                 props = node.get("properties")
                 if isinstance(props, dict):
-                    for slot in _SLOT_NAMES:
+                    for slot in every_slot:
                         spec = props.get(slot)
-                        if isinstance(spec, dict) and isinstance(spec.get("enum"), list):
+                        if isinstance(spec, dict):
+                            values = spec.get("enum") or (
+                                [spec["const"]] if "const" in spec else []
+                            )
                             enums[slot].update(
-                                value for value in spec["enum"] if isinstance(value, str)
+                                value for value in values if isinstance(value, str)
                             )
                 for value in node.values():
                     walk(value)
@@ -521,11 +531,15 @@ def _slot_token_offences(text, enums):
     for number, line in enumerate(text.splitlines(), 1):
         triggered = [
             slot
-            for slot, members in enums.items()
-            if slot in line or any(
-                member in _CAPS_TOKEN.findall(line) for member in members
+            for slot in _SLOT_NAMES
+            if slot in enums
+            and (
+                slot in line
+                or any(member in _CAPS_TOKEN.findall(line) for member in enums[slot])
             )
         ]
+        if any(slot in line for slot in _NAME_ONLY_SLOTS):
+            triggered.extend(slot for slot in _NAME_ONLY_SLOTS if slot in enums)
         if not triggered:
             continue
         allowed = set().union(*(enums[slot] for slot in triggered))
@@ -586,4 +600,28 @@ def test_the_slot_token_matcher_catches_the_exact_authoring_defect():
     offences = _slot_token_offences(pre_fix, enums)
     assert [token for (_, _, token) in offences] == ["GPS"], (
         f"the matcher must flag exactly GPS on the pre-fix text, got {offences}"
+    )
+
+
+def test_the_subtype_slot_catches_the_first_contact_defect_class():
+    """Self-test for the name-only slots, against the measured field class.
+
+    The first external replay's dominant rejection was a product term
+    supplied as event_subtype (a bearing line labeled with a bare LOB-style
+    token instead of RF). The slot is name-only triggered, so the exact
+    line shape the authoring guide teaches must be checked, and a legal
+    pairing of subtype and event type on one line must pass.
+    """
+    enums = _schema_slot_enums()
+    assert "event_subtype" in enums and len(enums["event_subtype"]) >= 8, (
+        "event_subtype extraction collapsed; the name-only check is blind"
+    )
+    bad = 'A bearing line is `event_subtype: LOB` on an OBSERVATION_EVENT.'
+    offences = _slot_token_offences(bad, enums)
+    assert [token for (_, _, token) in offences] == ["LOB"], (
+        f"the matcher must flag exactly LOB, got {offences}"
+    )
+    good = 'A bearing line is `event_subtype: RF` on an OBSERVATION_EVENT.'
+    assert _slot_token_offences(good, enums) == [], (
+        "a legal subtype beside its event type must pass"
     )
