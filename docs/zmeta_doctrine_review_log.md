@@ -2233,6 +2233,33 @@ which raises its weight. Queued recommendation: derive the worked-on date
 from the newest dated worklog entry instead of the sentinel, so the guard
 keys on what contributors actually write.
 
+A second instance followed on the maintainer side (recorded 2026-08-13):
+the 2026-08-12 errata wave landed on develop with no changelog entry and no
+sentinel bump, and the guard stayed silent for the same reason. The PR #8
+second review's merge probe caught it: merging the contributor's honest
+sentinel bump would have turned the guard green over a record missing two
+days of maintainer work, so the guard's skip condition converts one side's
+omission into a false currency assertion the moment the other side does the
+right thing. The record was completed at the merge wave. Occurrence count: 2.
+
+### Disposition — the PR #8 governed commit · 2026-08-13
+
+The contributor withdrew the registration after the review: the force-push
+dropped the governed commit entirely, and the three accepted fixes merged
+2026-08-13 (`36345fb`) with the withdrawal recorded in the branch's own
+changelog and worklog entries. No governed change was minted; `warn` keeps
+one meaning across the registry.
+
+The need survives the withdrawal and is harvested per the intake doctrine:
+nothing in the registry or its documentation tells a reader that
+`EVENT_TS_IMPLAUSIBLE` exists or why it is deliberately absent, and the
+origin of the false wiring analogy ("wired exactly like
+`warn_datagram_bytes`") is this repository's own test docstring. Queued for
+the fix wave, with credit to Barrett Downs: a non-governed documentation
+surface for metrics-only diagnostics, and reconciliation of the
+`test_ts_plausibility_window.py` docstring so the analogy cannot be read as
+a wiring claim again.
+
 ---
 
 The value of this log is the pattern over time. But a log that only ever grows

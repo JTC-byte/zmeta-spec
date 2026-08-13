@@ -2,12 +2,30 @@
 
 ## Current Resume Note
 
+- Last updated: 2026-08-13 (PR #8 merged; record corrections; v1.1.23 cut)
+- **2026-08-13 (PR #8 merged; record corrections).** The force-pushed branch
+  was re-reviewed end to end: the three accepted commits are byte-identical
+  to the first review, the withdrawn registration left zero residue across
+  policy, claims, manifest, and export surfaces, and the full battery
+  reproduced the contributor's reported tallies exactly. Merged as
+  `36345fb`. The held proposal's disposition is logged in the doctrine
+  pressure log (cycle X2): withdrawn by the contributor after review; the
+  discoverability need it identified is queued for an in-house,
+  non-governed solution with credit to Barrett Downs. This commit also
+  completes the record for the 2026-08-12 errata wave, which landed without
+  its changelog entry or worklog note (a maintainer-side instance of X2-03,
+  caught by the second review's merge probe), applies wording corrections
+  to the merged entries, and restores the 2026-08-10 resume-note line the
+  merged docs commit removed.
 - Last updated: 2026-08-11 (external verification follow-up; three drift fixes)
 - **2026-08-11 (external verification, documentation consistency).** A field
-  verification pass found three documentation and scan-consistency defects.
+  verification pass found four defects; the three documentation and
+  scan-consistency fixes accepted from it are recorded here.
   The governed-document profile scan included stale repository copies under
   `.claude/worktrees/`; that snapshot path is now excluded with the other
-  non-current trees. The profile-projection README omitted
+  non-current trees. The sibling repo-wide markdown walker in
+  `test_records_claim_currency.py` carries the same exposure; the
+  shared-exclusion fix is queued. The profile-projection README omitted
   `PROJECTION_POLICY_RISK_LABEL_REMOVED` and
   `PROJECTION_EXTERNAL_PROMOTION_EVIDENCE_REMOVED` from the failure-code list
   it presents as the stable reference, and the SAPIENT README named
@@ -18,6 +36,7 @@
   Maintainer review held the fourth proposal because its runtime diagnostic is
   intentionally outside policy severity machinery; the branch now contains
   and records the three accepted fixes.
+- Last updated: 2026-08-10 (v1.1.22 cut prepared; doctrine cycle C1)
 - **2026-08-10 (external review, fix wave, v1.1.22 prepared).** An
   independent technical review compared ZMeta against ten standards without
   raw-byte access to the normative files. Its own findings were roughly a

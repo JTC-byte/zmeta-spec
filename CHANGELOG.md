@@ -2,14 +2,40 @@
 
 ## [Unreleased]
 
-- 2026-08-11: **Three documentation-consistency fixes from external
-  verification.** The governed-document scan now excludes stale copies under
+- 2026-08-13 — **PR #8 merged: the first fully external fix wave lands.**
+  The force-pushed branch was re-reviewed end to end before merge: the three
+  accepted commits are byte-identical to the first review, the withdrawn
+  fourth proposal left zero residue across policy, claims, manifest, and
+  export surfaces, and the full battery reproduced the contributor's
+  reported tallies exactly. The held proposal's disposition is recorded in
+  the doctrine pressure log (cycle X2): the need it identified, registry
+  discoverability of the metrics-only timestamp-plausibility diagnostic, is
+  acknowledged and queued for an in-house solution on a non-governed
+  surface, with credit to Barrett Downs.
+
+- 2026-08-12 — **Claims and signing errata recorded; release checklist
+  hardened.** `docs/release_claims_errata.md` records the stale
+  `release_hashes` shipped in every published v1.1.22 bundle, with corrected
+  values and reproduction. Doctrine pressure log cycle X2 opens with three
+  entries covering the hash-pin-as-currency refutation, the signing decision
+  that was never made, and the changelog guard's contributor-boundary skip.
+  Dated corrections land on the R1-11 audit's refuted claims finding and on
+  the refinement handoff's two false signing passages.
+  `RELEASE_CHECKLIST.md` gains the `--update-claims` step, requires the
+  signing decision to name the release authority and date, and requires key
+  existence to be re-derived at each cut. This wave landed 2026-08-12
+  without its changelog entry; it is recorded here at the merge wave
+  (doctrine log X2-03, second instance).
+
+- 2026-08-11 — **Three documentation and scan-consistency fixes from
+  external verification (Barrett Downs, Torch).** The governed-document
+  profile scan now excludes stale copies under
   `.claude/worktrees/`, the profile-projection README lists the two implemented
   risk and external-promotion failure codes it omitted, and the SAPIENT README
   uses the `COORDINATE_SYSTEM_UNSPECIFIED` omission reason emitted by the
   adapter. The two README corrections include set-equality tests that detect
-  missing, extra, or misspelled entries. The review originally referred to four
-  fixes; maintainer review held the fourth proposal because its runtime
+  missing, extra, or misspelled entries. The PR #8 review originally referred
+  to four fixes; maintainer review held the fourth proposal because its runtime
   diagnostic is intentionally outside policy severity machinery, so this
   branch records the three accepted fixes.
 
