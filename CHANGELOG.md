@@ -2,6 +2,35 @@
 
 ## [Unreleased]
 
+(Nothing yet - the next work lands here.)
+
+## [1.1.25] - 2026-08-13
+
+- 2026-08-13 — **RF_ZERO_FILL_SUSPECTED is minted.** The RF analogue of
+  the geo zero-fill check, from field evidence with credit to Barrett
+  Downs (Torch): a line-of-bearing mapping zero-filled `bandwidth_hz` and
+  `power_dbm` its source records never carried, and nothing RF-shaped
+  objected. The trigger is the pair both exactly 0.0, and only the pair,
+  re-adjudicated after the pre-cut verification pass measured that
+  bandwidth-alone triggering would have failed the documented
+  receiver-class sentinel (`bandwidth_hz` 0.0 beside a measured power,
+  sanctioned in AUTHORING.md and emitted by five adapter families:
+  kraken, moth, signalhunter, sapient, and the experimental adsb power
+  path) under strict mode. The pair collides with nothing
+  sanctioned, is inherently RF-family (no other feature family carries
+  `power_dbm`), and is checked in payload, claim, and estimated_state
+  feature blocks alike. Warn severity is the ceiling by construction,
+  because the locked contract states the zero-fill prohibition for geo
+  only (doctrine pressure log X2-04 records all three adjudications and
+  the generalized-6.8 versioned-branch note). Ships across the registry,
+  the semantics allowlist, the 1.1.0 schema reason-code enum, the
+  validator, two bad-event corpus warn vectors, and unit tests. The
+  locked v1.0 schema does not move: on the v1.0 wire the code rides the
+  documented post-lock fallback (`GEO_ZERO_FILL_SUSPECTED`, the same
+  zero-fill class at the same warn severity, the overload recorded
+  deliberately in X2-04) with the minted code traveling natively in
+  `metrics.diagnostic_code`, the byte-anchor guard having enforced
+  exactly this path during the mint.
 - 2026-08-13 — **Lockdown completion: the battery is single-sourced and
   the container path is verified.** The six documents defining the
   governed battery state the same four commands, with

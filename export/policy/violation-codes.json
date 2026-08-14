@@ -81,6 +81,10 @@
       "severity": "warn"
     },
     {
+      "code": "RF_ZERO_FILL_SUSPECTED",
+      "severity": "warn"
+    },
+    {
       "code": "BEARING_FRAME_UNLABELED",
       "severity": "warn"
     },

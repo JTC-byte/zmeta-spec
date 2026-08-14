@@ -1881,6 +1881,7 @@
                       "INVALID_MODALITY_FEATURES",
                       "INVALID_GEO_FIELD",
                       "GEO_ZERO_FILL_SUSPECTED",
+                      "RF_ZERO_FILL_SUSPECTED",
                       "ENCODING_UNSUPPORTED",
                       "BEARING_FRAME_UNLABELED",
                       "NON_FINITE_CONFIDENCE",

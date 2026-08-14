@@ -2,7 +2,45 @@
 
 ## Current Resume Note
 
-- Last updated: 2026-08-13 (lockdown completion: battery single-sourced, Docker verified, retention pass)
+- Last updated: 2026-08-13 (RF zero-fill minted; v1.1.25 cut)
+- **2026-08-13 (RF zero-fill adjudication and mint, v1.1.25).** The
+  focused session handoff item 19 was booked for, run the day it was
+  booked, with three maintainer adjudications recorded in X2-04: mint
+  now, as completion of the zero-fill laundering class the geo code
+  established, rather than holding a single field instance against the
+  occurrence rule; the paired predicate, re-adjudicated after the
+  pre-cut verification pass measured that the first-draft
+  bandwidth-alone trigger would have failed the documented
+  receiver-class sentinel on five adapter families under strict mode
+  (kraken, moth, signalhunter, sapient, and the experimental adsb
+  power path). The pair predicate: bandwidth_hz and power_dbm both
+  exactly 0.0 triggers, and only the pair, because no shipped adapter
+  emits a power sentinel, the pair is the exact fabrication shape the
+  field evidence measured, and it scopes the check to the RF family
+  without a modality gate. The third adjudication was the v1.0
+  wire fallback to GEO_ZERO_FILL_SUSPECTED with its cross-family
+  overload recorded deliberately. The severity question answered itself
+  during grounding: the locked contract states the zero-fill
+  prohibition for geospatial data only (6.8), so warn is the ceiling by
+  construction, and the generalized form is recorded as
+  versioned-semantic-branch material rather than minted. Shipped
+  surfaces: the violation registry, the semantics allowed-code list,
+  the validator heuristic walking the same three feature containers as
+  its geo analogue (payload, claim, estimated_state, per the R1-11
+  A-16 lesson), the 1.1.0 schema lane's reason-code enum, the
+  documented v1.0 wire fallback with the minted code native in
+  metrics.diagnostic_code, two bad-event corpus warn vectors (the
+  corpus's first warn-severity entries, one at payload level and one
+  under an inference claim), and an eight-case unit suite including the
+  sanctioned-sentinel non-trigger, the one-milliwatt non-trigger, the
+  estimated_state container (the A-16 blind spot, proven in-repo per
+  P2-D1), the negative-zero and integer-zero pair shapes, and the
+  wire-shaped junk paths. The v1.0 byte-anchor guard fired mid-mint on a first draft
+  that touched the locked lane's enum and forced the documented
+  post-lock path, which is the lock defending its own bytes in real
+  time. Field evidence credit: Barrett Downs (Torch). The corpus
+  vectors are synthesized fresh; the motivating events live in a
+  private, not-for-publication bundle.
 - **2026-08-13 (lockdown completion: the remaining menu executes).** Four
   items close the lockdown list. The containerized gateway wire path was
   verified live at v1.1.24 (container boots with the release's contract

@@ -192,8 +192,8 @@ same pack first if you want a known-good diff.
 Two declared-sentinel conventions to keep distinct from fabrication:
 receiver-class RF sensors that physically cannot measure emitter bandwidth
 satisfy the schema-required RF feature set with the documented
-`bandwidth_hz: 0.0` sentinel (the kraken, moth, and signalhunter READMEs
-document it), and FFT-derived detections that measure an analysis window
+`bandwidth_hz: 0.0` sentinel (the kraken, moth, signalhunter, and SAPIENT
+READMEs document it, and the experimental ADS-B power path emits it), and FFT-derived detections that measure an analysis window
 rather than emitter bandwidth may report the documented FFT-bin-width
 convention (the edge-comms-bladerf pack documents it). Both are declared
 sentinels: fixed, documented, consumer-visible conventions rather than invented

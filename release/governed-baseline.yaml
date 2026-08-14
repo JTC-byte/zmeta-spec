@@ -1,18 +1,18 @@
-baseline_release_id: zmeta-v1.1.23
+baseline_release_id: zmeta-v1.1.24
 generated_by: tools/release_focus_facts.py --write-baseline
 purpose: The published release this working tree is measured against. Committed because CI checks out without tags, so a git-based comparison would pass vacuously there.
 artifact_hashes:
-  AGENTS.md: sha256:2fff4619260a36548a47ddc2708dcb451e185cb36eb81758beee6f1346a01da0
+  AGENTS.md: sha256:6a76334f27c86d86bd1f86998a8a7c28421f6076e6a9cfaeec86c1609b681f42
   CONFORMANCE.md: sha256:23fc4da8d17370024624eebb414139a94b70b67b83669c8b1db8d5f268e6e49e
-  CONTRIBUTING.md: sha256:09780422263072a350400673df72cff10cd0fb16d30cb4c182c1b6782a7dce71
+  CONTRIBUTING.md: sha256:caac5845160bbb4a805e1f27ae9c76a14b6ceaa4ce4805f6b542c709c7d566f7
   IP_POLICY.md: sha256:5f81bd201183e03f15401f5228928d33fff60f2102651959d1ed66b77699ca90
   TRADEMARK.md: sha256:0085d72ae8c4d11550562a784980275258a99b5b72450a2d6937b0971b91b201
   configs/policy-variants/producer-authority.strict.yaml: sha256:4f9ab94813f97ff30b38bec62f4cfddddbb180b66ff82906a7e4573fdc5c628b
   configs/policy-variants/timing-freshness-profile-L-degrade.yaml: sha256:aaa30e5607a22d006c243403fafbd6b55f6ee8cb9ce0c2aa063ad8af30b64780
   conformance/adapter-harness/must-pass.jsonl: sha256:95923e9e7546bb8a7ccf906a788a9712070ef0c935348caba3b02f35c19070cc
   conformance/bad-events/must-fail.jsonl: sha256:9663ff32172a26b071b0c90bd5d43c818335f64bf6f965073bf52956de91d9b8
-  conformance/claims/example-core-producer.yaml: sha256:fed54f8825233adf89823acbd92f12e2974b9322a03c7a4cf545e2a5a5f8751d
-  conformance/claims/example-reference-gateway.yaml: sha256:28dee66975b1f5ecddb5eedc32d936f75288326696b0b0913d704a35ff72a354
+  conformance/claims/example-core-producer.yaml: sha256:5fc52b7be7c43ae300d6f75263974720d44b7cd6cbb6ee4c1ae77ac5c1a8f44d
+  conformance/claims/example-reference-gateway.yaml: sha256:7959af4d4d930736682c95ad00788fefb37858aa91627c1ef56de7f6eba91fd5
   conformance/conformance_classes.yaml: sha256:c3342cc651253962eb2dd93272e7a85d5ee011afb7b3a40c9cefb7601e5b6bc6
   conformance/encoding-negative/compact-must-fail.jsonl: sha256:d282d2d48f3572b7a9f974460946cde6a96cbd944d888221502b3a4091dd755d
   conformance/encoding-negative/context.jsonl: sha256:a08ef68da7067be0e6ccf37e8f4ae349e42156678805aaf7de913cc4fa36e6d3
@@ -27,7 +27,7 @@ artifact_hashes:
   conformance/profile-projection/must-fail.jsonl: sha256:4f20a6d8b0a6e5f73b491389d78313426ee90ba9b13192ca32593650e436acf0
   conformance/profile-projection/must-pass.jsonl: sha256:ac8d80b93480c735b961c72b049dd22a0b3997d03ce72cf53df0be903d15da47
   conformance/profile_projection_field_catalog.yaml: sha256:bd5c6526339863e704bc287c45a35d0b2ff277f47a2ed8f100788ace73fec1b2
-  docs/zmeta_change_governance.md: sha256:e48d6dd500b46fe127095ac5fc7ea2c786247cf4ba3158f9bef651ea7adf769a
+  docs/zmeta_change_governance.md: sha256:7a42107ce85e8492ca37870ce6a3f43065b5ce8bfac5b5492867d492a9fd689b
   docs/zmeta_defensive_publication.md: sha256:4cca30cba78e081c57b73218d5bcb598ff3945a22d8e83299666df7ad9fc00af
   export/policy/command-evidence.json: sha256:8df7240d2d2707a24cee52265dc1f289947f56d22b8a02b140ce04fd8d89e5ca
   export/policy/index.json: sha256:e9c2b54ade9fe4c56da8429ca29d2c3ce39251906f2ef7323e3360df9b4c636b
@@ -53,7 +53,7 @@ artifact_hashes:
   release/ATTESTATION_TEMPLATE.yaml: sha256:51d83f4f1105ddfb15d437d853a3776fb5f0dcf93421909dd376708721455a05
   release/RELEASE_NOTES_TEMPLATE.md: sha256:72f8508ccbcc44e6845fee7b778e9501cdcbcc70f6dc2012614991f07a3784aa
   release/RELEASE_PACKAGE_README.md: sha256:085a7808594e8d4070fd73af6f7bf19c61fd1656b26d9a8779040f0b77abcc47
-  release/governed-baseline.yaml: sha256:84d4aba5a9a04da8ba6776ee2b3db0565ed04e2c0eb47ea52261af955411ab54
+  release/governed-baseline.yaml: sha256:7b5952c4529f7073797fec08de0910e2b6b0f59cd941b602dfe94b6c71c595ff
   schema/proto/zmeta_event_v1.proto: sha256:abc128fa2dc0058624bc654b422e8b0c7a045aac83e6a71d644a8ccca6672d82
   schema/zmeta-event-1.0.schema.json: sha256:1d2d84164b3a8986874e932c0e9369be3bf392a483a8ff261d464f34bd16d7b5
   schema/zmeta-event-1.1.0.schema.json: sha256:e10c151dce8e167b1df76c8c8f27dc28f39d0b1e210a8adfb50ae1c61a1b195f

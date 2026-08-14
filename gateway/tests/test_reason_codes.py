@@ -76,6 +76,10 @@ class ReasonCodeTest(unittest.TestCase):
         "NON_FINITE_VALUE",
         "COMMAND_EVIDENCE_UNRESOLVED",
         "COMMAND_EVIDENCE_PROHIBITED",
+        # X2-04 mint (2026-08-13): same post-lock path, falling back to
+        # GEO_ZERO_FILL_SUSPECTED (same zero-fill class, same warn
+        # severity) on the v1.0 wire.
+        "RF_ZERO_FILL_SUSPECTED",
     }
 
     # Codes in policy/violation-codes.yaml that are legitimately NOT

@@ -97,6 +97,7 @@ semantics:
       - INVALID_MODALITY_FEATURES
       - INVALID_GEO_FIELD
       - GEO_ZERO_FILL_SUSPECTED
+      - RF_ZERO_FILL_SUSPECTED
       - ENCODING_UNSUPPORTED
       - BEARING_FRAME_UNLABELED
       - NON_FINITE_CONFIDENCE
@@ -147,6 +148,9 @@ semantics:
       NON_FINITE_VALUE: SCHEMA_INVALID
       COMMAND_EVIDENCE_UNRESOLVED: LINEAGE_PARENT_UNRESOLVED
       COMMAND_EVIDENCE_PROHIBITED: LINEAGE_MISMATCH
+      # Same class (zero-fill suspected) and same warn severity; the RF
+      # field family travels natively in metrics.diagnostic_code.
+      RF_ZERO_FILL_SUSPECTED: GEO_ZERO_FILL_SUSPECTED
     task_ack_required_metrics_fields:
       - task_id
       - original_event_id

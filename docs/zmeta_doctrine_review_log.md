@@ -2152,6 +2152,7 @@ logs here at disposition, with the merge wave.
 | X2-01 | A hash pin was accepted as proof of claim currency, and refuted a true finding | 3 | **CHANGED 2026-08-13** |
 | X2-02 | The signing record cites a decision that was never made | 3, 5 | **CHANGED 2026-08-12** |
 | X2-03 | The changelog guard skips on a convention an external contributor cannot know | 3 | **CHANGED 2026-08-13** |
+| X2-04 | Policy wants to label RF zero-fill, and the locked contract states the prohibition for geo only | 1, 3, 6 | **CHANGED 2026-08-13** |
 
 ### X2-01 — A hash pin was accepted as proof of claim currency · **CHANGED 2026-08-13**
 
@@ -2289,6 +2290,66 @@ the fix wave, with credit to Barrett Downs: a non-governed documentation
 surface for metrics-only diagnostics, and reconciliation of the
 `test_ts_plausibility_window.py` docstring so the analogy cannot be read as
 a wiring claim again.
+
+### X2-04 — Policy wants to label RF zero-fill, and the locked contract states the prohibition for geo only · **CHANGED 2026-08-13**
+
+The PR #8 field-evidence pass supplied the measurement: a naive
+line-of-bearing mapping zero-filled `bandwidth_hz` and `power_dbm` its
+source records never carried, and fifteen such events passed reference
+validation with only an unrelated bearing-frame warning. The temptation is
+structural: the schema requires all three RF feature fields, so a mapping
+whose source lacks them either refuses the reading or fabricates zeros,
+and nothing labeled the fabrication. Policy has `GEO_ZERO_FILL_SUSPECTED`
+for the geospatial form of the same laundering; the RF family had no
+analogue.
+
+Three tensions were adjudicated by the maintainer (Justin Carr, 2026-08-13):
+
+1. **Occurrence discipline against fix-the-class.** The field evidence is
+   a single external instance, which the occurrence rule would hold at a
+   registry proposal. Adjudicated as class completion instead: the
+   zero-fill laundering class was adjudicated when the geo code was
+   minted, and the datum-sweep precedent treats one evidenced defect as a
+   class to close, not an observation to count. `RF_ZERO_FILL_SUSPECTED`
+   is minted (registry, semantics allowlist, the 1.1.0 schema lane's
+   reason-code enum with the documented v1.0 wire fallback, validator
+   heuristic, two corpus warn vectors, unit tests). The v1.0 byte-anchor
+   guard rejected a first draft that touched the locked lane and forced
+   the post-lock path the R1-11-01 batch established.
+2. **The predicate against the declared-sentinel convention.** The first
+   adjudication chose bandwidth-alone triggering, on grounding that
+   missed the repository's own shipped convention: receiver-class
+   sensors that physically cannot measure emitter bandwidth emit the
+   documented `bandwidth_hz` 0.0 sentinel beside a measured power
+   (AUTHORING.md's declared-sentinel section; kraken, moth, and
+   signalhunter document it), and that convention is adjudicated as
+   distinct from fabrication. The pre-cut verification pass measured the
+   collision (the sentinel became a strict-mode failure on five adapter
+   families, adsb's behind its experimental flag), and the maintainer re-adjudicated to the paired signature:
+   `bandwidth_hz` and `power_dbm` both exactly 0.0, and only the pair,
+   triggers. No shipped adapter emits a power sentinel, so the pair
+   collides with nothing sanctioned; it is the exact fabrication shape
+   the field evidence measured; and because no other feature family
+   carries `power_dbm`, the pair scopes the check to the RF family
+   without a modality gate. The walk covers payload, claim, and
+   estimated_state feature blocks, the same three containers as the geo
+   analogue, per the recorded R1-11 A-16 lesson.
+3. **Severity and the v1.0 wire, without a contract anchor.** Contract
+   6.8 states the zero-fill prohibition for geospatial data only, and
+   the contract is locked. Warn is therefore the ceiling by
+   construction, not by analogy: policy must not reject on a rule the
+   contract does not state. On the v1.0 wire the code falls back to
+   `GEO_ZERO_FILL_SUSPECTED`, a choice that overloads an existing
+   locked-lane value with a cross-family sense and is recorded here
+   deliberately: it preserves the class (zero-fill suspected) and the
+   warn severity, every alternative in the locked enum misstates either
+   the severity or the finding outright, and the minted code plus the
+   feature-block path travel natively in `metrics.diagnostic_code` and
+   `metrics.path` for any consumer that needs the exact family. A
+   generalized 6.8 (missing measurements MUST be omitted, never
+   zero-filled, across field families, with declared sentinels defined)
+   is the durable home for this rule and is recorded here as
+   versioned-semantic-branch material, not minted policy.
 
 ---
 

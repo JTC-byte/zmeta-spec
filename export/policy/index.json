@@ -43,7 +43,7 @@
     {
       "export": "export/policy/semantics.json",
       "source": "policy/semantics.yaml",
-      "source_sha256": "sha256:c36738e49fff35738d8a4f16a378c27b901d3b737a7538c8c15c5a17aae0a643"
+      "source_sha256": "sha256:8cb599418a2bbb77e24d752dbc69f23fee6847017b795e5bf10d8006cc4b5fd1"
     },
     {
       "export": "export/policy/timing-freshness.json",
@@ -53,7 +53,7 @@
     {
       "export": "export/policy/violation-codes.json",
       "source": "policy/violation-codes.yaml",
-      "source_sha256": "sha256:e1c78889c775fad76f0d1dd724b14ac8200cdff577e08b5b6f40dcf83b686832"
+      "source_sha256": "sha256:355fd20d776824bddf2be1f1bccab052081ccfb8ca1e7cb4f6b14d4cbdb34a76"
     }
   ],
   "verify": "python tools/export_policy_json.py --check"

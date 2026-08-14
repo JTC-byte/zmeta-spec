@@ -28,9 +28,10 @@ items most likely to fire next, in order of proximity:
    provenance field sketch is in the posted reply), a fresh live capture
    after their producer fixes land, and his list of twelve validate.py
    diagnostic cases, which become test vectors for the landed lane fix.
-2. **Item 19 below**: the RF zero-fill policy check, a Class B mint
-   awaiting a focused adjudication session.
-3. **Item 17 below**: the apparatus audit's retire-or-keep decisions.
+2. **Item 19 below: EXECUTED 2026-08-13.** The RF zero-fill mint was
+   adjudicated and shipped the same day (v1.1.25, doctrine log X2-04).
+3. **Item 17 below: CLOSED 2026-08-13.** The apparatus audit's
+   retire-or-keep decisions all executed.
 4. The 15-concept experimental registry session (item 5), deliberately
    deferred by the maintainer until adoption clarifies priorities.
 
@@ -213,7 +214,17 @@ design waves, then hygiene, then anything genuinely waiting on field evidence.
     `units.yaml` optional while it is the sole carrier of a load-bearing
     datum declaration for any pack with an altitude field.
 
-19. **RF zero-fill policy check (proposal, maintainer decision to mint).**
+19. **RF zero-fill policy check. EXECUTED 2026-08-13** in a focused
+    adjudication session the same day it was booked: the maintainer
+    decided mint-now (class completion over occurrence-holding), and
+    after the pre-cut verification pass surfaced the declared-sentinel
+    collision, re-adjudicated the trigger to the paired signature
+    (`bandwidth_hz` and `power_dbm` both exactly 0.0, and only the
+    pair). `RF_ZERO_FILL_SUSPECTED` shipped as a warn-severity governed
+    change in v1.1.25. Doctrine pressure log X2-04 records all three
+    adjudicated tensions, including the no-contract-anchor severity
+    ceiling and the generalized-6.8 versioned-branch note. The original
+    proposal text follows as the decision's input record.
     Booked 2026-08-13 from the PR #8 field-evidence pass, with credit to
     Barrett Downs (Torch). Evidence: a naive line-of-bearing mapping
     carrying four laundering instances (zero-filled `bandwidth_hz` and
@@ -1426,7 +1437,7 @@ Current stack status:
   bearing/heading fields unless callers explicitly assert `TRUE_NORTH`;
   unasserted native values remain auditable under explicitly named
   non-canonical fields.
-- Use tag `v1.1.24` for current formal release assets and checksums.
+- Use tag `v1.1.25` for current formal release assets and checksums.
   Published 2026-08-13 at the maintainer's direction: PR #8 merged with its
   record wave completed, and the release signed with the Incept.IO release
   key, the first signed release since v1.1.4. The signing decision names

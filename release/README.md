@@ -11,11 +11,11 @@ report, release manifest hash, conformance evidence, and
 `CONFORMANCE.md`, and `TRADEMARK.md` define the advisory contribution,
 compatibility, private-dialect, and name-use posture for the public baseline.
 
-Current formal release: `v1.1.24`. `RELEASE_CHECKLIST.md` is the authoritative
+Current formal release: `v1.1.25`. `RELEASE_CHECKLIST.md` is the authoritative
 release procedure; the commands below describe artifact building generically.
 
 Build release artifacts from the repo root (substitute the release version for
-`<version>`, e.g. `v1.1.24`):
+`<version>`, e.g. `v1.1.25`):
 
 ```powershell
 python tools/build_release_manifest.py --output release/zmeta-release-manifest.yaml

@@ -55,7 +55,7 @@ jobs:
       - name: Check migration compatibility
         run: |
           for file in examples/*.jsonl; do
-            python tools/check_compat.py --target v1.1.24 --strict "$file"
+            python tools/check_compat.py --target v1.1.25 --strict "$file"
           done
 
       - name: Validate v1.1 examples

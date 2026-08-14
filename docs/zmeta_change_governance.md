@@ -337,7 +337,7 @@ When manifest-listed artifacts change, rebuild with explicit metadata for the
 current release baseline:
 
 ```powershell
-python tools\build_release_manifest.py --release-id zmeta-v1.1.24 --release-name "ZMeta v1.1.24" --release-status formal_release --release-date 2026-08-13 --branch main --update-claims
+python tools\build_release_manifest.py --release-id zmeta-v1.1.25 --release-name "ZMeta v1.1.25" --release-status formal_release --release-date 2026-08-13 --branch main --update-claims
 python tools\validate_release_manifest.py --manifest release\zmeta-release-manifest.yaml
 ```
 

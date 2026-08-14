@@ -3406,6 +3406,48 @@ def validate_semantics(event, semantics_policy, severity_map=None):
                     )
                 )
 
+    # RF zero-fill heuristic (warn only, never reject): the geo check's
+    # analogue on the RF feature family, minted 2026-08-13 from field
+    # evidence (a line-of-bearing mapping zero-filled bandwidth_hz and
+    # power_dbm its source records never carried, and nothing RF-shaped
+    # objected). The trigger is the PAIR both exactly 0.0, and only the
+    # pair, re-adjudicated after the pre-cut verification pass: the
+    # documented receiver-class sentinel (AUTHORING.md) emits
+    # bandwidth_hz 0.0 beside a measured power and stays sanctioned, and
+    # power_dbm 0.0 alone is one milliwatt, a legitimate reading. The
+    # co-present pair is also what scopes the check to the RF family
+    # without a modality gate (no other feature family carries power_dbm),
+    # and the walk covers the same three containers as the geo analogue
+    # (payload, claim, estimated_state), per the recorded R1-11 A-16
+    # lesson. The locked contract states the zero-fill prohibition for
+    # geo only (6.8), so warn is the ceiling here by construction: policy
+    # must not reject on a rule the contract does not state, and the
+    # consumer adjudicates.
+    if isinstance(payload, dict):
+        for features_path, features in _spatial_candidates(payload, "features"):
+            if not isinstance(features, dict):
+                continue
+            bandwidth = features.get("bandwidth_hz")
+            power = features.get("power_dbm")
+            pair_zero = (
+                isinstance(bandwidth, (int, float))
+                and not isinstance(bandwidth, bool)
+                and float(bandwidth) == 0.0
+                and isinstance(power, (int, float))
+                and not isinstance(power, bool)
+                and float(power) == 0.0
+            )
+            if pair_zero:
+                warnings.append(
+                    _violation(
+                        "RF_ZERO_FILL_SUSPECTED",
+                        "bandwidth_hz and power_dbm are both exactly 0.0; "
+                        "zero-filled RF measurement suspected",
+                        details={"path": features_path},
+                        severity_map=severity_map,
+                    )
+                )
+
     # Contract 6.4 frame-provenance heuristic (warn only, never reject): a
     # canonical bearing with no frame provenance in either channel
     # (bearing.frame or quality.bearing_frame) passes every hard gate, yet
