@@ -1,9 +1,9 @@
 # ZMeta Refinement Handoff Notes
 
-## CURRENT STATE (2026-08-13, post v1.1.24): RELOCKED FOR FIELD TESTING
+## CURRENT STATE (2026-08-13, post v1.1.25): RELOCKED FOR FIELD TESTING
 
-Two signed releases published on 2026-08-13, both sets verified against
-their published assets:
+Three signed releases published on 2026-08-13, every set verified against
+its published assets:
 
 - **v1.1.23** (tag `0f97e3b`): the PR #8 external fix wave merged
   (Barrett Downs, Torch: three doc/scan-consistency fixes, each with a
@@ -17,7 +17,15 @@ their published assets:
   CHANGED); signature-trio completeness for signed regimes (X2-02
   addendum); slot-scoped vocabulary-token guard; single-sourced
   snapshot exclusions; `.gitattributes` and checklist publish-path
-  hardening. No governed artifact moved in either release.
+  hardening. No governed artifact moved in v1.1.23 or v1.1.24.
+- **v1.1.25** (tag `2f49d59`): `RF_ZERO_FILL_SUSPECTED` minted from the
+  field evidence, the first governed vocabulary change since v1.1.21
+  (doctrine log X2-04: three maintainer adjudications, including the
+  paired predicate that keeps the documented receiver-class bandwidth
+  sentinel sanctioned). Governed delta: the violation registry, the
+  semantics policy, the 1.1.0 schema enum, and two bad-event corpus warn
+  vectors. The locked v1.0 schema and the semantic contract remain
+  byte-identical to the lock, each pinned by its own guard.
 
 The stack is relocked: field telemetry drives the next waves. Items
 below stay decision-due or field-gated unless marked otherwise. The
