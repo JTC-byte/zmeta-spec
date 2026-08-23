@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="490" viewBox="0 0 1000 490" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" role="img" aria-label="Measured wire size across encodings and profiles">
+<rect x="0.0" y="0.0" width="1000.0" height="490.0" rx="0" fill="#ffffff" stroke="none" stroke-width="1.0"/>
+<text x="26.0" y="34.0" font-size="21" fill="#1b2330" text-anchor="start" font-weight="700" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">What honesty costs on the wire, measured</text>
+<text x="26.0" y="56.0" font-size="13" fill="#5b6b7b" text-anchor="start" font-weight="normal" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">Shipped example events from this repo, encoded with the repo encoders at generation time.</text>
+<rect x="26.0" y="74.0" width="12.0" height="12.0" rx="3" fill="#3a7ca5" stroke="none" stroke-width="1.0"/>
+<text x="44.0" y="84.0" font-size="11.5" fill="#1b2330" text-anchor="start" font-weight="normal" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">JSON</text>
+<rect x="88.8" y="74.0" width="12.0" height="12.0" rx="3" fill="#2e8b6f" stroke="none" stroke-width="1.0"/>
+<text x="106.8" y="84.0" font-size="11.5" fill="#1b2330" text-anchor="start" font-weight="normal" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">CBOR</text>
+<rect x="151.6" y="74.0" width="12.0" height="12.0" rx="3" fill="#c47f2a" stroke="none" stroke-width="1.0"/>
+<text x="169.6" y="84.0" font-size="11.5" fill="#1b2330" text-anchor="start" font-weight="normal" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">Compact</text>
+<rect x="239.0" y="74.0" width="12.0" height="12.0" rx="3" fill="#7a5ea8" stroke="none" stroke-width="1.0"/>
+<text x="257.0" y="84.0" font-size="11.5" fill="#1b2330" text-anchor="start" font-weight="normal" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">Protobuf</text>
+<text x="26.0" y="126.0" font-size="13.5" fill="#1b2330" text-anchor="start" font-weight="700" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">Profile H</text>
+<text x="26.0" y="144.0" font-size="11.5" fill="#5b6b7b" text-anchor="start" font-weight="normal" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">RF observation</text>
+<rect x="300.0" y="112.0" width="584.4" height="14.0" rx="3" fill="#3a7ca5" stroke="none" stroke-width="1.0"/>
+<text x="892.4" y="123.0" font-size="10.5" fill="#1b2330" text-anchor="start" font-weight="normal" font-family="ui-monospace, SFMono-Regular, Consolas, 'Liberation Mono', monospace">542 B</text>
+<rect x="300.0" y="130.0" width="489.5" height="14.0" rx="3" fill="#2e8b6f" stroke="none" stroke-width="1.0"/>
+<text x="797.5" y="141.0" font-size="10.5" fill="#1b2330" text-anchor="start" font-weight="normal" font-family="ui-monospace, SFMono-Regular, Consolas, 'Liberation Mono', monospace">454 B</text>
+<rect x="300.0" y="148.0" width="318.1" height="14.0" rx="3" fill="#c47f2a" stroke="none" stroke-width="1.0"/>
+<text x="626.1" y="159.0" font-size="10.5" fill="#1b2330" text-anchor="start" font-weight="normal" font-family="ui-monospace, SFMono-Regular, Consolas, 'Liberation Mono', monospace">295 B</text>
+<rect x="300.0" y="166.0" width="430.2" height="14.0" rx="3" fill="#7a5ea8" stroke="none" stroke-width="1.0"/>
+<text x="738.2" y="177.0" font-size="10.5" fill="#1b2330" text-anchor="start" font-weight="normal" font-family="ui-monospace, SFMono-Regular, Consolas, 'Liberation Mono', monospace">399 B</text>
+<line x1="26.0" y1="188.0" x2="974.0" y2="188.0" stroke="#e4ebf2" stroke-width="1"/>
+<text x="26.0" y="212.0" font-size="13.5" fill="#1b2330" text-anchor="start" font-weight="700" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">Profile H</text>
+<text x="26.0" y="230.0" font-size="11.5" fill="#5b6b7b" text-anchor="start" font-weight="normal" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">track state</text>
+<rect x="300.0" y="198.0" width="620.0" height="14.0" rx="3" fill="#3a7ca5" stroke="none" stroke-width="1.0"/>
+<text x="928.0" y="209.0" font-size="10.5" fill="#1b2330" text-anchor="start" font-weight="normal" font-family="ui-monospace, SFMono-Regular, Consolas, 'Liberation Mono', monospace">575 B</text>
+<rect x="300.0" y="216.0" width="533.7" height="14.0" rx="3" fill="#2e8b6f" stroke="none" stroke-width="1.0"/>
+<text x="841.7" y="227.0" font-size="10.5" fill="#1b2330" text-anchor="start" font-weight="normal" font-family="ui-monospace, SFMono-Regular, Consolas, 'Liberation Mono', monospace">495 B</text>
+<rect x="300.0" y="234.0" width="269.6" height="14.0" rx="3" fill="#c47f2a" stroke="none" stroke-width="1.0"/>
+<text x="577.6" y="245.0" font-size="10.5" fill="#1b2330" text-anchor="start" font-weight="normal" font-family="ui-monospace, SFMono-Regular, Consolas, 'Liberation Mono', monospace">250 B</text>
+<rect x="300.0" y="252.0" width="431.3" height="14.0" rx="3" fill="#7a5ea8" stroke="none" stroke-width="1.0"/>
+<text x="739.3" y="263.0" font-size="10.5" fill="#1b2330" text-anchor="start" font-weight="normal" font-family="ui-monospace, SFMono-Regular, Consolas, 'Liberation Mono', monospace">400 B</text>
+<line x1="26.0" y1="274.0" x2="974.0" y2="274.0" stroke="#e4ebf2" stroke-width="1"/>
+<text x="26.0" y="298.0" font-size="13.5" fill="#1b2330" text-anchor="start" font-weight="700" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">Profile L</text>
+<text x="26.0" y="316.0" font-size="11.5" fill="#5b6b7b" text-anchor="start" font-weight="normal" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">track state</text>
+<rect x="300.0" y="284.0" width="493.8" height="14.0" rx="3" fill="#3a7ca5" stroke="none" stroke-width="1.0"/>
+<text x="801.8" y="295.0" font-size="10.5" fill="#1b2330" text-anchor="start" font-weight="normal" font-family="ui-monospace, SFMono-Regular, Consolas, 'Liberation Mono', monospace">458 B</text>
+<rect x="300.0" y="302.0" width="425.9" height="14.0" rx="3" fill="#2e8b6f" stroke="none" stroke-width="1.0"/>
+<text x="733.9" y="313.0" font-size="10.5" fill="#1b2330" text-anchor="start" font-weight="normal" font-family="ui-monospace, SFMono-Regular, Consolas, 'Liberation Mono', monospace">395 B</text>
+<rect x="300.0" y="320.0" width="161.7" height="14.0" rx="3" fill="#c47f2a" stroke="none" stroke-width="1.0"/>
+<text x="469.7" y="331.0" font-size="10.5" fill="#1b2330" text-anchor="start" font-weight="normal" font-family="ui-monospace, SFMono-Regular, Consolas, 'Liberation Mono', monospace">150 B</text>
+<rect x="300.0" y="338.0" width="303.0" height="14.0" rx="3" fill="#7a5ea8" stroke="none" stroke-width="1.0"/>
+<text x="611.0" y="349.0" font-size="10.5" fill="#1b2330" text-anchor="start" font-weight="normal" font-family="ui-monospace, SFMono-Regular, Consolas, 'Liberation Mono', monospace">281 B</text>
+<text x="26.0" y="382.0" font-size="12.5" fill="#1b2330" text-anchor="start" font-weight="normal" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">The Profile H track-state example costs 575 B as JSON; the Profile L track-state example</text>
+<text x="26.0" y="400.0" font-size="12.5" fill="#1b2330" text-anchor="start" font-weight="normal" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">costs 150 B as a compact packet, 74% less wire. The two are different example tracks:</text>
+<text x="26.0" y="418.0" font-size="12.5" fill="#1b2330" text-anchor="start" font-weight="normal" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">the Profile L example omits per-event timing quality and relies on periodic TIME_STATUS packets</text>
+<text x="26.0" y="436.0" font-size="12.5" fill="#1b2330" text-anchor="start" font-weight="normal" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">not shown here. Every packet still decodes to a canonical event that passes the same validation.</text>
+</svg>

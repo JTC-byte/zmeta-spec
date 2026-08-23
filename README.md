@@ -71,8 +71,8 @@ evaluating ZMeta rather than building against it.
 
 ## ZMeta In The Field
 
-The reference stack is extracted from fielded deployments. The ingress adapters
-marked "Production" in `adapters/README.md` came from:
+The reference stack is extracted from fielded deployments. Four of the five
+ingress adapters marked "Production" in `adapters/README.md` came from:
 
 - a hosted EO/CV integration deployment: fixed-camera detections build a full
   local `OBSERVATION -> INFERENCE -> FUSION -> STATE` chain on the edge,
@@ -99,6 +99,16 @@ contribute one.
 - Not a C2 system
 - Not a video container
 - Not a replacement for MISB
+
+ZMeta is a layer, not an application. Anything built with it (a COP, an
+adapter, a fusion service) is a product, and every product in a ZMeta
+deployment is replaceable; ZMeta is the agreement they are built against.
+
+![Hourglass diagram: producer products above and consumer products below are replaceable; the narrow waist between them is the locked contract every party agrees on.](docs/img/f1-thin-waist.svg)
+
+For the full first-exposure walk-through of the standard, with every concept's
+definition site and enforcement status, see
+[`docs/zmeta_ontology_reference.md`](docs/zmeta_ontology_reference.md).
 
 ZMeta does not replace CoT, MAVLink, JREAP, MISB, or vendor sensor formats. It
 gives them a shared vocabulary for what was observed, what was inferred, what
@@ -171,6 +181,9 @@ nodes.
   the single document that explains the whole stack with diagrams and worked
   scenarios, then `spec/semantics-contract.md` (normative),
   `spec/profile-compatibility.md`, and `CONFORMANCE.md`.
+- **Looking a concept up**: [`docs/zmeta_ontology_reference.md`](docs/zmeta_ontology_reference.md),
+  the status-marked map of every concept, what defines it, and what enforces
+  it, with a register of known divergences between surfaces.
 - **Building UIs or consumers**: `spec/field-dictionary.md`; encoding
   guidance in `spec/compact-binary-mapping.md` and
   `spec/protobuf-encoding.md`.
@@ -299,8 +312,14 @@ need a fixed target:
 Runnable examples live in `examples/`:
 - `zmeta-examples-1.0.jsonl`: RF observation, inference, fusion, and state projection.
 - `zmeta-eo-chain-examples.jsonl`: worked EO full chain with genuine chained lineage.
+- `zmeta-profile-H-examples.jsonl` and `zmeta-profile-M-examples.jsonl`:
+  Profile H and Profile M example sets.
 - `zmeta-profile-L-examples.jsonl`: Profile L state/system/command examples.
 - `zmeta-command-examples.jsonl`: GOTO and TASK_ACK lifecycle.
+- `zmeta-correlation-pattern-examples.jsonl`: companion events for
+  `docs/zmeta_correlation_pattern.md`.
+- `encoding-roundtrip.jsonl`: golden corpus for CBOR/compact/protobuf
+  round-trip tests.
 - `zmeta-v1.1-examples.jsonl`: SENSOR_STATUS, PLATFORM_STATUS, data_ref/data_refs,
   error_ellipse_m, and v1.1.0 tasking examples.
 

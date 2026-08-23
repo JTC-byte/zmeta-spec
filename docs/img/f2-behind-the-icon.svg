@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="700" viewBox="0 0 1000 700" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" role="img" aria-label="One display icon decomposed into the real event chain that carried it">
+<rect x="0.0" y="0.0" width="1000.0" height="700.0" rx="0" fill="#ffffff" stroke="none" stroke-width="1.0"/>
+<text x="26.0" y="34.0" font-size="21" fill="#1b2330" text-anchor="start" font-weight="700" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">Behind the icon</text>
+<text x="26.0" y="56.0" font-size="13" fill="#5b6b7b" text-anchor="start" font-weight="normal" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">Built from the shipped EO example events, genuine lineage ids included.</text>
+<rect x="26.0" y="96.0" width="300.0" height="240.0" rx="10" fill="#f3f6fa" stroke="#cdd8e3" stroke-width="1.2"/>
+<text x="38.0" y="120.0" font-size="13.5" fill="#1b2330" text-anchor="start" font-weight="700" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">What the operator sees</text>
+<line x1="76.0" y1="132.0" x2="76.0" y2="290.0" stroke="#e4ebf2" stroke-width="1"/>
+<line x1="126.0" y1="132.0" x2="126.0" y2="290.0" stroke="#e4ebf2" stroke-width="1"/>
+<line x1="176.0" y1="132.0" x2="176.0" y2="290.0" stroke="#e4ebf2" stroke-width="1"/>
+<line x1="226.0" y1="132.0" x2="226.0" y2="290.0" stroke="#e4ebf2" stroke-width="1"/>
+<line x1="276.0" y1="132.0" x2="276.0" y2="290.0" stroke="#e4ebf2" stroke-width="1"/>
+<line x1="36.0" y1="171.5" x2="316.0" y2="171.5" stroke="#e4ebf2" stroke-width="1"/>
+<line x1="36.0" y1="211.0" x2="316.0" y2="211.0" stroke="#e4ebf2" stroke-width="1"/>
+<line x1="36.0" y1="250.5" x2="316.0" y2="250.5" stroke="#e4ebf2" stroke-width="1"/>
+<polygon points="200.0,194.0 212.0,206.0 200.0,218.0 188.0,206.0" fill="#c47f2a" stroke="none" stroke-width="1.0"/>
+<text x="182.0" y="202.0" font-size="10.5" fill="#1b2330" text-anchor="end" font-weight="normal" font-family="ui-monospace, SFMono-Regular, Consolas, 'Liberation Mono', monospace">track-000031</text>
+<text x="182.0" y="216.0" font-size="9.5" fill="#5b6b7b" text-anchor="end" font-weight="normal" font-family="ui-monospace, SFMono-Regular, Consolas, 'Liberation Mono', monospace">conf 0.79  stale in 5 s</text>
+<text x="38.0" y="312.0" font-size="10.5" fill="#5b6b7b" text-anchor="start" font-weight="normal" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">one icon on a map, in whichever</text>
+<text x="38.0" y="326.0" font-size="10.5" fill="#5b6b7b" text-anchor="start" font-weight="normal" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">COP a mission happens to run</text>
+<text x="26.0" y="372.0" font-size="12.5" fill="#1b2330" text-anchor="start" font-weight="700" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">The display is a projection.</text>
+<text x="26.0" y="392.0" font-size="12" fill="#1b2330" text-anchor="start" font-weight="normal" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">Replace the COP and nothing in the</text>
+<text x="26.0" y="410.0" font-size="12" fill="#1b2330" text-anchor="start" font-weight="normal" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">chain changes. The state event</text>
+<text x="26.0" y="428.0" font-size="12" fill="#1b2330" text-anchor="start" font-weight="normal" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">carries its immediate parent&#x27;s id;</text>
+<text x="26.0" y="446.0" font-size="12" fill="#1b2330" text-anchor="start" font-weight="normal" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">a consumer holding the retained</text>
+<text x="26.0" y="464.0" font-size="12" fill="#1b2330" text-anchor="start" font-weight="normal" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">events can walk back to the source</text>
+<text x="26.0" y="482.0" font-size="12" fill="#1b2330" text-anchor="start" font-weight="normal" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">clip. Profile allowlists govern</text>
+<text x="26.0" y="500.0" font-size="12" fill="#1b2330" text-anchor="start" font-weight="normal" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">which families travel (contract 4.8).</text>
+<rect x="380.0" y="96.0" width="594.0" height="108.0" rx="10" fill="#f3f6fa" stroke="#c47f2a" stroke-width="2"/>
+<rect x="380.0" y="96.0" width="594.0" height="8.0" rx="4" fill="#c47f2a" stroke="none" stroke-width="1.0"/>
+<rect x="380.0" y="100.0" width="594.0" height="5.0" rx="0" fill="#c47f2a" stroke="none" stroke-width="1.0"/>
+<text x="394.0" y="124.0" font-size="12.5" fill="#c47f2a" text-anchor="start" font-weight="700" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">STATE_EVENT / TRACK_STATE</text>
+<text x="962.0" y="124.0" font-size="10" fill="#5b6b7b" text-anchor="end" font-weight="normal" font-family="ui-monospace, SFMono-Regular, Consolas, 'Liberation Mono', monospace">...b850f457230c</text>
+<text x="394.0" y="146.0" font-size="11" fill="#1b2330" text-anchor="start" font-weight="normal" font-family="ui-monospace, SFMono-Regular, Consolas, 'Liberation Mono', monospace">track_id track-000031   confidence 0.79</text>
+<text x="394.0" y="165.0" font-size="11" fill="#1b2330" text-anchor="start" font-weight="normal" font-family="ui-monospace, SFMono-Regular, Consolas, 'Liberation Mono', monospace">valid_for_ms 5000   geo 34.05244, -118.24351</text>
+<text x="394.0" y="184.0" font-size="11" fill="#1b2330" text-anchor="start" font-weight="normal" font-family="ui-monospace, SFMono-Regular, Consolas, 'Liberation Mono', monospace">timing NTP LOCKED est_error 25 ms</text>
+<line x1="677.0" y1="228.0" x2="677.0" y2="216.0" stroke="#5b6b7b" stroke-width="2"/>
+<polygon points="677.0,208.0 680.5,215.2 673.5,215.2" fill="#5b6b7b" stroke="none" stroke-width="1.0"/>
+<text x="689.0" y="222.0" font-size="9.5" fill="#5b6b7b" text-anchor="start" font-weight="normal" font-family="ui-monospace, SFMono-Regular, Consolas, 'Liberation Mono', monospace">based_on ...b84f52c4c354</text>
+<rect x="380.0" y="232.0" width="594.0" height="108.0" rx="10" fill="#f3f6fa" stroke="#2e8b6f" stroke-width="2"/>
+<rect x="380.0" y="232.0" width="594.0" height="8.0" rx="4" fill="#2e8b6f" stroke="none" stroke-width="1.0"/>
+<rect x="380.0" y="236.0" width="594.0" height="5.0" rx="0" fill="#2e8b6f" stroke="none" stroke-width="1.0"/>
+<text x="394.0" y="260.0" font-size="12.5" fill="#2e8b6f" text-anchor="start" font-weight="700" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">FUSION_EVENT / TRACK_FUSION</text>
+<text x="962.0" y="260.0" font-size="10" fill="#5b6b7b" text-anchor="end" font-weight="normal" font-family="ui-monospace, SFMono-Regular, Consolas, 'Liberation Mono', monospace">...b84f52c4c354</text>
+<text x="394.0" y="282.0" font-size="11" fill="#1b2330" text-anchor="start" font-weight="normal" font-family="ui-monospace, SFMono-Regular, Consolas, 'Liberation Mono', monospace">mints track-000031   confidence 0.81</text>
+<text x="394.0" y="301.0" font-size="11" fill="#1b2330" text-anchor="start" font-weight="normal" font-family="ui-monospace, SFMono-Regular, Consolas, 'Liberation Mono', monospace">members 1   stability 0.71</text>
+<text x="394.0" y="320.0" font-size="11" fill="#1b2330" text-anchor="start" font-weight="normal" font-family="ui-monospace, SFMono-Regular, Consolas, 'Liberation Mono', monospace">the only stage allowed to create track identity</text>
+<line x1="677.0" y1="364.0" x2="677.0" y2="352.0" stroke="#5b6b7b" stroke-width="2"/>
+<polygon points="677.0,344.0 680.5,351.2 673.5,351.2" fill="#5b6b7b" stroke="none" stroke-width="1.0"/>
+<text x="689.0" y="358.0" font-size="9.5" fill="#5b6b7b" text-anchor="start" font-weight="normal" font-family="ui-monospace, SFMono-Regular, Consolas, 'Liberation Mono', monospace">based_on ...b84ec21c0c11</text>
+<rect x="380.0" y="368.0" width="594.0" height="108.0" rx="10" fill="#f3f6fa" stroke="#7a5ea8" stroke-width="2"/>
+<rect x="380.0" y="368.0" width="594.0" height="8.0" rx="4" fill="#7a5ea8" stroke="none" stroke-width="1.0"/>
+<rect x="380.0" y="372.0" width="594.0" height="5.0" rx="0" fill="#7a5ea8" stroke="none" stroke-width="1.0"/>
+<text x="394.0" y="396.0" font-size="12.5" fill="#7a5ea8" text-anchor="start" font-weight="700" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">INFERENCE_EVENT / CLASSIFICATION</text>
+<text x="962.0" y="396.0" font-size="10" fill="#5b6b7b" text-anchor="end" font-weight="normal" font-family="ui-monospace, SFMono-Regular, Consolas, 'Liberation Mono', monospace">...b84ec21c0c11</text>
+<text x="394.0" y="418.0" font-size="11" fill="#1b2330" text-anchor="start" font-weight="normal" font-family="ui-monospace, SFMono-Regular, Consolas, 'Liberation Mono', monospace">claim &quot;person&quot;   confidence 0.87</text>
+<text x="394.0" y="437.0" font-size="11" fill="#1b2330" text-anchor="start" font-weight="normal" font-family="ui-monospace, SFMono-Regular, Consolas, 'Liberation Mono', monospace">model yolo-detector 8.2.0</text>
+<text x="394.0" y="456.0" font-size="11" fill="#1b2330" text-anchor="start" font-weight="normal" font-family="ui-monospace, SFMono-Regular, Consolas, 'Liberation Mono', monospace">a claim, never a track: it cannot mint identity</text>
+<line x1="677.0" y1="500.0" x2="677.0" y2="488.0" stroke="#5b6b7b" stroke-width="2"/>
+<polygon points="677.0,480.0 680.5,487.2 673.5,487.2" fill="#5b6b7b" stroke="none" stroke-width="1.0"/>
+<text x="689.0" y="494.0" font-size="9.5" fill="#5b6b7b" text-anchor="start" font-weight="normal" font-family="ui-monospace, SFMono-Regular, Consolas, 'Liberation Mono', monospace">based_on ...b84d1f74e746</text>
+<rect x="380.0" y="504.0" width="594.0" height="108.0" rx="10" fill="#f3f6fa" stroke="#2f6f9f" stroke-width="2"/>
+<rect x="380.0" y="504.0" width="594.0" height="8.0" rx="4" fill="#2f6f9f" stroke="none" stroke-width="1.0"/>
+<rect x="380.0" y="508.0" width="594.0" height="5.0" rx="0" fill="#2f6f9f" stroke="none" stroke-width="1.0"/>
+<text x="394.0" y="532.0" font-size="12.5" fill="#2f6f9f" text-anchor="start" font-weight="700" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">OBSERVATION_EVENT / EO</text>
+<text x="962.0" y="532.0" font-size="10" fill="#5b6b7b" text-anchor="end" font-weight="normal" font-family="ui-monospace, SFMono-Regular, Consolas, 'Liberation Mono', monospace">...b84d1f74e746</text>
+<text x="394.0" y="554.0" font-size="11" fill="#1b2330" text-anchor="start" font-weight="normal" font-family="ui-monospace, SFMono-Regular, Consolas, 'Liberation Mono', monospace">frame 41287   stream cam-01-main</text>
+<text x="394.0" y="573.0" font-size="11" fill="#1b2330" text-anchor="start" font-weight="normal" font-family="ui-monospace, SFMono-Regular, Consolas, 'Liberation Mono', monospace">confidence prohibited: measurements are facts</text>
+<text x="394.0" y="592.0" font-size="11" fill="#1b2330" text-anchor="start" font-weight="normal" font-family="ui-monospace, SFMono-Regular, Consolas, 'Liberation Mono', monospace">data_ref eo-clip-20260715-180000Z-0001</text>
+<line x1="374.0" y1="136.0" x2="234.1" y2="202.2" stroke="#c47f2a" stroke-width="2" stroke-dasharray="6 4"/>
+<polygon points="226.0,206.0 231.7,199.0 235.0,206.1" fill="#c47f2a" stroke="none" stroke-width="1.0"/>
+<text x="364.0" y="122.0" font-size="10" fill="#c47f2a" text-anchor="end" font-weight="normal" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">projected to the display</text>
+</svg>

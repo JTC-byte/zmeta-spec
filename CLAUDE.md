@@ -86,7 +86,8 @@ promise.
   `python tools/validate_conformance.py --kernel-gate`,
   `python tools/validate_examples.py --strict --require-all`,
   and `python tools/validate_future_roadmap.py`,
-  then `python -m pytest -q` (full invocation in `AGENTS.md`).
+  then `python -m pytest -q` (the same command block in `AGENTS.md` adds
+  `git diff --check` as the final step).
 - Never create tags, push branches, upload releases, generate signatures, or
   rewrite published checksums unless explicitly asked (see `AGENTS.md` release
   limits).

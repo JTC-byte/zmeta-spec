@@ -13,8 +13,8 @@ that need to accept more than one supported version. It dispatches strictly on
 `zmeta_version`: v1.0 events validate only against the v1.0 vocabulary, and
 v1.1.0 events validate only against the v1.1.0 vocabulary.
 
-The locked normative contract is v1.0. v1.1.0 is kept as a proposed compatibility
-extension and must still preserve the v1.0 semantic boundaries. v1.1.0-only
+The locked normative contract is v1.0. v1.1.0 is an experimental compatibility
+extension branch and must still preserve the v1.0 semantic boundaries. v1.1.0-only
 concepts must not validate when an event claims `zmeta_version: "1.0"`.
 
 The protobuf schema is an encoding projection only. Decoded protobuf events must

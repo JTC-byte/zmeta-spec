@@ -2,7 +2,33 @@
 
 ## [Unreleased]
 
-(Nothing yet - the next work lands here.)
+- 2026-08-23 — **The ontology reference lands, with the generated figure
+  system behind it.** `docs/zmeta_ontology_reference.md` is a new advisory
+  reference: what ZMeta is, then a status-marked map of every concept in
+  the standard (NORMATIVE, ENFORCED, ADVISORY, FUTURE, DIVERGENT), a
+  sixteen-item tension register of confirmed divergences between surfaces,
+  and a what-is-true-today ledger. Every claim was verified against the
+  primary source it names, and every enumeration was recounted from the
+  machine-readable artifact rather than copied from a prose table.
+  `docs/diagrams/generate_figures.py` grows nine data-driven figures
+  (authority stack, promotion chain, true-today ledger, adapt-once
+  arithmetic, translation pipeline, measured wire matrix, conformance
+  proof surface, thin waist, and one display icon decomposed into its real
+  event chain), each reading its numbers from the manifests, examples, and
+  adapter estate at generation time, with parsers that raise on drift
+  rather than rendering stale counts. The professional overview gains the
+  category framing, complete adapter tables, a
+  conformance-as-adoption-surface passage, and six figure embeds; the
+  README gains the thin-waist figure, the complete runnable-examples list,
+  and honest scoping of the Production-adapter provenance narrative.
+  Evidence-backed corrections land on advisory surfaces: schema/README.md
+  calls the v1.1.0 branch experimental rather than proposed, the field
+  dictionary's `ts` and `t_publish` glosses now match the contract, the
+  track-lifecycle guide states the stale-timing default correctly (the
+  reference pack rejects), and the extension-registry prose ladder
+  acknowledges its two adopted entries. Divergences that touch governed
+  surfaces are recorded in the reference's tension register and booked
+  rather than fixed; no governed artifact changed.
 
 ## [1.1.25] - 2026-08-13
 

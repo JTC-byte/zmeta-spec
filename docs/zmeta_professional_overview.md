@@ -8,6 +8,9 @@ works, and what operational workflows it enables. It is not the normative
 contract. When implementation details conflict, use the authority order in
 `docs/zmeta_change_governance.md`, starting with `spec/semantics-contract.md`,
 the canonical schemas under `schema/`, and the policy pack under `policy/`.
+For a concept-by-concept map of the standard, with each rule's definition
+site and enforcement status, see
+[`docs/zmeta_ontology_reference.md`](zmeta_ontology_reference.md).
 
 ![ZMeta at a glance: sensors collect, an edge adapter translates to OBSERVATION events, which become INFERENCE, FUSION, STATE, and COMMAND events, with a retask loop back to collection and SYSTEM events across every stage.](img/c1-zmeta-at-a-glance.svg)
 
@@ -76,6 +79,13 @@ defines stable event families, exact version dispatch, validation rules,
 policy-enforced authority boundaries, profile projection rules, and adapter
 obligations.
 
+![Two panels: without a shared model, every native source needs a bespoke bridge to every tactical output; through ZMeta, each source and each output needs one adapter, meeting at a canonical model.](img/e1-adapt-once.svg)
+
+*Figure: the integration arithmetic, counted from this repository's own
+adapter estate at generation time. Every bespoke bridge re-decides units,
+timestamps, identity, and confidence on its own; the canonical model decides
+once, and a new source costs one adapter instead of one bridge per consumer.*
+
 ## Why ZMeta Is The Right Solution
 
 ZMeta is intentionally strict where meaning matters and flexible where mission
@@ -130,6 +140,22 @@ ZMeta is not:
 
 The practical role of ZMeta is to normalize mission-relevant metadata so that
 heterogeneous tools can exchange it without losing operational meaning.
+
+ZMeta is a layer, not an application. Anything built with it (a COP, an
+adapter, a fusion service) is a product, and every product in a ZMeta
+deployment is replaceable. ZMeta itself is the layer those products agree
+through, a thin waist between producers and consumers, the way
+independently built systems agree through a shared interface specification
+or text systems agree through a character standard. Its peers are interface
+standards and semantic contracts.
+
+![Hourglass diagram: producer products above and consumer products below are replaceable; the narrow waist between them is the locked contract every party agrees on.](img/f1-thin-waist.svg)
+
+*Figure: the thin waist, with producer and projection counts read from this
+repository's adapter estate and the family count read from the locked
+schema at generation time. Products do not have to agree with each other;
+each agrees with the contract at the waist, which is why swapping one
+leaves the rest working.*
 
 ## Core Semantic Pipeline
 
@@ -306,6 +332,11 @@ Ingress adapters convert native inputs into ZMeta:
 | EO/CV detections | `INFERENCE_EVENT` | Classification or detection claims with model lineage |
 | Decoded MISB KLV metadata | `OBSERVATION_EVENT` | EO/FMV sensor metadata from decoded KLV tags (not a STANAG 4609 parser) |
 | MAVLink telemetry | `STATE_EVENT` and `SYSTEM_EVENT` | Platform state and status after safe projection |
+| SAPIENT (BSI Flex 335 v2.0) messages | `OBSERVATION_EVENT`, `INFERENCE_EVENT`, promoted `STATE_EVENT`, `SYSTEM_EVENT` | Counter-UAS sensor interoperability, with promotion evidence on the state path |
+| bladeRF / ROS2 EW detections | RF `OBSERVATION_EVENT` | EW RF detections through the edge-comms mapping pack |
+| ADS-B decoder output | `OBSERVATION_EVENT` (NETWORK, or RF when the power path is enabled) | Cooperative aircraft broadcasts from dump1090/readsb-class decoders |
+| AIS position reports | `OBSERVATION_EVENT` (NETWORK) | Cooperative vessel broadcasts from AIS-catcher-class decoders |
+| Example-vendor RF JSON | RF `OBSERVATION_EVENT` | Worked teaching adapter paired with the authoring guide |
 | CoT, JREAP, vendor COP tracks | Promoted `STATE_EVENT` only with policy evidence | External tactical track promotion |
 
 Egress adapters project ZMeta into external systems:
@@ -315,7 +346,24 @@ Egress adapters project ZMeta into external systems:
 | `STATE_EVENT` | CoT XML | TAK/ATAK/WinTAK display interoperability |
 | `STATE_EVENT` | JREAP-style track JSON | Program-of-record tactical gateway handoff |
 | `OBSERVATION_EVENT` | KLV-style tag dictionary | Sensor-metadata projection for external video pipelines (not a STANAG 4609 binary encoder) |
+| `STATE_EVENT` | SAPIENT DetectionReport | Counter-UAS interoperability with BSI Flex 335 v2.0 consumers |
+| `COMMAND_EVENT` | SAPIENT Task | Bounded tasking projection toward SAPIENT nodes, under the same command-safety gates |
 | `COMMAND_EVENT` | MissionIntent JSON | Deconfliction node input before MAVLink or swarm API translation |
+
+A third adapter category sits between ingress and consumers: projectors take
+ZMeta in and emit ZMeta out. The reference track projector promotes
+observations whose subject broadcasts its own identity (ADS-B `icao24`, AIS
+`mmsi`) into `FUSION_EVENT` and `STATE_EVENT` pairs, and declines subjects
+with no broadcast identity, because an unnamed subject is not a track.
+
+![The normalization and translation pipeline: native inputs pass through the adapter boundary obligations into one canonical event, which projects out to CoT, JREAP, KLV, MissionIntent, and SAPIENT.](img/e2-translation-pipeline.svg)
+
+*Figure: normalize once at the boundary, project everywhere. The boundary
+obligations are the adapter contract from this section; the external
+projections are lossy by declaration and one-directional in authority, while
+wire encodings are a separate control plane and decode value-identically.
+The wire sizes shown are measured from a real repo example at generation
+time.*
 
 Adapters must preserve:
 
@@ -468,6 +516,19 @@ millisecond timestamps, and small enum codes. It is designed for Profile L
 links where state, command, and system events need to fit inside tight packet
 budgets.
 
+![Measured wire sizes across four encodings for the shipped Profile H observation, Profile H track state, and Profile L track state examples.](img/e3-wire-matrix.svg)
+
+*Figure: measured with the repo encoders at generation time, on the shipped
+example events (they are different tracks, one per profile). Profile
+allowlists govern which event families travel, producers omit optional
+fields under the profile's policy, and encoding selection shrinks how the
+surviving fields are written. The Profile L example carries no per-event
+timing block and relies on periodic TIME_STATUS packets not shown here.
+Every packet still decodes to a canonical event that passes the same schema
+and policy validation, and the compact mapping, specified for Profile L
+links, encodes any v1.0 event it can round-trip value-identically, which is
+what the Profile H rows measure.*
+
 Protobuf is experimental in the current release. It is useful for typed service
 integration, but it does not replace the JSON schema or policy pack.
 
@@ -505,6 +566,34 @@ policy, extension registry, profile projection, conformance classes, encoding
 negative suites, bad-event corpus, adapter harnesses, release tooling, and
 process governance. Gateways can enforce contract hash gates so deployments do
 not silently drift.
+
+### Conformance is the adoption surface
+
+Conformance is the part of ZMeta an integrator can verify directly. The same
+commands this repository runs in CI run anywhere: a vendor validates their
+own stream against the schema and policy pack, replays the must-fail corpus
+through the reference validators to see exactly what ZMeta refuses and pins
+the same refusals in their own pipeline, runs the shared adapter harness
+against their mappings, and records a claim naming exactly which classes
+they support at which release. The claim model is an attestation the
+validator enforces: it refuses claims against non-claimable classes and
+incomplete dependency closures. The validator does not execute the tests, so
+a claim is a statement anyone can independently re-run, not a captured
+execution record.
+
+The negative corpus also grows from field exchanges. Refusal fixtures
+contributed through real integrations ship in the pack alongside the vectors
+the contract's own design produced, so a later integrator inherits the
+refusals an earlier integration surfaced. A program can procure
+interoperability by requiring three things of a vendor: support the
+contract, state the class, attach the evidence.
+
+![The conformance proof surface: counts of must-fail vectors, must-pass fixtures, conformance classes, and kernel-gate checks, read from the fixture suites.](img/e4-proof-surface.svg)
+
+*Figure: the proof surface, counted from the fixture files and the gate
+definition at generation time. The claims validator checks structure,
+claimability, and closure; it does not execute the tests, so a claim is a
+statement anyone can independently re-run.*
 
 ## Risk Adjudication And Accepted-Risk Filtering
 
@@ -877,6 +966,16 @@ external CoT state, unresolved lineage, low-confidence AI inference, or
 high-quality multi-source fusion. ZMeta does not force one display or one risk
 posture. It makes the facts and policy decisions available so the mission can
 choose an appropriate posture.
+
+![One track icon on a map decomposed into the four real events that carried it: an EO observation, a classification with model provenance, a fusion event minting the track, and the state event the display renders.](img/f2-behind-the-icon.svg)
+
+*Figure: one icon, decomposed. The chain is built from the repository's own
+EO example events with their genuine lineage ids. The display renders the
+top of the chain, and the state event carries the identifier of its
+immediate parent, so a consumer holding the retained events can walk the
+chain back to the source clip. Profile allowlists govern which families
+travel, and Profile L consumers must tolerate lineage references to events
+they never received (semantic contract section 4.8).*
 
 For example, a degraded track might be acceptable for local awareness but
 blocked from autonomous tasking. A quarantined external report might be useful

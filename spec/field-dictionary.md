@@ -22,9 +22,11 @@ validation rules, see the JSON schemas in `schema/` and the semantic contract in
 - `event_type` (enum) - see "Enums" below.
 - `event_subtype` (enum) - semantic subtype; must match the payload
   discriminator for the event type.
-- `ts` (UTC-Z timestamp) - event capture/observation time.
+- `ts` (UTC-Z timestamp) - time of observation, capture, or validity; never
+  publish, transmit, or receive time.
 - `t_receive` (UTC-Z timestamp, optional) - gateway receipt time (stamped).
-- `t_publish` (UTC-Z timestamp, optional) - gateway publish time (stamped).
+- `t_publish` (UTC-Z timestamp, optional) - when the node emitted the event;
+  a gateway may backfill it from `t_receive` only when it is missing.
 
 ## Source Block (`source`)
 

@@ -2,6 +2,34 @@
 
 ## Current Resume Note
 
+- Last updated: 2026-08-23 (ontology reference wave: new doc, nine figures, corrections)
+- **2026-08-23 (ontology reference, appreciation layer, doc corrections).**
+  A docs-class wave, maintainer-directed while the repo stays locked for
+  the field user's refactor: no governed artifact changed.
+  `docs/zmeta_ontology_reference.md` is new, built from a fan-out of ten
+  readers over the primary sources with ten adversarial verifiers
+  re-deriving every fact; of 585 gathered facts, 370 survived unchanged,
+  153 were corrected, 58 were re-tagged, 4 were refuted, and the page was
+  written only from the verified residue. Its tension register carries
+  sixteen confirmed divergences. The documentation-only ones were fixed
+  in this wave (schema/README branch wording, the field dictionary's
+  timestamp glosses, the lifecycle guide's stale-arm default, the
+  registry prose ladder, README enumerations, the overview's adapter
+  tables); the ones touching governed surfaces are booked for the
+  post-AAR window, led by the contract section 22 class table naming
+  ZMETA-GATEWAY where the conformance manifest defines
+  ZMETA-GATEWAY-REFERENCE. `docs/diagrams/generate_figures.py` grows
+  nine figures that read their counts from the manifests, the examples,
+  and the adapter estate at generation time, with parsers that raise on
+  drift rather than rendering stale numbers. Seven adversarial passes
+  ran against the wave's own drafts and every pass found real defects,
+  including a figure regex over-counting roadmap candidates by summing
+  two YAML lists and three overclaims the honesty doctrine forbids; the
+  shipped text states only what the data supports. The overview, README,
+  and docs index now route readers between the narrative overview and
+  the reference, and the reference opens with the first-exposure
+  category material before its how-to-read apparatus, per maintainer
+  direction on pacing.
 - Last updated: 2026-08-13 (RF zero-fill minted; v1.1.25 cut)
 - **2026-08-13 (RF zero-fill adjudication and mint, v1.1.25).** The
   focused session handoff item 19 was booked for, run the day it was

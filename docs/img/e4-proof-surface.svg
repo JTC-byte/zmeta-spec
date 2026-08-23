@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="560" viewBox="0 0 1000 560" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" role="img" aria-label="The conformance proof surface, counted from the fixture suites">
+<rect x="0.0" y="0.0" width="1000.0" height="560.0" rx="0" fill="#ffffff" stroke="none" stroke-width="1.0"/>
+<text x="26.0" y="34.0" font-size="21" fill="#1b2330" text-anchor="start" font-weight="700" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">Conformance you can run yourself</text>
+<text x="26.0" y="56.0" font-size="13" fill="#5b6b7b" text-anchor="start" font-weight="normal" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">Every count below is read from the fixture files and the gate definition at generation time.</text>
+<rect x="26.0" y="80.0" width="232.0" height="108.0" rx="10" fill="#f3f6fa" stroke="#b5483d" stroke-width="2"/>
+<text x="42.0" y="134.0" font-size="38" fill="#b5483d" text-anchor="start" font-weight="700" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">177</text>
+<text x="42.0" y="156.0" font-size="12" fill="#1b2330" text-anchor="start" font-weight="700" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">vectors that must be caught</text>
+<text x="42.0" y="174.0" font-size="10.5" fill="#5b6b7b" text-anchor="start" font-weight="normal" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">schema, policy, encoding, projection</text>
+<rect x="264.0" y="80.0" width="232.0" height="108.0" rx="10" fill="#f3f6fa" stroke="#2e8b6f" stroke-width="2"/>
+<text x="280.0" y="134.0" font-size="38" fill="#2e8b6f" text-anchor="start" font-weight="700" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">103</text>
+<text x="280.0" y="156.0" font-size="12" fill="#1b2330" text-anchor="start" font-weight="700" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">fixtures that MUST PASS</text>
+<text x="280.0" y="174.0" font-size="10.5" fill="#5b6b7b" text-anchor="start" font-weight="normal" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">including the shared adapter harness</text>
+<rect x="502.0" y="80.0" width="232.0" height="108.0" rx="10" fill="#f3f6fa" stroke="#2f6f9f" stroke-width="2"/>
+<text x="518.0" y="134.0" font-size="38" fill="#2f6f9f" text-anchor="start" font-weight="700" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">34</text>
+<text x="518.0" y="156.0" font-size="12" fill="#1b2330" text-anchor="start" font-weight="700" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">conformance classes</text>
+<text x="518.0" y="174.0" font-size="10.5" fill="#5b6b7b" text-anchor="start" font-weight="normal" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">21 implemented, 13 non-claimable</text>
+<rect x="740.0" y="80.0" width="232.0" height="108.0" rx="10" fill="#f3f6fa" stroke="#7a5ea8" stroke-width="2"/>
+<text x="756.0" y="134.0" font-size="38" fill="#7a5ea8" text-anchor="start" font-weight="700" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">10</text>
+<text x="756.0" y="156.0" font-size="12" fill="#1b2330" text-anchor="start" font-weight="700" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">checks in the kernel gate</text>
+<text x="756.0" y="174.0" font-size="10.5" fill="#5b6b7b" text-anchor="start" font-weight="normal" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">one flag, run on every CI push</text>
+<text x="26.0" y="226.0" font-size="14" fill="#1b2330" text-anchor="start" font-weight="700" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">Where the must-fail vectors live</text>
+<text x="288.0" y="255.0" font-size="11.5" fill="#1b2330" text-anchor="end" font-weight="normal" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">schema/policy must-fail</text>
+<rect x="300.0" y="244.0" width="560.0" height="15.0" rx="3" fill="#b5483d" stroke="none" stroke-width="1.0"/>
+<text x="868.0" y="256.0" font-size="11" fill="#1b2330" text-anchor="start" font-weight="normal" font-family="ui-monospace, SFMono-Regular, Consolas, 'Liberation Mono', monospace">42</text>
+<text x="288.0" y="280.0" font-size="11.5" fill="#1b2330" text-anchor="end" font-weight="normal" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">bad-event corpus</text>
+<rect x="300.0" y="269.0" width="480.0" height="15.0" rx="3" fill="#b5483d" stroke="none" stroke-width="1.0"/>
+<text x="788.0" y="281.0" font-size="11" fill="#1b2330" text-anchor="start" font-weight="normal" font-family="ui-monospace, SFMono-Regular, Consolas, 'Liberation Mono', monospace">36</text>
+<text x="288.0" y="305.0" font-size="11.5" fill="#1b2330" text-anchor="end" font-weight="normal" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">compact decode negatives</text>
+<rect x="300.0" y="294.0" width="280.0" height="15.0" rx="3" fill="#b5483d" stroke="none" stroke-width="1.0"/>
+<text x="588.0" y="306.0" font-size="11" fill="#1b2330" text-anchor="start" font-weight="normal" font-family="ui-monospace, SFMono-Regular, Consolas, 'Liberation Mono', monospace">21</text>
+<text x="288.0" y="330.0" font-size="11.5" fill="#1b2330" text-anchor="end" font-weight="normal" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">protobuf decode negatives</text>
+<rect x="300.0" y="319.0" width="280.0" height="15.0" rx="3" fill="#b5483d" stroke="none" stroke-width="1.0"/>
+<text x="588.0" y="331.0" font-size="11" fill="#1b2330" text-anchor="start" font-weight="normal" font-family="ui-monospace, SFMono-Regular, Consolas, 'Liberation Mono', monospace">21</text>
+<text x="288.0" y="355.0" font-size="11.5" fill="#1b2330" text-anchor="end" font-weight="normal" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">gateway CLI negatives</text>
+<rect x="300.0" y="344.0" width="106.7" height="15.0" rx="3" fill="#b5483d" stroke="none" stroke-width="1.0"/>
+<text x="414.7" y="356.0" font-size="11" fill="#1b2330" text-anchor="start" font-weight="normal" font-family="ui-monospace, SFMono-Regular, Consolas, 'Liberation Mono', monospace">8</text>
+<text x="288.0" y="380.0" font-size="11.5" fill="#1b2330" text-anchor="end" font-weight="normal" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">projection must-fail</text>
+<rect x="300.0" y="369.0" width="306.7" height="15.0" rx="3" fill="#b5483d" stroke="none" stroke-width="1.0"/>
+<text x="614.7" y="381.0" font-size="11" fill="#1b2330" text-anchor="start" font-weight="normal" font-family="ui-monospace, SFMono-Regular, Consolas, 'Liberation Mono', monospace">23</text>
+<text x="288.0" y="405.0" font-size="11.5" fill="#1b2330" text-anchor="end" font-weight="normal" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">precision must-fail</text>
+<rect x="300.0" y="394.0" width="346.7" height="15.0" rx="3" fill="#b5483d" stroke="none" stroke-width="1.0"/>
+<text x="654.7" y="406.0" font-size="11" fill="#1b2330" text-anchor="start" font-weight="normal" font-family="ui-monospace, SFMono-Regular, Consolas, 'Liberation Mono', monospace">26</text>
+<text x="26.0" y="433.0" font-size="14" fill="#1b2330" text-anchor="start" font-weight="700" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">What a claim is</text>
+<text x="26.0" y="455.0" font-size="12.5" fill="#1b2330" text-anchor="start" font-weight="normal" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">A conformance claim is an attestation: required fields, the full dependency closure,</text>
+<text x="26.0" y="474.0" font-size="12.5" fill="#1b2330" text-anchor="start" font-weight="normal" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">and a recorded pass for every required command of every claimed class. The validator</text>
+<text x="26.0" y="493.0" font-size="12.5" fill="#1b2330" text-anchor="start" font-weight="normal" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">refuses claims against non-claimable classes, unknown classes, and missing closure.</text>
+<text x="26.0" y="512.0" font-size="12.5" fill="#1b2330" text-anchor="start" font-weight="normal" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">It does not execute the tests; anyone can independently rerun the commands a claim names.</text>
+</svg>

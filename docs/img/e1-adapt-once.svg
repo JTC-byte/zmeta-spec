@@ -1,0 +1,171 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="600" viewBox="0 0 1000 600" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" role="img" aria-label="Point-to-point bridges versus adapt-once through ZMeta">
+<rect x="0.0" y="0.0" width="1000.0" height="600.0" rx="0" fill="#ffffff" stroke="none" stroke-width="1.0"/>
+<text x="26.0" y="34.0" font-size="21" fill="#1b2330" text-anchor="start" font-weight="700" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">Adapt once, interoperate with everything ZMeta maps</text>
+<text x="26.0" y="56.0" font-size="13" fill="#5b6b7b" text-anchor="start" font-weight="normal" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">This repository ships 13 ingress adapters and 5 egress projections; the counts below are those.</text>
+<rect x="26.0" y="84.0" width="460.0" height="430.0" rx="10" fill="#f3f6fa" stroke="#cdd8e3" stroke-width="1.2"/>
+<text x="42.0" y="110.0" font-size="14.5" fill="#1b2330" text-anchor="start" font-weight="700" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">Without a shared model</text>
+<line x1="150.0" y1="130.0" x2="370.0" y2="130.0" stroke="#c47f2a" stroke-width="0.55"/>
+<line x1="150.0" y1="130.0" x2="370.0" y2="217.5" stroke="#c47f2a" stroke-width="0.55"/>
+<line x1="150.0" y1="130.0" x2="370.0" y2="305.0" stroke="#c47f2a" stroke-width="0.55"/>
+<line x1="150.0" y1="130.0" x2="370.0" y2="392.5" stroke="#c47f2a" stroke-width="0.55"/>
+<line x1="150.0" y1="130.0" x2="370.0" y2="480.0" stroke="#c47f2a" stroke-width="0.55"/>
+<line x1="150.0" y1="159.2" x2="370.0" y2="130.0" stroke="#c47f2a" stroke-width="0.55"/>
+<line x1="150.0" y1="159.2" x2="370.0" y2="217.5" stroke="#c47f2a" stroke-width="0.55"/>
+<line x1="150.0" y1="159.2" x2="370.0" y2="305.0" stroke="#c47f2a" stroke-width="0.55"/>
+<line x1="150.0" y1="159.2" x2="370.0" y2="392.5" stroke="#c47f2a" stroke-width="0.55"/>
+<line x1="150.0" y1="159.2" x2="370.0" y2="480.0" stroke="#c47f2a" stroke-width="0.55"/>
+<line x1="150.0" y1="188.3" x2="370.0" y2="130.0" stroke="#c47f2a" stroke-width="0.55"/>
+<line x1="150.0" y1="188.3" x2="370.0" y2="217.5" stroke="#c47f2a" stroke-width="0.55"/>
+<line x1="150.0" y1="188.3" x2="370.0" y2="305.0" stroke="#c47f2a" stroke-width="0.55"/>
+<line x1="150.0" y1="188.3" x2="370.0" y2="392.5" stroke="#c47f2a" stroke-width="0.55"/>
+<line x1="150.0" y1="188.3" x2="370.0" y2="480.0" stroke="#c47f2a" stroke-width="0.55"/>
+<line x1="150.0" y1="217.5" x2="370.0" y2="130.0" stroke="#c47f2a" stroke-width="0.55"/>
+<line x1="150.0" y1="217.5" x2="370.0" y2="217.5" stroke="#c47f2a" stroke-width="0.55"/>
+<line x1="150.0" y1="217.5" x2="370.0" y2="305.0" stroke="#c47f2a" stroke-width="0.55"/>
+<line x1="150.0" y1="217.5" x2="370.0" y2="392.5" stroke="#c47f2a" stroke-width="0.55"/>
+<line x1="150.0" y1="217.5" x2="370.0" y2="480.0" stroke="#c47f2a" stroke-width="0.55"/>
+<line x1="150.0" y1="246.7" x2="370.0" y2="130.0" stroke="#c47f2a" stroke-width="0.55"/>
+<line x1="150.0" y1="246.7" x2="370.0" y2="217.5" stroke="#c47f2a" stroke-width="0.55"/>
+<line x1="150.0" y1="246.7" x2="370.0" y2="305.0" stroke="#c47f2a" stroke-width="0.55"/>
+<line x1="150.0" y1="246.7" x2="370.0" y2="392.5" stroke="#c47f2a" stroke-width="0.55"/>
+<line x1="150.0" y1="246.7" x2="370.0" y2="480.0" stroke="#c47f2a" stroke-width="0.55"/>
+<line x1="150.0" y1="275.8" x2="370.0" y2="130.0" stroke="#c47f2a" stroke-width="0.55"/>
+<line x1="150.0" y1="275.8" x2="370.0" y2="217.5" stroke="#c47f2a" stroke-width="0.55"/>
+<line x1="150.0" y1="275.8" x2="370.0" y2="305.0" stroke="#c47f2a" stroke-width="0.55"/>
+<line x1="150.0" y1="275.8" x2="370.0" y2="392.5" stroke="#c47f2a" stroke-width="0.55"/>
+<line x1="150.0" y1="275.8" x2="370.0" y2="480.0" stroke="#c47f2a" stroke-width="0.55"/>
+<line x1="150.0" y1="305.0" x2="370.0" y2="130.0" stroke="#c47f2a" stroke-width="0.55"/>
+<line x1="150.0" y1="305.0" x2="370.0" y2="217.5" stroke="#c47f2a" stroke-width="0.55"/>
+<line x1="150.0" y1="305.0" x2="370.0" y2="305.0" stroke="#c47f2a" stroke-width="0.55"/>
+<line x1="150.0" y1="305.0" x2="370.0" y2="392.5" stroke="#c47f2a" stroke-width="0.55"/>
+<line x1="150.0" y1="305.0" x2="370.0" y2="480.0" stroke="#c47f2a" stroke-width="0.55"/>
+<line x1="150.0" y1="334.2" x2="370.0" y2="130.0" stroke="#c47f2a" stroke-width="0.55"/>
+<line x1="150.0" y1="334.2" x2="370.0" y2="217.5" stroke="#c47f2a" stroke-width="0.55"/>
+<line x1="150.0" y1="334.2" x2="370.0" y2="305.0" stroke="#c47f2a" stroke-width="0.55"/>
+<line x1="150.0" y1="334.2" x2="370.0" y2="392.5" stroke="#c47f2a" stroke-width="0.55"/>
+<line x1="150.0" y1="334.2" x2="370.0" y2="480.0" stroke="#c47f2a" stroke-width="0.55"/>
+<line x1="150.0" y1="363.3" x2="370.0" y2="130.0" stroke="#c47f2a" stroke-width="0.55"/>
+<line x1="150.0" y1="363.3" x2="370.0" y2="217.5" stroke="#c47f2a" stroke-width="0.55"/>
+<line x1="150.0" y1="363.3" x2="370.0" y2="305.0" stroke="#c47f2a" stroke-width="0.55"/>
+<line x1="150.0" y1="363.3" x2="370.0" y2="392.5" stroke="#c47f2a" stroke-width="0.55"/>
+<line x1="150.0" y1="363.3" x2="370.0" y2="480.0" stroke="#c47f2a" stroke-width="0.55"/>
+<line x1="150.0" y1="392.5" x2="370.0" y2="130.0" stroke="#c47f2a" stroke-width="0.55"/>
+<line x1="150.0" y1="392.5" x2="370.0" y2="217.5" stroke="#c47f2a" stroke-width="0.55"/>
+<line x1="150.0" y1="392.5" x2="370.0" y2="305.0" stroke="#c47f2a" stroke-width="0.55"/>
+<line x1="150.0" y1="392.5" x2="370.0" y2="392.5" stroke="#c47f2a" stroke-width="0.55"/>
+<line x1="150.0" y1="392.5" x2="370.0" y2="480.0" stroke="#c47f2a" stroke-width="0.55"/>
+<line x1="150.0" y1="421.7" x2="370.0" y2="130.0" stroke="#c47f2a" stroke-width="0.55"/>
+<line x1="150.0" y1="421.7" x2="370.0" y2="217.5" stroke="#c47f2a" stroke-width="0.55"/>
+<line x1="150.0" y1="421.7" x2="370.0" y2="305.0" stroke="#c47f2a" stroke-width="0.55"/>
+<line x1="150.0" y1="421.7" x2="370.0" y2="392.5" stroke="#c47f2a" stroke-width="0.55"/>
+<line x1="150.0" y1="421.7" x2="370.0" y2="480.0" stroke="#c47f2a" stroke-width="0.55"/>
+<line x1="150.0" y1="450.8" x2="370.0" y2="130.0" stroke="#c47f2a" stroke-width="0.55"/>
+<line x1="150.0" y1="450.8" x2="370.0" y2="217.5" stroke="#c47f2a" stroke-width="0.55"/>
+<line x1="150.0" y1="450.8" x2="370.0" y2="305.0" stroke="#c47f2a" stroke-width="0.55"/>
+<line x1="150.0" y1="450.8" x2="370.0" y2="392.5" stroke="#c47f2a" stroke-width="0.55"/>
+<line x1="150.0" y1="450.8" x2="370.0" y2="480.0" stroke="#c47f2a" stroke-width="0.55"/>
+<line x1="150.0" y1="480.0" x2="370.0" y2="130.0" stroke="#c47f2a" stroke-width="0.55"/>
+<line x1="150.0" y1="480.0" x2="370.0" y2="217.5" stroke="#c47f2a" stroke-width="0.55"/>
+<line x1="150.0" y1="480.0" x2="370.0" y2="305.0" stroke="#c47f2a" stroke-width="0.55"/>
+<line x1="150.0" y1="480.0" x2="370.0" y2="392.5" stroke="#c47f2a" stroke-width="0.55"/>
+<line x1="150.0" y1="480.0" x2="370.0" y2="480.0" stroke="#c47f2a" stroke-width="0.55"/>
+<circle cx="144.0" cy="130.0" r="4.0" fill="#2f6f9f" stroke="none" stroke-width="1.0"/>
+<text x="134.0" y="133.0" font-size="9.5" fill="#1b2330" text-anchor="end" font-weight="normal" font-family="ui-monospace, SFMono-Regular, Consolas, 'Liberation Mono', monospace">ADS-B</text>
+<circle cx="144.0" cy="159.2" r="4.0" fill="#2f6f9f" stroke="none" stroke-width="1.0"/>
+<text x="134.0" y="162.2" font-size="9.5" fill="#1b2330" text-anchor="end" font-weight="normal" font-family="ui-monospace, SFMono-Regular, Consolas, 'Liberation Mono', monospace">AIS</text>
+<circle cx="144.0" cy="188.3" r="4.0" fill="#2f6f9f" stroke="none" stroke-width="1.0"/>
+<text x="134.0" y="191.3" font-size="9.5" fill="#1b2330" text-anchor="end" font-weight="normal" font-family="ui-monospace, SFMono-Regular, Consolas, 'Liberation Mono', monospace">bladeRF EW</text>
+<circle cx="144.0" cy="217.5" r="4.0" fill="#2f6f9f" stroke="none" stroke-width="1.0"/>
+<text x="134.0" y="220.5" font-size="9.5" fill="#1b2330" text-anchor="end" font-weight="normal" font-family="ui-monospace, SFMono-Regular, Consolas, 'Liberation Mono', monospace">CoT</text>
+<circle cx="144.0" cy="246.7" r="4.0" fill="#2f6f9f" stroke="none" stroke-width="1.0"/>
+<text x="134.0" y="249.7" font-size="9.5" fill="#1b2330" text-anchor="end" font-weight="normal" font-family="ui-monospace, SFMono-Regular, Consolas, 'Liberation Mono', monospace">EO-CV</text>
+<circle cx="144.0" cy="275.8" r="4.0" fill="#2f6f9f" stroke="none" stroke-width="1.0"/>
+<text x="134.0" y="278.8" font-size="9.5" fill="#1b2330" text-anchor="end" font-weight="normal" font-family="ui-monospace, SFMono-Regular, Consolas, 'Liberation Mono', monospace">Example-vendor</text>
+<circle cx="144.0" cy="305.0" r="4.0" fill="#2f6f9f" stroke="none" stroke-width="1.0"/>
+<text x="134.0" y="308.0" font-size="9.5" fill="#1b2330" text-anchor="end" font-weight="normal" font-family="ui-monospace, SFMono-Regular, Consolas, 'Liberation Mono', monospace">JREAP</text>
+<circle cx="144.0" cy="334.2" r="4.0" fill="#2f6f9f" stroke="none" stroke-width="1.0"/>
+<text x="134.0" y="337.2" font-size="9.5" fill="#1b2330" text-anchor="end" font-weight="normal" font-family="ui-monospace, SFMono-Regular, Consolas, 'Liberation Mono', monospace">KLV</text>
+<circle cx="144.0" cy="363.3" r="4.0" fill="#2f6f9f" stroke="none" stroke-width="1.0"/>
+<text x="134.0" y="366.3" font-size="9.5" fill="#1b2330" text-anchor="end" font-weight="normal" font-family="ui-monospace, SFMono-Regular, Consolas, 'Liberation Mono', monospace">KrakenSDR</text>
+<circle cx="144.0" cy="392.5" r="4.0" fill="#2f6f9f" stroke="none" stroke-width="1.0"/>
+<text x="134.0" y="395.5" font-size="9.5" fill="#1b2330" text-anchor="end" font-weight="normal" font-family="ui-monospace, SFMono-Regular, Consolas, 'Liberation Mono', monospace">MAVLink</text>
+<circle cx="144.0" cy="421.7" r="4.0" fill="#2f6f9f" stroke="none" stroke-width="1.0"/>
+<text x="134.0" y="424.7" font-size="9.5" fill="#1b2330" text-anchor="end" font-weight="normal" font-family="ui-monospace, SFMono-Regular, Consolas, 'Liberation Mono', monospace">Moth</text>
+<circle cx="144.0" cy="450.8" r="4.0" fill="#2f6f9f" stroke="none" stroke-width="1.0"/>
+<text x="134.0" y="453.8" font-size="9.5" fill="#1b2330" text-anchor="end" font-weight="normal" font-family="ui-monospace, SFMono-Regular, Consolas, 'Liberation Mono', monospace">SAPIENT</text>
+<circle cx="144.0" cy="480.0" r="4.0" fill="#2f6f9f" stroke="none" stroke-width="1.0"/>
+<text x="134.0" y="483.0" font-size="9.5" fill="#1b2330" text-anchor="end" font-weight="normal" font-family="ui-monospace, SFMono-Regular, Consolas, 'Liberation Mono', monospace">SignalHunter</text>
+<circle cx="376.0" cy="130.0" r="4.0" fill="#c47f2a" stroke="none" stroke-width="1.0"/>
+<text x="386.0" y="133.0" font-size="9.5" fill="#1b2330" text-anchor="start" font-weight="normal" font-family="ui-monospace, SFMono-Regular, Consolas, 'Liberation Mono', monospace">CoT</text>
+<circle cx="376.0" cy="217.5" r="4.0" fill="#c47f2a" stroke="none" stroke-width="1.0"/>
+<text x="386.0" y="220.5" font-size="9.5" fill="#1b2330" text-anchor="start" font-weight="normal" font-family="ui-monospace, SFMono-Regular, Consolas, 'Liberation Mono', monospace">MissionIntent</text>
+<circle cx="376.0" cy="305.0" r="4.0" fill="#c47f2a" stroke="none" stroke-width="1.0"/>
+<text x="386.0" y="308.0" font-size="9.5" fill="#1b2330" text-anchor="start" font-weight="normal" font-family="ui-monospace, SFMono-Regular, Consolas, 'Liberation Mono', monospace">JREAP</text>
+<circle cx="376.0" cy="392.5" r="4.0" fill="#c47f2a" stroke="none" stroke-width="1.0"/>
+<text x="386.0" y="395.5" font-size="9.5" fill="#1b2330" text-anchor="start" font-weight="normal" font-family="ui-monospace, SFMono-Regular, Consolas, 'Liberation Mono', monospace">KLV</text>
+<circle cx="376.0" cy="480.0" r="4.0" fill="#c47f2a" stroke="none" stroke-width="1.0"/>
+<text x="386.0" y="483.0" font-size="9.5" fill="#1b2330" text-anchor="start" font-weight="normal" font-family="ui-monospace, SFMono-Regular, Consolas, 'Liberation Mono', monospace">SAPIENT</text>
+<text x="42.0" y="500.0" font-size="13.5" fill="#b5483d" text-anchor="start" font-weight="700" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">13 x 5 = 65 bespoke bridges</text>
+<rect x="514.0" y="84.0" width="460.0" height="430.0" rx="10" fill="#f3f6fa" stroke="#cdd8e3" stroke-width="1.2"/>
+<text x="530.0" y="110.0" font-size="14.5" fill="#1b2330" text-anchor="start" font-weight="700" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">Through ZMeta: adapt once</text>
+<line x1="638.0" y1="130.0" x2="718.0" y2="305.0" stroke="#2f6f9f" stroke-width="1.1"/>
+<line x1="638.0" y1="159.2" x2="718.0" y2="305.0" stroke="#2f6f9f" stroke-width="1.1"/>
+<line x1="638.0" y1="188.3" x2="718.0" y2="305.0" stroke="#2f6f9f" stroke-width="1.1"/>
+<line x1="638.0" y1="217.5" x2="718.0" y2="305.0" stroke="#2f6f9f" stroke-width="1.1"/>
+<line x1="638.0" y1="246.7" x2="718.0" y2="305.0" stroke="#2f6f9f" stroke-width="1.1"/>
+<line x1="638.0" y1="275.8" x2="718.0" y2="305.0" stroke="#2f6f9f" stroke-width="1.1"/>
+<line x1="638.0" y1="305.0" x2="718.0" y2="305.0" stroke="#2f6f9f" stroke-width="1.1"/>
+<line x1="638.0" y1="334.2" x2="718.0" y2="305.0" stroke="#2f6f9f" stroke-width="1.1"/>
+<line x1="638.0" y1="363.3" x2="718.0" y2="305.0" stroke="#2f6f9f" stroke-width="1.1"/>
+<line x1="638.0" y1="392.5" x2="718.0" y2="305.0" stroke="#2f6f9f" stroke-width="1.1"/>
+<line x1="638.0" y1="421.7" x2="718.0" y2="305.0" stroke="#2f6f9f" stroke-width="1.1"/>
+<line x1="638.0" y1="450.8" x2="718.0" y2="305.0" stroke="#2f6f9f" stroke-width="1.1"/>
+<line x1="638.0" y1="480.0" x2="718.0" y2="305.0" stroke="#2f6f9f" stroke-width="1.1"/>
+<line x1="778.0" y1="305.0" x2="858.0" y2="130.0" stroke="#c47f2a" stroke-width="1.1"/>
+<line x1="778.0" y1="305.0" x2="858.0" y2="217.5" stroke="#c47f2a" stroke-width="1.1"/>
+<line x1="778.0" y1="305.0" x2="858.0" y2="305.0" stroke="#c47f2a" stroke-width="1.1"/>
+<line x1="778.0" y1="305.0" x2="858.0" y2="392.5" stroke="#c47f2a" stroke-width="1.1"/>
+<line x1="778.0" y1="305.0" x2="858.0" y2="480.0" stroke="#c47f2a" stroke-width="1.1"/>
+<circle cx="748.0" cy="305.0" r="30.0" fill="#2e8b6f" stroke="none" stroke-width="1.0"/>
+<text x="748.0" y="303.0" font-size="12" fill="#ffffff" text-anchor="middle" font-weight="700" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">ZMeta</text>
+<text x="748.0" y="317.0" font-size="8.5" fill="#ffffff" text-anchor="middle" font-weight="normal" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">canonical</text>
+<circle cx="632.0" cy="130.0" r="4.0" fill="#2f6f9f" stroke="none" stroke-width="1.0"/>
+<text x="622.0" y="133.0" font-size="9.5" fill="#1b2330" text-anchor="end" font-weight="normal" font-family="ui-monospace, SFMono-Regular, Consolas, 'Liberation Mono', monospace">ADS-B</text>
+<circle cx="632.0" cy="159.2" r="4.0" fill="#2f6f9f" stroke="none" stroke-width="1.0"/>
+<text x="622.0" y="162.2" font-size="9.5" fill="#1b2330" text-anchor="end" font-weight="normal" font-family="ui-monospace, SFMono-Regular, Consolas, 'Liberation Mono', monospace">AIS</text>
+<circle cx="632.0" cy="188.3" r="4.0" fill="#2f6f9f" stroke="none" stroke-width="1.0"/>
+<text x="622.0" y="191.3" font-size="9.5" fill="#1b2330" text-anchor="end" font-weight="normal" font-family="ui-monospace, SFMono-Regular, Consolas, 'Liberation Mono', monospace">bladeRF EW</text>
+<circle cx="632.0" cy="217.5" r="4.0" fill="#2f6f9f" stroke="none" stroke-width="1.0"/>
+<text x="622.0" y="220.5" font-size="9.5" fill="#1b2330" text-anchor="end" font-weight="normal" font-family="ui-monospace, SFMono-Regular, Consolas, 'Liberation Mono', monospace">CoT</text>
+<circle cx="632.0" cy="246.7" r="4.0" fill="#2f6f9f" stroke="none" stroke-width="1.0"/>
+<text x="622.0" y="249.7" font-size="9.5" fill="#1b2330" text-anchor="end" font-weight="normal" font-family="ui-monospace, SFMono-Regular, Consolas, 'Liberation Mono', monospace">EO-CV</text>
+<circle cx="632.0" cy="275.8" r="4.0" fill="#2f6f9f" stroke="none" stroke-width="1.0"/>
+<text x="622.0" y="278.8" font-size="9.5" fill="#1b2330" text-anchor="end" font-weight="normal" font-family="ui-monospace, SFMono-Regular, Consolas, 'Liberation Mono', monospace">Example-vendor</text>
+<circle cx="632.0" cy="305.0" r="4.0" fill="#2f6f9f" stroke="none" stroke-width="1.0"/>
+<text x="622.0" y="308.0" font-size="9.5" fill="#1b2330" text-anchor="end" font-weight="normal" font-family="ui-monospace, SFMono-Regular, Consolas, 'Liberation Mono', monospace">JREAP</text>
+<circle cx="632.0" cy="334.2" r="4.0" fill="#2f6f9f" stroke="none" stroke-width="1.0"/>
+<text x="622.0" y="337.2" font-size="9.5" fill="#1b2330" text-anchor="end" font-weight="normal" font-family="ui-monospace, SFMono-Regular, Consolas, 'Liberation Mono', monospace">KLV</text>
+<circle cx="632.0" cy="363.3" r="4.0" fill="#2f6f9f" stroke="none" stroke-width="1.0"/>
+<text x="622.0" y="366.3" font-size="9.5" fill="#1b2330" text-anchor="end" font-weight="normal" font-family="ui-monospace, SFMono-Regular, Consolas, 'Liberation Mono', monospace">KrakenSDR</text>
+<circle cx="632.0" cy="392.5" r="4.0" fill="#2f6f9f" stroke="none" stroke-width="1.0"/>
+<text x="622.0" y="395.5" font-size="9.5" fill="#1b2330" text-anchor="end" font-weight="normal" font-family="ui-monospace, SFMono-Regular, Consolas, 'Liberation Mono', monospace">MAVLink</text>
+<circle cx="632.0" cy="421.7" r="4.0" fill="#2f6f9f" stroke="none" stroke-width="1.0"/>
+<text x="622.0" y="424.7" font-size="9.5" fill="#1b2330" text-anchor="end" font-weight="normal" font-family="ui-monospace, SFMono-Regular, Consolas, 'Liberation Mono', monospace">Moth</text>
+<circle cx="632.0" cy="450.8" r="4.0" fill="#2f6f9f" stroke="none" stroke-width="1.0"/>
+<text x="622.0" y="453.8" font-size="9.5" fill="#1b2330" text-anchor="end" font-weight="normal" font-family="ui-monospace, SFMono-Regular, Consolas, 'Liberation Mono', monospace">SAPIENT</text>
+<circle cx="632.0" cy="480.0" r="4.0" fill="#2f6f9f" stroke="none" stroke-width="1.0"/>
+<text x="622.0" y="483.0" font-size="9.5" fill="#1b2330" text-anchor="end" font-weight="normal" font-family="ui-monospace, SFMono-Regular, Consolas, 'Liberation Mono', monospace">SignalHunter</text>
+<circle cx="864.0" cy="130.0" r="4.0" fill="#c47f2a" stroke="none" stroke-width="1.0"/>
+<text x="874.0" y="133.0" font-size="9.5" fill="#1b2330" text-anchor="start" font-weight="normal" font-family="ui-monospace, SFMono-Regular, Consolas, 'Liberation Mono', monospace">CoT</text>
+<circle cx="864.0" cy="217.5" r="4.0" fill="#c47f2a" stroke="none" stroke-width="1.0"/>
+<text x="874.0" y="220.5" font-size="9.5" fill="#1b2330" text-anchor="start" font-weight="normal" font-family="ui-monospace, SFMono-Regular, Consolas, 'Liberation Mono', monospace">MissionIntent</text>
+<circle cx="864.0" cy="305.0" r="4.0" fill="#c47f2a" stroke="none" stroke-width="1.0"/>
+<text x="874.0" y="308.0" font-size="9.5" fill="#1b2330" text-anchor="start" font-weight="normal" font-family="ui-monospace, SFMono-Regular, Consolas, 'Liberation Mono', monospace">JREAP</text>
+<circle cx="864.0" cy="392.5" r="4.0" fill="#c47f2a" stroke="none" stroke-width="1.0"/>
+<text x="874.0" y="395.5" font-size="9.5" fill="#1b2330" text-anchor="start" font-weight="normal" font-family="ui-monospace, SFMono-Regular, Consolas, 'Liberation Mono', monospace">KLV</text>
+<circle cx="864.0" cy="480.0" r="4.0" fill="#c47f2a" stroke="none" stroke-width="1.0"/>
+<text x="874.0" y="483.0" font-size="9.5" fill="#1b2330" text-anchor="start" font-weight="normal" font-family="ui-monospace, SFMono-Regular, Consolas, 'Liberation Mono', monospace">SAPIENT</text>
+<text x="530.0" y="500.0" font-size="13.5" fill="#2e8b6f" text-anchor="start" font-weight="700" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">13 + 5 = 18 adapters, one semantic model</text>
+<text x="26.0" y="546.0" font-size="12" fill="#5b6b7b" text-anchor="start" font-weight="normal" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">Each bridge re-decides meaning: units, timestamps, identity, confidence. The canonical model decides once,</text>
+<text x="26.0" y="564.0" font-size="12" fill="#5b6b7b" text-anchor="start" font-weight="normal" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">and a new source costs one adapter instead of one bridge per consumer.</text>
+</svg>

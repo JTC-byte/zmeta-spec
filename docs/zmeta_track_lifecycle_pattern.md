@@ -88,9 +88,10 @@ Two independent signals feed the computation:
    `policy/timing-freshness.yaml` (per-profile `max_timing_status_age_ms`,
    negative-age tolerance). When the gateway finds timing context missing,
    stale, or unsynced, the disposition follows the policy mode -- the
-   reference defaults differ by code (`TIMING_STATUS_MISSING` is
-   `mode: reject` in the reference pack; the age/stale arms default to
-   warn/degrade labels). Refused or labeled, never silently dropped,
+   reference defaults differ by code (`TIMING_STATUS_MISSING` and
+   `TIMING_STATUS_STALE` both inherit the pack's top-level `mode: reject`;
+   only the negative-age arm carries a `warn` override, and unsynced
+   degrades). Refused or labeled, never silently dropped,
    under the existing governed reason codes (`policy/violation-codes.yaml`):
    `TIMING_STATUS_MISSING`, `TIMING_STATUS_STALE`,
    `TIMING_STATUS_AGE_NEGATIVE`, `TIMING_STATUS_UNSYNCED`. Warn/degrade

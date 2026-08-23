@@ -10,6 +10,10 @@ Advisory, current-facing documents for users of the standard:
 - `zmeta_professional_overview.md`: the narrative overview of what ZMeta is,
   how the stack fits together, and the operating model. Start here when
   evaluating.
+- `zmeta_ontology_reference.md`: the status-marked concept map of the
+  standard: every concept's definition site, its enforcement status, what is
+  true at the current release, and a register of known divergences between
+  surfaces. Use it to look a concept up.
 - `zmeta_two_node_quickstart.md`: sensor-edge to COP in two gateway
   containers (edge/Pi ingress → compact wire → GCS egress), with the
   honesty-signal cheat-sheet for field debugging.

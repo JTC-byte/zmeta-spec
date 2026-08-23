@@ -80,7 +80,8 @@ Default strict conformance does not run registry validation unless the
 
 `experimental`
 : Valid only in the named version branch where current schemas, policy, and
-  conformance already support it. Current v1.1.0 entries use this status.
+  conformance already support it. Most current v1.1.0 entries use this
+  status; the exceptions are the entries promoted to `adopted`.
 
 `adopted`
 : Valid in a named version branch and covered by the required implementation

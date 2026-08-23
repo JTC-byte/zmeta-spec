@@ -15,6 +15,15 @@ Outputs (written to docs/img/):
     b3-encoding-sizes.svg       Wire-size comparison: JSON / CBOR / compact CBOR / protobuf
     b4-profile-matrix.svg       Export profiles (H/M/L) vs allowed event families
     b5-triangulation.svg        Multi-LOB triangulation and error-ellipse reduction
+    d1-authority-stack.svg      The conflict-resolution authority stack, tier by tier
+    d2-promotion-chain.svg      Promotion pipeline with schema/policy requirements per stage
+    d3-true-today.svg           Counts of what exists today, read from the manifests
+    e1-adapt-once.svg           Point-to-point bridges vs adapt-once, counted from adapters/
+    e2-translation-pipeline.svg Native input -> normalize -> canonical event -> projections
+    e3-wire-matrix.svg          Measured bytes across encodings and profiles
+    e4-proof-surface.svg        The conformance proof surface, counted from the fixture suites
+    f1-thin-waist.svg           The thin waist: replaceable products above and below one locked contract
+    f2-behind-the-icon.svg      One display icon decomposed into the real event chain that carried it
 """
 
 from __future__ import annotations
@@ -576,6 +585,858 @@ def figure_at_a_glance() -> None:
     print("  wrote c1-zmeta-at-a-glance.svg")
 
 
+# --------------------------------------------------------------------------- #
+# Data helpers for the D-series (ontology reference) figures
+# --------------------------------------------------------------------------- #
+def _count_after_marker(path: Path, marker: str, pattern: str) -> Dict[str, int]:
+    """Count regex group(1) values inside the block opened by the marker line.
+
+    The scan stops at the next top-level key so a sibling block added after the
+    marker cannot inflate the counts, and the result is cross-checked against
+    the number of list records in the same block so an indentation reformat
+    fails loudly instead of rendering zeros.
+    """
+    counts: Dict[str, int] = {}
+    records = 0
+    active = False
+    rx = re.compile(pattern)
+    for line in path.read_text(encoding="utf-8").splitlines():
+        if not active:
+            if line.strip() == marker:
+                active = True
+            continue
+        if line and not line[0].isspace():
+            break
+        if re.match(r"^  - ", line):
+            records += 1
+        m = rx.match(line)
+        if m:
+            counts[m.group(1)] = counts.get(m.group(1), 0) + 1
+    if sum(counts.values()) != records:
+        raise ValueError(
+            f"{path.name}: {records} records under '{marker}' but "
+            f"{sum(counts.values())} status lines matched; layout drifted"
+        )
+    return counts
+
+
+def _schema_stage_rules() -> Dict[str, Dict[str, str]]:
+    """Read confidence/lineage posture per event_type from the v1.0 schema's allOf arms."""
+    schema = json.loads((ROOT / "schema" / "zmeta-event-1.0.schema.json").read_text(encoding="utf-8"))
+    rules: Dict[str, Dict[str, str]] = {}
+    for arm in schema.get("allOf", []):
+        if not isinstance(arm, dict) or "if" not in arm or "then" not in arm:
+            continue
+        try:
+            etype = arm["if"]["properties"]["event"]["properties"]["event_type"]["const"]
+        except (KeyError, TypeError):
+            continue
+        then = arm["then"]
+        required = then.get("required", [])
+        props = then.get("properties", {})
+        confidence = "required" if "confidence" in required else (
+            "prohibited" if props.get("confidence") is False else "optional")
+        lineage = "required" if "lineage" in required else "optional"
+        rules[etype] = {"confidence": confidence, "lineage": lineage}
+    return rules
+
+
+def _lineage_parent_map() -> Dict[str, List[str]]:
+    """Parse allowed_parent_event_types from policy/lineage.yaml without a YAML dependency."""
+    text = (ROOT / "policy" / "lineage.yaml").read_text(encoding="utf-8")
+    parents: Dict[str, List[str]] = {}
+    current: Optional[str] = None
+    active = False
+    for line in text.splitlines():
+        if line.strip() == "allowed_parent_event_types:":
+            active = True
+            continue
+        if not active:
+            continue
+        if not line.strip() or line.lstrip().startswith("#"):
+            continue
+        m = re.match(r"^    ([A-Z_]+):\s*$", line)
+        if m:
+            current = m.group(1)
+            parents[current] = []
+            continue
+        m = re.match(r"^      - ([A-Z_]+)\s*$", line)
+        if m and current:
+            parents[current].append(m.group(1))
+            continue
+        if len(line) - len(line.lstrip()) <= 2:
+            break
+    return parents
+
+
+def _external_promotion_mode() -> str:
+    """Read the global external_state_promotion.mode from policy/producer-authority.yaml.
+
+    Only the top-level block (2-space indent) is read; the scan stops when the
+    block ends so a per-producer promotion block cannot supply the value.
+    """
+    active = False
+    for line in (ROOT / "policy" / "producer-authority.yaml").read_text(encoding="utf-8").splitlines():
+        if line == "  external_state_promotion:":
+            active = True
+            continue
+        if active:
+            m = re.match(r"^\s+mode:\s*(\w+)\s*$", line)
+            if m:
+                return m.group(1)
+            if line.strip() and not line.lstrip().startswith("#") and len(line) - len(line.lstrip()) <= 2:
+                break
+    return "unknown"
+
+
+def _short_family(fam: str) -> str:
+    return fam.replace("_EVENT", "")
+
+
+# --------------------------------------------------------------------------- #
+# D1 - Authority stack
+# --------------------------------------------------------------------------- #
+def figure_authority_stack() -> None:
+    # The six tiers mirror docs/zmeta_change_governance.md "Authority Stack".
+    tiers = [
+        ("1", "Semantic contract", "spec/semantics-contract.md", "normative meaning; v1.0 locked", FAMILY["COMMAND_EVENT"]),
+        ("2", "Canonical schemas", "schema/*.schema.json", "structural enforcement", FAMILY["OBSERVATION_EVENT"]),
+        ("3", "Policy YAML", "policy/*.yaml", "runtime enforcement, tunable", FAMILY["FUSION_EVENT"]),
+        ("4", "Governance artifacts", "extension registry, conformance manifest, catalogs, release manifest", "governance records", FAMILY["INFERENCE_EVENT"]),
+        ("5", "Validators and tests", "tools/*, gateway/tests/*", "the checking machinery", FAMILY["STATE_EVENT"]),
+        ("6", "README, examples, adapters, docs", "reference and advisory surfaces", "explain, never redefine", MUTED),
+    ]
+    row_h = 64
+    top = 96
+    s = Svg(1000, top + row_h * len(tiers) + 66, "ZMeta authority stack")
+    s.text(26, 34, "The authority stack", size=21, weight="700")
+    s.text(26, 56, "Conflict resolution order (docs/zmeta_change_governance.md). Lower tiers must preserve higher ones.",
+           size=13, fill=MUTED)
+
+    w = 700
+    for i, (num, name, paths, role, color) in enumerate(tiers):
+        y = top + i * row_h
+        inset = i * 18
+        s.rect(26 + inset, y, w - inset, row_h - 10, fill=PANEL, stroke=color, sw=2, rx=10)
+        s.circle(52 + inset, y + (row_h - 10) / 2, 13, fill=color)
+        s.text(52 + inset, y + (row_h - 10) / 2 + 5, num, size=14, weight="700", fill="#ffffff", anchor="middle")
+        s.text(76 + inset, y + 22, name, size=14.5, weight="700")
+        s.text(76 + inset, y + 40, paths, size=11.5, family=MONO, fill=MUTED)
+        s.text(745, y + 31, role, size=11.5, fill=INK)
+
+    ay = top + 6
+    by = top + row_h * len(tiers) - 16
+    s.line(992, ay, 992, by, stroke=MUTED, sw=1.6)
+    s.arrow(992, ay + 12, 992, ay, color=MUTED, sw=1.6, head=7)
+    s.text(986, (ay + by) / 2, "authority", size=10.5, fill=MUTED, anchor="end")
+
+    s.text(26, top + row_h * len(tiers) + 26,
+           "A rule can be normative and unenforced, or enforced from an advisory origin; the tiers say who wins,",
+           size=12, fill=MUTED)
+    s.text(26, top + row_h * len(tiers) + 44,
+           "not who checks. Enforcement lives in tier 5 and in the schema arms of tier 2.", size=12, fill=MUTED)
+    s.save(IMG_DIR / "d1-authority-stack.svg")
+    print("  wrote d1-authority-stack.svg")
+
+
+# --------------------------------------------------------------------------- #
+# D2 - Promotion chain with per-stage requirements
+# --------------------------------------------------------------------------- #
+def figure_promotion_chain() -> None:
+    stage_rules = _schema_stage_rules()
+    parent_map = _lineage_parent_map()
+    promo_mode = _external_promotion_mode()
+
+    chain = ["OBSERVATION_EVENT", "INFERENCE_EVENT", "FUSION_EVENT", "STATE_EVENT"]
+    glosses = {
+        "OBSERVATION_EVENT": "measured fact",
+        "INFERENCE_EVENT": "analytic claim",
+        "FUSION_EVENT": "track identity",
+        "STATE_EVENT": "operator belief",
+    }
+    s = Svg(1000, 470, "ZMeta promotion chain with per-stage requirements")
+    s.text(26, 34, "Promotion is earned, stage by stage", size=21, weight="700")
+    s.text(26, 56, "Requirement chips are read from the v1.0 schema arms and the policy pack at generation time.",
+           size=13, fill=MUTED)
+
+    box_w, box_h = 216, 196
+    gap = (1000 - 52 - box_w * 4) / 3
+    y = 96
+    for i, fam in enumerate(chain):
+        x = 26 + i * (box_w + gap)
+        color = FAMILY[fam]
+        s.rect(x, y, box_w, box_h, fill=PANEL, stroke=color, sw=2, rx=10)
+        s.rect(x, y, box_w, 8, fill=color, rx=4)
+        s.rect(x, y + 4, box_w, 5, fill=color)
+        s.text(x + 12, y + 30, _short_family(fam), size=15, weight="700", fill=color)
+        s.text(x + 12, y + 48, glosses[fam], size=11.5, fill=MUTED)
+        rules = stage_rules.get(fam, {})
+        chips = [
+            ("confidence " + rules.get("confidence", "?"),
+             FAMILY["COMMAND_EVENT"] if rules.get("confidence") == "prohibited" else FAMILY["FUSION_EVENT"]),
+            ("lineage " + rules.get("lineage", "?"),
+             FAMILY["FUSION_EVENT"] if rules.get("lineage") == "required" else MUTED),
+        ]
+        allowed_parents = parent_map.get(fam)
+        if allowed_parents:
+            chips.append(("parents: " + ", ".join(_short_family(p) for p in allowed_parents), MUTED))
+        elif fam == "OBSERVATION_EVENT":
+            chips.append(("root: no parents needed", MUTED))
+        cy = y + 66
+        for label, color2 in chips:
+            lines = [label]
+            if len(label) > 28:
+                words = label.split()
+                lines = []
+                cur = ""
+                for wd in words:
+                    if cur and len(cur) + len(wd) + 1 > 28:
+                        lines.append(cur)
+                        cur = wd
+                    else:
+                        cur = f"{cur} {wd}".strip()
+                if cur:
+                    lines.append(cur)
+            chip_h = 14 + 14 * len(lines)
+            s.rect(x + 12, cy, box_w - 24, chip_h, fill="#ffffff", stroke=color2, sw=1.4, rx=7)
+            ty = cy + 18
+            for ln in lines:
+                s.text(x + 22, ty, ln, size=11, family=MONO, fill=INK)
+                ty += 14
+            cy += chip_h + 8
+        if i < 3:
+            s.arrow(x + box_w + 6, y + box_h / 2, x + box_w + gap - 6, y + box_h / 2, color=MUTED, sw=2.2, head=9)
+            s.text(x + box_w + gap / 2, y + box_h / 2 - 10, "derive", size=10.5, fill=MUTED, anchor="middle")
+
+    ext_y = y + box_h + 46
+    ext_x = 26
+    s.rect(ext_x, ext_y, 380, 58, fill=PANEL, stroke=FAMILY["COMMAND_EVENT"], sw=2, rx=10, dash="6 4")
+    s.text(ext_x + 12, ext_y + 24, "External track (CoT / JREAP / MAVLink / SAPIENT)", size=12, weight="700")
+    s.text(ext_x + 12, ext_y + 43, f"external_state_promotion: mode {promo_mode}; evidence required",
+           size=11, family=MONO, fill=FAMILY["COMMAND_EVENT"])
+    state_x = 26 + 3 * (box_w + gap)
+    s.arrow(ext_x + 380, ext_y + 29, state_x + box_w / 2, y + box_h + 6, color=FAMILY["COMMAND_EVENT"], sw=2, head=9, dash="6 4")
+    s.text(ext_x + 400, ext_y + 52,
+           "promotion gate: new event_id, policy evidence, loop check", size=10.5,
+           fill=FAMILY["COMMAND_EVENT"], anchor="start")
+
+    s.text(26, ext_y + 92, "COMMAND_EVENT and SYSTEM_EVENT sit beside this chain: commands cite it as evidence and are",
+           size=12, fill=MUTED)
+    s.text(26, ext_y + 110, "deconflicted out of band; system events carry the health and diagnostics of every stage.",
+           size=12, fill=MUTED)
+    s.save(IMG_DIR / "d2-promotion-chain.svg")
+    print("  wrote d2-promotion-chain.svg  stages=" + str(len(chain)) + " schema_arms=" + str(len(stage_rules)))
+
+
+# --------------------------------------------------------------------------- #
+# D3 - What is true today (counts read from the manifests)
+# --------------------------------------------------------------------------- #
+def figure_true_today() -> None:
+    dispatcher = json.loads((ROOT / "schema" / "zmeta-event.schema.json").read_text(encoding="utf-8"))
+    branches = []
+    for arm in dispatcher.get("oneOf", []):
+        ref = arm.get("$ref", "")
+        m = re.search(r"zmeta-event-([0-9.]+)\.schema\.json", ref)
+        if m:
+            branches.append(m.group(1))
+
+    class_counts = _count_after_marker(
+        ROOT / "conformance" / "conformance_classes.yaml", "class_records:", r"^    status: (\w+)\s*$")
+    registry_counts = _count_after_marker(
+        ROOT / "spec" / "extension-registry.yaml", "entries:", r"^    status: (\w+)\s*$")
+
+    codes_text = (ROOT / "policy" / "violation-codes.yaml").read_text(encoding="utf-8")
+    code_total = len(re.findall(r"^\s*- code: ", codes_text, re.M))
+    warn_total = len(re.findall(r"^\s*severity: warn\s*$", codes_text, re.M))
+
+    ingress = sorted(
+        p.name for p in (ROOT / "adapters" / "ingress").iterdir()
+        if p.is_dir() and p.name not in ("__pycache__", "template"))
+    egress = sorted(p.name for p in (ROOT / "adapters" / "egress").iterdir()
+                    if p.is_dir() and p.name != "__pycache__")
+    projector = sorted(p.name for p in (ROOT / "adapters" / "projector").iterdir()
+                       if p.is_dir() and p.name != "__pycache__")
+
+    roadmap_text = (ROOT / "spec" / "future-branch-roadmap.yaml").read_text(encoding="utf-8")
+    candidates_block = roadmap_text.split("\ncandidates:\n", 1)[1].split("\nrejected_or_deferred:\n", 1)[0]
+    decisions_block = roadmap_text.split("\nrejected_or_deferred:\n", 1)[1]
+    roadmap_candidates = len(re.findall(r"^  - id: ", candidates_block, re.M))
+    roadmap_decisions = len(re.findall(r"^  - id: ", decisions_block, re.M))
+
+    release = "unknown"
+    for line in (ROOT / "release" / "zmeta-release-manifest.yaml").read_text(encoding="utf-8").splitlines():
+        m = re.match(r"^release_id:\s*\"?([\w.\-]+)\"?", line)
+        if m:
+            release = m.group(1)
+            break
+
+    def fmt_counts(counts: Dict[str, int], order: List[str]) -> str:
+        parts = [f"{counts[k]} {k}" for k in order if k in counts]
+        parts += [f"{v} {k}" for k, v in sorted(counts.items()) if k not in order]
+        return ", ".join(parts)
+
+    rows = [
+        ("Release", release, "release/zmeta-release-manifest.yaml"),
+        ("Version branches", " and ".join(branches) + "  (1.0 locked, 1.1.0 experimental)", "schema/zmeta-event.schema.json"),
+        ("Conformance classes", f"{sum(class_counts.values())} defined: " + fmt_counts(class_counts, ["implemented", "future", "planned", "reserved"]), "conformance/conformance_classes.yaml"),
+        ("Registry entries", f"{sum(registry_counts.values())} recorded: " + fmt_counts(registry_counts, ["reserved", "experimental", "proposed", "adopted", "rejected"]), "spec/extension-registry.yaml"),
+        ("Violation codes", f"{code_total} governed ({warn_total} warn, {code_total - warn_total} fail)", "policy/violation-codes.yaml"),
+        ("Ingress adapters", f"{len(ingress)} shipped (plus the authoring template)", "adapters/ingress/"),
+        ("Egress adapters", f"{len(egress)} shipped; projectors: {len(projector)}", "adapters/egress/, adapters/projector/"),
+        ("Roadmap candidates", f"{roadmap_candidates} candidates, {roadmap_decisions} durable exclusions; none valid vocabulary today", "spec/future-branch-roadmap.yaml"),
+    ]
+
+    row_h = 46
+    top = 96
+    s = Svg(1000, top + row_h * len(rows) + 60, "What exists today, counted from the manifests")
+    s.text(26, 34, "What is true today", size=21, weight="700")
+    s.text(26, 56, "Every count on this card is read from the named machine-readable source at generation time.",
+           size=13, fill=MUTED)
+    for i, (label, value, src) in enumerate(rows):
+        ry = top + i * row_h
+        if i % 2 == 0:
+            s.rect(26, ry - 14, 948, row_h - 6, fill=PANEL, rx=8)
+        s.text(40, ry + 8, label, size=13, weight="700")
+        s.text(240, ry + 8, value, size=12.5, family=MONO, fill=INK)
+        s.text(966, ry + 24, src, size=9, family=MONO, fill=MUTED, anchor="end")
+    s.text(26, top + row_h * len(rows) + 26,
+           "Regenerate with python docs/diagrams/generate_figures.py after any release; stale counts are a defect.",
+           size=12, fill=MUTED)
+    s.save(IMG_DIR / "d3-true-today.svg")
+    print(
+        "  wrote d3-true-today.svg  classes=" + str(sum(class_counts.values()))
+        + " registry=" + str(sum(registry_counts.values()))
+        + " codes=" + str(code_total)
+    )
+
+
+# --------------------------------------------------------------------------- #
+# E-series: the case for ZMeta, measured from the repo
+# --------------------------------------------------------------------------- #
+INGRESS_DISPLAY = {
+    "adsb": "ADS-B", "ais": "AIS", "bladerf": "bladeRF EW", "cot": "CoT",
+    "eo-cv": "EO-CV", "example-vendor": "Example-vendor", "jreap": "JREAP",
+    "klv": "KLV", "kraken": "KrakenSDR", "mavlink": "MAVLink", "moth": "Moth",
+    "sapient": "SAPIENT", "signalhunter": "SignalHunter",
+}
+# Directory -> projection label, pinned so a renamed or added egress directory
+# fails loudly instead of shipping a stale label.
+EGRESS_DISPLAY = {
+    "cot": "CoT", "mavlink": "MissionIntent", "jreap": "JREAP",
+    "klv": "KLV", "sapient": "SAPIENT",
+}
+EGRESS_ORDER = ["cot", "mavlink", "jreap", "klv", "sapient"]
+
+
+def _adapter_dirs(kind: str) -> List[str]:
+    return sorted(
+        p.name for p in (ROOT / "adapters" / kind).iterdir()
+        if p.is_dir() and p.name not in ("__pycache__", "template"))
+
+
+def _ingress_names() -> List[str]:
+    dirs = _adapter_dirs("ingress")
+    unknown = [d for d in dirs if d not in INGRESS_DISPLAY]
+    if unknown:
+        raise ValueError(f"ingress dirs missing a display label: {unknown}")
+    return [INGRESS_DISPLAY[d] for d in dirs]
+
+
+def figure_adapt_once() -> None:
+    sources = _ingress_names()
+    egress_dirs = _adapter_dirs("egress")
+    if set(egress_dirs) != set(EGRESS_DISPLAY):
+        raise ValueError(f"egress dirs {egress_dirs} != pinned labels {sorted(EGRESS_DISPLAY)}")
+    outputs = [EGRESS_DISPLAY[d] for d in EGRESS_ORDER]
+    n, m = len(sources), len(egress_dirs)
+
+    s = Svg(1000, 600, "Point-to-point bridges versus adapt-once through ZMeta")
+    s.text(26, 34, "Adapt once, interoperate with everything ZMeta maps", size=21, weight="700")
+    s.text(26, 56, f"This repository ships {n} ingress adapters and {m} egress projections; the counts below are those.",
+           size=13, fill=MUTED)
+
+    panel_y, panel_h = 84, 430
+    src_top, src_gap = panel_y + 46, (panel_h - 80) / (n - 1)
+    out_gap = (panel_h - 80) / (len(outputs) - 1)
+
+    def draw_panel(px: float, hub: bool) -> None:
+        s.rect(px, panel_y, 460, panel_h, fill=PANEL, stroke=PANEL_STROKE, sw=1.2, rx=10)
+        title = "Through ZMeta: adapt once" if hub else "Without a shared model"
+        s.text(px + 16, panel_y + 26, title, size=14.5, weight="700")
+        sx, ox = px + 118, px + 350
+        src_pts = [(sx, src_top + i * src_gap) for i in range(n)]
+        out_pts = [(ox, src_top + j * out_gap) for j in range(len(outputs))]
+        if hub:
+            hx, hy = px + 234, panel_y + 46 + (panel_h - 80) / 2
+            for (x, y) in src_pts:
+                s.line(x + 6, y, hx - 30, hy, stroke=FAMILY["OBSERVATION_EVENT"], sw=1.1)
+            for (x, y) in out_pts:
+                s.line(hx + 30, hy, x - 6, y, stroke=FAMILY["STATE_EVENT"], sw=1.1)
+            s.circle(hx, hy, 30, fill=FAMILY["FUSION_EVENT"])
+            s.text(hx, hy - 2, "ZMeta", size=12, weight="700", fill="#ffffff", anchor="middle")
+            s.text(hx, hy + 12, "canonical", size=8.5, fill="#ffffff", anchor="middle")
+        else:
+            for (x1, y1) in src_pts:
+                for (x2, y2) in out_pts:
+                    s.line(x1 + 6, y1, x2 - 6, y2, stroke="#c47f2a", sw=0.55)
+        for i, (x, y) in enumerate(src_pts):
+            s.circle(x, y, 4, fill=FAMILY["OBSERVATION_EVENT"])
+            s.text(x - 10, y + 3, sources[i], size=9.5, family=MONO, fill=INK, anchor="end")
+        for j, (x, y) in enumerate(out_pts):
+            s.circle(x, y, 4, fill=FAMILY["STATE_EVENT"])
+            s.text(x + 10, y + 3, outputs[j], size=9.5, family=MONO, fill=INK)
+        count = f"{n} x {m} = {n * m} bespoke bridges" if not hub else f"{n} + {m} = {n + m} adapters, one semantic model"
+        color = FAMILY["COMMAND_EVENT"] if not hub else FAMILY["FUSION_EVENT"]
+        s.text(px + 16, panel_y + panel_h - 14, count, size=13.5, weight="700", fill=color)
+
+    draw_panel(26, hub=False)
+    draw_panel(514, hub=True)
+    s.text(26, panel_y + panel_h + 32,
+           "Each bridge re-decides meaning: units, timestamps, identity, confidence. The canonical model decides once,",
+           size=12, fill=MUTED)
+    s.text(26, panel_y + panel_h + 50,
+           "and a new source costs one adapter instead of one bridge per consumer.", size=12, fill=MUTED)
+    s.save(IMG_DIR / "e1-adapt-once.svg")
+    print(f"  wrote e1-adapt-once.svg  sources={n} outputs={m}")
+
+
+def figure_translation_pipeline() -> None:
+    events = load_jsonl("zmeta-profile-H-examples.jsonl")
+    obs = next(e for e in events if event_type(e) == "OBSERVATION_EVENT")
+    obs_sizes = encoding_sizes(obs)
+
+    s = Svg(1000, 470, "Normalization and translation pipeline")
+    s.text(26, 34, "Normalize once at the boundary, project everywhere", size=21, weight="700")
+    s.text(26, 56, "Structure is authoritative and projections are lossy by declaration, never silently.",
+           size=13, fill=MUTED)
+
+    col_y, col_h = 92, 270
+    # Column 1: native inputs
+    x1, w1 = 26, 208
+    s.rect(x1, col_y, w1, col_h, fill=PANEL, stroke=PANEL_STROKE, sw=1.2, rx=10)
+    s.text(x1 + 12, col_y + 24, "Native inputs", size=13.5, weight="700")
+    native = ["MAVLink v2 telemetry", "KrakenSDR DOA CSV", "dump1090 aircraft.json",
+              "AIS position reports", "SAPIENT protobuf-JSON", "CoT XML tracks"]
+    ny = col_y + 46
+    for label in native:
+        s.rect(x1 + 12, ny, w1 - 24, 26, fill="#ffffff", stroke=PANEL_STROKE, sw=1, rx=6)
+        s.text(x1 + 20, ny + 17, label, size=10, family=MONO, fill=INK)
+        ny += 33
+    s.text(x1 + 12, col_y + col_h - 12, "each speaks its own dialect", size=10.5, fill=MUTED)
+
+    # Column 2: the boundary obligations
+    x2, w2 = 286, 220
+    s.rect(x2, col_y, w2, col_h, fill=PANEL, stroke=FAMILY["FUSION_EVENT"], sw=2, rx=10)
+    s.text(x2 + 12, col_y + 24, "Adapter boundary", size=13.5, weight="700", fill=FAMILY["FUSION_EVENT"])
+    duties = ["UTC-Z timestamps", "explicit units", "UUIDv7 identity", "lineage transform",
+              "timing-quality fallback", "promotion evidence", "family separation"]
+    dy = col_y + 46
+    for d in duties:
+        s.circle(x2 + 20, dy - 4, 3, fill=FAMILY["FUSION_EVENT"])
+        s.text(x2 + 32, dy, d, size=11.5, fill=INK)
+        dy += 26
+    s.text(x2 + 12, col_y + col_h - 12, "obligations checked by the harness", size=10.5, fill=MUTED)
+
+    # Column 3: canonical event (from the real H example)
+    x3, w3 = 556, 190
+    s.rect(x3, col_y, w3, col_h, fill=PANEL, stroke=FAMILY["OBSERVATION_EVENT"], sw=2, rx=10)
+    s.text(x3 + 12, col_y + 24, "Canonical event", size=13.5, weight="700", fill=FAMILY["OBSERVATION_EVENT"])
+    keys = ["zmeta_version", "event", "source", "payload", "confidence*", "lineage", "profile"]
+    key_colors = ["#3a7ca5", FAMILY["INFERENCE_EVENT"], "#2e8b6f", "#c47f2a", "#b5483d", "#7a5ea8", "#6b7785"]
+    ky = col_y + 46
+    for k, c in zip(keys, key_colors):
+        s.rect(x3 + 12, ky - 12, 10, 10, fill=c, rx=2)
+        s.text(x3 + 30, ky - 3, k, size=11.5, family=MONO, fill=INK)
+        ky += 26
+    s.text(x3 + 12, col_y + col_h - 30, "* required or prohibited", size=9.5, fill=MUTED)
+    s.text(x3 + 12, col_y + col_h - 16, "  per event family", size=9.5, fill=MUTED)
+
+    # Column 4: projections
+    x4, w4 = 796, 178
+    s.rect(x4, col_y, w4, col_h, fill=PANEL, stroke=PANEL_STROKE, sw=1.2, rx=10)
+    s.text(x4 + 12, col_y + 24, "Projections out", size=13.5, weight="700")
+    proj = [("CoT to TAK", "display"), ("JREAP track JSON", "loss register"),
+            ("KLV tag dict", "sensor metadata"), ("MissionIntent", "deconfliction"),
+            ("SAPIENT", "counter-UAS")]
+    py = col_y + 46
+    for name, note in proj:
+        s.text(x4 + 12, py, name, size=11, family=MONO, fill=INK)
+        s.text(x4 + 12, py + 12, note, size=9, fill=MUTED)
+        py += 32
+    s.text(x4 + 12, py + 4, "wire encodings differ:", size=9.5, fill=MUTED)
+    s.text(x4 + 12, py + 17, "they decode value-identically", size=9.5, fill=MUTED)
+    s.text(x4 + 12, col_y + col_h - 12, "lossy by declaration", size=10.5, fill=MUTED)
+
+    ac = col_y + col_h / 2
+    s.arrow(x1 + w1 + 4, ac, x2 - 4, ac, color=MUTED, sw=2.2, head=9)
+    s.text((x1 + w1 + x2) / 2, col_y - 8, "adapt once", size=10, fill=MUTED, anchor="middle")
+    s.arrow(x2 + w2 + 4, ac, x3 - 4, ac, color=MUTED, sw=2.2, head=9)
+    s.arrow(x3 + w3 + 4, ac, x4 - 4, ac, color=MUTED, sw=2.2, head=9)
+    s.text((x3 + w3 + x4) / 2, col_y - 8, "project many", size=10, fill=MUTED, anchor="middle")
+
+    sizes_line = "  |  ".join(f"{k} {v} B" for k, v in obs_sizes.items() if v is not None)
+    s.text(26, col_y + col_h + 40,
+           "The canonical event stays the source of truth, linked to raw artifacts through lineage; a re-imported",
+           size=12, fill=MUTED)
+    s.text(26, col_y + col_h + 58,
+           "projection is never equal to the original. The same H-profile RF observation measured on the wire:",
+           size=12, fill=MUTED)
+    s.text(26, col_y + col_h + 80, sizes_line, size=12.5, family=MONO, fill=INK)
+    s.save(IMG_DIR / "e2-translation-pipeline.svg")
+    print("  wrote e2-translation-pipeline.svg  " + sizes_line)
+
+
+def figure_wire_matrix() -> None:
+    specs = [
+        {"key": "h_obs", "file": "zmeta-profile-H-examples.jsonl", "etype": "OBSERVATION_EVENT",
+         "head": "Profile H", "sub": "RF observation"},
+        {"key": "h_state", "file": "zmeta-profile-H-examples.jsonl", "etype": "STATE_EVENT",
+         "head": "Profile H", "sub": "track state"},
+        {"key": "l_state", "file": "zmeta-profile-L-examples.jsonl", "etype": "STATE_EVENT",
+         "head": "Profile L", "sub": "track state"},
+    ]
+    rows: Dict[str, Dict[str, Optional[int]]] = {}
+    for spec in specs:
+        ev = next(e for e in load_jsonl(spec["file"]) if event_type(e) == spec["etype"])
+        rows[spec["key"]] = encoding_sizes(ev)
+
+    order = ["JSON", "CBOR", "Compact", "Protobuf"]
+    colors = {"JSON": "#3a7ca5", "CBOR": "#2e8b6f", "Compact": "#c47f2a", "Protobuf": "#7a5ea8"}
+    max_v = max(v for sizes in rows.values() for v in sizes.values() if v is not None)
+
+    row_h, bar_h, top = 86, 14, 118
+    s = Svg(1000, top + row_h * len(specs) + 114, "Measured wire size across encodings and profiles")
+    s.text(26, 34, "What honesty costs on the wire, measured", size=21, weight="700")
+    s.text(26, 56, "Shipped example events from this repo, encoded with the repo encoders at generation time.",
+           size=13, fill=MUTED)
+    lx = 26
+    for name in order:
+        s.rect(lx, 74, 12, 12, fill=colors[name], rx=3)
+        s.text(lx + 18, 84, name, size=11.5, fill=INK)
+        lx += 30 + 8.2 * len(name)
+
+    chart_x, chart_w = 300, 620
+    for i, spec in enumerate(specs):
+        sizes = rows[spec["key"]]
+        ry = top + i * row_h
+        s.text(26, ry + 8, spec["head"], size=13.5, weight="700")
+        s.text(26, ry + 26, spec["sub"], size=11.5, fill=MUTED)
+        by = ry - 6
+        for name in order:
+            v = sizes.get(name)
+            if v is None:
+                s.text(chart_x, by + bar_h - 3, "refused (fail closed)", size=10.5, family=MONO, fill=FAMILY["COMMAND_EVENT"])
+            else:
+                bw = (v / max_v) * chart_w
+                s.rect(chart_x, by, bw, bar_h, fill=colors[name], rx=3)
+                s.text(chart_x + bw + 8, by + bar_h - 3, f"{v} B", size=10.5, family=MONO, fill=INK)
+            by += bar_h + 4
+        if i < len(specs) - 1:
+            s.line(26, ry + row_h - 16, 974, ry + row_h - 16, stroke=GRID, sw=1)
+
+    h_json = rows["h_state"].get("JSON")
+    l_compact = rows["l_state"].get("Compact")
+    cy = top + row_h * len(specs) + 6
+    if h_json and l_compact:
+        pct = round((1 - l_compact / h_json) * 100)
+        s.text(26, cy,
+               f"The Profile H track-state example costs {h_json} B as JSON; the Profile L track-state example",
+               size=12.5, fill=INK)
+        s.text(26, cy + 18,
+               f"costs {l_compact} B as a compact packet, {pct}% less wire. The two are different example tracks:",
+               size=12.5, fill=INK)
+        s.text(26, cy + 36,
+               "the Profile L example omits per-event timing quality and relies on periodic TIME_STATUS packets",
+               size=12.5, fill=INK)
+        s.text(26, cy + 54,
+               "not shown here. Every packet still decodes to a canonical event that passes the same validation.",
+               size=12.5, fill=INK)
+    s.save(IMG_DIR / "e3-wire-matrix.svg")
+    print(f"  wrote e3-wire-matrix.svg  H_json={h_json} L_compact={l_compact}")
+
+
+def figure_proof_surface() -> None:
+    def nlines(rel: str) -> int:
+        return sum(1 for ln in (ROOT / rel).read_text(encoding="utf-8").splitlines()
+                   if ln.strip() and not ln.strip().startswith("#"))
+
+    fail_suites = [
+        ("schema/policy must-fail", "conformance/must-fail.jsonl"),
+        ("bad-event corpus", "conformance/bad-events/must-fail.jsonl"),
+        ("compact decode negatives", "conformance/encoding-negative/compact-must-fail.jsonl"),
+        ("protobuf decode negatives", "conformance/encoding-negative/protobuf-must-fail.jsonl"),
+        ("gateway CLI negatives", "conformance/encoding-negative/gateway-must-fail.jsonl"),
+        ("projection must-fail", "conformance/profile-projection/must-fail.jsonl"),
+        ("precision must-fail", "conformance/profile-precision/must-fail.jsonl"),
+    ]
+    pass_suites = [
+        ("schema/policy must-pass", "conformance/must-pass.jsonl"),
+        ("projection must-pass", "conformance/profile-projection/must-pass.jsonl"),
+        ("precision must-pass", "conformance/profile-precision/must-pass.jsonl"),
+        ("adapter harness", "conformance/adapter-harness/must-pass.jsonl"),
+    ]
+    fails = [(name, nlines(rel)) for name, rel in fail_suites]
+    passes = [(name, nlines(rel)) for name, rel in pass_suites]
+    fail_total = sum(v for _, v in fails)
+    pass_total = sum(v for _, v in passes)
+
+    manifest_path = ROOT / "conformance" / "conformance_classes.yaml"
+    class_counts = _count_after_marker(manifest_path, "class_records:", r"^    status: (\w+)\s*$")
+    classes_total = sum(class_counts.values())
+    implemented = class_counts.get("implemented", 0)
+    non_claimable_statuses = _count_after_marker(
+        manifest_path, "non_claimable_statuses:", r"^  - (\w+)\s*$")
+    if not non_claimable_statuses:
+        raise ValueError("non_claimable_statuses not found in the conformance manifest")
+    non_claimable = sum(class_counts.get(status, 0) for status in non_claimable_statuses)
+
+    gate_text = (ROOT / "tools" / "validate_conformance.py").read_text(encoding="utf-8")
+    m = re.search(r"KERNEL_GATE_CHECKS = \((.*?)\n\)", gate_text, re.S)
+    if not m:
+        raise ValueError("KERNEL_GATE_CHECKS tuple not found in tools/validate_conformance.py")
+    gate_checks = len(re.findall(r'^\s*"\w+",\s*$', m.group(1), re.M))
+    if gate_checks == 0:
+        raise ValueError("KERNEL_GATE_CHECKS parsed to zero entries")
+
+    s = Svg(1000, 560, "The conformance proof surface, counted from the fixture suites")
+    s.text(26, 34, "Conformance you can run yourself", size=21, weight="700")
+    s.text(26, 56, "Every count below is read from the fixture files and the gate definition at generation time.",
+           size=13, fill=MUTED)
+
+    tiles = [
+        (str(fail_total), "vectors that must be caught", "schema, policy, encoding, projection", FAMILY["COMMAND_EVENT"]),
+        (str(pass_total), "fixtures that MUST PASS", "including the shared adapter harness", FAMILY["FUSION_EVENT"]),
+        (f"{classes_total}", "conformance classes", f"{implemented} implemented, {non_claimable} non-claimable", FAMILY["OBSERVATION_EVENT"]),
+        (str(gate_checks), "checks in the kernel gate", "one flag, run on every CI push", FAMILY["INFERENCE_EVENT"]),
+    ]
+    tx, tw = 26, 232
+    for i, (big, label, sub, color) in enumerate(tiles):
+        x = tx + i * (tw + 6)
+        s.rect(x, 80, tw, 108, fill=PANEL, stroke=color, sw=2, rx=10)
+        s.text(x + 16, 134, big, size=38, weight="700", fill=color)
+        s.text(x + 16, 156, label, size=12, weight="700", fill=INK)
+        s.text(x + 16, 174, sub, size=10.5, fill=MUTED)
+
+    s.text(26, 226, "Where the must-fail vectors live", size=14, weight="700")
+    bx, bw_max, by = 300, 560, 244
+    fmax = max(v for _, v in fails)
+    for name, v in fails:
+        s.text(288, by + 11, name, size=11.5, fill=INK, anchor="end")
+        bw = (v / fmax) * bw_max
+        s.rect(bx, by, bw, 15, fill=FAMILY["COMMAND_EVENT"], rx=3)
+        s.text(bx + bw + 8, by + 12, str(v), size=11, family=MONO, fill=INK)
+        by += 25
+
+    by += 14
+    s.text(26, by, "What a claim is", size=14, weight="700")
+    claim_lines = [
+        "A conformance claim is an attestation: required fields, the full dependency closure,",
+        "and a recorded pass for every required command of every claimed class. The validator",
+        "refuses claims against non-claimable classes, unknown classes, and missing closure.",
+        "It does not execute the tests; anyone can independently rerun the commands a claim names.",
+    ]
+    ly = by + 22
+    for ln in claim_lines:
+        s.text(26, ly, ln, size=12.5, fill=INK)
+        ly += 19
+    s.save(IMG_DIR / "e4-proof-surface.svg")
+    print(f"  wrote e4-proof-surface.svg  must_fail={fail_total} must_pass={pass_total} classes={classes_total} gate={gate_checks}")
+
+
+# --------------------------------------------------------------------------- #
+# F-series: seeing the layer
+# --------------------------------------------------------------------------- #
+def _event_family_count() -> int:
+    schema = json.loads((ROOT / "schema" / "zmeta-event-1.0.schema.json").read_text(encoding="utf-8"))
+    enum = schema["$defs"]["event"]["properties"]["event_type"]["enum"]
+    return len(enum)
+
+
+def figure_thin_waist() -> None:
+    sources = _ingress_names()
+    egress_dirs = _adapter_dirs("egress")
+    if set(egress_dirs) != set(EGRESS_DISPLAY):
+        raise ValueError(f"egress dirs {egress_dirs} != pinned labels {sorted(EGRESS_DISPLAY)}")
+    if set(EGRESS_ORDER) != set(EGRESS_DISPLAY):
+        raise ValueError("EGRESS_ORDER and EGRESS_DISPLAY disagree")
+    projections = [EGRESS_DISPLAY[d] for d in EGRESS_ORDER]
+    families = _event_family_count()
+    consumers = ["COP / map client", "TAK / ATAK", "fusion service", "GCS workflow",
+                 "analytics", "AAR / replay store"]
+
+    s = Svg(1000, 660, "The thin waist: replaceable products above and below one locked contract")
+    s.text(26, 34, "One agreement, many replaceable parts", size=21, weight="700")
+    s.text(26, 56, "Products above and below the waist are replaceable. The waist is the agreement that persists.",
+           size=13, fill=MUTED)
+
+    # Top band: producers.
+    top_y, band_h = 84, 150
+    s.rect(26, top_y, 948, band_h, fill=PANEL, stroke=PANEL_STROKE, sw=1.2, rx=10)
+    s.text(40, top_y + 24, "Producers and their products", size=14, weight="700")
+    s.text(974 - 8, top_y + 24, "replaceable", size=11, family=MONO,
+           fill=FAMILY["STATE_EVENT"], anchor="end")
+    cx, cy = 40, top_y + 44
+    for name in sources + ["...any sensor with an adapter"]:
+        w = 18 + 6.4 * len(name)
+        if cx + w > 960:
+            cx = 40
+            cy += 32
+        if cy + 24 > top_y + band_h - 8:
+            raise ValueError("f1 top band overflow: too many producer chips for the panel")
+        s.rect(cx, cy, w, 24, fill="#ffffff", stroke=PANEL_STROKE, sw=1, rx=12)
+        s.text(cx + 9, cy + 16, name, size=10, family=MONO, fill=INK)
+        cx += w + 8
+
+    # Funnel into the waist.
+    waist_y, waist_h, waist_w = 292, 96, 380
+    wx = (1000 - waist_w) / 2
+    s.poly([(150, top_y + band_h), (850, top_y + band_h), (wx + waist_w, waist_y), (wx, waist_y)],
+           fill=PANEL, stroke="none")
+    s.poly([(wx, waist_y + waist_h), (wx + waist_w, waist_y + waist_h), (850, 446), (150, 446)],
+           fill=PANEL, stroke="none")
+
+    s.rect(wx, waist_y, waist_w, waist_h, fill=FAMILY["FUSION_EVENT"], rx=10)
+    s.text(500, waist_y + 28, "THE CONTRACT", size=15, weight="700", fill="#ffffff", anchor="middle")
+    s.text(500, waist_y + 50, f"{families} event families | one envelope | v1.0 locked",
+           size=12, family=MONO, fill="#ffffff", anchor="middle")
+    s.text(500, waist_y + 70, "honest labels travel with the data", size=11, fill="#ffffff", anchor="middle")
+    s.text(wx - 12, waist_y + 44, "the only thing every", size=10.5, fill=MUTED, anchor="end")
+    s.text(wx - 12, waist_y + 58, "party must agree on", size=10.5, fill=MUTED, anchor="end")
+    s.text(wx + waist_w + 12, waist_y + 44, "small enough to lock,", size=10.5, fill=MUTED)
+    s.text(wx + waist_w + 12, waist_y + 58, "complete enough to build on", size=10.5, fill=MUTED)
+
+    # Bottom band: consumers.
+    bot_y = 446
+    s.rect(26, bot_y, 948, 130, fill=PANEL, stroke=PANEL_STROKE, sw=1.2, rx=10)
+    s.text(40, bot_y + 24, "Consumers and their products", size=14, weight="700")
+    s.text(974 - 8, bot_y + 24, "replaceable", size=11, family=MONO,
+           fill=FAMILY["STATE_EVENT"], anchor="end")
+    cx, cy = 40, bot_y + 42
+    for name in consumers + [f"{p} projection" for p in projections]:
+        w = 18 + 6.4 * len(name)
+        if cx + w > 960:
+            cx = 40
+            cy += 32
+        if cy + 24 > bot_y + 130 - 8:
+            raise ValueError("f1 bottom band overflow: too many consumer chips for the panel")
+        s.rect(cx, cy, w, 24, fill="#ffffff", stroke=PANEL_STROKE, sw=1, rx=12)
+        s.text(cx + 9, cy + 16, name, size=10, family=MONO, fill=INK)
+        cx += w + 8
+
+    s.text(26, 606, "Swap any product above or below and the rest still interoperate, because they never agreed with",
+           size=12, fill=MUTED)
+    s.text(26, 624, "each other; each agreed with the waist. Delete the waist and every pair needs its own bridge again.",
+           size=12, fill=MUTED)
+    s.save(IMG_DIR / "f1-thin-waist.svg")
+    print(f"  wrote f1-thin-waist.svg  sources={len(sources)} families={families} projections={len(projections)}")
+
+
+def figure_behind_the_icon() -> None:
+    events = load_jsonl("zmeta-eo-chain-examples.jsonl")
+    by_type = {event_type(e): e for e in events}
+    if len(by_type) != len(events):
+        raise ValueError("eo-chain fixture carries a duplicated event family; the figure assumes one per type")
+    obs, inf = by_type["OBSERVATION_EVENT"], by_type["INFERENCE_EVENT"]
+    fus, st = by_type["FUSION_EVENT"], by_type["STATE_EVENT"]
+    obs_conf = _schema_stage_rules()["OBSERVATION_EVENT"]["confidence"]
+    if obs_conf != "prohibited":
+        raise ValueError(f"schema no longer prohibits observation confidence ({obs_conf}); update the figure text")
+
+    track = st["payload"]["track_id"]
+    stale_s = st["payload"]["valid_for_ms"] / 1000.0
+    tq = st["payload"]["timing_quality"]
+
+    s = Svg(1000, 700, "One display icon decomposed into the real event chain that carried it")
+    s.text(26, 34, "Behind the icon", size=21, weight="700")
+    s.text(26, 56, "Built from the shipped EO example events, genuine lineage ids included.",
+           size=13, fill=MUTED)
+
+    # Left: what the operator sees.
+    mx, my, mw, mh = 26, 96, 300, 240
+    s.rect(mx, my, mw, mh, fill=PANEL, stroke=PANEL_STROKE, sw=1.2, rx=10)
+    s.text(mx + 12, my + 24, "What the operator sees", size=13.5, weight="700")
+    for gx in range(1, 6):
+        s.line(mx + gx * mw / 6, my + 36, mx + gx * mw / 6, my + mh - 46, stroke=GRID, sw=1)
+    for gy in range(1, 4):
+        s.line(mx + 10, my + 36 + gy * (mh - 82) / 4, mx + mw - 10, my + 36 + gy * (mh - 82) / 4, stroke=GRID, sw=1)
+    ix, iy = mx + mw * 0.58, my + 110
+    s.poly([(ix, iy - 12), (ix + 12, iy), (ix, iy + 12), (ix - 12, iy)], fill=FAMILY["STATE_EVENT"])
+    s.text(ix - 18, iy - 4, track, size=10.5, family=MONO, fill=INK, anchor="end")
+    s.text(ix - 18, iy + 10, f"conf {st['confidence']}  stale in {stale_s:.0f} s", size=9.5, family=MONO,
+           fill=MUTED, anchor="end")
+    s.text(mx + 12, my + mh - 24, "one icon on a map, in whichever", size=10.5, fill=MUTED)
+    s.text(mx + 12, my + mh - 10, "COP a mission happens to run", size=10.5, fill=MUTED)
+
+    s.text(mx, my + mh + 36, "The display is a projection.", size=12.5, weight="700", fill=INK)
+    swap_lines = [
+        "Replace the COP and nothing in the",
+        "chain changes. The state event",
+        "carries its immediate parent's id;",
+        "a consumer holding the retained",
+        "events can walk back to the source",
+        "clip. Profile allowlists govern",
+        "which families travel (contract 4.8).",
+    ]
+    ly = my + mh + 56
+    for ln in swap_lines:
+        s.text(mx, ly, ln, size=12, fill=INK)
+        ly += 18
+
+    # Right: the chain, state at top, observation at bottom.
+    cards = [
+        (st, "STATE_EVENT / TRACK_STATE", [
+            f"track_id {track}   confidence {st['confidence']}",
+            f"valid_for_ms {st['payload']['valid_for_ms']}   geo {st['payload']['geo']['lat']}, {st['payload']['geo']['lon']}",
+            f"timing {tq['time_source']} {tq['sync_state']} est_error {tq['est_error_ms']} ms",
+        ]),
+        (fus, "FUSION_EVENT / TRACK_FUSION", [
+            f"mints {fus['payload']['track_id']}   confidence {fus['confidence']}",
+            f"members {len(fus['payload']['members'])}   stability {fus['payload']['stability']}",
+            "the only stage allowed to create track identity",
+        ]),
+        (inf, "INFERENCE_EVENT / CLASSIFICATION", [
+            f"claim \"{inf['payload']['claim']['label']}\"   confidence {inf['confidence']}",
+            f"model {inf['payload']['model']['name']} {inf['payload']['model']['version']}",
+            "a claim, never a track: it cannot mint identity",
+        ]),
+        (obs, "OBSERVATION_EVENT / EO", [
+            f"frame {obs['payload']['features']['frame_id']}   stream {obs['payload']['features']['stream_id']}",
+            f"confidence {obs_conf}: measurements are facts",
+            f"data_ref {obs['payload']['data_ref']['ref_id']}",
+        ]),
+    ]
+    rx, rw, card_h, gap = 380, 594, 108, 28
+    ry = 96
+    for i, (ev, header, lines) in enumerate(cards):
+        color = FAMILY[event_type(ev)]
+        y = ry + i * (card_h + gap)
+        s.rect(rx, y, rw, card_h, fill=PANEL, stroke=color, sw=2, rx=10)
+        s.rect(rx, y, rw, 8, fill=color, rx=4)
+        s.rect(rx, y + 4, rw, 5, fill=color)
+        s.text(rx + 14, y + 28, header, size=12.5, weight="700", fill=color)
+        s.text(rx + rw - 12, y + 28, "..." + ev["event"]["event_id"][-12:], size=10, family=MONO,
+               fill=MUTED, anchor="end")
+        ty = y + 50
+        for ln in lines:
+            s.text(rx + 14, ty, ln, size=11, family=MONO, fill=INK)
+            ty += 19
+        if i < len(cards) - 1:
+            ax = rx + rw / 2
+            s.arrow(ax, y + card_h + gap - 4, ax, y + card_h + 4, color=MUTED, sw=2, head=8)
+            parent_id = cards[i + 1][0]["event"]["event_id"]
+            child_parents = ev.get("lineage", {}).get("based_on", [])
+            if parent_id not in child_parents:
+                raise ValueError(
+                    f"{header} lineage {child_parents} does not cite the drawn parent {parent_id}")
+            s.text(ax + 12, y + card_h + gap / 2 + 4, f"based_on ...{parent_id[-12:]}", size=9.5, family=MONO, fill=MUTED)
+
+    s.arrow(rx - 6, ry + 40, ix + 26, iy, color=FAMILY["STATE_EVENT"], sw=2, head=9, dash="6 4")
+    s.text(rx - 16, ry + 26, "projected to the display", size=10, fill=FAMILY["STATE_EVENT"], anchor="end")
+
+    s.save(IMG_DIR / "f2-behind-the-icon.svg")
+    print(f"  wrote f2-behind-the-icon.svg  track={track} chain={len(cards)}")
+
+
 def main() -> None:
     IMG_DIR.mkdir(parents=True, exist_ok=True)
     print(f"Writing figures to {IMG_DIR}")
@@ -586,6 +1447,15 @@ def main() -> None:
         figure_encoding_sizes,
         figure_profile_matrix,
         figure_triangulation,
+        figure_authority_stack,
+        figure_promotion_chain,
+        figure_true_today,
+        figure_adapt_once,
+        figure_translation_pipeline,
+        figure_wire_matrix,
+        figure_proof_surface,
+        figure_thin_waist,
+        figure_behind_the_icon,
     ):
         try:
             fn()

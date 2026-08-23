@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="546" viewBox="0 0 1000 546" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" role="img" aria-label="ZMeta authority stack">
+<rect x="0.0" y="0.0" width="1000.0" height="546.0" rx="0" fill="#ffffff" stroke="none" stroke-width="1.0"/>
+<text x="26.0" y="34.0" font-size="21" fill="#1b2330" text-anchor="start" font-weight="700" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">The authority stack</text>
+<text x="26.0" y="56.0" font-size="13" fill="#5b6b7b" text-anchor="start" font-weight="normal" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">Conflict resolution order (docs/zmeta_change_governance.md). Lower tiers must preserve higher ones.</text>
+<rect x="26.0" y="96.0" width="700.0" height="54.0" rx="10" fill="#f3f6fa" stroke="#b5483d" stroke-width="2"/>
+<circle cx="52.0" cy="123.0" r="13.0" fill="#b5483d" stroke="none" stroke-width="1.0"/>
+<text x="52.0" y="128.0" font-size="14" fill="#ffffff" text-anchor="middle" font-weight="700" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">1</text>
+<text x="76.0" y="118.0" font-size="14.5" fill="#1b2330" text-anchor="start" font-weight="700" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">Semantic contract</text>
+<text x="76.0" y="136.0" font-size="11.5" fill="#5b6b7b" text-anchor="start" font-weight="normal" font-family="ui-monospace, SFMono-Regular, Consolas, 'Liberation Mono', monospace">spec/semantics-contract.md</text>
+<text x="745.0" y="127.0" font-size="11.5" fill="#1b2330" text-anchor="start" font-weight="normal" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">normative meaning; v1.0 locked</text>
+<rect x="44.0" y="160.0" width="682.0" height="54.0" rx="10" fill="#f3f6fa" stroke="#2f6f9f" stroke-width="2"/>
+<circle cx="70.0" cy="187.0" r="13.0" fill="#2f6f9f" stroke="none" stroke-width="1.0"/>
+<text x="70.0" y="192.0" font-size="14" fill="#ffffff" text-anchor="middle" font-weight="700" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">2</text>
+<text x="94.0" y="182.0" font-size="14.5" fill="#1b2330" text-anchor="start" font-weight="700" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">Canonical schemas</text>
+<text x="94.0" y="200.0" font-size="11.5" fill="#5b6b7b" text-anchor="start" font-weight="normal" font-family="ui-monospace, SFMono-Regular, Consolas, 'Liberation Mono', monospace">schema/*.schema.json</text>
+<text x="745.0" y="191.0" font-size="11.5" fill="#1b2330" text-anchor="start" font-weight="normal" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">structural enforcement</text>
+<rect x="62.0" y="224.0" width="664.0" height="54.0" rx="10" fill="#f3f6fa" stroke="#2e8b6f" stroke-width="2"/>
+<circle cx="88.0" cy="251.0" r="13.0" fill="#2e8b6f" stroke="none" stroke-width="1.0"/>
+<text x="88.0" y="256.0" font-size="14" fill="#ffffff" text-anchor="middle" font-weight="700" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">3</text>
+<text x="112.0" y="246.0" font-size="14.5" fill="#1b2330" text-anchor="start" font-weight="700" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">Policy YAML</text>
+<text x="112.0" y="264.0" font-size="11.5" fill="#5b6b7b" text-anchor="start" font-weight="normal" font-family="ui-monospace, SFMono-Regular, Consolas, 'Liberation Mono', monospace">policy/*.yaml</text>
+<text x="745.0" y="255.0" font-size="11.5" fill="#1b2330" text-anchor="start" font-weight="normal" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">runtime enforcement, tunable</text>
+<rect x="80.0" y="288.0" width="646.0" height="54.0" rx="10" fill="#f3f6fa" stroke="#7a5ea8" stroke-width="2"/>
+<circle cx="106.0" cy="315.0" r="13.0" fill="#7a5ea8" stroke="none" stroke-width="1.0"/>
+<text x="106.0" y="320.0" font-size="14" fill="#ffffff" text-anchor="middle" font-weight="700" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">4</text>
+<text x="130.0" y="310.0" font-size="14.5" fill="#1b2330" text-anchor="start" font-weight="700" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">Governance artifacts</text>
+<text x="130.0" y="328.0" font-size="11.5" fill="#5b6b7b" text-anchor="start" font-weight="normal" font-family="ui-monospace, SFMono-Regular, Consolas, 'Liberation Mono', monospace">extension registry, conformance manifest, catalogs, release manifest</text>
+<text x="745.0" y="319.0" font-size="11.5" fill="#1b2330" text-anchor="start" font-weight="normal" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">governance records</text>
+<rect x="98.0" y="352.0" width="628.0" height="54.0" rx="10" fill="#f3f6fa" stroke="#c47f2a" stroke-width="2"/>
+<circle cx="124.0" cy="379.0" r="13.0" fill="#c47f2a" stroke="none" stroke-width="1.0"/>
+<text x="124.0" y="384.0" font-size="14" fill="#ffffff" text-anchor="middle" font-weight="700" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">5</text>
+<text x="148.0" y="374.0" font-size="14.5" fill="#1b2330" text-anchor="start" font-weight="700" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">Validators and tests</text>
+<text x="148.0" y="392.0" font-size="11.5" fill="#5b6b7b" text-anchor="start" font-weight="normal" font-family="ui-monospace, SFMono-Regular, Consolas, 'Liberation Mono', monospace">tools/*, gateway/tests/*</text>
+<text x="745.0" y="383.0" font-size="11.5" fill="#1b2330" text-anchor="start" font-weight="normal" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">the checking machinery</text>
+<rect x="116.0" y="416.0" width="610.0" height="54.0" rx="10" fill="#f3f6fa" stroke="#5b6b7b" stroke-width="2"/>
+<circle cx="142.0" cy="443.0" r="13.0" fill="#5b6b7b" stroke="none" stroke-width="1.0"/>
+<text x="142.0" y="448.0" font-size="14" fill="#ffffff" text-anchor="middle" font-weight="700" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">6</text>
+<text x="166.0" y="438.0" font-size="14.5" fill="#1b2330" text-anchor="start" font-weight="700" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">README, examples, adapters, docs</text>
+<text x="166.0" y="456.0" font-size="11.5" fill="#5b6b7b" text-anchor="start" font-weight="normal" font-family="ui-monospace, SFMono-Regular, Consolas, 'Liberation Mono', monospace">reference and advisory surfaces</text>
+<text x="745.0" y="447.0" font-size="11.5" fill="#1b2330" text-anchor="start" font-weight="normal" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">explain, never redefine</text>
+<line x1="992.0" y1="102.0" x2="992.0" y2="464.0" stroke="#5b6b7b" stroke-width="1.6"/>
+<line x1="992.0" y1="114.0" x2="992.0" y2="109.0" stroke="#5b6b7b" stroke-width="1.6"/>
+<polygon points="992.0,102.0 995.0,108.3 989.0,108.3" fill="#5b6b7b" stroke="none" stroke-width="1.0"/>
+<text x="986.0" y="283.0" font-size="10.5" fill="#5b6b7b" text-anchor="end" font-weight="normal" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">authority</text>
+<text x="26.0" y="506.0" font-size="12" fill="#5b6b7b" text-anchor="start" font-weight="normal" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">A rule can be normative and unenforced, or enforced from an advisory origin; the tiers say who wins,</text>
+<text x="26.0" y="524.0" font-size="12" fill="#5b6b7b" text-anchor="start" font-weight="normal" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">not who checks. Enforcement lives in tier 5 and in the schema arms of tier 2.</text>
+</svg>
