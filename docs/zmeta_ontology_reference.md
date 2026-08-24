@@ -47,6 +47,24 @@ and the state event carries the identifier of its immediate parent, so a
 consumer holding the retained events can walk the chain back to the source
 clip, whichever COP the mission runs.*
 
+Every number in the two figures below is measured from this repository at
+generation time: the adapter estate is counted from the directories, and
+the wire sizes are encoded with the repo's own codecs.
+
+![Two panels: without a shared model, every native source needs a bespoke bridge to every tactical output; through ZMeta, each source and each output needs one adapter, meeting at a canonical model.](img/e1-adapt-once.svg)
+
+*Figure: the integration arithmetic, counted from the adapter estate.
+Every bespoke bridge re-decides units, timestamps, identity, and
+confidence on its own; the canonical model decides once, and a new source
+costs one adapter instead of one bridge per consumer.*
+
+![The normalization and translation pipeline: native inputs pass through the adapter boundary obligations into one canonical event, which projects out to CoT, JREAP, KLV, MissionIntent, and SAPIENT.](img/e2-translation-pipeline.svg)
+
+*Figure: normalize once at the boundary, project everywhere. The external
+projections are lossy by declaration and one-directional in authority,
+while wire encodings are a separate control plane and decode
+value-identically.*
+
 ## 1. How To Read This Page
 
 The rest of this document is a reference. Every claim in it was checked
