@@ -543,6 +543,32 @@ def validate_registry(
                     )
                 )
 
+        # A plain scalar containing ": " parses as a mapping, which silently
+        # splits a note into a key and a value; every note must stay a string.
+        # `notes` may be one block-scalar string or a list of strings.
+        for list_field in (
+            "security_release_notes",
+            "security_privacy_notes",
+            "migration_notes",
+            "fixture_references",
+            "references",
+            "notes",
+        ):
+            value = entry.get(list_field)
+            items = [value] if list_field == "notes" and isinstance(value, str) else value
+            if not isinstance(items, list):
+                continue
+            for item in items:
+                if not isinstance(item, str) or not item.strip():
+                    issues.append(
+                        _issue(
+                            "REGISTRY_LIST_ITEM_INVALID",
+                            f"{list_field} items must be non-empty strings",
+                            entry=name,
+                        )
+                    )
+                    break
+
         risk_relevant = entry.get("risk_relevant") is True
         must_preserve = entry.get("must_preserve_when_used_for_policy") is True
         fixture_references = entry.get("fixture_references") or []
@@ -721,6 +747,17 @@ def validate_registry(
             )
         )
 
+    # The top-level stamp is the registry's own currency claim; it must not
+    # lag the newest entry (the 2026-09-10 wave shipped two entries under a
+    # stamp a month old and nothing objected).
+    newest = max((str(e.get("date_added") or "") for e in entries if isinstance(e, dict)), default="")
+    if newest and str(registry.get("last_updated") or "") < newest:
+        issues.append(
+            _issue(
+                "REGISTRY_LAST_UPDATED_STALE",
+                f"last_updated {registry.get('last_updated')!r} is older than the newest date_added {newest!r}",
+            )
+        )
     return issues
 
 

@@ -2,6 +2,31 @@
 
 ## [Unreleased]
 
+- 2026-09-10 — **Two experimental 1.1.0 markers from a live hydrophone,
+  and the launcher can select its lane.** `features.level_reference`
+  (SPL_RE_20UPA, SPL_RE_1UPA, DBFS, DB_RELATIVE) joins the ACOUSTIC feature
+  contract on the 1.1.0 branch, absent meaning the existing dB SPL re
+  20 uPa status quo, and the `spl_db` description now says the reference
+  is declared; registry ACOUSTIC_LEVEL_REFERENCE, experimental, the same
+  mechanism as RF `power_reference`, minted from an Orcasound hydrophone
+  capture whose honest 1.1.0 form validated only by laundering dBFS into
+  `spl_db`. `timing_quality.est_error_basis` (MEASURED, DECLARED_BOUND,
+  CONVENTION_DEFAULT, UNRESOLVED) joins the 1.1.0 timing quality object,
+  absent meaning no basis stated; registry TIMING_ERROR_BASIS, experimental,
+  the live instance of R1-11-04. The locked v1.0 schema is byte-identical
+  and rejects the timing key by its own closure; six discrimination
+  fixtures pin both lanes. `tools/run_gateway.py` gains `--schema-path`,
+  which the gateway already accepted, so the documented launcher can run
+  the 1.1.0 lane or select by version (execution review 2026-09-08, finding
+  D1-01); a red/green
+  test proves the passthrough. Guidance: the acoustic structural rule is
+  gated off the locked v1.0 lane after firing on a v1.0 event, and three
+  rules are added from the live failure, with the first fixture for the
+  structural rules and two new registry validator checks (list items must
+  be strings; the top-level stamp cannot lag the newest entry). Doctrine cycle F2 records the rulings; the
+  contract sentences are deferred to the post-lock contract pass because
+  the contract file is byte-anchored.
+
 - 2026-08-26 — **Validation guidance lands, and the field-evidence
   adjudications are recorded.** `tools/validation_guidance.yaml` is a new
   advisory file carrying remediation text for all 61 violation codes, each

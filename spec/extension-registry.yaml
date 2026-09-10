@@ -3,7 +3,7 @@ generated_for_zmeta_versions:
   - "1.0"
   - "1.1.0"
 authority: spec/semantics-contract.md
-last_updated: "2026-08-09"
+last_updated: "2026-09-10"
 status_values:
   - reserved
   - proposed
@@ -219,6 +219,59 @@ entries:
       - Doctrine A1-01, experimental split directed by maintainer adjudication 2026-08-09. The in-repo instances (kraken RSSI dB, ADS-B dBFS) demonstrate the need but share one codebase, author and organization, so they do not meet the Promotion Evidence Requirements independence definition; this entry is the experiment that gathers consumer evidence, not a promotion. The ADS-B reference adapter emits the marker by flag (rf_power_reference) under conditional zmeta_version 1.1.0 stamping; the fielded kraken adapter is deliberately unchanged.
 
   - <<: *entry_defaults
+    name: TIMING_ERROR_BASIS
+    display_name: Timing error basis declaration
+    category: pnt_integrity
+    status: experimental
+    version_branch: "1.1.0"
+    introduced_in: "1.1.0"
+    semantic_definition: >-
+      v1.1.0 optional timing_quality.est_error_basis member ("MEASURED",
+      "DECLARED_BOUND", "CONVENTION_DEFAULT", or "UNRESOLVED") stating how
+      est_error_ms was obtained; absent means the status quo, no basis stated.
+    rationale: >-
+      est_error_ms is a required worst-case bound, and a producer with no
+      clock-discipline evidence has no defensible number; the repo's interim
+      is the unknown-clock convention shared by the reference ingress adapters
+      (adapters/ingress/time_utils.py, UNKNOWN, UNSYNCED, 60000 ms), which
+      overstates uncertainty in the safe direction but cannot say why the
+      bound is what it is. A consumer cannot tell a measured 60 s from a
+      conventional 60 s. The basis lets the honest label travel with the
+      value on the experimental branch while the locked v1.0 structure stays
+      byte-identical.
+    allowed_event_types: ["OBSERVATION_EVENT", "INFERENCE_EVENT", "FUSION_EVENT", "STATE_EVENT", "COMMAND_EVENT"]
+    payload_scope: ["payload.timing_quality.est_error_basis"]
+    schema_status: implemented
+    policy_status: not_applicable
+    conformance_status: implemented
+    risk_relevant: true
+    profile_projection_behavior: preserve
+    security_privacy_notes:
+      - >-
+        A conventional bound presented without its basis reads as a
+        measurement; the basis must survive projection with the bound.
+    fixture_references:
+      - gateway/tests/test_schema_version_discrimination.py
+      - gateway/tests/test_structural_guidance.py
+    references:
+      - schema/zmeta-event-1.1.0.schema.json
+      - docs/zmeta_doctrine_review_log.md
+    date_added: "2026-09-10"
+    review_state: approved
+    notes:
+      - >-
+        Created experimental by maintainer adjudication 2026-09-10 (doctrine
+        cycle F2) as the live instance of R1-11-04, timing_quality cannot say
+        bound unresolved. An honest Form A hydrophone event failed on
+        est_error_ms rather than fabricate. R1-11-04 preferred a
+        gateway-attached reason code over touching the locked structure; the
+        1.1.0 copy is experimental, so an optional member is the
+        declaration-floor form there, and v1.0 rejects the key by its own
+        closure. The policy-recognised alternate path
+        payload.quality.timing_quality is not schema-governed, so the member
+        is unenforced there and is not claimed in payload_scope.
+
+  - <<: *entry_defaults
     name: DATA_REF_FORMAL_BEHAVIOR
     display_name: Formal data_ref/data_refs behavior
     category: data_evidence
@@ -293,6 +346,71 @@ entries:
     conformance_status: implemented
     references: ["schema/zmeta-event-1.1.0.schema.json", "schema/README.md"]
     review_state: approved
+
+  - <<: *entry_defaults
+    name: ACOUSTIC_LEVEL_REFERENCE
+    display_name: Acoustic level reference declaration
+    category: observation_feature_contract
+    status: experimental
+    version_branch: "1.1.0"
+    introduced_in: "1.1.0"
+    semantic_definition: >-
+      v1.1.0 optional features.level_reference marker on ACOUSTIC observations
+      declaring the reference of spl_db ("SPL_RE_20UPA", "SPL_RE_1UPA", "DBFS",
+      or "DB_RELATIVE"); absent means the feature contract status quo, dB SPL
+      re 20 uPa. Recorded tension with contract section 6.5, which requires an
+      alternate unit to be converted or carried in an explicitly named
+      extension field; the marker keeps the value in the canonical field with
+      its reference declared beside it, the POWER_REFERENCE shape, and the
+      6.5 sentence is deferred to the post-lock contract pass. On the locked
+      v1.0 lane the compliant form remains an explicitly named feature.
+    rationale: >-
+      spl_db assumes a calibrated sound pressure against the airborne
+      reference. Hydrophones state levels re 1 uPa, and an internet-relayed
+      hydrophone with unpublished sensitivity and gain-adjusted compressed
+      audio cannot state a sound pressure at all, only a full-scale level. A
+      declaration of reference makes the uncalibrated or underwater value
+      sayable without laundering it into airborne SPL, the same mechanism as
+      features.power_reference on RF. It constrains the meaning, not the
+      source, and it does not assume a hydrophone.
+    allowed_event_types: ["OBSERVATION_EVENT"]
+    allowed_event_subtypes: ["ACOUSTIC"]
+    payload_scope: ["payload.features.level_reference"]
+    schema_status: implemented
+    policy_status: not_applicable
+    conformance_status: implemented
+    risk_relevant: true
+    profile_projection_behavior: preserve
+    security_privacy_notes:
+      - >-
+        An undeclared level reference invites comparison of incommensurable
+        quantities across sensors, and a relative level read as calibrated SPL
+        overstates what was measured. The declaration must survive projection
+        with the value.
+    fixture_references:
+      - gateway/tests/test_schema_version_discrimination.py
+      - gateway/tests/test_structural_guidance.py
+    references:
+      - schema/zmeta-event-1.1.0.schema.json
+      - docs/zmeta_doctrine_review_log.md
+    date_added: "2026-09-10"
+    review_state: approved
+    notes:
+      - >-
+        Created experimental by maintainer adjudication 2026-09-10 (doctrine
+        cycle F2) on the A1-01 mechanism, from a live Orcasound hydrophone
+        capture whose honest 1.1.0 form validated only by laundering dBFS into
+        spl_db. Same mechanism as POWER_REFERENCE. Orcasound is the first
+        independent evidence instance for this mechanism; the promotion
+        evidence bar is NOT claimed met, and this entry enters experimental
+        with that condition unmet by explicit maintainer adjudication, the
+        same direct-to-experimental path and the same logged tension as
+        POWER_REFERENCE. The single-concept generalization with
+        POWER_REFERENCE is booked for the AAR; promotion beyond experimental
+        stays gated on the evidence bar.
+      - >-
+        The spl_db description was corrected in the same change; the absent
+        meaning is unchanged, so shipped 1.1.0 events keep their meaning.
 
   - <<: *entry_defaults
     name: NETWORK_FEATURE_CONTRACT

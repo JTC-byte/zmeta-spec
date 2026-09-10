@@ -2,6 +2,34 @@
 
 ## Current Resume Note
 
+- Last updated: 2026-09-10 (acoustic wave: two experimental 1.1.0 markers from a live hydrophone)
+- **2026-09-10 (doctrine cycle F2: the acoustic modality worked on 1.1.0
+  from live evidence; two experimental markers minted; the lane fix).**
+  The downstream COP session brought seven spec questions ahead of an Orcasound
+  hydrophone producer and an environmental-station feed. The drafted
+  answers were adversarially refuted before sending (three refuters, all
+  three corrected the draft: the environmental blocker premise was false
+  because `metrics.modality` is optional on SENSOR_STATUS, the drafted
+  three-way split ran against the slot's documented coarse grain, and the
+  drafted dBFS-in-`spl_db` form is the shape contract 6.5 prohibits), the
+  COP's finding that SENSOR_STATUS has no canonical position was confirmed,
+  and the maintainer ruled on every open point. A live Orcasound Lab
+  segment was captured, analysed and templated on both lanes; the honest
+  1.1.0 form validated only by laundering, and the honest v1.0 form failed
+  on `timing_quality.est_error_ms` rather than fabricate a bound. Landed,
+  additive on 1.1.0 with v1.0 byte-identical: ACOUSTIC_LEVEL_REFERENCE
+  (`features.level_reference`, `spl_db` description corrected) and
+  TIMING_ERROR_BASIS (`timing_quality.est_error_basis`), each experimental
+  on the A1-01 mechanism with discrimination fixtures on both lanes; the
+  D1-01 launcher passthrough with its red/green test and README lane notes;
+  guidance lane gates with three new structural rules and the first fixture
+  for the structural layer; and two registry validator checks the pre-cut
+  verification showed were missing (a note containing ": " had parsed as a
+  mapping and passed; the top-level stamp had lagged the newest entry).
+  Booked: a
+  producer-authority pattern for environmental stations, a governed `geo`
+  on the SENSOR_STATUS arm, the cross-modality generalization of the level
+  reference, and the contract sentences for the post-lock pass.
 - Last updated: 2026-08-26 (field-evidence adjudications: the 2026-08 sonar/chat edge deployment)
 - **2026-08-26 (doctrine cycle F1: eight maintainer rulings from live field
   evidence; no governed vocabulary moved; the lock stands).** A second edge

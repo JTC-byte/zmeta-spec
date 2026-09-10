@@ -126,8 +126,16 @@ Conditional feature validation for active observation modalities (extends existi
 - **IR** requires `band` (MWIR/LWIR/SWIR/NIR); optional `temperature_k`, `emissivity`; semantic labels and detector confidence remain INFERENCE_EVENT fields.
 - **ACOUSTIC** requires measured signal facts `center_freq_hz` and `spl_db`;
   optional measured fields include `bandwidth_hz`, `duration_ms`,
-  `spectral_centroid_hz`, `harmonic_count`, and `signature_hash`. Semantic
-  labels such as acoustic source type belong in INFERENCE_EVENT.
+  `spectral_centroid_hz`, `harmonic_count`, and `signature_hash`. Optional
+  `level_reference` (SPL_RE_20UPA, SPL_RE_1UPA, DBFS, DB_RELATIVE) declares
+  the reference of `spl_db`; absent means dB SPL re 20 uPa (registry
+  ACOUSTIC_LEVEL_REFERENCE, experimental). Semantic labels such as acoustic
+  source type belong in INFERENCE_EVENT.
+- **timing_quality** on the 1.1.0 branch accepts an optional
+  `est_error_basis` (MEASURED, DECLARED_BOUND, CONVENTION_DEFAULT,
+  UNRESOLVED) stating how `est_error_ms` was obtained; absent means no basis
+  stated (registry TIMING_ERROR_BASIS, experimental). The locked v1.0
+  `timing_quality` rejects the key.
 - **NETWORK** requires `protocol`; optional `source_addr`, `dest_addr`, `port`
 
 ### Observation Modality Governance

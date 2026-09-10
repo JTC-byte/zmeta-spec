@@ -118,6 +118,34 @@ after the rulings:
    mode with
    disk monitoring, during any active deployment.
 
+## ACOUSTIC WAVE (2026-09-10): the Orcasound evidence and the 1.1.0 extension
+
+Doctrine cycle F2. Maintainer direction: the acoustic modality is active
+work on the experimental 1.1.0 branch so the downstream COP can visualize it. What
+this wave lands, all additive on 1.1.0, v1.0 byte-identical:
+
+1. **ACOUSTIC_LEVEL_REFERENCE (experimental).** `features.level_reference`
+   on the ACOUSTIC arm; `spl_db` description corrected; discrimination
+   fixtures; guidance. The producer switches from Form A (`level_dbfs`, v1.0
+   lane) to `spl_db` plus the marker when this is published.
+2. **TIMING_ERROR_BASIS (experimental).** `timing_quality.est_error_basis`
+   on 1.1.0; the live R1-11-04 instance; v1.0 rejects the key.
+3. **D1-01 launcher fix** and the guidance lane gate (F2-06, F2-07).
+
+Booked from this cycle, not landed: a producer-authority pattern for
+environmental stations (Class B); a governed `geo` on the SENSOR_STATUS arm
+with precision coverage (R3, AAR wave); the single-concept generalization
+of POWER_REFERENCE and ACOUSTIC_LEVEL_REFERENCE into one level-reference
+concept (AAR); the ENVIRONMENTAL scope mismatch (the registry entry allows
+OBSERVATION_EVENT only while the roadmap's `future-modality-contracts`
+declares affected_events [OBSERVATION_EVENT, SYSTEM_EVENT]); D11-01, whose
+disposition is ruled in F2-05 (the two-leg bar governs status-only tokens)
+while the guard change that records it is not landed; and the contract 6.5
+and 21.4 sentences plus the R1-11-04 closure text for the post-lock
+contract pass (the contract file is byte-anchored). Records: the private
+evidence store carries the Orcasound capture, the templates and their
+verdicts, the Class D plan, and the COP exchange.
+
 ## PRIORITIZED BACKLOG after doctrine cycle C1 (2026-08-10)
 
 Written at the close of the C1 fix wave, updated at the close of the
