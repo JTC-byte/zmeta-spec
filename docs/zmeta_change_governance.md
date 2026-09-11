@@ -273,6 +273,43 @@ Profile projection or extension-registry changes usually do not bump
 `zmeta_version` by themselves unless they make new event payload vocabulary
 valid.
 
+## Branching
+
+Three kinds of branch, with one direction of flow between them.
+
+- `main` is the live line. It carries only published releases, so it is the
+  branch a consumer's pin points at, and its tip is always a tagged commit
+  or the record pass that follows one. Nothing lands on `main` except a
+  release cut from `develop`.
+- `develop` is the integration line. Experimental branches merge into it for
+  integration testing against the full gate battery, and a release cut is
+  taken from it. `develop` is expected to be green but is not published.
+- One branch per experiment or wave, named `exp/<name>` for experimental
+  vocabulary and tooling (a versioned-branch candidate, a new modality, a
+  diagnostics change under trial) and `wave/<name>` for a governed wave
+  that is complete in itself (a doctrine cycle's records plus the surfaces
+  it changes). A branch holds one unit of work so it can be reviewed,
+  reverted, or shelved on its own. A branch that depends on another is
+  based on it and says so in its first commit; the dependency merges first.
+
+Flow is one way: `exp/*` and `wave/*` into `develop`, `develop` into `main`
+at a cut. No direct commits on `main`; no cherry-picks from `main` back
+into an experimental branch except to rebase it onto a new release. Rolling
+back an experiment is deleting or reverting its branch; rolling back an
+integration is reverting the merge on `develop`; the live line is never the
+place a rollback is discovered to be needed.
+
+Release manifest, checksums, and claims are regenerated at the cut on
+`develop` and travel into `main` with it; an experimental branch that
+changes a manifest-listed artifact leaves the manifest stale on purpose and
+says so in its commit body, so the gate reads red on that branch for the
+manifest pins alone. That is the expected state of an unreleased branch,
+not a defect.
+
+Pushing any branch, creating tags, and publishing remain human actions
+(AGENTS.md release limits). An agent creates and commits on local branches
+and stops.
+
 ## Standard Workflows
 
 ### Pre-Change Orientation

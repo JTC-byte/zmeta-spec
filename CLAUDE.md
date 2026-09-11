@@ -79,6 +79,13 @@ promise.
 
 - **Align before acting.** Confirm intent on anything touching meaning; the
   standard's integrity outranks speed or cleverness.
+- **Branch by unit of work.** `main` is the live line and carries only
+  release cuts; `develop` is the integration line; each experiment or
+  governed wave gets its own `exp/<name>` or `wave/<name>` branch, based on
+  whatever it depends on, and merges into `develop` when it is judged good.
+  Never commit directly on `main`. The full rule, including how rollbacks
+  and stale manifests are handled, is the Branching section of
+  `docs/zmeta_change_governance.md`.
 - When auditing, ignore the duplicate snapshot trees: `.tmp/`,
   `release/bundles/`, `release/dist/`, `pytest-cache-files-*/`, `__pycache__/`.
   The canonical stack is the top-level tree.
