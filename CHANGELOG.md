@@ -35,7 +35,9 @@
   after the relaxation rather than for `power_db`; it now keeps `spl_db`
   so the refusal reason is the one it pins.
   Doctrine entry F2-08 records the ruling and the corrections to the
-  downstream evidence note it answered.
+  downstream evidence note it answered. The per-code remediation text for
+  `INVALID_MODALITY_FEATURES` names both level forms; it had kept saying
+  `spl_db` is required after the relaxation (merge review, 2026-09-12).
 
 - 2026-09-10 — **Two experimental 1.1.0 markers from a live hydrophone,
   and the launcher can select its lane.** `features.level_reference`

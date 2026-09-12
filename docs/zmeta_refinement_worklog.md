@@ -33,7 +33,10 @@
   the pressure-to-statistic direction of the binding unpinned and an
   existing power_db fixture made vacuous by the relaxation; both were
   repaired and a mirror guidance rule added. Landed on
-  `exp/acoustic-pressure` stacked on the acoustic branch.
+  `exp/acoustic-pressure` stacked on the acoustic branch. The three-branch
+  merge review of 2026-09-12 found the per-code hint for
+  `INVALID_MODALITY_FEATURES` still saying `spl_db` is required; corrected
+  on the branch before the merge.
 - **2026-09-10 (doctrine cycle F2: the acoustic modality worked on 1.1.0
   from live evidence; two experimental markers minted; the lane fix).**
   The downstream COP session brought seven spec questions ahead of an Orcasound

@@ -542,8 +542,9 @@ guidance:
       gateway/src/validators.py:3482-3495). Bring payload.features into that
       modality's contract: RF requires center_freq_hz, bandwidth_hz, and
       power_dbm (schema/zmeta-event-1.1.0.schema.json:1170-1174), IR requires
-      band (line 1250), ACOUSTIC requires center_freq_hz and spl_db and
-      prohibits power_db and source_type (lines 1288-1291, 1325-1326), NETWORK
+      band (line 1250), ACOUSTIC requires center_freq_hz and a level, spl_db
+      or pressure_pa with pressure_statistic, and prohibits power_db and
+      source_type (lines 1293-1305, 1354-1355), NETWORK
       requires protocol (line 1347), and EO requires nothing, carrying raw
       image metadata only (spec/semantics-contract.md:2163-2164). Any detector
       score, class name, or label moves to a separate INFERENCE_EVENT that
