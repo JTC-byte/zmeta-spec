@@ -2,7 +2,40 @@
 
 ## Current Resume Note
 
-- Last updated: 2026-09-12 (acoustic pressure: the 1.1.0 ACOUSTIC arm accepts a linear-pressure level)
+- Last updated: 2026-09-12 (integration: three waves merged into develop and held)
+- **2026-09-12 (integration: three waves merged into develop, held for
+  live evidence).** `wave/f1-field-evidence` (7a01d35), `exp/acoustic-1.1.0`
+  (b0666d0) and `exp/acoustic-pressure` (8930fb8, c7819bb, e7c1959)
+  merged into `develop` in dependency order, each with `--no-ff`, after a
+  review of all three against the guiding documents (register:
+  `docs/merge_review_2026-09-12_findings.md`; determination: good to merge,
+  six conditions, none withholding the merge) and three rulings made on the
+  repository's own documentation at the maintainer's direction (doctrine
+  F2-08 orphan note and F2-09; the gateway diagnostic ruling is in the
+  handoff). `develop` is held without a
+  cut until more live acoustic evidence arrives; the downstream COP consumes the
+  1.1.0 lane from `develop` during the hold. Validation at the merged tip:
+  `python tools/validate_extension_registry.py` ok entries=66;
+  `python tools/validate_future_roadmap.py` ok candidates=20;
+  `python tools/validate_examples.py --strict --require-all` 51 of 51 passed;
+  `python tools/validate_conformance.py --kernel-gate` exit 1 with
+  14 `RELEASE_MANIFEST_*` lines and no other failure line (four of
+  those lines come from `docs/zmeta_change_governance.md` on `develop`
+  itself, the rest from the four manifest-listed artifacts the branches
+  change); `python -m pytest -q` 1858 passed, 13 failed, every
+  failure a manifest hash mismatch in `gateway/tests/test_release_manifest.py`
+  or `gateway/tests/test_release_package.py`; `git diff --check` clean. That
+  red band is the expected state of `develop` between these merges and the
+  cut, by construction of the Branching section; the cut regenerates the
+  manifest. One further failure appears about one run in fifty:
+  `test_release_signing.py::test_ensure_package_zip_refuses_a_stale_zip_and_never_overwrites`,
+  a pre-existing mtime-granularity race, booked in the register. Four
+  negative guards in `test_release_package.py` abort in fixture setup on the
+  stale manifest for the whole hold, so the packager's refusal of bad input
+  is unproven until the cut; booked. This entry also records the 2026-09-11
+  docs-class commit on `develop` (9814f2b, the branching rule in
+  `docs/zmeta_change_governance.md` and `CLAUDE.md`), which had no worklog
+  line of its own.
 - **2026-09-12 (doctrine entry F2-08: a linear-pressure level on the
   ACOUSTIC arm, on its own branch).** The downstream COP investigated two more
   acoustic sources after Orcasound, a calibrated research hydrophone

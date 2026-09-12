@@ -1,6 +1,63 @@
 # ZMeta Refinement Handoff Notes
 
-## CURRENT STATE (2026-08-13, post v1.1.25): RELOCKED FOR FIELD TESTING
+## CURRENT STATE (2026-09-12): THREE WAVES ON DEVELOP, HELD FOR LIVE EVIDENCE
+
+`develop` carries, on top of the published `282c9cf`, the branching rule
+(9814f2b) and three merged branches in dependency order:
+`wave/f1-field-evidence` (7a01d35, the F1 records and the validation
+guidance system), `exp/acoustic-1.1.0` (b0666d0, ACOUSTIC_LEVEL_REFERENCE
+and TIMING_ERROR_BASIS experimental on 1.1.0, the launcher lane fix) and
+`exp/acoustic-pressure` (8930fb8, c7819bb and e7c1959: the
+linear-pressure level on the 1.1.0 ACOUSTIC arm, ACOUSTIC_PRESSURE_LEVEL
+experimental, the hint correction and the ruling records). Nothing is cut,
+tagged or pushed. The hold ends when live
+acoustic evidence arrives from the downstream COP, which consumes the 1.1.0 lane
+from `develop` during the hold; the cut then regenerates the manifest,
+notes and hashes from `develop` into `main`.
+
+Expected state of `develop` while held, to check a re-run against rather
+than trust a self-reported figure: 14 `RELEASE_MANIFEST_*` lines
+on the kernel gate and 13 red release-pin tests, all manifest hash mismatches,
+with every other gate green (1858 tests pass); an intermittent fourteenth
+failure in `test_release_signing.py` is a pre-existing mtime race. The
+worklog entry of 2026-09-12 carries the commands.
+
+Review record: `docs/merge_review_2026-09-12_findings.md` (47 verified
+findings, 24 refuted). Open from it, in order of proximity:
+
+1. **Gateway diagnostics on the 1.1.0 lane** (moderate, pre-existing): the
+   reference gateway stamps every diagnostic `zmeta_version: "1.0"` and
+   refuses its own diagnostic when launched with
+   `--schema-path schema/zmeta-event-1.1.0.schema.json`, so a refused
+   producer on the documented lane gets a content-free SCHEMA_VIOLATION.
+   Ruled 2026-09-12 on the documents: the v1.0 stamp stays (R1-11-01
+   decides it); the outgoing self-check validates a minted diagnostic
+   against the schema its own declared version selects (contract 2.4),
+   never against the inbound lane; the TV-09 pins are parameterised across
+   the 1.0 lane, the 1.1.0 lane and the union; and the README lane notes
+   say that until it lands the dispatching `schema/zmeta-event.schema.json`
+   is the lane for legible 1.1.0 diagnostics. Class C, its own branch from
+   `develop`, before the COP is pointed at `develop`. Left for the
+   maintainer: whether a gateway may ever author a 1.1.0-stamped diagnostic
+   (README.md:249-250 promises native codes on the 1.1.0 lane that no code
+   produces; under this ruling it is an erratum), and the default lane,
+   reserved by F2-06 and coupled to the contract hash.
+2. **`level_reference` with no `spl_db`**: ruled 2026-09-12 on playbook
+   discipline 10, no binding; live-test checklist question F2-Q1; the
+   description and registry scoped (doctrine F2-08 orphan note). Closed
+   unless the checklist answers yes.
+3. **Attribution trailers** (doctrine F2-09): three unpushed commits carry
+   one; they stand, no new commit carries one, and the rewrite before push
+   is the maintainer's election, `9814f2b` first.
+4. **Guidance line citations into the 1.1.0 schema**: 65 of 79 point at
+   moved lines; re-anchor, and pin that citations resolve.
+5. The remaining minor and observation items in the register, and the
+   documentation defects the rulings' documentation test surfaced (the
+   register's rulings section).
+
+The section below is the state as of 2026-08-13 and is kept as written.
+
+## STATE AS OF 2026-08-13 (post v1.1.25): RELOCKED FOR FIELD TESTING
 
 Three signed releases published on 2026-08-13, every set verified against
 its published assets:
@@ -90,9 +147,11 @@ after the rulings:
    the tooling, never a compliance surface; cut as a release when verified.
 6. **Registry surface-coherence item, booked post-lock.** The registry
    prose's six-surface validity rule, the three-surface `experimental`
-   definition, and the per-entry status fields disagree: all 63 entries
-   carry `adapter_gateway_status: none` and 62 of 63 carry
-   `encoding_status: none`, including `adopted` entries, so read strictly
+   definition, and the per-entry status fields disagree: all 66 entries
+   carry `adapter_gateway_status: none` and 65 of 66 carry
+   `encoding_status: none` (counts refreshed 2026-09-12 after the three
+   acoustic mints; the substance is unchanged), including `adopted`
+   entries, so read strictly
    even adopted vocabulary fails the prose rule. Either the rule
    over-claims or the ladder needs per-status surface requirements stated.
 7. **Unwired violation codes, surfaced by the guidance verification.**
