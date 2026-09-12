@@ -553,8 +553,10 @@ class SchemaVersionDiscriminationTest(unittest.TestCase):
         self.assert_invalid(event)
 
     def test_v1_1_acoustic_observation_rejects_generic_power_db(self):
+        # spl_db stays in place so the only refusal reason is power_db; with
+        # spl_db removed this event was refused for the missing level once the
+        # 2026-09-12 relaxation landed, which left the power_db guard unpinned.
         event = valid_acoustic_observation("1.1.0")
-        del event["payload"]["features"]["spl_db"]
         event["payload"]["features"]["power_db"] = 72.3
 
         self.assert_invalid(event)
@@ -797,6 +799,71 @@ class SchemaVersionDiscriminationTest(unittest.TestCase):
         event["payload"]["timing_quality"]["est_error_basis"] = "GUESSED"
 
         self.assert_invalid(event)
+
+    def _acoustic_with(self, features, version="1.1.0"):
+        event = valid_acoustic_observation(version)
+        event["payload"]["features"] = dict(features)
+        return event
+
+    def _messages(self, event):
+        # The unified schema dispatches through oneOf, so the lane's own
+        # errors sit in .context; flatten them so a test can read the wire.
+        out = []
+        stack = list(self.validator.iter_errors(event))
+        while stack:
+            error = stack.pop()
+            out.append(error.message)
+            stack.extend(error.context or [])
+        return out
+
+    def test_v1_1_0_acoustic_decibel_level_alone_passes(self):
+        self.assert_valid(self._acoustic_with({"center_freq_hz": 2500.0, "spl_db": 72.3}))
+
+    def test_v1_1_0_acoustic_pressure_pair_passes_for_every_statistic(self):
+        for statistic in ["RMS", "PEAK", "PEAK_TO_PEAK"]:
+            self.assert_valid(self._acoustic_with(
+                {"center_freq_hz": 3.2, "pressure_pa": 0.0142, "pressure_statistic": statistic}))
+
+    def test_v1_1_0_acoustic_both_level_carriers_pass(self):
+        self.assert_valid(self._acoustic_with(
+            {"center_freq_hz": 2500.0, "spl_db": 72.3, "pressure_pa": 0.0142, "pressure_statistic": "RMS"}))
+
+    def test_v1_1_0_acoustic_no_level_is_refused_naming_the_pressure_pair(self):
+        # The if/then form names the missing fields; an anyOf would have
+        # reported the whole features object on the gateway wire instead.
+        event = self._acoustic_with({"center_freq_hz": 2500.0})
+        self.assert_invalid(event)
+        messages = self._messages(event)
+        self.assertTrue(any("pressure_pa" in m for m in messages), messages)
+        self.assertTrue(any("pressure_statistic" in m for m in messages), messages)
+
+    def test_v1_1_0_acoustic_pressure_without_statistic_is_refused(self):
+        self.assert_invalid(self._acoustic_with({"center_freq_hz": 3.2, "pressure_pa": 0.0142}))
+        # With spl_db present the if/then is satisfied, so only the
+        # pressure_pa -> pressure_statistic dependency can refuse this one.
+        self.assert_invalid(self._acoustic_with(
+            {"center_freq_hz": 2500.0, "spl_db": 72.3, "pressure_pa": 0.0142}))
+
+    def test_v1_1_0_acoustic_statistic_without_pressure_is_refused(self):
+        # The held spl_db statistic marker must not leak in through the pair.
+        self.assert_invalid(self._acoustic_with(
+            {"center_freq_hz": 2500.0, "spl_db": 72.3, "pressure_statistic": "RMS"}))
+
+    def test_v1_1_0_acoustic_rejects_an_undeclared_statistic(self):
+        self.assert_invalid(self._acoustic_with(
+            {"center_freq_hz": 3.2, "pressure_pa": 0.0142, "pressure_statistic": "MEDIAN"}))
+
+    def test_v1_1_0_acoustic_zero_and_negative_pressure_are_refused(self):
+        # 0.0 is a zero-fill sentinel, not a measurable amplitude.
+        for pressure in [0.0, -0.0142]:
+            self.assert_invalid(self._acoustic_with(
+                {"center_freq_hz": 3.2, "pressure_pa": pressure, "pressure_statistic": "RMS"}))
+
+    def test_v1_0_acoustic_pressure_pair_rides_the_open_features_namespace(self):
+        # v1.0 has no ACOUSTIC feature arm; the pair validates as free-form
+        # content with no semantics attached, as level_reference does.
+        self.assert_valid(self._acoustic_with(
+            {"center_freq_hz": 3.2, "pressure_pa": -5.0, "pressure_statistic": "NONSENSE"}, version="1.0"))
 
     def test_v1_0_timing_quality_rejects_the_basis_key(self):
         # The locked v1.0 timing_quality is additionalProperties: false and

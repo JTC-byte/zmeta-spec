@@ -275,3 +275,22 @@ def test_a_stale_last_updated_stamp_is_refused(tmp_path):
         data["last_updated"] = "2000-01-01"
     issues = validate_extension_registry.validate_registry(_registry_with(mutate, tmp_path))
     assert any(i["code"] == "REGISTRY_LAST_UPDATED_STALE" for i in issues)
+
+
+def test_a_reserved_feature_contract_member_that_a_schema_declares_is_refused(tmp_path):
+    # The 2026-09-12 acoustic pressure draft registered a name as reserved while
+    # the same change made its fields schema-valid; the validator passed it.
+    def mutate(data):
+        for entry in data["entries"]:
+            if entry["name"] == "ACOUSTIC_PRESSURE_LEVEL":
+                entry["status"] = "reserved"
+                entry["schema_status"] = "none"
+                entry["conformance_status"] = "none"
+                entry["review_state"] = "draft"
+                break
+        else:
+            raise AssertionError("ACOUSTIC_PRESSURE_LEVEL is no longer in the registry")
+    issues = validate_extension_registry.validate_registry(_registry_with(mutate, tmp_path))
+    hits = [i for i in issues if i["code"] == "REGISTRY_RESERVED_SCHEMA_LEAK" and i.get("entry") == "ACOUSTIC_PRESSURE_LEVEL"]
+    assert hits, issues
+    assert any("pressure_pa" in i["message"] for i in hits), hits

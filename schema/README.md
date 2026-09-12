@@ -124,7 +124,11 @@ Conditional feature validation for active observation modalities (extends existi
   strict `resolution_px`; `roi_px` is a crop/region-of-interest, not a detected
   object box. Detection boxes and semantic labels remain INFERENCE_EVENT claims.
 - **IR** requires `band` (MWIR/LWIR/SWIR/NIR); optional `temperature_k`, `emissivity`; semantic labels and detector confidence remain INFERENCE_EVENT fields.
-- **ACOUSTIC** requires measured signal facts `center_freq_hz` and `spl_db`;
+- **ACOUSTIC** requires `center_freq_hz` and a level: `spl_db`, or
+  `pressure_pa` with `pressure_statistic` (RMS, PEAK, PEAK_TO_PEAK) for
+  domains that publish calibrated linear pressure rather than a decibel,
+  or both; the pair is present together or not at all and the pressure is
+  greater than zero (registry ACOUSTIC_PRESSURE_LEVEL, experimental);
   optional measured fields include `bandwidth_hz`, `duration_ms`,
   `spectral_centroid_hz`, `harmonic_count`, and `signature_hash`. Optional
   `level_reference` (SPL_RE_20UPA, SPL_RE_1UPA, DBFS, DB_RELATIVE) declares

@@ -1785,20 +1785,66 @@ structural_rules:
     detect:
       modality: ACOUSTIC
       zmeta_version_not: "1.0"
-      absent_any_path:
-        - payload.features.center_freq_hz
-        - payload.features.spl_db
+      absent_path: payload.features.center_freq_hz
     hint: >
-      When `payload.modality` is ACOUSTIC the feature contract requires both
-      `center_freq_hz` and `spl_db`. If your sensor is an imaging sonar that
-      reports geometry and persistence rather than a characterised signal, it
-      may not produce either, and the honest answer is usually that its output
-      is a track rather than an acoustic observation. Do not invent a
-      frequency or a level to satisfy the contract. `spl_db` means dB SPL re
-      20 uPa unless `features.level_reference` says otherwise: declare
-      SPL_RE_1UPA for a hydrophone, or DBFS / DB_RELATIVE for an uncalibrated
-      level, rather than relabelling the value.
-    see: schema/zmeta-event-1.1.0.schema.json (ACOUSTIC feature contract, level_reference)
+      When `payload.modality` is ACOUSTIC the feature contract requires
+      `center_freq_hz` and a level: either `spl_db` (a decibel level whose
+      reference is declared by `level_reference`, dB SPL re 20 uPa when
+      absent) or `pressure_pa` with `pressure_statistic` (a calibrated linear
+      pressure in pascals, for domains that publish pressure rather than a
+      decibel). If your sensor is an imaging sonar that reports geometry and
+      persistence rather than a characterised signal, it may not produce a
+      frequency at all, and the honest answer is usually that its output is a
+      track rather than an acoustic observation. Do not invent a frequency or a
+      level to satisfy the contract.
+    see: schema/zmeta-event-1.1.0.schema.json (ACOUSTIC feature contract, level_reference, pressure_pa)
+
+  - id: acoustic-missing-level
+    detect:
+      modality: ACOUSTIC
+      zmeta_version_not: "1.0"
+      absent_all_paths:
+        - payload.features.spl_db
+        - payload.features.pressure_pa
+    hint: >
+      This ACOUSTIC observation reports no level. The contract accepts either
+      `spl_db` (decibels, reference declared by `level_reference`) or
+      `pressure_pa` with `pressure_statistic` (pascals, RMS / PEAK /
+      PEAK_TO_PEAK). If the source publishes linear pressure, as infrasound
+      arrays do, use the pascals form with the statistic you actually
+      measured rather than converting to a decibel figure the domain never
+      states. Either way the level applies over `payload.t_start` to
+      `payload.t_end` when present, otherwise to the instant of `event.ts`;
+      `duration_ms` is the event extent, not an averaging window. Do not
+      invent a level.
+    see: schema/zmeta-event-1.1.0.schema.json (ACOUSTIC level carrier), spec/semantics-contract.md:777-789 (section 5.6, windowed observations), spec/semantics-contract.md:906 (section 6.5, unit in the name)
+
+  - id: acoustic-pressure-without-statistic
+    detect:
+      modality: ACOUSTIC
+      zmeta_version_not: "1.0"
+      has_path: payload.features.pressure_pa
+      absent_path: payload.features.pressure_statistic
+    hint: >
+      `pressure_pa` is present with no `pressure_statistic`. A pascals
+      amplitude means nothing without its statistic, and the schema requires
+      the pair together: declare RMS, PEAK or PEAK_TO_PEAK, the one you
+      actually computed, rather than assuming RMS. The same statistic must
+      not be attached to `spl_db`, which declares none.
+    see: schema/zmeta-event-1.1.0.schema.json (ACOUSTIC pressure_pa, pressure_statistic, dependentRequired)
+
+  - id: acoustic-statistic-without-pressure
+    detect:
+      modality: ACOUSTIC
+      zmeta_version_not: "1.0"
+      has_path: payload.features.pressure_statistic
+      absent_path: payload.features.pressure_pa
+    hint: >
+      `pressure_statistic` is present with no `pressure_pa`. The statistic
+      qualifies a pascals amplitude only; it does not attach to `spl_db`,
+      which declares no amplitude statistic. Emit `pressure_pa` with the
+      statistic, or drop the statistic.
+    see: schema/zmeta-event-1.1.0.schema.json (ACOUSTIC pressure_pa, pressure_statistic, dependentRequired)
 
   - id: acoustic-level-without-reference
     detect:

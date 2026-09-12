@@ -3,7 +3,7 @@ generated_for_zmeta_versions:
   - "1.0"
   - "1.1.0"
 authority: spec/semantics-contract.md
-last_updated: "2026-09-10"
+last_updated: "2026-09-12"
 status_values:
   - reserved
   - proposed
@@ -336,7 +336,13 @@ entries:
     status: experimental
     version_branch: "1.1.0"
     introduced_in: "1.1.0"
-    semantic_definition: v1.1.0 feature contract for acoustic observation measurements such as center frequency and sound pressure level.
+    semantic_definition: >-
+      v1.1.0 feature contract for acoustic observation measurements, a
+      dominant frequency and a level carried as a decibel sound level
+      (spl_db, reference declared by level_reference), as a calibrated
+      linear pressure (pressure_pa with pressure_statistic), or both; the
+      level applies over payload.t_start to t_end when present and
+      otherwise at event.ts (contract section 5.6).
     rationale: Defines acoustic measured facts without creating track identity or inference labels.
     allowed_event_types: ["OBSERVATION_EVENT"]
     allowed_event_subtypes: ["ACOUSTIC"]
@@ -346,6 +352,11 @@ entries:
     conformance_status: implemented
     references: ["schema/zmeta-event-1.1.0.schema.json", "schema/README.md"]
     review_state: approved
+    notes:
+      - >-
+        2026-09-12 (F2-08): the required level may now be carried as spl_db or
+        as pressure_pa with pressure_statistic; the semantic_definition was
+        widened in the same change and spl_db keeps its meaning.
 
   - <<: *entry_defaults
     name: ACOUSTIC_LEVEL_REFERENCE
@@ -411,6 +422,85 @@ entries:
       - >-
         The spl_db description was corrected in the same change; the absent
         meaning is unchanged, so shipped 1.1.0 events keep their meaning.
+
+  - <<: *entry_defaults
+    name: ACOUSTIC_PRESSURE_LEVEL
+    display_name: Acoustic linear pressure level
+    category: observation_feature_contract
+    status: experimental
+    version_branch: "1.1.0"
+    introduced_in: "1.1.0"
+    semantic_definition: >-
+      v1.1.0 optional features.pressure_pa (calibrated acoustic pressure
+      amplitude in pascals, greater than zero) with
+      features.pressure_statistic ("RMS", "PEAK", or "PEAK_TO_PEAK") on
+      ACOUSTIC observations, present together or not at all, as the level
+      carrier for domains that publish linear pressure rather than a
+      decibel. The ACOUSTIC arm requires center_freq_hz and a level in at
+      least one of the two forms; spl_db remains the decibel carrier and
+      the statistic never qualifies it. The level applies over
+      payload.t_start to t_end when present and otherwise at event.ts
+      (contract section 5.6). On the locked v1.0 lane, which has no
+      ACOUSTIC feature arm, the pair validates as free-form content with
+      no semantics attached.
+    rationale: >-
+      Atmospheric infrasound publishes calibrated pressure in pascals as RMS,
+      peak and peak-to-peak with none privileged, and never a decibel level,
+      so a required decibel field forced that domain to manufacture a number.
+      The shape composes from existing primitives (unit in the name per
+      contract section 6.5, center_freq_hz and bandwidth_hz for the band,
+      payload.t_start and t_end for the window per section 5.6) and was added
+      to the experimental ACOUSTIC feature contract on the 1.1.0 branch rather
+      than served by a namespaced extension, so that a consumer pinned to
+      1.1.0 can read the level. A governed pressure contract of its own was
+      refused on the alphabet and outer-ring gates.
+    allowed_event_types: ["OBSERVATION_EVENT"]
+    allowed_event_subtypes: ["ACOUSTIC"]
+    payload_scope: ["payload.features.pressure_pa", "payload.features.pressure_statistic"]
+    schema_status: implemented
+    policy_status: not_applicable
+    conformance_status: implemented
+    risk_relevant: true
+    ignorable_by_default: false
+    profile_projection_behavior: preserve
+    security_privacy_notes:
+      - >-
+        A pressure amplitude with its statistic dropped in projection reads as
+        an unqualified level; the pair must survive projection together.
+    fixture_references:
+      - gateway/tests/test_schema_version_discrimination.py
+      - gateway/tests/test_structural_guidance.py
+    references:
+      - schema/zmeta-event-1.1.0.schema.json
+      - docs/zmeta_doctrine_review_log.md
+    date_added: "2026-09-12"
+    review_state: approved
+    notes:
+      - >-
+        Created experimental by maintainer adjudication 2026-09-12 (doctrine
+        cycle F2, entry F2-08), from the downstream COP evidence note of 2026-09-11:
+        three acoustic sources investigated (Orcasound hydrophone, MBARI MARS
+        hydrophone, EarthScope infrasound), one running producer, zero
+        implementations emitting a pascals value. The promotion evidence bar
+        is NOT claimed met; this entry enters experimental with that condition
+        unmet by explicit maintainer adjudication, the same
+        direct-to-experimental path and the same logged tension as
+        POWER_REFERENCE and ACOUSTIC_LEVEL_REFERENCE. A first draft registered
+        this name as reserved while the same change made the fields
+        schema-valid; the pre-cut verification refused that as a contradiction
+        of the reserved definition, and the reserved-leak check gained an
+        observation_feature_contract arm so that shape cannot recur.
+      - >-
+        The redistribution status of the EarthScope infrasound holdings whose
+        station codes match published CTBTO array designators is unsettled per
+        the downstream note; that source supports the design rationale here
+        and is not relied on as a fielded implementation.
+      - >-
+        ignorable_by_default is false because pressure_pa can be the sole
+        level carrier: a consumer that drops the pair holds an ACOUSTIC
+        observation with no level, whereas level_reference qualifies a level
+        that remains. The registry-wide default of true is a booked
+        post-lock item (execution review 2026-09-08).
 
   - <<: *entry_defaults
     name: NETWORK_FEATURE_CONTRACT

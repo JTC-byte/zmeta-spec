@@ -2,6 +2,41 @@
 
 ## [Unreleased]
 
+- 2026-09-12 — **The 1.1.0 ACOUSTIC arm accepts a linear-pressure level.**
+  The arm requires `center_freq_hz` and a level in at least one of two
+  forms,
+  `spl_db` or `pressure_pa` with `pressure_statistic` (RMS, PEAK,
+  PEAK_TO_PEAK), the pair present together or not at all and the pressure
+  greater than zero, so a domain that publishes calibrated pressure rather
+  than a decibel can emit on the 1.1.0 lane without manufacturing a
+  number, while the guarantee that a level is present survives and a
+  missing level names the pressure pair on the wire. This relaxes a required
+  list on the experimental branch: every shipped 1.1.0 event stays valid,
+  the locked v1.0 schema is untouched, and the one shipped acoustic
+  example with a duration and no window now reads as a level at
+  `event.ts` by the description rather than undefined. The `spl_db`
+  description states that the level applies over `payload.t_start` to
+  `t_end` when present and otherwise at `event.ts`, that it declares no
+  amplitude statistic, and that `duration_ms` is event extent rather than
+  a window; the `center_freq_hz` description states it asserts a dominant
+  frequency, not a band. Registry: ACOUSTIC_PRESSURE_LEVEL, experimental,
+  with the promotion bar stated as not met; the ACOUSTIC_FEATURE_CONTRACT
+  definition names both carriers; the reserved-leak check gains an
+  observation_feature_contract arm with a fixture; a roadmap candidate
+  carries the tripwires for both acoustic entries and the held statistic
+  marker. Guidance: the required-features rule now asks only for a
+  frequency, and new `acoustic-missing-level`,
+  `acoustic-pressure-without-statistic` and
+  `acoustic-statistic-without-pressure` rules name the level forms and
+  the pair binding; four fixtures pin the three new rules and the relaxed
+  required-features rule, and nine schema fixtures pin the arm on 1.1.0
+  and its absence on v1.0. An existing fixture that removed `spl_db`
+  before adding a generic `power_db` was refused for the missing level
+  after the relaxation rather than for `power_db`; it now keeps `spl_db`
+  so the refusal reason is the one it pins.
+  Doctrine entry F2-08 records the ruling and the corrections to the
+  downstream evidence note it answered.
+
 - 2026-09-10 — **Two experimental 1.1.0 markers from a live hydrophone,
   and the launcher can select its lane.** `features.level_reference`
   (SPL_RE_20UPA, SPL_RE_1UPA, DBFS, DB_RELATIVE) joins the ACOUSTIC feature
