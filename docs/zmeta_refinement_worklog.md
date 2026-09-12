@@ -22,7 +22,8 @@
   14 `RELEASE_MANIFEST_*` lines and no other failure line (four of
   those lines come from `docs/zmeta_change_governance.md` on `develop`
   itself, the rest from the four manifest-listed artifacts the branches
-  change); `python -m pytest -q` 1858 passed, 13 failed, every
+  change); `python -m pytest -q` 1859 passed, 13 failed (1858 in the
+  rehearsal worktree, where one environment-dependent test skipped), every
   failure a manifest hash mismatch in `gateway/tests/test_release_manifest.py`
   or `gateway/tests/test_release_package.py`; `git diff --check` clean. That
   red band is the expected state of `develop` between these merges and the

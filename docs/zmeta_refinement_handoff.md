@@ -18,7 +18,7 @@ notes and hashes from `develop` into `main`.
 Expected state of `develop` while held, to check a re-run against rather
 than trust a self-reported figure: 14 `RELEASE_MANIFEST_*` lines
 on the kernel gate and 13 red release-pin tests, all manifest hash mismatches,
-with every other gate green (1858 tests pass); an intermittent fourteenth
+with every other gate green (1859 tests pass); an intermittent fourteenth
 failure in `test_release_signing.py` is a pre-existing mtime race. The
 worklog entry of 2026-09-12 carries the commands.
 
