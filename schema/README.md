@@ -132,8 +132,10 @@ Conditional feature validation for active observation modalities (extends existi
   optional measured fields include `bandwidth_hz`, `duration_ms`,
   `spectral_centroid_hz`, `harmonic_count`, and `signature_hash`. Optional
   `level_reference` (SPL_RE_20UPA, SPL_RE_1UPA, DBFS, DB_RELATIVE) declares
-  the reference of `spl_db`; absent means dB SPL re 20 uPa (registry
-  ACOUSTIC_LEVEL_REFERENCE, experimental). Semantic labels such as acoustic
+  the reference of `spl_db` and of `spl_db` only; with `spl_db` present and
+  the marker absent the reference is dB SPL re 20 uPa, and on an event with
+  no `spl_db` the marker states nothing (registry ACOUSTIC_LEVEL_REFERENCE,
+  experimental). Semantic labels such as acoustic
   source type belong in INFERENCE_EVENT.
 - **timing_quality** on the 1.1.0 branch accepts an optional
   `est_error_basis` (MEASURED, DECLARED_BOUND, CONVENTION_DEFAULT,

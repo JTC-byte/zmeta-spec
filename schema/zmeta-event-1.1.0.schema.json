@@ -1325,7 +1325,7 @@
                   "level_reference": {
                     "type": "string",
                     "enum": ["SPL_RE_20UPA", "SPL_RE_1UPA", "DBFS", "DB_RELATIVE"],
-                    "description": "Reference of spl_db. SPL_RE_20UPA is the airborne convention and the meaning when absent; SPL_RE_1UPA is the underwater convention; DBFS and DB_RELATIVE declare an uncalibrated level that is not a sound pressure."
+                    "description": "Reference of spl_db, and of spl_db only. SPL_RE_20UPA is the airborne convention and the meaning when spl_db is present and the reference is absent; SPL_RE_1UPA is the underwater convention; DBFS and DB_RELATIVE declare an uncalibrated level that is not a sound pressure. On an event carrying no spl_db the marker states nothing and never qualifies pressure_pa."
                   },
                   "duration_ms": {
                     "type": "number",

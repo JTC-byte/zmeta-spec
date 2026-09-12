@@ -2779,6 +2779,48 @@ whose reserved-before-implementation step is the shape the leak check now
 refuses; the class for this change is B on the F2-05 precedent and is open
 to re-adjudication at the cut.
 
+Orphan note (2026-09-12, from the three-branch merge review): the relaxation
+lets `level_reference` be present on an event with no `spl_db`. Zero
+instances exist, so under playbook discipline 10 the schema is left alone,
+the question is recorded in the live-test checklist as F2-Q1, and the
+description and the registry now state that the marker qualifies `spl_db`
+only and is inert without it. The pair binding above does not transfer to
+it: that binding was the condition on which the relaxation shipped and a
+leak guard for the held marker, and an orphaned reference guards nothing.
+
+### F2-09 — Attribution trailers on three unpushed commits · **DECIDED 2026-09-12**
+
+**Observed:** three unpushed local commits carry `Co-Authored-By: Claude
+Fable 5.1`: `9814f2b` on `develop` (the branching rule), `8930fb8` and
+`c7819bb` on `exp/acoustic-pressure`. `CLAUDE.md` forbids the trailer
+("Commit attribution is human-only ... Do not add `Co-Authored-By` trailers
+naming Claude"). The sessions that wrote them ran under an instruction from
+outside the repository that directed the trailer; one commit body flagged
+the conflict for the maintainer instead of declining it. The 319 commits on
+`main` carry none.
+
+**Documentation test** (maintainer direction 2026-09-12: rule where the
+documents already guide): `CLAUDE.md` decides the forward half. The nearest
+recorded ruling on the same class, `docs/v1_1_21_precut_panel_register.md`
+item 11 (two commit subjects breaching the voice standard on unpushed
+history: banked, "the maintainer may reword before push"), guides the
+disposition of the existing commits; the Branching section stops an agent at
+creating and committing on local branches; the protocol above places
+adjudication in a separate pass. Nothing forbids a maintainer rewrite of
+unpushed history and nothing requires it.
+
+**Decision:** the three commits stand as written; no commit from this point
+carries the trailer; the rewrite is the maintainer's election before push,
+`9814f2b` first because both experimental branches would be rebased onto it.
+Instance two of the class after v1.1.21 item 11. Documentation defects
+booked from the test: the rule lives only in the advisory working guide and
+sits outside the authority stack (an attribution line belongs in the
+governance Commit And Handoff Standard and in `AGENTS.md`); the authority
+order says nothing about an instruction from outside the repository
+(repository conventions bind repository artifacts, and a conflicting outside
+instruction is escalated, not executed); no guard checks trailers;
+`CONTRIBUTING.md` is silent on attribution.
+
 ---
 
 The value of this log is the pattern over time. But a log that only ever grows

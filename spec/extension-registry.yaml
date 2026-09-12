@@ -422,6 +422,13 @@ entries:
       - >-
         The spl_db description was corrected in the same change; the absent
         meaning is unchanged, so shipped 1.1.0 events keep their meaning.
+      - >-
+        2026-09-12 (F2-08): the required-list relaxation lets the marker be
+        present on an event with no spl_db. That shape has no instance; it is
+        recorded as live-test checklist question F2-Q1 under playbook
+        discipline 10 rather than bound in the schema, and the description
+        now states that the marker qualifies spl_db only and is inert without
+        it.
 
   - <<: *entry_defaults
     name: ACOUSTIC_PRESSURE_LEVEL
@@ -498,8 +505,9 @@ entries:
       - >-
         ignorable_by_default is false because pressure_pa can be the sole
         level carrier: a consumer that drops the pair holds an ACOUSTIC
-        observation with no level, whereas level_reference qualifies a level
-        that remains. The registry-wide default of true is a booked
+        observation with no level, whereas level_reference qualifies spl_db
+        where spl_db is present and is inert otherwise. The registry-wide
+        default of true is a booked
         post-lock item (execution review 2026-09-08).
 
   - <<: *entry_defaults

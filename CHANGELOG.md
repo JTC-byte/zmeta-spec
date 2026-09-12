@@ -38,6 +38,11 @@
   downstream evidence note it answered. The per-code remediation text for
   `INVALID_MODALITY_FEATURES` names both level forms; it had kept saying
   `spl_db` is required after the relaxation (merge review, 2026-09-12).
+  The `level_reference` description and `schema/README.md` say the marker
+  qualifies `spl_db` only and is inert on an event with no `spl_db`, a
+  consequence of the relaxation recorded in F2-08 and held as live-test
+  checklist question F2-Q1 under playbook discipline 10; doctrine entry
+  F2-09 records the attribution-trailer disposition.
 
 - 2026-09-10 — **Two experimental 1.1.0 markers from a live hydrophone,
   and the launcher can select its lane.** `features.level_reference`
