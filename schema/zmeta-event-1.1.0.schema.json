@@ -873,7 +873,12 @@
           "enum": ["LOCKED", "HOLDOVER", "UNSYNCED"]
         },
         "est_error_ms": { "type": "number", "minimum": 0 },
-        "last_sync_ts": { "$ref": "#/$defs/utcDateTime" }
+        "last_sync_ts": { "$ref": "#/$defs/utcDateTime" },
+        "est_error_basis": {
+          "type": "string",
+          "enum": ["MEASURED", "DECLARED_BOUND", "CONVENTION_DEFAULT", "UNRESOLVED"],
+          "description": "How est_error_ms was obtained: measured against a disciplined reference, a bound declared by the source, the unknown-clock convention default, or unresolved. Absent means the status quo, no basis stated."
+        }
       }
     },
     "error_ellipse": {
@@ -1296,7 +1301,12 @@
                   },
                   "spl_db": {
                     "type": "number",
-                    "description": "Sound pressure level in dB SPL re 20 uPa"
+                    "description": "Sound level in dB. The reference is declared by level_reference; absent, it is dB SPL re 20 uPa."
+                  },
+                  "level_reference": {
+                    "type": "string",
+                    "enum": ["SPL_RE_20UPA", "SPL_RE_1UPA", "DBFS", "DB_RELATIVE"],
+                    "description": "Reference of spl_db. SPL_RE_20UPA is the airborne convention and the meaning when absent; SPL_RE_1UPA is the underwater convention; DBFS and DB_RELATIVE declare an uncalibrated level that is not a sound pressure."
                   },
                   "duration_ms": {
                     "type": "number",

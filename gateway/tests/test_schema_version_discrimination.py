@@ -762,6 +762,51 @@ class SchemaVersionDiscriminationTest(unittest.TestCase):
 
         self.assert_valid(event)
 
+    def test_v1_1_0_acoustic_level_reference_tokens_pass(self):
+        for token in ["SPL_RE_20UPA", "SPL_RE_1UPA", "DBFS", "DB_RELATIVE"]:
+            event = valid_acoustic_observation("1.1.0")
+            event["payload"]["features"]["level_reference"] = token
+
+            self.assert_valid(event)
+
+    def test_v1_1_0_acoustic_level_reference_rejects_an_undeclared_token(self):
+        event = valid_acoustic_observation("1.1.0")
+        event["payload"]["features"]["level_reference"] = "SPL"
+
+        self.assert_invalid(event)
+
+    def test_v1_0_acoustic_level_reference_rides_the_open_features_namespace(self):
+        # v1.0 has no ACOUSTIC feature arm, so the key validates as free-form
+        # content with no reference semantics attached; the formal contract
+        # exists only on 1.1.0 (registry ACOUSTIC_LEVEL_REFERENCE). This pins
+        # the boundary rather than pretending v1.0 enforces it.
+        event = valid_acoustic_observation("1.0")
+        event["payload"]["features"]["level_reference"] = "ANYTHING"
+
+        self.assert_valid(event)
+
+    def test_v1_1_0_timing_error_basis_tokens_pass(self):
+        for token in ["MEASURED", "DECLARED_BOUND", "CONVENTION_DEFAULT", "UNRESOLVED"]:
+            event = valid_acoustic_observation("1.1.0")
+            event["payload"]["timing_quality"]["est_error_basis"] = token
+
+            self.assert_valid(event)
+
+    def test_v1_1_0_timing_error_basis_rejects_an_undeclared_token(self):
+        event = valid_acoustic_observation("1.1.0")
+        event["payload"]["timing_quality"]["est_error_basis"] = "GUESSED"
+
+        self.assert_invalid(event)
+
+    def test_v1_0_timing_quality_rejects_the_basis_key(self):
+        # The locked v1.0 timing_quality is additionalProperties: false and
+        # stays byte-identical; the basis member exists only on 1.1.0
+        # (registry TIMING_ERROR_BASIS), so v1.0 refuses it by its own closure.
+        event = valid_rf_observation("1.0")
+        event["payload"]["timing_quality"]["est_error_basis"] = "MEASURED"
+
+        self.assert_invalid(event)
+
     def test_state_speed_mps_zero_and_positive_pass(self):
         for version in ["1.0", "1.1.0"]:
             for speed in [0, 12.5]:

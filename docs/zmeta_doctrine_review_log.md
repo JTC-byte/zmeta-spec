@@ -2537,6 +2537,168 @@ any active deployment, or retain-all mode plus disk monitoring for the
 deployment's duration, and which of those becomes a written rule in the
 capture station's own doctrine.
 
+## Cycle F2 — 2026-09-10 (fielded evidence: an Orcasound hydrophone through the downstream COP)
+
+The second doctrine cycle driven by field capture, and the first of those
+driven by a consumer's questions rather than a producer's dialect. The downstream COP session
+brought seven spec questions before building an Orcasound hydrophone producer
+and an environmental-station status feed, stating that it would pin whatever
+this repo answered. A first answer was drafted, then adversarially refuted
+before it was sent (three independent refuters, one per judgment call; all
+three corrected the draft), and the acoustic questions were then worked
+against a live hydrophone segment rather than from the sonar dialect alone.
+The maintainer ruled on every open point the same day and directed that the
+acoustic modality be worked now on the experimental 1.1.0 branch. Evidence,
+templates, verdicts, and the Class D plan live in the private session store;
+this cycle records the reasoning.
+
+### F2-01 — A level field whose reference cannot travel with it · **MINTED 2026-09-10 (experimental)**
+
+**Observed:** the ACOUSTIC feature contract requires `spl_db`, described as
+"dB SPL re 20 uPa", the airborne reference. A hydrophone states levels re
+1 uPa, about 26 dB apart, and an internet-relayed hydrophone with unpublished
+sensitivity and gain-adjusted compressed audio cannot state a sound pressure
+at all, only a full-scale level. Proven on the wire from a real segment: a
+dBFS number in `spl_db` with an unregistered marker validates against the
+1.1.0 schema and passes every gate, and nothing on the stack can tell it
+from calibrated SPL. The first drafted answer recommended exactly that shape
+with an `UNCALIBRATED` flag; the refuter showed it is the form contract
+section 6.5 names and prohibits ("Alternate internal units, such as dBFS
+or vendor-specific RF quality scores, must be converted before canonical
+emission or placed in explicitly named payload-scoped extension fields
+that cannot be confused with canonical units"), that sections 4.11 and
+20.3 forbid an extension redefining a unit, and that `calibration_state` is every adapter's default posture and
+carries no unit claim.
+
+**The tension:** RF already solved this exact problem with
+`features.power_reference` (doctrine A1-01, experimental), and ACOUSTIC never
+inherited it. The same need arriving in a second modality from an
+independent organization is the first outside instance of the mechanism
+A1-01 recorded as lacking one, but it arrives under a different field name
+in a different contract, so it does not by itself meet the promotion bar
+for either entry.
+
+**Decision:** a separate experimental registry entry,
+ACOUSTIC_LEVEL_REFERENCE, `features.level_reference` with values
+SPL_RE_20UPA, SPL_RE_1UPA, DBFS and DB_RELATIVE on the ACOUSTIC arm, absent
+meaning the re 20 uPa status quo so no shipped event changes meaning, and
+the `spl_db` description corrected to say the reference is declared. The
+entry cross-references POWER_REFERENCE as the same mechanism and records
+that the two together are independent instances of one need; the
+single-concept generalization is booked for the AAR. Created direct to
+experimental by maintainer adjudication, the same path A1-01 took and the
+same logged tension with the promotion clause. Recorded tension: the adopted
+form keeps the value in the canonical field rather than converting it or
+moving it to an extension field, so it satisfies the purpose of 6.5 (the
+reference cannot be confused) but not its literal text; a 6.5 sentence
+joins the 21.4 sentence in the post-lock contract pass. Until the branch is
+published, the producer emits Form A: a v1.0-lane observation carrying the
+level under its own name (`level_dbfs`) with no `spl_db`, the form the
+ADS-B adapter already ships (`rssi_dbfs`, never `power_dbm`) and whose
+refusal half SAPIENT ships by leaving an unconvertible amplitude in its
+extension block rather than in `power_dbm`; of the two templates built
+against the evidence, it is the only one the reference gateway accepted as
+configured, because its default lane is the locked v1.0 schema.
+
+### F2-02 — A required error bound with no honest value · **MINTED 2026-09-10 (experimental)**
+
+**Observed:** `timing_quality.est_error_ms` is required and defined as a
+worst-case upper bound. A hydrophone relayed over HLS has a per-segment
+manifest timestamp and nothing that evidences the node's clock discipline.
+The honest Form A template failed on that one field rather than fabricate a
+bound. This is the live instance R1-11-04 (open since July) was waiting for:
+the repo's interim is the reference adapters' shared unknown-clock
+convention (`adapters/ingress/time_utils.py`): `UNKNOWN`, `UNSYNCED`,
+`est_error_ms` widened to 60000 ms, which overstates uncertainty in the
+safe direction and cannot say why the bound is what it is.
+
+**The tension:** R1-11-04 preferred a gateway-attached reason code over
+touching the locked structure, because `$defs/timing_quality` is closed. The
+1.1.0 copy is experimental; adding an optional member there leaves the v1.0
+structure byte-identical, which refuses the key by its own closure.
+
+**Decision:** an optional `timing_quality.est_error_basis` on the 1.1.0
+branch only (registry TIMING_ERROR_BASIS, experimental): MEASURED,
+DECLARED_BOUND, CONVENTION_DEFAULT or UNRESOLVED, absent meaning no basis
+stated. The declaration-floor pattern again: the honest label travels with
+the value, and a consumer can tell a measured 60 s from a conventional one.
+Form A adopts the convention now, documented in guidance as the sanctioned
+unknown-clock form and never as a measurement. R1-11-04 stays open for the
+v1.0 lane; this entry gives it a closing path on the branch built for it.
+
+### F2-03 — A blocker premise that was false, and the wall behind it · **DECIDED 2026-09-10**
+
+**Observed:** the COP reported that thousands of public environmental
+stations could not appear on its map even as bare status points because
+SENSOR_STATUS had no ENVIRONMENTAL modality. The refuter built a buoy status
+with `sensor_type` and no modality and it passed the strict validator:
+`metrics.modality` is optional. The wall the COP would actually hit is
+producer authority, which has no pattern that honestly names an
+environmental station. A separate refuter found the drafted three-way split
+of the slot ran against the repo's own documentation of the slot as
+deliberately coarse and against F1-05, and that the drafted version target
+conflated the `zmeta_version` lane with the repo release tag.
+
+**Decision:** no modality token; `sensor_type` carries the station kind and
+the strings become promotion evidence if a second deployment diverges; a
+producer-authority pattern for environmental stations is booked (Class B,
+policy). This is another instance of "ZMeta is missing X" resolving to
+"ZMeta has X and it could not be found", after the subsurface, depth,
+uncertainty, correlation and sonar-modality cases enumerated in F1-05, and
+it is the F1-04 discoverability finding continuing to accumulate.
+
+### F2-04 — A status event with nowhere canonical to stand · **DECIDED 2026-09-10 (booked)**
+
+**Observed (the COP's own finding, confirmed):** `SystemPayload` defines no
+position, the envelope has none, and contract 21.5 neither requires nor
+forbids one, so `payload.geo` on a SENSOR_STATUS validates only because the
+payload is open, ungoverned and precision-unprotected. A modality token
+alone would never have placed a buoy on a map. Observation `geo` is the
+subject's position under B1-01, so a hydrophone with no bearing omits it,
+and the sensor's own position has no governed home anywhere.
+
+**Decision:** book a governed optional `geo` on the SENSOR_STATUS arm only,
+with profile-precision coverage, for the AAR wave. The scope is ruling R3;
+note that 21.6 bars PLATFORM_STATUS from implying track position and is
+silent on a platform's own position, so the platform arm is a separate
+question rather than a settled prohibition. Interim: consumers read the open key as a
+declared convention or place sensors from their own catalogue.
+
+### F2-05 — The promotion bar and status-only tokens · **DECIDED 2026-09-10**
+
+Ruled: the two-leg promotion bar governs status-only enum values exactly as
+it governs observation modalities, and D11-01 (six reserved names
+schema-valid on the status path because the leak guard probes only the
+observation path) is resolved with that ruling rather than widened. Change
+class is B for the schema and policy surfaces, with Class D ceremony
+attached when a registry entry moves off `reserved`. Vocabulary on the
+1.1.0 branch is amended in place under the next repo tag, as v1.1.17 and
+v1.1.25 did; no new `zmeta_version` lane.
+
+### F2-06 — The documented launcher could not select the lane it documents · **CHANGED 2026-09-10**
+
+The reference gateway accepted `--schema-path`; the launcher the README
+recommends did not expose it, so the documented ten-minute path could only
+run the locked v1.0 lane and refused every 1.1.0 event (review finding
+D1-01). Fixed with a passthrough and a red/green test; the README now says
+how to run the 1.1.0 lane or select by version. The default stays the
+locked lane pending a maintainer call.
+
+### F2-07 — A structural hint that fired on the wrong lane · **CHANGED 2026-09-10**
+
+The acoustic structural guidance rule fired on a v1.0 event, where no
+ACOUSTIC feature contract exists, and the remediation it offered was wrong
+for that lane. The detect grammar gained lane gates (an exact-lane key and
+an exclusion key, so a rule about 1.1.0 vocabulary still fires on dialect
+input that declares no version), the two acoustic rules are gated off the
+locked v1.0 lane, and three rules were added from the live failure:
+`acoustic-level-without-reference`, `acoustic-level-on-locked-lane`, which
+keeps the reference advice for v1.0 producers, and
+`timing-quality-incomplete`. The structural rules gained their first fixture
+in the same change; before it, nothing tested them at all.
+Advisory class; a wrong hint is a documentation bug, and this one was found
+by the evidence build fifteen days after the guidance landed in the tree.
+
 ---
 
 The value of this log is the pattern over time. But a log that only ever grows

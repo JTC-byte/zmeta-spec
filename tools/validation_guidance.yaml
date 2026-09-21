@@ -1784,6 +1784,7 @@ structural_rules:
   - id: acoustic-missing-required-features
     detect:
       modality: ACOUSTIC
+      zmeta_version_not: "1.0"
       absent_any_path:
         - payload.features.center_freq_hz
         - payload.features.spl_db
@@ -1793,10 +1794,75 @@ structural_rules:
       reports geometry and persistence rather than a characterised signal, it
       may not produce either, and the honest answer is usually that its output
       is a track rather than an acoustic observation. Do not invent a
-      frequency or a level to satisfy the contract. Note also that `spl_db` is
-      defined against the airborne reference, 20 uPa; underwater work uses
-      1 uPa, so state your reference if you report a level.
-    see: schema/zmeta-event-1.1.0.schema.json (ACOUSTIC feature contract)
+      frequency or a level to satisfy the contract. `spl_db` means dB SPL re
+      20 uPa unless `features.level_reference` says otherwise: declare
+      SPL_RE_1UPA for a hydrophone, or DBFS / DB_RELATIVE for an uncalibrated
+      level, rather than relabelling the value.
+    see: schema/zmeta-event-1.1.0.schema.json (ACOUSTIC feature contract, level_reference)
+
+  - id: acoustic-level-without-reference
+    detect:
+      modality: ACOUSTIC
+      zmeta_version_not: "1.0"
+      has_path: payload.features.spl_db
+      absent_path: payload.features.level_reference
+    hint: >
+      This ACOUSTIC observation reports `spl_db` with no `level_reference`,
+      so a consumer reads it as calibrated dB SPL re 20 uPa, the airborne
+      convention. If that is what was measured, nothing is wrong. A
+      hydrophone states levels re 1 uPa, and an uncalibrated or compressed
+      stream can only state a full-scale or relative level; declare
+      `features.level_reference` as SPL_RE_1UPA, DBFS or DB_RELATIVE so the
+      claim travels with the value. Contract section 6.5 requires an alternate
+      unit such as dBFS to be converted before canonical emission or carried
+      in an explicitly named payload-scoped field; on the locked v1.0 lane
+      that is the only compliant form. `features.level_reference` is the
+      experimental 1.1.0 alternative (registry ACOUSTIC_LEVEL_REFERENCE), and
+      its reconciliation with 6.5 is deferred to the post-lock contract pass.
+    see: schema/zmeta-event-1.1.0.schema.json (ACOUSTIC level_reference), spec/extension-registry.yaml (ACOUSTIC_LEVEL_REFERENCE), spec/semantics-contract.md section 6.5 (the v1.0 form)
+    severity_of_hint: consider
+
+  - id: acoustic-level-on-locked-lane
+    detect:
+      modality: ACOUSTIC
+      zmeta_version: "1.0"
+      has_path: payload.features.spl_db
+    hint: >
+      This v1.0 ACOUSTIC observation carries `spl_db`. The locked v1.0 lane
+      has no ACOUSTIC feature contract and no `level_reference` vocabulary,
+      so a consumer can only read `spl_db` as calibrated dB SPL re 20 uPa. A
+      level that is not that (a hydrophone level re 1 uPa, or a full-scale or
+      relative level from an uncalibrated stream) must not be written to
+      `spl_db` here. Contract section 6.5 gives the compliant form: carry it
+      under an explicitly named feature such as `level_dbfs` with no
+      `spl_db`, and state the reference in free-form quality provenance; or
+      move the observation to the 1.1.0 lane and declare
+      `features.level_reference`.
+    see: spec/semantics-contract.md section 6.5, schema/zmeta-event-1.0.schema.json (no ACOUSTIC feature arm), adapters/ingress/adsb/adsb_to_zmeta.py (rssi_dbfs, never power_dbm)
+    severity_of_hint: consider
+
+  - id: timing-quality-incomplete
+    detect:
+      has_path: payload.timing_quality
+      absent_any_path:
+        - payload.timing_quality.time_source
+        - payload.timing_quality.sync_state
+        - payload.timing_quality.est_error_ms
+        - payload.timing_quality.last_sync_ts
+    hint: >
+      `timing_quality` is present but missing one of its four required
+      members (time_source, sync_state, est_error_ms, last_sync_ts). Do not
+      invent the missing value. A producer with no clock-discipline evidence
+      uses the unknown-clock convention the reference adapters already ship:
+      time_source UNKNOWN, sync_state UNSYNCED, and est_error_ms widened to
+      the documented default (60000 ms, `DEFAULT_UNSYNCED_ERROR_MS` in the
+      shared ingress helper) so the bound overstates rather than understates,
+      with last_sync_ts filled the way `coerce_timing_quality` fills it. On
+      the 1.1.0 branch, say why the bound is what it is
+      with `est_error_basis` (MEASURED, DECLARED_BOUND, CONVENTION_DEFAULT or
+      UNRESOLVED) so a consumer can tell a measured bound from a
+      conventional one.
+    see: schema/zmeta-event-1.1.0.schema.json ($defs/timing_quality), adapters/ingress/time_utils.py (coerce_timing_quality, DEFAULT_UNSYNCED_ERROR_MS), adapters/ingress/sapient/sapient_to_zmeta.py (degraded-branch application), docs/zmeta_doctrine_review_log.md (R1-11-04)
 
   - id: negative-altitude-as-depth
     detect:

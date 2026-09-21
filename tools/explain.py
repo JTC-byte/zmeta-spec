@@ -24,6 +24,13 @@ import yaml
 ROOT = Path(__file__).resolve().parents[1]
 GUIDANCE = ROOT / "tools" / "validation_guidance.yaml"
 KNOWN_VERSIONS = {"1.0", "1.1.0"}
+# Every key a rule may use under `detect:`; the fixture asserts the file stays
+# inside this set so a mistyped key cannot silently disable a rule.
+HANDLED_DETECT_KEYS = {
+    "event_type", "zmeta_version", "zmeta_version_not", "modality", "has_path",
+    "absent_path", "any_path", "absent_any_path", "absent_all_paths",
+    "negative_alt_m", "naive_timestamp", "unknown_version",
+}
 TIMESTAMP_KEYS = {"ts", "observed_at", "received_at", "last_sync_ts", "last_seen_ts", "t_start", "t_end"}
 
 
@@ -78,6 +85,14 @@ def matches(rule, event):
         allowed = want if isinstance(want, list) else [want]
         if etype not in allowed:
             return False
+
+    # Lane gates. `zmeta_version` requires an exact lane; `zmeta_version_not`
+    # excludes one, so a rule about 1.1.0 vocabulary still fires on dialect
+    # input that declares no version (2026-09-10 acoustic evidence).
+    if "zmeta_version" in d and event.get("zmeta_version") != d["zmeta_version"]:
+        return False
+    if "zmeta_version_not" in d and event.get("zmeta_version") == d["zmeta_version_not"]:
+        return False
 
     if "modality" in d:
         mod, _ = dig(event, "payload.modality")

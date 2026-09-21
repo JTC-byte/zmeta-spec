@@ -249,3 +249,29 @@ def test_takeoff_crosswalk_stray_is_not_current_vocabulary():
         assert any(issue["code"] == "REGISTRY_UNREGISTERED_SCHEMA_LEAK" for issue in issues)
     finally:
         path.unlink(missing_ok=True)
+
+
+def _registry_with(mutate, tmp_path):
+    import copy
+    data = copy.deepcopy(load_registry())
+    mutate(data)
+    path = tmp_path / "registry.yaml"
+    import yaml as _yaml
+    path.write_text(_yaml.safe_dump(data, sort_keys=False, allow_unicode=True), encoding="utf-8")
+    return path
+
+
+def test_a_note_that_parses_as_a_mapping_is_refused(tmp_path):
+    # An unquoted note containing ": " loads as a one-key dict; the 2026-09-10
+    # acoustic wave shipped one and the validator passed it silently.
+    def mutate(data):
+        data["entries"][0]["notes"] = [{"a note that became": "a mapping"}]
+    issues = validate_extension_registry.validate_registry(_registry_with(mutate, tmp_path))
+    assert any(i["code"] == "REGISTRY_LIST_ITEM_INVALID" for i in issues)
+
+
+def test_a_stale_last_updated_stamp_is_refused(tmp_path):
+    def mutate(data):
+        data["last_updated"] = "2000-01-01"
+    issues = validate_extension_registry.validate_registry(_registry_with(mutate, tmp_path))
+    assert any(i["code"] == "REGISTRY_LAST_UPDATED_STALE" for i in issues)

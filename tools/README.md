@@ -19,6 +19,7 @@ datagram.
 
 ```
 python tools/run_gateway.py --profile H
+python tools/run_gateway.py --profile H --schema-path schema/zmeta-event-1.1.0.schema.json   # v1.1.0 lane; default is locked v1.0
 ```
 
 ### Replay JSONL over UDP
