@@ -7,6 +7,14 @@ what the data means. A sensor is adapted to ZMeta once and then interoperates
 with everything else ZMeta maps, which removes the need for N×N point-to-point
 bridges.
 
+**Open specification.** ZMeta is published under the Apache License 2.0 and has
+been publicly available at this repository since 2026-01-17, with dated, signed
+releases since 2026-01-18. The licenses are perpetual and irrevocable: no party
+can obtain exclusive rights over the published specification, schemas, policy,
+or reference code, and nobody can withdraw them. Anyone may implement, fork, or
+build on them under the license. See `NOTICE`, `IP_POLICY.md`, `TRADEMARK.md`,
+and `docs/zmeta_defensive_publication.md`.
+
 ![ZMeta at a glance: sensors collect, an edge adapter translates to OBSERVATION events, which become INFERENCE, FUSION, STATE, and COMMAND events, with a retask loop back to collection and SYSTEM events across every stage.](docs/img/c1-zmeta-at-a-glance.svg)
 
 ### What ZMeta provides

@@ -2,6 +2,20 @@
 
 ## [Unreleased]
 
+- 2026-09-21 — **The repository states its open-specification terms where
+  every visitor and every fork will see them.** A root `NOTICE` file, carried by
+  every redistribution under Apache License 2.0 Section 4(d), records that the
+  work has been public at this repository since 2026-01-17 with dated, signed
+  releases since 2026-01-18, that the licenses granted are perpetual and
+  irrevocable, that no party can obtain exclusive rights over the published
+  material or withdraw it, that contributions are accepted only under Apache
+  License 2.0 with its patent license, and that any portion which is a work of
+  the United States Government carries no copyright in the United States.
+  `CITATION.cff` gives GitHub a citable record of the current release, its date,
+  and the license, credited to "ZMeta contributors". The README opens with a
+  short open-specification paragraph that points at `NOTICE`, `IP_POLICY.md`,
+  `TRADEMARK.md`, and the defensive publication. No governed artifact moves.
+
 - 2026-09-12 — **The 1.1.0 ACOUSTIC arm accepts a linear-pressure level.**
   The arm requires `center_freq_hz` and a level in at least one of two
   forms,
