@@ -1,0 +1,24 @@
+cff-version: 1.2.0
+message: "If you use or cite ZMeta, cite the tagged release you relied on."
+title: "ZMeta Specification and Reference Stack"
+type: software
+authors:
+  - name: "ZMeta contributors"
+license: Apache-2.0
+repository-code: "https://github.com/JTC-byte/zmeta-spec"
+url: "https://github.com/JTC-byte/zmeta-spec"
+version: "1.1.25"
+date-released: "2026-08-13"
+abstract: >-
+  ZMeta is a free, open, transport-agnostic semantic standard for resilient
+  ISR. It defines one event model, with governed validation, lineage, timing
+  quality, confidence, profile projection, and policy adjudication, that
+  heterogeneous sensors, analytics, gateways, and mission systems can share
+  without changing what the data means. The repository has been publicly
+  available since 2026-01-17 with dated, signed releases since 2026-01-18.
+keywords:
+  - ISR
+  - interoperability
+  - open specification
+  - metadata
+  - sensor fusion

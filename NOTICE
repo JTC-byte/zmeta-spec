@@ -1,0 +1,30 @@
+ZMeta Specification and Reference Stack
+https://github.com/JTC-byte/zmeta-spec
+
+This work is published as an open specification under the Apache License,
+Version 2.0 (see LICENSE). It has been publicly available at the repository
+above since 2026-01-17, with dated, signed releases since 2026-01-18. Each
+release is identified by a git tag, a release manifest, and published
+checksums, which together establish the public record of what was disclosed
+and when.
+
+The licenses granted under Apache License 2.0 are perpetual, worldwide,
+non-exclusive, and irrevocable. No party can obtain exclusive rights over the
+published specification, schemas, policy, conformance material, or reference
+code, and no party can withdraw them from the public. Anyone may implement,
+extend, fork, or redistribute them under the terms of the license.
+
+To the extent any portion of this work is a work of the United States
+Government, that portion is not subject to copyright protection in the United
+States under 17 U.S.C. 105, and no person may claim copyright in it.
+
+Contributions are accepted only under Apache License 2.0 (see CONTRIBUTING.md),
+which includes each contributor's patent license for their contributions.
+
+"ZMeta" identifies this upstream specification. Use of the name for
+compatibility and conformance claims is described in TRADEMARK.md and
+CONFORMANCE.md. The published architecture is described in patent-searchable
+form in docs/zmeta_defensive_publication.md.
+
+This NOTICE must be included with redistributions of this work or derivative
+works, as required by Section 4(d) of the Apache License 2.0.
