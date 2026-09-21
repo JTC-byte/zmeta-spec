@@ -48,6 +48,76 @@ gitignored `local/` folder; the public record is the worklog entries for
 those dates, doctrine pressure log cycle X2, and the two releases'
 notes and validation reports.
 
+## FIELD-EVIDENCE ADJUDICATIONS (2026-08-26): the 2026-08 sonar/chat edge deployment
+
+Doctrine cycle F1. A second edge organization fielded an imaging sonar with
+its own fusion pipeline plus a bidirectional tactical-chat bridge, publishing
+a self-declared dialect onto the live bus the private capture station
+records. Two adversarially verified audits ran against live packets, and the
+maintainer ruled on every open question from the evidence on 2026-08-26. The
+rulings, the raw specimens, the measurement numbers, and the capture-loss
+manifest live in the private evidence record (gitignored `local/`, keyed to
+this deployment); the public reasoning is doctrine log cycle F1. Standing
+after the rulings:
+
+1. **Replay tripwire FIRED (F1-01).** The deployment is recorded as the
+   second independent instance on `replay-synthetic-labels` in
+   `spec/future-branch-roadmap.yaml`, dialect caveat kept with the evidence,
+   and a promotion blocker is booked in the same entry for the four reserved
+   replay records' droppable-label flags. No governed vocabulary moved; the
+   promotion decision itself waits for the AAR window.
+2. **Chat ruled in scope, evidence-gated (F1-02).** The incoming chat
+   adapter is received as field telemetry under the intake doctrine; name
+   reservation waits for the artifact. Pre-delivery review questions are
+   drafted in the private record for the maintainer to send.
+3. **`RF_ZERO_FILL_SUSPECTED` generalization booked for the AAR (F1-03).**
+   The mesh-radio lane's `rssi`/`snr` zero pair is the second field instance
+   of the class; the predicate question is examined at the AAR, not changed
+   during the lock.
+4. **C1-04 closed, no mint (doctrine log C1-04 resolution).** The residue is
+   booked for the AAR as four narrow items: a declaration floor for
+   geospatial uncertainty (a token for "position present, no error model,"
+   the Section 4.9 MUST that nothing enforces), the AIS/ADS-B adapter
+   inconsistency on declared-accuracy mapping, `probability` declarations in
+   every ingress adapter that emits an ellipse, and precision-policy
+   coverage for the fusion-nested `estimated_state.geo.error_ellipse_m`
+   path. Sibling schema-governance asymmetries recorded with the audit:
+   `$defs/quality` is enforced only on observations, and `FusionPayload`
+   requires `geo` while leaving it ungoverned.
+5. **Diagnostics graduate during the lock (F1-04).** Remediation guidance
+   for all 61 violation codes, drafted against primary sources with an
+   adversarial refuter per hint, landing as a separate advisory file read by
+   the tooling, never a compliance surface; cut as a release when verified.
+6. **Registry surface-coherence item, booked post-lock.** The registry
+   prose's six-surface validity rule, the three-surface `experimental`
+   definition, and the per-entry status fields disagree: all 63 entries
+   carry `adapter_gateway_status: none` and 62 of 63 carry
+   `encoding_status: none`, including `adopted` entries, so read strictly
+   even adopted vocabulary fails the prose rule. Either the rule
+   over-claims or the ladder needs per-status surface requirements stated.
+7. **Unwired violation codes, surfaced by the guidance verification.**
+   Three codes are governed reason-code vocabulary with no emitter
+   anywhere in gateway/, tools/, or adapters/:
+   `OBSERVATION_HAS_CLASSIFICATION` (the observation denylist check emits
+   `OBSERVATION_HAS_IDENTITY` for every denylisted name, classification
+   included), `INVALID_MODALITY_FEATURES` (feature-contract failures
+   surface as `SCHEMA_INVALID`), and `RF_WINDOW_MIDPOINT_INVALID` (the
+   implemented Section 5.6 check emits `RF_WINDOW_MIDPOINT_MISMATCH`).
+   Their guidance entries state that standing honestly. Same class as the
+   backlog item on command-evidence codes lacking corpus vectors: decide
+   at the AAR whether each gets an emitter, stays reserved wire vocabulary
+   for producer-authored SCHEMA_VIOLATION events, or is retired.
+8. **Capture apparatus finding (F1-06).** The deployment's raw feed before
+   the final captured window was discarded by the station's default rolling
+   mode because no pull ran for a stretch of the deployment window; the
+   prune manifest records every lost file. The recovered final window is
+   preserved in the private capture record with its inventory, which
+   surfaced two items for later analysis, one bearing on the raster gap and
+   one on the correlation tripwire. Open apparatus
+   decision: pull cadence tighter than the retention window, or retain-all
+   mode with
+   disk monitoring, during any active deployment.
+
 ## PRIORITIZED BACKLOG after doctrine cycle C1 (2026-08-10)
 
 Written at the close of the C1 fix wave, updated at the close of the
@@ -102,13 +172,14 @@ design waves, then hygiene, then anything genuinely waiting on field evidence.
 
 ### Tier 2 — decisions that need no new data, only the maintainer
 
-4. **Covariance for fusion and state uncertainty (C1-04).** Recorded
-   decision-due. `error_ellipse_m` is horizontal-only with no vertical and no
-   velocity term, and `estimated_state` admits no correlation structure. The
-   real question is gate 2 against gate 1: consumer-sufficiency says a fusion
-   consumer cannot responsibly propagate uncertainty without it, the alphabet
-   gate says a covariance matrix is a dictionary entry belonging in a
-   namespaced extension. Both are arguable and neither needs field data.
+4. **Covariance for fusion and state uncertainty (C1-04). DECIDED
+   2026-08-26: closed with a recorded rationale, no mint.** The question
+   arrived a second time as a field correlation failure, and the audit
+   corrected the premise: an ellipse with a declared `probability` is a 2x2
+   covariance, and the field failure traced to the adapter and declaration
+   layer. Resolution and residue are in the doctrine log C1-04 entry; the
+   four booked follow-on items are in the 2026-08-26 field-evidence section
+   above.
 
 5. **The 15-concept experimental registry adoption session.** The oldest
    outstanding item, queued since 2026-07-08 under the standing direction to

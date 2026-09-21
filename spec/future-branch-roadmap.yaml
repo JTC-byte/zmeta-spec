@@ -323,15 +323,37 @@ candidates:
         observed not surviving adaptation into canonical events, so opted-in
         test stubs can appear as clean state downstream (1 independent
         deployment).
+      - >
+        2026-08 sonar/chat edge deployment (different organization, different
+        sensor domain, second independent deployment): real retained ISR
+        replayed onto a live bus with producer-side replay markers present in
+        the payload; the markers did not survive adaptation and the consuming
+        display rendered the feed as undeclared. Replay re-stamping of `ts`
+        to wall clock was measured across 77 distinct tracks, a live breach
+        of the Section 5.1 observation-time meaning. Caveat recorded with the
+        evidence: the feed declares a non-canonical dialect version rather
+        than canonical events. Maintainer adjudicated 2026-08-26 that the
+        instance counts; the tripwire below is fired.
     tripwires:
       - >
         A second independent deployment demonstrates synthetic/replay/test
         traffic entering canonical events without a surviving label (Section
         2.6: dirty data masquerading as clean state).
     recommendation: >
-      Watch closely; the recorded evidence is exactly the laundering failure
-      class this branch exists to prevent.
-    notes: Interim mitigation is producer-side suppression or namespaced extensions.
+      Tripwire adjudicated fired 2026-08-26 (two independent deployments);
+      the promotion discussion is armed for the post-refactor AAR window.
+      Promotion still requires the full adoption surface list and an explicit
+      maintainer adoption decision.
+    notes: >
+      Interim mitigation is producer-side suppression or namespaced
+      extensions. Promotion blocker, booked 2026-08-26: the four reserved
+      registry records (REPLAY_STATUS, REPLAY_LABEL, SYNTHETIC_EVENT,
+      RED_TEAM_INJECTION) explicitly carry ignorable_by_default true,
+      risk_relevant false, and must_preserve_when_used_for_policy false; a
+      promoted replay label written that way would be droppable in
+      projection, defeating this branch's purpose, so those flags must be
+      corrected as part of any promotion. Latent until promotion because
+      reserved vocabulary is invalid on the wire.
 
   - id: coalition-release-export
     display_name: Coalition release / cross-domain export labels

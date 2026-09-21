@@ -17,6 +17,11 @@ def parse_args():
     parser.add_argument("--file", required=True)
     parser.add_argument("--profile", choices=["L", "M", "H"], required=True)
     parser.add_argument("--strict", action="store_true")
+    parser.add_argument(
+        "--no-guidance",
+        action="store_true",
+        help="suppress advisory remediation guidance lines",
+    )
     return parser.parse_args()
 
 
@@ -45,6 +50,29 @@ UNION_FALLBACK_HINT = (
     + "/".join(sorted(LANE_SCHEMAS))
     + " for branch-level diagnostics"
 )
+
+GUIDANCE_PATH = ROOT / "tools" / "validation_guidance.yaml"
+
+
+def load_guidance():
+    """Advisory remediation text per violation code, or {} when unavailable.
+
+    Guidance may never change a verdict: it is read once, printed alongside
+    violations, and any failure to load it (missing file, bad YAML, missing
+    dependency) degrades to no guidance rather than to an error.
+    """
+    try:
+        import yaml
+
+        with open(GUIDANCE_PATH, "r", encoding="utf-8") as handle:
+            data = yaml.safe_load(handle)
+        return {
+            entry["code"]: " ".join(str(entry["remediation"]).split())
+            for entry in data.get("guidance", [])
+            if entry.get("code") and entry.get("remediation")
+        }
+    except Exception:
+        return {}
 
 
 def _detail(violation):
@@ -90,6 +118,16 @@ def main():
     severity_map = policy.get("violation_severities", {})
     state = validators.ValidationState()
 
+    guidance = {} if args.no_guidance else load_guidance()
+    guided = set()
+
+    def emit_guidance(code):
+        # Advisory only, once per code per run; verdict paths never read it.
+        text = guidance.get(code)
+        if text and code not in guided:
+            guided.add(code)
+            print("  guidance: " + text)
+
     total = 0
     passed = 0
     failed = 0
@@ -107,6 +145,7 @@ def main():
             total = 1
             failed = 1
             print(f"FAIL SCHEMA_INVALID event_id=UNKNOWN error={exc}")
+            emit_guidance("SCHEMA_INVALID")
             print(f"total={total} passed={passed} failed={failed} warnings={warnings}")
             raise SystemExit(1)
         if isinstance(obj, list):
@@ -144,6 +183,7 @@ def main():
             for violation in violations:
                 print(f"FAIL {violation['code']} event_id={event_id}"
                       + _detail(violation))
+                emit_guidance(violation["code"])
             if union_fallback:
                 print("  " + UNION_FALLBACK_HINT)
             continue
@@ -184,11 +224,13 @@ def main():
                     warned_local = True
                     print(f"WARN {violation['code']} event_id={event_id}"
                           + _detail(violation))
+                    emit_guidance(violation["code"])
                 else:
                     failed += 1
                     failed_local = True
                     print(f"FAIL {violation['code']} event_id={event_id}"
                           + _detail(violation))
+                    emit_guidance(violation["code"])
         if failed_local:
             continue
         state.record(instance)

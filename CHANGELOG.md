@@ -2,6 +2,35 @@
 
 ## [Unreleased]
 
+- 2026-08-26 — **Validation guidance lands, and the field-evidence
+  adjudications are recorded.** `tools/validation_guidance.yaml` is a new
+  advisory file carrying remediation text for all 61 violation codes, each
+  entry drafted against the primary sources it cites, adversarially refuted
+  by an independent verifier, and re-verified in a second independent pass
+  before graduation; `tools/validate.py` now prints the matching guidance
+  line under each violation (once per code per run, suppressible with
+  `--no-guidance`, degrading to silence when the file is absent), and
+  `tools/explain.py` graduates the field-proven structural rules that
+  diagnose event shape, wrong event class included, even on dialect input.
+  Guidance is advisory by construction and by test:
+  `gateway/tests/test_validation_guidance.py` proves verdict output is
+  identical with guidance on and off, requires every registry code to carry
+  a hint so a newly minted code must arrive with one, and pins the
+  once-per-run behavior. The motivating evidence and rulings are recorded
+  as doctrine log cycle F1: the `replay-synthetic-labels` tripwire is
+  adjudicated fired on a second independent fielded deployment (recorded
+  with its dialect caveat in `spec/future-branch-roadmap.yaml`, with a
+  promotion blocker for the reserved replay records' droppable-label
+  flags), chat is ruled in scope and evidence-gated, the `rssi`/`snr`
+  zero-fill pair is booked as second-instance evidence for the
+  `RF_ZERO_FILL_SUSPECTED` predicate question, and C1-04 closes with a
+  recorded rationale and no mint. The guidance verification also surfaced
+  three governed codes with no emitter anywhere in the stack
+  (`OBSERVATION_HAS_CLASSIFICATION`, `INVALID_MODALITY_FEATURES`,
+  `RF_WINDOW_MIDPOINT_INVALID`); their hints state that standing honestly
+  and the finding is booked in the refinement handoff. No kernel vocabulary
+  changed; the locked v1.0 schema and the semantic contract are untouched.
+
 - 2026-08-23 — **The ontology reference lands, with the generated figure
   system behind it.** `docs/zmeta_ontology_reference.md` is a new advisory
   reference: what ZMeta is, then a status-marked map of every concept in

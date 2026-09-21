@@ -1895,7 +1895,7 @@ enforcement by layer instead of citing a corpus that did not carry it. No
 v1.0-stamped equivalents were added, because the locked schema deliberately
 accepts them and a fixture asserting otherwise would be a lie about the lane.
 
-### C1-04 — Fusion and state uncertainty cannot express a correlated distribution · **OPEN — decision-due**
+### C1-04 — Fusion and state uncertainty cannot express a correlated distribution · **DECIDED 2026-08-26**
 
 Covariance appears nowhere in `spec/`, `docs/`, `policy/` or `schema/`; the
 only occurrence in the repository is inside a figure-generation script.
@@ -1915,6 +1915,30 @@ namespaced extension. Recorded now, per maintainer adjudication 2026-08-10, as
 decision-due rather than field-gated: no deployment has to report a problem
 before this can be decided, because the modelling question is answerable from
 the contract alone.
+
+**Resolution (2026-08-26, maintainer adjudication): closed with a recorded
+rationale, no mint.** The question arrived a second time as a field report
+(an analyst could not correlate a space-based RF ellipse against an AIS
+track), and the adversarially verified audit of that case corrected the
+premise this entry was written on: an `error_ellipse_m` with a declared
+`probability` is a 2x2 positional covariance with the same three degrees of
+freedom, and `orientation_deg` carries the off-diagonal cross term, so
+Mahalanobis gating is client-side arithmetic on values already on the wire.
+The field failure traced to the adapter and declaration layer, not the
+kernel: the AIS ingress refuses to emit uncertainty while the sibling ADS-B
+ingress maps the identical declared threshold into a formal ellipse, and no
+ingress adapter in the tree declares `probability`, which breaks the
+ellipse-to-covariance conversion even where an ellipse is present. Vertical,
+velocity, and position/time covariance remain absent as named fields and
+compose into a namespaced extension under contract Section 20.3, which is
+where gate 1 puts them. The genuine residue is narrower than this entry's
+title: contract Section 4.9 makes explicit geospatial uncertainty a MUST
+that nothing enforces, and no token exists for "position present, no error
+model," so omission reads as precision. That declaration-floor item, plus
+the adapter inconsistency, the missing `probability` declarations, and the
+precision-policy gap on the fusion-nested ellipse path, are booked for the
+AAR in `docs/zmeta_refinement_handoff.md`. Full basis with citations:
+the 2026-08 covariance adjudication record (private evidence store).
 
 ### C1-05 — Gap detection is booked only under adversarial trust · **MINTED 2026-08-10**
 
@@ -2350,6 +2374,168 @@ Three tensions were adjudicated by the maintainer (Justin Carr, 2026-08-13):
    zero-filled, across field families, with declared sentinels defined)
    is the durable home for this rule and is recorded here as
    versioned-semantic-branch material, not minted policy.
+
+## Cycle F1 — 2026-08-26 (fielded evidence: the 2026-08 sonar/chat edge deployment)
+
+The first doctrine cycle driven by live field capture rather than by a pull
+request or an internal audit. A second edge organization fielded an imaging
+sonar with its own fusion pipeline and a bidirectional tactical-chat bridge,
+publishing a self-declared dialect onto a live bus that the private field
+capture station records. Live packets were measured directly; the raw
+specimens, measurement numbers, and the full adjudication records live in the
+private evidence store, with pointers in
+`docs/zmeta_refinement_handoff.md`. Two audit passes ran with adversarial
+verification (thirteen agents each); the rulings below were made by the
+maintainer on 2026-08-26 against the verified residue. This cycle also
+recorded the second independent-adoption signal for the conformance tooling
+as an adoption surface, which bears on F1-04.
+
+### F1-01 — A replay label survived the producer and died at the adaptation boundary · **DECIDED 2026-08-26**
+
+**Observed:** every sonar event in the live window carried two producer-side
+liveness markers in its payload, and the consuming display rendered the feed
+as undeclared. The replayed data is real retained ISR, and re-stamping was
+measured rather than assumed: across 77 distinct tracks, all timestamps sat
+in a tight current-wall-clock band with zero tracks spanning the original
+capture period, so the replay discards the original observation instant.
+That is a present-tense breach of the Section 5.1 locked meaning of `ts`
+(time of observation, not receive time) by a fielded producer.
+
+**The tension:** the `replay-synthetic-labels` branch tripwire reads "a
+second independent deployment demonstrates synthetic/replay/test traffic
+entering canonical events without a surviving label." This feed is a
+declared non-canonical dialect, so the letter of "entering canonical events"
+was arguable. Substance cut the other way: the adopter preserved honesty
+(the markers are present and true) and the standard had no canonical slot to
+carry them, which is the failure the branch exists to prevent, in its
+stronger form. The prior recorded pattern was adopters shedding the honesty
+layer first; this instance inverts it, and an honesty layer that a
+well-behaved producer cannot hand to the standard is a sharper defect than
+one adopters discard.
+
+**Decision:** the maintainer adjudicated the tripwire fired. The deployment
+is recorded as the second independent instance on the branch's promotion
+evidence in `spec/future-branch-roadmap.yaml`, with the dialect caveat kept
+in the evidence text. A promotion blocker is booked in the same entry: the
+four reserved replay registry records explicitly carry
+`ignorable_by_default: true`, `risk_relevant: false`, and
+`must_preserve_when_used_for_policy: false`, which would make a promoted
+replay label droppable in projection; those flags must be corrected as part
+of any promotion. The blocker is deliberately not a standalone fix, because
+reserved vocabulary is invalid on the wire, so the defect is latent until
+promotion and fixing it now would break the field-testing lock for
+something that cannot yet bite.
+
+### F1-02 — Producer-authored conversation asked to enter an ISR charter · **DECIDED 2026-08-26**
+
+**Observed:** the deployment's operators built bidirectional validating chat
+adapters unprompted, so a radio-relay chat user can converse with a
+phone-messenger user across the bus, and the live feed already carries a
+mesh-radio chat lane whose message content ships as a raw string holding a
+programming-language object dump, design gate 5 inverted. This is the second
+independent field signal for chat, after the 2026-08-15 first-contact gap
+list.
+
+**The tension:** chat is producer-authored conversation, not sensing, and
+the charter is ISR event semantics. Ruling it in risks scope growth toward a
+messaging platform; ruling it out manufactures fork pressure, because
+adopters demonstrably build it anyway and the strategic record names fork
+pressure, not non-adoption, as the existential risk.
+
+**Decision:** in scope, evidence-gated. Tactical messaging is part of the
+interoperability problem the standard exists to solve, bounded to message
+envelope semantics with honest labels; the standard does not become a
+messaging platform. Nothing is minted by this ruling: chat enters the
+registry and roadmap machinery under the normal two-independent-
+implementation evidence bar, and the incoming adapter is received as field
+telemetry to harvest under the contribution-intake doctrine. Name
+reservation waits for the adapter artifact.
+
+### F1-03 — A second zero-fill field pair presses on a one-predicate code · **OPEN — booked for the AAR**
+
+The mesh-radio chat lane carries records with `rssi: 0` and `snr: 0`
+together, the same fabricated-sentinel pathology `RF_ZERO_FILL_SUSPECTED`
+(minted v1.1.25, X2-04) detects, on a field pair its bandwidth-plus-power
+predicate does not cover. Second occurrence of the class in the field.
+Decision: recorded as evidence, examined at the AAR as a predicate
+generalization question rather than changed now. The X2-04 record is the
+caution: the first draft predicate collided with a sanctioned receiver-class
+sentinel across five adapter families and had to be re-adjudicated, so
+predicate edits earn a verification pass, not a hotfix. A third distinct
+field pair forces the generalization question to a terminal status under
+this log's recurrence rule.
+
+### F1-04 — The alphabet was generatively complete and the adopter still failed · **DECIDED 2026-08-26**
+
+**Observed:** the audit found the sonar dialect's central defect was not a
+missing letter but a wrong one. The content is tracker output, and modelled
+as fusion and state the detector score has a mandatory legal home, the track
+identity becomes a required field, and the acoustic feature contract no
+longer applies; the adopter instead published observations and routed
+around each wall (a score hidden one level below the confidence
+prohibition, track identity inside features where it is forbidden). Every
+downstream symptom then read, from inside their code, as the standard being
+restrictive. Separately measured: of the 61 violation codes, 10 carry any
+message, and the code that names this exact failure never fires because the
+schema rejects first with a raw internal message.
+
+**The tension:** the design gates rigorously answer "does this belong in the
+kernel?" and nothing in the estate answers "why did a competent adopter fail
+to find what was already there?" The kernel stayed clean and the adopter
+still shipped a dialect, which is the outcome the gates exist to prevent,
+arrived at through delivery rather than vocabulary.
+
+**Decision:** diagnostics carry the fix. Remediation guidance graduates into
+the repository during the lock as tooling plus advisory text, the same
+change class as the ontology reference: a separate advisory file read by the
+tooling, outside `policy/`, never a compliance surface, so a wrong hint is a
+documentation bug fixable without ceremony while compliance stays defined
+solely by the contract and schema. Coverage scales to all 61 codes, each
+hint drafted against primary sources and adversarially refuted before
+acceptance, ordered by what actually trips adopters. This completes the
+principle already stated in `tools/validate.py` (the diagnostic that
+explains the wall should reach the first step that hits it) rather than
+introducing a new one.
+
+### F1-05 — Five mint candidates from a novel sensor domain, zero minted · **HELD-FIRM 2026-08-26**
+
+The deployment put five candidate additions in front of the gates at once: a
+subsurface domain marker, a depth field, a sonar modality, a chat event
+type, and a first-class correlation identity; a sixth arrived days later as
+a kernel-level covariance proposal. Adversarially verified audits refuted
+every mint: subsurface identity, depth, and uncertainty are expressible
+today (payload class, the 2-D-plus-vertical-status pattern, measurement
+error with a declared metric, the ellipse with a declared probability);
+correlation is the documented advisory convention with its own tripwire;
+sonar is acoustic sensing and the reserved modality list deliberately omits
+it; chat is a scope ruling, not a vocabulary need, at current evidence; and
+the covariance case closed C1-04. The gates held under real field pressure
+from a domain the kernel had never met, and the canonical templates built
+from the live data validate strict, which is the constructive proof. The
+alphabet-not-dictionary doctrine is upheld as final for this evidence
+class; re-open only on genuinely new evidence, never on another instance of
+the same shape.
+
+### F1-06 — The record-of-authority doctrine assumed a pull cadence that did not exist · **OPEN — apparatus**
+
+Found while preserving this cycle's evidence, and it is an apparatus
+finding about our own capture station, not about the standard. The station's
+documented model binds the record of authority to a periodic pull from a
+bounded buffer, and the buffer's default mode retains a rolling window,
+discarding the oldest material with a manifest record per pruned file. Both
+halves worked as designed. What failed was operational: no pull ran for a
+stretch of the active deployment window, the mode was never switched to
+retain-all for that window, and the window is shorter than the stretch was,
+so the deployment's raw feed before the final captured window was discarded
+by design while nobody was pulling. Discarding was not silent (the prune
+manifest records every lost file with its hash and count), but the
+authority copy never existed because the pull that would have created it
+never ran. The surviving evidence, the retention figures, the dates, and
+the inventory are in the private evidence record. Open question for the
+apparatus: a pull cadence bound tighter than the retention window during
+any active deployment, or retain-all mode plus disk monitoring for the
+deployment's duration, and which of those becomes a written rule in the
+capture station's own doctrine.
 
 ---
 

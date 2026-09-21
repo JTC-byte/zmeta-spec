@@ -2,6 +2,35 @@
 
 ## Current Resume Note
 
+- Last updated: 2026-08-26 (field-evidence adjudications: the 2026-08 sonar/chat edge deployment)
+- **2026-08-26 (doctrine cycle F1: eight maintainer rulings from live field
+  evidence; no governed vocabulary moved; the lock stands).** A second edge
+  organization fielded an imaging sonar with its own fusion pipeline and a
+  bidirectional tactical-chat bridge, publishing a self-declared dialect
+  onto the live bus the private capture station records. Live packets were
+  measured directly and two audits ran with adversarial verification
+  (thirteen agents each); the maintainer then ruled on every open question
+  from the evidence. The rulings: the `replay-synthetic-labels` tripwire is
+  adjudicated fired, with the deployment recorded as the second independent
+  instance on the roadmap branch and a promotion blocker booked for the
+  reserved replay records' droppable-label flags; chat is ruled in scope,
+  evidence-gated, with the incoming adapter to be received as field
+  telemetry; the `rssi`/`snr` zero pair is booked as second-instance
+  evidence for generalizing the `RF_ZERO_FILL_SUSPECTED` predicate at the
+  AAR; C1-04 closes with a recorded rationale and no mint, its narrow
+  residue booked as a declaration-floor and adapter-consistency wave; and
+  the diagnostics-carry-the-fix system graduates during the lock as a
+  separate advisory file with coverage scaling to all 61 violation codes
+  under per-hint adversarial verification. Cycle entry F1-05 records the
+  counter-result worth as much as any change: five mint candidates from a
+  novel sensor domain were all refuted as composable today, and the
+  canonical templates built from the live data validate strict. One
+  apparatus finding (F1-06): the capture station's rolling default plus a
+  missed pull cadence discarded the deployment's raw feed before the final
+  window; the prune manifest records what was lost, the recovered window is
+  preserved in the capture repo, and the cadence question is booked. Public
+  reasoning in doctrine log cycle F1; raw specimens, measurements, and the
+  full adjudication records in the private evidence store.
 - Last updated: 2026-08-23 (ontology reference wave: new doc, nine figures, corrections)
 - **2026-08-23 (ontology reference, appreciation layer, doc corrections).**
   A docs-class wave, maintainer-directed while the repo stays locked for
