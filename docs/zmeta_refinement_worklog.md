@@ -2,7 +2,41 @@
 
 ## Current Resume Note
 
-- Last updated: 2026-09-10 (acoustic wave: two experimental 1.1.0 markers from a live hydrophone)
+- Last updated: 2026-09-12 (acoustic pressure: the 1.1.0 ACOUSTIC arm accepts a linear-pressure level)
+- **2026-09-12 (doctrine entry F2-08: a linear-pressure level on the
+  ACOUSTIC arm, on its own branch).** The downstream COP investigated two more
+  acoustic sources after Orcasound, a calibrated research hydrophone
+  stated re 1 uPa and an atmospheric infrasound array whose field
+  publishes calibrated pascals and no decibel, and reported that neither
+  could emit. Verification found the refusal was one schema line, `spl_db`
+  required on the experimental arm, not contract text, and that a named
+  pascals feature already validated beside it; it also corrected three
+  framings in the note (the contract does not mandate a decibel; the
+  underwater and airborne references differ by a fixed 20 log10(20) =
+  26.02 dB and
+  the objection is laundering; the implementation count is one, not
+  three). The maintainer ruled: the arm requires `center_freq_hz` and
+  any of `spl_db` or `pressure_pa` with `pressure_statistic`, preserving
+  the level-present guarantee; the `spl_db` description states its window
+  and that it declares no amplitude statistic; a statistic marker is held
+  behind a second implementation; a governed pressure contract is refused
+  on gates 1 and 6 and the pair registered experimental with the bar
+  stated unmet. The pre-cut verification returned twenty-six findings,
+  led by a first draft that registered the name as reserved while the same
+  change made the fields valid; the entry was re-registered, the
+  reserved-leak check gained the arm that would have caught it, the level
+  choice was rewritten so a missing level names the pressure pair on the
+  wire,
+  the pair was bound both ways with zero refused, and the schema gained
+  nine fixtures in the discrimination suite so the red/green proof is an
+  in-repo artifact rather than a session act. A second verification found
+  the pressure-to-statistic direction of the binding unpinned and an
+  existing power_db fixture made vacuous by the relaxation; both were
+  repaired and a mirror guidance rule added. Landed on
+  `exp/acoustic-pressure` stacked on the acoustic branch. The three-branch
+  merge review of 2026-09-12 found the per-code hint for
+  `INVALID_MODALITY_FEATURES` still saying `spl_db` is required; corrected
+  on the branch before the merge.
 - **2026-09-10 (doctrine cycle F2: the acoustic modality worked on 1.1.0
   from live evidence; two experimental markers minted; the lane fix).**
   The downstream COP session brought seven spec questions ahead of an Orcasound

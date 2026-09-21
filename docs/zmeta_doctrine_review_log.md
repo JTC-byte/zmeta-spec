@@ -2699,6 +2699,128 @@ in the same change; before it, nothing tested them at all.
 Advisory class; a wrong hint is a documentation bug, and this one was found
 by the evidence build fifteen days after the guidance landed in the tree.
 
+### F2-08 — A required decibel where a domain publishes linear pressure · **MINTED 2026-09-12 (experimental)**
+
+**Observed:** the downstream COP investigated two further acoustic sources after
+the Orcasound producer and reported that neither could emit under the
+ACOUSTIC contract: a research hydrophone with a traceable calibration chain
+whose level is stated re 1 uPa, and an atmospheric infrasound array whose
+calibration is in pascals and whose field publishes no decibel figure at
+all, only pressure as RMS, peak and peak-to-peak with none privileged. The
+note asked for a governed linear-pressure feature and a ruling on which
+statistic a level reports.
+
+**What verification found:** the refusal is one schema line. On the
+experimental branch the ACOUSTIC arm is open and a named pascals feature
+already validates beside `spl_db`; the only refusal is that `spl_db` is
+required. That requiredness is a schema choice on the 1.1.0 branch, not
+contract text: the contract never names `spl_db`, section 21.4 says only
+"measured signal facts", and section 20.2 requires the schema and the
+feature contract together to define required fields while 21.4 names none
+for ACOUSTIC, so today the required list lives only in the 1.1.0 schema,
+whereas the RF triple including `power_dbm` is locked 7.4 text. On the
+locked v1.0 lane, which has no ACOUSTIC feature arm, the named-feature form
+validates today. Three framings in the note did not survive: that the
+contract "mandates a decibel scalar" (the requirement is the experimental
+schema); "category error rather than a units offset" for re 1 uPa against re
+20 uPa (the offset is a fixed 20 log10(20) = 26.02 dB; the honest objection
+is laundering, which ACOUSTIC_LEVEL_REFERENCE already cites); and "three
+independent instances" (one running producer plus two research passes by the
+same program, so the implementation count is one for the reference marker
+and zero for a pascals value). The genuinely unserved half was the
+statistic: no amplitude-statistic vocabulary exists, so two honest producers
+reporting different statistics diverge silently, a section 2.6 condition
+that already bites the shipped example. Section 5.4 is the precedent for
+saying what a scalar is not (`est_error_ms` "is not 1-sigma, RMS, or a
+statistical mean").
+
+**The tension:** gate 1 says every part of the asked-for field composes
+(unit in the name per 6.5, `center_freq_hz` and `bandwidth_hz` for the band,
+`payload.t_start` and `t_end` for the window per section 5.6) and gate 6
+says the outer ring already carries it on the locked lane. Gate 2 says a
+consumer pinned to 1.1.0 cannot read a level emitted on 1.0, and the v1.0
+form has now been directed three times, which makes a workaround the design.
+
+**Decision (maintainer adjudication 2026-09-12; change class B on the F2-05
+precedent, the nearest ruling, with the Class D tension noted at the end):**
+the 1.1.0 ACOUSTIC arm now requires `center_freq_hz` and a level in at least
+one of two forms, `spl_db` or `pressure_pa` with `pressure_statistic` (RMS,
+PEAK, PEAK_TO_PEAK), the pair present together or not at all and
+`pressure_pa` greater than zero, so a linear-pressure domain emits on the
+lane consumers pin while the guarantee that a level is present survives; a
+bare relaxation that would drop the guarantee was refused, and the choice is
+expressed so that a missing level names the pressure pair on the wire. This
+is the one item on the branch that is not purely additive: the required list
+is relaxed, producer-compatible and consumer-visible, with v1.0
+byte-identical. The `spl_db` description now states that the level applies
+over `t_start` to `t_end` when present and otherwise at `event.ts`, that it
+declares no amplitude statistic and that a producer needing one emits the
+pressure pair, and that `duration_ms` is event extent, not a window; the
+`center_freq_hz` description now says it asserts a dominant frequency, not a
+band, which answers the note's inference that a required frequency implies a
+banded level. Shipped 1.1.0 acoustic events keep their validity; the one
+example with a duration and no window now reads as a level at `event.ts`,
+which the description makes explicit rather than undefined. A
+`level_statistic` marker for `spl_db` is held behind a real second
+implementation with no registry name reserved for it, and the pair binding
+keeps it from leaking in through `pressure_statistic`; the roadmap carries
+the tripwire. A governed pressure contract of its own was refused on gates 1
+and 6 and on the evidence bar; the pair is registered as
+ACOUSTIC_PRESSURE_LEVEL, experimental on the 1.1.0 branch with the bar
+stated as not met, after a first draft registered the name as reserved while
+the same change made the fields valid, which the pre-cut verification
+refused and the reserved-leak check now catches. The
+ACOUSTIC_FEATURE_CONTRACT definition names both carriers. Booked: the
+unsettled redistribution status of the EarthScope infrasound holdings the
+note cites. Landed on `exp/acoustic-pressure`, stacked on
+`exp/acoustic-1.1.0`. Class note: `pressure_statistic` is conditionally
+required, and the governance doc lists a new required field under Class D,
+whose reserved-before-implementation step is the shape the leak check now
+refuses; the class for this change is B on the F2-05 precedent and is open
+to re-adjudication at the cut.
+
+Orphan note (2026-09-12, from the three-branch merge review): the relaxation
+lets `level_reference` be present on an event with no `spl_db`. Zero
+instances exist, so under playbook discipline 10 the schema is left alone,
+the question is recorded in the live-test checklist as F2-Q1, and the
+description and the registry now state that the marker qualifies `spl_db`
+only and is inert without it. The pair binding above does not transfer to
+it: that binding was the condition on which the relaxation shipped and a
+leak guard for the held marker, and an orphaned reference guards nothing.
+
+### F2-09 — Attribution trailers on three unpushed commits · **DECIDED 2026-09-12**
+
+**Observed:** three unpushed local commits carry `Co-Authored-By: Claude
+Fable 5.1`: `9814f2b` on `develop` (the branching rule), `8930fb8` and
+`c7819bb` on `exp/acoustic-pressure`. `CLAUDE.md` forbids the trailer
+("Commit attribution is human-only ... Do not add `Co-Authored-By` trailers
+naming Claude"). The sessions that wrote them ran under an instruction from
+outside the repository that directed the trailer; one commit body flagged
+the conflict for the maintainer instead of declining it. The 319 commits on
+`main` carry none.
+
+**Documentation test** (maintainer direction 2026-09-12: rule where the
+documents already guide): `CLAUDE.md` decides the forward half. The nearest
+recorded ruling on the same class, `docs/v1_1_21_precut_panel_register.md`
+item 11 (two commit subjects breaching the voice standard on unpushed
+history: banked, "the maintainer may reword before push"), guides the
+disposition of the existing commits; the Branching section stops an agent at
+creating and committing on local branches; the protocol above places
+adjudication in a separate pass. Nothing forbids a maintainer rewrite of
+unpushed history and nothing requires it.
+
+**Decision:** the three commits stand as written; no commit from this point
+carries the trailer; the rewrite is the maintainer's election before push,
+`9814f2b` first because both experimental branches would be rebased onto it.
+Instance two of the class after v1.1.21 item 11. Documentation defects
+booked from the test: the rule lives only in the advisory working guide and
+sits outside the authority stack (an attribution line belongs in the
+governance Commit And Handoff Standard and in `AGENTS.md`); the authority
+order says nothing about an instruction from outside the repository
+(repository conventions bind repository artifacts, and a conflicting outside
+instruction is escalated, not executed); no guard checks trailers;
+`CONTRIBUTING.md` is silent on attribution.
+
 ---
 
 The value of this log is the pattern over time. But a log that only ever grows

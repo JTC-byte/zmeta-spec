@@ -1291,22 +1291,41 @@
                 "type": "object",
                 "additionalProperties": true,
                 "required": [
-                  "center_freq_hz",
-                  "spl_db"
+                  "center_freq_hz"
                 ],
+                "allOf": [
+                  {
+                    "if": { "not": { "required": ["spl_db"] } },
+                    "then": { "required": ["pressure_pa", "pressure_statistic"] }
+                  }
+                ],
+                "dependentRequired": {
+                  "pressure_pa": ["pressure_statistic"],
+                  "pressure_statistic": ["pressure_pa"]
+                },
                 "properties": {
                   "center_freq_hz": {
                     "type": "number",
-                    "description": "Dominant frequency in Hz"
+                    "description": "Dominant frequency in Hz. It asserts that a dominant frequency was identified, not that the level is band-limited; a band is stated with bandwidth_hz."
                   },
                   "spl_db": {
                     "type": "number",
-                    "description": "Sound level in dB. The reference is declared by level_reference; absent, it is dB SPL re 20 uPa."
+                    "description": "Sound level in dB. The reference is declared by level_reference; absent, it is dB SPL re 20 uPa. The level applies over payload.t_start to payload.t_end when those are present, otherwise to the instant of event.ts. spl_db declares no amplitude statistic: a consumer must not assume RMS, and a producer that must state the statistic emits pressure_pa with pressure_statistic instead. duration_ms is the event extent, not an averaging window."
+                  },
+                  "pressure_pa": {
+                    "type": "number",
+                    "exclusiveMinimum": 0,
+                    "description": "Calibrated acoustic pressure amplitude in pascals, for domains that publish linear pressure rather than a decibel level. Carries the statistic named by pressure_statistic over the same window rule as spl_db. An event carries spl_db, or pressure_pa with pressure_statistic, or both."
+                  },
+                  "pressure_statistic": {
+                    "type": "string",
+                    "enum": ["RMS", "PEAK", "PEAK_TO_PEAK"],
+                    "description": "The amplitude statistic pressure_pa reports. pressure_pa and pressure_statistic are present together or not at all; the statistic never qualifies spl_db."
                   },
                   "level_reference": {
                     "type": "string",
                     "enum": ["SPL_RE_20UPA", "SPL_RE_1UPA", "DBFS", "DB_RELATIVE"],
-                    "description": "Reference of spl_db. SPL_RE_20UPA is the airborne convention and the meaning when absent; SPL_RE_1UPA is the underwater convention; DBFS and DB_RELATIVE declare an uncalibrated level that is not a sound pressure."
+                    "description": "Reference of spl_db, and of spl_db only. SPL_RE_20UPA is the airborne convention and the meaning when spl_db is present and the reference is absent; SPL_RE_1UPA is the underwater convention; DBFS and DB_RELATIVE declare an uncalibrated level that is not a sound pressure. On an event carrying no spl_db the marker states nothing and never qualifies pressure_pa."
                   },
                   "duration_ms": {
                     "type": "number",

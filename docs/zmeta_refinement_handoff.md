@@ -122,7 +122,8 @@ after the rulings:
 
 Doctrine cycle F2. Maintainer direction: the acoustic modality is active
 work on the experimental 1.1.0 branch so the downstream COP can visualize it. What
-this wave lands, all additive on 1.1.0, v1.0 byte-identical:
+this wave lands on 1.1.0, v1.0 byte-identical, items 1 to 3 additive and
+item 4 a relaxation of a required list:
 
 1. **ACOUSTIC_LEVEL_REFERENCE (experimental).** `features.level_reference`
    on the ACOUSTIC arm; `spl_db` description corrected; discrimination
@@ -131,6 +132,22 @@ this wave lands, all additive on 1.1.0, v1.0 byte-identical:
 2. **TIMING_ERROR_BASIS (experimental).** `timing_quality.est_error_basis`
    on 1.1.0; the live R1-11-04 instance; v1.0 rejects the key.
 3. **D1-01 launcher fix** and the guidance lane gate (F2-06, F2-07).
+4. **Linear-pressure level on the 1.1.0 ACOUSTIC arm (F2-08),** on a
+   second branch `exp/acoustic-pressure` stacked on the acoustic branch,
+   from the COP evidence note of 2026-09-11 (three acoustic sources
+   investigated, one running producer): `center_freq_hz` plus a level as
+   `spl_db` or as `pressure_pa` with `pressure_statistic`, the pair bound
+   both ways and the pressure greater than zero; the `spl_db` and
+   `center_freq_hz` descriptions state the window, the absent statistic
+   and the dominant-frequency meaning; ACOUSTIC_PRESSURE_LEVEL registered
+   experimental with the bar stated unmet, and the reserved-leak check
+   gains a feature-contract arm; the `acoustic-missing-level`,
+   `acoustic-pressure-without-statistic` and
+   `acoustic-statistic-without-pressure` guidance rules; nine schema
+   fixtures. Held: a `level_statistic` marker for `spl_db`, behind a
+   second independent implementation, no name reserved. Booked: the
+   EarthScope/CTBTO redistribution question the note left unsettled.
+   Merge order into develop: wave, acoustic, pressure.
 
 Booked from this cycle, not landed: a producer-authority pattern for
 environmental stations (Class B); a governed `geo` on the SENSOR_STATUS arm

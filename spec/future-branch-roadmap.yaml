@@ -9,7 +9,7 @@
 # authority stays in spec/semantics-contract.md.
 
 roadmap_version: 1
-last_updated: "2026-07-27"
+last_updated: "2026-09-12"
 source_plan: docs/s1_11_future_versioned_semantic_branch_roadmap_plan.md
 evidence_bar: >
   Promotion from reserved/proposed into a named version branch requires the
@@ -305,6 +305,44 @@ candidates:
         when its feature contract is complete.
     recommendation: One modality at a time; adapter unit normalization required.
     notes: Negative tests for leakage into v1.0 required per modality.
+
+  - id: acoustic-level-carriers
+    display_name: Acoustic level carriers and statistic
+    status: experimental
+    priority: evidence_gated
+    purpose: >
+      Carry the promotion tripwires for the experimental 1.1.0 acoustic level
+      carriers (ACOUSTIC_LEVEL_REFERENCE, ACOUSTIC_PRESSURE_LEVEL) and the
+      decision on the held amplitude-statistic marker for spl_db, which has
+      no registry name reserved.
+    affected_events: [OBSERVATION_EVENT]
+    registry_refs: [ACOUSTIC_LEVEL_REFERENCE, ACOUSTIC_PRESSURE_LEVEL]
+    depends_on: []
+    required_surfaces: default
+    promotion_evidence:
+      - >
+        2026-09-10 and 2026-09-12: one running hydrophone producer (status
+        only, no level emitted) and two research passes over public acoustic
+        archives by the same program; implementation count one for the
+        reference mechanism, zero for a pascals value (doctrine entries F2-01
+        and F2-08). Both entries entered experimental by maintainer
+        adjudication with the bar stated as not met.
+    tripwires:
+      - >
+        A second independent implementation, not derived from the same
+        codebase, vendor, or organization, emits spl_db with a declared
+        level_reference or pressure_pa with pressure_statistic.
+      - >
+        A producer that measured an amplitude statistic for a decibel level
+        has nowhere honest to state it (the held spl_db statistic marker).
+    recommendation: >
+      Hold both entries experimental and the statistic marker unminted until
+      a tripwire fires; the branch carries the shapes so the evidence can
+      arrive on the wire.
+    notes: >
+      Contract sentences for sections 21.4 and 6.5, and a section 5.6 window
+      statement for acoustic levels, are deferred to the post-lock contract
+      pass (doctrine F2-01, F2-08).
 
   - id: replay-synthetic-labels
     display_name: Replay / synthetic / red-team labels
