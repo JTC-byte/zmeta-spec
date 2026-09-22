@@ -1,6 +1,56 @@
 # ZMeta Refinement Handoff Notes
 
-## CURRENT STATE (2026-09-12): THREE WAVES ON DEVELOP, HELD FOR LIVE EVIDENCE
+## CURRENT STATE (2026-09-22): DEVELOP PUSHED AFTER THE PRE-PUSH REWRITE; MAIN CARRIES THE NOTICE SET
+
+`develop` == `origin/develop` == a305c92, pushed 2026-09-22 after the
+pre-push history rewrite the maintainer directed on 2026-09-21: the
+fielding organization's consent for Cycle F1 recorded (yes, 2026-09-21),
+the capture-apparatus specifics, the named downstream consumer and two
+build-host paths generalised in their introducing commits, the three
+attribution trailers removed (F2-09 CHANGED), and a second message-only
+pass the same night for three commit bodies that still named the consumer.
+`main` == `origin/main` == 7d5638b: the open-specification notice set
+(`NOTICE`, `CITATION.cff`, the README paragraph, a CHANGELOG entry) landed
+as a docs-only exception on the maintainer's direction; the tip is untagged
+and v1.1.25 remains the published release baseline. Only current `main`
+and `develop` changed; no governed artifact moved and no release was cut.
+
+Validation at a305c92, the expected hold state unchanged: 14
+`RELEASE_MANIFEST_*` lines on the kernel gate and no other kernel failure;
+strict examples 51 of 51; roadmap 20 candidates; registry 66 entries;
+`python -m pytest -q` 13 failed (the release-pin tests) and 1859 passed;
+`git diff --check` clean. The worklog entry of 2026-09-21 carries the
+commands and the identifier map. Original to final: 9814f2b df781b3,
+7a01d35 b1dcb26, b0666d0 aa070cd, 8930fb8 f1cf0d3, c7819bb 0ad6c1e,
+e7c1959 2d4195c, e434096 d8b5c53, 80d8181 76e7692, 4932afb 62b02ea,
+29dd5b6 3e399c8, 893ca9b f79c808, 05be3c5 72049fb; record a305c92. The
+merge review register, the doctrine log and the previous-state section
+below cite the pre-rewrite identifiers.
+
+Open, in order of proximity:
+
+1. **Gateway diagnostics on the 1.1.0 lane** (item 1 of the previous
+   state, unchanged): Class C, its own branch from `develop`, before the
+   downstream COP is pointed at `develop`.
+2. **The cut** from `develop` when live acoustic evidence arrives; the
+   manifest, notes and hashes regenerate then.
+3. **Forward edits from the 2026-09-21 share-readiness scan** (private
+   session record), each the maintainer's election: a statement of who
+   holds the schema `$id` domain in `schema/README.md`; the disclosure rule
+   for real-capture provenance in mapping packs; a `permissions` block in
+   the CI workflow; a loopback default for the shipped listen host; the
+   published build-host paths in three audit records.
+4. **Local hygiene:** `refs/backup/*` holds the pre-rewrite and first-pass
+   tips for recovery; delete them once satisfied. They are outside
+   `refs/heads` and are not pushed by `push --all`.
+
+Next session: item 1 on its own branch from `develop`; the cut when the
+evidence lands; the scan's forward edits as elected.
+
+## Previous state (2026-09-12): THREE WAVES ON DEVELOP, HELD FOR LIVE EVIDENCE
+
+Identifiers in this section are as they were before the 2026-09-21
+rewrite; the worklog entry of 2026-09-21 maps each to its final one.
 
 `develop` carries, on top of the published `282c9cf`, the branching rule
 (9814f2b) and three merged branches in dependency order:
@@ -48,7 +98,9 @@ findings, 24 refuted). Open from it, in order of proximity:
    unless the checklist answers yes.
 3. **Attribution trailers** (doctrine F2-09): three unpushed commits carry
    one; they stand, no new commit carries one, and the rewrite before push
-   is the maintainer's election, `9814f2b` first.
+   is the maintainer's election, `9814f2b` first. Resolved 2026-09-21:
+   the maintainer elected the rewrite; the three were reworded without
+   the trailer before the push (F2-09 CHANGED 2026-09-21).
 4. **Guidance line citations into the 1.1.0 schema**: 65 of 79 point at
    moved lines; re-anchor, and pin that citations resolve.
 5. The remaining minor and observation items in the register, and the
