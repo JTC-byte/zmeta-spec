@@ -2,7 +2,48 @@
 
 ## Current Resume Note
 
-- Last updated: 2026-09-12 (integration: three waves merged into develop and held)
+- Last updated: 2026-09-21 (pre-push history rewrite: records generalised, consent recorded, trailers removed)
+- **2026-09-21 (pre-push history rewrite: the held develop records
+  generalised, the consent recorded, the three trailers removed).** Before
+  the first push of `develop` since v1.1.25, a share-readiness scan
+  (verdict in the private session record) found the published line clean
+  and the unpushed records carrying material that belongs in the private
+  evidence record: the capture station's hosting model, retention figures,
+  dated gap and store inventory in doctrine entry F1-06 and handoff item
+  8; a named downstream consumer in twelve places across the doctrine log,
+  the handoff, this worklog, the merge review register and one
+  extension-registry note; and two build-host paths in the merge review
+  register. On the maintainer's direction of 2026-09-21 the unpushed
+  history was rewritten so those passages never reach the remote: each
+  introducing commit was replayed with the passage generalised in place,
+  the three commits carrying an attribution trailer (doctrine F2-09) were
+  reworded without it, and the specifics moved to the private companion
+  under `local/`. The fielding organization's consent to publish the
+  cycle's derived findings, given 2026-09-21, is recorded in the Cycle F1
+  header. Every unpushed commit changed identifier; the records above cite
+  the old ones, and this table is the map (old, new, subject):
+  9814f2b -> df781b3 (Write the branching rule into the change governance doc and )
+  7a01d35 -> b1dcb26 (Record the F1 field-evidence adjudications and land the vali)
+  b0666d0 -> aa070cd (Mint two experimental 1.1.0 markers from a live hydrophone a)
+  8930fb8 -> f1cf0d3 (Let the 1.1.0 ACOUSTIC arm carry a linear-pressure level bes)
+  c7819bb -> 0ad6c1e (Name both level forms in the INVALID_MODALITY_FEATURES hint)
+  e7c1959 -> 2d4195c (Scope level_reference to spl_db in the descriptions and reco)
+  e434096 -> d8b5c53 (Merge branch 'wave/f1-field-evidence' into develop)
+  80d8181 -> 76e7692 (Merge branch 'exp/acoustic-1.1.0' into develop)
+  4932afb -> 62b02ea (Merge branch 'exp/acoustic-pressure' into develop)
+  29dd5b6 -> 3e399c8 (Record the integration of three waves into develop and the m)
+  893ca9b -> f79c808 (Correct the battery count in the integration record)
+  05be3c5 -> 72049fb (Merge branch 'exp/open-specification-notice' into develop)
+  A second pass the same day reworded three commit messages that still
+  named the consumer (found by a peer check of message bodies, which the
+  first pass's gate had not scanned) and corrected this map to
+  original-to-final identifiers; every tree is unchanged. The first-pass
+  identifiers, on the remote for about twenty minutes before the
+  force-push on the maintainer's direction: 633848b, 3a52700, e1e2f67, 5add606, e595b31, 4b1e9f2, 4a1214e, 53035b6, bd5e284, e4c2c99.
+  The extension-registry note edit leaves the release manifest stale on
+  purpose (Branching section); the manifest regenerates at the cut.
+  Process records were altered only to remove the passages named here. No
+  CHANGELOG entry: nothing user-visible changes.
 - **2026-09-12 (integration: three waves merged into develop, held for
   live evidence).** `wave/f1-field-evidence` (7a01d35), `exp/acoustic-1.1.0`
   (b0666d0) and `exp/acoustic-pressure` (8930fb8, c7819bb, e7c1959)

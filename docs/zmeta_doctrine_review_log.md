@@ -2390,6 +2390,9 @@ maintainer on 2026-08-26 against the verified residue. This cycle also
 recorded the second independent-adoption signal for the conformance tooling
 as an adoption surface, which bears on F1-04.
 
+Consent of the fielding organization to publish the derived findings of
+this cycle: yes, given 2026-09-21, recorded by the maintainer the same day.
+
 ### F1-01 — A replay label survived the producer and died at the adaptation boundary · **DECIDED 2026-08-26**
 
 **Observed:** every sonar event in the live window carried two producer-side
@@ -2788,7 +2791,7 @@ only and is inert without it. The pair binding above does not transfer to
 it: that binding was the condition on which the relaxation shipped and a
 leak guard for the held marker, and an orphaned reference guards nothing.
 
-### F2-09 — Attribution trailers on three unpushed commits · **DECIDED 2026-09-12**
+### F2-09 — Attribution trailers on three unpushed commits · **CHANGED 2026-09-21**
 
 **Observed:** three unpushed local commits carry `Co-Authored-By: Claude
 Fable 5.1`: `9814f2b` on `develop` (the branching rule), `8930fb8` and
@@ -2820,6 +2823,13 @@ order says nothing about an instruction from outside the repository
 (repository conventions bind repository artifacts, and a conflicting outside
 instruction is escalated, not executed); no guard checks trailers;
 `CONTRIBUTING.md` is silent on attribution.
+
+**Changed 2026-09-21:** the maintainer elected the rewrite before the
+push. The three commits were reworded without the trailer in the pre-push
+history rewrite recorded in the worklog entry of 2026-09-21, which maps
+every unpushed commit's old identifier to its new one, so the identifiers
+named above are the pre-rewrite ones. The forward half of the decision
+stands: no commit carries the trailer, and `main` still carries none.
 
 ---
 
