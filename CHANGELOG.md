@@ -16,6 +16,102 @@
   short open-specification paragraph that points at `NOTICE`, `IP_POLICY.md`,
   `TRADEMARK.md`, and the defensive publication. No governed artifact moves.
 
+- 2026-09-12 — **The 1.1.0 ACOUSTIC arm accepts a linear-pressure level.**
+  The arm requires `center_freq_hz` and a level in at least one of two
+  forms,
+  `spl_db` or `pressure_pa` with `pressure_statistic` (RMS, PEAK,
+  PEAK_TO_PEAK), the pair present together or not at all and the pressure
+  greater than zero, so a domain that publishes calibrated pressure rather
+  than a decibel can emit on the 1.1.0 lane without manufacturing a
+  number, while the guarantee that a level is present survives and a
+  missing level names the pressure pair on the wire. This relaxes a required
+  list on the experimental branch: every shipped 1.1.0 event stays valid,
+  the locked v1.0 schema is untouched, and the one shipped acoustic
+  example with a duration and no window now reads as a level at
+  `event.ts` by the description rather than undefined. The `spl_db`
+  description states that the level applies over `payload.t_start` to
+  `t_end` when present and otherwise at `event.ts`, that it declares no
+  amplitude statistic, and that `duration_ms` is event extent rather than
+  a window; the `center_freq_hz` description states it asserts a dominant
+  frequency, not a band. Registry: ACOUSTIC_PRESSURE_LEVEL, experimental,
+  with the promotion bar stated as not met; the ACOUSTIC_FEATURE_CONTRACT
+  definition names both carriers; the reserved-leak check gains an
+  observation_feature_contract arm with a fixture; a roadmap candidate
+  carries the tripwires for both acoustic entries and the held statistic
+  marker. Guidance: the required-features rule now asks only for a
+  frequency, and new `acoustic-missing-level`,
+  `acoustic-pressure-without-statistic` and
+  `acoustic-statistic-without-pressure` rules name the level forms and
+  the pair binding; four fixtures pin the three new rules and the relaxed
+  required-features rule, and nine schema fixtures pin the arm on 1.1.0
+  and its absence on v1.0. An existing fixture that removed `spl_db`
+  before adding a generic `power_db` was refused for the missing level
+  after the relaxation rather than for `power_db`; it now keeps `spl_db`
+  so the refusal reason is the one it pins.
+  Doctrine entry F2-08 records the ruling and the corrections to the
+  downstream evidence note it answered. The per-code remediation text for
+  `INVALID_MODALITY_FEATURES` names both level forms; it had kept saying
+  `spl_db` is required after the relaxation (merge review, 2026-09-12).
+  The `level_reference` description and `schema/README.md` say the marker
+  qualifies `spl_db` only and is inert on an event with no `spl_db`, a
+  consequence of the relaxation recorded in F2-08 and held as live-test
+  checklist question F2-Q1 under playbook discipline 10; doctrine entry
+  F2-09 records the attribution-trailer disposition.
+
+- 2026-09-10 — **Two experimental 1.1.0 markers from a live hydrophone,
+  and the launcher can select its lane.** `features.level_reference`
+  (SPL_RE_20UPA, SPL_RE_1UPA, DBFS, DB_RELATIVE) joins the ACOUSTIC feature
+  contract on the 1.1.0 branch, absent meaning the existing dB SPL re
+  20 uPa status quo, and the `spl_db` description now says the reference
+  is declared; registry ACOUSTIC_LEVEL_REFERENCE, experimental, the same
+  mechanism as RF `power_reference`, minted from an Orcasound hydrophone
+  capture whose honest 1.1.0 form validated only by laundering dBFS into
+  `spl_db`. `timing_quality.est_error_basis` (MEASURED, DECLARED_BOUND,
+  CONVENTION_DEFAULT, UNRESOLVED) joins the 1.1.0 timing quality object,
+  absent meaning no basis stated; registry TIMING_ERROR_BASIS, experimental,
+  the live instance of R1-11-04. The locked v1.0 schema is byte-identical
+  and rejects the timing key by its own closure; six discrimination
+  fixtures pin both lanes. `tools/run_gateway.py` gains `--schema-path`,
+  which the gateway already accepted, so the documented launcher can run
+  the 1.1.0 lane or select by version (execution review 2026-09-08, finding
+  D1-01); a red/green
+  test proves the passthrough. Guidance: the acoustic structural rule is
+  gated off the locked v1.0 lane after firing on a v1.0 event, and three
+  rules are added from the live failure, with the first fixture for the
+  structural rules and two new registry validator checks (list items must
+  be strings; the top-level stamp cannot lag the newest entry). Doctrine cycle F2 records the rulings; the
+  contract sentences are deferred to the post-lock contract pass because
+  the contract file is byte-anchored.
+
+- 2026-08-26 — **Validation guidance lands, and the field-evidence
+  adjudications are recorded.** `tools/validation_guidance.yaml` is a new
+  advisory file carrying remediation text for all 61 violation codes, each
+  entry drafted against the primary sources it cites, adversarially refuted
+  by an independent verifier, and re-verified in a second independent pass
+  before graduation; `tools/validate.py` now prints the matching guidance
+  line under each violation (once per code per run, suppressible with
+  `--no-guidance`, degrading to silence when the file is absent), and
+  `tools/explain.py` graduates the field-proven structural rules that
+  diagnose event shape, wrong event class included, even on dialect input.
+  Guidance is advisory by construction and by test:
+  `gateway/tests/test_validation_guidance.py` proves verdict output is
+  identical with guidance on and off, requires every registry code to carry
+  a hint so a newly minted code must arrive with one, and pins the
+  once-per-run behavior. The motivating evidence and rulings are recorded
+  as doctrine log cycle F1: the `replay-synthetic-labels` tripwire is
+  adjudicated fired on a second independent fielded deployment (recorded
+  with its dialect caveat in `spec/future-branch-roadmap.yaml`, with a
+  promotion blocker for the reserved replay records' droppable-label
+  flags), chat is ruled in scope and evidence-gated, the `rssi`/`snr`
+  zero-fill pair is booked as second-instance evidence for the
+  `RF_ZERO_FILL_SUSPECTED` predicate question, and C1-04 closes with a
+  recorded rationale and no mint. The guidance verification also surfaced
+  three governed codes with no emitter anywhere in the stack
+  (`OBSERVATION_HAS_CLASSIFICATION`, `INVALID_MODALITY_FEATURES`,
+  `RF_WINDOW_MIDPOINT_INVALID`); their hints state that standing honestly
+  and the finding is booked in the refinement handoff. No kernel vocabulary
+  changed; the locked v1.0 schema and the semantic contract are untouched.
+
 - 2026-08-23 — **The ontology reference lands, with the generated figure
   system behind it.** `docs/zmeta_ontology_reference.md` is a new advisory
   reference: what ZMeta is, then a status-marked map of every concept in

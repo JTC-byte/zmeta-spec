@@ -263,6 +263,26 @@ line cites recorded work; none of it is new doctrine.
   process; an issue carrying the artifacts above is a complete
   contribution.
 
+## F. Acoustic lane questions (doctrine log cycle F2)
+
+Added 2026-09-12 from the merge review of the acoustic branches. Same form
+as section A: yes/no answers a deployment can give.
+
+- [ ] **F2-Q1: does anyone emit a pressure-only ACOUSTIC level carrying a
+      `level_reference`?** Since F2-08 the 1.1.0 ACOUSTIC arm accepts
+      `pressure_pa` with `pressure_statistic` and no `spl_db`, so
+      `level_reference` ("reference of `spl_db`") can be present with nothing
+      to reference. The schema was deliberately left alone (playbook
+      discipline 10: zero instances) and the description now says the marker
+      qualifies `spl_db` only and is inert otherwise; no guidance rule flags
+      the corner because `tools/explain.py` evaluates structural rules only
+      on a stream that carries a failure, so a rule could not reach the
+      producer it is for. *Question:* does any producer emit that shape, and
+      does any consumer act on the marker when `spl_db` is absent? If nobody
+      does, the corner stays a description; if a consumer reads it as
+      qualifying `pressure_pa`, bind `level_reference` to `spl_db` on the
+      branch (`dependentRequired`) with a fixture.
+
 ---
 
 ## How to close an item

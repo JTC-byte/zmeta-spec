@@ -319,6 +319,27 @@ def _has_implementation_surface(entry: dict[str, Any]) -> bool:
     )
 
 
+def _declared_feature_keys(node: Any, inside_features: bool = False) -> set[str]:
+    """Property names a schema declares directly under any payload.features object.
+
+    A member whose subschema is the literal false is forbidden, not declared,
+    so it is not counted as live vocabulary.
+    """
+    keys: set[str] = set()
+    if isinstance(node, dict):
+        for key, child in node.items():
+            if key == "properties" and inside_features and isinstance(child, dict):
+                keys.update(str(k) for k, sub in child.items() if sub is not False)
+                for grandchild in child.values():
+                    keys.update(_declared_feature_keys(grandchild, False))
+            else:
+                keys.update(_declared_feature_keys(child, inside_features or key == "features"))
+    elif isinstance(node, list):
+        for child in node:
+            keys.update(_declared_feature_keys(child, inside_features))
+    return keys
+
+
 def _entry_context_checks(entry: dict[str, Any], schema_v1, schema_v1_1) -> list[dict[str, str]]:
     issues: list[dict[str, str]] = []
     name = str(entry.get("name", ""))
@@ -338,6 +359,30 @@ def _entry_context_checks(entry: dict[str, Any], schema_v1, schema_v1_1) -> list
                         entry=name,
                     )
                 )
+        if category == "observation_feature_contract":
+            # A reserved or proposed feature-contract entry whose payload paths
+            # a current schema already declares is holding a name for
+            # vocabulary that is live; the 2026-09-12 acoustic pressure draft
+            # shipped that way and the pre-cut verification caught it.
+            declared = {
+                "1.0": _declared_feature_keys(getattr(schema_v1, "schema", None)),
+                "1.1.0": _declared_feature_keys(getattr(schema_v1_1, "schema", None)),
+            }
+            for scope in entry.get("payload_scope") or []:
+                parts = str(scope).split(".")
+                if len(parts) < 3 or parts[:2] != ["payload", "features"]:
+                    continue
+                leaf = parts[2]
+                for version, keys in declared.items():
+                    if leaf in keys:
+                        issues.append(
+                            _issue(
+                                "REGISTRY_RESERVED_SCHEMA_LEAK",
+                                f"reserved/proposed feature-contract member {leaf} is declared by the {version} schema",
+                                entry=name,
+                            )
+                        )
+                        break
         if category == "command_task_type" or "COMMAND_EVENT" in allowed_event_types:
             if _schema_valid(command_event(name, "1.0"), schema_v1) or _schema_valid(
                 command_event(name, "1.1.0"), schema_v1_1
@@ -543,6 +588,32 @@ def validate_registry(
                     )
                 )
 
+        # A plain scalar containing ": " parses as a mapping, which silently
+        # splits a note into a key and a value; every note must stay a string.
+        # `notes` may be one block-scalar string or a list of strings.
+        for list_field in (
+            "security_release_notes",
+            "security_privacy_notes",
+            "migration_notes",
+            "fixture_references",
+            "references",
+            "notes",
+        ):
+            value = entry.get(list_field)
+            items = [value] if list_field == "notes" and isinstance(value, str) else value
+            if not isinstance(items, list):
+                continue
+            for item in items:
+                if not isinstance(item, str) or not item.strip():
+                    issues.append(
+                        _issue(
+                            "REGISTRY_LIST_ITEM_INVALID",
+                            f"{list_field} items must be non-empty strings",
+                            entry=name,
+                        )
+                    )
+                    break
+
         risk_relevant = entry.get("risk_relevant") is True
         must_preserve = entry.get("must_preserve_when_used_for_policy") is True
         fixture_references = entry.get("fixture_references") or []
@@ -721,6 +792,17 @@ def validate_registry(
             )
         )
 
+    # The top-level stamp is the registry's own currency claim; it must not
+    # lag the newest entry (the 2026-09-10 wave shipped two entries under a
+    # stamp a month old and nothing objected).
+    newest = max((str(e.get("date_added") or "") for e in entries if isinstance(e, dict)), default="")
+    if newest and str(registry.get("last_updated") or "") < newest:
+        issues.append(
+            _issue(
+                "REGISTRY_LAST_UPDATED_STALE",
+                f"last_updated {registry.get('last_updated')!r} is older than the newest date_added {newest!r}",
+            )
+        )
     return issues
 
 

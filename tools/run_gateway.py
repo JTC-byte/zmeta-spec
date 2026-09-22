@@ -7,6 +7,10 @@ from pathlib import Path
 def parse_args():
     parser = argparse.ArgumentParser(description="Run the ZMeta gateway")
     parser.add_argument("--config")
+    # The gateway accepts --schema-path; without this passthrough the
+    # documented launcher could only run the default v1.0 lane and refused
+    # every v1.1.0 event (execution review 2026-09-08, D1-01).
+    parser.add_argument("--schema-path")
     parser.add_argument("--profile", choices=["L", "M", "H"])
     parser.add_argument("--emit-cot", action="store_true")
     parser.add_argument("--strict-validation", action="store_true")
@@ -32,6 +36,8 @@ def main():
     cmd = [sys.executable, str(gateway_path)]
     if args.config:
         cmd.extend(["--config", args.config])
+    if args.schema_path:
+        cmd.extend(["--schema-path", args.schema_path])
     if args.profile:
         cmd.extend(["--profile", args.profile])
     elif not args.config:

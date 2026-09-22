@@ -2,6 +2,172 @@
 
 ## Current Resume Note
 
+- Last updated: 2026-09-21 (pre-push history rewrite: records generalised, consent recorded, trailers removed)
+- **2026-09-21 (pre-push history rewrite: the held develop records
+  generalised, the consent recorded, the three trailers removed).** Before
+  the first push of `develop` since v1.1.25, a share-readiness scan
+  (verdict in the private session record) found the published line clean
+  and the unpushed records carrying material that belongs in the private
+  evidence record: the capture station's hosting model, retention figures,
+  dated gap and store inventory in doctrine entry F1-06 and handoff item
+  8; a named downstream consumer in twelve places across the doctrine log,
+  the handoff, this worklog, the merge review register and one
+  extension-registry note; and two build-host paths in the merge review
+  register. On the maintainer's direction of 2026-09-21 the unpushed
+  history was rewritten so those passages never reach the remote: each
+  introducing commit was replayed with the passage generalised in place,
+  the three commits carrying an attribution trailer (doctrine F2-09) were
+  reworded without it, and the specifics moved to the private companion
+  under `local/`. The fielding organization's consent to publish the
+  cycle's derived findings, given 2026-09-21, is recorded in the Cycle F1
+  header. Every unpushed commit changed identifier; the records above cite
+  the old ones, and this table is the map (old, new, subject):
+  9814f2b -> df781b3 (Write the branching rule into the change governance doc and )
+  7a01d35 -> b1dcb26 (Record the F1 field-evidence adjudications and land the vali)
+  b0666d0 -> aa070cd (Mint two experimental 1.1.0 markers from a live hydrophone a)
+  8930fb8 -> f1cf0d3 (Let the 1.1.0 ACOUSTIC arm carry a linear-pressure level bes)
+  c7819bb -> 0ad6c1e (Name both level forms in the INVALID_MODALITY_FEATURES hint)
+  e7c1959 -> 2d4195c (Scope level_reference to spl_db in the descriptions and reco)
+  e434096 -> d8b5c53 (Merge branch 'wave/f1-field-evidence' into develop)
+  80d8181 -> 76e7692 (Merge branch 'exp/acoustic-1.1.0' into develop)
+  4932afb -> 62b02ea (Merge branch 'exp/acoustic-pressure' into develop)
+  29dd5b6 -> 3e399c8 (Record the integration of three waves into develop and the m)
+  893ca9b -> f79c808 (Correct the battery count in the integration record)
+  05be3c5 -> 72049fb (Merge branch 'exp/open-specification-notice' into develop)
+  A second pass the same day reworded three commit messages that still
+  named the consumer (found by a peer check of message bodies, which the
+  first pass's gate had not scanned) and corrected this map to
+  original-to-final identifiers; every tree is unchanged. The first-pass
+  identifiers, on the remote for about twenty minutes before the
+  force-push on the maintainer's direction: 633848b, 3a52700, e1e2f67, 5add606, e595b31, 4b1e9f2, 4a1214e, 53035b6, bd5e284, e4c2c99.
+  The extension-registry note edit leaves the release manifest stale on
+  purpose (Branching section); the manifest regenerates at the cut.
+  Process records were altered only to remove the passages named here. No
+  CHANGELOG entry: nothing user-visible changes.
+- **2026-09-12 (integration: three waves merged into develop, held for
+  live evidence).** `wave/f1-field-evidence` (7a01d35), `exp/acoustic-1.1.0`
+  (b0666d0) and `exp/acoustic-pressure` (8930fb8, c7819bb, e7c1959)
+  merged into `develop` in dependency order, each with `--no-ff`, after a
+  review of all three against the guiding documents (register:
+  `docs/merge_review_2026-09-12_findings.md`; determination: good to merge,
+  six conditions, none withholding the merge) and three rulings made on the
+  repository's own documentation at the maintainer's direction (doctrine
+  F2-08 orphan note and F2-09; the gateway diagnostic ruling is in the
+  handoff). `develop` is held without a
+  cut until more live acoustic evidence arrives; the downstream COP consumes the
+  1.1.0 lane from `develop` during the hold. Validation at the merged tip:
+  `python tools/validate_extension_registry.py` ok entries=66;
+  `python tools/validate_future_roadmap.py` ok candidates=20;
+  `python tools/validate_examples.py --strict --require-all` 51 of 51 passed;
+  `python tools/validate_conformance.py --kernel-gate` exit 1 with
+  14 `RELEASE_MANIFEST_*` lines and no other failure line (four of
+  those lines come from `docs/zmeta_change_governance.md` on `develop`
+  itself, the rest from the four manifest-listed artifacts the branches
+  change); `python -m pytest -q` 1859 passed, 13 failed (1858 in the
+  rehearsal worktree, where one environment-dependent test skipped), every
+  failure a manifest hash mismatch in `gateway/tests/test_release_manifest.py`
+  or `gateway/tests/test_release_package.py`; `git diff --check` clean. That
+  red band is the expected state of `develop` between these merges and the
+  cut, by construction of the Branching section; the cut regenerates the
+  manifest. One further failure appears about one run in fifty:
+  `test_release_signing.py::test_ensure_package_zip_refuses_a_stale_zip_and_never_overwrites`,
+  a pre-existing mtime-granularity race, booked in the register. Four
+  negative guards in `test_release_package.py` abort in fixture setup on the
+  stale manifest for the whole hold, so the packager's refusal of bad input
+  is unproven until the cut; booked. This entry also records the 2026-09-11
+  docs-class commit on `develop` (9814f2b, the branching rule in
+  `docs/zmeta_change_governance.md` and `CLAUDE.md`), which had no worklog
+  line of its own.
+- **2026-09-12 (doctrine entry F2-08: a linear-pressure level on the
+  ACOUSTIC arm, on its own branch).** The downstream COP investigated two more
+  acoustic sources after Orcasound, a calibrated research hydrophone
+  stated re 1 uPa and an atmospheric infrasound array whose field
+  publishes calibrated pascals and no decibel, and reported that neither
+  could emit. Verification found the refusal was one schema line, `spl_db`
+  required on the experimental arm, not contract text, and that a named
+  pascals feature already validated beside it; it also corrected three
+  framings in the note (the contract does not mandate a decibel; the
+  underwater and airborne references differ by a fixed 20 log10(20) =
+  26.02 dB and
+  the objection is laundering; the implementation count is one, not
+  three). The maintainer ruled: the arm requires `center_freq_hz` and
+  any of `spl_db` or `pressure_pa` with `pressure_statistic`, preserving
+  the level-present guarantee; the `spl_db` description states its window
+  and that it declares no amplitude statistic; a statistic marker is held
+  behind a second implementation; a governed pressure contract is refused
+  on gates 1 and 6 and the pair registered experimental with the bar
+  stated unmet. The pre-cut verification returned twenty-six findings,
+  led by a first draft that registered the name as reserved while the same
+  change made the fields valid; the entry was re-registered, the
+  reserved-leak check gained the arm that would have caught it, the level
+  choice was rewritten so a missing level names the pressure pair on the
+  wire,
+  the pair was bound both ways with zero refused, and the schema gained
+  nine fixtures in the discrimination suite so the red/green proof is an
+  in-repo artifact rather than a session act. A second verification found
+  the pressure-to-statistic direction of the binding unpinned and an
+  existing power_db fixture made vacuous by the relaxation; both were
+  repaired and a mirror guidance rule added. Landed on
+  `exp/acoustic-pressure` stacked on the acoustic branch. The three-branch
+  merge review of 2026-09-12 found the per-code hint for
+  `INVALID_MODALITY_FEATURES` still saying `spl_db` is required; corrected
+  on the branch before the merge.
+- **2026-09-10 (doctrine cycle F2: the acoustic modality worked on 1.1.0
+  from live evidence; two experimental markers minted; the lane fix).**
+  The downstream COP session brought seven spec questions ahead of an Orcasound
+  hydrophone producer and an environmental-station feed. The drafted
+  answers were adversarially refuted before sending (three refuters, all
+  three corrected the draft: the environmental blocker premise was false
+  because `metrics.modality` is optional on SENSOR_STATUS, the drafted
+  three-way split ran against the slot's documented coarse grain, and the
+  drafted dBFS-in-`spl_db` form is the shape contract 6.5 prohibits), the
+  COP's finding that SENSOR_STATUS has no canonical position was confirmed,
+  and the maintainer ruled on every open point. A live Orcasound Lab
+  segment was captured, analysed and templated on both lanes; the honest
+  1.1.0 form validated only by laundering, and the honest v1.0 form failed
+  on `timing_quality.est_error_ms` rather than fabricate a bound. Landed,
+  additive on 1.1.0 with v1.0 byte-identical: ACOUSTIC_LEVEL_REFERENCE
+  (`features.level_reference`, `spl_db` description corrected) and
+  TIMING_ERROR_BASIS (`timing_quality.est_error_basis`), each experimental
+  on the A1-01 mechanism with discrimination fixtures on both lanes; the
+  D1-01 launcher passthrough with its red/green test and README lane notes;
+  guidance lane gates with three new structural rules and the first fixture
+  for the structural layer; and two registry validator checks the pre-cut
+  verification showed were missing (a note containing ": " had parsed as a
+  mapping and passed; the top-level stamp had lagged the newest entry).
+  Booked: a
+  producer-authority pattern for environmental stations, a governed `geo`
+  on the SENSOR_STATUS arm, the cross-modality generalization of the level
+  reference, and the contract sentences for the post-lock pass.
+- Last updated: 2026-08-26 (field-evidence adjudications: the 2026-08 sonar/chat edge deployment)
+- **2026-08-26 (doctrine cycle F1: eight maintainer rulings from live field
+  evidence; no governed vocabulary moved; the lock stands).** A second edge
+  organization fielded an imaging sonar with its own fusion pipeline and a
+  bidirectional tactical-chat bridge, publishing a self-declared dialect
+  onto the live bus the private capture station records. Live packets were
+  measured directly and two audits ran with adversarial verification
+  (thirteen agents each); the maintainer then ruled on every open question
+  from the evidence. The rulings: the `replay-synthetic-labels` tripwire is
+  adjudicated fired, with the deployment recorded as the second independent
+  instance on the roadmap branch and a promotion blocker booked for the
+  reserved replay records' droppable-label flags; chat is ruled in scope,
+  evidence-gated, with the incoming adapter to be received as field
+  telemetry; the `rssi`/`snr` zero pair is booked as second-instance
+  evidence for generalizing the `RF_ZERO_FILL_SUSPECTED` predicate at the
+  AAR; C1-04 closes with a recorded rationale and no mint, its narrow
+  residue booked as a declaration-floor and adapter-consistency wave; and
+  the diagnostics-carry-the-fix system graduates during the lock as a
+  separate advisory file with coverage scaling to all 61 violation codes
+  under per-hint adversarial verification. Cycle entry F1-05 records the
+  counter-result worth as much as any change: five mint candidates from a
+  novel sensor domain were all refuted as composable today, and the
+  canonical templates built from the live data validate strict. One
+  apparatus finding (F1-06): the capture station's rolling default plus a
+  missed pull cadence discarded the deployment's raw feed before the final
+  window; the prune manifest records what was lost, the recovered window is
+  preserved in the capture repo, and the cadence question is booked. Public
+  reasoning in doctrine log cycle F1; raw specimens, measurements, and the
+  full adjudication records in the private evidence store.
 - Last updated: 2026-08-23 (ontology reference wave: new doc, nine figures, corrections)
 - **2026-08-23 (ontology reference, appreciation layer, doc corrections).**
   A docs-class wave, maintainer-directed while the repo stays locked for

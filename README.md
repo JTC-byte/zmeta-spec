@@ -144,6 +144,10 @@ python -m pip install -r requirements.txt
 
 # terminal 1: reference gateway (schema + policy enforcement)
 python tools/run_gateway.py --profile H
+# The default is the locked v1.0 lane. v1.1.0 producers add
+#   --schema-path schema/zmeta-event-1.1.0.schema.json
+# and a mixed-lane deployment can select by zmeta_version with
+#   --schema-path schema/zmeta-event.schema.json
 
 # terminal 2: watch validated output arrive
 python tools/udp_receiver.py --host 127.0.0.1 --port 5556

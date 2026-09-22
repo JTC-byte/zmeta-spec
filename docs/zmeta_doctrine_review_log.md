@@ -1895,7 +1895,7 @@ enforcement by layer instead of citing a corpus that did not carry it. No
 v1.0-stamped equivalents were added, because the locked schema deliberately
 accepts them and a fixture asserting otherwise would be a lie about the lane.
 
-### C1-04 — Fusion and state uncertainty cannot express a correlated distribution · **OPEN — decision-due**
+### C1-04 — Fusion and state uncertainty cannot express a correlated distribution · **DECIDED 2026-08-26**
 
 Covariance appears nowhere in `spec/`, `docs/`, `policy/` or `schema/`; the
 only occurrence in the repository is inside a figure-generation script.
@@ -1915,6 +1915,30 @@ namespaced extension. Recorded now, per maintainer adjudication 2026-08-10, as
 decision-due rather than field-gated: no deployment has to report a problem
 before this can be decided, because the modelling question is answerable from
 the contract alone.
+
+**Resolution (2026-08-26, maintainer adjudication): closed with a recorded
+rationale, no mint.** The question arrived a second time as a field report
+(an analyst could not correlate a space-based RF ellipse against an AIS
+track), and the adversarially verified audit of that case corrected the
+premise this entry was written on: an `error_ellipse_m` with a declared
+`probability` is a 2x2 positional covariance with the same three degrees of
+freedom, and `orientation_deg` carries the off-diagonal cross term, so
+Mahalanobis gating is client-side arithmetic on values already on the wire.
+The field failure traced to the adapter and declaration layer, not the
+kernel: the AIS ingress refuses to emit uncertainty while the sibling ADS-B
+ingress maps the identical declared threshold into a formal ellipse, and no
+ingress adapter in the tree declares `probability`, which breaks the
+ellipse-to-covariance conversion even where an ellipse is present. Vertical,
+velocity, and position/time covariance remain absent as named fields and
+compose into a namespaced extension under contract Section 20.3, which is
+where gate 1 puts them. The genuine residue is narrower than this entry's
+title: contract Section 4.9 makes explicit geospatial uncertainty a MUST
+that nothing enforces, and no token exists for "position present, no error
+model," so omission reads as precision. That declaration-floor item, plus
+the adapter inconsistency, the missing `probability` declarations, and the
+precision-policy gap on the fusion-nested ellipse path, are booked for the
+AAR in `docs/zmeta_refinement_handoff.md`. Full basis with citations:
+the 2026-08 covariance adjudication record (private evidence store).
 
 ### C1-05 — Gap detection is booked only under adversarial trust · **MINTED 2026-08-10**
 
@@ -2350,6 +2374,462 @@ Three tensions were adjudicated by the maintainer (Justin Carr, 2026-08-13):
    zero-filled, across field families, with declared sentinels defined)
    is the durable home for this rule and is recorded here as
    versioned-semantic-branch material, not minted policy.
+
+## Cycle F1 — 2026-08-26 (fielded evidence: the 2026-08 sonar/chat edge deployment)
+
+The first doctrine cycle driven by live field capture rather than by a pull
+request or an internal audit. A second edge organization fielded an imaging
+sonar with its own fusion pipeline and a bidirectional tactical-chat bridge,
+publishing a self-declared dialect onto a live bus that the private field
+capture station records. Live packets were measured directly; the raw
+specimens, measurement numbers, and the full adjudication records live in the
+private evidence store, with pointers in
+`docs/zmeta_refinement_handoff.md`. Two audit passes ran with adversarial
+verification (thirteen agents each); the rulings below were made by the
+maintainer on 2026-08-26 against the verified residue. This cycle also
+recorded the second independent-adoption signal for the conformance tooling
+as an adoption surface, which bears on F1-04.
+
+Consent of the fielding organization to publish the derived findings of
+this cycle: yes, given 2026-09-21, recorded by the maintainer the same day.
+
+### F1-01 — A replay label survived the producer and died at the adaptation boundary · **DECIDED 2026-08-26**
+
+**Observed:** every sonar event in the live window carried two producer-side
+liveness markers in its payload, and the consuming display rendered the feed
+as undeclared. The replayed data is real retained ISR, and re-stamping was
+measured rather than assumed: across 77 distinct tracks, all timestamps sat
+in a tight current-wall-clock band with zero tracks spanning the original
+capture period, so the replay discards the original observation instant.
+That is a present-tense breach of the Section 5.1 locked meaning of `ts`
+(time of observation, not receive time) by a fielded producer.
+
+**The tension:** the `replay-synthetic-labels` branch tripwire reads "a
+second independent deployment demonstrates synthetic/replay/test traffic
+entering canonical events without a surviving label." This feed is a
+declared non-canonical dialect, so the letter of "entering canonical events"
+was arguable. Substance cut the other way: the adopter preserved honesty
+(the markers are present and true) and the standard had no canonical slot to
+carry them, which is the failure the branch exists to prevent, in its
+stronger form. The prior recorded pattern was adopters shedding the honesty
+layer first; this instance inverts it, and an honesty layer that a
+well-behaved producer cannot hand to the standard is a sharper defect than
+one adopters discard.
+
+**Decision:** the maintainer adjudicated the tripwire fired. The deployment
+is recorded as the second independent instance on the branch's promotion
+evidence in `spec/future-branch-roadmap.yaml`, with the dialect caveat kept
+in the evidence text. A promotion blocker is booked in the same entry: the
+four reserved replay registry records explicitly carry
+`ignorable_by_default: true`, `risk_relevant: false`, and
+`must_preserve_when_used_for_policy: false`, which would make a promoted
+replay label droppable in projection; those flags must be corrected as part
+of any promotion. The blocker is deliberately not a standalone fix, because
+reserved vocabulary is invalid on the wire, so the defect is latent until
+promotion and fixing it now would break the field-testing lock for
+something that cannot yet bite.
+
+### F1-02 — Producer-authored conversation asked to enter an ISR charter · **DECIDED 2026-08-26**
+
+**Observed:** the deployment's operators built bidirectional validating chat
+adapters unprompted, so a radio-relay chat user can converse with a
+phone-messenger user across the bus, and the live feed already carries a
+mesh-radio chat lane whose message content ships as a raw string holding a
+programming-language object dump, design gate 5 inverted. This is the second
+independent field signal for chat, after the 2026-08-15 first-contact gap
+list.
+
+**The tension:** chat is producer-authored conversation, not sensing, and
+the charter is ISR event semantics. Ruling it in risks scope growth toward a
+messaging platform; ruling it out manufactures fork pressure, because
+adopters demonstrably build it anyway and the strategic record names fork
+pressure, not non-adoption, as the existential risk.
+
+**Decision:** in scope, evidence-gated. Tactical messaging is part of the
+interoperability problem the standard exists to solve, bounded to message
+envelope semantics with honest labels; the standard does not become a
+messaging platform. Nothing is minted by this ruling: chat enters the
+registry and roadmap machinery under the normal two-independent-
+implementation evidence bar, and the incoming adapter is received as field
+telemetry to harvest under the contribution-intake doctrine. Name
+reservation waits for the adapter artifact.
+
+### F1-03 — A second zero-fill field pair presses on a one-predicate code · **OPEN — booked for the AAR**
+
+The mesh-radio chat lane carries records with `rssi: 0` and `snr: 0`
+together, the same fabricated-sentinel pathology `RF_ZERO_FILL_SUSPECTED`
+(minted v1.1.25, X2-04) detects, on a field pair its bandwidth-plus-power
+predicate does not cover. Second occurrence of the class in the field.
+Decision: recorded as evidence, examined at the AAR as a predicate
+generalization question rather than changed now. The X2-04 record is the
+caution: the first draft predicate collided with a sanctioned receiver-class
+sentinel across five adapter families and had to be re-adjudicated, so
+predicate edits earn a verification pass, not a hotfix. A third distinct
+field pair forces the generalization question to a terminal status under
+this log's recurrence rule.
+
+### F1-04 — The alphabet was generatively complete and the adopter still failed · **DECIDED 2026-08-26**
+
+**Observed:** the audit found the sonar dialect's central defect was not a
+missing letter but a wrong one. The content is tracker output, and modelled
+as fusion and state the detector score has a mandatory legal home, the track
+identity becomes a required field, and the acoustic feature contract no
+longer applies; the adopter instead published observations and routed
+around each wall (a score hidden one level below the confidence
+prohibition, track identity inside features where it is forbidden). Every
+downstream symptom then read, from inside their code, as the standard being
+restrictive. Separately measured: of the 61 violation codes, 10 carry any
+message, and the code that names this exact failure never fires because the
+schema rejects first with a raw internal message.
+
+**The tension:** the design gates rigorously answer "does this belong in the
+kernel?" and nothing in the estate answers "why did a competent adopter fail
+to find what was already there?" The kernel stayed clean and the adopter
+still shipped a dialect, which is the outcome the gates exist to prevent,
+arrived at through delivery rather than vocabulary.
+
+**Decision:** diagnostics carry the fix. Remediation guidance graduates into
+the repository during the lock as tooling plus advisory text, the same
+change class as the ontology reference: a separate advisory file read by the
+tooling, outside `policy/`, never a compliance surface, so a wrong hint is a
+documentation bug fixable without ceremony while compliance stays defined
+solely by the contract and schema. Coverage scales to all 61 codes, each
+hint drafted against primary sources and adversarially refuted before
+acceptance, ordered by what actually trips adopters. This completes the
+principle already stated in `tools/validate.py` (the diagnostic that
+explains the wall should reach the first step that hits it) rather than
+introducing a new one.
+
+### F1-05 — Five mint candidates from a novel sensor domain, zero minted · **HELD-FIRM 2026-08-26**
+
+The deployment put five candidate additions in front of the gates at once: a
+subsurface domain marker, a depth field, a sonar modality, a chat event
+type, and a first-class correlation identity; a sixth arrived days later as
+a kernel-level covariance proposal. Adversarially verified audits refuted
+every mint: subsurface identity, depth, and uncertainty are expressible
+today (payload class, the 2-D-plus-vertical-status pattern, measurement
+error with a declared metric, the ellipse with a declared probability);
+correlation is the documented advisory convention with its own tripwire;
+sonar is acoustic sensing and the reserved modality list deliberately omits
+it; chat is a scope ruling, not a vocabulary need, at current evidence; and
+the covariance case closed C1-04. The gates held under real field pressure
+from a domain the kernel had never met, and the canonical templates built
+from the live data validate strict, which is the constructive proof. The
+alphabet-not-dictionary doctrine is upheld as final for this evidence
+class; re-open only on genuinely new evidence, never on another instance of
+the same shape.
+
+### F1-06 — The record-of-authority doctrine assumed a pull cadence that did not exist · **OPEN — apparatus**
+
+Found while preserving this cycle's evidence, and it is an apparatus
+finding about our own capture station, not about the standard. The station's
+documented model binds the record of authority to a periodic pull from a
+bounded buffer, and the buffer's default mode retains a rolling window,
+discarding the oldest material with a manifest record per pruned file. Both
+halves worked as designed. What failed was operational: no pull ran for a
+stretch of the active deployment window, the mode was never switched to
+retain-all for that window, and the window is shorter than the stretch was,
+so the deployment's raw feed before the final captured window was discarded
+by design while nobody was pulling. Discarding was not silent (the prune
+manifest records every lost file with its hash and count), but the
+authority copy never existed because the pull that would have created it
+never ran. The surviving evidence, the retention figures, the dates, and
+the inventory are in the private evidence record. Open question for the
+apparatus: a pull cadence bound tighter than the retention window during
+any active deployment, or retain-all mode plus disk monitoring for the
+deployment's duration, and which of those becomes a written rule in the
+capture station's own doctrine.
+
+## Cycle F2 — 2026-09-10 (fielded evidence: an Orcasound hydrophone through the downstream COP)
+
+The second doctrine cycle driven by field capture, and the first of those
+driven by a consumer's questions rather than a producer's dialect. The downstream COP session
+brought seven spec questions before building an Orcasound hydrophone producer
+and an environmental-station status feed, stating that it would pin whatever
+this repo answered. A first answer was drafted, then adversarially refuted
+before it was sent (three independent refuters, one per judgment call; all
+three corrected the draft), and the acoustic questions were then worked
+against a live hydrophone segment rather than from the sonar dialect alone.
+The maintainer ruled on every open point the same day and directed that the
+acoustic modality be worked now on the experimental 1.1.0 branch. Evidence,
+templates, verdicts, and the Class D plan live in the private session store;
+this cycle records the reasoning.
+
+### F2-01 — A level field whose reference cannot travel with it · **MINTED 2026-09-10 (experimental)**
+
+**Observed:** the ACOUSTIC feature contract requires `spl_db`, described as
+"dB SPL re 20 uPa", the airborne reference. A hydrophone states levels re
+1 uPa, about 26 dB apart, and an internet-relayed hydrophone with unpublished
+sensitivity and gain-adjusted compressed audio cannot state a sound pressure
+at all, only a full-scale level. Proven on the wire from a real segment: a
+dBFS number in `spl_db` with an unregistered marker validates against the
+1.1.0 schema and passes every gate, and nothing on the stack can tell it
+from calibrated SPL. The first drafted answer recommended exactly that shape
+with an `UNCALIBRATED` flag; the refuter showed it is the form contract
+section 6.5 names and prohibits ("Alternate internal units, such as dBFS
+or vendor-specific RF quality scores, must be converted before canonical
+emission or placed in explicitly named payload-scoped extension fields
+that cannot be confused with canonical units"), that sections 4.11 and
+20.3 forbid an extension redefining a unit, and that `calibration_state` is every adapter's default posture and
+carries no unit claim.
+
+**The tension:** RF already solved this exact problem with
+`features.power_reference` (doctrine A1-01, experimental), and ACOUSTIC never
+inherited it. The same need arriving in a second modality from an
+independent organization is the first outside instance of the mechanism
+A1-01 recorded as lacking one, but it arrives under a different field name
+in a different contract, so it does not by itself meet the promotion bar
+for either entry.
+
+**Decision:** a separate experimental registry entry,
+ACOUSTIC_LEVEL_REFERENCE, `features.level_reference` with values
+SPL_RE_20UPA, SPL_RE_1UPA, DBFS and DB_RELATIVE on the ACOUSTIC arm, absent
+meaning the re 20 uPa status quo so no shipped event changes meaning, and
+the `spl_db` description corrected to say the reference is declared. The
+entry cross-references POWER_REFERENCE as the same mechanism and records
+that the two together are independent instances of one need; the
+single-concept generalization is booked for the AAR. Created direct to
+experimental by maintainer adjudication, the same path A1-01 took and the
+same logged tension with the promotion clause. Recorded tension: the adopted
+form keeps the value in the canonical field rather than converting it or
+moving it to an extension field, so it satisfies the purpose of 6.5 (the
+reference cannot be confused) but not its literal text; a 6.5 sentence
+joins the 21.4 sentence in the post-lock contract pass. Until the branch is
+published, the producer emits Form A: a v1.0-lane observation carrying the
+level under its own name (`level_dbfs`) with no `spl_db`, the form the
+ADS-B adapter already ships (`rssi_dbfs`, never `power_dbm`) and whose
+refusal half SAPIENT ships by leaving an unconvertible amplitude in its
+extension block rather than in `power_dbm`; of the two templates built
+against the evidence, it is the only one the reference gateway accepted as
+configured, because its default lane is the locked v1.0 schema.
+
+### F2-02 — A required error bound with no honest value · **MINTED 2026-09-10 (experimental)**
+
+**Observed:** `timing_quality.est_error_ms` is required and defined as a
+worst-case upper bound. A hydrophone relayed over HLS has a per-segment
+manifest timestamp and nothing that evidences the node's clock discipline.
+The honest Form A template failed on that one field rather than fabricate a
+bound. This is the live instance R1-11-04 (open since July) was waiting for:
+the repo's interim is the reference adapters' shared unknown-clock
+convention (`adapters/ingress/time_utils.py`): `UNKNOWN`, `UNSYNCED`,
+`est_error_ms` widened to 60000 ms, which overstates uncertainty in the
+safe direction and cannot say why the bound is what it is.
+
+**The tension:** R1-11-04 preferred a gateway-attached reason code over
+touching the locked structure, because `$defs/timing_quality` is closed. The
+1.1.0 copy is experimental; adding an optional member there leaves the v1.0
+structure byte-identical, which refuses the key by its own closure.
+
+**Decision:** an optional `timing_quality.est_error_basis` on the 1.1.0
+branch only (registry TIMING_ERROR_BASIS, experimental): MEASURED,
+DECLARED_BOUND, CONVENTION_DEFAULT or UNRESOLVED, absent meaning no basis
+stated. The declaration-floor pattern again: the honest label travels with
+the value, and a consumer can tell a measured 60 s from a conventional one.
+Form A adopts the convention now, documented in guidance as the sanctioned
+unknown-clock form and never as a measurement. R1-11-04 stays open for the
+v1.0 lane; this entry gives it a closing path on the branch built for it.
+
+### F2-03 — A blocker premise that was false, and the wall behind it · **DECIDED 2026-09-10**
+
+**Observed:** the COP reported that thousands of public environmental
+stations could not appear on its map even as bare status points because
+SENSOR_STATUS had no ENVIRONMENTAL modality. The refuter built a buoy status
+with `sensor_type` and no modality and it passed the strict validator:
+`metrics.modality` is optional. The wall the COP would actually hit is
+producer authority, which has no pattern that honestly names an
+environmental station. A separate refuter found the drafted three-way split
+of the slot ran against the repo's own documentation of the slot as
+deliberately coarse and against F1-05, and that the drafted version target
+conflated the `zmeta_version` lane with the repo release tag.
+
+**Decision:** no modality token; `sensor_type` carries the station kind and
+the strings become promotion evidence if a second deployment diverges; a
+producer-authority pattern for environmental stations is booked (Class B,
+policy). This is another instance of "ZMeta is missing X" resolving to
+"ZMeta has X and it could not be found", after the subsurface, depth,
+uncertainty, correlation and sonar-modality cases enumerated in F1-05, and
+it is the F1-04 discoverability finding continuing to accumulate.
+
+### F2-04 — A status event with nowhere canonical to stand · **DECIDED 2026-09-10 (booked)**
+
+**Observed (the COP's own finding, confirmed):** `SystemPayload` defines no
+position, the envelope has none, and contract 21.5 neither requires nor
+forbids one, so `payload.geo` on a SENSOR_STATUS validates only because the
+payload is open, ungoverned and precision-unprotected. A modality token
+alone would never have placed a buoy on a map. Observation `geo` is the
+subject's position under B1-01, so a hydrophone with no bearing omits it,
+and the sensor's own position has no governed home anywhere.
+
+**Decision:** book a governed optional `geo` on the SENSOR_STATUS arm only,
+with profile-precision coverage, for the AAR wave. The scope is ruling R3;
+note that 21.6 bars PLATFORM_STATUS from implying track position and is
+silent on a platform's own position, so the platform arm is a separate
+question rather than a settled prohibition. Interim: consumers read the open key as a
+declared convention or place sensors from their own catalogue.
+
+### F2-05 — The promotion bar and status-only tokens · **DECIDED 2026-09-10**
+
+Ruled: the two-leg promotion bar governs status-only enum values exactly as
+it governs observation modalities, and D11-01 (six reserved names
+schema-valid on the status path because the leak guard probes only the
+observation path) is resolved with that ruling rather than widened. Change
+class is B for the schema and policy surfaces, with Class D ceremony
+attached when a registry entry moves off `reserved`. Vocabulary on the
+1.1.0 branch is amended in place under the next repo tag, as v1.1.17 and
+v1.1.25 did; no new `zmeta_version` lane.
+
+### F2-06 — The documented launcher could not select the lane it documents · **CHANGED 2026-09-10**
+
+The reference gateway accepted `--schema-path`; the launcher the README
+recommends did not expose it, so the documented ten-minute path could only
+run the locked v1.0 lane and refused every 1.1.0 event (review finding
+D1-01). Fixed with a passthrough and a red/green test; the README now says
+how to run the 1.1.0 lane or select by version. The default stays the
+locked lane pending a maintainer call.
+
+### F2-07 — A structural hint that fired on the wrong lane · **CHANGED 2026-09-10**
+
+The acoustic structural guidance rule fired on a v1.0 event, where no
+ACOUSTIC feature contract exists, and the remediation it offered was wrong
+for that lane. The detect grammar gained lane gates (an exact-lane key and
+an exclusion key, so a rule about 1.1.0 vocabulary still fires on dialect
+input that declares no version), the two acoustic rules are gated off the
+locked v1.0 lane, and three rules were added from the live failure:
+`acoustic-level-without-reference`, `acoustic-level-on-locked-lane`, which
+keeps the reference advice for v1.0 producers, and
+`timing-quality-incomplete`. The structural rules gained their first fixture
+in the same change; before it, nothing tested them at all.
+Advisory class; a wrong hint is a documentation bug, and this one was found
+by the evidence build fifteen days after the guidance landed in the tree.
+
+### F2-08 — A required decibel where a domain publishes linear pressure · **MINTED 2026-09-12 (experimental)**
+
+**Observed:** the downstream COP investigated two further acoustic sources after
+the Orcasound producer and reported that neither could emit under the
+ACOUSTIC contract: a research hydrophone with a traceable calibration chain
+whose level is stated re 1 uPa, and an atmospheric infrasound array whose
+calibration is in pascals and whose field publishes no decibel figure at
+all, only pressure as RMS, peak and peak-to-peak with none privileged. The
+note asked for a governed linear-pressure feature and a ruling on which
+statistic a level reports.
+
+**What verification found:** the refusal is one schema line. On the
+experimental branch the ACOUSTIC arm is open and a named pascals feature
+already validates beside `spl_db`; the only refusal is that `spl_db` is
+required. That requiredness is a schema choice on the 1.1.0 branch, not
+contract text: the contract never names `spl_db`, section 21.4 says only
+"measured signal facts", and section 20.2 requires the schema and the
+feature contract together to define required fields while 21.4 names none
+for ACOUSTIC, so today the required list lives only in the 1.1.0 schema,
+whereas the RF triple including `power_dbm` is locked 7.4 text. On the
+locked v1.0 lane, which has no ACOUSTIC feature arm, the named-feature form
+validates today. Three framings in the note did not survive: that the
+contract "mandates a decibel scalar" (the requirement is the experimental
+schema); "category error rather than a units offset" for re 1 uPa against re
+20 uPa (the offset is a fixed 20 log10(20) = 26.02 dB; the honest objection
+is laundering, which ACOUSTIC_LEVEL_REFERENCE already cites); and "three
+independent instances" (one running producer plus two research passes by the
+same program, so the implementation count is one for the reference marker
+and zero for a pascals value). The genuinely unserved half was the
+statistic: no amplitude-statistic vocabulary exists, so two honest producers
+reporting different statistics diverge silently, a section 2.6 condition
+that already bites the shipped example. Section 5.4 is the precedent for
+saying what a scalar is not (`est_error_ms` "is not 1-sigma, RMS, or a
+statistical mean").
+
+**The tension:** gate 1 says every part of the asked-for field composes
+(unit in the name per 6.5, `center_freq_hz` and `bandwidth_hz` for the band,
+`payload.t_start` and `t_end` for the window per section 5.6) and gate 6
+says the outer ring already carries it on the locked lane. Gate 2 says a
+consumer pinned to 1.1.0 cannot read a level emitted on 1.0, and the v1.0
+form has now been directed three times, which makes a workaround the design.
+
+**Decision (maintainer adjudication 2026-09-12; change class B on the F2-05
+precedent, the nearest ruling, with the Class D tension noted at the end):**
+the 1.1.0 ACOUSTIC arm now requires `center_freq_hz` and a level in at least
+one of two forms, `spl_db` or `pressure_pa` with `pressure_statistic` (RMS,
+PEAK, PEAK_TO_PEAK), the pair present together or not at all and
+`pressure_pa` greater than zero, so a linear-pressure domain emits on the
+lane consumers pin while the guarantee that a level is present survives; a
+bare relaxation that would drop the guarantee was refused, and the choice is
+expressed so that a missing level names the pressure pair on the wire. This
+is the one item on the branch that is not purely additive: the required list
+is relaxed, producer-compatible and consumer-visible, with v1.0
+byte-identical. The `spl_db` description now states that the level applies
+over `t_start` to `t_end` when present and otherwise at `event.ts`, that it
+declares no amplitude statistic and that a producer needing one emits the
+pressure pair, and that `duration_ms` is event extent, not a window; the
+`center_freq_hz` description now says it asserts a dominant frequency, not a
+band, which answers the note's inference that a required frequency implies a
+banded level. Shipped 1.1.0 acoustic events keep their validity; the one
+example with a duration and no window now reads as a level at `event.ts`,
+which the description makes explicit rather than undefined. A
+`level_statistic` marker for `spl_db` is held behind a real second
+implementation with no registry name reserved for it, and the pair binding
+keeps it from leaking in through `pressure_statistic`; the roadmap carries
+the tripwire. A governed pressure contract of its own was refused on gates 1
+and 6 and on the evidence bar; the pair is registered as
+ACOUSTIC_PRESSURE_LEVEL, experimental on the 1.1.0 branch with the bar
+stated as not met, after a first draft registered the name as reserved while
+the same change made the fields valid, which the pre-cut verification
+refused and the reserved-leak check now catches. The
+ACOUSTIC_FEATURE_CONTRACT definition names both carriers. Booked: the
+unsettled redistribution status of the EarthScope infrasound holdings the
+note cites. Landed on `exp/acoustic-pressure`, stacked on
+`exp/acoustic-1.1.0`. Class note: `pressure_statistic` is conditionally
+required, and the governance doc lists a new required field under Class D,
+whose reserved-before-implementation step is the shape the leak check now
+refuses; the class for this change is B on the F2-05 precedent and is open
+to re-adjudication at the cut.
+
+Orphan note (2026-09-12, from the three-branch merge review): the relaxation
+lets `level_reference` be present on an event with no `spl_db`. Zero
+instances exist, so under playbook discipline 10 the schema is left alone,
+the question is recorded in the live-test checklist as F2-Q1, and the
+description and the registry now state that the marker qualifies `spl_db`
+only and is inert without it. The pair binding above does not transfer to
+it: that binding was the condition on which the relaxation shipped and a
+leak guard for the held marker, and an orphaned reference guards nothing.
+
+### F2-09 — Attribution trailers on three unpushed commits · **CHANGED 2026-09-21**
+
+**Observed:** three unpushed local commits carry `Co-Authored-By: Claude
+Fable 5.1`: `9814f2b` on `develop` (the branching rule), `8930fb8` and
+`c7819bb` on `exp/acoustic-pressure`. `CLAUDE.md` forbids the trailer
+("Commit attribution is human-only ... Do not add `Co-Authored-By` trailers
+naming Claude"). The sessions that wrote them ran under an instruction from
+outside the repository that directed the trailer; one commit body flagged
+the conflict for the maintainer instead of declining it. The 319 commits on
+`main` carry none.
+
+**Documentation test** (maintainer direction 2026-09-12: rule where the
+documents already guide): `CLAUDE.md` decides the forward half. The nearest
+recorded ruling on the same class, `docs/v1_1_21_precut_panel_register.md`
+item 11 (two commit subjects breaching the voice standard on unpushed
+history: banked, "the maintainer may reword before push"), guides the
+disposition of the existing commits; the Branching section stops an agent at
+creating and committing on local branches; the protocol above places
+adjudication in a separate pass. Nothing forbids a maintainer rewrite of
+unpushed history and nothing requires it.
+
+**Decision:** the three commits stand as written; no commit from this point
+carries the trailer; the rewrite is the maintainer's election before push,
+`9814f2b` first because both experimental branches would be rebased onto it.
+Instance two of the class after v1.1.21 item 11. Documentation defects
+booked from the test: the rule lives only in the advisory working guide and
+sits outside the authority stack (an attribution line belongs in the
+governance Commit And Handoff Standard and in `AGENTS.md`); the authority
+order says nothing about an instruction from outside the repository
+(repository conventions bind repository artifacts, and a conflicting outside
+instruction is escalated, not executed); no guard checks trailers;
+`CONTRIBUTING.md` is silent on attribution.
+
+**Changed 2026-09-21:** the maintainer elected the rewrite before the
+push. The three commits were reworded without the trailer in the pre-push
+history rewrite recorded in the worklog entry of 2026-09-21, which maps
+every unpushed commit's old identifier to its new one, so the identifiers
+named above are the pre-rewrite ones. The forward half of the decision
+stands: no commit carries the trailer, and `main` still carries none.
 
 ---
 

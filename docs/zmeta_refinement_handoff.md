@@ -1,6 +1,115 @@
 # ZMeta Refinement Handoff Notes
 
-## CURRENT STATE (2026-08-13, post v1.1.25): RELOCKED FOR FIELD TESTING
+## CURRENT STATE (2026-09-22): DEVELOP PUSHED AFTER THE PRE-PUSH REWRITE; MAIN CARRIES THE NOTICE SET
+
+`develop` == `origin/develop` == a305c92, pushed 2026-09-22 after the
+pre-push history rewrite the maintainer directed on 2026-09-21: the
+fielding organization's consent for Cycle F1 recorded (yes, 2026-09-21),
+the capture-apparatus specifics, the named downstream consumer and two
+build-host paths generalised in their introducing commits, the three
+attribution trailers removed (F2-09 CHANGED), and a second message-only
+pass the same night for three commit bodies that still named the consumer.
+`main` == `origin/main` == 7d5638b: the open-specification notice set
+(`NOTICE`, `CITATION.cff`, the README paragraph, a CHANGELOG entry) landed
+as a docs-only exception on the maintainer's direction; the tip is untagged
+and v1.1.25 remains the published release baseline. Only current `main`
+and `develop` changed; no governed artifact moved and no release was cut.
+
+Validation at a305c92, the expected hold state unchanged: 14
+`RELEASE_MANIFEST_*` lines on the kernel gate and no other kernel failure;
+strict examples 51 of 51; roadmap 20 candidates; registry 66 entries;
+`python -m pytest -q` 13 failed (the release-pin tests) and 1859 passed;
+`git diff --check` clean. The worklog entry of 2026-09-21 carries the
+commands and the identifier map. Original to final: 9814f2b df781b3,
+7a01d35 b1dcb26, b0666d0 aa070cd, 8930fb8 f1cf0d3, c7819bb 0ad6c1e,
+e7c1959 2d4195c, e434096 d8b5c53, 80d8181 76e7692, 4932afb 62b02ea,
+29dd5b6 3e399c8, 893ca9b f79c808, 05be3c5 72049fb; record a305c92. The
+merge review register, the doctrine log and the previous-state section
+below cite the pre-rewrite identifiers.
+
+Open, in order of proximity:
+
+1. **Gateway diagnostics on the 1.1.0 lane** (item 1 of the previous
+   state, unchanged): Class C, its own branch from `develop`, before the
+   downstream COP is pointed at `develop`.
+2. **The cut** from `develop` when live acoustic evidence arrives; the
+   manifest, notes and hashes regenerate then.
+3. **Forward edits from the 2026-09-21 share-readiness scan** (private
+   session record), each the maintainer's election: a statement of who
+   holds the schema `$id` domain in `schema/README.md`; the disclosure rule
+   for real-capture provenance in mapping packs; a `permissions` block in
+   the CI workflow; a loopback default for the shipped listen host; the
+   published build-host paths in three audit records.
+4. **Local hygiene:** `refs/backup/*` holds the pre-rewrite and first-pass
+   tips for recovery; delete them once satisfied. They are outside
+   `refs/heads` and are not pushed by `push --all`.
+
+Next session: item 1 on its own branch from `develop`; the cut when the
+evidence lands; the scan's forward edits as elected.
+
+## Previous state (2026-09-12): THREE WAVES ON DEVELOP, HELD FOR LIVE EVIDENCE
+
+Identifiers in this section are as they were before the 2026-09-21
+rewrite; the worklog entry of 2026-09-21 maps each to its final one.
+
+`develop` carries, on top of the published `282c9cf`, the branching rule
+(9814f2b) and three merged branches in dependency order:
+`wave/f1-field-evidence` (7a01d35, the F1 records and the validation
+guidance system), `exp/acoustic-1.1.0` (b0666d0, ACOUSTIC_LEVEL_REFERENCE
+and TIMING_ERROR_BASIS experimental on 1.1.0, the launcher lane fix) and
+`exp/acoustic-pressure` (8930fb8, c7819bb and e7c1959: the
+linear-pressure level on the 1.1.0 ACOUSTIC arm, ACOUSTIC_PRESSURE_LEVEL
+experimental, the hint correction and the ruling records). Nothing is cut,
+tagged or pushed. The hold ends when live
+acoustic evidence arrives from the downstream COP, which consumes the 1.1.0 lane
+from `develop` during the hold; the cut then regenerates the manifest,
+notes and hashes from `develop` into `main`.
+
+Expected state of `develop` while held, to check a re-run against rather
+than trust a self-reported figure: 14 `RELEASE_MANIFEST_*` lines
+on the kernel gate and 13 red release-pin tests, all manifest hash mismatches,
+with every other gate green (1859 tests pass); an intermittent fourteenth
+failure in `test_release_signing.py` is a pre-existing mtime race. The
+worklog entry of 2026-09-12 carries the commands.
+
+Review record: `docs/merge_review_2026-09-12_findings.md` (47 verified
+findings, 24 refuted). Open from it, in order of proximity:
+
+1. **Gateway diagnostics on the 1.1.0 lane** (moderate, pre-existing): the
+   reference gateway stamps every diagnostic `zmeta_version: "1.0"` and
+   refuses its own diagnostic when launched with
+   `--schema-path schema/zmeta-event-1.1.0.schema.json`, so a refused
+   producer on the documented lane gets a content-free SCHEMA_VIOLATION.
+   Ruled 2026-09-12 on the documents: the v1.0 stamp stays (R1-11-01
+   decides it); the outgoing self-check validates a minted diagnostic
+   against the schema its own declared version selects (contract 2.4),
+   never against the inbound lane; the TV-09 pins are parameterised across
+   the 1.0 lane, the 1.1.0 lane and the union; and the README lane notes
+   say that until it lands the dispatching `schema/zmeta-event.schema.json`
+   is the lane for legible 1.1.0 diagnostics. Class C, its own branch from
+   `develop`, before the COP is pointed at `develop`. Left for the
+   maintainer: whether a gateway may ever author a 1.1.0-stamped diagnostic
+   (README.md:249-250 promises native codes on the 1.1.0 lane that no code
+   produces; under this ruling it is an erratum), and the default lane,
+   reserved by F2-06 and coupled to the contract hash.
+2. **`level_reference` with no `spl_db`**: ruled 2026-09-12 on playbook
+   discipline 10, no binding; live-test checklist question F2-Q1; the
+   description and registry scoped (doctrine F2-08 orphan note). Closed
+   unless the checklist answers yes.
+3. **Attribution trailers** (doctrine F2-09): three unpushed commits carry
+   one; they stand, no new commit carries one, and the rewrite before push
+   is the maintainer's election, `9814f2b` first. Resolved 2026-09-21:
+   the maintainer elected the rewrite; the three were reworded without
+   the trailer before the push (F2-09 CHANGED 2026-09-21).
+4. **Guidance line citations into the 1.1.0 schema**: 65 of 79 point at
+   moved lines; re-anchor, and pin that citations resolve.
+5. The remaining minor and observation items in the register, and the
+   documentation defects the rulings' documentation test surfaced (the
+   register's rulings section).
+
+The section below is the state as of 2026-08-13 and is kept as written.
+
+## STATE AS OF 2026-08-13 (post v1.1.25): RELOCKED FOR FIELD TESTING
 
 Three signed releases published on 2026-08-13, every set verified against
 its published assets:
@@ -47,6 +156,123 @@ Session records for the 2026-08-11 through 2026-08-13 cycle live in the
 gitignored `local/` folder; the public record is the worklog entries for
 those dates, doctrine pressure log cycle X2, and the two releases'
 notes and validation reports.
+
+## FIELD-EVIDENCE ADJUDICATIONS (2026-08-26): the 2026-08 sonar/chat edge deployment
+
+Doctrine cycle F1. A second edge organization fielded an imaging sonar with
+its own fusion pipeline plus a bidirectional tactical-chat bridge, publishing
+a self-declared dialect onto the live bus the private capture station
+records. Two adversarially verified audits ran against live packets, and the
+maintainer ruled on every open question from the evidence on 2026-08-26. The
+rulings, the raw specimens, the measurement numbers, and the capture-loss
+manifest live in the private evidence record (gitignored `local/`, keyed to
+this deployment); the public reasoning is doctrine log cycle F1. Standing
+after the rulings:
+
+1. **Replay tripwire FIRED (F1-01).** The deployment is recorded as the
+   second independent instance on `replay-synthetic-labels` in
+   `spec/future-branch-roadmap.yaml`, dialect caveat kept with the evidence,
+   and a promotion blocker is booked in the same entry for the four reserved
+   replay records' droppable-label flags. No governed vocabulary moved; the
+   promotion decision itself waits for the AAR window.
+2. **Chat ruled in scope, evidence-gated (F1-02).** The incoming chat
+   adapter is received as field telemetry under the intake doctrine; name
+   reservation waits for the artifact. Pre-delivery review questions are
+   drafted in the private record for the maintainer to send.
+3. **`RF_ZERO_FILL_SUSPECTED` generalization booked for the AAR (F1-03).**
+   The mesh-radio lane's `rssi`/`snr` zero pair is the second field instance
+   of the class; the predicate question is examined at the AAR, not changed
+   during the lock.
+4. **C1-04 closed, no mint (doctrine log C1-04 resolution).** The residue is
+   booked for the AAR as four narrow items: a declaration floor for
+   geospatial uncertainty (a token for "position present, no error model,"
+   the Section 4.9 MUST that nothing enforces), the AIS/ADS-B adapter
+   inconsistency on declared-accuracy mapping, `probability` declarations in
+   every ingress adapter that emits an ellipse, and precision-policy
+   coverage for the fusion-nested `estimated_state.geo.error_ellipse_m`
+   path. Sibling schema-governance asymmetries recorded with the audit:
+   `$defs/quality` is enforced only on observations, and `FusionPayload`
+   requires `geo` while leaving it ungoverned.
+5. **Diagnostics graduate during the lock (F1-04).** Remediation guidance
+   for all 61 violation codes, drafted against primary sources with an
+   adversarial refuter per hint, landing as a separate advisory file read by
+   the tooling, never a compliance surface; cut as a release when verified.
+6. **Registry surface-coherence item, booked post-lock.** The registry
+   prose's six-surface validity rule, the three-surface `experimental`
+   definition, and the per-entry status fields disagree: all 66 entries
+   carry `adapter_gateway_status: none` and 65 of 66 carry
+   `encoding_status: none` (counts refreshed 2026-09-12 after the three
+   acoustic mints; the substance is unchanged), including `adopted`
+   entries, so read strictly
+   even adopted vocabulary fails the prose rule. Either the rule
+   over-claims or the ladder needs per-status surface requirements stated.
+7. **Unwired violation codes, surfaced by the guidance verification.**
+   Three codes are governed reason-code vocabulary with no emitter
+   anywhere in gateway/, tools/, or adapters/:
+   `OBSERVATION_HAS_CLASSIFICATION` (the observation denylist check emits
+   `OBSERVATION_HAS_IDENTITY` for every denylisted name, classification
+   included), `INVALID_MODALITY_FEATURES` (feature-contract failures
+   surface as `SCHEMA_INVALID`), and `RF_WINDOW_MIDPOINT_INVALID` (the
+   implemented Section 5.6 check emits `RF_WINDOW_MIDPOINT_MISMATCH`).
+   Their guidance entries state that standing honestly. Same class as the
+   backlog item on command-evidence codes lacking corpus vectors: decide
+   at the AAR whether each gets an emitter, stays reserved wire vocabulary
+   for producer-authored SCHEMA_VIOLATION events, or is retired.
+8. **Capture apparatus finding (F1-06).** The deployment's raw feed before
+   the final captured window was discarded by the station's default rolling
+   mode because no pull ran for a stretch of the deployment window; the
+   prune manifest records every lost file. The recovered final window is
+   preserved in the private capture record with its inventory, which
+   surfaced two items for later analysis, one bearing on the raster gap and
+   one on the correlation tripwire. Open apparatus
+   decision: pull cadence tighter than the retention window, or retain-all
+   mode with
+   disk monitoring, during any active deployment.
+
+## ACOUSTIC WAVE (2026-09-10): the Orcasound evidence and the 1.1.0 extension
+
+Doctrine cycle F2. Maintainer direction: the acoustic modality is active
+work on the experimental 1.1.0 branch so the downstream COP can visualize it. What
+this wave lands on 1.1.0, v1.0 byte-identical, items 1 to 3 additive and
+item 4 a relaxation of a required list:
+
+1. **ACOUSTIC_LEVEL_REFERENCE (experimental).** `features.level_reference`
+   on the ACOUSTIC arm; `spl_db` description corrected; discrimination
+   fixtures; guidance. The producer switches from Form A (`level_dbfs`, v1.0
+   lane) to `spl_db` plus the marker when this is published.
+2. **TIMING_ERROR_BASIS (experimental).** `timing_quality.est_error_basis`
+   on 1.1.0; the live R1-11-04 instance; v1.0 rejects the key.
+3. **D1-01 launcher fix** and the guidance lane gate (F2-06, F2-07).
+4. **Linear-pressure level on the 1.1.0 ACOUSTIC arm (F2-08),** on a
+   second branch `exp/acoustic-pressure` stacked on the acoustic branch,
+   from the COP evidence note of 2026-09-11 (three acoustic sources
+   investigated, one running producer): `center_freq_hz` plus a level as
+   `spl_db` or as `pressure_pa` with `pressure_statistic`, the pair bound
+   both ways and the pressure greater than zero; the `spl_db` and
+   `center_freq_hz` descriptions state the window, the absent statistic
+   and the dominant-frequency meaning; ACOUSTIC_PRESSURE_LEVEL registered
+   experimental with the bar stated unmet, and the reserved-leak check
+   gains a feature-contract arm; the `acoustic-missing-level`,
+   `acoustic-pressure-without-statistic` and
+   `acoustic-statistic-without-pressure` guidance rules; nine schema
+   fixtures. Held: a `level_statistic` marker for `spl_db`, behind a
+   second independent implementation, no name reserved. Booked: the
+   EarthScope/CTBTO redistribution question the note left unsettled.
+   Merge order into develop: wave, acoustic, pressure.
+
+Booked from this cycle, not landed: a producer-authority pattern for
+environmental stations (Class B); a governed `geo` on the SENSOR_STATUS arm
+with precision coverage (R3, AAR wave); the single-concept generalization
+of POWER_REFERENCE and ACOUSTIC_LEVEL_REFERENCE into one level-reference
+concept (AAR); the ENVIRONMENTAL scope mismatch (the registry entry allows
+OBSERVATION_EVENT only while the roadmap's `future-modality-contracts`
+declares affected_events [OBSERVATION_EVENT, SYSTEM_EVENT]); D11-01, whose
+disposition is ruled in F2-05 (the two-leg bar governs status-only tokens)
+while the guard change that records it is not landed; and the contract 6.5
+and 21.4 sentences plus the R1-11-04 closure text for the post-lock
+contract pass (the contract file is byte-anchored). Records: the private
+evidence store carries the Orcasound capture, the templates and their
+verdicts, the Class D plan, and the COP exchange.
 
 ## PRIORITIZED BACKLOG after doctrine cycle C1 (2026-08-10)
 
@@ -102,13 +328,14 @@ design waves, then hygiene, then anything genuinely waiting on field evidence.
 
 ### Tier 2 — decisions that need no new data, only the maintainer
 
-4. **Covariance for fusion and state uncertainty (C1-04).** Recorded
-   decision-due. `error_ellipse_m` is horizontal-only with no vertical and no
-   velocity term, and `estimated_state` admits no correlation structure. The
-   real question is gate 2 against gate 1: consumer-sufficiency says a fusion
-   consumer cannot responsibly propagate uncertainty without it, the alphabet
-   gate says a covariance matrix is a dictionary entry belonging in a
-   namespaced extension. Both are arguable and neither needs field data.
+4. **Covariance for fusion and state uncertainty (C1-04). DECIDED
+   2026-08-26: closed with a recorded rationale, no mint.** The question
+   arrived a second time as a field correlation failure, and the audit
+   corrected the premise: an ellipse with a declared `probability` is a 2x2
+   covariance, and the field failure traced to the adapter and declaration
+   layer. Resolution and residue are in the doctrine log C1-04 entry; the
+   four booked follow-on items are in the 2026-08-26 field-evidence section
+   above.
 
 5. **The 15-concept experimental registry adoption session.** The oldest
    outstanding item, queued since 2026-07-08 under the standing direction to

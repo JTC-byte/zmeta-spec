@@ -627,7 +627,7 @@ formal v1.1.0 vocabulary, `experimental` entries remain provisional
 
 **The status ladder (ENFORCED shape).** Seven statuses: `reserved`,
 `proposed`, `experimental`, `adopted`, `deprecated`, `rejected`,
-`superseded`. Today's 63 entries split 35 reserved, 16 experimental, 9
+`superseded`. Today's 66 entries split 35 reserved, 19 experimental, 9
 proposed, 2 adopted, 1 rejected. The two adopted entries are
 `ERROR_ELLIPSE_M` and `GEO_DIMENSIONALITY`, both on branch 1.1.0. The
 registry validator enforces surface sufficiency per status, refuses
@@ -698,7 +698,7 @@ As of v1.1.25:
 | Which branch is experimental? | v1.1.0, version-selected, ignorable | `schema/zmeta-event.schema.json` |
 | What runs in CI? | schema lint, examples (v1.0 and v1.1), roadmap, compat, strict conformance pack, kernel gate, contract hash, packet-size budget, package smoke, self-test, pytest | `.github/workflows/ci.yml` |
 | Conformance classes | 34 defined; 21 implemented, 13 non-claimable | `conformance/conformance_classes.yaml` |
-| Registry entries | 63; 35 reserved, 16 experimental, 9 proposed, 2 adopted, 1 rejected | `spec/extension-registry.yaml` |
+| Registry entries | 66; 35 reserved, 19 experimental, 9 proposed, 2 adopted, 1 rejected | `spec/extension-registry.yaml` |
 | Governed diagnostics | 61 codes; 9 warn, 52 fail | `policy/violation-codes.yaml` |
 | Ingress adapters | 13 shipped plus the authoring template; 5 marked Production in the aggregator table | `adapters/` |
 | Egress adapters | 5 shipped (CoT is the only one the reference gateway wires directly) | `adapters/egress/`, `gateway/src/gateway.py` |
