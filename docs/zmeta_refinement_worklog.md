@@ -2,7 +2,32 @@
 
 ## Current Resume Note
 
-- Last updated: 2026-09-21 (pre-push history rewrite: records generalised, consent recorded, trailers removed)
+- Last updated: 2026-09-28 (the gateway identity setting on its own branch, not merged)
+- **2026-09-28 (the gateway identity setting on `exp/gateway-identity`, not
+  merged).** On the maintainer's concurrence of 2026-09-28, the producer name
+  and node role the reference gateway stamps on its own diagnostics are the
+  settings `gateway_producer` and `gateway_node_role`, defaulting to the
+  historical `zmeta-gateway` and `GATEWAY`; `platform_id` stays fixed, since
+  the concurrence named the producer and the role. The identity reaches all
+  three diagnostic builders, all thirteen builder calls inside
+  `process_message` through a new `gateway_identity` argument, and the
+  encoding fallback. The gateway's outgoing self-check runs role and producer
+  authority over its own diagnostics, so a configured identity the loaded
+  policy refuses would have had every one of them refused; a startup check now
+  exits instead. It covers identity only, because the schema half of the
+  self-check depends on the lane, and running it at startup would stop a
+  gateway on the 1.1.0 lane from starting at all. The default identity is
+  never checked. Twelve tests were written first and ten failed against the
+  unchanged gateway, the other two being controls on the defaults; two more
+  cover `main()`. A mutation check over fourteen mutants killed all fourteen,
+  including a dropped identity at a single later builder call, which only the
+  structural test catches. Validation at the branch tip:
+  `python -m pytest -q gateway/tests/test_gateway_identity.py` 14 passed;
+  `python tools/validate_examples.py --strict --require-all` 51 of 51;
+  `python tools/validate_conformance.py --kernel-gate` 14
+  `RELEASE_MANIFEST_*` lines over the same items as `develop` and no other
+  failure; `python -m pytest -q` 13 failed (the release-pin set) and 1873
+  passed; `git diff --check` clean. Nothing pushed.
 - **2026-09-21 (pre-push history rewrite: the held develop records
   generalised, the consent recorded, the three trailers removed).** Before
   the first push of `develop` since v1.1.25, a share-readiness scan

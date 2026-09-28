@@ -2,6 +2,19 @@
 
 ## [Unreleased]
 
+- 2026-09-28 — **The reference gateway's own identity on its diagnostics is
+  configurable.** The producer name and node role that
+  `gateway/src/gateway.py` stamps on every diagnostic it mints were hardcoded
+  as `zmeta-gateway` and `GATEWAY`. They are now the settings
+  `gateway_producer` and `gateway_node_role`, with matching command-line
+  flags, and the defaults are the old values; `platform_id` stays fixed.
+  `process_message` accepts a `gateway_identity` argument for a deployment
+  that imports it. A configured identity is checked at startup against the
+  loaded policy's roles and producer authority, and the gateway exits if its
+  own diagnostics would fail its outgoing self-check. The default identity is
+  never checked, so existing deployments behave as before. The gateway README
+  documents the settings, and fourteen focused tests cover them.
+
 - 2026-09-21 — **The repository states its open-specification terms where
   every visitor and every fork will see them.** A root `NOTICE` file, carried by
   every redistribution under Apache License 2.0 Section 4(d), records that the

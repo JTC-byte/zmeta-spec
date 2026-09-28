@@ -47,6 +47,21 @@ Open, in order of proximity:
 Next session: item 1 on its own branch from `develop`; the cut when the
 evidence lands; the scan's forward edits as elected.
 
+## ON BRANCH (2026-09-28): `exp/gateway-identity`, NOT MERGED
+
+The branch is based on `develop` f622d0b. On the maintainer's concurrence of
+2026-09-28, the reference gateway's diagnostic identity, its producer name and
+node role, is configurable, with the historical values as defaults and a
+startup check against the loaded policy for a non-default identity. This is a
+Class C change to the reference gateway; no governed artifact moves. The branch
+merges into `develop` on the maintainer's word. It edits the same record files
+as `wave/registry-candidates-2026-09` and `exp/cot-type-parse`, so each later
+merge resolves the record entries by keeping both.
+
+Left for the maintainer: whether `platform_id`, which stays `zmeta-gateway`,
+should also become a setting, since two gateways with the same producer name
+remain indistinguishable in their own diagnostics until it is.
+
 ## Previous state (2026-09-12): THREE WAVES ON DEVELOP, HELD FOR LIVE EVIDENCE
 
 Identifiers in this section are as they were before the 2026-09-21
