@@ -59,8 +59,11 @@ reference gateway; no governed artifact moves. The branch merges into
 It edits the same record files as the other 2026-09-28 branches, so each
 later merge resolves the record entries by keeping both. It also conflicts
 with `exp/gateway-identity` in one hunk of `gateway/src/gateway.py`, where
-both branches add helpers immediately before `build_violation_event`; the
-resolution keeps both, and the builders' return blocks merge cleanly. After
+both branches add helpers immediately before `build_violation_event` and each
+side of the hunk ends with that function's signature line. The resolution
+keeps both helper blocks and the identity branch's signature, which adds
+`identity=None`; the builders' return blocks merge cleanly. A trial merge
+resolved that way passes both branches' gateway tests together. After
 that merge, the identity branch's `check_gateway_identity` docstring, which
 leaves the schema check out because it depends on the lane, is no longer true
 for diagnostics, and its startup check could run the version-selected schema
