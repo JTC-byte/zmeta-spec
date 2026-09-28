@@ -148,6 +148,9 @@ python tools/run_gateway.py --profile H
 #   --schema-path schema/zmeta-event-1.1.0.schema.json
 # and a mixed-lane deployment can select by zmeta_version with
 #   --schema-path schema/zmeta-event.schema.json
+# The gateway's own diagnostics are v1.0 events on every lane, so a consumer
+# of a 1.1.0 lane selects each event's schema by zmeta_version
+# (gateway/README.md, Schema lanes).
 
 # terminal 2: watch validated output arrive
 python tools/udp_receiver.py --host 127.0.0.1 --port 5556

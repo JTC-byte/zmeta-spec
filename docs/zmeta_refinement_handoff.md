@@ -47,6 +47,38 @@ Open, in order of proximity:
 Next session: item 1 on its own branch from `develop`; the cut when the
 evidence lands; the scan's forward edits as elected.
 
+## ON BRANCH (2026-09-28): `exp/gateway-lane-diagnostics`, NOT MERGED
+
+The branch is based on `develop` f622d0b and carries item 1 of the
+2026-09-12 list below, as the maintainer ruled it that day: the outgoing
+self-check validates a diagnostic the gateway minted against the schema its
+own declared version selects, the v1.0 stamp stays, and the TV-09 pins run on
+the v1.0 lane, the 1.1.0 lane and the union. This is a Class C change to the
+reference gateway; no governed artifact moves. The branch merges into
+`develop` on the maintainer's word, before the COP is pointed at `develop`.
+It edits the same record files as the other 2026-09-28 branches, so each
+later merge resolves the record entries by keeping both. It also conflicts
+with `exp/gateway-identity` in one hunk of `gateway/src/gateway.py`, where
+both branches add helpers immediately before `build_violation_event`; the
+resolution keeps both, and the builders' return blocks merge cleanly. After
+that merge, the identity branch's `check_gateway_identity` docstring, which
+leaves the schema check out because it depends on the lane, is no longer true
+for diagnostics, and its startup check could run the version-selected schema
+check as well.
+
+Still open from item 1, and unchanged here: whether a gateway may ever author
+a 1.1.0-stamped diagnostic, on which the `RF_ZERO_FILL_SUSPECTED` notes in
+`README.md` still say that consumers on the 1.1.0 lane see the native code,
+an erratum under the ruling because every gateway diagnostic is v1.0-stamped
+and carries the fallback pair; and the default lane, reserved by F2-06. Found by this branch and
+booked: on the dispatching union schema, a refused producer event is reported
+as the whole event with an empty `path`, so a deployment serving both
+versions loses the refusal's location; and the contract hash covers the lane
+file only, so on the 1.1.0 lane the v1.0 schema that now checks every
+diagnostic is not pinned by `--require-schema-hash` or
+`--require-contract-hash`. Widening the hash would change every deployment's
+hash, which couples it to the default-lane question.
+
 ## Previous state (2026-09-12): THREE WAVES ON DEVELOP, HELD FOR LIVE EVIDENCE
 
 Identifiers in this section are as they were before the 2026-09-21

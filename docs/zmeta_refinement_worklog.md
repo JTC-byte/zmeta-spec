@@ -2,7 +2,58 @@
 
 ## Current Resume Note
 
-- Last updated: 2026-09-21 (pre-push history rewrite: records generalised, consent recorded, trailers removed)
+- Last updated: 2026-09-28 (the 1.1.0-lane diagnostic self-check on its own branch, not merged)
+- **2026-09-28 (the 1.1.0-lane diagnostic self-check on
+  `exp/gateway-lane-diagnostics`, not merged).** Under the maintainer's
+  ruling of 2026-09-12 (handoff item 1), the reference gateway's outgoing
+  self-check validates a diagnostic the gateway minted against the schema its
+  own declared `zmeta_version` selects, and a forwarded producer event against
+  the inbound lane as before. The v1.0 stamp stays. The TV-09 pins were
+  parameterised first, across the v1.0 lane, the 1.1.0 lane and the union,
+  and three pin classes holding five tests were added. Against the unchanged
+  gateway, six of the nine test functions failed, every failure on the 1.1.0
+  lane or on the missing mark, while the v1.0 lane and the union passed; pins
+  built on the v1.0 schema alone could not have seen the defect. The end-to-end pin through
+  `main()` found a second symptom the ruling did not name. On the 1.1.0 lane,
+  each warning on an accepted event was replaced by a REJECTED
+  `SCHEMA_INVALID`, so the output showed an accepted event beside refusals of
+  events that were never sent. The self-check tells a minted diagnostic from a
+  forwarded event by type: the three builders return `GatewayDiagnostic`, a
+  `dict` subclass that encodes byte for byte like a plain dict on all four
+  output encodings. Three alternatives were rejected. Keying on the source
+  block trusts a self-declared field, and the identity setting on
+  `exp/gateway-identity` makes that block configurable. A registry of minted
+  ids is module state. Changing the shape `process_message` returns would
+  break a deployment that imports it. The ruling also asked for an interim
+  README sentence naming the dispatching schema as the lane for legible 1.1.0
+  diagnostics until the fix lands. It is not written, because the fix lands in
+  the same commit; the gateway README states the lanes as they now behave.
+  An opus refuter found no blocker or major defect and nine minor ones.
+  Seven are resolved on the branch and two are booked in the handoff. A
+  missing or unreadable `schema/` directory would have left the self-check
+  falling back to the lane without a word, so `main()` now mints a probe
+  diagnostic at startup and exits unless the schema it declares is present
+  and accepts it; a tenth test covers that. The forged-wire test could not
+  fail on the rule it was credited with, so its docstring now says what it
+  shows and it gains the union-lane case. The gateway README now names the
+  two diagnostics the self-check does not cover. The records now state the
+  drop in violation counts on the 1.1.0 lane, the changed check for a v1.0
+  lane served from another directory, the test count, and the merge conflict
+  with the identity branch. The two booked are the contract hash, which does
+  not pin the v1.0 schema a 1.1.0-lane gateway now checks its diagnostics
+  against, and the README sentence on native codes, already booked. A
+  mutation check over fifteen mutants killed
+  the fourteen that change behavior. The fifteenth validates diagnostics
+  against the dispatching schema, which accepts exactly what the v1.0 schema
+  accepts for a v1.0 diagnostic and differs only in how an invalid one's
+  error reads. Validation at the branch tip:
+  `python -m pytest -q gateway/tests/test_violation_event_self_validity.py`
+  10 passed; `python tools/validate_examples.py --strict --require-all` 51
+  of 51; `python tools/validate_future_roadmap.py` ok;
+  `python tools/validate_conformance.py --kernel-gate` 14
+  `RELEASE_MANIFEST_*` lines over the same items as `develop` and no other
+  failure; `python -m pytest -q` 13 failed (the release-pin set) and 1865
+  passed; `git diff --check` clean. Nothing pushed.
 - **2026-09-21 (pre-push history rewrite: the held develop records
   generalised, the consent recorded, the three trailers removed).** Before
   the first push of `develop` since v1.1.25, a share-readiness scan

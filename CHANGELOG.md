@@ -2,6 +2,37 @@
 
 ## [Unreleased]
 
+- 2026-09-28 — **The reference gateway's own diagnostics survive its outgoing
+  self-check on the 1.1.0 lane.** `gateway/src/gateway.py` stamps every
+  diagnostic it mints `zmeta_version: "1.0"`, and its outgoing self-check
+  validated that diagnostic against the schema the gateway was launched with.
+  With `--schema-path schema/zmeta-event-1.1.0.schema.json`, the lane schema
+  refused the "1.0" stamp, so every refusal reached the wire as a
+  content-free `SCHEMA_INVALID`, and every warning on an accepted event
+  reached it as a REJECTED diagnostic. Both named the id of a diagnostic that
+  was never sent. The self-check now validates a diagnostic the gateway
+  minted against the schema its own declared version selects, as contract
+  section 2.4 requires, and still checks a forwarded producer event against
+  the lane. The three diagnostic builders mark what they mint by returning
+  `GatewayDiagnostic`, a `dict` subclass that encodes exactly like a plain
+  dict; nothing decoded from the wire carries the mark. The v1.0 stamp is
+  unchanged. The gateway now exits at startup if its `schema/` directory has
+  no readable schema for the version its diagnostics declare, since the
+  self-check would otherwise fall back to the lane without a word. Two
+  further effects follow. On the 1.1.0 lane, metrics and the JSONL log no
+  longer count a `SCHEMA_INVALID` violation, attributed to the gateway, for
+  each diagnostic the self-check used to refuse, so violation counts there
+  drop. A gateway launched with a copy of the v1.0 schema from another
+  directory now checks its own diagnostics against this repository's v1.0
+  schema instead of that copy. The TV-09 pins in
+  `gateway/tests/test_violation_event_self_validity.py` now run on the v1.0
+  lane, the 1.1.0 lane and the dispatching union schema. Six new tests cover
+  every builder, the rule that the mark and not an event's content selects
+  the schema, a diagnostic forged on the wire, byte identity on every output
+  encoding, the receive loop end to end, and the startup check. The gateway
+  README gains a Schema lanes section, and the lane notes in `README.md` and
+  `tools/README.md` point to it.
+
 - 2026-09-21 — **The repository states its open-specification terms where
   every visitor and every fork will see them.** A root `NOTICE` file, carried by
   every redistribution under Apache License 2.0 Section 4(d), records that the
