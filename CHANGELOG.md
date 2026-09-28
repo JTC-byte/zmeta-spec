@@ -2,6 +2,24 @@
 
 ## [Unreleased]
 
+- 2026-09-28 — **Five upstream asks are taken through the registry and the
+  roadmap, two open as new candidates, and none becomes valid vocabulary.**
+  `DIALECT_LABEL` is proposed in `spec/extension-registry.yaml`, with roadmap
+  candidate `dialect-label`: a future label naming the source dialect an
+  admitted, schema-valid event was translated from, with its carrier left to
+  promotion, which weighs first the `translate:` lineage transform that every
+  shipped ingress adapter already stamps. Roadmap candidate
+  `canonical-byte-form` opens the float-width and determinism decision
+  recorded as doctrine C1-07. The event-signing ask was already open under
+  `EVENT_SIGNATURE`, `KEY_IDENTITY` and `event-signing-anti-replay`. The
+  SENSOR_STATUS record notes the booked governed `payload.geo` member
+  (doctrine F2-04), and the DATA_REF_MEDIA_METADATA record notes the open
+  question of live-stream references against contract Section 9.3. The
+  ontology reference's present-tense counts are brought up to date, and its
+  section 13 registry row is corrected to the v1.1.25 value its heading
+  names. Doctrine U1-01 and U1-02 record the go and the routing, with the
+  questions left open.
+
 - 2026-09-21 — **The repository states its open-specification terms where
   every visitor and every fork will see them.** A root `NOTICE` file, carried by
   every redistribution under Apache License 2.0 Section 4(d), records that the

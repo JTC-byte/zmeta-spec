@@ -9,7 +9,7 @@
 # authority stays in spec/semantics-contract.md.
 
 roadmap_version: 1
-last_updated: "2026-09-12"
+last_updated: "2026-09-28"
 source_plan: docs/s1_11_future_versioned_semantic_branch_roadmap_plan.md
 evidence_bar: >
   Promotion from reserved/proposed into a named version branch requires the
@@ -542,7 +542,16 @@ candidates:
     recommendation: >
       Strongest genuine future-branch candidate from the PR #4 harvest, but
       n=1 evidence; hold at proposed until the bar is met.
-    notes: Cannot be solved as a namespaced extension; requires a versioned branch.
+    notes: >
+      Cannot be solved as a namespaced extension; requires a versioned branch.
+      A discriminator between a live stream and a recording is an open
+      question for the branch (2026-09-28): contract Section 9.3 requires
+      data references to point to retained artifacts, which a live stream is
+      not, so the branch amends 9.3 or carries live streams outside
+      data_ref. A video kind is proposed to need no new data_ref.kind value,
+      because content_type (video/*) and the existing format field serve it
+      (doctrine U1-02). A second deployment is expected by the maintainer and
+      is not yet evidence.
 
   - id: aggregate-state-snapshot
     display_name: Aggregate state snapshot container
@@ -607,6 +616,79 @@ candidates:
     notes: >
       Deployments needing the guarantee must run policy validation, not schema
       validation alone.
+
+  - id: dialect-label
+    display_name: Dialect label for admitted events
+    status: proposed
+    priority: evidence_gated
+    purpose: >
+      A governed name for the label that says which non-canonical source
+      dialect an admitted, schema-valid event was translated from, so that
+      consumers do not each invent one.
+    affected_events: [OBSERVATION_EVENT, INFERENCE_EVENT, FUSION_EVENT, STATE_EVENT, COMMAND_EVENT, SYSTEM_EVENT]
+    registry_refs: [DIALECT_LABEL]
+    depends_on: []
+    required_surfaces: default
+    promotion_evidence: []
+    tripwires:
+      - >
+        Meets the promotion evidence bar: a second implementation,
+        independent of the first consumer's organization, labels the source
+        dialect of schema-valid events it translated or admitted after
+        translation.
+      - >
+        A documented case of an admitted translated event read as authored
+        canonically downstream (Section 2.6 silent meaning laundering) that
+        the carriers contract Sections 3.3, 3.4, 4.5.1 and 9.2 already provide
+        did not prevent.
+    recommendation: >
+      Opened on the maintainer's go of 2026-09-28 so the name exists before
+      two consumers invent two. Promotion first asks whether an existing
+      carrier serves the need, starting with the translate lineage transform
+      that every shipped ingress adapter already stamps; if one does, this
+      resolves without new vocabulary.
+    notes: >
+      The consumers known today appear to belong to one organization, and
+      whether they count as one instance is open (doctrine U1-02); their need
+      is held by the maintainer and is not banked here. The label does not
+      depend on event-signing-anti-replay inside one trust domain. A label
+      that crosses a trust boundary depends on that branch, as
+      mesh-trust-quarantine does, and the dependency is recorded in
+      depends_on when the label's scope reaches a trust boundary.
+
+  - id: canonical-byte-form
+    display_name: Canonical byte form of an event
+    status: proposed
+    priority: near_term
+    purpose: >
+      Decide the canonical byte form of a ZMeta event, at minimum float width
+      and whether the determinism clause is a MUST or a SHOULD, so that a hash
+      or a signature over an event means the same thing on every conforming
+      encoder.
+    affected_events: [OBSERVATION_EVENT, INFERENCE_EVENT, FUSION_EVENT, STATE_EVENT, COMMAND_EVENT, SYSTEM_EVENT]
+    registry_refs: []
+    depends_on: []
+    required_surfaces: default
+    promotion_evidence: []
+    tripwires:
+      - >
+        Any feature hashes or signs an individual event. Until then the gap
+        costs nothing, because cross-encoding equality is defined as object
+        equality (doctrine C1-07).
+    recommendation: >
+      The recommended order puts this candidate before
+      event-signing-anti-replay, because a signature over an undefined byte
+      form proves nothing; depends_on on the signing candidate is left
+      unchanged pending the maintainer (doctrine U1-02). The outcome may be a
+      clause change in spec/compact-binary-mapping.md rather than a version
+      branch, and its content and strength are the maintainer's decision.
+    notes: >
+      Opened on the maintainer's go of 2026-09-28 with no registry name, as
+      cooperative-stream-gap-detection opened from doctrine C1-05. Doctrine
+      C1-07 records the evidence: the two shipped CBOR backends satisfy every
+      deterministic-CBOR rule in spec/compact-binary-mapping.md and still emit
+      different bytes for the fixture value 120.0, one float64 and one
+      shortest-float.
 
 rejected_or_deferred:
   - id: payload-schema-uri

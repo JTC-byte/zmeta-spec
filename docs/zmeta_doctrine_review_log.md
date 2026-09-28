@@ -2879,6 +2879,93 @@ Retiring a stale rule is "prefer a known-good over a tangled knot" applied to
 governance: a rule that no longer earns its place is removed, not grandfathered.
 The discipline to *add* a rule is matched by the discipline to *retire* one.
 
+## Cycle U1 — 2026-09-28 (upstream asks from a downstream ecosystem's research pass)
+
+This cycle is driven by upstream asks from a downstream ecosystem's research
+pass; the asks are held by the maintainer. P2, X1 and F2 were earlier cycles
+seeded by a downstream consumer. On 2026-09-28 the maintainer gave the go to
+open five of the asks as candidates through this repository's own process and
+evidence bar.
+
+### U1-01 — The go to open five upstream asks as candidates · **DECIDED 2026-09-28**
+
+**Observed:** the go named five asks: canonical byte form and float width,
+the event-signing tripwire, a position on SENSOR_STATUS, a dialect label for
+admitted events, and a video kind for `data_ref`.
+
+**Decision:** the maintainer's go of 2026-09-28 opens the five asks as
+candidates through this repository's own process and evidence bar, and
+promotes nothing. How each ask was routed is recorded in U1-02 as this
+session's disposition, pending the maintainer's word on the merge.
+
+### U1-02 — How the five asks were routed, and what routing them surfaced · **OPEN**
+
+**Observed:** the disposition, pending the maintainer. Two asks open as new
+candidates. The dialect label opens as registry entry DIALECT_LABEL,
+`proposed`, with roadmap candidate `dialect-label`, and canonical byte form
+opens as roadmap candidate `canonical-byte-form` with no registry name, as
+`cooperative-stream-gap-detection` opened from C1-05. Three asks are recorded
+on existing records. The event-signing tripwire was already open, because
+EVENT_SIGNATURE and KEY_IDENTITY are proposed, ANTI_REPLAY_NONCE is reserved
+and `event-signing-anti-replay` is proposed. The position on SENSOR_STATUS is
+the member F2-04 booked on that arm, so SENSOR_STATUS's record carries the
+booking in its notes and keeps the member out of `payload_scope` until it
+lands. The video kind belongs to DATA_REF_MEDIA_METADATA, already proposed,
+whose definition already carried reference expiry as `valid_until`, and its
+notes now record the live-versus-recording question. No entry becomes valid
+vocabulary.
+
+Routing the asks surfaced five questions for the maintainer.
+
+1. Whether the dialect label is needed at all. The kernel already records a
+   source dialect where translation happens: every shipped ingress adapter
+   stamps `lineage.transform` as `translate:<schema_id>@<adapter_version>`
+   (Section 3.4 and `adapters/AUTHORING.md`). Section 4.5.1 adds
+   external-promotion metadata and a `promote:<adapter>:<policy>` transform,
+   and Section 9.2 lets payload-scoped provenance carry adapter transform
+   names. A same-stream diagnostic keyed by `original_event_id` is available,
+   and for a warn, degrade or quarantine decision Section 3.3 requires a
+   compact self-label in a policy-scoped extension on the accepted event when
+   the event may travel without its diagnostic. The gap is that egress
+   projections can drop lineage, as the JREAP and SAPIENT egress adapters do.
+   Promotion has to show that none of these carriers brings the dialect to the
+   consumer honestly before new vocabulary is justified.
+2. The label's scope. Schema-invalid traffic is not admitted as ZMeta,
+   because policy must not make invalid semantics valid (Section 3.2), so the
+   label covers only events translated from a dialect into schema-valid ZMeta.
+   A consumer whose need concerns traffic that is invalid as sent is served
+   only after an adapter translates that traffic.
+3. Independence. The promotion bar excludes implementations "derived from the
+   same codebase, vendor, or organization", and the label's known consumers
+   appear to belong to one organization. Whether they count as one instance
+   is the maintainer's reading to confirm.
+4. Live streams in `data_ref`. Contract Section 9.3 requires a data reference
+   to point to retained artifacts or derived vectors, which a live stream is
+   not, so a live-versus-recording discriminator needs the branch either to
+   amend 9.3 or to carry live streams outside `data_ref`. The disposition
+   proposes that a video kind needs no new `data_ref.kind` value, because the
+   entry's RFC-6838 content type and the existing `format` field serve it.
+5. Order. The recommended order puts `canonical-byte-form` before
+   `event-signing-anti-replay`, because a signature over an undefined byte
+   form proves nothing; `depends_on` on the signing candidate is left
+   unchanged pending the maintainer. Whether the signing tripwire has fired
+   remains the maintainer's call, as handoff Tier 2 item 6 records.
+
+**Recommendation:** merge the disposition as routed; keep DIALECT_LABEL at
+`proposed` with its carrier open and weigh the `translate:` lineage transform
+first; treat the live-versus-recording discriminator as a question for a
+`data_ref` branch; and decide C1-07 before any signing work.
+
+**What verification found:** two counts in the ontology reference had drifted.
+Its present-tense prose had stated 19 roadmap candidates since the roadmap
+reached 20, and it now states 22. Its section 13 is headed as of v1.1.25, and
+its registry row had shown develop's 66 entries under that heading; it now
+shows v1.1.25's 63, and the heading now says that earlier sections describe
+the current tree. The section's figure, `docs/img/d3-true-today.svg`, already
+matched v1.1.25 and is left for regeneration at the next release. An earlier
+draft of this change regenerated it, which would have credited v1.1.25 with
+entries it does not contain.
+
 ## Archive
 
 Terminal tension entries and retired rules, one line each. Full bodies live in

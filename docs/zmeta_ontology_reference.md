@@ -627,14 +627,14 @@ formal v1.1.0 vocabulary, `experimental` entries remain provisional
 
 **The status ladder (ENFORCED shape).** Seven statuses: `reserved`,
 `proposed`, `experimental`, `adopted`, `deprecated`, `rejected`,
-`superseded`. Today's 66 entries split 35 reserved, 19 experimental, 9
+`superseded`. Today's 67 entries split 35 reserved, 19 experimental, 10
 proposed, 2 adopted, 1 rejected. The two adopted entries are
 `ERROR_ELLIPSE_M` and `GEO_DIMENSIONALITY`, both on branch 1.1.0. The
 registry validator enforces surface sufficiency per status, refuses
 reserved or proposed entries that claim implemented schema status, and
 builds synthetic events from reserved names to prove they do not validate
 against either branch schema (`REGISTRY_RESERVED_SCHEMA_LEAK`). That leak
-check covers the categories that map onto schema enums, 18 of the 44
+check covers the categories that map onto schema enums, 18 of the 45
 reserved and proposed entries; names living in open extension space are
 guarded by governance rather than by the leak check.
 
@@ -667,7 +667,7 @@ widening of the SYSTEM_EVENT `reason_code` enum is a Class B change, not a
 lock violation, and the post-lock codes are valid on the v1.1.0 lane only.
 
 **The roadmap is not vocabulary (ENFORCED).** 
-`spec/future-branch-roadmap.yaml` tracks 19 branch-concept candidates and 3
+`spec/future-branch-roadmap.yaml` tracks 22 branch-concept candidates and 3
 durable rejection or deferral decisions, none valid vocabulary.
 `tools/validate_future_roadmap.py` refuses a candidate that asserts
 validity while its registry names remain reserved or proposed
@@ -690,7 +690,8 @@ do not embed artifact bytes.
 *Figure: generated from the manifests by
 `docs/diagrams/generate_figures.py`; regenerate after any release.*
 
-As of v1.1.25:
+As of v1.1.25, the last release. Counts in earlier sections describe the
+current tree and can run ahead of this table between releases.
 
 | Question | Answer | Counted from |
 | --- | --- | --- |
@@ -698,7 +699,7 @@ As of v1.1.25:
 | Which branch is experimental? | v1.1.0, version-selected, ignorable | `schema/zmeta-event.schema.json` |
 | What runs in CI? | schema lint, examples (v1.0 and v1.1), roadmap, compat, strict conformance pack, kernel gate, contract hash, packet-size budget, package smoke, self-test, pytest | `.github/workflows/ci.yml` |
 | Conformance classes | 34 defined; 21 implemented, 13 non-claimable | `conformance/conformance_classes.yaml` |
-| Registry entries | 66; 35 reserved, 19 experimental, 9 proposed, 2 adopted, 1 rejected | `spec/extension-registry.yaml` |
+| Registry entries | 63; 35 reserved, 16 experimental, 9 proposed, 2 adopted, 1 rejected | `spec/extension-registry.yaml` |
 | Governed diagnostics | 61 codes; 9 warn, 52 fail | `policy/violation-codes.yaml` |
 | Ingress adapters | 13 shipped plus the authoring template; 5 marked Production in the aggregator table | `adapters/` |
 | Egress adapters | 5 shipped (CoT is the only one the reference gateway wires directly) | `adapters/egress/`, `gateway/src/gateway.py` |

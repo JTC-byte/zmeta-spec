@@ -47,6 +47,27 @@ Open, in order of proximity:
 Next session: item 1 on its own branch from `develop`; the cut when the
 evidence lands; the scan's forward edits as elected.
 
+## ON BRANCH (2026-09-28): `wave/registry-candidates-2026-09`, NOT MERGED
+
+The branch is based on `develop` f622d0b. On the maintainer's go of
+2026-09-28, five upstream asks were taken through the registry and the
+roadmap (doctrine U1-01 and U1-02). Two open as new candidates: registry entry
+DIALECT_LABEL (`proposed`) with roadmap candidate `dialect-label`, and roadmap
+candidate `canonical-byte-form`. Three are recorded on existing records: the
+F2-04 booking on SENSOR_STATUS's record, the live-versus-recording question on
+DATA_REF_MEDIA_METADATA, and the signing concepts, which were already open.
+Counts on this branch: registry 67 entries, roadmap 22 candidates. The branch
+merges into `develop` on the maintainer's word, and like `develop` it reads
+red on the release-manifest pins until the cut.
+
+Left for the maintainer from this wave (doctrine U1-02, OPEN): the routing of
+the five asks; whether the dialect label is needed at all, given the
+`translate:` lineage transform adapters already stamp; whether a `data_ref`
+branch amends Section 9.3 for live streams or carries them outside
+`data_ref`; the canonical byte form and the strength of the determinism
+clause (C1-07), before any signing work; and whether the signing tripwire has
+fired (Tier 2 item 6).
+
 ## Previous state (2026-09-12): THREE WAVES ON DEVELOP, HELD FOR LIVE EVIDENCE
 
 Identifiers in this section are as they were before the 2026-09-21
@@ -199,10 +220,10 @@ after the rulings:
    the tooling, never a compliance surface; cut as a release when verified.
 6. **Registry surface-coherence item, booked post-lock.** The registry
    prose's six-surface validity rule, the three-surface `experimental`
-   definition, and the per-entry status fields disagree: all 66 entries
-   carry `adapter_gateway_status: none` and 65 of 66 carry
-   `encoding_status: none` (counts refreshed 2026-09-12 after the three
-   acoustic mints; the substance is unchanged), including `adopted`
+   definition, and the per-entry status fields disagree: all 67 entries
+   carry `adapter_gateway_status: none` and 66 of 67 carry
+   `encoding_status: none` (counts refreshed 2026-09-28 after
+   DIALECT_LABEL; the substance is unchanged), including `adopted`
    entries, so read strictly
    even adopted vocabulary fails the prose rule. Either the rule
    over-claims or the ladder needs per-status surface requirements stated.

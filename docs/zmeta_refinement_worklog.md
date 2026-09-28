@@ -2,7 +2,39 @@
 
 ## Current Resume Note
 
-- Last updated: 2026-09-21 (pre-push history rewrite: records generalised, consent recorded, trailers removed)
+- Last updated: 2026-09-28 (five upstream asks taken through the registry on their own branch, not merged)
+- **2026-09-28 (five upstream asks on `wave/registry-candidates-2026-09`,
+  not merged).** On the maintainer's go of 2026-09-28 to open five upstream
+  asks as candidates, doctrine U1-01 records the go and U1-02, OPEN, records
+  the routing as this session's disposition with the questions it surfaced.
+  Two asks open as new candidates: DIALECT_LABEL, `proposed`, with roadmap
+  candidate `dialect-label` and its carrier left to promotion; and roadmap
+  candidate `canonical-byte-form` with no registry name. Three are recorded on
+  existing records: the signing concepts were already open, the F2-04 booking
+  is recorded in SENSOR_STATUS's notes, and DATA_REF_MEDIA_METADATA's notes
+  record the live-versus-recording question against contract Section 9.3. The
+  ontology reference's present-tense counts move to 67 entries (10 proposed),
+  18 of 45 reserved or proposed entries under the leak check, and 22 roadmap
+  candidates. Its section 13 registry row, headed as of v1.1.25, is corrected
+  to v1.1.25's 63 entries, and the heading now says earlier sections describe
+  the current tree; the section's figure is left for regeneration at the next
+  release. Handoff item 6's counts are refreshed to 67. Two independent opus
+  refuters reviewed the first draft and found one blocker, eleven majors (nine
+  distinct) and ten minors. The blocker was that the draft ruled out carrying
+  the label inside the admitted event, which contract Section 3.3 permits, and
+  requires when the admission is itself a warn, degrade or quarantine
+  decision. A second pass over the rewrite found sixteen of the prior findings
+  resolved and raised further corrections, the largest being that every
+  shipped ingress adapter already names the source dialect in
+  `lineage.transform`. Each was addressed before the commit. Validation at the
+  branch tip:
+  `python tools/validate_extension_registry.py` ok entries=67;
+  `python tools/validate_future_roadmap.py` ok candidates=22
+  rejected_or_deferred=3; `python tools/validate_examples.py --strict
+  --require-all` 51 of 51; `python tools/validate_conformance.py
+  --kernel-gate` 14 `RELEASE_MANIFEST_*` lines over the same items as
+  `develop` and no other failure; `python -m pytest -q` 13 failed (the
+  release-pin set) and 1859 passed; `git diff --check` clean. Nothing pushed.
 - **2026-09-21 (pre-push history rewrite: the held develop records
   generalised, the consent recorded, the three trailers removed).** Before
   the first push of `develop` since v1.1.25, a share-readiness scan
