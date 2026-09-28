@@ -88,7 +88,7 @@ gives the identical contradiction.
 | Team coloring | `<__group>` element for ATAK friendly platform team panels |
 | Hostile labels | Persistent `<labels_on>` so CE readout is always visible |
 | Callsign fallback | Hostile emitters show "RF Emitter" / "Detection" instead of raw track IDs |
-| Remarks | Source summary, confidence (whenever the event carries one), and error ellipse details |
+| Remarks | The class as a quoted label when it is not a CoT type, then source summary, confidence (whenever the event carries one), and error ellipse details |
 | Wall-clock mode | Opt-in replay-display mode (`use_wall_clock: True`) re-stamps CoT timestamps to now; off by default, since event time is authoritative, and an event missing `event.ts` is refused (`None`) outside this mode |
 | Custom icons | Quadcopter icon for drone/sensor platforms (`a-f-A-M-F-Q`) |
 | Declared 2-D geo | `<geo_dimensionality>` detail marker distinguishes a declared horizontal-only fix from the ambiguous absent-altitude case (both still emit `hae="9999999.0"`, CoT `hae` being required and numeric); a `"2D"` geo carrying `alt_m` refuses (doctrine A1-02, see below) |
@@ -98,7 +98,7 @@ gives the identical contradiction.
 | ZMeta field | CoT field | Notes |
 |-------------|-----------|-------|
 | `payload.track_id` | `uid` | |
-| `payload.class` | `type` | Falls back to `a-u-G` |
+| `payload.class` | `type` | Used as the type only when it parses as a CoT atom type (`a`, an affiliation letter, a battle dimension, then function-code segments, as in `a-h-G-U-C-I`). Any other class is an entity label, such as a detector's `car`: the event goes out as `a-u-G`, which claims no affiliation, and the label is prepended to `remarks` as one quoted token, `class="<label>"`. An absent or null class uses `default_type`; an empty or whitespace-only class goes out as `a-u-G` with no label. See "Class and type" |
 | `payload.geo.lat/lon/alt_m` | `point lat/lon/hae` | Absent `alt_m` → `hae="9999999.0"` (CoT unknown-value convention, never a fabricated 0 m claim); a real `alt_m` of `0.0` passes through as `0.0`. A declared `geo.dimensionality: "2D"` also renders `hae="9999999.0"` (CoT `hae` is a required numeric attribute with no "not applicable" convention), paired with the `geo_dimensionality` detail marker below so the sentinel is not the whole story; see "Declared 2-D geo" |
 | `payload.geo.dimensionality` | `detail geo_dimensionality` | Emitted only for a declared `"2D"` geo, as `<geo_dimensionality value="2D" geo_status="…" />`; `geo_status` rides along only when `payload.quality.geo_status` is present. Absent `dimensionality` (the historical ambiguous case) emits no marker at all; see "Declared 2-D geo" |
 | `payload.geo.error_ellipse_m` | `point ce` + `precisionlocation` + `remarks` | `semi_major` → `ce` as the **conservative circular bound** (a circle of radius `semi_major` covers the whole ellipse, so `ce` never understates the horizontal error); absent → `9999999.0` (CoT unknown-value convention). `le` is **never** derived from the ellipse: CoT `le` is linear (vertical/HAE) error, the contract's ellipse is purely horizontal (§21.2, orientation from true north), and the event model has no vertical-uncertainty field, so `le` is always `default_le` (`9999999.0` unless the deployment has a real vertical error model). `precisionlocation` is emitted only when a source is asserted (see Configuration). A `semi_minor` or `orientation_deg` the dict never asserted is an omitted fragment/attribute in `remarks`/`precisionlocation`, never a fabricated `0`; a dict with no `semi_major` under that name (missing, or a wrong-spelled key) has no ellipse this adapter can honestly render at all, so nothing is emitted for it, the same way `ce` falls back to `default_ce` rather than reading a `0` out of it |
@@ -108,6 +108,33 @@ gives the identical contradiction.
 | `payload.callsign` | `contact callsign` | With hostile fallback |
 | `payload.source_summary` | `remarks` | Joined with `;` |
 | `confidence` (top level) | `remarks` | Appended whenever present, after any source summary |
+
+### Class and type
+
+`payload.class` is a free string in both schema versions: `TrackStatePayload`
+declares it only as `{"type": "string"}`. The CoT ingress adapter stores the
+CoT type there, another producer may store an entity label, and both are
+conforming. This adapter therefore uses the class as the CoT type only when it
+parses as a CoT atom type. The check is grammatical rather than a lookup in a
+type table: a well-formed type is accepted whether or not a table knows it,
+which means a grammatical type that denotes nothing still passes, and a label
+never becomes a type. A CoT round trip keeps an atom type. Any other CoT type,
+such as a marker type, comes back as `a-u-G` with the original type in
+`remarks`.
+
+A class that fails the check goes out as `a-u-G`, so it can never place a
+hostile or friendly marker on a map. Its label is prepended to `remarks` as one
+quoted token, `class="<label>"`, with internal quotes and backslashes escaped,
+so a label such as `car; confidence=0.99` cannot pass for a remarks fragment of
+its own. Characters that are not printable become spaces, and a label longer
+than 64 characters is cut with a trailing `...`. An empty or whitespace-only
+class goes out as `a-u-G` with no label. A class that does parse carries its
+own affiliation through unchanged, including the hostile callsign fallback and
+the friendly team coloring above.
+
+`default_type` applies only to a track whose class is absent or null, never to
+a class that is a label. A configured value that does not parse as a CoT atom
+type falls back to `a-u-G`.
 
 ### Heading / course frame
 
@@ -129,7 +156,7 @@ Pass a `cot_config` dict to customize behavior:
 
 ```python
 cot_config = {
-    "default_type": "a-u-G",           # Default CoT type
+    "default_type": "a-u-G",           # Type for a track with no class
     "default_valid_for_ms": 300000,     # 5 minute stale time
     "default_ce": 9999999.0,           # CE (m) when event has no uncertainty
     "default_le": 9999999.0,           # LE (m); always the emitted le, see below
