@@ -233,6 +233,20 @@ python gateway/src/gateway.py --profile H --emit-cot
 
 CoT XML is sent via UDP to `127.0.0.1:6969`.
 
+The projection is the reference CoT egress adapter's, configured through the
+`cot.config` block of the JSON config (see `adapters/egress/cot/README.md`).
+`cot.config.profile` selects `standard` (the default) or `cds`, the shape one
+partner's cross-domain guard passed on 2026-09-29; `cds` requires a `how`
+token the deployment asserts. The gateway validates the block when it reads
+it and exits with the adapter's message on a profile it cannot run, so a
+`cds` config without `how` stops the gateway at startup instead of refusing
+every track at egress. A `cot` block that is mistyped fails the same way: a
+`config` that is not an object, or a key under `cot` other than `host`,
+`port` and `config`, is a configuration error, because ignoring it would run
+the standard projection where the deployment meant another. A track the
+profile refuses at egress, such as one whose type asserts an affiliation, is
+counted under `cot_skip_reasons` as `UNCONVERTIBLE`.
+
 ### Run with Docker
 
 From `gateway/`:

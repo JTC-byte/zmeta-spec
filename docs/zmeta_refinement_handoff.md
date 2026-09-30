@@ -47,6 +47,40 @@ Open, in order of proximity:
 Next session: item 1 on its own branch from `develop`; the cut when the
 evidence lands; the scan's forward edits as elected.
 
+## ON BRANCH (2026-09-29): `exp/cot-cds-profile`, NOT MERGED
+
+The branch is based on `exp/cot-type-parse` 980357c and depends on it: the
+profile refuses any type off the unknown branch, and the type parse is what
+keeps a label class on that branch. It merges into `develop` after
+`exp/cot-type-parse`, on the maintainer's word; the maintainer directed on
+2026-09-29 that, once every check passes, the adapter is merged and on
+`main` for public use, which under the branching rule means a release cut
+from `develop`. This is a Class C change to a reference adapter and the
+reference gateway's config validation; no governed artifact moves.
+
+The `cds` profile is the shape one partner's cross-domain guard passed on
+2026-09-29 (n=1). The adapter README's "Profiles" section states what is and
+is not claimed, and doctrine log cycle F3 records the tensions: a redaction
+done by an adapter (18.3), the 2-D declaration carried as words (gate 5
+against A1-02), `stale` as a fixed window against contract section 14's
+`valid_for_ms` rule (open), `how` as a deployment claim, the n=1 evidence
+bar, and the refusal of asserted affiliations.
+
+Left for the maintainer: whether the roadmap candidate
+`coalition-release-export` should record this validation as evidence (a
+governed artifact, not touched on this branch); whether a deployment may ever
+opt into passing an asserted affiliation across a guard; whether the profile
+should carry `valid_for_ms` into `stale` when it is shorter than the window
+(F3-03); and whether the window should announce itself in `remarks`, which
+the validated shape does not do. Booked as follow-ups: a profile-specific
+`cot_skip_reasons` token (a refusal by the profile lands in the generic
+`UNCONVERTIBLE` bucket today); and three standard-profile hardening items
+the second refutation round exposed and this branch leaves as they were,
+since the gateway validates events before egress: a control character or
+lone surrogate in a callsign is sent unparsed, a string `payload.geo` value
+is written into a point attribute unescaped, and a non-numeric `default_le`
+or `default_ce` is written as given.
+
 ## ON BRANCH (2026-09-28): `exp/cot-type-parse`, NOT MERGED
 
 The branch is based on `develop` f622d0b. On the maintainer's ruling of

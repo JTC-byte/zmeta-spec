@@ -57,10 +57,11 @@ from validators import (
     validate_timing_quality,
 )
 
-from adapters.egress.cot.zmeta_to_cot import zmeta_to_cot
+from adapters.egress.cot.zmeta_to_cot import validate_cot_config, zmeta_to_cot
 from zmeta_uuid import uuid7
 
 PROFILE_CHOICES = {"L", "M", "H"}
+COT_BLOCK_KEYS = {"host", "port", "config"}
 INPUT_ENCODING_CHOICES = {"json", "cbor", "compact", "proto", "auto"}
 OUTPUT_ENCODING_CHOICES = {"json", "cbor", "compact", "proto"}
 DEFAULT_STAMP_PROFILE_PROFILES = ["L", "M", "H"]
@@ -1757,6 +1758,19 @@ def build_settings(root, args, config):
         _apply_address(config.get("forward"), "forward_host", "forward_port", settings)
         _apply_address(config.get("cot"), "cot_host", "cot_port", settings)
         cot_block = config.get("cot")
+        if isinstance(cot_block, dict):
+            # A `cot` block that is mistyped fails loud, not open: a `config`
+            # that is not an object, or a key the gateway does not read
+            # (such as `cot_config`), would otherwise run the standard
+            # profile in silence where the deployment meant another.
+            unknown = sorted(set(cot_block) - COT_BLOCK_KEYS)
+            if unknown:
+                raise ValueError(
+                    f"cot block has unknown key(s) {', '.join(unknown)}; "
+                    f"accepted keys are {', '.join(sorted(COT_BLOCK_KEYS))}"
+                )
+            if cot_block.get("config") is not None and not isinstance(cot_block["config"], dict):
+                raise ValueError("cot.config must be an object of adapter settings")
         if isinstance(cot_block, dict) and isinstance(cot_block.get("config"), dict):
             # Deployment-asserted CoT projection knobs (geopointsrc /
             # altsrc / how pedigrees, team names, default_ce/le, ...),
@@ -1766,6 +1780,9 @@ def build_settings(root, args, config):
             # on TAK must assert its position source here, never have it
             # fabricated for them (CR-11 / H1-05).
             settings["cot_config"] = dict(cot_block["config"])
+            # A profile the adapter cannot run is a configuration error, and
+            # the deployment learns it here, not as a refusal of every track.
+            validate_cot_config(settings["cot_config"])
         if "emit_cot" in config:
             settings["emit_cot"] = bool(config["emit_cot"])
         if "schema_path" in config:

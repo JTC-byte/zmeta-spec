@@ -15,6 +15,8 @@ key (KeyError) and the serve loop ignored the block entirely.
 import importlib.util
 from pathlib import Path
 
+import pytest
+
 ROOT = Path(__file__).resolve().parents[2]
 GATEWAY_PATH = ROOT / "gateway" / "src" / "gateway.py"
 spec = importlib.util.spec_from_file_location("zmeta_gateway_cot_config", GATEWAY_PATH)
@@ -113,7 +115,15 @@ def test_asserted_config_projects_pedigree_and_ellipse_detail():
     assert 'le="9999999.0"' in xml
 
 
-def test_malformed_config_block_is_ignored_not_crashed():
-    for bad in ("GPS", ["GPS"], 7, None):
-        settings = gateway.build_settings(ROOT, _no_cli_args(), {"profile": "H", "cot": {"config": bad}})
-        assert settings["cot_config"] is None
+def test_malformed_config_block_is_refused_not_ignored():
+    # Reversed on 2026-09-29. While cot.config carried only pedigree knobs,
+    # ignoring a malformed block was the honest default (nothing asserted).
+    # Now that it selects a redaction profile, ignoring it would run the
+    # standard projection where a deployment meant the guard-facing one, so a
+    # malformed block is a configuration error and the gateway says so at
+    # startup. A JSON null still means "no adapter settings".
+    for bad in ("GPS", ["GPS"], 7):
+        with pytest.raises(ValueError):
+            gateway.build_settings(ROOT, _no_cli_args(), {"profile": "H", "cot": {"config": bad}})
+    settings = gateway.build_settings(ROOT, _no_cli_args(), {"profile": "H", "cot": {"config": None}})
+    assert settings["cot_config"] is None
