@@ -68,6 +68,7 @@ The config file keys are:
 - `warn_datagram_bytes` (warn when an outgoing datagram exceeds this size; 0 disables)
 - `ts_plausibility_horizon_ms` (warn when `event.ts` sits outside a window around now; 0 disables; see Event timestamp plausibility below)
 - `stamp_contract_hash` (include schema, policy, semantic-contract, and combined hashes in gateway-generated system events)
+- `gateway_producer`, `gateway_node_role` (the identity the gateway stamps on the diagnostics it mints; defaults `zmeta-gateway` and `GATEWAY`; see Gateway identity below)
 - `require_schema_hash`, `require_policy_hash`, `require_contract_hash` (startup gate)
 - `schema_path` and `policy_dir` (resolved relative to the config file)
 
@@ -215,6 +216,30 @@ validates. Before this warning existed, such a value passed schema validation
 clean and produced no runtime signal either, so the only component that
 noticed was an egress adapter refusing to project it (doctrine C1-02,
 `docs/release_notes_errata.md`).
+
+### Gateway identity
+
+Every diagnostic the gateway mints, a SCHEMA_VIOLATION, a warning event, or a
+duplicate TASK_ACK, carries a `source` block naming the gateway. The producer
+name and node role are settings, `gateway_producer` and `gateway_node_role`,
+also available as `--gateway-producer` and `--gateway-node-role`, so that a
+gateway deployed in another role, such as a DMZ admission boundary, can name
+itself on its own evidence. The defaults are `zmeta-gateway` and `GATEWAY`, the
+values the gateway has always used. `platform_id` stays `zmeta-gateway`.
+
+The gateway's outgoing self-check runs role and producer authority over those
+diagnostics, so an identity the loaded policy does not authorize would have
+every one of them refused. When a non-default identity is configured, the
+gateway checks it against the loaded policy at startup and exits if either
+check refuses it. The fix is to authorize the producer for `SYSTEM_EVENT` in
+`policy/producer-authority.yaml` and to use a role from `policy/roles.yaml`.
+The check covers identity only; the schema half of the outgoing self-check
+depends on the lane the gateway runs. The default identity is not checked, so a
+gateway that configures none behaves as before.
+
+A deployment that imports `process_message` instead of running the gateway
+passes its identity as `gateway_identity={"producer": ..., "node_role": ...}`
+and calls `check_gateway_identity(identity, policy)` at its own startup.
 
 ### Contract hash gate
 

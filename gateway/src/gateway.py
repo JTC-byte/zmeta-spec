@@ -86,6 +86,15 @@ PROTECTED_STRIP_PATH_PREFIXES = [
 DEFAULT_METRICS_INTERVAL_SEC = 30
 DEFAULT_RATE_LIMIT_PER_SEC = 0
 DEFAULT_RATE_LIMIT_PRODUCER_PER_SEC = 0
+
+# The identity the gateway stamps on the diagnostics it mints. The producer
+# name and node role are settings (gateway_producer, gateway_node_role) so that
+# a gateway deployed in another role, such as a DMZ admission boundary, can
+# name itself on its own evidence. These defaults are the values the gateway
+# has always used, and platform_id stays fixed.
+DEFAULT_GATEWAY_PRODUCER = "zmeta-gateway"
+DEFAULT_GATEWAY_NODE_ROLE = "GATEWAY"
+GATEWAY_PLATFORM_ID = "zmeta-gateway"
 DEFAULT_METRICS_LOG_MAX_BYTES = 5_000_000
 DEFAULT_METRICS_LOG_BACKUPS = 3
 # Minimum seconds between two ATTEMPTS to deliver a sink's one-shot
@@ -1505,6 +1514,7 @@ def _encode_outgoing_or_diagnostic(
             contract_hashes=contract_hashes,
             stamp_contract_hash=settings["stamp_contract_hash"],
             force_schema_violation=True,
+            identity=_identity_from_settings(settings),
         )
         if should_stamp_profile:
             diagnostic["profile"] = settings["profile"]
@@ -1746,6 +1756,8 @@ def build_settings(root, args, config):
         "warn_datagram_bytes": DEFAULT_WARN_DATAGRAM_BYTES,
         "ts_plausibility_horizon_ms": DEFAULT_TS_PLAUSIBILITY_HORIZON_MS,
         "stamp_contract_hash": False,
+        "gateway_producer": DEFAULT_GATEWAY_PRODUCER,
+        "gateway_node_role": DEFAULT_GATEWAY_NODE_ROLE,
         "require_schema_hash": None,
         "require_policy_hash": None,
         "require_contract_hash": None,
@@ -1859,6 +1871,12 @@ def build_settings(root, args, config):
             )
         if "stamp_contract_hash" in config:
             settings["stamp_contract_hash"] = bool(config["stamp_contract_hash"])
+        for key in ("gateway_producer", "gateway_node_role"):
+            if key in config:
+                value = "" if config[key] is None else str(config[key]).strip()
+                if not value:
+                    raise ValueError(f"{key} must be a non-empty string")
+                settings[key] = value
         if "require_schema_hash" in config:
             value = config["require_schema_hash"]
             settings["require_schema_hash"] = str(value).strip() if value is not None else None
@@ -1939,6 +1957,13 @@ def build_settings(root, args, config):
         )
     if args.stamp_contract_hash:
         settings["stamp_contract_hash"] = True
+    for key in ("gateway_producer", "gateway_node_role"):
+        value = getattr(args, key, None)
+        if value is not None:
+            value = str(value).strip()
+            if not value:
+                raise ValueError(f"{key} must be a non-empty string")
+            settings[key] = value
     if args.require_schema_hash:
         settings["require_schema_hash"] = str(args.require_schema_hash).strip() or None
     if args.require_policy_hash:
@@ -2201,7 +2226,73 @@ def _v1_0_wire_reason(reason_code, policy):
     return wire, reason_code
 
 
-def build_violation_event(reason_code, original=None, details=None, contract_hashes=None, stamp_contract_hash=False, force_schema_violation=False, policy=None):
+def _gateway_source(identity=None):
+    """The source block for a diagnostic the gateway mints."""
+    identity = identity if isinstance(identity, dict) else {}
+    return {
+        "platform_id": GATEWAY_PLATFORM_ID,
+        "node_role": identity.get("node_role") or DEFAULT_GATEWAY_NODE_ROLE,
+        "producer": identity.get("producer") or DEFAULT_GATEWAY_PRODUCER,
+    }
+
+
+def _identity_from_settings(settings):
+    """The identity a settings mapping configures; missing keys keep the defaults."""
+    return {
+        "producer": settings.get("gateway_producer") or DEFAULT_GATEWAY_PRODUCER,
+        "node_role": settings.get("gateway_node_role") or DEFAULT_GATEWAY_NODE_ROLE,
+    }
+
+
+def check_gateway_identity(identity, policy):
+    """Violations the loaded policy would raise against the gateway's own identity.
+
+    Runs role and producer authority, the two checks of the outgoing self-check
+    that depend on who the gateway says it is, over a SYSTEM_EVENT minted under
+    ``identity``. An empty list means the gateway's diagnostics clear those two
+    checks. The schema check is deliberately left out: it depends on the lane
+    the gateway runs, which is not an identity question. A deployment that
+    imports ``process_message`` instead of running ``main`` calls this at its
+    own startup.
+    """
+    severity_map = policy.get("violation_severities", {})
+    probe = {
+        "event": {"event_type": "SYSTEM_EVENT", "event_subtype": "SCHEMA_VIOLATION"},
+        "source": _gateway_source(identity),
+        "payload": {"system_type": "SCHEMA_VIOLATION"},
+    }
+    checks = []
+    checks.extend(
+        validate_role(probe, {"roles": policy["roles"], "deny": policy["deny"]}, severity_map)[1]
+    )
+    checks.extend(
+        validate_producer_authority(probe, policy.get("producer_authority", {}), severity_map)[1]
+    )
+    return [violation for violation in checks if violation.get("severity") != "warn"]
+
+
+def _enforce_gateway_identity(settings, policy):
+    """Refuse to start when a configured identity would be refused by its own policy.
+
+    The default identity is never checked here, so a gateway that does not
+    configure one behaves exactly as it did before identity became a setting.
+    """
+    identity = _identity_from_settings(settings)
+    if identity == {"producer": DEFAULT_GATEWAY_PRODUCER, "node_role": DEFAULT_GATEWAY_NODE_ROLE}:
+        return
+    refused = check_gateway_identity(identity, policy)
+    if refused:
+        codes = ", ".join(sorted({str(violation.get("code")) for violation in refused}))
+        raise SystemExit(
+            f"gateway identity producer={identity['producer']!r} "
+            f"node_role={identity['node_role']!r} is refused by the loaded policy "
+            f"({codes}), so the gateway's own diagnostics would fail its outgoing "
+            "self-check. Authorize the producer for SYSTEM_EVENT in "
+            "policy/producer-authority.yaml and use a role from policy/roles.yaml."
+        )
+
+
+def build_violation_event(reason_code, original=None, details=None, contract_hashes=None, stamp_contract_hash=False, force_schema_violation=False, policy=None, identity=None):
     original_event = original.get("event", {}) if isinstance(original, dict) else {}
     original_source = original.get("source", {}) if isinstance(original, dict) else {}
     original_payload = original.get("payload", {}) if isinstance(original, dict) else {}
@@ -2261,11 +2352,7 @@ def build_violation_event(reason_code, original=None, details=None, contract_has
             "event_subtype": event_subtype,
             "ts": utc_now(),
         },
-        "source": {
-            "platform_id": "zmeta-gateway",
-            "node_role": "GATEWAY",
-            "producer": "zmeta-gateway",
-        },
+        "source": _gateway_source(identity),
         "payload": {
             "system_type": system_type,
             "state": "REJECTED",
@@ -2274,7 +2361,7 @@ def build_violation_event(reason_code, original=None, details=None, contract_has
     }
 
 
-def build_warning_event(reason_code, original=None, details=None, contract_hashes=None, stamp_contract_hash=False, policy=None):
+def build_warning_event(reason_code, original=None, details=None, contract_hashes=None, stamp_contract_hash=False, policy=None, identity=None):
     original_event = original.get("event", {}) if isinstance(original, dict) else {}
     original_source = original.get("source", {}) if isinstance(original, dict) else {}
 
@@ -2303,11 +2390,7 @@ def build_warning_event(reason_code, original=None, details=None, contract_hashe
             "event_subtype": "SCHEMA_VIOLATION",
             "ts": utc_now(),
         },
-        "source": {
-            "platform_id": "zmeta-gateway",
-            "node_role": "GATEWAY",
-            "producer": "zmeta-gateway",
-        },
+        "source": _gateway_source(identity),
         "payload": {
             "system_type": "SCHEMA_VIOLATION",
             "state": "WARNING",
@@ -2316,7 +2399,7 @@ def build_warning_event(reason_code, original=None, details=None, contract_hashe
     }
 
 
-def build_duplicate_ack(original, contract_hashes=None, stamp_contract_hash=False):
+def build_duplicate_ack(original, contract_hashes=None, stamp_contract_hash=False, identity=None):
     original_event = original.get("event", {}) if isinstance(original, dict) else {}
     original_payload = original.get("payload", {}) if isinstance(original, dict) else {}
 
@@ -2335,11 +2418,7 @@ def build_duplicate_ack(original, contract_hashes=None, stamp_contract_hash=Fals
             "event_subtype": "TASK_ACK",
             "ts": utc_now(),
         },
-        "source": {
-            "platform_id": "zmeta-gateway",
-            "node_role": "GATEWAY",
-            "producer": "zmeta-gateway",
-        },
+        "source": _gateway_source(identity),
         "payload": {
             "system_type": "TASK_ACK",
             "state": "DUPLICATE_IGNORED",
@@ -2376,6 +2455,7 @@ def process_message(
     stamp_contract_hash=False,
     ts_plausibility_horizon_ms=0,
     now=None,
+    gateway_identity=None,
 ):
     try:
         instance = _decode_message(message, input_encoding)
@@ -2397,6 +2477,7 @@ def process_message(
                 contract_hashes=contract_hashes,
                 stamp_contract_hash=stamp_contract_hash,
                 policy=policy,
+                identity=gateway_identity,
             )
         ]
 
@@ -2434,6 +2515,7 @@ def process_message(
                 contract_hashes=contract_hashes,
                 stamp_contract_hash=stamp_contract_hash,
                 policy=policy,
+                identity=gateway_identity,
             )
         ]
 
@@ -2456,6 +2538,7 @@ def process_message(
                     contract_hashes=contract_hashes,
                     stamp_contract_hash=stamp_contract_hash,
                     policy=policy,
+                    identity=gateway_identity,
                 )
             ]
         warnings.extend(warns)
@@ -2477,6 +2560,7 @@ def process_message(
                     contract_hashes=contract_hashes,
                     stamp_contract_hash=stamp_contract_hash,
                     policy=policy,
+                    identity=gateway_identity,
                 )
             ]
         warnings.extend(warns)
@@ -2509,6 +2593,7 @@ def process_message(
                         contract_hashes=contract_hashes,
                         stamp_contract_hash=stamp_contract_hash,
                         policy=policy,
+                        identity=gateway_identity,
                     )
                 ]
             warnings.extend(warns)
@@ -2550,6 +2635,7 @@ def process_message(
                     contract_hashes=contract_hashes,
                     stamp_contract_hash=stamp_contract_hash,
                     policy=policy,
+                    identity=gateway_identity,
                 )
             ]
         warnings.extend(warns)
@@ -2577,6 +2663,7 @@ def process_message(
                     contract_hashes=contract_hashes,
                     stamp_contract_hash=stamp_contract_hash,
                     policy=policy,
+                    identity=gateway_identity,
                 )
             ]
         warnings.extend(warns)
@@ -2618,6 +2705,7 @@ def process_message(
                     stamp_contract_hash=stamp_contract_hash,
                     force_schema_violation=True,
                     policy=policy,
+                    identity=gateway_identity,
                 )
             ]
         warnings.extend(warns)
@@ -2644,6 +2732,7 @@ def process_message(
                     contract_hashes=contract_hashes,
                     stamp_contract_hash=stamp_contract_hash,
                     policy=policy,
+                    identity=gateway_identity,
                 )
             ]
         warnings.extend(warns)
@@ -2665,6 +2754,7 @@ def process_message(
                     contract_hashes=contract_hashes,
                     stamp_contract_hash=stamp_contract_hash,
                     policy=policy,
+                    identity=gateway_identity,
                 )
             ]
         warnings.extend(warns)
@@ -2703,6 +2793,7 @@ def process_message(
                 contract_hashes=contract_hashes,
                 stamp_contract_hash=stamp_contract_hash,
                 policy=policy,
+                identity=gateway_identity,
             )
         ]
 
@@ -2722,6 +2813,7 @@ def process_message(
                         instance,
                         contract_hashes=contract_hashes,
                         stamp_contract_hash=stamp_contract_hash,
+                        identity=gateway_identity,
                     )
                 ]
 
@@ -2742,6 +2834,7 @@ def process_message(
                 contract_hashes=contract_hashes,
                 stamp_contract_hash=stamp_contract_hash,
                 policy=policy,
+                identity=gateway_identity,
             )
         )
     return outgoing
@@ -2778,6 +2871,8 @@ def parse_args():
     parser.add_argument("--warn-datagram-bytes", type=int)
     parser.add_argument("--ts-plausibility-horizon-ms", type=int)
     parser.add_argument("--stamp-contract-hash", action="store_true")
+    parser.add_argument("--gateway-producer")
+    parser.add_argument("--gateway-node-role")
     parser.add_argument("--require-schema-hash")
     parser.add_argument("--require-policy-hash")
     parser.add_argument("--require-contract-hash")
@@ -2811,6 +2906,7 @@ def main():
 
     validator = load_schema(settings["schema_path"])
     policy = load_policy(settings["policy_dir"])
+    _enforce_gateway_identity(settings, policy)
 
     listen_addr = (settings["listen_host"], settings["listen_port"])
     forward_addr = (settings["forward_host"], settings["forward_port"])
@@ -2963,6 +3059,7 @@ def main():
                 contract_hashes=contract_hashes,
                 stamp_contract_hash=settings["stamp_contract_hash"],
                 ts_plausibility_horizon_ms=settings["ts_plausibility_horizon_ms"],
+                gateway_identity=_identity_from_settings(settings),
             )
             for outgoing in out_events:
                 should_stamp_timing = _should_apply(
