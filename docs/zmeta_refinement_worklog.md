@@ -2,7 +2,62 @@
 
 ## Current Resume Note
 
-- Last updated: 2026-09-28 (the CoT egress class parse on its own branch, not merged)
+- Last updated: 2026-09-29 (the cds CoT profile on its own branch, not merged)
+- **2026-09-29 (the `cds` CoT profile on `exp/cot-cds-profile`, based on
+  `exp/cot-type-parse`, not merged).** On the maintainer's direction of
+  2026-09-29, given in this repository's session, the shape one partner's
+  cross-domain guard passed on 2026-09-29 is captured as a profile of the
+  reference CoT egress adapter, selected by `cot_config["profile"]`. The
+  definition came from the downstream ecosystem's TAK session as data: the
+  pinned reference adapter's output with the detail children limited to
+  four, `how` asserted per source, one remarks line, no links, and stale
+  set to arrival plus 120 s; the last two went live together at 20:01 UTC
+  and neither was tested alone. The documentation test found the governing
+  text: contract section 14 decides that display conveniences are adapter
+  behavior, and also lists `valid_for_ms` as freshness/stale behavior among
+  what a projection must preserve, which this profile does not, so F3-03 is
+  open; section 18.2 guides (section 18 is stated as future direction and
+  policy guidance) what a redaction may not do, and five of its six
+  prohibitions are tests, the sixth being the README's statement of the
+  profile; section 18.3 guides that export audit metadata belongs to policy
+  and conformance, and the profile carries none; nothing decides whether an
+  asserted affiliation may cross a guard, so the profile refuses it. The
+  profile is a transform applied after the standard projection, which keeps
+  the standard bytes untouched (a test freezes them) and makes the profile
+  exactly what was validated. Two refutation rounds shaped it. The first
+  (fourteen readers, fourteen findings confirmed) turned a draft that built
+  remarks from the standard text plus markers into the validated
+  deployment's fixed template with the markers first; the mutation check on
+  that rewrite found two vacuous items (a config-time link check that could
+  never fire, a circle-wrapper test passing on the age gate). The second
+  round, four readers against the rewrite (adapter code, test vacuity,
+  documents against code, and the gateway run live): thirteen adapter
+  defects reproduced and closed (a non-UTC instant mis-stamped every time;
+  replay-display mode defeated the age rule and is now refused; a producer
+  name could forge a marker and the separator is now replaced in every
+  part; a string confidence or one out of range reached the far side and is
+  now not sent; control characters and lone surrogates raised or produced
+  ill-formed XML; a string point value could smuggle elements past the
+  child filter and the root shape is now checked; a source that is not an
+  object raised); four vacuous tests and five gaps closed; eleven document
+  errors corrected, among them a contract quote that joined a lead-in to a
+  bullet, a section 18.2 phrase applied to a case it does not cover, and a
+  claim that the oldest case "cannot occur" that replay-display mode
+  falsified; and one gateway fail-open (a `cot.config` given as a string
+  ran the standard profile in silence), closed by refusing a mistyped `cot`
+  block, which reverses the 2026-07-27 rule that a malformed block is
+  ignored, on the changed premise that the block now selects a redaction.
+  Fifty-four behavior-changing mutants, every one killed;
+  the output validates against MITRE's public event schema with lxml.
+  Validation at the branch tip: `python -m pytest -q adapters/egress/cot
+  gateway/tests/test_gateway_cot_profile.py gateway/tests/test_gateway_cot_config.py`
+  134 passed and 1 skipped (the public schema test, which passed with
+  `COT_EVENT_XSD` set); `python tools/validate_examples.py --strict
+  --require-all` 51 of 51; `python tools/validate_conformance.py
+  --kernel-gate` 14 `RELEASE_MANIFEST_*` lines over the same items as
+  `develop` and no other failure; `python tools/validate_future_roadmap.py`
+  ok; `python -m pytest -q` 13 failed (the release-pin set), 1930 passed,
+  1 skipped; `git diff --check` clean. Nothing pushed.
 - **2026-09-28 (the CoT egress class parse on `exp/cot-type-parse`, not
   merged).** On the maintainer's ruling of 2026-09-28, the CoT egress now
   accepts `payload.class` as the CoT type only when it parses as a CoT atom

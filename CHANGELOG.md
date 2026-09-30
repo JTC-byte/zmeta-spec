@@ -2,6 +2,39 @@
 
 ## [Unreleased]
 
+- 2026-09-29 — **The CoT egress adapter gains a `cds` profile, the shape one
+  partner's cross-domain guard passed.** `cot_config["profile"]` selects
+  `standard` (the default, unchanged, with a test that freezes its bytes) or
+  `cds`: the standard projection reduced to the four detail children
+  `contact`, `track`, `remarks` and `precisionlocation`, with `how` required
+  as a deployment claim, `remarks` replaced by one fixed-template line of at
+  most 200 characters whose honesty markers (`affiliation not asserted`, the
+  confidence when it is a finite number in range, `2-D fix, altitude not
+  asserted`) always survive the cut, no http(s) link anywhere in the event,
+  point attributes in plain decimal notation, and `stale` set to the
+  projection time plus a fixed window of 120 s unless the deployment sets
+  `stale_window_s`. The profile refuses rather than sends: an event dated
+  more than `max_age_s` (default: the window, which it may not exceed)
+  before or after the projection time, one whose type asserts an
+  affiliation, one whose standard string is not well-formed XML or does not
+  parse to one point and one detail, one with a point attribute that is not
+  a number, and one with an http(s) link outside `remarks`; the
+  uncertainty-circle wrapper refuses under the profile. `validate_cot_config`
+  refuses a config the adapter cannot run, including replay-display mode,
+  a key the adapter does not read, and an attribution with a link of any
+  scheme; the reference gateway calls it when it reads `cot.config`, so
+  such a config stops the gateway at startup, and a mistyped `cot` block is
+  now a configuration error rather than ignored. `zmeta_to_cot` and the
+  circle wrapper accept a `now` argument for the projection instant, taken
+  as UTC. The evidence is one deployment, one partner's guard, one day; the
+  adapter README says what is and is not claimed, and the doctrine pressure
+  log records the five tensions (cycle F3), three of them open in part, one
+  against contract section 14. Fifty-six adapter
+  tests and six gateway tests cover the profile,
+  including validation against MITRE's public CoT event schema when a copy
+  is available, and a mutation check of fifty-four behavior-changing
+  mutants kills every one.
+
 - 2026-09-28 — **The CoT egress uses a track's class as its CoT type only when
   the class parses as one.** `payload.class` is a free string in both schema
   versions, and a producer may carry an entity label there, such as a
