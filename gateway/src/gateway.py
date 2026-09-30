@@ -1696,9 +1696,18 @@ def _cot_skip_reason(event):
 
 
 def validate_outgoing_event(event, validator, policy, profile):
+    """Violations that should stop an outgoing event, warnings excluded.
+
+    ``validator`` is the inbound lane's. A forwarded producer event is
+    checked against it; a GatewayDiagnostic is checked against the schema
+    its own declared zmeta_version selects (see _outgoing_schema_validator).
+    Every other check is the same for both.
+    """
     severity_map = policy.get("violation_severities", {})
     checks = []
-    checks.extend(validate_schema(event, validator, severity_map)[1])
+    checks.extend(
+        validate_schema(event, _outgoing_schema_validator(event, validator), severity_map)[1]
+    )
     if checks:
         return checks
     checks.extend(
@@ -2292,6 +2301,94 @@ def _enforce_gateway_identity(settings, policy):
         )
 
 
+class GatewayDiagnostic(dict):
+    """A diagnostic this gateway minted.
+
+    The three diagnostic builders return this type instead of a plain dict.
+    It adds no key to the event and encodes exactly like a plain dict on every
+    output encoding; the type itself is the mark. The outgoing self-check
+    reads it to validate a minted diagnostic against the schema its own
+    declared zmeta_version selects (contract 2.4) instead of the lane the
+    gateway was launched with. Every diagnostic is stamped zmeta_version
+    "1.0" (R1-11-01), and on the 1.1.0 lane the lane schema refuses that
+    stamp on its const, so the self-check used to replace every diagnostic
+    on that lane with a content-free SCHEMA_INVALID. Nothing decoded from
+    the wire is ever this type, so a producer cannot claim the mark by
+    sending an event shaped like a gateway diagnostic.
+    """
+
+
+_VERSION_SCHEMA_VALIDATORS = {}
+
+
+def _version_schema_validators(schema_dir):
+    """Validators for the governed schemas in ``schema_dir``, keyed by the
+    zmeta_version const each one declares. The dispatching schema declares
+    no const and is not among them. Loaded once per directory."""
+    key = str(schema_dir)
+    if key not in _VERSION_SCHEMA_VALIDATORS:
+        selected = {}
+        for candidate in sorted(Path(schema_dir).glob("*.schema.json")):
+            try:
+                schema = json.loads(candidate.read_text(encoding="utf-8"))
+            except (OSError, ValueError):
+                continue
+            properties = schema.get("properties") if isinstance(schema, dict) else None
+            version_rule = properties.get("zmeta_version") if isinstance(properties, dict) else None
+            version = version_rule.get("const") if isinstance(version_rule, dict) else None
+            if isinstance(version, str) and version not in selected:
+                selected[version] = load_schema(candidate)
+        _VERSION_SCHEMA_VALIDATORS[key] = selected
+    return _VERSION_SCHEMA_VALIDATORS[key]
+
+
+def _outgoing_schema_validator(event, lane_validator):
+    """The validator the outgoing self-check runs an event's schema check on.
+
+    A forwarded producer event is checked against the lane it was admitted
+    on. A diagnostic this gateway minted is checked against the governed
+    schema its own declared zmeta_version selects, drawn from this
+    repository's schema directory whatever lane the gateway runs. A minted
+    diagnostic whose declared version no governed schema carries falls back
+    to the lane. On the 1.1.0 lane that fallback refuses every diagnostic,
+    which is the defect this selection exists to prevent, so main() checks
+    at startup that the schema its diagnostics declare is present
+    (_enforce_diagnostic_schema).
+    """
+    if isinstance(event, GatewayDiagnostic):
+        selected = _version_schema_validators(ROOT_DIR / "schema").get(event.get("zmeta_version"))
+        if selected is not None:
+            return selected
+    return lane_validator
+
+
+def _enforce_diagnostic_schema():
+    """Refuse to start when the gateway's own diagnostics have no schema to meet.
+
+    Mints a probe diagnostic, looks up the governed schema its declared
+    zmeta_version selects, and validates the probe against it. A missing or
+    unreadable schema directory would otherwise leave the outgoing self-check
+    falling back to the lane without a word, and on the 1.1.0 lane every
+    diagnostic would again reach the wire as a content-free SCHEMA_INVALID.
+    """
+    probe = build_violation_event("SCHEMA_INVALID", original=None, force_schema_violation=True)
+    schema_dir = ROOT_DIR / "schema"
+    version = probe.get("zmeta_version")
+    selected = _version_schema_validators(schema_dir).get(version)
+    if selected is None:
+        raise SystemExit(
+            f"no readable schema in {schema_dir} declares zmeta_version {version!r}, "
+            "the version the gateway stamps on its own diagnostics; the outgoing "
+            "self-check needs it to validate them"
+        )
+    refused = validate_schema(probe, selected)[1]
+    if refused:
+        raise SystemExit(
+            f"the gateway's own diagnostic fails the zmeta_version {version!r} schema in "
+            f"{schema_dir}: {refused[0].get('message')}"
+        )
+
+
 def build_violation_event(reason_code, original=None, details=None, contract_hashes=None, stamp_contract_hash=False, force_schema_violation=False, policy=None, identity=None):
     original_event = original.get("event", {}) if isinstance(original, dict) else {}
     original_source = original.get("source", {}) if isinstance(original, dict) else {}
@@ -2344,7 +2441,7 @@ def build_violation_event(reason_code, original=None, details=None, contract_has
         metrics.update(_wire_safe_details(details))
     _attach_contract_hash(metrics, contract_hashes, stamp_contract_hash)
 
-    return {
+    return GatewayDiagnostic({
         "zmeta_version": "1.0",
         "event": {
             "event_id": str(uuid7()),
@@ -2358,7 +2455,7 @@ def build_violation_event(reason_code, original=None, details=None, contract_has
             "state": "REJECTED",
             "metrics": metrics,
         },
-    }
+    })
 
 
 def build_warning_event(reason_code, original=None, details=None, contract_hashes=None, stamp_contract_hash=False, policy=None, identity=None):
@@ -2382,7 +2479,7 @@ def build_warning_event(reason_code, original=None, details=None, contract_hashe
         metrics.update(_wire_safe_details(details))
     _attach_contract_hash(metrics, contract_hashes, stamp_contract_hash)
 
-    return {
+    return GatewayDiagnostic({
         "zmeta_version": "1.0",
         "event": {
             "event_id": str(uuid7()),
@@ -2396,7 +2493,7 @@ def build_warning_event(reason_code, original=None, details=None, contract_hashe
             "state": "WARNING",
             "metrics": metrics,
         },
-    }
+    })
 
 
 def build_duplicate_ack(original, contract_hashes=None, stamp_contract_hash=False, identity=None):
@@ -2410,7 +2507,7 @@ def build_duplicate_ack(original, contract_hashes=None, stamp_contract_hash=Fals
     }
     _attach_contract_hash(metrics, contract_hashes, stamp_contract_hash)
 
-    return {
+    return GatewayDiagnostic({
         "zmeta_version": "1.0",
         "event": {
             "event_id": str(uuid7()),
@@ -2424,7 +2521,7 @@ def build_duplicate_ack(original, contract_hashes=None, stamp_contract_hash=Fals
             "state": "DUPLICATE_IGNORED",
             "metrics": metrics,
         },
-    }
+    })
 
 
 def _split_violations(violations):
@@ -2899,6 +2996,8 @@ def main():
         raise SystemExit("policy hash mismatch: update config or policy")
     if settings["require_contract_hash"] and settings["require_contract_hash"] != contract_hashes["contract_hash"]:
         raise SystemExit("contract hash mismatch: update config or schema/policy")
+
+    _enforce_diagnostic_schema()
 
     if args.self_test:
         run_self_test(root, settings)

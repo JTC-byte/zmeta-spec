@@ -31,6 +31,45 @@ python tools/compute_contract_hash.py
 python gateway/src/gateway.py --profile H --self-test --require-contract-hash <HASH>
 ```
 
+### Schema lanes
+
+The gateway validates each incoming event against one schema, its lane, set
+with `schema_path` or `--schema-path`. The default is the locked v1.0 schema,
+`schema/zmeta-event-1.0.schema.json`. A gateway for v1.1.0 producers runs
+`schema/zmeta-event-1.1.0.schema.json`, and a gateway for both runs the
+dispatching `schema/zmeta-event.schema.json`, which selects the schema from
+each event's `zmeta_version`.
+
+Every diagnostic the gateway mints is stamped `zmeta_version: "1.0"`, on every
+lane. The outgoing self-check runs on every event `process_message` returns. It
+validates a diagnostic the gateway minted against the schema that diagnostic's
+own `zmeta_version` selects, taken from this repository's `schema/` directory,
+as contract section 2.4 requires of a consumer, and it validates a forwarded
+producer event against the lane. Two diagnostics are not checked again: the
+replacement the gateway builds when the self-check refuses an event, and the
+`ENCODING_UNSUPPORTED` diagnostic it builds when the output encoding cannot
+carry an event. The gateway exits at startup if that `schema/` directory has no
+readable schema for the version its diagnostics declare. A gateway launched
+with a copy of the v1.0 schema from another directory checks producer events
+against that copy and its own diagnostics against this repository's v1.0
+schema. The contract hash covers the lane file only. On the 1.1.0 lane, the
+output therefore carries 1.1.0 producer events beside v1.0
+diagnostics, and a consumer that validates it selects each event's schema by
+`zmeta_version`, as the dispatching schema does, instead of applying the 1.1.0
+schema to every event.
+
+The lanes differ in how a refusal reads. On a per-version schema, a refused
+event's diagnostic names the failing location in `metrics.path`. On the
+dispatching schema, a refused event is reported as the whole event with an
+empty `path`, because its `oneOf` cannot say which branch failed.
+
+A deployment that imports `process_message` and `validate_outgoing_event`
+instead of running the gateway gets the same behavior, as long as it passes the
+events `process_message` returns to `validate_outgoing_event` without copying
+them into new dicts. The builders return `GatewayDiagnostic`, a `dict`
+subclass that encodes exactly like a plain dict, and that type is what the
+self-check reads.
+
 ### Config file (recommended)
 
 Generate a deterministic config with the wizard (ships in a repository

@@ -22,6 +22,10 @@ python tools/run_gateway.py --profile H
 python tools/run_gateway.py --profile H --schema-path schema/zmeta-event-1.1.0.schema.json   # v1.1.0 lane; default is locked v1.0
 ```
 
+The gateway's own diagnostics are stamped `zmeta_version: "1.0"` on every lane.
+Schema lanes in `gateway/README.md` says how the gateway checks them and what a
+consumer of a 1.1.0 lane does with them.
+
 ### Replay JSONL over UDP
 
 ```
