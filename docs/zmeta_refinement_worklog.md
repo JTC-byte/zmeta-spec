@@ -2,7 +2,26 @@
 
 ## Current Resume Note
 
-- Last updated: 2026-09-29 (v1.1.26 cut from develop: the cds CoT profile and the held integration line)
+- Last updated: 2026-09-29 (v1.1.26 published: tagged, signed, pushed, verified as published)
+- **2026-09-29 (v1.1.26 published).** The cut commit baf86f1 on `develop`;
+  `main` moved to it without a checkout (`git branch -f`, after the
+  ancestor check), so no tracked file was re-smudged between signing and
+  upload; annotated tag `v1.1.26` on baf86f1; `develop`, `main` and the tag
+  pushed together. The GitHub release carries seventeen assets, the
+  v1.1.25 set: the four zips, the manifest, the notes, the validation
+  report and `SHA256SUMS_v1.1.26.txt`, a detached signature for each of
+  the eight, and the public key `ZMETA_RELEASE_SIGNING_KEY_v1.1.26.asc`.
+  Verified as published: every asset downloaded from the release,
+  `sha256sum -c` over the downloaded checksum file passed for all seven
+  entries, the eight downloaded signatures verified as good against the
+  Incept.IO ZMeta release signing key with the Gpg4win gpg, and the
+  downloaded notes, report, checksum file, its signature and the public key
+  are byte-identical to the tracked copies. One trap re-learned on the
+  way: the signing tooling's `--verify-signatures` run from Git Bash
+  resolves the Git-bundled gpg and an empty keyring and fails with exit 2;
+  every signature step ran from PowerShell, where `gpg` is Gpg4win's, and
+  the secret-key listing there hung until `gpgconf --kill gpg-agent`
+  restarted the agent. GitHub CI completed with success for the release commit on develop, main and the tag.
 - **2026-09-29 (v1.1.26 cut: the `cds` CoT profile, the CoT type parse,
   the gateway identity setting, the gateway's diagnostics on the 1.1.0
   lane, and the held integration line).** On the maintainer's direction
