@@ -1158,3 +1158,122 @@ def test_3d_geo_is_unaffected_by_the_2d_marker_logic():
         assert xml_text is not None
         assert "geo_dimensionality" not in xml_text
         assert ET.fromstring(xml_text).find("point").attrib["hae"] == "1500.0"
+
+
+# ---------------------------------------------------------------------------
+# payload.class is a free string in both schema versions, so only a class that
+# parses as a CoT atom type becomes the CoT type. Anything else is an entity
+# label: the event goes out as the unknown-ground type, which claims no
+# affiliation, and the label travels in <remarks>, where an operator reads it.
+
+
+def _state_event_with_class(cot_class, confidence=None):
+    event = {
+        "event": {
+            "event_type": "STATE_EVENT",
+            "event_subtype": "TRACK_STATE",
+            "ts": "2026-08-01T12:00:00Z",
+        },
+        "payload": {
+            "track_id": "track-class",
+            "geo": {"lat": 33.7405, "lon": -118.2712, "alt_m": 12.0},
+            "valid_for_ms": 5000,
+            "class": cot_class,
+        },
+    }
+    if confidence is not None:
+        event["confidence"] = confidence
+    return event
+
+
+def _cot_for_class(cot_class, confidence=None, **config):
+    xml = zmeta_to_cot_module.zmeta_to_cot(
+        _state_event_with_class(cot_class, confidence),
+        cot_config={**_TEST_CONFIG, **config},
+    )
+    assert xml is not None
+    return ET.fromstring(xml)
+
+
+def _remarks_text(root):
+    remarks = root.find("detail/remarks")
+    return "" if remarks is None else (remarks.text or "")
+
+
+def _claims_no_affiliation(root):
+    return (
+        root.attrib["type"] == "a-u-G"
+        and root.find("detail/__group") is None
+        and root.find("detail/labels_on") is None
+        and root.find("detail/contact").attrib["callsign"] != "RF Emitter"
+    )
+
+
+def test_a_class_that_is_an_entity_label_never_becomes_the_cot_type():
+    root = _cot_for_class("car")
+    assert _claims_no_affiliation(root)
+    assert _remarks_text(root) == 'class="car"'
+
+
+def test_a_class_that_parses_as_a_cot_atom_type_is_used_verbatim():
+    for cot_type in ("a-h-G-U-C-I", "a-f-A-M-F-Q", "a-n-S", "a-u-G"):
+        root = _cot_for_class(cot_type)
+        assert root.attrib["type"] == cot_type
+        assert "class=" not in _remarks_text(root)
+
+
+def test_a_near_miss_of_a_cot_type_is_a_label():
+    # Each of these would pass a prefix match, a search, or a looser letter
+    # class, and none of them may place a hostile or friendly marker.
+    for label in (
+        "a-h-G car", "a-h-G; x", "a-h-G\n", "a-h-G ", "a-h-", "a-h-g",
+        "a-z-G", "a-h-Q", "a-H-G", "b-m-p-s-p-i", "hostile vehicle",
+    ):
+        root = _cot_for_class(label)
+        assert _claims_no_affiliation(root), repr(label)
+        assert _remarks_text(root).startswith('class="'), repr(label)
+
+
+def test_a_configured_default_type_never_applies_to_a_label():
+    for default_type in ("a-h-G", "a-f-G"):
+        root = _cot_for_class("car", default_type=default_type)
+        assert _claims_no_affiliation(root), default_type
+
+
+def test_a_null_class_uses_the_configured_default_and_adds_no_label():
+    root = _cot_for_class(None, default_type="a-n-S")
+    assert root.attrib["type"] == "a-n-S"
+    assert "class=" not in _remarks_text(root)
+
+
+def test_a_configured_default_type_that_is_not_a_cot_type_falls_back():
+    for default_type in (7, None, "car"):
+        root = _cot_for_class(None, default_type=default_type)
+        assert root.attrib["type"] == "a-u-G", repr(default_type)
+
+
+def test_an_empty_class_adds_no_label_and_a_non_string_class_is_a_label():
+    empty = _cot_for_class("   ", default_type="a-f-G")
+    assert empty.attrib["type"] == "a-u-G"
+    assert "class=" not in _remarks_text(empty)
+    numeric = _cot_for_class(7)
+    assert _claims_no_affiliation(numeric)
+    assert _remarks_text(numeric) == 'class="7"'
+
+
+def test_a_label_cannot_forge_a_remarks_fragment():
+    alone = _cot_for_class("car; confidence=0.99")
+    assert _remarks_text(alone) == 'class="car; confidence=0.99"'
+    with_real = _cot_for_class("car; confidence=0.99", confidence=0.12)
+    assert _remarks_text(with_real) == 'class="car; confidence=0.99"; confidence=0.12'
+
+
+def test_a_label_with_markup_or_control_characters_keeps_the_cot_parseable():
+    root = _cot_for_class('car" <b>\x01\nline2')
+    assert _claims_no_affiliation(root)
+    assert _remarks_text(root) == 'class="car\\" <b>  line2"'
+
+
+def test_a_long_label_is_cut():
+    root = _cot_for_class("x" * 100)
+    assert _remarks_text(root) == 'class="' + "x" * 64 + '..."'

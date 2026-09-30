@@ -47,6 +47,30 @@ Open, in order of proximity:
 Next session: item 1 on its own branch from `develop`; the cut when the
 evidence lands; the scan's forward edits as elected.
 
+## ON BRANCH (2026-09-28): `exp/cot-type-parse`, NOT MERGED
+
+The branch is based on `develop` f622d0b. On the maintainer's ruling of
+2026-09-28, the reference CoT egress uses `payload.class` as the CoT type only
+when it parses as a CoT atom type, and otherwise sends `a-u-G` with the label as
+a quoted token in `remarks`. This is a Class C change to a reference adapter;
+no governed artifact moves. The branch merges into `develop` on the
+maintainer's word. It edits the same record files as
+`wave/registry-candidates-2026-09`, so whichever merges second resolves the
+record entries by keeping both.
+
+Left for the maintainer: whether "parses as a CoT type" should stay
+grammatical, which admits a well-formed type that denotes nothing, or become a
+lookup in a type table, which would refuse real types the table lacks; and
+whether the label should also reach the map's callsign, which today shows the
+track id.
+
+Found by this branch's review and booked, not changed here: `payload.source_summary`
+members are joined into `remarks` with `; ` and no delimiting, so a summary
+entry can pass for a remarks fragment in the way the class label could before
+this change; and `_esc` in the same adapter escapes XML markup but not the C0
+control characters XML 1.0 forbids, so such a character in any other rendered
+field produces a document that does not parse.
+
 ## Previous state (2026-09-12): THREE WAVES ON DEVELOP, HELD FOR LIVE EVIDENCE
 
 Identifiers in this section are as they were before the 2026-09-21

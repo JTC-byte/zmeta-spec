@@ -2,7 +2,30 @@
 
 ## Current Resume Note
 
-- Last updated: 2026-09-21 (pre-push history rewrite: records generalised, consent recorded, trailers removed)
+- Last updated: 2026-09-28 (the CoT egress class parse on its own branch, not merged)
+- **2026-09-28 (the CoT egress class parse on `exp/cot-type-parse`, not
+  merged).** On the maintainer's ruling of 2026-09-28, the CoT egress now
+  accepts `payload.class` as the CoT type only when it parses as a CoT atom
+  type. Otherwise it sends `a-u-G`, which claims no affiliation, and carries
+  the label in `remarks` as one quoted token, with characters that are not
+  printable replaced and the length capped at 64. A configured `default_type`
+  is held to the same grammar. The documentation test found the reason for the
+  defect. Both schema versions declare `TrackStatePayload.class` only as a
+  string, the CoT ingress stores a CoT type there, and the egress README
+  described a fallback for an absent class only, so it was silent on a class
+  that is a label. The first draft's five tests failed four of five against
+  the unchanged egress. An opus refuter then found that a label could forge a
+  remarks fragment and that six mutants of the fix survived those tests. The
+  second draft quotes the label, adds five tests, and validates
+  `default_type`. A mutation check over ten mutants, the refuter's six plus
+  four against the new safeguards, killed all ten. Validation at the branch
+  tip:
+  `python -m pytest -q adapters/egress/cot/` 69 passed;
+  `python tools/validate_examples.py --strict --require-all` 51 of 51;
+  `python tools/validate_conformance.py --kernel-gate` 14
+  `RELEASE_MANIFEST_*` lines over the same items as `develop` and no other
+  failure; `python -m pytest -q` 13 failed (the release-pin set) and 1869
+  passed; `git diff --check` clean. Nothing pushed.
 - **2026-09-21 (pre-push history rewrite: the held develop records
   generalised, the consent recorded, the three trailers removed).** Before
   the first push of `develop` since v1.1.25, a share-readiness scan

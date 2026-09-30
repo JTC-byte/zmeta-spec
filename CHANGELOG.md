@@ -2,6 +2,19 @@
 
 ## [Unreleased]
 
+- 2026-09-28 — **The CoT egress uses a track's class as its CoT type only when
+  the class parses as one.** `payload.class` is a free string in both schema
+  versions, and a producer may carry an entity label there, such as a
+  detector's `car`. `adapters/egress/cot/zmeta_to_cot.py` had used any class
+  verbatim as the CoT `type`, so a label reached TAK as an invalid type, and a
+  non-string class raised an error. A class that parses as a CoT atom type is
+  still used unchanged. Any other class now goes out as `a-u-G`, which claims
+  no affiliation, with the label prepended to `remarks` as one quoted token,
+  so a label cannot pass for a remarks fragment of its own. A configured
+  `default_type` that does not parse as a CoT atom type now falls back to
+  `a-u-G` rather than being emitted verbatim or raising. The adapter README
+  documents the rule, and ten focused tests cover it.
+
 - 2026-09-21 — **The repository states its open-specification terms where
   every visitor and every fork will see them.** A root `NOTICE` file, carried by
   every redistribution under Apache License 2.0 Section 4(d), records that the

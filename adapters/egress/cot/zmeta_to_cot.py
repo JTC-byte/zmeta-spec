@@ -44,6 +44,7 @@ Source: Z-ISR zisr/transport/publisher.py (_builtin_zmeta_to_cot)
 """
 
 import math
+import re
 from collections.abc import Mapping, Sequence
 from collections.abc import Set as AbstractSet
 from datetime import datetime, timedelta, timezone
@@ -55,6 +56,41 @@ _TEXT_LEAF_TYPES = (str, bytes, bytearray)
 
 
 DEFAULT_COT_TYPE = "a-u-G"
+
+# payload.class is a free string in both schema versions (TrackStatePayload
+# declares it only as {"type": "string"}). The CoT ingress stores a CoT type
+# there, and another producer may store an entity label, such as a detector's
+# "car". Only a class that parses as a CoT atom type becomes the CoT type: "a",
+# an affiliation letter, a battle dimension, then zero or more function-code
+# segments, as in "a-h-G-U-C-I". The check is grammatical rather than a lookup
+# in a type table, so a well-formed type is accepted whether or not a table
+# knows it, and a label never is.
+_COT_ATOM_TYPE = re.compile(r"a-[pufnshjkaox]-[PAGSUFX](?:-[A-Z0-9]+)*")
+
+
+def _cot_type_from_class(value):
+    """Return ``value`` if it parses as a CoT atom type, otherwise None."""
+    if isinstance(value, str) and _COT_ATOM_TYPE.fullmatch(value):
+        return value
+    return None
+
+
+# A class that is not a CoT type is rendered in <remarks> as one quoted token,
+# so a label such as "car; confidence=0.99" cannot pass for a remarks fragment
+# of its own. Characters that are not printable, which include the C0 controls
+# that XML 1.0 forbids, become spaces, and a long label is cut to
+# _CLASS_LABEL_MAX characters with a trailing "...".
+_CLASS_LABEL_MAX = 64
+
+
+def _class_label(value):
+    """Render a class that is not a CoT type as a quoted remarks token, or None if empty."""
+    text = "".join(ch if ch.isprintable() else " " for ch in str(value)).strip()
+    if not text:
+        return None
+    if len(text) > _CLASS_LABEL_MAX:
+        text = text[:_CLASS_LABEL_MAX] + "..."
+    return '"' + text.replace("\\", "\\\\").replace('"', '\\"') + '"'
 
 # CoT's documented unknown-value convention for point@ce / point@le.
 # Emitted when the event carries no uncertainty so absent accuracy is
@@ -261,7 +297,10 @@ def zmeta_to_cot(event, cot_config=None):
     Args:
         event: ZMeta event dict. Must have event_type=STATE_EVENT.
         cot_config: Optional dict with configuration overrides:
-            - default_type (str): Default CoT type (default "a-u-G")
+            - default_type (str): CoT type for a track whose class is
+              absent or null (default "a-u-G"). A value that does not parse
+              as a CoT atom type falls back to "a-u-G", and it never applies
+              to a class that is a label.
             - default_valid_for_ms (int): Stale interval (default 300000)
             - default_ce (float): Circular error metres when the event
                 carries no uncertainty (default 9999999.0, CoT's
@@ -383,8 +422,22 @@ def zmeta_to_cot(event, cot_config=None):
     time_str = time_obj.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
     stale_str = stale_obj.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
 
-    default_type = cot_config.get("default_type", DEFAULT_COT_TYPE)
-    cot_type = payload.get("class", default_type)
+    default_type = (
+        _cot_type_from_class(cot_config.get("default_type", DEFAULT_COT_TYPE))
+        or DEFAULT_COT_TYPE
+    )
+    raw_class = payload.get("class")
+    class_label = None
+    if raw_class is None:
+        cot_type = default_type
+    else:
+        cot_type = _cot_type_from_class(raw_class)
+        if cot_type is None:
+            # The class is an entity label, so it never becomes the type. The
+            # unknown-ground type claims no affiliation, and the label travels
+            # in <remarks>, where an operator reads it.
+            cot_type = DEFAULT_COT_TYPE
+            class_label = _class_label(raw_class)
     lat = geo["lat"]
     lon = geo["lon"]
     # Absent altitude is emitted as CoT's unknown-value convention (the same
@@ -475,6 +528,10 @@ def zmeta_to_cot(event, cot_config=None):
             remarks_text += f"; {ellipse_str}"
         else:
             remarks_text = ellipse_str
+
+    if class_label is not None:
+        class_str = f"class={class_label}"
+        remarks_text = f"{class_str}; {remarks_text}" if remarks_text else class_str
 
     remarks_xml = ""
     if remarks_text:
