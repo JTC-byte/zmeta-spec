@@ -103,7 +103,7 @@ is intentionally enabled.
 ### Check Migration Compatibility
 
 ```
-python tools/check_compat.py legacy-events.jsonl --target v1.1.25
+python tools/check_compat.py legacy-events.jsonl --target v1.1.26
 python tools/check_compat.py legacy-events.jsonl --profile L --policy-dir policy
 python tools/check_compat.py legacy-events.jsonl --json
 ```
@@ -246,8 +246,8 @@ the deployment hash is intentional.
 ```
 python tools/build_release_manifest.py --output release/zmeta-release-manifest.yaml
 python tools/validate_release_manifest.py --manifest release/zmeta-release-manifest.yaml
-python tools/build_release_package.py --manifest release/zmeta-release-manifest.yaml --output-dir release/package-v1.1.25 --release-id zmeta-v1.1.25 --release-state formal_release --no-signatures --release-notes release/RELEASE_NOTES_v1.1.25.md
-python tools/validate_release_package.py --manifest release/zmeta-release-manifest.yaml --package-dir release/package-v1.1.25
+python tools/build_release_package.py --manifest release/zmeta-release-manifest.yaml --output-dir release/package-v1.1.26 --release-id zmeta-v1.1.26 --release-state formal_release --no-signatures --release-notes release/RELEASE_NOTES_v1.1.26.md
+python tools/validate_release_package.py --manifest release/zmeta-release-manifest.yaml --package-dir release/package-v1.1.26
 python tools/validate_release_package.py --manifest release/zmeta-release-manifest.yaml --templates-only
 ```
 

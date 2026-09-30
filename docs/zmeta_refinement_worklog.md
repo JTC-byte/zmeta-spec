@@ -2,7 +2,34 @@
 
 ## Current Resume Note
 
-- Last updated: 2026-09-29 (the cds CoT profile on its own branch, not merged)
+- Last updated: 2026-09-29 (v1.1.26 cut from develop: the cds CoT profile and the held integration line)
+- **2026-09-29 (v1.1.26 cut: the `cds` CoT profile, the CoT type parse,
+  the gateway identity setting, the gateway's diagnostics on the 1.1.0
+  lane, and the held integration line).** On the maintainer's direction
+  of 2026-09-29, given in this repository's session ("once you have run
+  all checks and tests to validate the adapter, I want it merged and on
+  Main for public use", with the scope answered as the adapter plus the
+  identity and lane-diagnostics branches, `develop` cut whole as v1.1.26,
+  and tag, sign, push and publish), the five merges landed on `develop`
+  in dependency order with no fast-forward: `main` (the notice set),
+  `exp/cot-type-parse`, `exp/cot-cds-profile`, `exp/gateway-identity`,
+  `exp/gateway-lane-diagnostics`. Every conflict was the known shape:
+  two insertions at the same anchor in the three record files (both
+  kept, the worklog sentinel deduplicated) and one `gateway.py` hunk
+  where the identity and lane-diagnostics branches each added helpers
+  before `build_violation_event` (both kept, the signature carrying
+  `identity=None`). `wave/registry-candidates-2026-09` stays local, its
+  U1-02 questions open. The cut followed `RELEASE_CHECKLIST.md`: the
+  governed baseline regenerated from the v1.1.25 manifest before the
+  bump; the release identity bumped across every current-facing
+  surface the v1.1.25 cut touched; the manifest rebuilt with
+  `--update-claims`; the notes and the validation report written; the
+  bundles, the formal package and the checksums built; the signing key
+  exported; the retention pass moved the 2026-08-10 through 2026-08-13
+  session records to the archive. Validation at the cut is in
+  `release/VALIDATION_REPORT_v1.1.26.md`.
+  The signing, tagging, pushing and publishing steps are recorded in
+  the entry that follows the cut commit.
 - **2026-09-29 (the `cds` CoT profile on `exp/cot-cds-profile`, based on
   `exp/cot-type-parse`, not merged).** On the maintainer's direction of
   2026-09-29, given in this repository's session, the shape one partner's
@@ -349,205 +376,12 @@
   category material before its how-to-read apparatus, per maintainer
   direction on pacing.
 - Last updated: 2026-08-13 (RF zero-fill minted; v1.1.25 cut)
-- **2026-08-13 (RF zero-fill adjudication and mint, v1.1.25).** The
-  focused session handoff item 19 was booked for, run the day it was
-  booked, with three maintainer adjudications recorded in X2-04: mint
-  now, as completion of the zero-fill laundering class the geo code
-  established, rather than holding a single field instance against the
-  occurrence rule; the paired predicate, re-adjudicated after the
-  pre-cut verification pass measured that the first-draft
-  bandwidth-alone trigger would have failed the documented
-  receiver-class sentinel on five adapter families under strict mode
-  (kraken, moth, signalhunter, sapient, and the experimental adsb
-  power path). The pair predicate: bandwidth_hz and power_dbm both
-  exactly 0.0 triggers, and only the pair, because no shipped adapter
-  emits a power sentinel, the pair is the exact fabrication shape the
-  field evidence measured, and it scopes the check to the RF family
-  without a modality gate. The third adjudication was the v1.0
-  wire fallback to GEO_ZERO_FILL_SUSPECTED with its cross-family
-  overload recorded deliberately. The severity question answered itself
-  during grounding: the locked contract states the zero-fill
-  prohibition for geospatial data only (6.8), so warn is the ceiling by
-  construction, and the generalized form is recorded as
-  versioned-semantic-branch material rather than minted. Shipped
-  surfaces: the violation registry, the semantics allowed-code list,
-  the validator heuristic walking the same three feature containers as
-  its geo analogue (payload, claim, estimated_state, per the R1-11
-  A-16 lesson), the 1.1.0 schema lane's reason-code enum, the
-  documented v1.0 wire fallback with the minted code native in
-  metrics.diagnostic_code, two bad-event corpus warn vectors (the
-  corpus's first warn-severity entries, one at payload level and one
-  under an inference claim), and an eight-case unit suite including the
-  sanctioned-sentinel non-trigger, the one-milliwatt non-trigger, the
-  estimated_state container (the A-16 blind spot, proven in-repo per
-  P2-D1), the negative-zero and integer-zero pair shapes, and the
-  wire-shaped junk paths. The v1.0 byte-anchor guard fired mid-mint on a first draft
-  that touched the locked lane's enum and forced the documented
-  post-lock path, which is the lock defending its own bytes in real
-  time. Field evidence credit: Barrett Downs (Torch). The corpus
-  vectors are synthesized fresh; the motivating events live in a
-  private, not-for-publication bundle.
-- **2026-08-13 (lockdown completion: the remaining menu executes).** Four
-  items close the lockdown list. The containerized gateway wire path was
-  verified live at v1.1.24 (container boots with the release's contract
-  hashes; a valid event round-trips the container boundary with its
-  event_id intact; a profile-mismatched event yields a wire-visible
-  SCHEMA_VIOLATION diagnostic), clearing the Docker known-limits item both
-  2026-08-13 validation reports disclosed; the result is recorded in the
-  live-test checklist's deployment section. The battery command literal is
-  single-sourced (apparatus lever 1): the six documents that define the
-  governed battery now state the same four commands, adding the roadmap
-  validator everywhere and the examples validator where it was omitted,
-  and `gateway/tests/test_battery_single_source.py` holds the canon and
-  checks the omission direction the old flag-existence check could not.
-  Three of the six documents (AGENTS.md, CONTRIBUTING.md, and the change
-  governance doc) are hashed in the manifest's process_governance group,
-  so the release manifest was regenerated under the published v1.1.24
-  identity per the post-release rule in AGENTS.md; published checksums
-  are untouched and the divergence reconciles at the next cut. The
-  worklog retention pass moved the resume-note entries from 2026-08-03
-  back through the v1.1.9 era to the archive verbatim (2,079 lines); the
-  live note keeps the current release family, and the entry-coverage
-  floor in the changelog guard was re-derived to match, with the rule
-  stated that retention never archives the newest entry. Branch hygiene:
-  the merged review/pr2-frame-fixes branch and its stale worktree are
-  deleted (content contained in main); backup-pre-scrub is kept pending
-  an explicit maintainer call, because it is an unmerged snapshot and
-  deleting it is irreversible.
-- **2026-08-13 (apparatus retire-or-keep decisions, first-contact guidance).**
-  The maintainer adopted the full recommendation set for the apparatus
-  audit's retire-on-condition and maintainer-call items, and the
-  executable ones landed the same day. Retired or consolidated: the
-  one-test packaging module folded into the release-package suite; the
-  r1_11 closure probe archived out of docs/ (playbook citation updated,
-  the frozen records untouched). Curated: deployment bundles exclude the
-  simulation harnesses and the demo wizard, the dist bundle excludes the
-  harnesses and keeps the wizard as onboarding, pinned at the builders'
-  ignore seam; the wholesale-docs concern from the audit was measured
-  already-solved (the PC-09 file-by-file listing ships the declared
-  seven-file process-governance set, of which exactly two live under
-  docs/, rather than the whole docs/ tree). Re-wired: the two live runtime harnesses become
-  a named checklist step for runtime-code cuts. Declared: the s1_*/r1_*
-  records are frozen with their evidence-pointer guarantee, and the
-  records-currency guard documents its r1_11 coupling in place. Kept with
-  recorded reasons: the governed baseline (load-bearing since the
-  baseline-before-bump rule), the public worklog archive, the live-test
-  checklist (the exercise it stages has not run), and the sim import
-  boundary, whose drafted retirement condition inverted once curation
-  landed: with sim out of every bundle, the guard is the only in-repo
-  detector of a governed import that would break shipped bundles while
-  the repo battery stays green. The compat module pair closed as no-twin
-  (CLI wraps library, both referenced). Separately, the authoring guide
-  gained a first-contact section teaching the two failure classes the
-  external replay measured, and the slot-token guard now checks
-  event_subtype and event_type vocabulary on lines naming those slots.
-- Last updated: 2026-08-13 (fix wave; guards landed; v1.1.24 cut)
-- **2026-08-13 (fix wave: the queued guards land, the stack relocks).**
-  The post-merge fix wave, all outer-ring: no schema, policy, contract, or
-  corpus file moves. Landed: the validate CLI lane fix with its guard
-  tests (the CLI had diverged from the gateway's lane validation and was
-  the one surface losing branch diagnostics); the timing-helper degrade
-  fix with helper-level and adapter-level tests, closing the PR #8 open
-  finding per the maintainer's contract decision (degrade, widen the
-  bound, document that the invalid token is not preserved); the claims
-  release-hashes currency gate (X2-01 CHANGED); the changelog-guard
-  mechanism fix (X2-03 CHANGED, worked-on date from entries, loud sentinel
-  mismatch); the signing-continuity extension to the completeness gate
-  with attributed-exemption escape; the slot-scoped doc-token guard, which
-  caught two further live instances of the GPS prose defect in
-  adapters/README.md on its first run; the shared snapshot-exclusion
-  module unifying both markdown walkers, with the stale-worktree
-  reproduction pinned in-repo (the P2-D1 artifact the carve-out lacked);
-  check_adapter discoverability lines in CONTRIBUTING.md and the
-  mapping-packs README; and the publish-path CRLF hardening
-  (.gitattributes plus two checklist steps) from the v1.1.23 upload
-  incident. The RF zero-fill check is deliberately not minted: it is
-  booked as handoff item 19 with its design caveat, because the predicate
-  needs adjudication that a fix wave should not decide in its own
-  momentum. The pre-cut adversarial pass then caught two blocking
-  regressions in the wave's own first draft and both were fixed before
-  the cut: the degrade guard crashed on unhashable wire values (the A-14
-  class the repo had already named), and a NaN error bound rode the
-  degrade into a schema-clean event that the previous code's schema gate
-  had rejected, a laundering regression in exactly the direction design
-  gate 3 forbids. The NaN fix itself then collided with SAPIENT's pinned
-  refusal contract (degradation never substitutes a clean value for a
-  poisoned one) and the battery adjudicated: the shipped mechanism passes
-  a claim with a poisoned bound through untouched for downstream refusal
-  instead of partially cleaning it, which also restores the pre-wave
-  schema rejection. The same pass corrected a false historical claim in the
-  completeness gate's comment (v1.1.2 through v1.1.4 track all three
-  signatures, so they are now a checked signed regime), widened the
-  worklog-entry regex to the em-dash heading form it had missed, pinned
-  the claims gate to an exact key set after a deletion probe walked past
-  its floor, and scoped the snapshot prefix rules to directories. The
-  wave's own guards were verified by mutation before the cut: every
-  reverted fix kills its test.
-- Last updated: 2026-08-13 (PR #8 merged; record corrections; v1.1.23 cut)
-- **2026-08-13 (PR #8 merged; record corrections).** The force-pushed branch
-  was re-reviewed end to end: the three accepted commits are byte-identical
-  to the first review, the withdrawn registration left zero residue across
-  policy, claims, manifest, and export surfaces, and the full battery
-  reproduced the contributor's reported tallies exactly. Merged as
-  `36345fb`. The held proposal's disposition is logged in the doctrine
-  pressure log (cycle X2): withdrawn by the contributor after review; the
-  discoverability need it identified is queued for an in-house,
-  non-governed solution with credit to Barrett Downs. This commit also
-  completes the record for the 2026-08-12 errata wave, which landed without
-  its changelog entry or worklog note (a maintainer-side instance of X2-03,
-  caught by the second review's merge probe), applies wording corrections
-  to the merged entries, and restores the 2026-08-10 resume-note line the
-  merged docs commit removed.
-- Last updated: 2026-08-11 (external verification follow-up; three drift fixes)
-- **2026-08-11 (external verification, documentation consistency).** A field
-  verification pass found four defects; the three documentation and
-  scan-consistency fixes accepted from it are recorded here.
-  The governed-document profile scan included stale repository copies under
-  `.claude/worktrees/`; that snapshot path is now excluded with the other
-  non-current trees. The sibling repo-wide markdown walker in
-  `test_records_claim_currency.py` carries the same exposure; the
-  shared-exclusion fix is queued. The profile-projection README omitted
-  `PROJECTION_POLICY_RISK_LABEL_REMOVED` and
-  `PROJECTION_EXTERNAL_PROMOTION_EVIDENCE_REMOVED` from the failure-code list
-  it presents as the stable reference, and the SAPIENT README named
-  `UNITS_UNSPECIFIED` where the adapter emits
-  `COORDINATE_SYSTEM_UNSPECIFIED`. Both README fixes add set-equality tests
-  against their implementation sources, so missing, extra, and misspelled
-  entries fail together. The review initially asked for a record of four fixes.
-  Maintainer review held the fourth proposal because its runtime diagnostic is
-  intentionally outside policy severity machinery; the branch now contains
-  and records the three accepted fixes.
-- Last updated: 2026-08-10 (v1.1.22 cut prepared; doctrine cycle C1)
-- **2026-08-10 (external review, fix wave, v1.1.22 prepared).** An
-  independent technical review compared ZMeta against ten standards without
-  raw-byte access to the normative files. Its own findings were roughly a
-  third accurate: correct that no per-event integrity exists and that
-  covariance and sequence primitives are absent, wrong on the UUIDv7 version
-  nibble, schema-level laundering guards, deduplication and deterministic
-  CBOR, and stale on 2-D geo, the `event.ts` pattern and the v1.1.21 code
-  mint. Every claim was verified against the tree with file and line before
-  anything was acted on, and most of what shipped came from that verification
-  rather than from the review. Landed: the MAVLink altitude-datum fix (MSL
-  was being published as canonical HAE, the third appearance of a class ADS-B
-  already refuses at the source), a gateway diagnostic for an unparseable
-  `event.ts` that had been passing schema-clean and silent on the locked v1.0
-  lane, twelve malformed-timestamp conformance vectors the governed corpora
-  never carried, removal of a format checker that validated nothing at a
-  dozen call sites, a roadmap home for cooperative-mesh gap detection, and
-  the return of `validate_future_roadmap.py` to the gate battery. Doctrine
-  cycle C1 opens with eleven entries, six left open with their evidence.
-  The kernel does not move: schemas, policy and the contract are
-  byte-identical, and the only governed artifact that changed is the
-  conformance corpus. Battery 1757 passed with zero failures, kernel gates
-  exit 0, examples 51/51. v1.1.22 is cut and unpublished: notes, report,
-  manifest and verified checksums exist; tag, signing and upload remain the
-  maintainer's. The prioritized backlog this left is the top section of
-  `docs/zmeta_refinement_handoff.md`.
-- Last updated: 2026-08-03 (session closeout; repo enters maintenance mode)
 ## Archived Task Sections
 
 Completed task sections S0-01 through R1-05 are archived verbatim in
 `docs/zmeta_refinement_worklog_archive.md` (retention pass, 2026-07-15).
+The session records from 2026-08-10 through 2026-08-13 were moved there at
+the v1.1.26 retention pass (2026-09-29).
 Newer session records live in the Current Resume Note above; deferred issues
 remain below.
 

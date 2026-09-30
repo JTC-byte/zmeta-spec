@@ -1,4 +1,4 @@
-# ZMeta Specification (v1.0 Locked, current release v1.1.25)
+# ZMeta Specification (v1.0 Locked, current release v1.1.26)
 
 ZMeta is a free, open, transport-agnostic semantic standard for resilient ISR.
 It defines one honest event model that heterogeneous sensors, analytics,
@@ -214,60 +214,66 @@ nodes.
 
 ## Current Release
 
-- Current release: `v1.1.25`
-- Release notes and assets: <https://github.com/JTC-byte/zmeta-spec/releases/tag/v1.1.25>
-- Release focus: the RF zero-fill mint, the first governed vocabulary
-  change since v1.1.21 and the first minted directly from external field
-  evidence. `RF_ZERO_FILL_SUSPECTED` labels the fabrication signature a
-  field verification pass measured on real line-of-bearing traffic
-  (`bandwidth_hz` and `power_dbm` both exactly 0.0 because the source
-  records carried neither), at warn severity, with the event staying
-  accepted: the consumer adjudicates. The predicate is the pair, and only
-  the pair, so the documented receiver-class bandwidth sentinel and
-  legitimate one-milliwatt readings stay unlabeled; the check walks
-  payload, claim, and estimated_state feature blocks alike. The locked
-  v1.0 schema does not move: on the v1.0 wire the code rides the
-  documented post-lock fallback with the minted code native in
-  `metrics.diagnostic_code`. The doctrine pressure log (X2-04) records
-  the three maintainer adjudications, including the severity ceiling
-  forced by the contract stating the zero-fill prohibition for geo only.
-  Governed artifacts changed in this release, relative to zmeta-v1.1.24:
-  conformance/bad-events/must-fail.jsonl, policy/semantics.yaml,
-  policy/violation-codes.yaml, schema/zmeta-event-1.1.0.schema.json.
+- Current release: `v1.1.26`
+- Release notes and assets: <https://github.com/JTC-byte/zmeta-spec/releases/tag/v1.1.26>
+- Release focus: the reference CoT egress adapter's `cds` profile, the shape
+  one partner's cross-domain guard passed into a higher enclave on
+  2026-09-29, selectable by name; with it, three changes a downstream
+  ecosystem's research pass asked for (a track's class becomes its CoT type
+  only when it parses as one; the gateway's diagnostic identity is a
+  setting; the gateway's outgoing self-check keeps its own diagnostics
+  legible on the 1.1.0 lane) and the integration line's held content: two
+  experimental 1.1.0 acoustic markers and a linear-pressure level form
+  minted from a live hydrophone, the validation guidance system with the
+  F1 field-evidence adjudications, the ontology reference, the branching
+  rule and the open-specification notice set. The locked v1.0 schema and
+  the semantic contract file are byte-identical to v1.1.25 and the policy
+  pack is unchanged. Governed artifacts changed in this release, relative
+  to zmeta-v1.1.25: schema/zmeta-event-1.1.0.schema.json,
+  spec/extension-registry.yaml. The registry's Markdown, the field
+  dictionary, the future-branch roadmap and the advisory schema README
+  changed with them.
 - Normative contract: v1.0 locked semantic contract, canonical version-discriminated
   JSON schema, v1.0 JSON schema, and policy pack.
 - Experimental extension: `schema/zmeta-event-1.1.0.schema.json` is provided for proposed
   compatibility testing only; v1.1.0-only fields are not part of the locked v1.0 contract.
 
-## v1.1.25 Integration Notes
+## v1.1.26 Integration Notes
 
-- **The v1.0 wire does not change.** The locked v1.0 schema is
-  byte-identical to every release since the lock, and no existing event
-  that validated before fails now. The change is additive and
-  warn-severity only.
-- **A new warn diagnostic can appear on RF-shaped zero-fill.** Events
-  whose feature block carries `bandwidth_hz` and `power_dbm` both exactly
-  0.0 (in payload, claim, or estimated_state) now draw
-  `RF_ZERO_FILL_SUSPECTED` at warn severity. Default mode accepts and
-  labels the event; strict mode escalates, as it does for every warn.
-  The documented receiver-class bandwidth sentinel (`bandwidth_hz` 0.0
-  beside a measured power) does not trigger it, and neither does a
-  legitimate one-milliwatt reading beside a real bandwidth.
-- **Consumers on the v1.0 lane see the fallback pair.** Wire diagnostics
-  for the new code carry `reason_code: GEO_ZERO_FILL_SUSPECTED` (the same
-  zero-fill class at the same severity, because the locked v1.0 enum
-  cannot grow) with the exact code in `metrics.diagnostic_code` and the
-  offending block in `metrics.path`. Consumers on the 1.1.0 lane see the
-  native code; filter on `diagnostic_code` when the field family matters.
-- **Conformance corpus grows by two vectors.** The bad-event corpus's
-  first warn-severity entries pin the new code at payload level and under
-  an inference claim. An implementation re-running the corpus picks them
-  up automatically; nothing else in the corpus changed.
+- **The v1.0 wire does not change.** The locked v1.0 schema and the
+  semantic contract file are byte-identical to v1.1.25, the policy pack is
+  unchanged, and no existing event that validated before fails now.
+- **A CoT egress profile for a cross-domain guard.** `cot_config["profile"]`
+  is `standard` by default, the adapter's own output unchanged; `cds` is the
+  shape one partner's guard passed on 2026-09-29 (n=1): four detail
+  children, `how` asserted by the deployment, one remarks line with no
+  links, a stale ceiling. The gateway refuses to start on a `cds` config
+  without a `how` token. The adapter README's "Profiles" section states
+  what is and is not claimed.
+- **A label in `payload.class` no longer becomes a CoT type.** The CoT
+  egress uses the class as the type only when it parses as a CoT atom
+  type; any other class goes out as `a-u-G` with the label quoted in
+  `remarks`. A producer that stored a label there reaches TAK differently
+  than before, and honestly.
+- **Consumers on the 1.1.0 lane see legible diagnostics.** The gateway's
+  own diagnostics are v1.0 events on every lane, and its self-check now
+  validates them against the schema their declared version selects, so a
+  1.1.0-lane consumer receives 1.1.0 producer events beside v1.0
+  diagnostics and selects each event's schema by `zmeta_version`, as the
+  dispatching schema does. Before this release every such diagnostic
+  reached the wire content-free.
+- **The gateway's identity is a setting.** `gateway_producer` and
+  `gateway_node_role` default to the historical values; a configured
+  identity is checked against the loaded policy at startup.
+- **The 1.1.0 acoustic lane grows, experimentally.** `features.level_reference`,
+  `timing_quality.est_error_basis` and the `pressure_pa` /
+  `pressure_statistic` level form are experimental 1.1.0 vocabulary with
+  the promotion bar stated as not met; the locked v1.0 lane rejects the new
+  keys by its own closure.
 - **This release ships signed.** Detached signatures accompany the release
   assets, made with the Incept.IO ZMeta release signing key
-  (`A3B150AF2A0E1CA413C4B7F112BE81F54654B96E`), the same key that signed
-  v1.1.2 through v1.1.4. Verify against `SHA256SUMS_v1.1.25.txt` and its
-  signature.
+  (`A3B150AF2A0E1CA413C4B7F112BE81F54654B96E`). Verify against
+  `SHA256SUMS_v1.1.26.txt` and its signature.
 
 ## Repository Structure
 - `spec/` Core specification and normative text.
@@ -350,7 +356,7 @@ python tools/run_gateway.py --profile H
 python tools/udp_receiver.py
 python tools/udp_sender.py --file examples/zmeta-command-examples.jsonl
 python tools/replay.py --file examples/zmeta-command-examples.jsonl --delay-ms 200
-python tools/check_compat.py legacy-events.jsonl --target v1.1.25
+python tools/check_compat.py legacy-events.jsonl --target v1.1.26
 python tools/validate.py --file examples/zmeta-command-examples.jsonl --profile L
 python tools/check_adapter.py --events my-adapter-output.jsonl --fixtures my-fixtures.jsonl
 python tools/validate_conformance.py --strict
@@ -398,10 +404,10 @@ Deployment helpers:
 - Config templates: `configs/edge-config.json`, `configs/gateway-config.json`
 - Docker Compose: `deploy/edge/docker-compose.yml`, `deploy/gateway/docker-compose.yml`
 - Bundle builders:
-    - `python release/build_mvp_packages.py --version v1.1.25` produces `zmeta-edge-v1.1.25.zip` and `zmeta-gateway-v1.1.25.zip`
-    - `python release/build_release_bundle.py --version 1.1.25` produces `zmeta-v1.1.25-dist.zip`
-    - `python tools/build_release_package.py --manifest release/zmeta-release-manifest.yaml --output-dir release/package-v1.1.25 --release-id zmeta-v1.1.25 --release-state formal_release --no-signatures --release-notes release/RELEASE_NOTES_v1.1.25.md` builds formal package metadata without creating signatures. `--release-notes` is mandatory for `formal_release`: omit it and the unpopulated notes template is copied verbatim, which `tools/validate_release_package.py` refuses with `RELEASE_PACKAGE_NOTES_PLACEHOLDER`.
-    - `python release/sign_release_artifacts.py --version v1.1.25 --write-checksums --sign --target all` signs release assets with detached PGP signatures when an approved signing key is available.
+    - `python release/build_mvp_packages.py --version v1.1.26` produces `zmeta-edge-v1.1.26.zip` and `zmeta-gateway-v1.1.26.zip`
+    - `python release/build_release_bundle.py --version 1.1.26` produces `zmeta-v1.1.26-dist.zip`
+    - `python tools/build_release_package.py --manifest release/zmeta-release-manifest.yaml --output-dir release/package-v1.1.26 --release-id zmeta-v1.1.26 --release-state formal_release --no-signatures --release-notes release/RELEASE_NOTES_v1.1.26.md` builds formal package metadata without creating signatures. `--release-notes` is mandatory for `formal_release`: omit it and the unpopulated notes template is copied verbatim, which `tools/validate_release_package.py` refuses with `RELEASE_PACKAGE_NOTES_PLACEHOLDER`.
+    - `python release/sign_release_artifacts.py --version v1.1.26 --write-checksums --sign --target all` signs release assets with detached PGP signatures when an approved signing key is available.
 
 ## Deployment Checklist (Compact)
 

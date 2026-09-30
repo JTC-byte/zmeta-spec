@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+(Nothing yet - the next work lands here.)
+
+## [1.1.26] - 2026-09-29
+
 - 2026-09-29 — **The CoT egress adapter gains a `cds` profile, the shape one
   partner's cross-domain guard passed.** `cot_config["profile"]` selects
   `standard` (the default, unchanged, with a test that freezes its bytes) or

@@ -1,6 +1,48 @@
 # ZMeta Refinement Handoff Notes
 
-## CURRENT STATE (2026-09-22): DEVELOP PUSHED AFTER THE PRE-PUSH REWRITE; MAIN CARRIES THE NOTICE SET
+## CURRENT STATE (2026-09-29): v1.1.26 CUT FROM DEVELOP; MAIN FAST-FORWARDED
+
+`main` == `develop` == the v1.1.26 cut commit, tagged `v1.1.26`, signed and
+published on 2026-09-29 on the maintainer's direction given in this
+repository's session. The release carries the `cds` CoT profile (the shape
+one partner's cross-domain guard passed on 2026-09-29), the CoT type parse,
+the gateway identity setting, the gateway's diagnostics on the 1.1.0 lane,
+and the integration line's held content (the experimental 1.1.0 acoustic
+entries, the validation guidance, the ontology reference, the notice set).
+The v1.0 schema and the semantic contract file are byte-identical to
+v1.1.25; the policy pack is unchanged. Governed delta relative to v1.1.25:
+`schema/zmeta-event-1.1.0.schema.json`, `spec/extension-registry.yaml`,
+`spec/extension-registry.md`, `spec/field-dictionary.md`,
+`spec/future-branch-roadmap.yaml`, and the advisory `schema/README.md`.
+Validation at the cut: `release/VALIDATION_REPORT_v1.1.26.md`.
+
+Open, in order of proximity:
+
+1. **F3-03 with the maintainer:** whether the `cds` profile should carry
+   `valid_for_ms` into `stale` when shorter than the window (contract
+   section 14), and whether the window should announce itself in
+   `remarks`; F3-05, whether a deployment may opt into passing an asserted
+   affiliation; F3-04, whether the roadmap candidate
+   `coalition-release-export` records the 2026-09-29 validation as
+   evidence (a governed edit).
+2. **`wave/registry-candidates-2026-09`**, local and unmerged: the
+   DIALECT_LABEL proposal and the roadmap canonical-byte-form entry, with
+   the five U1-02 questions open.
+3. **Booked follow-ups from the cds refutation rounds:** a profile-specific
+   `cot_skip_reasons` token; three standard-profile hardening items (a
+   control character or lone surrogate in a callsign is sent unparsed, a
+   string `payload.geo` value is written into a point attribute unescaped,
+   a non-numeric `default_le` or `default_ce` is written as given).
+4. **Forward edits from the 2026-09-21 share-readiness scan** (private
+   session record), each the maintainer's election, unchanged from the
+   previous state.
+5. **Local hygiene:** `refs/backup/*` holds the pre-rewrite tips; delete
+   them once satisfied.
+
+Next session: item 1 as the maintainer rules; the registry wave when U1-02
+is answered.
+
+## Previous state (2026-09-22): DEVELOP PUSHED AFTER THE PRE-PUSH REWRITE; MAIN CARRIES THE NOTICE SET
 
 `develop` == `origin/develop` == a305c92, pushed 2026-09-22 after the
 pre-push history rewrite the maintainer directed on 2026-09-21: the
@@ -47,7 +89,10 @@ Open, in order of proximity:
 Next session: item 1 on its own branch from `develop`; the cut when the
 evidence lands; the scan's forward edits as elected.
 
-## ON BRANCH (2026-09-29): `exp/cot-cds-profile`, NOT MERGED
+## MERGED AT THE v1.1.26 CUT (2026-09-29): `exp/cot-cds-profile`
+
+Merged into `develop` on 2026-09-29 and shipped in v1.1.26. The section
+below is the record as written on the branch.
 
 The branch is based on `exp/cot-type-parse` 980357c and depends on it: the
 profile refuses any type off the unknown branch, and the type parse is what
@@ -81,7 +126,10 @@ lone surrogate in a callsign is sent unparsed, a string `payload.geo` value
 is written into a point attribute unescaped, and a non-numeric `default_le`
 or `default_ce` is written as given.
 
-## ON BRANCH (2026-09-28): `exp/cot-type-parse`, NOT MERGED
+## MERGED AT THE v1.1.26 CUT (2026-09-29): `exp/cot-type-parse`
+
+Merged into `develop` on 2026-09-29 and shipped in v1.1.26. The section
+below is the record as written on the branch.
 
 The branch is based on `develop` f622d0b. On the maintainer's ruling of
 2026-09-28, the reference CoT egress uses `payload.class` as the CoT type only
@@ -104,7 +152,10 @@ entry can pass for a remarks fragment in the way the class label could before
 this change; and `_esc` in the same adapter escapes XML markup but not the C0
 control characters XML 1.0 forbids, so such a character in any other rendered
 field produces a document that does not parse.
-## ON BRANCH (2026-09-28): `exp/gateway-identity`, NOT MERGED
+## MERGED AT THE v1.1.26 CUT (2026-09-29): `exp/gateway-identity`
+
+Merged into `develop` on 2026-09-29 and shipped in v1.1.26. The section
+below is the record as written on the branch.
 
 The branch is based on `develop` f622d0b. On the maintainer's concurrence of
 2026-09-28, the reference gateway's diagnostic identity, its producer name and
@@ -118,7 +169,10 @@ merge resolves the record entries by keeping both.
 Left for the maintainer: whether `platform_id`, which stays `zmeta-gateway`,
 should also become a setting, since two gateways with the same producer name
 remain indistinguishable in their own diagnostics until it is.
-## ON BRANCH (2026-09-28): `exp/gateway-lane-diagnostics`, NOT MERGED
+## MERGED AT THE v1.1.26 CUT (2026-09-29): `exp/gateway-lane-diagnostics`
+
+Merged into `develop` on 2026-09-29 and shipped in v1.1.26. The section
+below is the record as written on the branch.
 
 The branch is based on `develop` f622d0b and carries item 1 of the
 2026-09-12 list below, as the maintainer ruled it that day: the outgoing
@@ -1778,7 +1832,7 @@ Current stack status:
   bearing/heading fields unless callers explicitly assert `TRUE_NORTH`;
   unasserted native values remain auditable under explicitly named
   non-canonical fields.
-- Use tag `v1.1.25` for current formal release assets and checksums.
+- Use tag `v1.1.26` for current formal release assets and checksums.
   Published 2026-08-13 at the maintainer's direction: PR #8 merged with its
   record wave completed, and the release signed with the Incept.IO release
   key, the first signed release since v1.1.4. The signing decision names
