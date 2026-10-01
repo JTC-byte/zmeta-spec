@@ -1277,3 +1277,89 @@ def test_a_label_with_markup_or_control_characters_keeps_the_cot_parseable():
 def test_a_long_label_is_cut():
     root = _cot_for_class("x" * 100)
     assert _remarks_text(root) == 'class="' + "x" * 64 + '..."'
+
+
+# --- Standard-profile hardening (booked by the cds refutation rounds, 2026-09-29) ---
+#
+# _esc covers markup, not the characters XML 1.0 forbids, and point attributes
+# were written as the value's own text. Each case below produced a document no
+# parser reads, or one whose structure a value rewrote, or raised.
+
+
+def _standard(event, config=None):
+    return zmeta_to_cot_module.zmeta_to_cot(event, cot_config=dict(config or _TEST_CONFIG))
+
+
+def test_a_forbidden_character_in_an_identity_attribute_refuses():
+    for field, value in (
+        ("callsign", "bad\x01value"),
+        ("callsign", "a\ud800b"),
+        ("track_id", "bad\x01value"),
+    ):
+        event = _nf_state_event()
+        event["payload"][field] = value
+        assert _standard(event) is None, (field, value)
+
+
+def test_a_forbidden_character_in_remarks_text_is_replaced_and_the_cot_parses():
+    event = _nf_state_event()
+    event["payload"]["source_summary"] = ["fused\x01from\x0btwo\ud800reports"]
+    xml = _standard(event)
+    assert xml is not None
+    xml.encode("utf-8")
+    remarks = ET.fromstring(xml).find("detail/remarks").text
+    assert remarks.startswith("fused from two reports")
+
+
+def test_a_point_value_that_is_not_a_number_refuses_and_numeric_text_renders():
+    smuggle = '3" le="1" ce="1" /><detail /><point lat="1" lon="2" hae="3'
+    for path, value in (
+        (("payload", "geo", "alt_m"), smuggle),
+        (("payload", "geo", "lat"), "1_2.5"),
+        (("payload", "geo", "lon"), "west"),
+        (("payload", "geo", "lat"), True),
+    ):
+        event = _nf_state_event()
+        target = event
+        for key in path[:-1]:
+            target = target[key]
+        target[path[-1]] = value
+        assert _standard(event) is None, (path, value)
+    event = _nf_state_event()
+    event["payload"]["geo"]["lat"] = "12.5"
+    root = ET.fromstring(_standard(event))
+    assert root.find("point").get("lat") == "12.5"
+    assert [child.tag for child in root] == ["point", "detail"]
+
+
+def test_an_ellipse_member_that_is_not_a_number_refuses_instead_of_raising():
+    for key in ("semi_major", "semi_minor", "orientation_deg"):
+        event = _nf_state_event()
+        event["payload"]["geo"]["error_ellipse_m"] = {"semi_major": 35.0, "semi_minor": 12.0, "orientation_deg": 80.0}
+        event["payload"]["geo"]["error_ellipse_m"][key] = "x"
+        assert _standard(event) is None, key
+
+
+def test_a_non_numeric_accuracy_default_is_a_config_error():
+    for key in ("default_ce", "default_le"):
+        for value in ("35", "unknown", -1.0, True, None, [1]):
+            config = dict(_TEST_CONFIG)
+            config[key] = value
+            try:
+                zmeta_to_cot_module.validate_cot_config(config)
+            except ValueError:
+                pass
+            else:
+                raise AssertionError((key, value))
+            assert _standard(_nf_state_event(), config) is None, (key, value)
+        config = dict(_TEST_CONFIG)
+        config[key] = 0
+        assert zmeta_to_cot_module.validate_cot_config(config) == "standard"
+        assert _standard(_nf_state_event(), config) is not None
+
+
+def test_a_callsign_that_is_not_text_renders_as_its_text():
+    event = _nf_state_event()
+    event["payload"]["callsign"] = 417
+    root = ET.fromstring(_standard(event))
+    assert root.find("detail/contact").get("callsign") == "417"

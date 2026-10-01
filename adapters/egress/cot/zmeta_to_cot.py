@@ -56,6 +56,7 @@ Supports:
 Source: Z-ISR zisr/transport/publisher.py (_builtin_zmeta_to_cot)
 """
 
+import decimal
 import math
 import re
 import xml.etree.ElementTree as ET
@@ -181,6 +182,13 @@ def validate_cot_config(cot_config):
     profile = cot_config.get("profile", "standard")
     if profile not in COT_PROFILES:
         raise ValueError(f"cot profile must be one of {', '.join(COT_PROFILES)}, got {profile!r}")
+    for key in ("default_ce", "default_le"):
+        # Written into a point attribute as given, so anything but a finite,
+        # non-negative number is a config error under every profile.
+        if key in cot_config and not (
+            _finite_real(cot_config[key]) and cot_config[key] >= 0
+        ):
+            raise ValueError(f"{key} must be a finite, non-negative number of metres")
     if profile == "cds":
         unknown = sorted(str(key) for key in cot_config if key not in COT_CONFIG_KEYS)
         if unknown:
@@ -269,6 +277,60 @@ def _parse_utc(ts):
         return parsed.astimezone(timezone.utc)
     except (ValueError, OverflowError, TypeError, AttributeError, OSError):
         return None
+
+
+# Characters XML 1.0 forbids in any document: the C0 controls other than tab,
+# newline and carriage return, the surrogate code points (which a Python str
+# can hold alone and UTF-8 cannot encode), and U+FFFE and U+FFFF. _esc covers
+# markup, not these, so a string carrying one produced a document no parser
+# reads.
+_XML_FORBIDDEN = re.compile("[\x00-\x08\x0b\x0c\x0e-\x1f\ud800-\udfff\ufffe\uffff]")
+
+
+def _xml_text(value):
+    """`value` as text with every character XML 1.0 forbids replaced by a space."""
+    return _XML_FORBIDDEN.sub(" ", str(value))
+
+
+def _finite_real(value):
+    """True for a finite int, float or Decimal; False for a bool or anything else.
+
+    The test is about finiteness, not the type: a Decimal carrying a real
+    number is a real number.
+    """
+    if isinstance(value, bool):
+        return False
+    if isinstance(value, (int, float)):
+        return math.isfinite(value)
+    if isinstance(value, decimal.Decimal):
+        return value.is_finite()
+    return False
+
+
+def _point_value(value):
+    """True for a value a point attribute can carry as its own text.
+
+    A finite number, or text that is wholly a finite number such as "12.5".
+    Any other text, quotes and markup included, would reach the attribute as
+    given.
+    """
+    if isinstance(value, str):
+        if not _NUMBER_TEXT.fullmatch(value):
+            return False
+        try:
+            return math.isfinite(float(value))
+        except (ValueError, OverflowError):
+            return False
+    return _finite_real(value)
+
+
+def _standard_shape(cot_xml):
+    """True when the projection parses and its root holds exactly a point and a detail."""
+    try:
+        root = ET.fromstring(cot_xml)
+    except (ET.ParseError, UnicodeError):
+        return False
+    return [child.tag for child in root] == ["point", "detail"]
 
 
 def _esc(text):
@@ -638,9 +700,30 @@ def zmeta_to_cot(event, cot_config=None, now=None, refusal=None):
     else:
         ce = default_ce
 
+    # Every point attribute and ellipse member is written as the value's own
+    # text, so a value that is not a finite real number (a string from a
+    # caller that skipped schema validation, a bool) would reach the XML as
+    # given, quotes and markup included. Refuse instead.
+    ellipse_members = (
+        [error_ellipse.get(key) for key in ("semi_major", "semi_minor", "orientation_deg")]
+        if isinstance(error_ellipse, dict)
+        else []
+    )
+    for value in (lat, lon, hae, ce, le):
+        if not _point_value(value):
+            return None
+    # The ellipse members are formatted as numbers in remarks, so they must be
+    # numbers; a string there raised out of the format call.
+    for value in ellipse_members:
+        if value is not None and not _finite_real(value):
+            return None
+
     # Callsign with hostile emitter fallback: never show raw track IDs
     # on TAK for hostile markers. Use "RF Emitter" or "Detection" instead.
     callsign = payload.get("callsign", f"Track {track_id}")
+    if not isinstance(callsign, str):
+        # A number or other value would otherwise raise in the escape below.
+        callsign = str(callsign)
     if cot_type.startswith("a-h-"):
         if (
             not callsign
@@ -696,7 +779,7 @@ def zmeta_to_cot(event, cot_config=None, now=None, refusal=None):
 
     remarks_xml = ""
     if remarks_text:
-        remarks_xml = f"\n    <remarks>{_esc(remarks_text)}</remarks>"
+        remarks_xml = f"\n    <remarks>{_esc(_xml_text(remarks_text))}</remarks>"
 
     # <track> element for heading/speed (TAK renders directional arrows).
     # Frame note: CoT track@course is degrees true north by convention, and
@@ -825,6 +908,12 @@ def zmeta_to_cot(event, cot_config=None, now=None, refusal=None):
             confidence=confidence,
             raw_class=raw_class if class_label is not None else None,
         )
+    # Backstop: a value read as markup, or a character no XML parser accepts,
+    # in any field this function writes. The checks above cover the known
+    # paths; this refuses whatever they miss rather than sending a document
+    # a consumer cannot read or would read wrongly.
+    if not _standard_shape(cot_xml):
+        return None
     return cot_xml
 
 

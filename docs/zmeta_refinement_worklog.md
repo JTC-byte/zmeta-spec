@@ -2,7 +2,18 @@
 
 ## Current Resume Note
 
-- Last updated: 2026-10-01 (the cds profile's stale carries the claim, on `wave/cds-f3-2026-10`)
+- Last updated: 2026-10-01 (the CoT standard-profile hardening, on `exp/cot-standard-hardening`)
+- **2026-10-01 (the CoT standard-profile hardening, `exp/cot-standard-hardening`).**
+  The three items booked by the cds refutation rounds: forbidden characters
+  in an identity attribute refuse (as under `cds`) and are replaced in
+  `remarks`; point values must be finite numbers, Decimals or wholly numeric
+  text; ellipse members must be numbers; a non-numeric or negative
+  `default_ce` or `default_le` is a configuration error under every profile.
+  A parse-and-shape backstop refuses any output that is not a point and a
+  detail. The first draft sanitised the callsign instead of refusing it; three
+  existing cds tests, which pin refusal, a finite Decimal and a numeric string
+  as earlier rounds decided, failed it, and the draft was narrowed to match
+  them. Six new tests; five mutants against the guards were all killed.
 - **2026-10-01 (F3-03, F3-04 and F3-05 decided, `wave/cds-f3-2026-10`).** On
   the maintainer's go of 2026-09-30, after a top-tier review whose
   recommendation was taken whole. `stale` under the `cds` profile is the
