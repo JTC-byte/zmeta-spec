@@ -2,7 +2,7 @@
 
 ## CURRENT STATE (2026-10-01): EIGHT MERGES ON DEVELOP SINCE v1.1.26, NOT RELEASED; ONE COMMAND-PATH FIX HELD ON A BRANCH
 
-`develop` == `origin/develop` at the merge 492a920 plus this records commit;
+`develop` == `origin/develop` at the merge 492a920 plus records commits;
 `main` == `origin/main` == a2e4d7a, the v1.1.26 line, unchanged. Everything
 below landed on the maintainer's go of 2026-09-30, which handed this
 repository's open questions to its own recommendations as revertible
@@ -35,11 +35,14 @@ them after their merge; and each new guard was mutation-tested:
 - `wave/records-corrections-2026-10` (merge 492a920): the `translate:`
   transform claim corrected; needs and gaps booked.
 
-Held, not merged: `exp/command-dedupe-validity` (9c4ec4b, pushed). The
-gateway forwards a duplicate command once 300 s have passed, against
-contract 13.2; the branch holds a `task_id` for the command's whole
-validity (doctrine E1-06, OPEN; item 7 below). It is a command-path change,
-so its merge is the maintainer's.
+Held, not merged: `exp/command-dedupe-validity`. The gateway forwards a
+duplicate command once 300 s have passed, against contract 13.2; the branch
+holds a `task_id` for the command's whole validity (doctrine E1-06, OPEN,
+recorded on that branch; item 7 below). The first fix was not ready: it
+went through four rounds of independent review on 2026-10-01 and was
+revised after each. The doctrine entry on the branch records every review,
+and says that the small change made after the fourth has not itself been
+reviewed. It is a command-path change, so its merge is the maintainer's.
 
 On 2026-10-01 the repository also answered several dozen questions from
 downstream implementations. Two rounds of independent audit against
@@ -144,7 +147,25 @@ Open, in order of proximity:
    dedupe to an actor); (w) a consumer's display of data that is not
    ZMeta, such as a rejected private dialect (contract 13.5 and 14 govern
    display projections derived from STATE_EVENT and do not say whether a
-   consumer may show non-ZMeta data beside them).
+   consumer may show non-ZMeta data beside them); (x) how a command's
+   `valid_from_ts` relates to `event.ts` and `valid_for_ms` (contract 7.8
+   lists the field and gives it no rule; contract 5.1 calls a command's
+   `event.ts` "the command issue time or validity anchor"), so two
+   consumers may compute different validity windows for one command; (y)
+   whether a copy with trimmed lineage keeps its `event_id`. Contract 4.2
+   lets a profile export stay "the same event" when it only makes listed
+   changes, among them "Omit optional fields for bandwidth", and says
+   "Such projections preserve the original `event_id`"; the same section
+   lists `lineage` among the fields a gateway, bridge, adapter, exporter or
+   consumer MUST NOT change. Contract 10.7 lets an edge node under memory
+   pressure drop "older lineage references while retaining the most
+   recent", and adds that even under degradation "Required lineage remains
+   present." What the documents do not say is whether dropping older
+   lineage references counts as omitting optional fields, so that the
+   trimmed copy is the same event, or as a change to `lineage`. Same-event
+   projection dedupe is named as future work (Section 22,
+   ZMETA-PROJECTION-ORIGIN), so a consumer that compares copies under one
+   `event_id` has no rule for this one difference.
 7. **Reference defect, booked for the maintainer (command safety).** The
    gateway caps the command dedupe window at 300 s
    (`ttl_ms_from_payload`, `gateway/README.md`), while contract 13.2 says a
@@ -160,11 +181,61 @@ Open, in order of proximity:
    forwarded at 0 s, refused as a duplicate at 10 s and forwarded again at
    301 s. It is not changed on `develop`, because a command-path change is
    the maintainer's (design gate 6). A fix is on
-   `exp/command-dedupe-validity` (9c4ec4b): the hold is `valid_for_ms`
-   plus lead time to `valid_from_ts`, the cache is bounded by count, and a
-   full cache refuses a new command. It leaves two questions with the
-   merge: whether held ids survive a restart, and whether the gateway
-   refuses a command that has already expired.
+   `exp/command-dedupe-validity`. As revised: a `task_id` is held from
+   admission until `valid_for_ms` after the latest of receipt, `event.ts`
+   and `valid_from_ts`, plus a 60 s margin; a later copy changes nothing;
+   a command is refused, not forwarded unheld, when its hold would exceed
+   a maximum (default one day), when a validity anchor is unreadable, or
+   when the cache is full; and an admitted command that does not leave the
+   gateway gives its id back. Four rounds of independent review each found
+   something: in the first fix, a standing refusal of all commands; in its
+   first revision, a full cache kept full and a second forwarded duplicate;
+   in its second, an id held for an undelivered command; in its third,
+   error-path and test-coverage points only. That history is the reason
+   the branch was not offered for merge on its first green battery. The
+   doctrine entry on the branch leaves six questions with the merge: does
+   the duty in 13.2 expire when the hold ends; is refusing a long-lived
+   command acceptable, and is one day the right default; is refusing an
+   unreadable anchor acceptable; how `valid_from_ts` relates to `event.ts`;
+   whether held ids survive a restart; and whether the gateway refuses a
+   command that has already expired.
+8. **Reference defect, brought forward for the maintainer (gateway memory).**
+   Bounding `ValidationState.events` has been an open register candidate
+   since the v1.1.18 pre-cut review of 2026-07-27
+   (`docs/r1_11_cold_reread_findings.md`), deferred as a scoped wave
+   because it is behavior-visible. It is restated here with measurements. The
+   gateway keeps every event it forwards for as long as it runs. `main()`
+   hands one `ValidationState` to `process_message`, and
+   `ValidationState.record` stores each forwarded event whole, with its id,
+   and never evicts (`gateway/src/validators.py`). A probe sent 3,000
+   events and found 3,000 held; a shipped example event of 542 bytes held
+   about 3.9 KB, which is about 13.5 GB a day at 40 events a second. The
+   store also resolves lineage parents: in the running gateway the lineage
+   check reads it for a parent's `event_type`, so a bound changes which
+   parents resolve. Where the policy mode for an unresolved parent is
+   `warn` (profiles M and H in the shipped pack), strict validation turns
+   that warning into a refusal. The
+   proposal put to the maintainer is a bounded index of recent events that
+   keeps only what the lineage check reads, as the command-evidence index
+   already does at 4,096 entries; a parent older than the index is then
+   reported with the existing `LINEAGE_PARENT_UNRESOLVED` diagnostic under
+   the existing policy mode. Bounding `events` alone would not end the
+   growth. `record` also adds every forwarded event's id to `event_ids`,
+   every command's `task_id` to `command_task_ids` and every acknowledgement
+   key to `task_ack_keys`, with no eviction; only the offline tools read
+   those three sets, through `validate_deduplication`, so the running
+   gateway could stop filling them. `latest_timing` and `timing_sources`
+   grow with the number of distinct sources and are a smaller form of the
+   same question. Until it is fixed, a gateway that runs for days needs a
+   restart, and the README does not say so.
+9. **CoT `how` and the base-event schema (doctrine H1-05, evidence
+   received 2026-10-01).** The CoT base-event schema declares `how`
+   required, and the standard profile omits it unless the config asserts a
+   token. The adapter README now states that the default output is not
+   schema-valid CoT, and that ATAK fills a missing `how` with `m-g-g`. The
+   default itself is the maintainer's: keep omitting, assert `m-r` (which
+   also asserts machine-generated coordinates), or require the deployment
+   to choose a token or an explicit omission.
 
 Next session: the cut when the maintainer directs it.
 
