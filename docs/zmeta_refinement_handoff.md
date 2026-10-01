@@ -1,6 +1,55 @@
 # ZMeta Refinement Handoff Notes
 
-## CURRENT STATE (2026-09-29): v1.1.26 CUT FROM DEVELOP; MAIN FAST-FORWARDED
+## CURRENT STATE (2026-10-01): FIVE WAVES ON DEVELOP SINCE v1.1.26, NOT RELEASED
+
+`develop` == `origin/develop` at the merge 9a6ee74 plus this records commit;
+`main` == `origin/main` == a2e4d7a, the v1.1.26 line, unchanged. Everything
+below landed on the maintainer's go of 2026-09-30, which handed this
+repository's open questions to its own recommendations as revertible
+decisions. Independent agents reviewed the command wave and the last
+registry wave before they merged; the F3 rule came from a top-tier review of
+the question; a records and disclosure check covered every wave, three of
+them after their merge; and each new guard was mutation-tested:
+
+- `wave/registry-candidates-2026-09` (merge 9045a5d): the five upstream asks
+  through the registry; doctrine U1-02 decided as the routing proposed;
+  `event-signing-anti-replay` depends on `canonical-byte-form`.
+- `wave/command-authority-2026-10` (merge 83a969c): the strict command
+  posture as two policy variants and `tools/assemble_policy_dir.py`
+  (doctrine E1-01, E1-02); the reference `policy/` directory is unchanged.
+- `wave/cds-f3-2026-10` (merge b674c77): the `cds` profile's stale is capped
+  at the event's own claim; lapsed claims refuse or go out stale by option;
+  `VALIDITY_LAPSED` and `AFFILIATION_ASSERTED` are counted by name (doctrine
+  F3-03, F3-04, F3-05 decided).
+- `exp/cot-standard-hardening` (merge 93b4122): the three booked
+  standard-profile items.
+- `wave/registry-candidates-2026-10` (merge 9a6ee74): the destroyed-with-
+  receipt candidate state on `RAW_DATA_ABSENT_STATUS`, proposed
+  `SEARCH_PATTERN`, and `docs/zmeta_event_signing_design_note.md` (doctrine
+  E1-03, E1-04).
+
+Counts: registry 68 entries, roadmap 22 candidates. The battery reads the
+release-pin band until the next cut: the kernel gate's six
+`RELEASE_MANIFEST_*` lines on the registry and roadmap files, and
+`test_release_manifest.py` (3) and `test_release_package.py` (10) in
+`python -m pytest -q`; every other check passes.
+
+Open, in order of proximity:
+
+1. **The next cut** is the maintainer's: it carries the five waves. The
+   `cds` output changes relative to v1.1.26 for any track whose
+   `valid_for_ms` is shorter than the window, so a consumer that re-pins to
+   the cut confirms the shape with the far side first.
+2. **The signing tripwire** (handoff Tier 2 item 6) and **C1-07** (canonical
+   byte form) stay with the maintainer; the design note gives the order.
+3. **Forward edits from the 2026-09-21 share-readiness scan** (private
+   session record), each the maintainer's election, unchanged.
+4. **Local hygiene:** `refs/backup/*` holds the pre-rewrite tips; delete
+   them once satisfied.
+
+Next session: the cut when the maintainer directs it.
+
+## Previous state (2026-09-29): v1.1.26 CUT FROM DEVELOP; MAIN FAST-FORWARDED
 
 `main` == `develop` == the v1.1.26 cut commit, tagged `v1.1.26`, signed and
 published on 2026-09-29 on the maintainer's direction given in this

@@ -2,7 +2,7 @@
 
 ## Current Resume Note
 
-- Last updated: 2026-10-01 (two registry records, on `wave/registry-candidates-2026-10`)
+- Last updated: 2026-10-01 (five waves merged into `develop` since v1.1.26; the handoff's current state rewritten)
 - **2026-10-01 (two registry records, `wave/registry-candidates-2026-10`).**
   On the maintainer's go of 2026-09-30: `RAW_DATA_ABSENT_STATUS` gains the
   destroyed-with-receipt candidate state and roadmap
