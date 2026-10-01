@@ -3316,6 +3316,35 @@ member restored). Whether an unread failure mode should instead stop the
 gateway at startup, as a mistyped `cot` block does since v1.1.26, is left to
 the maintainer.
 
+### E1-06 — The reference gateway forwarded a duplicate command after 300 s · **OPEN (a fix on `exp/command-dedupe-validity`; the merge is the maintainer's)**
+
+**Observed:** found on 2026-10-01 by an audit of this repository's own
+answers to a downstream implementation, which had been told the reference
+dedupe window covers a command's validity. It does not. `ttl_ms_from_payload`
+capped the hold at 300 s, commands are excluded from `event_id` dedupe, and
+the gateway checks no command validity. With the shipped example command,
+valid for 600 s, `process_message` forwarded it at 0 s, refused the duplicate
+at 10 s and forwarded it again at 301 s. Five of the eight shipped example
+commands are valid for 600 s. The behaviour is in every release to v1.1.26.
+
+**The tension:** contract Section 13.2 says "Duplicate COMMAND_EVENTs MUST
+NOT be forwarded for execution a second time", with no time bound. The cap
+existed to bound memory, since `valid_for_ms` has no upper bound and a sender
+controls how many ids are held. Bounding memory by time breaks the MUST;
+bounding it by count needs an answer for a full cache, and forgetting an id
+breaks the MUST again.
+
+**Proposed, on the branch:** hold each `task_id` for `valid_for_ms` plus any
+lead time to `valid_from_ts`; bound the cache by count; when it is full,
+refuse the new command with TASK_ACK REJECTED and reason TASK_REJECTED, both
+existing vocabulary. Left open for the maintainer with the merge: whether
+held ids must survive a restart, and whether the gateway should refuse a
+command whose validity has already ended (TASK_ACK EXPIRED exists), which
+would compare event time to the gateway clock and so refuse replayed or
+old-dated command traffic unless a setting allowed it. A command-path change
+is escalated before it is treated as ready (design gate 6), so the branch is
+not merged on this repository's own word.
+
 ## Archive
 
 Terminal tension entries and retired rules, one line each. Full bodies live in

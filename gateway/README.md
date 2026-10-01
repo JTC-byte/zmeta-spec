@@ -107,6 +107,7 @@ The config file keys are:
 - `metrics_log_path`, `metrics_log_max_bytes`, `metrics_log_backups` (JSONL metrics logs)
 - `warn_datagram_bytes` (warn when an outgoing datagram exceeds this size; 0 disables)
 - `ts_plausibility_horizon_ms` (warn when `event.ts` sits outside a window around now; 0 disables; see Event timestamp plausibility below)
+- `command_dedupe_max_entries` (how many commands' `task_id`s are held at once; default 4096; see COMMAND_EVENT dedupe below)
 - `stamp_contract_hash` (include schema, policy, semantic-contract, and combined hashes in gateway-generated system events)
 - `gateway_producer`, `gateway_node_role` (the identity the gateway stamps on the diagnostics it mints; defaults `zmeta-gateway` and `GATEWAY`; see Gateway identity below)
 - `require_schema_hash`, `require_policy_hash`, `require_contract_hash` (startup gate)
@@ -132,10 +133,29 @@ the Profile L compact mapping (see `spec/compact-binary-mapping.md`). Use
 
 ### COMMAND_EVENT dedupe
 
-The gateway deduplicates `COMMAND_EVENT` by `task_id` using an in-memory TTL cache.
-TTL comes from `payload.valid_for_ms` (default 60000 ms, max 300000 ms). Duplicates are
-not forwarded; the gateway emits a `SYSTEM_EVENT` `TASK_ACK` with state `DUPLICATE_IGNORED`
-and metrics including `task_id`, `original_event_id`, and `reason_code=TASK_DUPLICATE`.
+The gateway deduplicates `COMMAND_EVENT` by `task_id` using an in-memory cache.
+A `task_id` is held from first receipt for the command's whole validity:
+`payload.valid_for_ms`, plus the lead time to `payload.valid_from_ts` when that
+instant is still ahead. Duplicates are not forwarded; the gateway emits a
+`SYSTEM_EVENT` `TASK_ACK` with state `DUPLICATE_IGNORED` and metrics including
+`task_id`, `original_event_id`, and `reason_code=TASK_DUPLICATE`.
+
+The hold has no time cap. Earlier releases capped it at 300000 ms, so a
+duplicate of a command valid for longer was forwarded again after five
+minutes, which contract Section 13.2 forbids ("Duplicate COMMAND_EVENTs MUST
+NOT be forwarded for execution a second time").
+
+The cache is bounded by count, `command_dedupe_max_entries` (default 4096),
+because a command may be valid for any length of time. When that many commands
+are held, a new command is refused with a `TASK_ACK` in state `REJECTED`,
+`reason_code=TASK_REJECTED` and `reason` "command dedupe capacity reached". No
+held `task_id` is forgotten to make room, because forgetting one would let that
+command's duplicate through. Capacity returns as held commands expire.
+
+Two limits remain. The cache is in memory, so a gateway restart forgets every
+held `task_id`, and a duplicate that arrives after a restart is forwarded. The
+gateway does not refuse a command whose validity has already ended; the
+executing layer owns expiry.
 
 ### Timing stamps
 

@@ -2,6 +2,21 @@
 
 ## [Unreleased]
 
+- 2026-10-01 — **The gateway holds a command's `task_id` for the command's
+  whole validity.** Contract Section 13.2 says a duplicate COMMAND_EVENT
+  "MUST NOT be forwarded for execution a second time". The gateway held a
+  `task_id` for at most 300 s, so the shipped example command, valid for
+  600 s, was forwarded again when its duplicate arrived at 301 s. The hold
+  is now `valid_for_ms` plus any lead time to `valid_from_ts`, with no time
+  cap. The cache is bounded by count (`command_dedupe_max_entries`, default
+  4096); when it is full a new command is refused with `TASK_ACK` state
+  `REJECTED`, reason `TASK_REJECTED`, and no held id is forgotten.
+  `ttl_ms_from_payload` is replaced by `command_hold_ms`, and
+  `TaskDedupeCache` gains `admit()`. Two limits are stated in the gateway
+  README and stay open: a restart forgets held ids, and an expired command
+  is not refused at the gateway. Twelve tests in
+  `gateway/tests/test_command_dedupe_validity.py`; nine mutants killed.
+  Doctrine E1-06.
 - 2026-10-01 — **A claim about the `translate:` lineage transform is
   corrected.** The proposed `DIALECT_LABEL` entry, its roadmap candidate and
   doctrine U1-02 said every shipped ingress adapter stamps

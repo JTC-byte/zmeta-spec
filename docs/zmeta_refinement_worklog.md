@@ -2,7 +2,19 @@
 
 ## Current Resume Note
 
-- Last updated: 2026-10-01 (records corrections after an audit of the session's own answers, on `wave/records-corrections-2026-10`)
+- Last updated: 2026-10-01 (a fix for the command dedupe window, on `exp/command-dedupe-validity`, not merged)
+- **2026-10-01 (command dedupe window, `exp/command-dedupe-validity`, NOT
+  MERGED).** The gateway held a command's `task_id` for at most 300 s and
+  forwarded the duplicate of a longer-lived command after that (reproduced:
+  0 s forwarded, 10 s duplicate, 301 s forwarded again). The branch holds
+  the id for `valid_for_ms` plus lead time to `valid_from_ts`, bounds the
+  cache by count, and refuses a new command when it is full. The tests were
+  written first; the one that sends the shipped 600 s command first failed
+  for the wrong reason (its fixture's TIME_STATUS was stale for that
+  command's timestamp), which the input-validity assertion exposed, and it
+  was corrected before the fix was judged. Nine mutants, the reinstated cap
+  among them, were all killed. Doctrine E1-06, OPEN. The merge waits on the
+  maintainer because it is a command-path change (design gate 6).
 - **2026-10-01 (records corrections, `wave/records-corrections-2026-10`).**
   A downstream question (does contract 3.4 bind a parentless observation to
   carry a transform) showed that the wave of 2026-09-28 overstated the
