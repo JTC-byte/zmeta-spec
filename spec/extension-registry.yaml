@@ -3,7 +3,7 @@ generated_for_zmeta_versions:
   - "1.0"
   - "1.1.0"
 authority: spec/semantics-contract.md
-last_updated: "2026-09-12"
+last_updated: "2026-09-28"
 status_values:
   - reserved
   - proposed
@@ -545,6 +545,14 @@ entries:
     conformance_status: implemented
     references: ["schema/zmeta-event-1.1.0.schema.json", "gateway/tests/test_reason_codes.py"]
     review_state: approved
+    notes: >-
+      This member is booked and has not landed (doctrine F2-04, DECIDED
+      2026-09-10): a governed optional payload.geo on this arm only, with
+      profile-precision coverage. It stays out of payload_scope until it
+      lands. Until then a payload.geo on a SENSOR_STATUS validates only
+      because the system payload is open, and it is ungoverned and unprotected
+      by the precision policy. F2-04 books it as a member of this arm, so it is
+      recorded on this entry rather than under a separate name.
 
   - <<: *entry_defaults
     name: PLATFORM_STATUS
@@ -893,6 +901,74 @@ entries:
     rationale: Quarantine is a policy state, not deletion or schema invalidity.
 
   - <<: *entry_defaults
+    name: DIALECT_LABEL
+    display_name: Dialect label for admitted events
+    category: trust_integrity
+    status: proposed
+    semantic_definition: >-
+      Future label naming the non-canonical source dialect from which a
+      schema-valid event was translated before a gateway admitted it
+      (contract Sections 3.4 and 4.5.1), so a consumer can tell an event
+      translated from a dialect from one authored canonically. It never
+      applies to schema-invalid traffic, which is not admitted as ZMeta at
+      all, because policy must not make invalid semantics valid (contract
+      Section 3.2).
+    rationale: >-
+      A gateway or consumer that admits translated dialect traffic needs to
+      know which dialect an admitted event came from. The kernel already
+      records it where translation happens: every shipped ingress adapter
+      stamps lineage.transform as translate:<schema_id>@<adapter_version>
+      (contract Section 3.4 and adapters/AUTHORING.md). The open question is
+      whether that record reaches the consumer, because egress projections
+      can drop lineage, as the JREAP and SAPIENT egress adapters do. Where it
+      does not, an admitted translated event reads as authored canonically
+      downstream, which is silent meaning laundering under contract Section
+      2.6.
+    ignorable_by_default: false
+    risk_relevant: true
+    must_preserve_when_used_for_policy: true
+    profile_projection_behavior: future_branch_required
+    security_privacy_notes:
+      - A dialect label discloses which source format a producer speaks, which can fingerprint its equipment or software; releaseability and redaction rules apply to the label as they apply to the event it describes.
+      - A label is only as trustworthy as the gateway that authored it. Until gateway identity is authenticated (KEY_IDENTITY and EVENT_SIGNATURE, both proposed), any producer can emit a label that claims an event was admitted.
+    references:
+      - spec/semantics-contract.md
+      - spec/future-branch-roadmap.yaml
+      - docs/zmeta_doctrine_review_log.md
+      - adapters/AUTHORING.md
+    date_added: "2026-09-28"
+    review_state: draft
+    notes: >-
+      Not valid vocabulary under v1.0 or v1.1.0. This entry holds the concept
+      name so that later promotion stays collision-safe; any system_type
+      token, extension key, carrier and payload shape are decided at
+      promotion, and allowed_event_types stays empty until then. Promotion
+      must first weigh the carriers the contract already provides: the
+      translate:<schema_id>@<adapter_version> lineage.transform that an
+      adapter stamps on the event it authors (Section 3.4), which Sections 2.4
+      and 4.2 forbid adding to an event a gateway only forwards; the
+      external-promotion metadata and promote:<adapter>:<policy>
+      lineage.transform of Section 4.5.1; adapter transform names in
+      payload-scoped provenance (Section 9.2); a same-stream diagnostic keyed
+      by original_event_id, such as a SCHEMA_VIOLATION warning about an
+      accepted event; and, for a warn, degrade or quarantine decision, the
+      compact self-label in a policy-scoped extension on the accepted event
+      that Section 3.3 requires when the event may travel without its
+      diagnostic, which the reference gateway uses for risk adjudication. If
+      one of them carries the dialect to the consumer honestly, no new
+      vocabulary is needed and this entry resolves by pointing to it. The
+      risk flags are set so the label cannot be treated as ignorable and must
+      be preserved whenever policy uses it, following doctrine F1-01, which
+      booked the opposite flags on the reserved replay records as a promotion
+      blocker; projection behavior is decided in the branch. The consumers
+      known today appear to belong to one organization, and they count as
+      one instance under the promotion bar (doctrine U1-02, decided
+      2026-10-01).
+      Neighbours: QUARANTINED_EVENT (reserved) labels a quarantined event, and
+      KEY_IDENTITY and EVENT_SIGNATURE (proposed) carry producer identity and
+      signing; this entry names the dialect only.
+
+  - <<: *entry_defaults
     name: UAS_IDENTITY
     display_name: UAS identity
     category: trust_integrity
@@ -1112,7 +1188,16 @@ entries:
       deliberately excluded from this entry's scope — embedding raw artifact
       bytes in an event contradicts the data_ref no-embedding rationale
       (contract 9.3) — and is recorded here so the exclusion is a decision,
-      not an omission.
+      not an omission. Scope note (2026-09-28): a discriminator between a live
+      stream and a recording is recorded as an open question for the branch.
+      A live stream is not a retained artifact, and contract Section 9.3
+      requires a data reference to point to retained artifacts or derived
+      vectors, so carrying live streams in data_ref needs the branch to amend
+      9.3 or to carry them outside data_ref. Expiry was already in scope as
+      valid_until. A video kind is proposed to need no new data_ref.kind
+      value, because the RFC-6838 content_type in this entry (video/*) and the
+      existing format field serve it (doctrine U1-02). A second deployment is
+      expected by the maintainer; it is not yet evidence.
 
   - <<: *entry_defaults
     name: AGGREGATE_STATE_SNAPSHOT

@@ -2,7 +2,34 @@
 
 ## [Unreleased]
 
-(Nothing yet - the next work lands here.)
+- 2026-10-01 — **The questions the five upstream asks raised are decided as
+  recommended, and the registry wave merges into `develop`.** Doctrine U1-02
+  moves from OPEN to DECIDED on the maintainer's go of 2026-09-30.
+  `DIALECT_LABEL` stays `proposed` with its carrier open. Implementations
+  from one organization count as one instance under the promotion bar.
+  Live streams in `data_ref` remain a question for a `data_ref` branch.
+  Roadmap candidate `event-signing-anti-replay` now lists
+  `canonical-byte-form` in `depends_on`, because a signature over an
+  undefined byte form proves nothing. Whether the signing tripwire has
+  fired is not decided here. No entry changes status and no vocabulary
+  becomes valid.
+- 2026-09-28 — **Five upstream asks are taken through the registry and the
+  roadmap, two open as new candidates, and none becomes valid vocabulary.**
+  `DIALECT_LABEL` is proposed in `spec/extension-registry.yaml`, with roadmap
+  candidate `dialect-label`: a future label naming the source dialect an
+  admitted, schema-valid event was translated from, with its carrier left to
+  promotion, which weighs first the `translate:` lineage transform that every
+  shipped ingress adapter already stamps. Roadmap candidate
+  `canonical-byte-form` opens the float-width and determinism decision
+  recorded as doctrine C1-07. The event-signing ask was already open under
+  `EVENT_SIGNATURE`, `KEY_IDENTITY` and `event-signing-anti-replay`. The
+  SENSOR_STATUS record notes the booked governed `payload.geo` member
+  (doctrine F2-04), and the DATA_REF_MEDIA_METADATA record notes the open
+  question of live-stream references against contract Section 9.3. The
+  ontology reference's present-tense counts are brought up to date, and its
+  section 13 registry row is corrected to the v1.1.25 value its heading
+  names. Doctrine U1-01 and U1-02 record the go and the routing, with the
+  questions left open.
 
 ## [1.1.26] - 2026-09-29
 

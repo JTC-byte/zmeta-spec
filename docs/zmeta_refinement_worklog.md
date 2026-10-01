@@ -2,7 +2,28 @@
 
 ## Current Resume Note
 
-- Last updated: 2026-09-29 (v1.1.26 published: tagged, signed, pushed, verified as published)
+- Last updated: 2026-10-01 (the registry wave merged into `develop` with doctrine U1-02 decided)
+- **2026-10-01 (doctrine U1-02 decided; the registry wave merges into
+  `develop`).** The maintainer's go of 2026-09-30 handed this
+  repository's open questions to its own recommendations, as revertible
+  decisions. U1-02's five were taken as its recommendation reads:
+  DIALECT_LABEL stays `proposed` with its carrier open and the `translate:`
+  lineage transform weighed first; the label's scope is events translated
+  into schema-valid ZMeta; one organization's implementations count as
+  one instance; the live-versus-recording discriminator is a question for
+  a `data_ref` branch; and `event-signing-anti-replay` now depends on
+  `canonical-byte-form`. Whether the signing tripwire has fired stays with
+  the maintainer. `develop` was merged into the wave first (95c0865); the
+  four conflicts were append-append in CHANGELOG, handoff, worklog and
+  doctrine log, and each keeps both sides in date order. Validation on the
+  wave before the merge: `python tools/validate_conformance.py
+  --kernel-gate` 6 `RELEASE_MANIFEST_*` lines, all on the registry and
+  roadmap files this wave changes, and no other failure; `python
+  tools/validate_examples.py --strict --require-all` 51 of 51; `python
+  tools/validate_future_roadmap.py` ok candidates=22; `python -m pytest
+  -q` 13 failed (the release-pin set: `test_release_manifest.py` 3,
+  `test_release_package.py` 10), 1948 passed, 3 skipped; `git diff
+  --check` clean. The release-pin set stays red until the next cut.
 - **2026-09-29 (v1.1.26 published).** The cut commit baf86f1 on `develop`;
   `main` moved to it without a checkout (`git branch -f`, after the
   ancestor check), so no tracked file was re-smudged between signing and
@@ -201,6 +222,38 @@
   `RELEASE_MANIFEST_*` lines over the same items as `develop` and no other
   failure; `python -m pytest -q` 13 failed (the release-pin set) and 1865
   passed; `git diff --check` clean. Nothing pushed.
+- **2026-09-28 (five upstream asks on `wave/registry-candidates-2026-09`,
+  not merged).** On the maintainer's go of 2026-09-28 to open five upstream
+  asks as candidates, doctrine U1-01 records the go and U1-02, OPEN, records
+  the routing as this session's disposition with the questions it surfaced.
+  Two asks open as new candidates: DIALECT_LABEL, `proposed`, with roadmap
+  candidate `dialect-label` and its carrier left to promotion; and roadmap
+  candidate `canonical-byte-form` with no registry name. Three are recorded on
+  existing records: the signing concepts were already open, the F2-04 booking
+  is recorded in SENSOR_STATUS's notes, and DATA_REF_MEDIA_METADATA's notes
+  record the live-versus-recording question against contract Section 9.3. The
+  ontology reference's present-tense counts move to 67 entries (10 proposed),
+  18 of 45 reserved or proposed entries under the leak check, and 22 roadmap
+  candidates. Its section 13 registry row, headed as of v1.1.25, is corrected
+  to v1.1.25's 63 entries, and the heading now says earlier sections describe
+  the current tree; the section's figure is left for regeneration at the next
+  release. Handoff item 6's counts are refreshed to 67. Two independent opus
+  refuters reviewed the first draft and found one blocker, eleven majors (nine
+  distinct) and ten minors. The blocker was that the draft ruled out carrying
+  the label inside the admitted event, which contract Section 3.3 permits, and
+  requires when the admission is itself a warn, degrade or quarantine
+  decision. A second pass over the rewrite found sixteen of the prior findings
+  resolved and raised further corrections, the largest being that every
+  shipped ingress adapter already names the source dialect in
+  `lineage.transform`. Each was addressed before the commit. Validation at the
+  branch tip:
+  `python tools/validate_extension_registry.py` ok entries=67;
+  `python tools/validate_future_roadmap.py` ok candidates=22
+  rejected_or_deferred=3; `python tools/validate_examples.py --strict
+  --require-all` 51 of 51; `python tools/validate_conformance.py
+  --kernel-gate` 14 `RELEASE_MANIFEST_*` lines over the same items as
+  `develop` and no other failure; `python -m pytest -q` 13 failed (the
+  release-pin set) and 1859 passed; `git diff --check` clean. Nothing pushed.
 - **2026-09-21 (pre-push history rewrite: the held develop records
   generalised, the consent recorded, the three trailers removed).** Before
   the first push of `develop` since v1.1.25, a share-readiness scan
