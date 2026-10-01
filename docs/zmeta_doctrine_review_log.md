@@ -2988,6 +2988,24 @@ C1-07 is decided before any signing work. Whether the signing tripwire
 has fired is not decided here; it stays with the maintainer (handoff
 Tier 2 item 6). The wave merges into `develop`.
 
+**Correction (2026-10-01):** question 1 above says every shipped ingress
+adapter stamps `lineage.transform` as `translate:<schema_id>@<adapter_version>`.
+That overstates it, and two refutation passes on this wave did not catch it;
+a downstream question about a parentless observation did. The spelling is
+the convention in `adapters/AUTHORING.md`, which says to set it "when
+translating with real parents" and that an original reading with no ZMeta
+parent "omits `lineage` entirely"; the schema requires `lineage.based_on`
+to hold at least one parent. Of the thirteen shipped ingress adapters, the
+ADS-B and AIS adapters stamp no transform; the CoT and JREAP templates
+stamp `promote:`; nine stamp `translate:` on events that have parents, and
+two of those, MAVLink and SAPIENT, also stamp `promote:` on their
+state-promotion paths. The template under `adapters/ingress/template/`
+documents the convention and stamps nothing. The consequence bears on the
+decision in (1): for a translated observation with no parent, no governed
+carrier on the event names its source dialect, so promotion weighs that
+case as well as lineage dropped at egress. The registry entry and the
+roadmap candidate are corrected.
+
 ## Cycle F3 — 2026-09-29 (fielded evidence: a partner's cross-domain guard passed the CoT projection)
 
 A downstream deployment's two producers, its operational TAK server, one

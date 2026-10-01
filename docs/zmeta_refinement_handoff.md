@@ -106,8 +106,38 @@ Open, in order of proximity:
    contract for the experimental 1.1.0 schema across releases, which today
    changes under one `$id` (`spec/versioning.md`); (r) whether a per-event
    UNSYNCED label on a STATE satisfies contract 5.8 without a confidence or
-   TTL change (contract 5.8); (s) a not-measured convention for LINK_STATUS
-   metrics when the link gives no evidence (contract, LINK_STATUS).
+   TTL change (contract 5.8); (s) an honest LINK_STATUS form for a link
+   that is down and cannot be measured, since the reference rule is measure
+   or refuse and the three link metrics are required (contract,
+   LINK_STATUS; `adapters/ingress/mavlink/README.md`); (t) who may author
+   a TASK_ACK, where contract 15 names the Comms/Deconfliction Node or
+   command-authorized producer and the released examples have the
+   platform's own producer author it; (u) whether a transport-level
+   identity attestation may serve as a deployment trust input (contract
+   4.6 and 16.1 are silent); (v) how long a command's `task_id` is held,
+   and who dedupes ordinary events for how long (contract 13.2 names the
+   keys and no horizon; contract 15 assigns `task_id` dedupe to the
+   Comms/Deconfliction Node or command-authorized producer, and Section 22
+   lists dedupe in the gateway class without assigning ordinary-event
+   dedupe to an actor); (w) a consumer's display of data that is not
+   ZMeta, such as a rejected private dialect (contract 13.5 and 14 govern
+   display projections derived from STATE_EVENT and do not say whether a
+   consumer may show non-ZMeta data beside them).
+7. **Reference defect, booked for the maintainer (command safety).** The
+   gateway caps the command dedupe window at 300 s
+   (`ttl_ms_from_payload`, `gateway/README.md`), while contract 13.2 says a
+   duplicate COMMAND_EVENT "MUST NOT be forwarded for execution a second
+   time" with no time bound, and five of the eight shipped example
+   commands are valid for 600 s. The gateway holds a `task_id` for the
+   smaller of `valid_for_ms` and 300 s from first receipt, in memory, and
+   excludes commands from `event_id` dedupe and checks no command
+   validity. A duplicate that arrives after that window, or after a
+   restart, is forwarded; the command is still valid at that point when it
+   is valid for longer than 300 s or its `valid_from_ts` lies after
+   receipt. An independent probe of `process_message` saw the command
+   forwarded at 0 s, refused as a duplicate at 10 s and forwarded again at
+   301 s. It is not changed here, because a command-path change is the
+   maintainer's (design gate 6).
 
 Next session: the cut when the maintainer directs it.
 

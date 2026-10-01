@@ -978,15 +978,20 @@ entries:
       Section 3.2).
     rationale: >-
       A gateway or consumer that admits translated dialect traffic needs to
-      know which dialect an admitted event came from. The kernel already
-      records it where translation happens: every shipped ingress adapter
-      stamps lineage.transform as translate:<schema_id>@<adapter_version>
-      (contract Section 3.4 and adapters/AUTHORING.md). The open question is
-      whether that record reaches the consumer, because egress projections
-      can drop lineage, as the JREAP and SAPIENT egress adapters do. Where it
-      does not, an admitted translated event reads as authored canonically
-      downstream, which is silent meaning laundering under contract Section
-      2.6.
+      know which dialect an admitted event came from. The kernel records it
+      in part. A shipped ingress adapter that translates an event with real
+      parents stamps lineage.transform as
+      translate:<schema_id>@<adapter_version> (the convention in
+      adapters/AUTHORING.md; contract Section 3.4 requires a transform for
+      translation steps when applicable). A translated observation with no
+      ZMeta parent carries no lineage, because lineage requires a parent, and
+      so carries no marker: the ADS-B and AIS ingress adapters stamp none.
+      Where a marker exists, egress projections can drop lineage, as the
+      JREAP and SAPIENT egress adapters do. In both cases an admitted
+      translated event reads as authored canonically downstream, which is
+      silent meaning laundering under contract Section 2.6. (Corrected
+      2026-10-01: this rationale had said every shipped ingress adapter
+      stamps the transform.)
     ignorable_by_default: false
     risk_relevant: true
     must_preserve_when_used_for_policy: true
@@ -1008,7 +1013,9 @@ entries:
       promotion, and allowed_event_types stays empty until then. Promotion
       must first weigh the carriers the contract already provides: the
       translate:<schema_id>@<adapter_version> lineage.transform that an
-      adapter stamps on the event it authors (Section 3.4), which Sections 2.4
+      adapter stamps, by the convention in adapters/AUTHORING.md, on an event
+      it authors with real parents (Section 3.4 requires a transform for
+      translation steps when applicable), which Sections 2.4
       and 4.2 forbid adding to an event a gateway only forwards; the
       external-promotion metadata and promote:<adapter>:<policy>
       lineage.transform of Section 4.5.1; adapter transform names in

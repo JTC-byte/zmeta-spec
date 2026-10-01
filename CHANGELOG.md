@@ -2,6 +2,19 @@
 
 ## [Unreleased]
 
+- 2026-10-01 — **A claim about the `translate:` lineage transform is
+  corrected.** The proposed `DIALECT_LABEL` entry, its roadmap candidate and
+  doctrine U1-02 said every shipped ingress adapter stamps
+  `translate:<schema_id>@<adapter_version>`. The ADS-B and AIS adapters stamp
+  no transform, because a translated observation with no ZMeta parent cannot
+  carry lineage; the CoT and JREAP templates stamp `promote:`; nine of the
+  thirteen shipped ingress adapters stamp `translate:` on events that have
+  parents, and two of those, MAVLink and SAPIENT, also stamp `promote:`. The
+  spelling is the convention in `adapters/AUTHORING.md`; the contract
+  requires a transform for translation steps and defines no spelling. The
+  records now say so, and the dialect-label promotion question weighs the
+  parentless case. Roadmap candidate `model-assurance` notes one producer's need for a
+  model-weights digest against contract Section 11.4, with no status change.
 - 2026-10-01 — **The shipped edge configs stop enabling failure modes the
   gateway never read.** `configs/edge-config.json` and
   `configs/edge-config-profile-L-lean.json` enabled `observation_timeout`,
@@ -108,8 +121,9 @@
   `DIALECT_LABEL` is proposed in `spec/extension-registry.yaml`, with roadmap
   candidate `dialect-label`: a future label naming the source dialect an
   admitted, schema-valid event was translated from, with its carrier left to
-  promotion, which weighs first the `translate:` lineage transform that every
-  shipped ingress adapter already stamps. Roadmap candidate
+  promotion, which weighs first the `translate:` lineage transform that
+  shipped ingress adapters stamp on events with real parents (corrected
+  2026-10-01, see below). Roadmap candidate
   `canonical-byte-form` opens the float-width and determinism decision
   recorded as doctrine C1-07. The event-signing ask was already open under
   `EVENT_SIGNATURE`, `KEY_IDENTITY` and `event-signing-anti-replay`. The
