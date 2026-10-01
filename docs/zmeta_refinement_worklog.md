@@ -2,7 +2,27 @@
 
 ## Current Resume Note
 
-- Last updated: 2026-10-01 (records corrections after an audit of the session's own answers, on `wave/records-corrections-2026-10`)
+- Last updated: 2026-10-01 (overnight close: eight merges on `develop` since v1.1.26, one command-path fix held on a branch)
+- **2026-10-01 (two audit rounds of the session's own answers; the close).**
+  The session answered several dozen questions from downstream
+  implementations on what the standard says. Three independent reviewers
+  then checked 101 statements in those answers against the v1.1.26 text and
+  upheld 58; of the 43 not upheld, 5 were wrong, 9 went beyond the
+  documents, 15 cited the wrong text and 14 were incomplete. Corrections
+  went to each recipient. A second round checked 73 statements in the
+  corrections and in eight later answers and upheld 41; the 32 not upheld
+  were mostly incomplete, with 1 wrong and 8 beyond the documents, and
+  refinements were sent. What the audits found in this repository itself:
+  the overstated `translate:` claim (corrected, merge 492a920) and the
+  command dedupe window (doctrine E1-06, fix held on
+  `exp/command-dedupe-validity`). The working rule taken from it: an answer
+  about the standard quotes the text it rests on, says plainly when the
+  documents are silent and the answer is a ruling, avoids "never", "only"
+  and "must" unless the text uses them, and goes to an independent reader
+  before a consumer builds on it. Battery at the close on `develop`: kernel
+  gate 6 `RELEASE_MANIFEST_*` lines, examples 51 of 51, roadmap ok 22,
+  registry ok 68, `python -m pytest -q` 13 failed (the release-pin set),
+  1992 passed, 1 skipped.
 - **2026-10-01 (records corrections, `wave/records-corrections-2026-10`).**
   A downstream question (does contract 3.4 bind a parentless observation to
   carry a transform) showed that the wave of 2026-09-28 overstated the
