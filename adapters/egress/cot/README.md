@@ -107,7 +107,7 @@ gives the identical contradiction.
 | Wall-clock mode | Opt-in replay-display mode (`use_wall_clock: True`) re-stamps CoT timestamps to now; off by default, since event time is authoritative, and an event missing `event.ts` is refused (`None`) outside this mode |
 | Custom icons | Quadcopter icon for drone/sensor platforms (`a-f-A-M-F-Q`) |
 | Declared 2-D geo | `<geo_dimensionality>` detail marker distinguishes a declared horizontal-only fix from the ambiguous absent-altitude case (both still emit `hae="9999999.0"`, CoT `hae` being required and numeric); a `"2D"` geo carrying `alt_m` refuses (doctrine A1-02, see below) |
-| Profiles | `standard` (the default, everything above) and `cds`, the shape one partner's cross-domain guard passed on 2026-09-29: four detail children, `how` asserted, one fixed-template remarks line, no http(s) link, a stale capped by a window and never later than the event's claim, a maximum age, no replay-display mode. See "Profiles" |
+| Profiles | `standard` (the default, everything above) and `cds`, derived from the shape one partner's cross-domain guard passed on 2026-09-29, with a stale cap added on 2026-10-01 that the guard has not seen: four detail children, `how` asserted, one fixed-template remarks line, no http(s) link, a stale capped by a window and never later than the event's claim, a maximum age, no replay-display mode. See "Profiles" |
 
 ### Mapping
 
@@ -170,7 +170,9 @@ the guard passed everything: a stale time of arrival plus 120 s on every
 source, and no link anywhere in the event. Which of the two the guard needed
 is not known, and neither was tested alone, so the profile carries both under
 one name and a deployment cannot lose either by accident. Nothing here claims
-that another guard, or the same guard on another day, passes this shape.
+that another guard, or the same guard on another day, passes this shape. The
+stale cap added on 2026-10-01 (doctrine F3-03) is not part of what the guard
+passed, so a deployment confirms it with the far side before relying on it.
 
 The profile is a transform applied after the standard projection, so it is
 exactly "the standard output plus these changes", which is how it was
@@ -232,7 +234,9 @@ the doctrine pressure log (cycle F3):
   under the window would tell the far side it is live. A deployment whose
   far-side display shows a past-stale packet as stale, rather than dropping
   it, may set `lapsed_validity` to `send_stale`, and the packet then leaves
-  with that past stale (contract section 13.3). A producer whose
+  with that past stale. The contract does not address projecting an event
+  after its validity; the option exists because the packet then reads as
+  stale, which design gate 3 requires. A producer whose
   `valid_for_ms` is shorter than the hub-and-guard latency will have every
   track refused; the fix lies in the producer's claim or the far-side
   display policy. The maximum age still refuses a report older than

@@ -479,6 +479,23 @@ class AssembleToolTest(unittest.TestCase):
         with self.assertRaisesRegex(assembler.AssemblyError, "not a directory"):
             assembler.assemble(a_file, [str(STRICT_EVIDENCE)])
 
+    def test_only_tunable_policy_files_can_be_replaced(self):
+        variant = self.tmp / "any.yaml"
+        variant.write_text("x: 1\n", encoding="utf-8")
+        locked = ("semantics.yaml", "roles.yaml", "profiles.yaml",
+                  "profile-precision.yaml", "violation-codes.yaml")
+        for i, target in enumerate(locked):
+            with self.subTest(target=target):
+                with self.assertRaisesRegex(assembler.AssemblyError, "locked or governed"):
+                    assembler.assemble(self.tmp / f"out{i}", [f"{variant}={target}"])
+        self.assertEqual(
+            {"command-evidence.yaml", "lineage.yaml", "producer-authority.yaml",
+             "routing.yaml", "timing-freshness.yaml"},
+            set(assembler.TUNABLE_TARGETS),
+        )
+        reference = {p.name for p in (ROOT / "policy").iterdir() if p.name.endswith(".yaml")}
+        self.assertTrue(set(assembler.TUNABLE_TARGETS) <= reference)
+
     def test_an_output_inside_the_reference_directory_is_refused(self):
         # A copy of the reference stands in for it, so the guard is exercised
         # without touching policy/. The sub-directories do not exist yet, so

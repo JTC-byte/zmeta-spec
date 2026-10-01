@@ -257,7 +257,11 @@ contract hashes for the deployment to pin. Pass `--schema` with the
 `schema_path` the deployment's gateway loads. It refuses an output directory
 that is or lies inside the reference `policy/` directory, a path that is not
 a directory, an occupied directory, a variant that matches no reference
-policy YAML file at a `.` or `-` boundary, and two variants aimed at one file.
+policy YAML file at a `.` or `-` boundary, a target that is not one of the
+tunable files (command-evidence, lineage, producer-authority, routing,
+timing-freshness), and two variants aimed at one file. The policy lints do not
+check the variants README's "must not redefine" limits, which is why the
+replaceable files are fixed.
 
 ### Release Manifest And Package
 

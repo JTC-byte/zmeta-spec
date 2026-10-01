@@ -28,6 +28,22 @@ them after their merge; and each new guard was mutation-tested:
   `SEARCH_PATTERN`, and `docs/zmeta_event_signing_design_note.md` (doctrine
   E1-03, E1-04).
 
+Change classes (docs/zmeta_change_governance.md): the two registry waves are
+Class B registry records with Class A notes; the command wave is Class B
+(the variants are manifest-listed in `policy_bundle`) with Class C for the
+tool; the F3 and hardening waves are Class C (adapter and gateway). The
+registry and roadmap commits left the release manifest stale on purpose, as
+every change between cuts does; the next cut regenerates it.
+
+A scope check of the five waves (2026-10-01, three independent reviews
+against the North Star, the design gates, the governance, the contract and
+the registry rules) found all five inside ZMeta's defined scope and none
+widening the kernel or the governed vocabulary. Its fixes landed on
+`wave/scope-check-2026-10`. U1-02, F3-03, F3-04 and the F3-05 opt-in carry
+the doctrine status DECIDED (delegated): the repository decided them on the
+maintainer's go of 2026-09-30, and they stand until the maintainer reviews
+them.
+
 Counts: registry 68 entries, roadmap 22 candidates. The battery reads the
 release-pin band until the next cut: the kernel gate's six
 `RELEASE_MANIFEST_*` lines on the registry and roadmap files, and
@@ -46,6 +62,25 @@ Open, in order of proximity:
    session record), each the maintainer's election, unchanged.
 4. **Local hygiene:** `refs/backup/*` holds the pre-rewrite tips; delete
    them once satisfied.
+5. **Guidance gaps the scope check found**, each a question the documents
+   do not answer, for the maintainer to settle in the named document:
+   (a) whether a recorded go may delegate open doctrine decisions, and what
+   makes them revertible (governance, Human And Agent Responsibilities);
+   (b) who judges a wave good to merge into `develop` (governance,
+   Branching); (c) which command-policy knobs are tunable and which are
+   locked command safety (`configs/policy-variants/README.md`); (d)
+   whether gateway-internal metric tokens such as `cot_skip_reasons` are
+   governed vocabulary (`gateway/README.md` and governance Class C); (e)
+   the registry category for a command-payload extension, what a proposed
+   record may fix, and whether `risk_relevant` must be decided
+   (`spec/extension-registry.md`); (f) what a display projection does with
+   an event already past its validity (contract Section 14, Class B); (g)
+   whether a change in a reference adapter's output makes a cut a patch or
+   a minor, and what the notes must say (governance, Versioning Rules, and
+   `RELEASE_CHECKLIST.md`); (h) whether an advisory note scoping a Class D
+   branch is its plan-only document (governance, Class D); (i) whether a
+   manifest-listed file under `configs/policy-variants/` is Class B or a
+   Class C overlay (governance, Change Classes).
 
 Next session: the cut when the maintainer directs it.
 

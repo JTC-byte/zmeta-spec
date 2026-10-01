@@ -82,7 +82,11 @@ Statuses: **OPEN** (awaiting adjudication) · **DECIDED** (the maintainer has
 set direction; terminal when the implementing wave lands) · **CHANGED** (a
 guiding document was amended) · **MINTED** (a governed change was made) ·
 **HELD-FIRM** (doctrine upheld as final — re-open only on genuinely new
-evidence) · **DROPPED** (recommendation withdrawn).
+evidence) · **DROPPED** (recommendation withdrawn) · **DECIDED (delegated)**
+(added 2026-10-01: decided by this repository's own recommendation under a
+recorded maintainer go that handed the question to it; it stands until the
+maintainer reviews it, and a reversal is a revert of the implementing
+change).
 
 *(Reconciled 2026-07-27: this legend and the Lifecycle section had drifted —
 the legend said "HELD", the Lifecycle names HELD-FIRM/MINTED as terminal, and
@@ -2898,7 +2902,7 @@ candidates through this repository's own process and evidence bar, and
 promotes nothing. How each ask was routed is recorded in U1-02 as this
 session's disposition, pending the maintainer's word on the merge.
 
-### U1-02 — How the five asks were routed, and what routing them surfaced · **DECIDED 2026-10-01 (merged as routed)**
+### U1-02 — How the five asks were routed, and what routing them surfaced · **DECIDED (delegated) 2026-10-01 (merged as routed; maintainer review pending)**
 
 **Observed:** the disposition, pending the maintainer. Two asks open as new
 candidates. The dialect label opens as registry entry DIALECT_LABEL,
@@ -3043,7 +3047,7 @@ the advisory gate cannot be met and the locked honesty rule is kept in the
 channel that remains. It sets no precedent for moving structure into text
 where structure can pass.
 
-### F3-03 — `stale` as a fixed window, `how` as a deployment claim · **DECIDED 2026-10-01 (the window caps the claim)**
+### F3-03 — `stale` as a fixed window, `how` as a deployment claim · **DECIDED (delegated) 2026-10-01 (the window caps the claim; maintainer review pending)**
 
 **Observed:** contract section 14 says CoT and the other display formats
 "must preserve" a list that includes "`payload.valid_for_ms` as
@@ -3082,7 +3086,8 @@ a cap and never an extension. An earlier stale cannot breach a guard's
 stale ceiling. An event whose claim has lapsed at projection is refused by
 default and counted as `VALIDITY_LAPSED`; a deployment whose far side
 shows a past-stale packet as stale may set `lapsed_validity` to
-`send_stale` (contract Section 13.3, "remains explicitly stale"). No
+`send_stale` (contract Section 13.3, "remains explicitly stale"; see the
+correction below). No
 option keeps the window over the claim, because that is the increase
 Section 4.2 forbids. The window does not announce itself in `remarks`: the
 attribute carries it, a second statement of the same number could disagree
@@ -3092,7 +3097,14 @@ stale than the validated packets did; a deployment confirms the shape with
 the far side before relying on it, and a guard that refused a short stale
 would be the first documented failure condition under F3-04.
 
-### F3-04 — The evidence bar · **DECIDED 2026-10-01 (recorded as evidence, n=1)**
+**Correction (2026-10-01, scope check):** the 13.3 citation above is cut
+short. The clause bounds explicit-stale emission at TTL expiry, and a lapsed
+event is past its TTL, so the contract does not address projecting it.
+`send_stale` rests on design gate 3 instead: the packet reads as stale. The
+decisions in this entry were made in the same pass as the code, under the
+delegated go, and stand until the maintainer's review.
+
+### F3-04 — The evidence bar · **DECIDED (delegated) 2026-10-01 (recorded as evidence, n=1; maintainer review pending)**
 
 **Observed:** one deployment, one partner's guard, one day, two changes
 applied together and neither tested alone. The registry's promotion bar for
@@ -3116,7 +3128,7 @@ controlled comparison is now available without a switch in this
 repository, because the deployment still runs the window-only shape and
 this profile now carries the claim.
 
-### F3-05 — An asserted affiliation at the boundary · **HELD-FIRM 2026-09-29 (refuse, never retype); opt-in DECIDED 2026-10-01 (none)**
+### F3-05 — An asserted affiliation at the boundary · **HELD-FIRM 2026-09-29 (refuse, never retype); opt-in DECIDED (delegated) 2026-10-01 (none; maintainer review pending)**
 
 **Observed:** the validated packets asserted no affiliation. Nothing in the
 contract decides whether an asserted affiliation may cross a guard.
@@ -3207,7 +3219,7 @@ a command subtype added later stays refused to the automations by
 construction. The shipped examples stay as they are, because they
 illustrate the reference posture.
 
-### E1-03 — Destroyed with a receipt is not "not retained" · **RECORDED 2026-10-01 (candidate state; status unchanged)**
+### E1-03 — Destroyed with a receipt is not "not retained" · **OPEN (routed to the registry 2026-10-01; candidate state, status unchanged)**
 
 **Observed:** the deployment's destruction model crypto-shreds stored
 content and keeps a receipt and the audit ledger. A `data_ref` to shredded
@@ -3232,7 +3244,7 @@ destruction is also announced as an event stays open; until a branch
 decides, the receipt is a record in the destroying deployment's own store
 and no event claims it.
 
-### E1-04 — A search pattern inside a drawn area · **RECORDED 2026-10-01 (proposed, not adopted)**
+### E1-04 — A search pattern inside a drawn area · **OPEN (routed to the registry 2026-10-01; proposed, not adopted)**
 
 **Observed:** the deployment tasks platforms by drawing a shape and
 choosing a behaviour, and asked for search patterns beyond the box and the
@@ -3255,6 +3267,12 @@ has no command-extension category, so the entry sits under
 `command_task_type` and says it is not a task type. Member names and the
 pattern list are settled at promotion, which needs a second, independent
 implementation.
+
+**Revised (2026-10-01, scope check):** the entry is risk-relevant, because
+a pattern steers the path a platform flies, so its projection behavior is
+decided in the branch and its carrier is left to promotion with
+`payload_scope` empty; a deployment carries a pattern today under its own
+namespace, never the bare `payload.extensions.search_pattern` key.
 
 ## Archive
 
