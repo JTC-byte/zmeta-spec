@@ -961,8 +961,9 @@ entries:
       be preserved whenever policy uses it, following doctrine F1-01, which
       booked the opposite flags on the reserved replay records as a promotion
       blocker; projection behavior is decided in the branch. The consumers
-      known today appear to belong to one organization, and whether they
-      count as one instance under the promotion bar is open (doctrine U1-02).
+      known today appear to belong to one organization, and they count as
+      one instance under the promotion bar (doctrine U1-02, decided
+      2026-10-01).
       Neighbours: QUARANTINED_EVENT (reserved) labels a quarantined event, and
       KEY_IDENTITY and EVENT_SIGNATURE (proposed) carry producer identity and
       signing; this entry names the dialect only.

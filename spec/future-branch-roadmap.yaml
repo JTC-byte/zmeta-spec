@@ -135,7 +135,7 @@ candidates:
       meaning.
     affected_events: [SYSTEM_EVENT]
     registry_refs: [EVENT_SIGNATURE, KEY_IDENTITY, ANTI_REPLAY_NONCE]
-    depends_on: []
+    depends_on: [canonical-byte-form]
     required_surfaces: default
     promotion_evidence: []
     tripwires:
@@ -649,7 +649,7 @@ candidates:
       resolves without new vocabulary.
     notes: >
       The consumers known today appear to belong to one organization, and
-      whether they count as one instance is open (doctrine U1-02); their need
+      they count as one instance (doctrine U1-02, decided 2026-10-01); their need
       is held by the maintainer and is not banked here. The label does not
       depend on event-signing-anti-replay inside one trust domain. A label
       that crosses a trust boundary depends on that branch, as
@@ -678,8 +678,8 @@ candidates:
     recommendation: >
       The recommended order puts this candidate before
       event-signing-anti-replay, because a signature over an undefined byte
-      form proves nothing; depends_on on the signing candidate is left
-      unchanged pending the maintainer (doctrine U1-02). The outcome may be a
+      form proves nothing, and the signing candidate lists this one in
+      depends_on (doctrine U1-02, decided 2026-10-01). The outcome may be a
       clause change in spec/compact-binary-mapping.md rather than a version
       branch, and its content and strength are the maintainer's decision.
     notes: >

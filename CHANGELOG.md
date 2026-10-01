@@ -2,6 +2,17 @@
 
 ## [Unreleased]
 
+- 2026-10-01 — **The questions the five upstream asks raised are decided as
+  recommended, and the registry wave merges into `develop`.** Doctrine U1-02
+  moves from OPEN to DECIDED on the maintainer's go of 2026-09-30.
+  `DIALECT_LABEL` stays `proposed` with its carrier open. Implementations
+  from one organization count as one instance under the promotion bar.
+  Live streams in `data_ref` remain a question for a `data_ref` branch.
+  Roadmap candidate `event-signing-anti-replay` now lists
+  `canonical-byte-form` in `depends_on`, because a signature over an
+  undefined byte form proves nothing. Whether the signing tripwire has
+  fired is not decided here. No entry changes status and no vocabulary
+  becomes valid.
 - 2026-09-28 — **Five upstream asks are taken through the registry and the
   roadmap, two open as new candidates, and none becomes valid vocabulary.**
   `DIALECT_LABEL` is proposed in `spec/extension-registry.yaml`, with roadmap

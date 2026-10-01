@@ -2,7 +2,28 @@
 
 ## Current Resume Note
 
-- Last updated: 2026-09-29 (v1.1.26 published: tagged, signed, pushed, verified as published)
+- Last updated: 2026-10-01 (the registry wave merged into `develop` with doctrine U1-02 decided)
+- **2026-10-01 (doctrine U1-02 decided; the registry wave merges into
+  `develop`).** The maintainer's go of 2026-09-30 handed this
+  repository's open questions to its own recommendations, as revertible
+  decisions. U1-02's five were taken as its recommendation reads:
+  DIALECT_LABEL stays `proposed` with its carrier open and the `translate:`
+  lineage transform weighed first; the label's scope is events translated
+  into schema-valid ZMeta; one organization's implementations count as
+  one instance; the live-versus-recording discriminator is a question for
+  a `data_ref` branch; and `event-signing-anti-replay` now depends on
+  `canonical-byte-form`. Whether the signing tripwire has fired stays with
+  the maintainer. `develop` was merged into the wave first (95c0865); the
+  four conflicts were append-append in CHANGELOG, handoff, worklog and
+  doctrine log, and each keeps both sides in date order. Validation on the
+  wave before the merge: `python tools/validate_conformance.py
+  --kernel-gate` 6 `RELEASE_MANIFEST_*` lines, all on the registry and
+  roadmap files this wave changes, and no other failure; `python
+  tools/validate_examples.py --strict --require-all` 51 of 51; `python
+  tools/validate_future_roadmap.py` ok candidates=22; `python -m pytest
+  -q` 13 failed (the release-pin set: `test_release_manifest.py` 3,
+  `test_release_package.py` 10), 1948 passed, 3 skipped; `git diff
+  --check` clean. The release-pin set stays red until the next cut.
 - **2026-09-29 (v1.1.26 published).** The cut commit baf86f1 on `develop`;
   `main` moved to it without a checkout (`git branch -f`, after the
   ancestor check), so no tracked file was re-smudged between signing and

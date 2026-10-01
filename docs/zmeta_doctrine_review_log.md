@@ -2898,7 +2898,7 @@ candidates through this repository's own process and evidence bar, and
 promotes nothing. How each ask was routed is recorded in U1-02 as this
 session's disposition, pending the maintainer's word on the merge.
 
-### U1-02 — How the five asks were routed, and what routing them surfaced · **OPEN**
+### U1-02 — How the five asks were routed, and what routing them surfaced · **DECIDED 2026-10-01 (merged as routed)**
 
 **Observed:** the disposition, pending the maintainer. Two asks open as new
 candidates. The dialect label opens as registry entry DIALECT_LABEL,
@@ -2965,6 +2965,23 @@ the current tree. The section's figure, `docs/img/d3-true-today.svg`, already
 matched v1.1.25 and is left for regeneration at the next release. An earlier
 draft of this change regenerated it, which would have credited v1.1.25 with
 entries it does not contain.
+
+**Decision (2026-10-01):** the maintainer's go of 2026-09-30 handed the
+open questions in this cycle to this repository's own recommendation, as
+revertible decisions. Each was taken as recommended above. (1)
+DIALECT_LABEL stays `proposed` with its carrier open. Promotion first
+weighs the `translate:` lineage transform and the other existing
+carriers, and new vocabulary is justified only by an egress projection
+that drops lineage where no existing carrier brings the dialect to the
+consumer. (2) The label's scope is events translated from a dialect into
+schema-valid ZMeta. (3) Implementations from one organization count as
+one instance under the promotion bar. (4) The live-versus-recording
+discriminator is a question for a `data_ref` branch, and a video kind
+needs no new `data_ref.kind` value. (5) `canonical-byte-form` precedes
+`event-signing-anti-replay`, which now lists it in `depends_on`, and
+C1-07 is decided before any signing work. Whether the signing tripwire
+has fired is not decided here; it stays with the maintainer (handoff
+Tier 2 item 6). The wave merges into `develop`.
 
 ## Cycle F3 — 2026-09-29 (fielded evidence: a partner's cross-domain guard passed the CoT projection)
 
