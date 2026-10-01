@@ -2,7 +2,21 @@
 
 ## Current Resume Note
 
-- Last updated: 2026-10-01 (shipped configs stop advertising unread failure modes, on `exp/failure-modes-honesty`)
+- Last updated: 2026-10-01 (records corrections after an audit of the session's own answers, on `wave/records-corrections-2026-10`)
+- **2026-10-01 (records corrections, `wave/records-corrections-2026-10`).**
+  A downstream question (does contract 3.4 bind a parentless observation to
+  carry a transform) showed that the wave of 2026-09-28 overstated the
+  `translate:` transform as stamped by every shipped ingress adapter. Counted
+  on the tree: of fourteen ingress adapters, ADS-B and AIS stamp none, CoT
+  and JREAP stamp `promote:`, ten stamp `translate:` on events with parents.
+  The registry entry, the roadmap candidate, doctrine U1-02 (a dated
+  correction, the original text kept) and the changelog are corrected. The
+  roadmap's `model-assurance` candidate notes a producer's model-digest need
+  against contract 11.4. Separately, every answer this session gave
+  downstream implementations on 2026-10-01 was audited by independent
+  reviewers against the v1.1.26 text; the wrong and overreaching ones were
+  corrected with their recipients, and the private session record holds the
+  list.
 - **2026-10-01 (failure-modes honesty, `exp/failure-modes-honesty`).** A
   downstream mapping pass found `configs/README.md` claiming four failure
   modes where the gateway reads one. The shipped edge configs now carry only

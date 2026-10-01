@@ -106,8 +106,27 @@ Open, in order of proximity:
    contract for the experimental 1.1.0 schema across releases, which today
    changes under one `$id` (`spec/versioning.md`); (r) whether a per-event
    UNSYNCED label on a STATE satisfies contract 5.8 without a confidence or
-   TTL change (contract 5.8); (s) a not-measured convention for LINK_STATUS
-   metrics when the link gives no evidence (contract, LINK_STATUS).
+   TTL change (contract 5.8); (s) an honest LINK_STATUS form for a link
+   that is down and cannot be measured, since the reference rule is measure
+   or refuse and the three link metrics are required (contract,
+   LINK_STATUS; `adapters/ingress/mavlink/README.md`); (t) who may author
+   a TASK_ACK, where contract 15 names the Comms/Deconfliction Node or
+   command-authorized producer and the released examples have the
+   platform's own producer author it; (u) whether a transport-level
+   identity attestation may serve as a deployment trust input (contract
+   4.6 and 16.1 are silent); (v) who dedupes ordinary events and for how
+   long, and how long a command's `task_id` is held (contract 13.2 names a
+   key, no actor and no horizon); (w) a consumer's display of data that is
+   not ZMeta, such as a rejected private dialect (contract 13.5 and 14
+   cover ZMeta display projections only).
+7. **Reference defect, booked for the maintainer (command safety).** The
+   gateway caps the command dedupe window at 300 s
+   (`ttl_ms_from_payload`, `gateway/README.md`), while contract 13.2 says a
+   duplicate COMMAND_EVENT "MUST NOT be forwarded for execution a second
+   time" with no time bound, and the shipped example command is valid for
+   600 s. A duplicate of a command valid longer than the cap can be
+   forwarded after it. Not changed here, because a command-path change is
+   the maintainer's (design gate 6).
 
 Next session: the cut when the maintainer directs it.
 

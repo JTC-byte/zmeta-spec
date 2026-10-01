@@ -240,7 +240,16 @@ candidates:
     recommendation: >
       Plan as event-level runtime/model semantics only; must avoid model-card
       or process-governance scope.
-    notes: Policy for degraded model outputs; fixtures for drift/runtime status.
+    notes: >
+      Policy for degraded model outputs; fixtures for drift/runtime status.
+      Related need, recorded 2026-10-01 with no status change: one
+      organization's inference producer needs to name the exact model
+      weights behind a claim. Contract Section 11.4 lists a stable model
+      identifier or model version digest as a future candidate; payload.model
+      is closed to name and version, so the producer carries the digest in
+      its own namespaced extension. This candidate's scope is runtime and
+      assurance state, so a model-identity member would be scoped by its own
+      branch decision.
 
   - id: track-lifecycle
     display_name: Track lifecycle
@@ -671,7 +680,9 @@ candidates:
       Opened on the maintainer's go of 2026-09-28 so the name exists before
       two consumers invent two. Promotion first asks whether an existing
       carrier serves the need, starting with the translate lineage transform
-      that every shipped ingress adapter already stamps; if one does, this
+      that shipped ingress adapters stamp on events with real parents; a
+      translated observation with no parent carries no lineage and so no
+      marker (corrected 2026-10-01). If an existing carrier serves, this
       resolves without new vocabulary.
     notes: >
       The consumers known today appear to belong to one organization, and
