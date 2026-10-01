@@ -29,7 +29,10 @@ the reference file it replaces and runs the pair through the gateway.
 
 `tools/assemble_policy_dir.py` builds a deployment policy directory from the
 reference `policy/` directory plus the selected variants, runs the policy
-lints, and prints the hashes to pin:
+lints, and prints the hashes to pin. It replaces only the tunable files
+(command-evidence, lineage, producer-authority, routing, timing-freshness)
+and refuses the rest, because the lints cannot tell a tightening from a
+redefinition:
 
 ```
 python tools/assemble_policy_dir.py --out <deployment>/policy \

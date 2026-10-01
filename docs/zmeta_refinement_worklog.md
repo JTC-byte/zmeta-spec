@@ -2,7 +2,21 @@
 
 ## Current Resume Note
 
-- Last updated: 2026-10-01 (five waves merged into `develop` since v1.1.26; the handoff's current state rewritten)
+- Last updated: 2026-10-01 (scope check of the five waves; fixes on `wave/scope-check-2026-10`)
+- **2026-10-01 (scope check of the five unreleased waves).** On the
+  maintainer's direction that ZMeta stay within its defined scope and that the
+  repository's documents decide, three independent reviews (a top-tier scope
+  judge, an opus stray-hunter, a sonnet change-class checker) read
+  `v1.1.26..7746c68` against the North Star, the design gates, the
+  governance, the contract and the registry rules. Verdict: all five waves
+  inside scope, three with fixes, none widening the kernel or the governed
+  vocabulary. Fixes: the assembly tool replaces only tunable policy files;
+  `SEARCH_PATTERN` is risk-relevant with its carrier left to promotion; the
+  `cds` documents say the stale cap is new and unseen by the guard; the
+  `send_stale` citation is corrected; the new status DECIDED (delegated)
+  replaces DECIDED on decisions taken under the delegated go, and E1-03 and
+  E1-04 return to OPEN. Nine guidance gaps are booked in the handoff for the
+  maintainer.
 - **2026-10-01 (two registry records, `wave/registry-candidates-2026-10`).**
   On the maintainer's go of 2026-09-30: `RAW_DATA_ABSENT_STATUS` gains the
   destroyed-with-receipt candidate state and roadmap

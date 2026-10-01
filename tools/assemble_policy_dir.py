@@ -14,10 +14,15 @@ of the variant's name that ends at a `.` or `-`, so
 `routingX.yaml` replaces nothing. `SOURCE=TARGET.yaml` names the target
 explicitly; only the reference directory's `.yaml` files can be targets.
 
+Only the tunable policy files can be replaced: command-evidence, lineage,
+producer-authority, routing and timing-freshness. The others carry locked or
+governed policy that a variant must not redefine, and the lints cannot tell
+a tightening from a redefinition.
+
 The tool refuses an output directory that is or lies inside the reference
 policy directory, a path that exists and is not a directory, a directory that
-already holds files, a variant that matches no reference file, and two
-variants aimed at one file. It then loads
+already holds files, a variant that matches no reference file or targets a
+file that is not tunable, and two variants aimed at one file. It then loads
 the assembled policy and runs the same lints as
 `tools/lint_policy_risk_modes.py`; any finding is a failure and the directory
 is left in place for inspection. The reference `policy/` directory is never
@@ -51,6 +56,22 @@ _gw_spec.loader.exec_module(gateway)
 _val_spec = importlib.util.spec_from_file_location("zmeta_validators", VALIDATORS_PATH)
 validators = importlib.util.module_from_spec(_val_spec)
 _val_spec.loader.exec_module(validators)
+
+
+# The reference policy files a variant may replace: the ones that carry
+# tunable responses (configs/policy-variants/README.md: reject, warn, degrade,
+# quarantine, freshness thresholds, producer allowlists, routing gates). The
+# others hold locked or governed policy (semantics, roles, profiles, profile
+# precision, violation codes), which a variant must not redefine, and the
+# policy lints cannot tell a tightening from a redefinition, so the tool
+# refuses them.
+TUNABLE_TARGETS = frozenset((
+    "command-evidence.yaml",
+    "lineage.yaml",
+    "producer-authority.yaml",
+    "routing.yaml",
+    "timing-freshness.yaml",
+))
 
 
 class AssemblyError(Exception):
@@ -118,6 +139,11 @@ def assemble(out_dir: Path, variants: list[str], policy_dir: Path = ROOT / "poli
         source, target = resolve_target(variant, reference_names)
         if not source.is_file():
             raise AssemblyError(f"{variant}: no such file {source}")
+        if target not in TUNABLE_TARGETS:
+            raise AssemblyError(
+                f"{variant}: {target} holds locked or governed policy, which a variant "
+                "must not redefine; replaceable files: " + ", ".join(sorted(TUNABLE_TARGETS))
+            )
         if target in placements:
             raise AssemblyError(
                 f"{source} and {placements[target]} both replace {target}"

@@ -686,8 +686,9 @@ entries:
     category: command_task_type
     status: proposed
     semantic_definition: >-
-      Future optional payload.extensions.search_pattern object on a SEARCH_BOX
-      command naming the pattern the executing autonomy or sensor layer is
+      Future optional search-pattern object on a SEARCH_BOX command, its
+      carrier decided at promotion, naming the pattern the executing autonomy
+      or sensor layer is
       asked to fly inside the commanded area: a kind (the candidates are an
       expanding square, a parallel sweep, also called a ladder, and a sector
       search), a track spacing in metres, the first leg's bearing in degrees
@@ -708,8 +709,11 @@ entries:
       invent its own key for the same idea.
     allowed_event_types: ["COMMAND_EVENT"]
     allowed_event_subtypes: ["SEARCH_BOX"]
-    payload_scope: ["payload.extensions.search_pattern"]
-    profile_projection_behavior: optional_omission
+    risk_relevant: true
+    profile_projection_behavior: future_branch_required
+    security_privacy_notes:
+      - A search pattern changes the path a platform flies inside the commanded area, so it bears on autonomy and command basis; a receiver that cannot honor a pattern must say so through TASK_ACK rather than fly a different one silently.
+      - A pattern carried under the bare key before promotion would read as governed vocabulary; deployments carry it under their own collision-resistant namespace until a branch decides the carrier.
     references:
       - spec/semantics-contract.md
       - schema/zmeta-event-1.1.0.schema.json
@@ -719,9 +723,14 @@ entries:
     notes: >-
       Proposed 2026-10-01 on the maintainer's go of 2026-09-30 as an
       extension ask, not adopted, and not valid vocabulary under v1.0 or
-      v1.1.0. A deployment may carry the pattern today as a namespaced
-      extension under contract Section 20.3; this entry holds the name and
-      the shape so two front ends do not invent two. Member names, units
+      v1.1.0. A deployment may carry the pattern today under its own
+      collision-resistant namespace (contract Section 20.3), never the bare
+      key; this entry holds the name and the shape so two front ends do not
+      invent two. The carrier is decided at promotion, weighing a
+      payload.extensions key against a pattern member of the SEARCH_BOX
+      geometry, as ORBIT and LOITER carry theirs, so payload_scope stays empty
+      until then (revised 2026-10-01 after a scope check: the entry is
+      risk-relevant because a pattern steers the flown path). Member names, units
       and the pattern enumeration are settled at promotion. The registry has
       no command-extension category, so the entry sits under
       command_task_type, the tasking vocabulary it extends; it is not a task

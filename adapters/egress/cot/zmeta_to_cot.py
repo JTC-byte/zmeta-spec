@@ -41,7 +41,9 @@ Supports:
     freshness for malformed input
   - A `cds` profile (cot_config["profile"] = "cds"): the standard output
     reduced to the shape one partner's cross-domain guard passed into a
-    higher enclave on 2026-09-29. Detail children limited to contact,
+    higher enclave on 2026-09-29, with its stale capped at the event's
+    own claim since 2026-10-01, a change the guard has not seen. Detail
+    children limited to contact,
     track, remarks and precisionlocation; `how` required as a deployment
     claim; remarks replaced by one fixed-template line of at most
     CDS_REMARKS_MAX characters whose honesty markers always survive; no
@@ -130,7 +132,9 @@ COT_UNKNOWN_ACCURACY = 9999999.0
 # lower a validity, never to raise it. An earlier stale cannot breach a
 # guard's stale ceiling. An event whose claim has already lapsed at
 # projection is refused, or with lapsed_validity = "send_stale" sent with
-# that past stale so a display shows it as stale (contract Section 13.3). The reference deployment also drops a report older
+# that past stale so a display shows it as stale. The contract does not
+# address projecting an event after its validity; the packet reads as stale,
+# which is design gate 3's requirement. The reference deployment also drops a report older
 # than a maximum age at arrival, so the profile refuses one older than
 # max_age_s at projection; without that, a day-old event would leave with a
 # stale time that reads as live.

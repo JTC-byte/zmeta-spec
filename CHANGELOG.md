@@ -2,16 +2,32 @@
 
 ## [Unreleased]
 
+- 2026-10-01 — **A scope check of the five unreleased waves finds all of
+  them inside ZMeta's defined scope, with fixes.** Three independent
+  reviews against the North Star, the design gates, the change governance,
+  the contract and the registry rules found no change that widens the
+  kernel or the governed vocabulary; nothing under `schema/`, `policy/` or
+  `spec/semantics-contract.md` changed since v1.1.26. Fixes:
+  `tools/assemble_policy_dir.py` replaces only the tunable policy files
+  (command-evidence, lineage, producer-authority, routing,
+  timing-freshness) and refuses the files a variant must not redefine;
+  `SEARCH_PATTERN` is risk-relevant with its carrier left to promotion;
+  the `cds` documentation says the stale cap is new and unseen by the
+  guard; the `send_stale` citation is corrected; decisions taken on the
+  maintainer's delegated go carry the new doctrine status DECIDED
+  (delegated), pending the maintainer's review.
 - 2026-10-01 — **Two registry records from one deployment's needs; no
   vocabulary becomes valid.** On the maintainer's go of 2026-09-30,
   `RAW_DATA_ABSENT_STATUS` (proposed) records destroyed-with-receipt as a
   candidate ninth evidence state beside the eight of contract Section 9.4,
   and roadmap candidate `raw-data-absent-evidence-status` records the
   deployment's crypto-shred model as its first evidence, short of the bar.
-  New entry `SEARCH_PATTERN` is proposed: an optional
-  `payload.extensions.search_pattern` on a SEARCH_BOX command naming a
-  search pattern inside the commanded area (an expanding square, a
-  ladder, a sector), safe to ignore because the area stays the command.
+  New entry `SEARCH_PATTERN` is proposed: an optional search-pattern
+  object on a SEARCH_BOX command naming a search pattern inside the
+  commanded area (an expanding square, a ladder, a sector), with its
+  carrier left to promotion; it is risk-relevant, because a pattern steers
+  the flown path, and a deployment carries it today under its own
+  namespace.
   The registry now holds 68 entries, 11 of them proposed. Doctrine E1-03
   and E1-04. A design note, `docs/zmeta_event_signing_design_note.md`,
   scopes the event-signing branch: the closed root leaves a new root member,
