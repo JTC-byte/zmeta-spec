@@ -1292,7 +1292,11 @@ _COMMAND_DEDUPE_LIMITS = (
 
 
 def _command_task_id(event):
-    """The `payload.task_id` of a COMMAND_EVENT; None for any other event."""
+    """The `payload.task_id` of a COMMAND_EVENT.
+
+    None for any other event type, whatever its payload carries, and for a
+    command whose `task_id` is missing, empty or not a string.
+    """
     if not isinstance(event, dict):
         return None
     event_block = event.get("event")
@@ -2800,6 +2804,10 @@ def process_message(
     now=None,
     gateway_identity=None,
 ):
+    if isinstance(now, datetime) and now.tzinfo is None:
+        # A caller's naive `now` is read as UTC, here once, for every check
+        # that measures against it (timestamp plausibility, command hold).
+        now = now.replace(tzinfo=timezone.utc)
     try:
         instance = _decode_message(message, input_encoding)
     except Exception as exc:
@@ -3140,6 +3148,7 @@ def process_message(
             )
         ]
 
+    admitted_task_id = None
     if event_type == "COMMAND_EVENT":
         payload = instance.get("payload", {})
         task_id = payload.get("task_id")
@@ -3197,28 +3206,37 @@ def process_message(
                         identity=gateway_identity,
                     )
                 ]
+            admitted_task_id = task_id
 
-    if timing_state is not None:
-        timing_state.record(instance)
+    try:
+        if timing_state is not None:
+            timing_state.record(instance)
 
-    outgoing = [instance]
-    for warning in warnings:
-        if metrics:
-            metrics.record_warning(
-                warning["code"], event_id=event_id, producer=producer, details=warning.get("message")
+        outgoing = [instance]
+        for warning in warnings:
+            if metrics:
+                metrics.record_warning(
+                    warning["code"], event_id=event_id, producer=producer, details=warning.get("message")
+                )
+            outgoing.append(
+                build_warning_event(
+                    warning["code"],
+                    original=instance,
+                    details=warning.get("details"),
+                    contract_hashes=contract_hashes,
+                    stamp_contract_hash=stamp_contract_hash,
+                    policy=policy,
+                    identity=gateway_identity,
+                )
             )
-        outgoing.append(
-            build_warning_event(
-                warning["code"],
-                original=instance,
-                details=warning.get("details"),
-                contract_hashes=contract_hashes,
-                stamp_contract_hash=stamp_contract_hash,
-                policy=policy,
-                identity=gateway_identity,
-            )
-        )
-    return outgoing
+        return outgoing
+    except BaseException:
+        # The command was admitted and is not being returned, so nothing
+        # will forward it. Give its task_id back before the failure
+        # propagates.
+        if admitted_task_id is not None:
+            dedupe_cache.release(admitted_task_id)
+        raise
 
 
 def parse_args():
@@ -3433,6 +3451,9 @@ def main():
         # interrupts (KeyboardInterrupt) and configuration failures that
         # raise SystemExit (_require_cbor/_require_compact/_require_proto)
         # still stop the process rather than becoming per-datagram drops.
+        # The task_id of a command this datagram admitted and has not yet
+        # delivered. Every path that ends without delivering it releases it.
+        pending_task_id = None
         try:
             out_events = process_message(
                 data,
@@ -3454,9 +3475,10 @@ def main():
             )
             for outgoing in out_events:
                 # A COMMAND_EVENT in out_events is one process_message just
-                # admitted, so its task_id is now held. If it does not leave
-                # the gateway as that command, the hold is released below.
-                admitted_task_id = _command_task_id(outgoing)
+                # admitted, so its task_id is now held. It is released if the
+                # command is replaced by a diagnostic, cannot be encoded, is
+                # not sent, or an exception ends this datagram first.
+                pending_task_id = _command_task_id(outgoing)
                 should_stamp_timing = _should_apply(
                     settings["profile"], settings["stamp_timing"], settings["stamp_timing_profiles"]
                 )
@@ -3519,8 +3541,9 @@ def main():
                     metrics=metrics,
                 )
                 if payload is None:
-                    if admitted_task_id is not None:
-                        dedupe_cache.release(admitted_task_id)
+                    if pending_task_id is not None:
+                        dedupe_cache.release(pending_task_id)
+                        pending_task_id = None
                     # Nothing honest can be said about this event on this wire.
                     # Drop the datagram rather than terminate the receive loop.
                     # Reason spelling matches the governed diagnostic code and
@@ -3555,13 +3578,15 @@ def main():
                     event_id=event_block.get("event_id") if isinstance(event_block, dict) else None,
                     producer=source_block.get("producer") if isinstance(source_block, dict) else None,
                 )
-                if admitted_task_id is not None and (
-                    not sent or _command_task_id(outgoing) != admitted_task_id
+                if pending_task_id is not None and (
+                    not sent or _command_task_id(outgoing) != pending_task_id
                 ):
                     # The admitted command was replaced by a diagnostic or
                     # was not sent. Nothing can execute it, so a corrected
                     # copy under the same task_id is a first copy.
-                    dedupe_cache.release(admitted_task_id)
+                    dedupe_cache.release(pending_task_id)
+                # Delivered or released: either way nothing is pending now.
+                pending_task_id = None
                 if sent and metrics:
                     metrics.record_forwarded()
                 if settings["emit_cot"]:
@@ -3603,6 +3628,11 @@ def main():
             if metrics:
                 metrics.maybe_log()
         except Exception as exc:  # noqa: BLE001 - last-resort per-datagram guard
+            # An admitted command that was still pending when the failure
+            # hit was never sent. Release its task_id (a dict pop, which
+            # cannot raise) so a corrected copy is not called a duplicate.
+            if pending_task_id is not None:
+                dedupe_cache.release(pending_task_id)
             # The handler must not re-enter anything that can raise: when the
             # failure inside the try WAS the metrics sink, a bare call back
             # into it raised the identical exception from inside the except

@@ -2,20 +2,44 @@
 
 ## Current Resume Note
 
-- Last updated: 2026-10-01 (the held command dedupe fix went through a second independent review and a second revision on its branch; still not merged)
+- Last updated: 2026-10-01 (the held command dedupe fix went through a third independent review and a third revision on its branch; still not merged)
+- **2026-10-01 (third independent review of the held dedupe fix, and its
+  third revision; `exp/command-dedupe-validity`, NOT MERGED).** Two
+  reviewers read the second revision. The code reviewer found no path that
+  forwards a duplicate or releases a delivered command's id. It found one
+  functional defect (an encoder that raises sends the datagram to the
+  receive loop's last-resort handler, which left the undelivered command's
+  id held), a naive clock that still raised ahead of the dedupe, and four
+  surviving mutants, two of which forwarded a duplicate with all 56 tests
+  green. The four tests it called misleading had all been written an hour
+  earlier for the second revision: one stubbed the encoder instead of
+  driving it, one passed because of where an acknowledgement happens to
+  carry its `task_id`, and two asserted less than their names said about an
+  unreadable `event.ts`. The third revision releases a pending command on
+  every path that ends without delivering it, drives the real CBOR and
+  compact encoders in the tests, and has a test for each survivor.
+  Sixty-four tests, fourteen through the real `main()` loop; 94 mutants,
+  all killed. Three tests fail against the second revision's code. The
+  pattern across three rounds: each round's reviewer found faults the
+  author's own mutants had not, and less severe ones each time. Round one
+  found a standing refusal of all commands; round two, a full cache kept
+  full and a second forwarded duplicate; round three, an id held for an
+  undelivered command.
 - **2026-10-01 (second independent review of the held dedupe fix, and its
   second revision; `exp/command-dedupe-validity`, NOT MERGED).** Three
-  reviewers read the first revision. They confirmed by execution that the
-  first review's four defects were closed, and found two new defects that
-  the revision had introduced or left: a later copy lengthened the hold, so
-  repeated copies kept a full cache full without end; and an unreadable
-  validity anchor gave the narrowest hold, so the same `task_id` was
-  forwarded twice. They also showed that four tests passed for the wrong
-  reason (the shipped-command test passed with the original 300 s cap put
-  back) and that fifteen mutants survived, the production clock path among
-  them. All 56 mutants of the first revision had been killed, which is the
-  point worth keeping: the mutants were written by the author of the code
-  and shared its blind spots. The second revision makes the hold the
+  reviewers read the first revision. They confirmed by execution that four
+  code defects of the first review were closed (its fifth point, the
+  release of a `task_id`, is the maintainer's question), and found three
+  new defects that the revision had introduced or left: a later copy
+  lengthened the hold, so repeated copies kept a full cache full without
+  end; an unreadable validity anchor gave the narrowest hold, so the same
+  `task_id` was forwarded twice; and an id stayed held for a command that
+  never left the gateway. They also showed that four tests passed for the
+  wrong reason (the shipped-command test passed with the original 300 s cap
+  put back) and that fifteen mutants survived, the production clock path
+  among them. All 56 mutants of the first revision had been killed, which
+  is the point worth keeping: the mutants tested only the cases their
+  author had considered. The second revision makes the hold the
   forwarded copy's alone, refuses a command with an unreadable anchor,
   releases the id of an admitted command that does not leave the gateway,
   and gives the settings ceilings. The tests were rewritten so that no

@@ -17,7 +17,8 @@ What is pinned here:
   task_id: the hold would exceed the maximum, a validity anchor is present
   and unreadable, or the cache is full. A refused command is not held.
 - A command refused by an earlier check does not claim its task_id, and a
-  command that was admitted and then did not leave the gateway gives it back.
+  command that was admitted and then did not leave the gateway gives it back:
+  replaced by a diagnostic, not encodable, not sent, or lost to an exception.
 - Both limits are settings with ceilings, and main() hands them to the cache.
 
 What this file does not prove. The cache is in memory, so a gateway restart
@@ -458,23 +459,23 @@ class UnreadableAnchorTest(DedupeCase):
                 # Refused again, never "duplicate": nothing was held.
                 self.assert_refused(cmd, self.send(cmd, 700), UNREADABLE_REASON, "anchor", "payload.valid_from_ts")
 
-    def test_a_command_with_an_unreadable_event_ts_is_not_forwarded(self):
-        # An earlier check may refuse it first; whichever does, the command
-        # does not go out, and its task_id is not held against a corrected copy.
-        cmd = command("task-bad-ts", valid_for_ms=600000)
-        cmd["event"]["ts"] = IMPOSSIBLE_DATE
-        out = self.send(cmd, 0)
-        self.assertNotIn(cmd, out)
-        self.assertEqual("REJECTED", out[0]["payload"]["state"])
-        fixed = command("task-bad-ts", valid_for_ms=600000)
-        self.assert_forwarded(fixed, self.send(fixed, 1))
+    def test_a_command_with_an_unreadable_event_ts_is_refused_and_the_anchor_is_named(self):
+        for bad in (IMPOSSIBLE_DATE, "garbageZ"):
+            with self.subTest(event_ts=bad):
+                cmd = command(f"task-bad-ts-{bad}", valid_for_ms=600000)
+                cmd["event"]["ts"] = bad
+                self.assert_refused(cmd, self.send(cmd, 0), UNREADABLE_REASON, "anchor", "event.ts")
+                # Its task_id is not held against a corrected copy.
+                fixed = command(f"task-bad-ts-{bad}", valid_for_ms=600000)
+                self.assert_forwarded(fixed, self.send(fixed, 1))
 
-    def test_the_unreadable_anchor_refusal_reaches_the_dedupe_for_event_ts(self):
-        # The dedupe's own refusal, isolated from the earlier checks.
-        cache = gateway.TaskDedupeCache()
-        hold = gateway.command_hold_ms({"valid_for_ms": 60000}, now=WALL, event_ts="garbageZ")
-        self.assertEqual(gateway.TaskDedupeCache.TOO_LONG, cache.admit("task", hold))
-        self.assertEqual(gateway.TaskDedupeCache.NEW, cache.admit("task", 120000))
+    def test_a_leap_second_is_refused_where_the_schema_admits_it(self):
+        # The 1.0 lane gates timestamps on a trailing Z alone; the 1.1.0 lane
+        # refuses second 60 in schema, so only the 1.0 lane reaches here.
+        cmd = command("task-leap", valid_for_ms=600000, valid_from_ts="2025-01-17T23:59:60Z")
+        self.assert_refused(cmd, self.send(cmd, 0), UNREADABLE_REASON, "anchor", "payload.valid_from_ts")
+        lane_1_1_0 = validators.load_schema(ROOT / "schema" / "zmeta-event-1.1.0.schema.json")
+        self.assertNotEqual([], list(lane_1_1_0.iter_errors(dict(cmd, zmeta_version="1.1.0"))))
 
 
 class MaximumHoldTest(DedupeCase):
@@ -629,7 +630,8 @@ class CapacityTest(DedupeCase):
 
 class DuplicateAcknowledgementTest(DedupeCase):
     def test_a_duplicate_is_acknowledged_and_counted_when_a_metrics_sink_is_present(self):
-        # main() always passes a metrics sink; every other duplicate test here passes none.
+        # main() always passes a metrics sink; the other process_message
+        # duplicate tests in this file pass none.
         cmd = command("task-dup-metrics")
         self.assert_forwarded(cmd, self.send(cmd, 0))
         metrics = mock.Mock()
@@ -673,6 +675,33 @@ class DuplicateAcknowledgementTest(DedupeCase):
             self.assert_refused(
                 refused, self.send(refused, at_s, **caches), TOO_LONG_REASON, "command_max_hold_ms", DAY_MS
             )
+
+
+class NothingIsHeldForACommandThatWasNotReturnedTest(DedupeCase):
+    def test_a_failure_after_admission_gives_the_task_id_back(self):
+        cmd = command("task-raise")
+        with mock.patch.object(self.state, "record", side_effect=RuntimeError("store failed")):
+            with self.assertRaises(RuntimeError):
+                self.send(cmd, 0)
+        # The command was admitted and never returned to the caller, so
+        # nothing forwarded it. A second copy is a first copy.
+        self.assert_forwarded(cmd, self.send(cmd, 1))
+        self.assert_duplicate(cmd, self.send(cmd, 2))
+
+    def test_a_naive_now_is_read_as_utc_by_every_check(self):
+        # The timestamp plausibility check runs before the dedupe and used
+        # to raise on a naive `now` whenever a metrics sink was present.
+        late = z(WALL + timedelta(seconds=600))
+        cmd = command("task-naive", valid_for_ms=60000, valid_from_ts=late)
+        self.clock.now = 1000.0
+        out = gateway.process_message(
+            json.dumps(cmd).encode("utf-8"), self.validator, self.policy, "L", self.cache, "json",
+            timing_state=self.state, metrics=mock.Mock(), ts_plausibility_horizon_ms=DAY_MS,
+            now=WALL.replace(tzinfo=None),
+        )
+        self.assert_forwarded(cmd, out)
+        # The lead to valid_from_ts was counted: still held at 659 s.
+        self.assert_duplicate(cmd, self.send(cmd, 659))
 
 
 class RefusedEarlierTest(DedupeCase):
@@ -763,6 +792,24 @@ class CacheContractTest(unittest.TestCase):
         self.assertEqual(gateway.TaskDedupeCache.FULL, cache.admit("b", 60000))
         self.clock.now = 1060.0
         self.assertEqual(gateway.TaskDedupeCache.NEW, cache.admit("b", 60000))
+
+    def test_only_a_command_event_has_a_command_task_id(self):
+        cmd = command("task-x")
+        self.assertEqual("task-x", gateway._command_task_id(cmd))
+        # System and state payloads admit extra properties, so a schema-valid
+        # TIME_STATUS can carry a `payload.task_id`. It is not a command.
+        status = time_status()
+        status["payload"]["task_id"] = "task-x"
+        self.assertIsNone(gateway._command_task_id(status))
+        ack = {"event": {"event_type": "SYSTEM_EVENT"}, "payload": {"metrics": {"task_id": "task-x"}}}
+        self.assertIsNone(gateway._command_task_id(ack))
+        for bad in (None, "", 7, ["task-x"]):
+            with self.subTest(task_id=bad):
+                broken = command("task-x")
+                broken["payload"]["task_id"] = bad
+                self.assertIsNone(gateway._command_task_id(broken))
+        for not_an_event in (None, [], "x", {"event": "COMMAND_EVENT"}, {"event": {}, "payload": None}):
+            self.assertIsNone(gateway._command_task_id(not_an_event))
 
     def test_release_forgets_one_id_and_only_that_id(self):
         cache = gateway.TaskDedupeCache(max_entries=2)
@@ -867,7 +914,10 @@ class _LoopSocket:
 
 
 class MainLoopCase(unittest.TestCase):
-    """Through the real main() receive loop; only the two UDP sockets are replaced."""
+    """Through the real main() receive loop, with the two UDP sockets replaced.
+
+    A test that needs a failure inside the loop adds its own patch and says so.
+    """
 
     def setUp(self):
         self.now = datetime.now(timezone.utc).replace(microsecond=0)
@@ -882,16 +932,17 @@ class MainLoopCase(unittest.TestCase):
         sockets = [sock_in, sock_out]
         argv = ["gateway.py", "--profile", "L", "--listen-port", "45597", "--forward-port", "45596",
                 "--no-metrics", *flags]
-        out = io.StringIO()
+        out, err = io.StringIO(), io.StringIO()
         with contextlib.ExitStack() as stack:
             stack.enter_context(mock.patch("sys.argv", argv))
             stack.enter_context(mock.patch.object(gateway.socket, "socket", lambda *a, **k: sockets.pop(0)))
             for patch in patches:
                 stack.enter_context(patch)
             stack.enter_context(contextlib.redirect_stdout(out))
-            stack.enter_context(contextlib.redirect_stderr(io.StringIO()))
+            stack.enter_context(contextlib.redirect_stderr(err))
             with self.assertRaises(_StopReceiveLoop):
                 gateway.main()
+        self.stderr = err.getvalue()
         return [json.loads(payload) for payload, _addr in sock_out.sent], out.getvalue()
 
     @staticmethod
@@ -989,7 +1040,9 @@ class AnUndeliveredCommandGivesItsTaskIdBackTest(MainLoopCase):
         rejected = [a for a in self.acks(sent) if a["payload"]["state"] == "REJECTED"]
         self.assertEqual(1, len(rejected), sent)
 
-    def test_when_it_cannot_be_encoded(self):
+    def test_when_the_encoder_reports_nothing_can_be_sent(self):
+        # The (None, outgoing) return, forced by a patch: the path taken
+        # when not even a diagnostic can be encoded.
         real = gateway._encode_outgoing_or_diagnostic
 
         def patch(first):
@@ -1001,11 +1054,117 @@ class AnUndeliveredCommandGivesItsTaskIdBackTest(MainLoopCase):
 
         self.retry_is_forwarded(patch)
 
+    def unencodable_then_corrected(self, *flags, decode):
+        """A command no binary encoding can carry, then a corrected copy; nothing is patched."""
+        first, retry = self.live("task-unencodable"), self.live("task-unencodable")
+        # Schema-valid: command extensions admit extra properties, and JSON
+        # carries an integer of any size. CBOR and the compact form do not.
+        first["payload"]["extensions"] = {"n": 2 ** 64}
+        sock_in = _LoopSocket([json.dumps(e).encode("utf-8") for e in (self.status, first, retry)])
+        sock_out = _LoopSocket()
+        sockets = [sock_in, sock_out]
+        argv = ["gateway.py", "--profile", "L", "--listen-port", "45597", "--forward-port", "45596",
+                "--no-metrics", *flags]
+        err = io.StringIO()
+        with mock.patch("sys.argv", argv), \
+                mock.patch.object(gateway.socket, "socket", lambda *a, **k: sockets.pop(0)), \
+                contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(err):
+            with self.assertRaises(_StopReceiveLoop):
+                gateway.main()
+        sent = [decode(payload) for payload, _addr in sock_out.sent]
+        self.assertNotIn(first["event"]["event_id"], self.ids(sent))
+        self.assertIn(retry["event"]["event_id"], self.ids(sent))
+        self.assertEqual([], [a for a in self.acks(sent) if a["payload"]["state"] == "DUPLICATE_IGNORED"])
+        return sent, err.getvalue()
+
+    def test_when_the_cbor_encoder_raises(self):
+        # The exception escapes to the receive loop's backstop, which used
+        # to leave the task_id held: the corrected copy was answered
+        # DUPLICATE_IGNORED although the first copy was never sent.
+        if gateway.zmeta_cbor is None:  # pragma: no cover - ships in this repository
+            self.skipTest("zmeta_cbor not importable")
+        _sent, err = self.unencodable_then_corrected(
+            "--output-encoding", "cbor", decode=lambda payload: gateway._decode_message(payload, "cbor")
+        )
+        # Proof the path under test was taken: the backstop reported the drop.
+        self.assertIn("datagram dropped after unexpected", err)
+
+    def test_when_the_compact_encoding_replaces_it_with_a_diagnostic(self):
+        if gateway.zmeta_compact is None or gateway.cbor2 is None:  # pragma: no cover
+            self.skipTest("zmeta_compact or cbor2 not installed")
+        sent, err = self.unencodable_then_corrected(
+            "--output-encoding", "compact", decode=lambda payload: gateway._decode_message(payload, "compact")
+        )
+        # Proof the path under test was taken: a diagnostic went out in the
+        # command's place, and nothing reached the backstop.
+        self.assertIn("ENCODING_UNSUPPORTED", [e["payload"].get("metrics", {}).get("reason_code") for e in sent])
+        self.assertNotIn("datagram dropped after unexpected", err)
+
     def test_a_delivered_command_stays_held(self):
         # The control: with nothing failing, the second copy is a duplicate.
         first, again = self.live("task-delivered"), self.live("task-delivered")
         sent, _banner = self.run_loop([self.status, first, again])
         self.assertIn(first["event"]["event_id"], self.ids(sent))
+        self.assertNotIn(again["event"]["event_id"], self.ids(sent))
+
+    def test_a_delivered_command_stays_held_when_a_warning_rides_behind_it(self):
+        # process_message returns the command and then its warning. The
+        # warning is not the command, and sending it must not be read as
+        # "the command was replaced".
+        first, again = self.live("task-warned"), self.live("task-warned")
+        for cmd in (first, again):
+            # A citation the gateway has not seen: a warning under the shipped policy.
+            cmd["lineage"] = {"based_on": [str(uuid7())]}
+        sent, _banner = self.run_loop([self.status, first, again])
+        self.assertIn(first["event"]["event_id"], self.ids(sent))
+        position = self.ids(sent).index(first["event"]["event_id"])
+        behind = sent[position + 1]
+        self.assertEqual("SCHEMA_VIOLATION", behind["event"]["event_subtype"], "a warning must ride behind")
+        self.assertEqual(first["event"]["event_id"], behind["payload"]["metrics"]["original_event_id"])
+        self.assertNotIn(again["event"]["event_id"], self.ids(sent))
+        self.assertEqual(1, len([a for a in self.acks(sent) if a["payload"]["state"] == "DUPLICATE_IGNORED"]))
+
+    def test_a_failure_after_the_send_does_not_release_the_delivered_command(self):
+        # The command went out, then the same datagram's bookkeeping raised
+        # and the receive loop's backstop ran. The command was delivered, so
+        # its id stays held; releasing it would forward the next copy.
+        first, again = self.live("task-sent-then-failed"), self.live("task-sent-then-failed")
+        calls = []
+
+        def record_forwarded(_metrics, count=1):
+            calls.append(count)
+            if len(calls) == 2:  # the TIME_STATUS is the first forward, the command the second
+                raise RuntimeError("metrics failed after the send")
+
+        sent, _banner = self.run_loop(
+            [self.status, first, again],
+            patches=[mock.patch.object(gateway.GatewayMetrics, "record_forwarded", record_forwarded)],
+        )
+        # Three forwards: the TIME_STATUS, the command, the duplicate's acknowledgement.
+        self.assertEqual(3, len(calls))
+        self.assertIn("datagram dropped after unexpected RuntimeError", self.stderr)
+        self.assertIn(first["event"]["event_id"], self.ids(sent))
+        self.assertNotIn(again["event"]["event_id"], self.ids(sent))
+        self.assertEqual(1, len([a for a in self.acks(sent) if a["payload"]["state"] == "DUPLICATE_IGNORED"]))
+
+    def test_a_lost_system_event_that_carries_a_task_id_releases_nothing(self):
+        # A TIME_STATUS may carry `payload.task_id` and stay schema-valid.
+        # Losing it on the wire must not release the command of that name.
+        first, again = self.live("task-named"), self.live("task-named")
+        decoy = time_status(self.now - timedelta(seconds=10))
+        decoy["payload"]["task_id"] = "task-named"
+        real = gateway._send_datagram
+
+        def send(sock, payload, addr, **kwargs):
+            if kwargs.get("event_id") == decoy["event"]["event_id"]:
+                return False
+            return real(sock, payload, addr, **kwargs)
+
+        sent, _banner = self.run_loop(
+            [self.status, first, decoy, again], patches=[mock.patch.object(gateway, "_send_datagram", send)]
+        )
+        self.assertIn(first["event"]["event_id"], self.ids(sent))
+        self.assertNotIn(decoy["event"]["event_id"], self.ids(sent))
         self.assertNotIn(again["event"]["event_id"], self.ids(sent))
 
     def test_a_refused_duplicate_does_not_release_the_held_command(self):

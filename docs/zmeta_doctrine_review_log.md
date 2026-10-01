@@ -3316,7 +3316,7 @@ member restored). Whether an unread failure mode should instead stop the
 gateway at startup, as a mistyped `cot` block does since v1.1.26, is left to
 the maintainer.
 
-### E1-06 — The reference gateway forwarded a duplicate command after 300 s · **OPEN (a fix on `exp/command-dedupe-validity`, revised twice after independent review; the merge is the maintainer's)**
+### E1-06 — The reference gateway forwarded a duplicate command after 300 s · **OPEN (a fix on `exp/command-dedupe-validity`, revised three times after independent review; the merge is the maintainer's)**
 
 **Observed:** found on 2026-10-01 by an audit of this repository's own
 answers to a downstream implementation, which had been told the reference
@@ -3386,9 +3386,12 @@ strict settings with flags, and three tests drive the real `main()` receive
 loop to prove the wiring. Thirty-two tests; 56 mutants, all killed.
 
 **Second independent review, 2026-10-01:** three reviewers read the revised
-proposal the same day. The four defects of the first review were confirmed
-closed by execution. All three again asked for fixes, and two of the new
-findings were defects in the revision itself:
+proposal the same day. Four defects the first review had shown in the code
+(the permanent holds, the ignored `event.ts`, the `check_and_set` method and
+the coerced settings) were confirmed closed by execution; the first
+review's remaining point, the release of a `task_id`, is question 1 below.
+All three reviewers again asked for fixes. The first two findings below
+were defects in the revision itself:
 
 - A later copy lengthened the hold. A sender that re-sent held ids before
   they expired kept them held and kept the cache full for as long as the
@@ -3397,8 +3400,9 @@ findings were defects in the revision itself:
   that a full cache clears within the maximum hold, was false for that
   sender, and the test named for the claim never sent a copy.
 - A validity anchor that was present and unreadable added nothing to the
-  hold. Both schema lanes admit such values (September 31; a leap second;
-  on the 1.0 lane any string ending in `Z`). The command was forwarded with
+  hold. Both schema lanes admit such a value (September 31), and the 1.0
+  lane also admits a leap second and any string ending in `Z`. The command
+  was forwarded with
   the narrowest hold and forwarded again when that hold ended, while a
   consumer that reads the value leniently still held it valid.
 - An id stayed held when its command never left the gateway (replaced by a
@@ -3420,6 +3424,28 @@ rounded up, never down, and a caller's naive clock is read as UTC. The
 tests were rewritten so that no probe can renew what it probes, and each
 survivor the review named has a test that kills it. Fifty-six tests, nine
 through the real `main()` receive loop; 85 mutants, all killed.
+
+**Third independent review, 2026-10-01:** two reviewers read the second
+revision. The code reviewer found no path that forwards a duplicate or
+releases a delivered command's id, and three smaller things. An encoder
+that raised (CBOR refusing an integer of 2 to the 64th) sent the datagram
+to the receive loop's last-resort handler, which released nothing, so the
+undelivered command's id stayed held. A caller's naive clock still raised
+in the timestamp plausibility check, ahead of the dedupe. Four mutants
+survived the 56 tests; two of them forwarded a duplicate with every test
+green: one read a `payload.task_id` on a system event as a command's, and
+one took the admitted id from the first event of a datagram, so the
+warning that rides behind a command released that command's id. The
+documentation reviewer found the leap-second statement wrong for the 1.1.0
+lane and four smaller overstatements.
+
+**Third revision, on the branch:** an admitted command that is still
+undelivered when an error ends its datagram gives its `task_id` back, in
+`process_message` and in the receive loop; an error after the send
+releases nothing. A naive clock is read as UTC once, for every check. The
+encode-failure tests now drive the real encoders. Sixty-four tests,
+fourteen through the real `main()` receive loop; 94 mutants, all killed,
+the four survivors among them.
 
 **Left to the maintainer, with the merge:**
 

@@ -19,19 +19,22 @@
   commands need a hold longer than a day (`valid_for_ms` plus any lead to a
   future anchor plus the 60 s margin) must raise `command_max_hold_ms`, or
   those commands are refused. A command that was admitted and then did not
-  leave the gateway gives its `task_id` back. Both settings are strict
-  integers with ceilings and command-line flags. `ttl_ms_from_payload` is
+  leave the gateway (replaced by a diagnostic at the outgoing check, not
+  encodable, not sent, or lost to an error before the send) gives its
+  `task_id` back. Both settings are strict integers with ceilings and
+  command-line flags. `ttl_ms_from_payload` is
   replaced by `command_hold_ms`; `TaskDedupeCache.check_and_set` is replaced
   by `admit()` and removed, because it could not report a refusal;
   `TaskDedupeCache.release()` is new. The gateway README states what the
   dedupe does not do: a `task_id` is released when its hold ends (the
   contract sets no time bound, and the release is an open question), a
   restart forgets held ids, and an expired command is not refused at the
-  gateway. This change was revised twice, after two rounds of independent
-  review, before any merge. Fifty-six tests in
-  `gateway/tests/test_command_dedupe_validity.py`, nine of them through the
-  real `main()` receive loop; 85 mutants killed. Doctrine E1-06, open; the
-  merge is the maintainer's.
+  gateway. This change was revised three times, after three rounds of
+  independent review, before any merge. Sixty-four tests in
+  `gateway/tests/test_command_dedupe_validity.py`, fourteen of them through
+  the real `main()` receive loop; 94 mutants killed, among them every
+  survivor the reviews found. Doctrine E1-06, open; the merge is the
+  maintainer's.
 - 2026-10-01 — **A claim about the `translate:` lineage transform is
   corrected.** The proposed `DIALECT_LABEL` entry, its roadmap candidate and
   doctrine U1-02 said every shipped ingress adapter stamps

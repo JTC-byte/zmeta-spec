@@ -173,10 +173,10 @@ hold its `task_id`:
   `event.ts` is present and is not a UTC instant the gateway can read, the
   command is refused with `reason` "command validity anchor is not a readable
   UTC instant" and `anchor` naming the field, unless an earlier check has
-  already refused it. Both schema lanes admit such values: an impossible
-  calendar date, a leap second, and on the 1.0 lane any string ending in `Z`.
-  Another consumer may read the value its own way, so the gateway cannot know
-  when that command stops being executable.
+  already refused it. Both schema lanes admit an impossible calendar date
+  such as September 31; the 1.0 lane also admits a leap second and any string
+  ending in `Z`. Another consumer may read the value its own way, so the
+  gateway cannot know when that command stops being executable.
 - **The cache is full.** `command_dedupe_max_entries` (default 4096, at most
   1048576) is how many `task_id`s are held at once. When that many are held, a
   new command is refused with `reason` "command dedupe capacity reached". No
@@ -184,18 +184,20 @@ hold its `task_id`:
   that command's duplicate through. Every hold is finite and no copy lengthens
   one, so each slot returns at most `command_max_hold_ms` after its command
   was admitted. A sender that keeps sending new long-lived commands can still
-  keep the cache full; `rate_limit_per_sec` and `rate_limit_producer_per_sec`
-  are the defence against that.
+  keep the cache full. `rate_limit_per_sec` and `rate_limit_producer_per_sec`
+  slow such a sender; they are off by default and do not prevent it.
 
 A refused command is not held and takes no capacity. A command refused by an
 earlier check (schema, role, producer authority, timing, command evidence,
 strict validation) never reaches the dedupe and does not claim its `task_id`.
-A command that was admitted and then did not leave the gateway, because the
-outgoing check replaced it with a diagnostic, it could not be encoded, or the
-send failed, gives its `task_id` back, so a corrected copy is a first copy.
-The receive loop does that; a program that calls `process_message` directly
-calls `TaskDedupeCache.release(task_id)` itself when it does not deliver an
-admitted command.
+A command that was admitted and then did not leave the gateway gives its
+`task_id` back, so a corrected copy is a first copy. That covers four cases:
+the outgoing check replaced the command with a diagnostic, it could not be
+encoded, the send failed, or an error ended the handling of that datagram
+before the send. An error after the send releases nothing, because the
+command was delivered. The receive loop does this; a program that calls
+`process_message` directly calls `TaskDedupeCache.release(task_id)` itself
+when it does not deliver an admitted command.
 
 Both settings must be integers in range; a null, boolean, fractional or quoted
 value is a startup error. The command-line flags are
@@ -220,17 +222,18 @@ stated so a deployment can decide whether they matter to it.
 - The time left to a future `event.ts` or `valid_from_ts` is measured on the
   gateway's wall clock. The margin absorbs a gateway clock up to 60 seconds
   ahead of the producer's; beyond that, a command whose validity starts in the
-  future is released early by the difference. The same margin has to cover
-  any delay between the gateway and a consumer that counts `valid_for_ms` from
-  its own receipt; a queue or store-and-forward delay longer than 60 seconds
-  is not covered.
+  future is released early by the amount over 60 seconds. The same margin has
+  to cover any delay between the gateway and a consumer that counts
+  `valid_for_ms` from its own receipt; a queue or store-and-forward delay
+  longer than 60 seconds is not covered.
 - The gateway does not refuse a command whose validity has already ended. The
   contract defines the acknowledgement for that case (`TASK_ACK` state
-  `EXPIRED`, reason `TASK_EXPIRED`; Section 10.7 says to "emit TASK_ACK failure
-  or expiry when applicable") and lists the duties of "The Comms/Deconfliction
-  Node or command-authorized producer" in Section 15 (validate, deduplicate,
-  deconflict, convert, acknowledge). It assigns the expiry check to no node,
-  and the reference gateway does not make it.
+  `EXPIRED`, reason `TASK_EXPIRED`). Section 10.7 has edge nodes in Profile L
+  or M, while the deconfliction node is offline, "emit TASK_ACK failure or
+  expiry when applicable", and Section 15 gives "The Comms/Deconfliction Node
+  or command-authorized producer" the duty of "Emitting TASK_ACK lifecycle
+  events". No section says which node checks expiry otherwise, and the
+  reference gateway does not check it.
 - The two limits bound this cache only. They do not bound the gateway's other
   per-event state.
 
