@@ -2,6 +2,16 @@
 
 ## [Unreleased]
 
+- 2026-10-01 — **The CoT adapter's README states that the standard profile's
+  default output is not schema-valid CoT.** With no `how` token in the
+  config the adapter omits the attribute, and the CoT base-event schema
+  declares `how` required. The README now says so, names what was read and
+  what was not tested, and points a deployment that faces a schema-enforcing
+  consumer at the config assertion. The adapter's behavior is unchanged; the
+  default is an open question for the maintainer (doctrine H1-05, with the
+  evidence recorded). The handoff also brings forward, with measurements, a
+  candidate open since 2026-07-27: the gateway's validation state keeps
+  every forwarded event in memory with no eviction.
 - 2026-10-01 — **A claim about the `translate:` lineage transform is
   corrected.** The proposed `DIALECT_LABEL` entry, its roadmap candidate and
   doctrine U1-02 said every shipped ingress adapter stamps

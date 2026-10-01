@@ -2,7 +2,35 @@
 
 ## Current Resume Note
 
-- Last updated: 2026-10-01 (overnight close: eight merges on `develop` since v1.1.26, one command-path fix held on a branch)
+- Last updated: 2026-10-01 (records: evidence on the CoT `how` default, two reference defects stated for the maintainer, three downstream answers audited)
+- **2026-10-01 (records wave `wave/records-evidence-2026-10`; no behavior
+  change).** Four things were recorded. (1) A downstream implementation
+  reported that the CoT base-event schema declares `how` required while
+  the standard profile omits it by default. The repository read the schema
+  copy and TAK Server's `cotevent.proto` itself and confirmed it; the
+  evidence is in doctrine H1-05, the adapter README states the limit, and
+  the default is left to the maintainer. An independent check of that
+  evidence then read TAK Server's and ATAK's public source and changed two
+  things in it: a server does not reject the omission on every path, and
+  ATAK fills a missing `how` with `m-g-g`. (2) The gateway's unbounded
+  validation state, an open candidate since 2026-07-27, was measured
+  (about 3.9 KB held per forwarded event) and brought forward as handoff
+  item 8. A first note of it called it newly booked, which was wrong; the
+  search behind that note had covered five files. (3) The held dedupe fix
+  went through four rounds of independent review on its branch and was
+  revised after each, and the handoff now says what the branch does and
+  what it leaves to the maintainer. (4) Three answers to downstream
+  implementations (on a consumer acting on a producer's vendor-extension
+  simulation marker; on conflicting reuse of an `event_id` and on duplicate
+  codes; on CoT `how` tokens) were each sent to an independent reviewer
+  the same day. All three were upheld with corrections: six, nine and
+  five. Two sentences were wrong: that no released text speaks to refusing
+  an expired command, when the advisory MQTT guidance does; and that the
+  CoT adapter is unchanged between v1.1.25 and v1.1.26, when only the
+  standard profile's `how` handling is. The corrections went to each
+  recipient; in one case the first answer's overstatement had already been
+  copied into the recipient's code comments. Two guidance gaps came out of
+  the day and are booked as (x) and (y).
 - **2026-10-01 (two audit rounds of the session's own answers; the close).**
   The session answered several dozen questions from downstream
   implementations on what the standard says. Three independent reviewers
