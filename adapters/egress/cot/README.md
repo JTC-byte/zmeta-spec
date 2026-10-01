@@ -38,6 +38,21 @@ required CoT attribute, so the whole event is refused rather
 than published with a substituted default. A fallback to
 `default_valid_for_ms` would assert a freshness bound the event never made.
 
+Values are checked as text as well as numbers, because the projection writes
+them into XML (2026-10-01). A point value (`lat`, `lon`, `hae`, `ce`, `le`)
+must be a finite number, a Decimal, or text that is wholly a finite number such
+as `"12.5"`; anything else is refused, so a string from a caller that skipped
+schema validation cannot carry quotes or markup into an attribute. An
+`error_ellipse_m` member must be a number. A character XML 1.0 forbids (a C0
+control other than tab, newline or return, a lone surrogate, U+FFFE or U+FFFF)
+is replaced by a space in `remarks`, which is free text, and refuses the event
+when it sits in an identity attribute such as the callsign or the uid, the same
+rule the `cds` profile applies. As a backstop, an output that does not parse,
+or whose root holds anything but a `point` and a `detail`, is refused. A
+`default_ce` or `default_le` that is not a finite, non-negative number is a
+configuration error under every profile, so the gateway stops at startup
+instead of writing it into every track.
+
 ### Declared 2-D geo (doctrine A1-02)
 
 `payload.geo.dimensionality: "2D"` (schema/zmeta-event-1.1.0.schema.json

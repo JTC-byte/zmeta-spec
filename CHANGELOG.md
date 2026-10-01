@@ -2,6 +2,18 @@
 
 ## [Unreleased]
 
+- 2026-10-01 — **The CoT standard profile refuses values XML cannot carry
+  honestly.** A control character or lone surrogate in the callsign or the uid
+  produced a document no parser reads, a string `payload.geo` value reached a
+  point attribute as given, and a non-numeric `default_ce` or `default_le` was
+  written into every track. A point value must now be a finite number, a
+  Decimal or wholly numeric text; an ellipse member must be a number; a
+  forbidden character is replaced in `remarks` and refuses the event in an
+  identity attribute; an output that does not parse to a point and a detail is
+  refused; and a non-numeric or negative accuracy default is a configuration
+  error under every profile, which stops the gateway at startup. A numeric
+  callsign renders as its text instead of raising. Output for well-formed
+  input is unchanged, and the frozen standard bytes still match.
 - 2026-10-01 — **The CoT `cds` profile's `stale` never exceeds the event's
   own validity claim.** On the maintainer's go of 2026-09-30 (doctrine
   F3-03), `stale` is the earlier of the event's `ts` + `valid_for_ms` and
