@@ -48,6 +48,15 @@ class GatewayCotProfileConfigTest(unittest.TestCase):
         settings = settings_for({"geopointsrc": "GPS"})
         self.assertEqual({"geopointsrc": "GPS"}, settings["cot_config"])
 
+    def test_a_standard_config_with_a_how_that_is_not_a_token_is_refused_at_startup(self):
+        for bad in ("", "machine", 5, True):
+            with self.subTest(how=bad):
+                with self.assertRaises(ValueError) as caught:
+                    settings_for({"how": bad})
+                self.assertTrue(str(caught.exception).startswith("how must be a CoT how token"), caught.exception)
+        self.assertEqual({"how": "m-r"}, settings_for({"how": "m-r"})["cot_config"])
+        self.assertEqual({"how": None}, settings_for({"how": None})["cot_config"])
+
     def test_a_mistyped_cot_config_fails_loud_not_open(self):
         # A live run showed cot.config given as a string starting the gateway
         # on the standard profile, sending unreduced CoT where the deployment
