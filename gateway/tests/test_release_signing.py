@@ -155,6 +155,12 @@ def test_ensure_package_zip_refuses_a_stale_zip_and_never_overwrites(release_tmp
     _write_artifacts(release_tmp_dir, version)
     package_zip = release_tmp_dir / f"zmeta-release-package-{version}.zip"
     original = package_zip.read_bytes()
+    # Backdate the zip so it is strictly older than the file written below.
+    # The staleness check compares mtimes with `>`, and two writes in quick
+    # succession can share a timestamp under load, which made this test pass
+    # or fail on timing alone (seen 2026-10-01 in a full run on a busy host).
+    stale = package_zip.stat().st_mtime - 60
+    os.utime(package_zip, (stale, stale))
     package_dir = release_tmp_dir / f"package-{version}"
     package_dir.mkdir()
     (package_dir / "release-package.json").write_text("{}\n", encoding="utf-8")
