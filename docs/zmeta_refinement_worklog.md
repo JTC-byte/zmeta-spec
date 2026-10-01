@@ -2,7 +2,32 @@
 
 ## Current Resume Note
 
-- Last updated: 2026-10-01 (overnight close: eight merges on `develop` since v1.1.26, one command-path fix held on a branch)
+- Last updated: 2026-10-01 (the held command dedupe fix was reviewed independently and revised on its branch; still not merged)
+- **2026-10-01 (independent review of the held dedupe fix, and its revision;
+  `exp/command-dedupe-validity`, NOT MERGED).** Three reviewers read the
+  first fix before a merge was asked for, and all three returned "merge
+  after fixes". The review found that the fix could fill the cache for good
+  (very long-lived commands were held until the gateway stopped, under a
+  count cap), that the hold ignored a future `event.ts`, that releasing a
+  `task_id` at the end of its validity is a reading the contract does not
+  settle, and that the `check_and_set` method kept for older callers
+  forwarded a command a full cache had refused. The tests had not reached
+  the `main()` wiring or the permanent-hold threshold. The branch was
+  revised test-first: the rewritten test file failed against the first fix
+  for the reasons the review named, then passed against the revision. Two
+  of the new tests were themselves wrong on first run, because a probe that
+  re-sends a held command is a later copy and lengthens the hold it is
+  probing; they were rewritten to check a release on an id sent once. The
+  revision: a maximum hold (`command_max_hold_ms`, default one day) with
+  refusal beyond it, so every hold is finite; the hold measured to the
+  latest of receipt, `event.ts` and `valid_from_ts`, plus a 60 s margin; a
+  later copy lengthens the hold and never shortens it; `check_and_set`
+  removed; strict settings with flags. Thirty-two tests, three through the
+  real `main()` loop; 56 mutants, all killed. One finding of the review is
+  outside this branch and is booked in the handoff: the gateway's
+  validation state keeps every forwarded event with no eviction. Doctrine
+  E1-06 stays OPEN with five questions for the maintainer; the merge is the
+  maintainer's (design gate 6).
 - **2026-10-01 (two audit rounds of the session's own answers; the close).**
   The session answered several dozen questions from downstream
   implementations on what the standard says. Three independent reviewers

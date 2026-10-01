@@ -235,37 +235,72 @@ def compute_contract_hash(schema_path: Path, policy_dir: Path, semantics_path: P
 
 
 # How many commands' task_ids the gateway holds at once. Sender-controlled
-# cardinality must not grow gateway memory without bound, and a command may
-# be valid for any length of time, so the cache is capped by count. When it
-# is full a NEW command is refused instead of an old id being forgotten:
-# forgetting an id would let that command's duplicate through, which is the
-# one thing contract 13.2 forbids outright.
+# cardinality must not grow this cache without bound, so it is capped by
+# count. When it is full a NEW command is refused instead of an old id being
+# forgotten: forgetting an id would let that command's duplicate through,
+# which is the one thing contract 13.2 forbids outright.
 DEFAULT_COMMAND_DEDUPE_MAX_ENTRIES = 4096
-# A hold longer than this is kept until the gateway stops. It also keeps the
-# deadline arithmetic finite: `valid_for_ms` has no upper bound in schema.
-_COMMAND_HOLD_FOREVER_MS = 10 * 365 * 86400 * 1000
+# The longest one command's task_id is held. `valid_for_ms` has no upper
+# bound in schema, and an id held without limit never gives its slot back,
+# so enough long-lived commands would fill the cache until the gateway was
+# restarted. A command the gateway would have to hold for longer than this
+# is refused instead. Every held id therefore expires, and a full cache
+# refuses new commands for at most this long.
+DEFAULT_COMMAND_MAX_HOLD_MS = 24 * 60 * 60 * 1000
+# Added to every hold. A command's validity is anchored on timestamps its
+# producer wrote, and the gateway measures the time left on its own wall
+# clock, so a gateway clock running ahead of the producer's would release
+# the id early by the difference. The margin absorbs one minute of that.
+COMMAND_HOLD_MARGIN_MS = 60 * 1000
+
+
+def _positive_int_limit(value, label):
+    """`value` when it is an int above zero; ValueError for anything else.
+
+    Stricter than _normalize_int on purpose: these limits decide whether a
+    command is forwarded, so a config value that is null, a boolean, a
+    fraction or a quoted number is refused at startup, not coerced.
+    """
+    if isinstance(value, bool) or not isinstance(value, int) or value <= 0:
+        raise ValueError(f"{label} must be a positive integer")
+    return value
 
 
 class TaskDedupeCache:
-    """Holds each command's `task_id` until the command can no longer execute.
+    """Holds each command's `task_id` until no copy seen of it can execute.
 
     Contract 13.2: "Duplicate COMMAND_EVENTs MUST NOT be forwarded for
     execution a second time." The cache used to hold an id for at most 300 s
     whatever the command's validity, so a duplicate of a command valid for
     600 s was forwarded again at 301 s. It now holds the id for the hold the
-    caller computes from the command (see command_hold_ms), with no cap on
-    time and a cap on count.
+    caller computes from the command (see command_hold_ms).
 
-    The cache is in memory. A gateway restart forgets every held id; that
-    limit is stated in the gateway README and is not closed here.
+    Two limits bound it. `max_hold_ms` is the longest one id is held; a
+    command that needs longer is refused (TOO_LONG). `max_entries` is how
+    many ids are held at once; a new command that finds the cache full is
+    refused (FULL). Neither refusal records anything, and the caller must
+    not forward the command: a command forwarded without its id held cannot
+    be protected from its own duplicate.
+
+    An id is released when its hold ends, and the same id is then admitted
+    as a new command. Contract 13.2 sets no time bound on "a second time",
+    so the release is a reading, recorded as open in the doctrine log
+    (E1-06). The cache is in memory: a gateway restart forgets every held
+    id. Both limits are stated in the gateway README.
     """
 
     NEW = "new"
     DUPLICATE = "duplicate"
     FULL = "full"
+    TOO_LONG = "too_long"
 
-    def __init__(self, max_entries=DEFAULT_COMMAND_DEDUPE_MAX_ENTRIES):
-        self.max_entries = int(max_entries)
+    def __init__(
+        self,
+        max_entries=DEFAULT_COMMAND_DEDUPE_MAX_ENTRIES,
+        max_hold_ms=DEFAULT_COMMAND_MAX_HOLD_MS,
+    ):
+        self.max_entries = _positive_int_limit(max_entries, "command_dedupe_max_entries")
+        self.max_hold_ms = _positive_int_limit(max_hold_ms, "command_max_hold_ms")
         self._cache = {}
 
     def _purge(self, now):
@@ -274,31 +309,37 @@ class TaskDedupeCache:
             del self._cache[key]
 
     def admit(self, task_id, hold_ms):
-        """Return NEW (id recorded), DUPLICATE (id still held) or FULL.
+        """Return NEW (id recorded), DUPLICATE (id still held), TOO_LONG or FULL.
 
-        FULL records nothing: the caller must refuse the command, because a
-        command forwarded without its id held cannot be protected from its
-        own duplicate.
+        Only NEW may be forwarded. There is no method that answers
+        "duplicate or not": a caller written against one would forward a
+        command this cache had refused to hold.
         """
+        if (
+            isinstance(hold_ms, bool)
+            or not isinstance(hold_ms, (int, float))
+            or not hold_ms > 0
+        ):
+            raise ValueError("hold_ms must be a positive number")
         now = time.monotonic()
         self._purge(now)
         expiry = self._cache.get(task_id)
         if expiry is not None and expiry > now:
+            # Still held. A later copy never shortens the hold, and it
+            # lengthens it when its own validity ends later: a producer that
+            # repeats a command under one task_id is repeating one task, so
+            # the id stays held while any copy seen could execute. The
+            # maximum hold bounds each extension, counted from this copy.
+            extended = now + (min(hold_ms, self.max_hold_ms) / 1000.0)
+            if extended > expiry:
+                self._cache[task_id] = extended
             return self.DUPLICATE
+        if hold_ms > self.max_hold_ms:
+            return self.TOO_LONG
         if len(self._cache) >= self.max_entries:
             return self.FULL
-        if hold_ms >= _COMMAND_HOLD_FOREVER_MS:
-            self._cache[task_id] = math.inf
-        else:
-            self._cache[task_id] = now + (hold_ms / 1000.0)
+        self._cache[task_id] = now + (hold_ms / 1000.0)
         return self.NEW
-
-    def check_and_set(self, task_id, ttl_ms):
-        """True for a duplicate. Kept for callers written before admit().
-
-        It cannot report a full cache, so the gateway itself calls admit().
-        """
-        return self.admit(task_id, ttl_ms) == self.DUPLICATE
 
 
 class EventDedupeCache:
@@ -1156,14 +1197,22 @@ def _record_backstop_drop(metrics, exc):
     _warn_stderr(f"WARNING: datagram dropped after unexpected {_exc_detail(exc)}")
 
 
-def command_hold_ms(payload, now=None):
+def command_hold_ms(payload, now=None, event_ts=None):
     """Milliseconds, from receipt, for which a command's task_id is held.
 
-    The command's own `valid_for_ms`, uncapped, plus the lead time to
-    `valid_from_ts` when that instant is still ahead: a command that starts
+    The hold has to outlast every reading of when the command can execute.
+    Contract 5.1 calls a command's `event.ts` "the command issue time or
+    validity anchor", and the contract gives `valid_from_ts` no rule of its
+    own, so a consumer may count `valid_for_ms` from either, and one that
+    ignores both counts it from arrival. The hold therefore runs to
+    `valid_for_ms` after the latest of receipt, `event_ts` and
+    `valid_from_ts`, plus COMMAND_HOLD_MARGIN_MS: a command that starts
     being valid in ten minutes and stays valid for one can still execute
-    eleven minutes after receipt. Measuring from receipt is conservative
-    for a command whose `event.ts` is already in the past.
+    eleven minutes after receipt.
+
+    An anchor that does not parse, or that is already past, adds nothing.
+    The value is uncapped; TaskDedupeCache refuses a hold longer than its
+    maximum.
 
     A `valid_for_ms` that is not a positive integer falls back to 60000, as
     before; the schema refuses such a command before this is reached, so
@@ -1176,18 +1225,21 @@ def command_hold_ms(payload, now=None):
         valid_for_ms = 60000
     if valid_for_ms <= 0:
         valid_for_ms = 60000
+    if now is None or not isinstance(now, datetime):
+        now = datetime.now(timezone.utc)
     lead_ms = 0
-    valid_from = _parse_utc_z(payload.get("valid_from_ts")) if isinstance(payload, dict) else None
-    if valid_from is not None:
-        if now is None or not isinstance(now, datetime):
-            now = datetime.now(timezone.utc)
+    valid_from_ts = payload.get("valid_from_ts") if isinstance(payload, dict) else None
+    for raw in (event_ts, valid_from_ts):
+        anchor = _parse_utc_z(raw)
+        if anchor is None:
+            continue
         try:
-            delta_ms = int((valid_from - now).total_seconds() * 1000)
+            delta_ms = int((anchor - now).total_seconds() * 1000)
         except (OverflowError, TypeError, ValueError):
-            delta_ms = 0
-        if delta_ms > 0:
+            continue
+        if delta_ms > lead_ms:
             lead_ms = delta_ms
-    return valid_for_ms + lead_ms
+    return valid_for_ms + lead_ms + COMMAND_HOLD_MARGIN_MS
 
 
 def _resolve_relative_path(base_dir, value):
@@ -1875,6 +1927,7 @@ def build_settings(root, args, config):
         "warn_datagram_bytes": DEFAULT_WARN_DATAGRAM_BYTES,
         "ts_plausibility_horizon_ms": DEFAULT_TS_PLAUSIBILITY_HORIZON_MS,
         "command_dedupe_max_entries": DEFAULT_COMMAND_DEDUPE_MAX_ENTRIES,
+        "command_max_hold_ms": DEFAULT_COMMAND_MAX_HOLD_MS,
         "stamp_contract_hash": False,
         "gateway_producer": DEFAULT_GATEWAY_PRODUCER,
         "gateway_node_role": DEFAULT_GATEWAY_NODE_ROLE,
@@ -1989,12 +2042,9 @@ def build_settings(root, args, config):
                 "ts_plausibility_horizon_ms",
                 allow_zero=True,
             )
-        if "command_dedupe_max_entries" in config:
-            settings["command_dedupe_max_entries"] = _normalize_int(
-                config["command_dedupe_max_entries"],
-                "command_dedupe_max_entries",
-                allow_zero=False,
-            )
+        for key in ("command_dedupe_max_entries", "command_max_hold_ms"):
+            if key in config:
+                settings[key] = _positive_int_limit(config[key], key)
         if "stamp_contract_hash" in config:
             settings["stamp_contract_hash"] = bool(config["stamp_contract_hash"])
         for key in ("gateway_producer", "gateway_node_role"):
@@ -2088,6 +2138,16 @@ def build_settings(root, args, config):
     if args.ts_plausibility_horizon_ms is not None:
         settings["ts_plausibility_horizon_ms"] = _normalize_int(
             args.ts_plausibility_horizon_ms, "ts_plausibility_horizon_ms", allow_zero=True
+        )
+    for key in ("command_dedupe_max_entries", "command_max_hold_ms"):
+        value = getattr(args, key, None)
+        if value is not None:
+            settings[key] = _positive_int_limit(value, key)
+    if settings["command_max_hold_ms"] <= COMMAND_HOLD_MARGIN_MS:
+        # Every hold includes the margin, so a maximum this small would
+        # refuse every command.
+        raise ValueError(
+            f"command_max_hold_ms must be greater than {COMMAND_HOLD_MARGIN_MS}"
         )
     if args.stamp_contract_hash:
         settings["stamp_contract_hash"] = True
@@ -3023,23 +3083,38 @@ def process_message(
         payload = instance.get("payload", {})
         task_id = payload.get("task_id")
         if task_id and dedupe_cache:
-            outcome = dedupe_cache.admit(task_id, command_hold_ms(payload, now=now))
-            if outcome == TaskDedupeCache.FULL:
-                # The id could not be held, so this command could not be
-                # protected from its own duplicate. Refuse it, loudly.
-                capacity = {
-                    "reason": "command dedupe capacity reached",
-                    "command_dedupe_max_entries": dedupe_cache.max_entries,
-                }
+            command_event = instance.get("event")
+            outcome = dedupe_cache.admit(
+                task_id,
+                command_hold_ms(
+                    payload,
+                    now=now,
+                    event_ts=command_event.get("ts") if isinstance(command_event, dict) else None,
+                ),
+            )
+            if outcome in (TaskDedupeCache.TOO_LONG, TaskDedupeCache.FULL):
+                # The id was not held, so this command could not be protected
+                # from its own duplicate. Refuse it, loudly, and say which
+                # limit refused it.
+                if outcome == TaskDedupeCache.TOO_LONG:
+                    refusal = {
+                        "reason": "command validity exceeds the dedupe hold limit",
+                        "command_max_hold_ms": dedupe_cache.max_hold_ms,
+                    }
+                else:
+                    refusal = {
+                        "reason": "command dedupe capacity reached",
+                        "command_dedupe_max_entries": dedupe_cache.max_entries,
+                    }
                 if metrics:
                     metrics.record_violation(
-                        "TASK_REJECTED", event_id=event_id, producer=producer, details=capacity
+                        "TASK_REJECTED", event_id=event_id, producer=producer, details=refusal
                     )
                 return [
                     build_violation_event(
                         "TASK_REJECTED",
                         original=instance,
-                        details=capacity,
+                        details=refusal,
                         contract_hashes=contract_hashes,
                         stamp_contract_hash=stamp_contract_hash,
                         policy=policy,
@@ -3114,6 +3189,8 @@ def parse_args():
     parser.add_argument("--metrics-log-backups", type=int)
     parser.add_argument("--warn-datagram-bytes", type=int)
     parser.add_argument("--ts-plausibility-horizon-ms", type=int)
+    parser.add_argument("--command-dedupe-max-entries", type=int)
+    parser.add_argument("--command-max-hold-ms", type=int)
     parser.add_argument("--stamp-contract-hash", action="store_true")
     parser.add_argument("--gateway-producer")
     parser.add_argument("--gateway-node-role")
@@ -3209,7 +3286,13 @@ def main():
     else:
         print("event.ts plausibility check: disabled")
 
-    dedupe_cache = TaskDedupeCache(settings["command_dedupe_max_entries"])
+    dedupe_cache = TaskDedupeCache(
+        settings["command_dedupe_max_entries"], settings["command_max_hold_ms"]
+    )
+    print(
+        f"command dedupe: up to {dedupe_cache.max_entries} task_ids held, "
+        f"each for at most {dedupe_cache.max_hold_ms}ms"
+    )
     event_dedupe_cache = EventDedupeCache()
     task_ack_dedupe_cache = TaskAckDedupeCache()
     command_evidence_cfg = policy.get("command_evidence", {})

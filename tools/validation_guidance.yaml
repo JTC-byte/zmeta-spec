@@ -1609,8 +1609,8 @@ guidance:
       - "gateway/src/validators.py:49,90 (state.command_task_ids is an unbounded set populated from every COMMAND_EVENT payload.task_id; no TTL on this path)"
       - "gateway/src/gateway.py:2692-2709 (COMMAND_EVENT handling: on a dedupe-cache hit, records the TASK_DUPLICATE violation and returns build_duplicate_ack instead of forwarding)"
       - "gateway/src/gateway.py:2302-2331 (build_duplicate_ack emits SYSTEM_EVENT/TASK_ACK with payload.state=DUPLICATE_IGNORED and metrics.reason_code=TASK_DUPLICATE)"
-      - "gateway/src/gateway.py:236-243 (TaskDedupeCache.check_and_set returns True when task_id is cached and unexpired)"
-      - "gateway/src/gateway.py:1101-1109 (ttl_ms_from_payload: gateway dedupe window from payload.valid_for_ms, default 60000ms, capped at 300000ms)"
+      - "gateway/src/gateway.py (TaskDedupeCache.admit returns DUPLICATE while a task_id is held; the live gateway releases the id when its hold ends, unlike the unbounded set above)"
+      - "gateway/src/gateway.py (command_hold_ms: the hold runs to payload.valid_for_ms after the latest of receipt, event.ts and payload.valid_from_ts, plus a 60000ms margin; a hold longer than command_max_hold_ms is refused with TASK_REJECTED)"
       - "policy/violation-codes.yaml:116-117 (TASK_DUPLICATE, severity: fail; no message or hint field)"
       - "policy/semantics.yaml:136,180 (TASK_DUPLICATE in the schema-violation code list and in task_ack_allowed_reason_codes)"
   - code: TASK_ACK_DUPLICATE

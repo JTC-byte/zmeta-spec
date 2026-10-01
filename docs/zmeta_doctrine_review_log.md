@@ -3316,7 +3316,7 @@ member restored). Whether an unread failure mode should instead stop the
 gateway at startup, as a mistyped `cot` block does since v1.1.26, is left to
 the maintainer.
 
-### E1-06 — The reference gateway forwarded a duplicate command after 300 s · **OPEN (a fix on `exp/command-dedupe-validity`; the merge is the maintainer's)**
+### E1-06 — The reference gateway forwarded a duplicate command after 300 s · **OPEN (a fix on `exp/command-dedupe-validity`, revised after independent review; the merge is the maintainer's)**
 
 **Observed:** found on 2026-10-01 by an audit of this repository's own
 answers to a downstream implementation, which had been told the reference
@@ -3344,6 +3344,64 @@ would compare event time to the gateway clock and so refuse replayed or
 old-dated command traffic unless a setting allowed it. A command-path change
 is escalated before it is treated as ready (design gate 6), so the branch is
 not merged on this repository's own word.
+
+**Independent review, 2026-10-01:** three reviewers read the first proposal
+against the contract, the code and the tests before a merge was asked for.
+All three returned "merge after fixes". What they showed by running it:
+
+- The first proposal held a very long-lived command until the gateway
+  stopped and bounded the cache by count. About 4,096 commands with an
+  enormous `valid_for_ms`, or a `valid_from_ts` years ahead, therefore filled
+  the cache for good, and every later command from every producer was
+  refused until a restart. Before the change the same flood cleared itself
+  in 300 s. The proposal had traded a forwarded duplicate for a standing
+  refusal of all commands.
+- The hold was measured from receipt and ignored a future `event.ts`, which
+  contract Section 5.1 calls "the command issue time or validity anchor". A
+  duplicate was forwarded inside the validity a consumer anchored there. A
+  gateway clock running fast had the same effect on the lead time to
+  `valid_from_ts`.
+- The proposal released a `task_id` when the validity ended, and a test
+  asserted the release. Section 13.2 sets no time bound, and
+  `validate_deduplication`, which `tools/validate.py` runs over a recorded
+  stream, reports a repeated `task_id` with no expiry. The gateway and the
+  checker held different readings of the same sentence, and the entry had
+  not said so.
+- The `check_and_set` method kept for older callers answered only "duplicate
+  or not". A caller using it forwarded a command that a full cache had
+  refused to hold.
+- No test reached the wiring of the setting in `main()`, the threshold at
+  which a hold became permanent, or what a later copy does to the hold.
+
+**Revised proposal, on the branch:** every hold is finite. A command whose
+hold would exceed `command_max_hold_ms` (default one day) is refused with
+TASK_ACK REJECTED, reason TASK_REJECTED, so a full cache clears within that
+time without a restart. The hold runs to `valid_for_ms` after the latest of
+receipt, `event.ts` and `valid_from_ts`, plus a 60 s margin for clock
+disagreement. A later copy of a held command never shortens the hold and
+lengthens it when its own validity ends later, so a producer that repeats
+one task under one `task_id` stays deduplicated while it keeps repeating.
+`check_and_set` is removed and `admit()` is the one entry. Both limits are
+strict settings with flags, and three tests drive the real `main()` receive
+loop to prove the wiring. Thirty-two tests; 56 mutants, all killed.
+
+**Left to the maintainer, with the merge:**
+
+1. Whether the duty in Section 13.2 expires. The branch releases a `task_id`
+   at the end of its hold and then admits the same id as a new command. The
+   other reading holds an id for as long as the gateway can remember it. The
+   contract text supports neither over the other, and the answer may belong
+   in the contract's guidance.
+2. Whether refusing a command because of the length of its validity is
+   acceptable, and whether one day is the right default. The alternative
+   accepts any validity and accepts that a full cache refuses every command
+   until a restart.
+3. Whether the documents should say how `valid_from_ts` relates to
+   `event.ts` and `valid_for_ms`. The field has no rule today; the branch
+   holds for every reading.
+4. Whether held ids must survive a restart.
+5. Whether the gateway should refuse a command whose validity has already
+   ended, as described above.
 
 ## Archive
 

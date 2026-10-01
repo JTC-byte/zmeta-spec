@@ -108,6 +108,7 @@ The config file keys are:
 - `warn_datagram_bytes` (warn when an outgoing datagram exceeds this size; 0 disables)
 - `ts_plausibility_horizon_ms` (warn when `event.ts` sits outside a window around now; 0 disables; see Event timestamp plausibility below)
 - `command_dedupe_max_entries` (how many commands' `task_id`s are held at once; default 4096; see COMMAND_EVENT dedupe below)
+- `command_max_hold_ms` (the longest one command's `task_id` is held; a command that needs a longer hold is refused; default 86400000, one day; see COMMAND_EVENT dedupe below)
 - `stamp_contract_hash` (include schema, policy, semantic-contract, and combined hashes in gateway-generated system events)
 - `gateway_producer`, `gateway_node_role` (the identity the gateway stamps on the diagnostics it mints; defaults `zmeta-gateway` and `GATEWAY`; see Gateway identity below)
 - `require_schema_hash`, `require_policy_hash`, `require_contract_hash` (startup gate)
@@ -133,29 +134,72 @@ the Profile L compact mapping (see `spec/compact-binary-mapping.md`). Use
 
 ### COMMAND_EVENT dedupe
 
-The gateway deduplicates `COMMAND_EVENT` by `task_id` using an in-memory cache.
-A `task_id` is held from first receipt for the command's whole validity:
-`payload.valid_for_ms`, plus the lead time to `payload.valid_from_ts` when that
-instant is still ahead. Duplicates are not forwarded; the gateway emits a
-`SYSTEM_EVENT` `TASK_ACK` with state `DUPLICATE_IGNORED` and metrics including
-`task_id`, `original_event_id`, and `reason_code=TASK_DUPLICATE`.
+The gateway deduplicates `COMMAND_EVENT` by `payload.task_id` alone, whatever
+the producer or platform, using an in-memory cache. Duplicates are not
+forwarded; the gateway emits a `SYSTEM_EVENT` `TASK_ACK` with state
+`DUPLICATE_IGNORED` and metrics including `task_id`, `original_event_id`, and
+`reason_code=TASK_DUPLICATE`.
 
-The hold has no time cap. Earlier releases capped it at 300000 ms, so a
-duplicate of a command valid for longer was forwarded again after five
-minutes, which contract Section 13.2 forbids ("Duplicate COMMAND_EVENTs MUST
-NOT be forwarded for execution a second time").
+Earlier releases held a `task_id` for at most 300000 ms, so a duplicate of a
+command valid for longer was forwarded again after five minutes, which
+contract Section 13.2 forbids ("Duplicate COMMAND_EVENTs MUST NOT be forwarded
+for execution a second time").
 
-The cache is bounded by count, `command_dedupe_max_entries` (default 4096),
-because a command may be valid for any length of time. When that many commands
-are held, a new command is refused with a `TASK_ACK` in state `REJECTED`,
-`reason_code=TASK_REJECTED` and `reason` "command dedupe capacity reached". No
-held `task_id` is forgotten to make room, because forgetting one would let that
-command's duplicate through. Capacity returns as held commands expire.
+**How long a `task_id` is held.** From first receipt until the command's
+validity ends, plus a margin of 60 seconds. The validity is read the widest
+way: it ends `payload.valid_for_ms` after the latest of the moment of receipt,
+`event.ts`, and `payload.valid_from_ts`. The contract calls a command's
+`event.ts` "the command issue time or validity anchor" (Section 5.1) and gives
+`valid_from_ts` no rule of its own, so the gateway holds for every reading a
+consumer might take. A later copy of a held command never shortens the hold,
+and it lengthens the hold when its own validity ends later, so a producer that
+repeats one task under one `task_id` stays deduplicated for as long as it
+keeps repeating.
 
-Two limits remain. The cache is in memory, so a gateway restart forgets every
-held `task_id`, and a duplicate that arrives after a restart is forwarded. The
-gateway does not refuse a command whose validity has already ended; the
-executing layer owns expiry.
+**Two limits, both refusals.** A command is refused with a `TASK_ACK` in state
+`REJECTED` and `reason_code=TASK_REJECTED` when the gateway cannot hold its
+`task_id`:
+
+- `command_max_hold_ms` (default 86400000, one day) is the longest one
+  `task_id` is held. A command whose hold would be longer is refused with
+  `reason` "command validity exceeds the dedupe hold limit". `valid_for_ms`
+  has no upper bound in schema; without this limit, long-lived commands would
+  hold their slots until the gateway was restarted. The hold includes the
+  60 second margin, so the setting must be greater than 60000.
+- `command_dedupe_max_entries` (default 4096) is how many `task_id`s are held
+  at once. When that many are held, a new command is refused with `reason`
+  "command dedupe capacity reached". No held `task_id` is forgotten to make
+  room, because forgetting one would let that command's duplicate through.
+  Every hold is finite, so capacity returns as held commands expire, and a
+  full cache refuses new commands for at most `command_max_hold_ms`.
+
+A refused command is not held and takes no capacity. Both settings must be
+positive integers; a null, boolean, fractional or quoted value is a startup
+error. The command-line flags are `--command-dedupe-max-entries` and
+`--command-max-hold-ms`, and the startup banner prints both values.
+
+**What the dedupe does not do.** These are limits of the reference gateway,
+stated so a deployment can decide whether they matter to it.
+
+- A `task_id` is released when its hold ends, and the same `task_id` is then
+  treated as a new command and forwarded. Contract Section 13.2 sets no time
+  bound on "a second time", so releasing the `task_id` is the gateway's
+  reading where the contract is silent, and it is recorded as an open
+  question for the maintainer (doctrine log E1-06). `tools/validate.py`
+  applies the other reading to a recorded stream: it reports any repeated
+  `task_id` as `TASK_DUPLICATE`, with no expiry.
+- The cache is in memory. A gateway restart forgets every held `task_id`, and
+  a duplicate that arrives after a restart is forwarded.
+- The time left to a future `event.ts` or `valid_from_ts` is measured on the
+  gateway's wall clock. The margin absorbs a gateway clock up to 60 seconds
+  ahead of the producer's; beyond that, a command whose validity starts in the
+  future is released early by the difference.
+- The gateway does not refuse a command whose validity has already ended. The
+  contract lists what the command node does (Section 15: validate, deduplicate,
+  deconflict, convert, acknowledge) and expiry is not on the list; reading that
+  as "the executing layer checks expiry" is also a reading, not contract text.
+- The two limits bound this cache only. They do not bound the gateway's other
+  per-event state.
 
 ### Timing stamps
 

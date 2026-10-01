@@ -7,16 +7,30 @@
   "MUST NOT be forwarded for execution a second time". The gateway held a
   `task_id` for at most 300 s, so the shipped example command, valid for
   600 s, was forwarded again when its duplicate arrived at 301 s. The hold
-  is now `valid_for_ms` plus any lead time to `valid_from_ts`, with no time
-  cap. The cache is bounded by count (`command_dedupe_max_entries`, default
-  4096); when it is full a new command is refused with `TASK_ACK` state
-  `REJECTED`, reason `TASK_REJECTED`, and no held id is forgotten.
-  `ttl_ms_from_payload` is replaced by `command_hold_ms`, and
-  `TaskDedupeCache` gains `admit()`. Two limits are stated in the gateway
-  README and stay open: a restart forgets held ids, and an expired command
-  is not refused at the gateway. Twelve tests in
-  `gateway/tests/test_command_dedupe_validity.py`; nine mutants killed.
-  Doctrine E1-06.
+  now runs to `valid_for_ms` after the latest of receipt, `event.ts` and
+  `valid_from_ts`, plus a 60 s margin for clock disagreement, and a later
+  copy of a held command can lengthen the hold and never shortens it. Two
+  limits bound the cache, and each refuses a command with `TASK_ACK` state
+  `REJECTED`, reason `TASK_REJECTED`, instead of forwarding it unheld:
+  `command_max_hold_ms` (default one day) refuses a command whose hold would
+  be longer, so every held id expires and a full cache clears without a
+  restart; `command_dedupe_max_entries` (default 4096) refuses a new command
+  when that many ids are held, and no held id is forgotten to make room. A
+  deployment that sends commands valid for longer than a day must raise
+  `command_max_hold_ms`, or those commands are refused. Both settings are
+  strict positive integers with command-line flags.
+  `ttl_ms_from_payload` is replaced by `command_hold_ms`;
+  `TaskDedupeCache.check_and_set` is replaced by `admit()` and removed,
+  because it could not report a refusal. The gateway README states what the
+  dedupe does not do: a `task_id` is released when its hold ends (the
+  contract sets no time bound, and the release is an open question), a
+  restart forgets held ids, and an expired command is not refused at the
+  gateway. The first version of this change was revised after an
+  independent review found that it could fill the cache permanently and
+  ignored a future `event.ts`. Thirty-two tests in
+  `gateway/tests/test_command_dedupe_validity.py`, three of them through the
+  real `main()` receive loop; 56 mutants killed. Doctrine E1-06, open; the
+  merge is the maintainer's.
 - 2026-10-01 — **A claim about the `translate:` lineage transform is
   corrected.** The proposed `DIALECT_LABEL` entry, its roadmap candidate and
   doctrine U1-02 said every shipped ingress adapter stamps
