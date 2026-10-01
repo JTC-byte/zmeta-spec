@@ -2,7 +2,14 @@
 
 ## Current Resume Note
 
-- Last updated: 2026-10-01 (scope check of the five waves; fixes on `wave/scope-check-2026-10`)
+- Last updated: 2026-10-01 (shipped configs stop advertising unread failure modes, on `exp/failure-modes-honesty`)
+- **2026-10-01 (failure-modes honesty, `exp/failure-modes-honesty`).** A
+  downstream mapping pass found `configs/README.md` claiming four failure
+  modes where the gateway reads one. The shipped edge configs now carry only
+  `timing_loss.enabled` and `confidence_reduction_factor`, the gateway warns
+  at startup for anything else under `failure_modes`, and
+  `gateway/tests/test_failure_modes_honesty.py` (four tests, two mutants
+  killed) pins the configs. Doctrine E1-05.
 - **2026-10-01 (scope check of the five unreleased waves).** On the
   maintainer's direction that ZMeta stay within its defined scope and that the
   repository's documents decide, three independent reviews (a top-tier scope

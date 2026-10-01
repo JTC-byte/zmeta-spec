@@ -3274,6 +3274,30 @@ decided in the branch and its carrier is left to promotion with
 `payload_scope` empty; a deployment carries a pattern today under its own
 namespace, never the bare `payload.extensions.search_pattern` key.
 
+### E1-05 — Shipped configs enabled failure modes the gateway never read · **CHANGED 2026-10-01 (configs and documents corrected; a startup warning added)**
+
+**Observed:** found while a downstream deployment mapped its plans against
+this repository's documents. Both shipped edge configs set
+`observation_timeout`, `deconfliction_offline` (a command queue with a
+backpressure event) and `fusion_instability` (hold until stable) to enabled,
+and `configs/README.md` said `failure_modes` controls all four. The
+reference gateway reads only `timing_loss.enabled` and
+`timing_loss.confidence_reduction_factor`.
+
+**The tension:** a control that reads as enabled and does nothing is worse
+than none: a deployment plans around command queueing it does not have, which
+is design gate 3's laundering in configuration form and the vacuous-control
+class the R1-11 residuals fixed for policy blocks.
+
+**Decision:** the shipped configs carry only the implemented members; both
+READMEs say only `timing_loss` is implemented; the gateway warns at startup
+for any other mode or member and keeps running, so a deployment that copied
+an old config learns it without an outage; a test pins the shipped configs
+to the implemented set and kills both mutants (warning removed, an unread
+member restored). Whether an unread failure mode should instead stop the
+gateway at startup, as a mistyped `cot` block does since v1.1.26, is left to
+the maintainer.
+
 ## Archive
 
 Terminal tension entries and retired rules, one line each. Full bodies live in

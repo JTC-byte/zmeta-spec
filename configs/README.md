@@ -55,10 +55,15 @@ Notes:
 - Debug/optimization controls:
   - `stamp_profile` and `stamp_profile_profiles` control when `profile` is stamped.
   - `stamp_timing` and `stamp_timing_profiles` control gateway `t_receive`/`t_publish` stamps.
-  - `failure_modes` controls timing-loss, observation-timeout, deconfliction-offline,
-    and fusion-instability defaults for edge operation. Runtime degradation must
-    leave risk labels on accepted events so operators can filter by explicit
-    policy decision rather than infer risk from missing data.
+  - `failure_modes` controls edge degradation. The reference gateway implements
+    one mode, `timing_loss` (`enabled`, `confidence_reduction_factor`): a STATE
+    whose source's latest TIME_STATUS is UNSYNCED has its confidence divided by
+    the factor and carries a risk label. No other mode is implemented; a config
+    that names one (earlier shipped configs named `observation_timeout`,
+    `deconfliction_offline` and `fusion_instability`) gets a startup warning
+    that it has no effect. Runtime degradation must leave risk labels on
+    accepted events so operators can filter by explicit policy decision rather
+    than infer risk from missing data.
   - `strip_optional_fields` and `strip_optional_fields_profiles` remove optional fields
     for bandwidth efficiency. Two path prefixes are protected and rejected at
     config load: `payload.extensions.risk_adjudication` and

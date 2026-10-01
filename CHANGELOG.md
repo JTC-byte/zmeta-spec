@@ -2,6 +2,17 @@
 
 ## [Unreleased]
 
+- 2026-10-01 — **The shipped edge configs stop enabling failure modes the
+  gateway never read.** `configs/edge-config.json` and
+  `configs/edge-config-profile-L-lean.json` enabled `observation_timeout`,
+  `deconfliction_offline` (with a command queue) and `fusion_instability`,
+  and `timing_loss.gate_fusion_threshold`; the reference gateway reads only
+  `timing_loss.enabled` and `timing_loss.confidence_reduction_factor`, so a
+  deployment that copied either config believed it had command queueing and
+  instability holds it did not have. The configs now carry only what the
+  gateway reads, the gateway warns at startup for any other failure mode or
+  member, and `gateway/tests/test_failure_modes_honesty.py` pins the shipped
+  configs to the implemented set. The READMEs say so. Doctrine E1-05.
 - 2026-10-01 — **A scope check of the five unreleased waves finds all of
   them inside ZMeta's defined scope, with fixes.** Three independent
   reviews against the North Star, the design gates, the change governance,
