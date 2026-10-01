@@ -254,9 +254,10 @@ each variant in place of the reference file whose name is the longest prefix
 of the variant's name (or `SOURCE=TARGET.yaml`), runs the same lints as
 `lint_policy_risk_modes.py`, and prints the schema, policy, semantics and
 contract hashes for the deployment to pin. Pass `--schema` with the
-`schema_path` the deployment's gateway loads. It refuses an occupied output
-directory, a variant that matches no reference file, and two variants aimed
-at one file, and it never writes the reference `policy/` directory.
+`schema_path` the deployment's gateway loads. It refuses an output directory
+that is or lies inside the reference `policy/` directory, a path that is not
+a directory, an occupied directory, a variant that matches no reference
+policy YAML file at a `.` or `-` boundary, and two variants aimed at one file.
 
 ### Release Manifest And Package
 

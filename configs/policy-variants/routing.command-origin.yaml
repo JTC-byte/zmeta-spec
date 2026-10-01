@@ -18,10 +18,12 @@
 # A per-producer subtype list applies to every event the producer emits, so
 # each list also carries every SYSTEM_EVENT subtype, which keeps the
 # automations' status and acknowledgement traffic flowing. The test fails if a
-# schema lane gains a command or system subtype these lists do not account for.
+# schema lane gains a SYSTEM_EVENT subtype these lists lack, or if a list gains
+# a subtype outside the closed set; a command subtype added later stays refused
+# to the automations by construction.
 #
 # Origin is declared by producer name, as the reference routing policy already
-# declares command origin. A name does not prove that a person or a machine
+# declares command origin. A name only declares whether a person or a machine
 # issued the command; attested producer identity belongs to roadmap candidate
 # event-signing-anti-replay. A refused command reads
 # EVENT_TYPE_NOT_ALLOWED_FOR_ROLE ("event_subtype not allowed for producer").
@@ -37,8 +39,8 @@ routing:
     # allowed_producers are all flattened by the reference validator
     # (gateway/src/validators.py::_is_comms_producer) into a single
     # origin-name allowlist checked against the event's producer. Per-event
-    # transit-path verification is not possible in v1.0 — events carry no
-    # route metadata — so these keys express the intended command topology
+    # transit-path verification is not possible in v1.0: events carry no
+    # route metadata, so these keys express the intended command topology
     # while the machine check is origin gating only.
     required_origin: sensorops
     must_pass_through: sensorops

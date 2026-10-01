@@ -17,6 +17,7 @@ own pipeline, each against the reference policy as the control.
 
 import copy
 import hashlib
+import shutil
 import importlib.util
 import io
 import json
@@ -92,10 +93,9 @@ def subtypes_by_event_type(schema_path):
     return found
 
 
-LANES = (
-    SCHEMA_DIR / "zmeta-event-1.0.schema.json",
-    SCHEMA_DIR / "zmeta-event-1.1.0.schema.json",
-)
+# Every versioned lane file; the dispatcher (zmeta-event.schema.json) only
+# routes between them. A lane added later is read without editing this list.
+LANES = tuple(sorted(SCHEMA_DIR.glob("zmeta-event-*.schema.json")))
 
 
 def lane_union(event_type):
@@ -141,7 +141,7 @@ TASK_FIELDS = {
 }
 
 
-def command(task_type, producer, parents=None):
+def command(task_type, producer, parents=None, version="1.1.0"):
     payload = {
         "task_id": f"task-{uuid7()}",
         "task_type": task_type,
@@ -151,7 +151,7 @@ def command(task_type, producer, parents=None):
     }
     payload.update(copy.deepcopy(TASK_FIELDS[task_type]))
     event = {
-        "zmeta_version": "1.1.0",
+        "zmeta_version": version,
         "event": {
             "event_id": str(uuid7()),
             "event_type": "COMMAND_EVENT",
@@ -236,6 +236,12 @@ class VariantShapeTest(unittest.TestCase):
             self.assertIn("allowed_event_subtypes", stripped["routing"]["producers"][producer])
             del stripped["routing"]["producers"][producer]["allowed_event_subtypes"]
         self.assertEqual(reference, stripped)
+
+    def test_both_lanes_are_read(self):
+        names = {lane.name for lane in LANES}
+        self.assertIn("zmeta-event-1.0.schema.json", names)
+        self.assertIn("zmeta-event-1.1.0.schema.json", names)
+        self.assertNotIn("zmeta-event.schema.json", names)
 
     def test_closed_set_is_exactly_the_two_non_movement_commands(self):
         command_subtypes = lane_union("COMMAND_EVENT")
@@ -346,7 +352,23 @@ class VariantBehaviourTest(unittest.TestCase):
 
     def test_automation_closed_set_still_needs_evidence(self):
         cmd = command("SCAN_RF", "retasking-engine")
+        self.assert_forwarded(cmd, self.reference)
         self.assert_refused(cmd, self.pack, "LINEAGE_MISMATCH")
+
+    def test_v1_0_lane_follows_the_same_posture(self):
+        parent = track_state()
+        cited = [parent["event"]["event_id"]]
+        for producer in ("sensorops", "retasking-engine", "comms-deconfliction-01"):
+            with self.subTest(producer=producer, cited=False):
+                bare = command("GOTO", producer, version="1.0")
+                self.assert_forwarded(bare, self.reference)
+                self.assert_refused(bare, self.pack, "LINEAGE_MISMATCH")
+        self.assert_forwarded(command("GOTO", "sensorops", cited, version="1.0"), self.pack, parent)
+        for producer in ("retasking-engine", "comms-deconfliction-01"):
+            with self.subTest(producer=producer, cited=True):
+                movement = command("GOTO", producer, cited, version="1.0")
+                self.assert_forwarded(movement, self.reference, parent)
+                self.assert_refused(movement, self.pack, "EVENT_TYPE_NOT_ALLOWED_FOR_ROLE", parent)
 
     def test_automation_movement_command_is_refused_with_evidence_cited(self):
         parent = track_state()
@@ -417,19 +439,32 @@ class AssembleToolTest(unittest.TestCase):
         _source, target = assembler.resolve_target("timing.relaxed.yaml", names)
         self.assertEqual("timing.yaml", target)
 
-    def test_explicit_target_must_be_a_reference_file(self):
+    def test_explicit_target_must_be_a_reference_policy_yaml(self):
         names = self.names()
         _source, target = assembler.resolve_target(f"{STRICT_EVIDENCE}=command-evidence.yaml", names)
         self.assertEqual("command-evidence.yaml", target)
-        with self.assertRaises(assembler.AssemblyError):
-            assembler.resolve_target(f"{STRICT_EVIDENCE}=not-a-policy.yaml", names)
+        for target in ("not-a-policy.yaml", "README.md"):
+            with self.subTest(target=target):
+                with self.assertRaisesRegex(assembler.AssemblyError, "not a policy YAML file"):
+                    assembler.resolve_target(f"{STRICT_EVIDENCE}={target}", names)
+        source, target = assembler.resolve_target("dir=x/v.yaml=routing.yaml", names)
+        self.assertEqual(("dir=x/v.yaml", "routing.yaml"), (source.as_posix(), target))
+
+    def test_a_prefix_must_end_at_a_separator(self):
+        names = self.names()
+        for variant in ("routingX.yaml", "routing2.yaml", "rolesy.yaml"):
+            with self.subTest(variant=variant):
+                with self.assertRaisesRegex(assembler.AssemblyError, "no reference policy file"):
+                    assembler.resolve_target(variant, names)
+        self.assertEqual("routing.yaml", assembler.resolve_target("routing.yaml", names)[1])
+        self.assertEqual("routing.yaml", assembler.resolve_target("routing-x.yaml", names)[1])
 
     def test_refusals(self):
         unmatched = self.tmp / "nothing-like-a-policy.yaml"
         unmatched.write_text("x: 1\n", encoding="utf-8")
-        with self.assertRaises(assembler.AssemblyError):
+        with self.assertRaisesRegex(assembler.AssemblyError, "no reference policy file"):
             assembler.assemble(self.tmp / "a", [str(unmatched)])
-        with self.assertRaises(assembler.AssemblyError):
+        with self.assertRaisesRegex(assembler.AssemblyError, "both replace"):
             assembler.assemble(
                 self.tmp / "b",
                 [str(STRICT_EVIDENCE), f"{COMMAND_ORIGIN}=command-evidence.yaml"],
@@ -437,10 +472,29 @@ class AssembleToolTest(unittest.TestCase):
         occupied = self.tmp / "occupied"
         occupied.mkdir()
         (occupied / "keep.txt").write_text("x", encoding="utf-8")
-        with self.assertRaises(assembler.AssemblyError):
+        with self.assertRaisesRegex(assembler.AssemblyError, "already holds files"):
             assembler.assemble(occupied, [str(STRICT_EVIDENCE)])
-        with self.assertRaises(assembler.AssemblyError):
-            assembler.assemble(ROOT / "policy", [str(STRICT_EVIDENCE)])
+        a_file = self.tmp / "a-file"
+        a_file.write_text("x", encoding="utf-8")
+        with self.assertRaisesRegex(assembler.AssemblyError, "not a directory"):
+            assembler.assemble(a_file, [str(STRICT_EVIDENCE)])
+
+    def test_an_output_inside_the_reference_directory_is_refused(self):
+        # A copy of the reference stands in for it, so the guard is exercised
+        # without touching policy/. The sub-directories do not exist yet, so
+        # only the containment guard can refuse them.
+        reference = self.tmp / "reference"
+        shutil.copytree(ROOT / "policy", reference)
+        before = _digest(reference)
+        for out in (reference, reference / "pack", reference / "a" / "b"):
+            with self.subTest(out=out.name):
+                with self.assertRaisesRegex(assembler.AssemblyError, "inside it"):
+                    assembler.assemble(out, [str(STRICT_EVIDENCE)], policy_dir=reference)
+        self.assertEqual(before, _digest(reference))
+        self.assertEqual(
+            sorted(p.name for p in (ROOT / "policy").iterdir()),
+            sorted(p.name for p in reference.iterdir()),
+        )
 
     def test_reference_policy_untouched_and_output_complete(self):
         before = _digest(ROOT / "policy")

@@ -7,13 +7,17 @@ output directory is what a deployment passes to the gateway as `policy_dir`
 (or `--policy-dir`).
 
 Each variant names its target by its leading filename: the target is the
-reference policy file whose name (without `.yaml`) is the longest prefix of the
-variant's name, so `command-evidence.strict.yaml` replaces
-`command-evidence.yaml` and `timing-freshness-profile-L-degrade.yaml` replaces
-`timing-freshness.yaml`. `SOURCE=TARGET.yaml` names the target explicitly.
+reference policy YAML file whose name (without `.yaml`) is the longest prefix
+of the variant's name that ends at a `.` or `-`, so
+`command-evidence.strict.yaml` replaces `command-evidence.yaml`,
+`timing-freshness-profile-L-degrade.yaml` replaces `timing-freshness.yaml`, and
+`routingX.yaml` replaces nothing. `SOURCE=TARGET.yaml` names the target
+explicitly; only the reference directory's `.yaml` files can be targets.
 
-The tool refuses an output directory that already holds files, a variant that
-matches no reference file, and two variants aimed at one file. It then loads
+The tool refuses an output directory that is or lies inside the reference
+policy directory, a path that exists and is not a directory, a directory that
+already holds files, a variant that matches no reference file, and two
+variants aimed at one file. It then loads
 the assembled policy and runs the same lints as
 `tools/lint_policy_risk_modes.py`; any finding is a failure and the directory
 is left in place for inspection. The reference `policy/` directory is never
@@ -53,23 +57,35 @@ class AssemblyError(Exception):
     """A variant or output directory the tool refuses."""
 
 
+def _stem_matches(stem: str, reference_stem: str) -> bool:
+    """True when `stem` is `reference_stem` or starts with it followed by '.' or '-'.
+
+    The boundary keeps `routingX.yaml` or `routing2.yaml` from silently
+    replacing `routing.yaml`.
+    """
+    if stem == reference_stem:
+        return True
+    return stem.startswith(reference_stem) and stem[len(reference_stem)] in ".-"
+
+
 def resolve_target(variant: str, reference_names: list[str]) -> tuple[Path, str]:
-    """Return (source path, target filename) for one variant argument."""
+    """Return (source path, target filename) for one variant argument.
+
+    Only the reference directory's `.yaml` files, the ones the gateway loads,
+    can be replaced.
+    """
+    yaml_names = [name for name in reference_names if name.endswith(".yaml")]
     if "=" in variant:
-        source_text, target = variant.split("=", 1)
+        source_text, target = variant.rsplit("=", 1)
         source = Path(source_text)
-        if target not in reference_names:
+        if target not in yaml_names:
             raise AssemblyError(
-                f"{variant}: target {target!r} is not a file of the reference policy directory"
+                f"{variant}: target {target!r} is not a policy YAML file of the reference directory"
             )
         return source, target
     source = Path(variant)
     stem = source.name[: -len(".yaml")] if source.name.endswith(".yaml") else source.name
-    candidates = [
-        name
-        for name in reference_names
-        if name.endswith(".yaml") and stem.startswith(name[: -len(".yaml")])
-    ]
+    candidates = [name for name in yaml_names if _stem_matches(stem, name[: -len(".yaml")])]
     if not candidates:
         raise AssemblyError(
             f"{variant}: no reference policy file's name prefixes {source.name!r}; "
@@ -82,8 +98,17 @@ def assemble(out_dir: Path, variants: list[str], policy_dir: Path = ROOT / "poli
     """Build the deployment policy directory and return what was placed."""
     policy_dir = Path(policy_dir)
     out_dir = Path(out_dir)
-    if out_dir.resolve() == policy_dir.resolve():
-        raise AssemblyError("the output directory is the reference policy directory")
+    resolved_out, resolved_policy = out_dir.resolve(), policy_dir.resolve()
+    # The gateway hashes the policy directory recursively, so an output
+    # directory inside it would change the reference hash as surely as
+    # writing the reference files themselves.
+    if resolved_out == resolved_policy or resolved_policy in resolved_out.parents:
+        raise AssemblyError(
+            f"{out_dir} is the reference policy directory or inside it; "
+            "writing there changes the reference policy hash"
+        )
+    if out_dir.exists() and not out_dir.is_dir():
+        raise AssemblyError(f"{out_dir} exists and is not a directory")
     if out_dir.exists() and any(out_dir.iterdir()):
         raise AssemblyError(f"{out_dir} already holds files; choose an empty or new directory")
 
@@ -99,9 +124,9 @@ def assemble(out_dir: Path, variants: list[str], policy_dir: Path = ROOT / "poli
             )
         placements[target] = source
 
-    out_dir.mkdir(parents=True, exist_ok=True)
-    for name in reference_names:
-        shutil.copyfile(policy_dir / name, out_dir / name)
+    # The whole tree, so the deployment hash covers what the reference hash
+    # covers (the gateway hashes the policy directory recursively).
+    shutil.copytree(policy_dir, out_dir, dirs_exist_ok=True)
     for target, source in placements.items():
         shutil.copyfile(source, out_dir / target)
 

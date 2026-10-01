@@ -2968,7 +2968,8 @@ entries it does not contain.
 
 **Decision (2026-10-01):** the maintainer's go of 2026-09-30 handed the
 open questions in this cycle to this repository's own recommendation, as
-revertible decisions. Each was taken as recommended above. (1)
+revertible decisions. Each was taken as the five questions and the
+Recommendation above propose it. (1)
 DIALECT_LABEL stays `proposed` with its carrier open. Promotion first
 weighs the `translate:` lineage transform and the other existing
 carriers, and new vocabulary is justified only by an egress projection
@@ -3099,10 +3100,10 @@ would govern who may receive what are future.
 record under the gateway's generic `UNCONVERTIBLE` reason. **OPEN:** whether
 a deployment may opt in; not offered.
 
-## Cycle E1 — 2026-10-01 (a downstream ecosystem's command posture)
+## Cycle E1 — 2026-10-01 (a deployment's command posture)
 
 On 2026-09-30 the maintainer decided the command posture a downstream
-ecosystem deploys: every COMMAND_EVENT cites its evidence, and an
+deployment runs: every COMMAND_EVENT cites its evidence, and an
 automation may originate only a closed set of non-movement commands while
 platform movement stays with a human-origin producer. The maintainer
 directed that the posture be delivered through this repository's process.
@@ -3114,14 +3115,14 @@ are logged here.
 **Observed:** the reference policy keeps `require_evidence` off because "a
 human operator's direct tasking has no fused parent, and refusing it by
 default would break every fielded display loop" (`gateway/src/validators.py`,
-the command-evidence commentary). The posture decided for the ecosystem
+the command-evidence commentary). The posture decided for that deployment
 requires evidence for every COMMAND_EVENT.
 
 **The tension:** an operator who repositions a platform has no inference
 behind the move. One design offered for that case is an explicit recorded
 basis meaning "human-originated, no parent evidence". No member says that,
-and a label that asserts the absence of evidence is not itself evidence a
-consumer can audit.
+and a label asserting that no evidence exists gives a consumer nothing to
+audit.
 
 **Decision:** the posture ships as
 `configs/policy-variants/command-evidence.strict.yaml`, which sets
@@ -3152,10 +3153,11 @@ two automation producers the closed set plus every SYSTEM_EVENT subtype, and
 leaves `sensorops` every task type. A refused command reads
 EVENT_TYPE_NOT_ALLOWED_FOR_ROLE. On the v1.0 lane all four command subtypes
 move a platform, so an automation originates no command there. A producer
-name is a declaration and not proof of who issued a command; attested
-producer identity belongs to `event-signing-anti-replay`. The tests pin the
-lists to the schema lanes, so a new command or system subtype fails them
-until it is placed. The shipped examples stay as they are, because they
+name only declares who issued a command; attested producer identity
+belongs to `event-signing-anti-replay`. The tests pin the lists to the
+schema lanes: a new SYSTEM_EVENT subtype fails them until it is listed, and
+a command subtype added later stays refused to the automations by
+construction. The shipped examples stay as they are, because they
 illustrate the reference posture.
 
 ## Archive

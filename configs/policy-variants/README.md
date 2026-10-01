@@ -19,8 +19,8 @@ Optional deployment policy snippets. Copy the selected file into a deployment
   SCAN_RF and CHANGE_SENSOR_MODE. The two automation producers,
   `retasking-engine` and `comms-deconfliction-*`, carry that set plus every
   SYSTEM_EVENT subtype; the human-origin producer, `sensorops`, keeps every
-  task type. Origin is declared by producer name, which does not prove who
-  issued a command.
+  task type. Origin rests on the producer name the event declares; attested
+  identity belongs to roadmap candidate `event-signing-anti-replay`.
 
 The last two together are the strict command posture: every command cites
 its evidence, and platform movement is originated by the human-origin

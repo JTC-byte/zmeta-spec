@@ -70,7 +70,7 @@ command_evidence:
   require_evidence_task_types: []
   require_evidence_mode: reject
 
-  # Cited parent not present in the gateway's bounded evidence index — never
+  # Cited parent not present in the gateway's bounded evidence index: never
   # seen upstream, or evicted (see evidence_index_max_entries). The honest
   # disposition is UNRESOLVED, never a silent pass.
   # Flood-eviction tradeoff (attack-pass observation, 2026-07-27): under
@@ -110,7 +110,7 @@ command_evidence:
   # prohibited uses) for command-evidence resolution. Sender-controlled
   # cardinality must not grow gateway memory without bound, so the index is
   # capped; oldest entries are evicted first, and an evicted parent resolves
-  # as UNRESOLVED — honest, never silent. Invalid or non-positive values fall
+  # as UNRESOLVED, honest and never silent. Invalid or non-positive values fall
   # back to the built-in default (4096).
   evidence_index_max_entries: 4096
 
