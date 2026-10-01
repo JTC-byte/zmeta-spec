@@ -1013,7 +1013,9 @@ entries:
       promotion, and allowed_event_types stays empty until then. Promotion
       must first weigh the carriers the contract already provides: the
       translate:<schema_id>@<adapter_version> lineage.transform that an
-      adapter stamps on the event it authors (Section 3.4), which Sections 2.4
+      adapter stamps, by the convention in adapters/AUTHORING.md, on an event
+      it authors with real parents (Section 3.4 requires a transform for
+      translation steps when applicable), which Sections 2.4
       and 4.2 forbid adding to an event a gateway only forwards; the
       external-promotion metadata and promote:<adapter>:<policy>
       lineage.transform of Section 4.5.1; adapter transform names in

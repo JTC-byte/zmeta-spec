@@ -7,8 +7,11 @@
   A downstream question (does contract 3.4 bind a parentless observation to
   carry a transform) showed that the wave of 2026-09-28 overstated the
   `translate:` transform as stamped by every shipped ingress adapter. Counted
-  on the tree: of fourteen ingress adapters, ADS-B and AIS stamp none, CoT
-  and JREAP stamp `promote:`, ten stamp `translate:` on events with parents.
+  on the tree and recounted by an independent reviewer, who corrected the
+  first count: of the thirteen shipped ingress adapters, ADS-B and AIS stamp
+  none, CoT and JREAP stamp `promote:`, nine stamp `translate:` on events
+  with parents, and MAVLink and SAPIENT among them also stamp `promote:`;
+  the template directory stamps nothing.
   The registry entry, the roadmap candidate, doctrine U1-02 (a dated
   correction, the original text kept) and the changelog are corrected. The
   roadmap's `model-assurance` candidate notes a producer's model-digest need

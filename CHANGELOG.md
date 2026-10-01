@@ -7,11 +7,13 @@
   doctrine U1-02 said every shipped ingress adapter stamps
   `translate:<schema_id>@<adapter_version>`. The ADS-B and AIS adapters stamp
   no transform, because a translated observation with no ZMeta parent cannot
-  carry lineage; the CoT and JREAP templates stamp `promote:`; ten adapters
-  stamp `translate:` on events that have parents. The spelling is the
-  convention in `adapters/AUTHORING.md`, not contract text. The records now
-  say so, and the dialect-label promotion question weighs the parentless
-  case. Roadmap candidate `model-assurance` notes one producer's need for a
+  carry lineage; the CoT and JREAP templates stamp `promote:`; nine of the
+  thirteen shipped ingress adapters stamp `translate:` on events that have
+  parents, and two of those, MAVLink and SAPIENT, also stamp `promote:`. The
+  spelling is the convention in `adapters/AUTHORING.md`; the contract
+  requires a transform for translation steps and defines no spelling. The
+  records now say so, and the dialect-label promotion question weighs the
+  parentless case. Roadmap candidate `model-assurance` notes one producer's need for a
   model-weights digest against contract Section 11.4, with no status change.
 - 2026-10-01 — **The shipped edge configs stop enabling failure modes the
   gateway never read.** `configs/edge-config.json` and
