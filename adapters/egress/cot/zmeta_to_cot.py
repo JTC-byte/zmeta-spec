@@ -39,11 +39,23 @@ Supports:
     enforce format without an RFC 3339 checker - is refused (returns
     None) unless wall-clock mode is on - the adapter never fabricates
     freshness for malformed input
+  - A `cds` profile (cot_config["profile"] = "cds"): the standard output
+    reduced to the shape one partner's cross-domain guard passed into a
+    higher enclave on 2026-09-29. Detail children limited to contact,
+    track, remarks and precisionlocation; `how` required as a deployment
+    claim; remarks replaced by one fixed-template line of at most
+    CDS_REMARKS_MAX characters whose honesty markers always survive; no
+    http(s) link anywhere in the event; stale = the projection time plus a
+    fixed window (CDS_STALE_S unless the deployment sets stale_window_s);
+    an event older than max_age_s at projection is refused. See the README,
+    "Profiles".
 
 Source: Z-ISR zisr/transport/publisher.py (_builtin_zmeta_to_cot)
 """
 
 import math
+import re
+import xml.etree.ElementTree as ET
 from collections.abc import Mapping, Sequence
 from collections.abc import Set as AbstractSet
 from datetime import datetime, timedelta, timezone
@@ -56,10 +68,141 @@ _TEXT_LEAF_TYPES = (str, bytes, bytearray)
 
 DEFAULT_COT_TYPE = "a-u-G"
 
+# payload.class is a free string in both schema versions (TrackStatePayload
+# declares it only as {"type": "string"}). The CoT ingress stores a CoT type
+# there, and another producer may store an entity label, such as a detector's
+# "car". Only a class that parses as a CoT atom type becomes the CoT type: "a",
+# an affiliation letter, a battle dimension, then zero or more function-code
+# segments, as in "a-h-G-U-C-I". The check is grammatical rather than a lookup
+# in a type table, so a well-formed type is accepted whether or not a table
+# knows it, and a label never is.
+_COT_ATOM_TYPE = re.compile(r"a-[pufnshjkaox]-[PAGSUFX](?:-[A-Z0-9]+)*")
+
+
+def _cot_type_from_class(value):
+    """Return ``value`` if it parses as a CoT atom type, otherwise None."""
+    if isinstance(value, str) and _COT_ATOM_TYPE.fullmatch(value):
+        return value
+    return None
+
+
+# A class that is not a CoT type is rendered in <remarks> as one quoted token,
+# so a label such as "car; confidence=0.99" cannot pass for a remarks fragment
+# of its own. Characters that are not printable, which include the C0 controls
+# that XML 1.0 forbids, become spaces, and a long label is cut to
+# _CLASS_LABEL_MAX characters with a trailing "...".
+_CLASS_LABEL_MAX = 64
+
+
+def _class_label(value):
+    """Render a class that is not a CoT type as a quoted remarks token, or None if empty."""
+    text = "".join(ch if ch.isprintable() else " " for ch in str(value)).strip()
+    if not text:
+        return None
+    if len(text) > _CLASS_LABEL_MAX:
+        text = text[:_CLASS_LABEL_MAX] + "..."
+    return '"' + text.replace("\\", "\\\\").replace('"', '\\"') + '"'
+
 # CoT's documented unknown-value convention for point@ce / point@le.
 # Emitted when the event carries no uncertainty so absent accuracy is
 # never rendered as invented precision (contract sections 4.7 / 12.2).
 COT_UNKNOWN_ACCURACY = 9999999.0
+
+# Projection profiles. "standard" is the adapter's own output, unchanged by the
+# existence of any other profile. "cds" is the variant one partner's
+# cross-domain guard passed into a higher enclave on 2026-09-29 (n=1): the
+# standard output with the detail children limited to CDS_DETAIL_CHILDREN,
+# `how` asserted by the deployment, remarks replaced by one fixed-template
+# line of at most CDS_REMARKS_MAX characters, no http(s) link anywhere in the
+# event, and stale set to the projection time plus a fixed window of
+# CDS_STALE_S seconds unless the deployment sets stale_window_s. The window
+# and the link rule went live together on that day and neither was tested
+# alone, so the profile carries both under one name and a deployment cannot
+# lose either by accident. The reference deployment also drops a report older
+# than a maximum age at arrival, so the profile refuses one older than
+# max_age_s at projection; without that, a day-old event would leave with a
+# stale time that reads as live.
+COT_PROFILES = ("standard", "cds")
+CDS_DETAIL_CHILDREN = ("contact", "track", "remarks", "precisionlocation")
+CDS_REMARKS_MAX = 200
+CDS_STALE_S = 120.0
+CDS_MAX_WINDOW_S = 30 * 86400
+# The link rule the guard was passed with: an http or https URL. It removes
+# the separator before the link as well, so the words around it keep reading
+# as one line. Other schemes and scheme-less hosts are not links to this rule,
+# and the README says so.
+CDS_URL = re.compile(r"\s*,?\s*[hH][tT][tT][pP][sS]?://\S*")
+_ANY_LINK = re.compile(r"[hH][tT][tT][pP][sS]?://")
+_ANY_SCHEME = re.compile(r"[^\s:/]+://")
+# CoT `how` tokens: a letter, a dash, a letter, then optional dashed letters,
+# as in "m-g", "h-e", "m-r", "m-f". The adapter never fills this in.
+_COT_HOW = re.compile(r"[a-z]-[a-z](?:-[a-z]+)*")
+_PLAIN_DECIMAL = re.compile(r"-?[0-9]+(?:\.[0-9]+)?")
+_NUMBER_TEXT = re.compile(r"[-+]?(?:[0-9]+\.?[0-9]*|\.[0-9]+)(?:[eE][-+]?[0-9]+)?")
+# Every key the adapter reads from cot_config. Under the cds profile a key
+# outside this set is a config error, so a misspelled `stale_window_s` cannot
+# be ignored in silence and leave the default in force.
+COT_CONFIG_KEYS = frozenset((
+    "profile", "how", "geopointsrc", "altsrc", "default_ce", "default_le",
+    "default_type", "default_valid_for_ms", "friendly_team_name",
+    "friendly_team_role", "use_wall_clock", "stale_window_s", "max_age_s",
+    "attribution",
+))
+
+
+def _positive_seconds(cot_config, key, default):
+    """A positive, finite number of seconds no larger than CDS_MAX_WINDOW_S."""
+    value = cot_config.get(key, default)
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        raise ValueError(f"{key} must be a number of seconds")
+    if _is_non_finite(value) or value <= 0 or value > CDS_MAX_WINDOW_S:
+        raise ValueError(f"{key} must be a positive number of seconds no larger than {CDS_MAX_WINDOW_S}")
+    return float(value)
+
+
+def validate_cot_config(cot_config):
+    """Return the selected profile name, or raise ValueError for a config the
+    adapter cannot run. The gateway calls this when it reads its config, so a
+    deployment that selects the cds profile without asserting `how` learns it
+    at startup rather than as a refusal of every track at egress."""
+    cot_config = cot_config or {}
+    profile = cot_config.get("profile", "standard")
+    if profile not in COT_PROFILES:
+        raise ValueError(f"cot profile must be one of {', '.join(COT_PROFILES)}, got {profile!r}")
+    if profile == "cds":
+        unknown = sorted(str(key) for key in cot_config if key not in COT_CONFIG_KEYS)
+        if unknown:
+            raise ValueError(f"the cds cot profile does not know the key(s) {', '.join(unknown)}")
+        how = cot_config.get("how")
+        if not isinstance(how, str) or not _COT_HOW.fullmatch(how):
+            raise ValueError(
+                "the cds cot profile requires how as a CoT how token the deployment "
+                "asserts, such as m-f for fused tracks or m-r for relayed reports"
+            )
+        if cot_config.get("use_wall_clock"):
+            # Replay-display mode re-stamps the event's time to now, which
+            # is exactly what the age rule exists to keep from crossing.
+            raise ValueError("the cds cot profile does not run in replay-display mode (use_wall_clock)")
+        window = _positive_seconds(cot_config, "stale_window_s", CDS_STALE_S)
+        max_age = _positive_seconds(cot_config, "max_age_s", window)
+        if max_age > window:
+            # A report older than the window would otherwise leave with a
+            # stale time that reads as live for the whole window.
+            raise ValueError("max_age_s must not exceed stale_window_s")
+        attribution = cot_config.get("attribution")
+        if attribution is not None:
+            if not isinstance(attribution, str):
+                raise ValueError("attribution must be a string")
+            # The deployment wrote these words, so a link of any scheme or a
+            # character that is not printable is a config error, caught at
+            # startup rather than removed at egress.
+            if _ANY_SCHEME.search(attribution):
+                raise ValueError("attribution must be words with no link; the cds profile sends no link")
+            if not all(ch.isprintable() or ch.isspace() for ch in attribution):
+                raise ValueError("attribution must be printable text")
+    return profile
+
+
 STATE_PROHIBITED_PAYLOAD_FIELDS = {
     "features",
     "raw_features",
@@ -255,13 +398,16 @@ def _projected_hae(geo):
     return (alt_m, True, is_2d)
 
 
-def zmeta_to_cot(event, cot_config=None):
+def zmeta_to_cot(event, cot_config=None, now=None):
     """Convert a ZMeta STATE_EVENT into CoT XML.
 
     Args:
         event: ZMeta event dict. Must have event_type=STATE_EVENT.
         cot_config: Optional dict with configuration overrides:
-            - default_type (str): Default CoT type (default "a-u-G")
+            - default_type (str): CoT type for a track whose class is
+              absent or null (default "a-u-G"). A value that does not parse
+              as a CoT atom type falls back to "a-u-G", and it never applies
+              to a class that is a label.
             - default_valid_for_ms (int): Stale interval (default 300000)
             - default_ce (float): Circular error metres when the event
                 carries no uncertainty (default 9999999.0, CoT's
@@ -288,6 +434,18 @@ def zmeta_to_cot(event, cot_config=None):
                 replay mode (contract section 9.5). With the mode off, an
                 event missing event.ts is refused (returns None) instead of
                 being silently stamped with the current time.
+            - profile (str): "standard" (default) or "cds"; see the README.
+            - stale_window_s (number): cds only; stale is the projection
+                time plus this many seconds (default CDS_STALE_S)
+            - max_age_s (number): cds only; an event whose ts is more than
+                this many seconds from the projection time, before or after,
+                is refused (default: the stale window; may not exceed it)
+            - attribution (str): cds only; words appended to remarks, for
+                example a data licence attribution; a link of any scheme in
+                it is a config error
+        now: The projection instant, an aware datetime; defaults to the
+            current UTC time. Used by wall-clock mode and by the cds stale
+            ceiling; a test passes it to make the output deterministic.
 
     Returns:
         CoT XML string, or None if the event cannot be converted (wrong
@@ -296,12 +454,28 @@ def zmeta_to_cot(event, cot_config=None):
         _parse_utc, any non-finite (NaN/inf) number that would become a CoT
         attribute, a validity window whose stale timestamp is not
         representable - see _stale_time, or a geo.dimensionality "2D"
-        declaration paired with a present alt_m - see _projected_hae).
+        declaration paired with a present alt_m - see _projected_hae). Under
+        the cds profile, also None when `how` is missing, when the type
+        asserts an affiliation, when the event is older than max_age_s, when
+        the standard string is not well-formed XML, or when an http(s) link
+        survives outside remarks.
     """
     if event.get("event", {}).get("event_type") != "STATE_EVENT":
         return None
 
     cot_config = cot_config or {}
+    try:
+        profile = validate_cot_config(cot_config)
+    except ValueError:
+        return None
+    if now is None:
+        now = datetime.now(timezone.utc)
+    elif now.tzinfo is None:
+        now = now.replace(tzinfo=timezone.utc)
+    else:
+        # The stamps below print with a literal Z, so the instant must be
+        # expressed in UTC whatever zone the caller handed in.
+        now = now.astimezone(timezone.utc)
     payload = event.get("payload", {})
     if _has_state_prohibited_payload_fields(payload):
         return None
@@ -358,7 +532,7 @@ def zmeta_to_cot(event, cot_config=None):
     # is an explicit replay-display opt-in that re-stamps CoT time to now.
     use_wall_clock = cot_config.get("use_wall_clock", False)
     if use_wall_clock:
-        time_obj = datetime.now(timezone.utc)
+        time_obj = now
     else:
         ts = event.get("event", {}).get("ts")
         if not ts:
@@ -383,8 +557,22 @@ def zmeta_to_cot(event, cot_config=None):
     time_str = time_obj.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
     stale_str = stale_obj.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
 
-    default_type = cot_config.get("default_type", DEFAULT_COT_TYPE)
-    cot_type = payload.get("class", default_type)
+    default_type = (
+        _cot_type_from_class(cot_config.get("default_type", DEFAULT_COT_TYPE))
+        or DEFAULT_COT_TYPE
+    )
+    raw_class = payload.get("class")
+    class_label = None
+    if raw_class is None:
+        cot_type = default_type
+    else:
+        cot_type = _cot_type_from_class(raw_class)
+        if cot_type is None:
+            # The class is an entity label, so it never becomes the type. The
+            # unknown-ground type claims no affiliation, and the label travels
+            # in <remarks>, where an operator reads it.
+            cot_type = DEFAULT_COT_TYPE
+            class_label = _class_label(raw_class)
     lat = geo["lat"]
     lon = geo["lon"]
     # Absent altitude is emitted as CoT's unknown-value convention (the same
@@ -475,6 +663,10 @@ def zmeta_to_cot(event, cot_config=None):
             remarks_text += f"; {ellipse_str}"
         else:
             remarks_text = ellipse_str
+
+    if class_label is not None:
+        class_str = f"class={class_label}"
+        remarks_text = f"{class_str}; {remarks_text}" if remarks_text else class_str
 
     remarks_xml = ""
     if remarks_text:
@@ -593,23 +785,188 @@ def zmeta_to_cot(event, cot_config=None):
         f"  </detail>\n"
         f"</event>"
     )
+    if profile == "cds":
+        return _apply_cds_profile(
+            cot_xml,
+            cot_config,
+            now=now,
+            time_obj=time_obj,
+            cot_type=cot_type,
+            geo_is_2d=geo_is_2d,
+            producer=event.get("source").get("producer") if isinstance(event.get("source"), dict) else None,
+            confidence=confidence,
+            raw_class=raw_class if class_label is not None else None,
+        )
     return cot_xml
 
 
-def zmeta_to_cot_uncertainty_circle(zmeta_state_event, radius_m, cot_config=None):
+def _cds_line(text):
+    """One part of the cds remarks line: links removed, every character that
+    is not printable mapped to a space, whitespace collapsed. A control
+    character in a producer name would otherwise make the serialized event
+    ill-formed XML."""
+    text = "".join(ch if ch.isprintable() else " " for ch in str(text))
+    # The line's parts are joined by "; ", so a part may not carry that
+    # separator: a producer named "x; confidence=0.99" would otherwise read
+    # as a marker the event never made.
+    return " ".join(CDS_URL.sub("", text).replace(";", ",").split())
+
+
+def _cds_confidence(value):
+    """The confidence as a number in [0, 1], or None. Under this profile the
+    marker is a claim the far side may act on, so a value that is not a
+    finite number in the contract's range is not sent at all: a string
+    there would be producer text reaching the far side, and an unbounded
+    number would have no bound on the line."""
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return None
+    if _is_non_finite(value) or value < 0 or value > 1:
+        return None
+    return value
+
+
+def _plain_decimal(value):
+    """A point attribute in plain decimal notation, or None if it is not a number.
+
+    The standard string prints floats with str(), which can be exponent form
+    for a value near zero; the public CoT event schema's decimal types refuse
+    that form, so the profile rewrites the attribute.
+    """
+    if isinstance(value, str) and not _NUMBER_TEXT.fullmatch(value.strip()):
+        return None
+    try:
+        text = format(Decimal(repr(float(value))), "f")
+    except (ValueError, TypeError, OverflowError, ArithmeticError):
+        return None
+    return text if _PLAIN_DECIMAL.fullmatch(text) else None
+
+
+def _apply_cds_profile(cot_xml, cot_config, *, now, time_obj, cot_type, geo_is_2d, producer, confidence, raw_class):
+    """Reduce the standard projection to the cds shape, or refuse (None).
+
+    A post-projection transform, so the standard bytes are what every other
+    consumer still gets. The type must sit on the unknown branch: the
+    validated packets never asserted an affiliation, and a class that does is
+    refused rather than retyped, because a retype would either assert a claim
+    the event did not make or hide one it did. The remarks are replaced by
+    the validated template, one line whose honesty markers come first and
+    always survive the cut: what the track is and that it came through ZMeta,
+    "affiliation not asserted", the event's confidence when it carries one,
+    "2-D fix, altitude not asserted" for a declared 2-D geo, the producer, and
+    the deployment's attribution. Producer free text (source_summary, the
+    ellipse text) does not cross under this profile; the ellipse still
+    reaches point@ce and precisionlocation. The structured <geo_dimensionality>
+    marker cannot cross the guard, so its declaration travels as those words;
+    that keeps doctrine A1-02's honesty at the cost of design gate 5, and the
+    README says so.
+    """
+    if not cot_type.startswith("a-u-"):
+        return None
+    window = float(cot_config.get("stale_window_s", CDS_STALE_S))
+    max_age = float(cot_config.get("max_age_s", window))
+    # A report older than max_age at projection is history, and one dated
+    # later than that in the future is a clock the projection cannot vouch for;
+    # either would leave with a stale time that reads as live.
+    if abs((now - time_obj).total_seconds()) > max_age:
+        return None
+    stale_obj = _stale_time(now, window * 1000.0)
+    if stale_obj is None or stale_obj < time_obj:
+        return None
+    try:
+        root = ET.fromstring(cot_xml)
+    except (ET.ParseError, UnicodeError):
+        # A character XML 1.0 forbids, or one UTF-8 cannot encode, reached
+        # the standard string (the standard escape covers markup, not
+        # control characters or lone surrogates). Refuse.
+        return None
+    if [child.tag for child in root] != ["point", "detail"]:
+        # The standard string has exactly a point and a detail. Anything
+        # else means a value was read as markup, and nothing after this
+        # line could tell which element is the event's own.
+        return None
+    detail = root.find("detail")
+    for child in list(detail):
+        if child.tag not in CDS_DETAIL_CHILDREN:
+            detail.remove(child)
+    # `how` is already on the standard string: the validator made it a
+    # condition of the profile, and the standard path stamps it.
+    root.set("stale", stale_obj.strftime("%Y-%m-%dT%H:%M:%S.%fZ"))
+    point = root.find("point")
+    if point is None:
+        return None
+    for name in ("lat", "lon", "hae", "ce", "le"):
+        plain = _plain_decimal(point.get(name))
+        if plain is None:
+            return None
+        point.set(name, plain)
+
+    core = ["track via ZMeta"]
+    core.append("affiliation not asserted")
+    if _cds_confidence(confidence) is not None:
+        core.append(f"confidence={_cds_confidence(confidence)}")
+    if geo_is_2d:
+        core.append("2-D fix, altitude not asserted")
+    text = "; ".join(_cds_line(part) for part in core)
+    # The producer name and the optional parts are cut to the room that
+    # remains; the markers above are never cut for them. The schema does not
+    # bound the producer name, so a long one is cut, and the marker before it
+    # survives whole.
+    optional = []
+    if producer:
+        optional.append((_cds_line(f"producer {producer}"), True))
+    if raw_class is not None:
+        label = _class_label(_cds_line(raw_class))
+        if label:
+            # A quoted label is sent whole or not at all: cut through its
+            # closing quote it would read as free text.
+            optional.append((f"class {label}", False))
+    attribution = cot_config.get("attribution")
+    if attribution:
+        optional.append((_cds_line(attribution), True))
+    for part, may_cut in optional:
+        room = CDS_REMARKS_MAX - len(text) - 2
+        if room <= 0:
+            break
+        if not part or (len(part) > room and not may_cut):
+            continue
+        text = f"{text}; {part[:room]}"
+    if len(text) > CDS_REMARKS_MAX:
+        # Unreachable while the markers are bounded; refuse rather than cut
+        # a marker if that ever changes.
+        return None
+    remarks = detail.find("remarks")
+    if remarks is None:
+        remarks = ET.SubElement(detail, "remarks")
+    remarks.text = text
+
+    serialized = ET.tostring(root, encoding="unicode")
+    if _ANY_LINK.search(serialized):
+        # A link that survived outside remarks, for example in a callsign.
+        # Nothing honest can be said about this event across the guard.
+        return None
+    try:
+        serialized.encode("utf-8")
+    except UnicodeEncodeError:
+        return None
+    return serialized
+
+def zmeta_to_cot_uncertainty_circle(zmeta_state_event, radius_m, cot_config=None, now=None):
     """Convert a ZMeta STATE_EVENT into CoT with an explicit uncertainty ring.
 
     Args:
         zmeta_state_event: ZMeta STATE_EVENT dict.
         radius_m: Uncertainty radius in metres.
         cot_config: Optional config dict (see zmeta_to_cot).
+        now: Optional projection instant, passed through (see zmeta_to_cot).
 
     Returns:
         CoT XML string with <circle> element, or None.
     """
-    import xml.etree.ElementTree as ET
-
-    cot_xml = zmeta_to_cot(zmeta_state_event, cot_config=cot_config)
+    if (cot_config or {}).get("profile") == "cds":
+        # A <circle> child is outside the shape the guard passed, and the
+        # radius already reaches the packet as point@ce.
+        return None
+    cot_xml = zmeta_to_cot(zmeta_state_event, cot_config=cot_config, now=now)
     if not cot_xml:
         return None
 

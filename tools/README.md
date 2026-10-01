@@ -22,6 +22,10 @@ python tools/run_gateway.py --profile H
 python tools/run_gateway.py --profile H --schema-path schema/zmeta-event-1.1.0.schema.json   # v1.1.0 lane; default is locked v1.0
 ```
 
+The gateway's own diagnostics are stamped `zmeta_version: "1.0"` on every lane.
+Schema lanes in `gateway/README.md` says how the gateway checks them and what a
+consumer of a 1.1.0 lane does with them.
+
 ### Replay JSONL over UDP
 
 ```
@@ -99,7 +103,7 @@ is intentionally enabled.
 ### Check Migration Compatibility
 
 ```
-python tools/check_compat.py legacy-events.jsonl --target v1.1.25
+python tools/check_compat.py legacy-events.jsonl --target v1.1.26
 python tools/check_compat.py legacy-events.jsonl --profile L --policy-dir policy
 python tools/check_compat.py legacy-events.jsonl --json
 ```
@@ -242,8 +246,8 @@ the deployment hash is intentional.
 ```
 python tools/build_release_manifest.py --output release/zmeta-release-manifest.yaml
 python tools/validate_release_manifest.py --manifest release/zmeta-release-manifest.yaml
-python tools/build_release_package.py --manifest release/zmeta-release-manifest.yaml --output-dir release/package-v1.1.25 --release-id zmeta-v1.1.25 --release-state formal_release --no-signatures --release-notes release/RELEASE_NOTES_v1.1.25.md
-python tools/validate_release_package.py --manifest release/zmeta-release-manifest.yaml --package-dir release/package-v1.1.25
+python tools/build_release_package.py --manifest release/zmeta-release-manifest.yaml --output-dir release/package-v1.1.26 --release-id zmeta-v1.1.26 --release-state formal_release --no-signatures --release-notes release/RELEASE_NOTES_v1.1.26.md
+python tools/validate_release_package.py --manifest release/zmeta-release-manifest.yaml --package-dir release/package-v1.1.26
 python tools/validate_release_package.py --manifest release/zmeta-release-manifest.yaml --templates-only
 ```
 

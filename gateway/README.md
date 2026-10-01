@@ -31,6 +31,45 @@ python tools/compute_contract_hash.py
 python gateway/src/gateway.py --profile H --self-test --require-contract-hash <HASH>
 ```
 
+### Schema lanes
+
+The gateway validates each incoming event against one schema, its lane, set
+with `schema_path` or `--schema-path`. The default is the locked v1.0 schema,
+`schema/zmeta-event-1.0.schema.json`. A gateway for v1.1.0 producers runs
+`schema/zmeta-event-1.1.0.schema.json`, and a gateway for both runs the
+dispatching `schema/zmeta-event.schema.json`, which selects the schema from
+each event's `zmeta_version`.
+
+Every diagnostic the gateway mints is stamped `zmeta_version: "1.0"`, on every
+lane. The outgoing self-check runs on every event `process_message` returns. It
+validates a diagnostic the gateway minted against the schema that diagnostic's
+own `zmeta_version` selects, taken from this repository's `schema/` directory,
+as contract section 2.4 requires of a consumer, and it validates a forwarded
+producer event against the lane. Two diagnostics are not checked again: the
+replacement the gateway builds when the self-check refuses an event, and the
+`ENCODING_UNSUPPORTED` diagnostic it builds when the output encoding cannot
+carry an event. The gateway exits at startup if that `schema/` directory has no
+readable schema for the version its diagnostics declare. A gateway launched
+with a copy of the v1.0 schema from another directory checks producer events
+against that copy and its own diagnostics against this repository's v1.0
+schema. The contract hash covers the lane file only. On the 1.1.0 lane, the
+output therefore carries 1.1.0 producer events beside v1.0
+diagnostics, and a consumer that validates it selects each event's schema by
+`zmeta_version`, as the dispatching schema does, instead of applying the 1.1.0
+schema to every event.
+
+The lanes differ in how a refusal reads. On a per-version schema, a refused
+event's diagnostic names the failing location in `metrics.path`. On the
+dispatching schema, a refused event is reported as the whole event with an
+empty `path`, because its `oneOf` cannot say which branch failed.
+
+A deployment that imports `process_message` and `validate_outgoing_event`
+instead of running the gateway gets the same behavior, as long as it passes the
+events `process_message` returns to `validate_outgoing_event` without copying
+them into new dicts. The builders return `GatewayDiagnostic`, a `dict`
+subclass that encodes exactly like a plain dict, and that type is what the
+self-check reads.
+
 ### Config file (recommended)
 
 Generate a deterministic config with the wizard (ships in a repository
@@ -68,6 +107,7 @@ The config file keys are:
 - `warn_datagram_bytes` (warn when an outgoing datagram exceeds this size; 0 disables)
 - `ts_plausibility_horizon_ms` (warn when `event.ts` sits outside a window around now; 0 disables; see Event timestamp plausibility below)
 - `stamp_contract_hash` (include schema, policy, semantic-contract, and combined hashes in gateway-generated system events)
+- `gateway_producer`, `gateway_node_role` (the identity the gateway stamps on the diagnostics it mints; defaults `zmeta-gateway` and `GATEWAY`; see Gateway identity below)
 - `require_schema_hash`, `require_policy_hash`, `require_contract_hash` (startup gate)
 - `schema_path` and `policy_dir` (resolved relative to the config file)
 
@@ -216,6 +256,30 @@ clean and produced no runtime signal either, so the only component that
 noticed was an egress adapter refusing to project it (doctrine C1-02,
 `docs/release_notes_errata.md`).
 
+### Gateway identity
+
+Every diagnostic the gateway mints, a SCHEMA_VIOLATION, a warning event, or a
+duplicate TASK_ACK, carries a `source` block naming the gateway. The producer
+name and node role are settings, `gateway_producer` and `gateway_node_role`,
+also available as `--gateway-producer` and `--gateway-node-role`, so that a
+gateway deployed in another role, such as a DMZ admission boundary, can name
+itself on its own evidence. The defaults are `zmeta-gateway` and `GATEWAY`, the
+values the gateway has always used. `platform_id` stays `zmeta-gateway`.
+
+The gateway's outgoing self-check runs role and producer authority over those
+diagnostics, so an identity the loaded policy does not authorize would have
+every one of them refused. When a non-default identity is configured, the
+gateway checks it against the loaded policy at startup and exits if either
+check refuses it. The fix is to authorize the producer for `SYSTEM_EVENT` in
+`policy/producer-authority.yaml` and to use a role from `policy/roles.yaml`.
+The check covers identity only; the schema half of the outgoing self-check
+depends on the lane the gateway runs. The default identity is not checked, so a
+gateway that configures none behaves as before.
+
+A deployment that imports `process_message` instead of running the gateway
+passes its identity as `gateway_identity={"producer": ..., "node_role": ...}`
+and calls `check_gateway_identity(identity, policy)` at its own startup.
+
 ### Contract hash gate
 
 On startup, the gateway prints schema, policy, semantic-contract, and combined
@@ -232,6 +296,20 @@ python gateway/src/gateway.py --profile H --emit-cot
 ```
 
 CoT XML is sent via UDP to `127.0.0.1:6969`.
+
+The projection is the reference CoT egress adapter's, configured through the
+`cot.config` block of the JSON config (see `adapters/egress/cot/README.md`).
+`cot.config.profile` selects `standard` (the default) or `cds`, the shape one
+partner's cross-domain guard passed on 2026-09-29; `cds` requires a `how`
+token the deployment asserts. The gateway validates the block when it reads
+it and exits with the adapter's message on a profile it cannot run, so a
+`cds` config without `how` stops the gateway at startup instead of refusing
+every track at egress. A `cot` block that is mistyped fails the same way: a
+`config` that is not an object, or a key under `cot` other than `host`,
+`port` and `config`, is a configuration error, because ignoring it would run
+the standard projection where the deployment meant another. A track the
+profile refuses at egress, such as one whose type asserts an affiliation, is
+counted under `cot_skip_reasons` as `UNCONVERTIBLE`.
 
 ### Run with Docker
 

@@ -1,6 +1,48 @@
 # ZMeta Refinement Handoff Notes
 
-## CURRENT STATE (2026-09-22): DEVELOP PUSHED AFTER THE PRE-PUSH REWRITE; MAIN CARRIES THE NOTICE SET
+## CURRENT STATE (2026-09-29): v1.1.26 CUT FROM DEVELOP; MAIN FAST-FORWARDED
+
+`main` == `develop` == the v1.1.26 cut commit, tagged `v1.1.26`, signed and
+published on 2026-09-29 on the maintainer's direction given in this
+repository's session. The release carries the `cds` CoT profile (the shape
+one partner's cross-domain guard passed on 2026-09-29), the CoT type parse,
+the gateway identity setting, the gateway's diagnostics on the 1.1.0 lane,
+and the integration line's held content (the experimental 1.1.0 acoustic
+entries, the validation guidance, the ontology reference, the notice set).
+The v1.0 schema and the semantic contract file are byte-identical to
+v1.1.25; the policy pack is unchanged. Governed delta relative to v1.1.25:
+`schema/zmeta-event-1.1.0.schema.json`, `spec/extension-registry.yaml`,
+`spec/extension-registry.md`, `spec/field-dictionary.md`,
+`spec/future-branch-roadmap.yaml`, and the advisory `schema/README.md`.
+Validation at the cut: `release/VALIDATION_REPORT_v1.1.26.md`.
+
+Open, in order of proximity:
+
+1. **F3-03 with the maintainer:** whether the `cds` profile should carry
+   `valid_for_ms` into `stale` when shorter than the window (contract
+   section 14), and whether the window should announce itself in
+   `remarks`; F3-05, whether a deployment may opt into passing an asserted
+   affiliation; F3-04, whether the roadmap candidate
+   `coalition-release-export` records the 2026-09-29 validation as
+   evidence (a governed edit).
+2. **`wave/registry-candidates-2026-09`**, local and unmerged: the
+   DIALECT_LABEL proposal and the roadmap canonical-byte-form entry, with
+   the five U1-02 questions open.
+3. **Booked follow-ups from the cds refutation rounds:** a profile-specific
+   `cot_skip_reasons` token; three standard-profile hardening items (a
+   control character or lone surrogate in a callsign is sent unparsed, a
+   string `payload.geo` value is written into a point attribute unescaped,
+   a non-numeric `default_le` or `default_ce` is written as given).
+4. **Forward edits from the 2026-09-21 share-readiness scan** (private
+   session record), each the maintainer's election, unchanged from the
+   previous state.
+5. **Local hygiene:** `refs/backup/*` holds the pre-rewrite tips; delete
+   them once satisfied.
+
+Next session: item 1 as the maintainer rules; the registry wave when U1-02
+is answered.
+
+## Previous state (2026-09-22): DEVELOP PUSHED AFTER THE PRE-PUSH REWRITE; MAIN CARRIES THE NOTICE SET
 
 `develop` == `origin/develop` == a305c92, pushed 2026-09-22 after the
 pre-push history rewrite the maintainer directed on 2026-09-21: the
@@ -67,6 +109,124 @@ branch amends Section 9.3 for live streams or carries them outside
 `data_ref`; the canonical byte form and the strength of the determinism
 clause (C1-07), before any signing work; and whether the signing tripwire has
 fired (Tier 2 item 6).
+
+## MERGED AT THE v1.1.26 CUT (2026-09-29): `exp/cot-cds-profile`
+
+Merged into `develop` on 2026-09-29 and shipped in v1.1.26. The section
+below is the record as written on the branch.
+
+The branch is based on `exp/cot-type-parse` 980357c and depends on it: the
+profile refuses any type off the unknown branch, and the type parse is what
+keeps a label class on that branch. It merges into `develop` after
+`exp/cot-type-parse`, on the maintainer's word; the maintainer directed on
+2026-09-29 that, once every check passes, the adapter is merged and on
+`main` for public use, which under the branching rule means a release cut
+from `develop`. This is a Class C change to a reference adapter and the
+reference gateway's config validation; no governed artifact moves.
+
+The `cds` profile is the shape one partner's cross-domain guard passed on
+2026-09-29 (n=1). The adapter README's "Profiles" section states what is and
+is not claimed, and doctrine log cycle F3 records the tensions: a redaction
+done by an adapter (18.3), the 2-D declaration carried as words (gate 5
+against A1-02), `stale` as a fixed window against contract section 14's
+`valid_for_ms` rule (open), `how` as a deployment claim, the n=1 evidence
+bar, and the refusal of asserted affiliations.
+
+Left for the maintainer: whether the roadmap candidate
+`coalition-release-export` should record this validation as evidence (a
+governed artifact, not touched on this branch); whether a deployment may ever
+opt into passing an asserted affiliation across a guard; whether the profile
+should carry `valid_for_ms` into `stale` when it is shorter than the window
+(F3-03); and whether the window should announce itself in `remarks`, which
+the validated shape does not do. Booked as follow-ups: a profile-specific
+`cot_skip_reasons` token (a refusal by the profile lands in the generic
+`UNCONVERTIBLE` bucket today); and three standard-profile hardening items
+the second refutation round exposed and this branch leaves as they were,
+since the gateway validates events before egress: a control character or
+lone surrogate in a callsign is sent unparsed, a string `payload.geo` value
+is written into a point attribute unescaped, and a non-numeric `default_le`
+or `default_ce` is written as given.
+
+## MERGED AT THE v1.1.26 CUT (2026-09-29): `exp/cot-type-parse`
+
+Merged into `develop` on 2026-09-29 and shipped in v1.1.26. The section
+below is the record as written on the branch.
+
+The branch is based on `develop` f622d0b. On the maintainer's ruling of
+2026-09-28, the reference CoT egress uses `payload.class` as the CoT type only
+when it parses as a CoT atom type, and otherwise sends `a-u-G` with the label as
+a quoted token in `remarks`. This is a Class C change to a reference adapter;
+no governed artifact moves. The branch merges into `develop` on the
+maintainer's word. It edits the same record files as
+`wave/registry-candidates-2026-09`, so whichever merges second resolves the
+record entries by keeping both.
+
+Left for the maintainer: whether "parses as a CoT type" should stay
+grammatical, which admits a well-formed type that denotes nothing, or become a
+lookup in a type table, which would refuse real types the table lacks; and
+whether the label should also reach the map's callsign, which today shows the
+track id.
+
+Found by this branch's review and booked, not changed here: `payload.source_summary`
+members are joined into `remarks` with `; ` and no delimiting, so a summary
+entry can pass for a remarks fragment in the way the class label could before
+this change; and `_esc` in the same adapter escapes XML markup but not the C0
+control characters XML 1.0 forbids, so such a character in any other rendered
+field produces a document that does not parse.
+## MERGED AT THE v1.1.26 CUT (2026-09-29): `exp/gateway-identity`
+
+Merged into `develop` on 2026-09-29 and shipped in v1.1.26. The section
+below is the record as written on the branch.
+
+The branch is based on `develop` f622d0b. On the maintainer's concurrence of
+2026-09-28, the reference gateway's diagnostic identity, its producer name and
+node role, is configurable, with the historical values as defaults and a
+startup check against the loaded policy for a non-default identity. This is a
+Class C change to the reference gateway; no governed artifact moves. The branch
+merges into `develop` on the maintainer's word. It edits the same record files
+as `wave/registry-candidates-2026-09` and `exp/cot-type-parse`, so each later
+merge resolves the record entries by keeping both.
+
+Left for the maintainer: whether `platform_id`, which stays `zmeta-gateway`,
+should also become a setting, since two gateways with the same producer name
+remain indistinguishable in their own diagnostics until it is.
+## MERGED AT THE v1.1.26 CUT (2026-09-29): `exp/gateway-lane-diagnostics`
+
+Merged into `develop` on 2026-09-29 and shipped in v1.1.26. The section
+below is the record as written on the branch.
+
+The branch is based on `develop` f622d0b and carries item 1 of the
+2026-09-12 list below, as the maintainer ruled it that day: the outgoing
+self-check validates a diagnostic the gateway minted against the schema its
+own declared version selects, the v1.0 stamp stays, and the TV-09 pins run on
+the v1.0 lane, the 1.1.0 lane and the union. This is a Class C change to the
+reference gateway; no governed artifact moves. The branch merges into
+`develop` on the maintainer's word, before the COP is pointed at `develop`.
+It edits the same record files as the other 2026-09-28 branches, so each
+later merge resolves the record entries by keeping both. It also conflicts
+with `exp/gateway-identity` in one hunk of `gateway/src/gateway.py`, where
+both branches add helpers immediately before `build_violation_event` and each
+side of the hunk ends with that function's signature line. The resolution
+keeps both helper blocks and the identity branch's signature, which adds
+`identity=None`; the builders' return blocks merge cleanly. A trial merge
+resolved that way passes both branches' gateway tests together. After
+that merge, the identity branch's `check_gateway_identity` docstring, which
+leaves the schema check out because it depends on the lane, is no longer true
+for diagnostics, and its startup check could run the version-selected schema
+check as well.
+
+Still open from item 1, and unchanged here: whether a gateway may ever author
+a 1.1.0-stamped diagnostic, on which the `RF_ZERO_FILL_SUSPECTED` notes in
+`README.md` still say that consumers on the 1.1.0 lane see the native code,
+an erratum under the ruling because every gateway diagnostic is v1.0-stamped
+and carries the fallback pair; and the default lane, reserved by F2-06. Found by this branch and
+booked: on the dispatching union schema, a refused producer event is reported
+as the whole event with an empty `path`, so a deployment serving both
+versions loses the refusal's location; and the contract hash covers the lane
+file only, so on the 1.1.0 lane the v1.0 schema that now checks every
+diagnostic is not pinned by `--require-schema-hash` or
+`--require-contract-hash`. Widening the hash would change every deployment's
+hash, which couples it to the default-lane question.
 
 ## Previous state (2026-09-12): THREE WAVES ON DEVELOP, HELD FOR LIVE EVIDENCE
 
@@ -1693,7 +1853,7 @@ Current stack status:
   bearing/heading fields unless callers explicitly assert `TRUE_NORTH`;
   unasserted native values remain auditable under explicitly named
   non-canonical fields.
-- Use tag `v1.1.25` for current formal release assets and checksums.
+- Use tag `v1.1.26` for current formal release assets and checksums.
   Published 2026-08-13 at the maintainer's direction: PR #8 merged with its
   record wave completed, and the release signed with the Incept.IO release
   key, the first signed release since v1.1.4. The signing decision names

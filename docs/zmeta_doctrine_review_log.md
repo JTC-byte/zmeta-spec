@@ -2966,6 +2966,122 @@ matched v1.1.25 and is left for regeneration at the next release. An earlier
 draft of this change regenerated it, which would have credited v1.1.25 with
 entries it does not contain.
 
+## Cycle F3 — 2026-09-29 (fielded evidence: a partner's cross-domain guard passed the CoT projection)
+
+A downstream deployment's two producers, its operational TAK server, one
+outbound federation group, the partner's federation hub, the partner's
+cross-domain guard, the higher enclave. The deployment reported that under
+an earlier shape it had named strict the partner saw tracks on the hub on
+2026-09-24 and the guard passed nothing, and that after two changes went
+live together at 20:01 UTC on 2026-09-29 the guard passed everything. The
+shape is captured in this repository as the `cds` profile of the reference
+CoT egress adapter (Class C), on the maintainer's direction of the same day
+to capture the validated formatting as an adapter and ship it. The evidence
+is one deployment, one partner's guard, one day. The tensions it raises are
+logged here whether doctrine wins or not, per the protocol above. Section
+18 of the contract describes itself as future semantic direction and policy
+guidance, so where it is cited below it guides.
+
+### F3-01 — A redaction performed by an adapter · **HELD-FIRM 2026-09-29 (named profile; the adapter invents no audit fields)**
+
+**Observed:** the guard-passing shape removes detail children, the
+deployment's provenance element, every link, and the producer's free text
+(the source summary and the ellipse text, replaced by a template). Contract
+section 18.2 calls that a redaction projection and lists what it must not
+do. Section 18.3 says export audit metadata "should be enforced by policy
+and conformance tests, not by adapters inventing one-off redaction
+semantics", and section 14 says CoT display conveniences are adapter
+behavior.
+
+**The tension:** the redaction happens in the adapter, selected by config,
+and the packet carries no audit metadata, because the guard's format has no
+place for it.
+
+**Decision:** the maintainer's direction places the shape in the adapter as
+a named, documented, tested profile rather than one-off semantics. Five of
+the six 18.2 prohibitions are tests: no meaning, unit, identity or
+confidence changes, and the original event is not mutated; the sixth, that
+the redaction is not hidden from a consumer who needs that fact, is the
+README's statement of the profile and the words `affiliation not asserted`
+in every packet. The audit metadata of 18.3 stays booked to the
+coalition-export candidate, and the deployment keeps its audit beside the
+packet. The placement of audit fields in policy and conformance, per 18.3,
+is unchanged.
+
+### F3-02 — The structured 2-D marker cannot cross the guard · **HELD-FIRM 2026-09-29 (A1-02 as words; gate 5 not met at the boundary)**
+
+**Observed:** design gate 5 puts load-bearing data in structured fields, with
+free text as the projection. The guard passes four detail children, and the
+`<geo_dimensionality>` marker adopted under doctrine A1-02 is not among them.
+
+**The tension:** without the marker, a declared horizontal-only fix and an
+unmeasured altitude look the same on the far side, which is the laundering
+A1-02 was adjudicated to prevent.
+
+**Decision:** the declaration travels as the words `2-D fix, altitude not
+asserted` in `remarks`, so the honesty survives in the only channel that
+passes. The marker stays in the standard profile. Recorded as a case where
+the advisory gate cannot be met and the locked honesty rule is kept in the
+channel that remains. It sets no precedent for moving structure into text
+where structure can pass.
+
+### F3-03 — `stale` as a fixed window, `how` as a deployment claim · **OPEN 2026-09-29**
+
+**Observed:** contract section 14 says CoT and the other display formats
+"must preserve" a list that includes "`payload.valid_for_ms` as
+freshness/stale behavior", and that display conveniences are adapter
+behavior. The shape that passed sets `stale` to arrival plus 120 s on every
+source, whatever the event claimed, and the deployment reported that this
+change and the link removal went live together, neither tested alone. The
+event model carries no position-source claim (R1-11 CR-11), so the adapter
+never fills `how`; the shape carried `how` asserted per source.
+
+**The tension:** a track valid for one second and one valid for an hour
+leave with the same `stale`. That is a display window standing where the
+contract puts the producer's validity claim. Carrying `valid_for_ms` when it
+is shorter than the window would keep section 14 and change the validated
+shape, which no evidence yet covers.
+
+**Decision:** the profile ships the validated shape: the window is
+configuration, the event's claim is untouched, an event older than the
+maximum age (which may not exceed the window) is refused, and replay-display
+mode is refused because a re-stamped event would pass the age rule at any
+age; the README states the cost. `how` is a required input asserted by the
+deployment, never defaulted. **OPEN** with the maintainer: whether the
+profile should carry `valid_for_ms` into `stale` when shorter than the
+window, and whether the window should announce itself in `remarks`.
+
+### F3-04 — The evidence bar · **OPEN 2026-09-29 (n=1)**
+
+**Observed:** one deployment, one partner's guard, one day, two changes
+applied together and neither tested alone. The registry's promotion bar for
+vocabulary is "At least two independent implementations or deployments, not
+derived from the same codebase, vendor, or organization" and "At least one
+documented failure condition". This cycle moves no vocabulary, so the bar
+did not apply to the profile; it is cited here as the standard of evidence
+the repository uses.
+
+**Decision:** no vocabulary moves and no class changes status;
+ZMETA-COALITION-EXPORT stays future. Booked: whether the roadmap candidate
+`coalition-release-export` records this as evidence, which is a governed
+edit outside this branch. Open until a second guard or a controlled test of
+each change alone.
+
+### F3-05 — An asserted affiliation at the boundary · **HELD-FIRM 2026-09-29 (refuse, never retype); opt-in OPEN**
+
+**Observed:** the validated packets asserted no affiliation. Nothing in the
+contract decides whether an asserted affiliation may cross a guard.
+
+**The tension:** retyping a hostile or friendly track to the unknown branch
+hides a claim the event made (18.2: a redaction must not "Hide that
+redaction occurred when the consumer needs that fact"); passing it asserts
+a claim the far side may act on, and the release profiles of 18.1 that
+would govern who may receive what are future.
+
+**Decision:** the profile refuses such an event, counted as a `cot_skipped`
+record under the gateway's generic `UNCONVERTIBLE` reason. **OPEN:** whether
+a deployment may opt in; not offered.
+
 ## Archive
 
 Terminal tension entries and retired rules, one line each. Full bodies live in

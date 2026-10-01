@@ -88,17 +88,18 @@ gives the identical contradiction.
 | Team coloring | `<__group>` element for ATAK friendly platform team panels |
 | Hostile labels | Persistent `<labels_on>` so CE readout is always visible |
 | Callsign fallback | Hostile emitters show "RF Emitter" / "Detection" instead of raw track IDs |
-| Remarks | Source summary, confidence (whenever the event carries one), and error ellipse details |
+| Remarks | The class as a quoted label when it is not a CoT type, then source summary, confidence (whenever the event carries one), and error ellipse details |
 | Wall-clock mode | Opt-in replay-display mode (`use_wall_clock: True`) re-stamps CoT timestamps to now; off by default, since event time is authoritative, and an event missing `event.ts` is refused (`None`) outside this mode |
 | Custom icons | Quadcopter icon for drone/sensor platforms (`a-f-A-M-F-Q`) |
 | Declared 2-D geo | `<geo_dimensionality>` detail marker distinguishes a declared horizontal-only fix from the ambiguous absent-altitude case (both still emit `hae="9999999.0"`, CoT `hae` being required and numeric); a `"2D"` geo carrying `alt_m` refuses (doctrine A1-02, see below) |
+| Profiles | `standard` (the default, everything above) and `cds`, the shape one partner's cross-domain guard passed on 2026-09-29: four detail children, `how` asserted, one fixed-template remarks line, no http(s) link, a fixed stale window, a maximum age, no replay-display mode. See "Profiles" |
 
 ### Mapping
 
 | ZMeta field | CoT field | Notes |
 |-------------|-----------|-------|
 | `payload.track_id` | `uid` | |
-| `payload.class` | `type` | Falls back to `a-u-G` |
+| `payload.class` | `type` | Used as the type only when it parses as a CoT atom type (`a`, an affiliation letter, a battle dimension, then function-code segments, as in `a-h-G-U-C-I`). Any other class is an entity label, such as a detector's `car`: the event goes out as `a-u-G`, which claims no affiliation, and the label is prepended to `remarks` as one quoted token, `class="<label>"`. An absent or null class uses `default_type`; an empty or whitespace-only class goes out as `a-u-G` with no label. See "Class and type" |
 | `payload.geo.lat/lon/alt_m` | `point lat/lon/hae` | Absent `alt_m` → `hae="9999999.0"` (CoT unknown-value convention, never a fabricated 0 m claim); a real `alt_m` of `0.0` passes through as `0.0`. A declared `geo.dimensionality: "2D"` also renders `hae="9999999.0"` (CoT `hae` is a required numeric attribute with no "not applicable" convention), paired with the `geo_dimensionality` detail marker below so the sentinel is not the whole story; see "Declared 2-D geo" |
 | `payload.geo.dimensionality` | `detail geo_dimensionality` | Emitted only for a declared `"2D"` geo, as `<geo_dimensionality value="2D" geo_status="…" />`; `geo_status` rides along only when `payload.quality.geo_status` is present. Absent `dimensionality` (the historical ambiguous case) emits no marker at all; see "Declared 2-D geo" |
 | `payload.geo.error_ellipse_m` | `point ce` + `precisionlocation` + `remarks` | `semi_major` → `ce` as the **conservative circular bound** (a circle of radius `semi_major` covers the whole ellipse, so `ce` never understates the horizontal error); absent → `9999999.0` (CoT unknown-value convention). `le` is **never** derived from the ellipse: CoT `le` is linear (vertical/HAE) error, the contract's ellipse is purely horizontal (§21.2, orientation from true north), and the event model has no vertical-uncertainty field, so `le` is always `default_le` (`9999999.0` unless the deployment has a real vertical error model). `precisionlocation` is emitted only when a source is asserted (see Configuration). A `semi_minor` or `orientation_deg` the dict never asserted is an omitted fragment/attribute in `remarks`/`precisionlocation`, never a fabricated `0`; a dict with no `semi_major` under that name (missing, or a wrong-spelled key) has no ellipse this adapter can honestly render at all, so nothing is emitted for it, the same way `ce` falls back to `default_ce` rather than reading a `0` out of it |
@@ -108,6 +109,166 @@ gives the identical contradiction.
 | `payload.callsign` | `contact callsign` | With hostile fallback |
 | `payload.source_summary` | `remarks` | Joined with `;` |
 | `confidence` (top level) | `remarks` | Appended whenever present, after any source summary |
+
+### Class and type
+
+`payload.class` is a free string in both schema versions: `TrackStatePayload`
+declares it only as `{"type": "string"}`. The CoT ingress adapter stores the
+CoT type there, another producer may store an entity label, and both are
+conforming. This adapter therefore uses the class as the CoT type only when it
+parses as a CoT atom type. The check is grammatical rather than a lookup in a
+type table: a well-formed type is accepted whether or not a table knows it,
+which means a grammatical type that denotes nothing still passes, and a label
+never becomes a type. A CoT round trip keeps an atom type. Any other CoT type,
+such as a marker type, comes back as `a-u-G` with the original type in
+`remarks`.
+
+A class that fails the check goes out as `a-u-G`, so it can never place a
+hostile or friendly marker on a map. Its label is prepended to `remarks` as one
+quoted token, `class="<label>"`, with internal quotes and backslashes escaped,
+so a label such as `car; confidence=0.99` cannot pass for a remarks fragment of
+its own. Characters that are not printable become spaces, and a label longer
+than 64 characters is cut with a trailing `...`. An empty or whitespace-only
+class goes out as `a-u-G` with no label. A class that does parse carries its
+own affiliation through unchanged, including the hostile callsign fallback and
+the friendly team coloring above.
+
+`default_type` applies only to a track whose class is absent or null, never to
+a class that is a label. A configured value that does not parse as a CoT atom
+type falls back to `a-u-G`.
+
+### Profiles
+
+`cot_config["profile"]` selects one of two projections. `standard`, the
+default, is the output described everywhere else in this README; it is
+unchanged by the other profile's existence, and a test freezes its bytes.
+`cds` is the shape one partner's cross-domain guard passed into a higher
+enclave on 2026-09-29, recorded here so a deployment can select the validated
+shape by name instead of rebuilding it.
+
+What passed, and how much that proves: one deployment, one partner's guard,
+one day (n=1). The deployment reported that the partner saw its tracks on the
+partner's federation hub on 2026-09-24 under an earlier shape the deployment
+had named strict, and that the guard did not pass them. Two changes went live
+together at 20:01 UTC on 2026-09-29, after which the deployment reported that
+the guard passed everything: a stale time of arrival plus 120 s on every
+source, and no link anywhere in the event. Which of the two the guard needed
+is not known, and neither was tested alone, so the profile carries both under
+one name and a deployment cannot lose either by accident. Nothing here claims
+that another guard, or the same guard on another day, passes this shape.
+
+The profile is a transform applied after the standard projection, so it is
+exactly "the standard output plus these changes", which is how it was
+validated. Every refusal of the standard projection is inherited, including
+an unrepresentable `valid_for_ms`, because the standard string is built
+first.
+
+| Element | `standard` | `cds` |
+|---|---|---|
+| `detail` children | `contact`, and any of `labels_on`, `remarks`, `track`, `precisionlocation`, `__group`, `usericon`, `geo_dimensionality` as the event and config call for | `contact`, `track`, `remarks`, `precisionlocation` only; every other child is removed |
+| `type` | the class when it parses as a CoT type, else `a-u-G` | the same; an event whose type asserts an affiliation (`a-h-`, `a-f-`, and the rest) is refused rather than retyped, see below |
+| `how` | omitted unless the config asserts it | required, the config's `how` token, a deployment claim |
+| `remarks` | the class label, source summary, confidence and ellipse text | one line from a fixed template, see below; producer free text does not cross |
+| `stale` | event `ts` + `valid_for_ms` | the projection time + `stale_window_s` (default 120) |
+| age | any | an event whose `ts` is more than `max_age_s` (default: the stale window, which it may not exceed) before or after the projection time is refused |
+| replay-display mode | `use_wall_clock` re-stamps `time` to now | refused at config time: a re-stamped event would pass the age rule with any age |
+| links | as the event carries them | no http(s) link anywhere; one that survives outside `remarks`, for example in a callsign, refuses the event |
+| `point` attributes | Python's float text, exponent form for a value near zero | plain decimal notation, the form the public CoT event schema accepts; a value that is not a number refuses |
+| `uid`, `time`, `start`, `contact`, `track`, `precisionlocation` | | same values, serialized by `ElementTree` |
+
+The `remarks` line is built from a template, in this order, joined by `; `:
+`track via ZMeta`; `affiliation not asserted`; `confidence=<value>` when the
+event carries a finite number in [0, 1] there; `2-D fix, altitude not
+asserted` for a declared 2-D geo; `producer <name>`; `class "<label>"` when
+the class is a label rather than a CoT type; then the config's
+`attribution`. The markers up to the 2-D words are never cut, and they are
+bounded, so the line has room for the rest. The producer name and the
+attribution are cut to the room left under 200 characters, in that order,
+so a long producer name loses its tail before an honesty marker loses a
+letter; a class label that does not fit whole is left out rather than cut
+through its closing quote. In every part an http(s) link is removed, a
+character that is not printable becomes a space, `;` becomes `,` so no part
+can read as a marker the event never made, and whitespace collapses to one
+line. A confidence that is not a finite number in range is not sent. The
+event's `source_summary` and the ellipse text do not cross under this
+profile; the ellipse still reaches `point@ce` and, with `geopointsrc` or
+`altsrc` configured, `precisionlocation`.
+
+Four of those rows change what a consumer can read, and each is recorded in
+the doctrine pressure log (cycle F3):
+
+- **The 2-D declaration travels as words.** The structured
+  `<geo_dimensionality>` marker does not pass the guard, so a declared 2-D geo
+  says `2-D fix, altitude not asserted` in `remarks` instead. That keeps
+  doctrine A1-02's honesty in the only channel the guard passes. Design gate
+  5 (structure over free text) is not met at this boundary: no structured
+  child carrying the declaration passes the guard.
+- **`stale` is a fixed window, and that costs something.** Contract section
+  14 lists `payload.valid_for_ms` as freshness/stale behavior among what a
+  CoT projection must preserve, and this profile does not preserve it: a
+  track the producer marked valid for one second and one it marked valid for
+  an hour leave with the same stale time. The shape that passed carried no
+  other stale, and the event's `valid_for_ms` is untouched. The maximum age
+  refuses the oldest case, a report older than the window leaving with a
+  stale time that reads as live, and replay-display mode is refused because
+  a re-stamped event would defeat that rule. The tension is open (F3-03),
+  and a consumer on the far side should read `stale` as the deployment's
+  display window rather than the producer's validity claim.
+- **`how` is asserted by the deployment.** The event model carries no
+  position-source claim, so the adapter never fills it in. A deployment
+  asserts the token it can stand behind: `m-f` for fused tracks, `m-r` for
+  relayed reports, and so on.
+- **Producer free text does not cross.** Under this profile `remarks` is the
+  adapter's template, so no producer text reaches a consumer on the far
+  side, and nothing outside the template's slots can be said.
+
+An asserted affiliation is refused rather than retyped. The validated packets
+never asserted one. A retype to the unknown branch would hide a claim the
+event made, and section 18.2 says a redaction must not "Hide that redaction
+occurred when the consumer needs that fact"; passing it through would assert
+a claim the far side may act on, and nothing in the contract decides whether
+an affiliation may cross a guard, the release profiles of section 18.1 that
+would govern it being future. The refusal is the adapter's usual `None`,
+which the gateway counts as a `cot_skipped` record under its generic
+`UNCONVERTIBLE` reason; a profile-specific reason token is booked.
+
+The export audit metadata contract section 18.3 lists (release label,
+exporting authority, guard or policy identifier, redaction reason, removed
+field categories, export timestamp, destination domain or partner class,
+contract or policy hash) is not in the packet: the guard's format carries no
+place for it, and it remains future vocabulary (the roadmap's
+`coalition-release-export` candidate, registry names `RELEASE_LABEL`,
+`REDACTION_PROFILE`, `EXPORT_AUDIT`). A deployment that needs the audit keeps
+it beside the packet.
+
+`validate_cot_config(cot_config)` returns the profile name or raises
+`ValueError` for a config the adapter cannot run. An unknown profile is
+refused under any config. For a `cds` config it also refuses a key the
+adapter does not read (so a misspelled `stale_window_s` cannot leave the
+default in force), a missing or malformed `how` token, `use_wall_clock`, a
+window or age that is not a positive number of seconds within thirty days,
+an age larger than the window, and an attribution that is not a string, that
+is not printable text, or that carries a link of any scheme. The gateway
+calls it when it reads `cot.config` and exits with the message, so a
+deployment learns at startup rather than as a refusal of every track.
+`zmeta_to_cot_uncertainty_circle` returns `None` under the profile, since a
+`<circle>` child is outside the shape and the radius already reaches the
+packet as `point@ce`. The `cds` output is serialized by `ElementTree` after
+the transform, so its text escaping and whitespace differ from the standard
+string. The tests validate the `cds` output against MITRE's public
+`Event-PUBLIC.xsd` when `COT_EVENT_XSD` names a copy and `lxml` is installed;
+the repository vendors neither, and a structural test that needs neither
+runs always.
+
+```python
+cot_config = {
+    "profile": "cds",
+    "how": "m-f",                       # required: the deployment's own claim
+    "stale_window_s": 120,              # stale = projection time + window; 120 is the value that passed
+    "max_age_s": 120,                   # older or newer than this at projection: refused (default: the window)
+    "attribution": "Data from an open feed, attribution in words",  # optional; printable words, no link
+}
+```
 
 ### Heading / course frame
 
@@ -129,7 +290,7 @@ Pass a `cot_config` dict to customize behavior:
 
 ```python
 cot_config = {
-    "default_type": "a-u-G",           # Default CoT type
+    "default_type": "a-u-G",           # Type for a track with no class
     "default_valid_for_ms": 300000,     # 5 minute stale time
     "default_ce": 9999999.0,           # CE (m) when event has no uncertainty
     "default_le": 9999999.0,           # LE (m); always the emitted le, see below
@@ -139,6 +300,7 @@ cot_config = {
     "geopointsrc": None,               # Position-source pedigree; None = omit
     "how": None,                       # Event derivation pedigree (e.g. "m-g"); None = omit
     "altsrc": None,                    # Altitude-source pedigree; None = omit
+    "profile": "standard",             # or "cds"; see Profiles
 }
 ```
 

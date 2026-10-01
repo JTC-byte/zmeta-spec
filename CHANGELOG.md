@@ -20,6 +20,96 @@
   names. Doctrine U1-01 and U1-02 record the go and the routing, with the
   questions left open.
 
+## [1.1.26] - 2026-09-29
+
+- 2026-09-29 — **The CoT egress adapter gains a `cds` profile, the shape one
+  partner's cross-domain guard passed.** `cot_config["profile"]` selects
+  `standard` (the default, unchanged, with a test that freezes its bytes) or
+  `cds`: the standard projection reduced to the four detail children
+  `contact`, `track`, `remarks` and `precisionlocation`, with `how` required
+  as a deployment claim, `remarks` replaced by one fixed-template line of at
+  most 200 characters whose honesty markers (`affiliation not asserted`, the
+  confidence when it is a finite number in range, `2-D fix, altitude not
+  asserted`) always survive the cut, no http(s) link anywhere in the event,
+  point attributes in plain decimal notation, and `stale` set to the
+  projection time plus a fixed window of 120 s unless the deployment sets
+  `stale_window_s`. The profile refuses rather than sends: an event dated
+  more than `max_age_s` (default: the window, which it may not exceed)
+  before or after the projection time, one whose type asserts an
+  affiliation, one whose standard string is not well-formed XML or does not
+  parse to one point and one detail, one with a point attribute that is not
+  a number, and one with an http(s) link outside `remarks`; the
+  uncertainty-circle wrapper refuses under the profile. `validate_cot_config`
+  refuses a config the adapter cannot run, including replay-display mode,
+  a key the adapter does not read, and an attribution with a link of any
+  scheme; the reference gateway calls it when it reads `cot.config`, so
+  such a config stops the gateway at startup, and a mistyped `cot` block is
+  now a configuration error rather than ignored. `zmeta_to_cot` and the
+  circle wrapper accept a `now` argument for the projection instant, taken
+  as UTC. The evidence is one deployment, one partner's guard, one day; the
+  adapter README says what is and is not claimed, and the doctrine pressure
+  log records the five tensions (cycle F3), three of them open in part, one
+  against contract section 14. Fifty-six adapter
+  tests and six gateway tests cover the profile,
+  including validation against MITRE's public CoT event schema when a copy
+  is available, and a mutation check of fifty-four behavior-changing
+  mutants kills every one.
+
+- 2026-09-28 — **The CoT egress uses a track's class as its CoT type only when
+  the class parses as one.** `payload.class` is a free string in both schema
+  versions, and a producer may carry an entity label there, such as a
+  detector's `car`. `adapters/egress/cot/zmeta_to_cot.py` had used any class
+  verbatim as the CoT `type`, so a label reached TAK as an invalid type, and a
+  non-string class raised an error. A class that parses as a CoT atom type is
+  still used unchanged. Any other class now goes out as `a-u-G`, which claims
+  no affiliation, with the label prepended to `remarks` as one quoted token,
+  so a label cannot pass for a remarks fragment of its own. A configured
+  `default_type` that does not parse as a CoT atom type now falls back to
+  `a-u-G` rather than being emitted verbatim or raising. The adapter README
+  documents the rule, and ten focused tests cover it.
+- 2026-09-28 — **The reference gateway's own identity on its diagnostics is
+  configurable.** The producer name and node role that
+  `gateway/src/gateway.py` stamps on every diagnostic it mints were hardcoded
+  as `zmeta-gateway` and `GATEWAY`. They are now the settings
+  `gateway_producer` and `gateway_node_role`, with matching command-line
+  flags, and the defaults are the old values; `platform_id` stays fixed.
+  `process_message` accepts a `gateway_identity` argument for a deployment
+  that imports it. A configured identity is checked at startup against the
+  loaded policy's roles and producer authority, and the gateway exits if its
+  own diagnostics would fail its outgoing self-check. The default identity is
+  never checked, so existing deployments behave as before. The gateway README
+  documents the settings, and fourteen focused tests cover them.
+- 2026-09-28 — **The reference gateway's own diagnostics survive its outgoing
+  self-check on the 1.1.0 lane.** `gateway/src/gateway.py` stamps every
+  diagnostic it mints `zmeta_version: "1.0"`, and its outgoing self-check
+  validated that diagnostic against the schema the gateway was launched with.
+  With `--schema-path schema/zmeta-event-1.1.0.schema.json`, the lane schema
+  refused the "1.0" stamp, so every refusal reached the wire as a
+  content-free `SCHEMA_INVALID`, and every warning on an accepted event
+  reached it as a REJECTED diagnostic. Both named the id of a diagnostic that
+  was never sent. The self-check now validates a diagnostic the gateway
+  minted against the schema its own declared version selects, as contract
+  section 2.4 requires, and still checks a forwarded producer event against
+  the lane. The three diagnostic builders mark what they mint by returning
+  `GatewayDiagnostic`, a `dict` subclass that encodes exactly like a plain
+  dict; nothing decoded from the wire carries the mark. The v1.0 stamp is
+  unchanged. The gateway now exits at startup if its `schema/` directory has
+  no readable schema for the version its diagnostics declare, since the
+  self-check would otherwise fall back to the lane without a word. Two
+  further effects follow. On the 1.1.0 lane, metrics and the JSONL log no
+  longer count a `SCHEMA_INVALID` violation, attributed to the gateway, for
+  each diagnostic the self-check used to refuse, so violation counts there
+  drop. A gateway launched with a copy of the v1.0 schema from another
+  directory now checks its own diagnostics against this repository's v1.0
+  schema instead of that copy. The TV-09 pins in
+  `gateway/tests/test_violation_event_self_validity.py` now run on the v1.0
+  lane, the 1.1.0 lane and the dispatching union schema. Six new tests cover
+  every builder, the rule that the mark and not an event's content selects
+  the schema, a diagnostic forged on the wire, byte identity on every output
+  encoding, the receive loop end to end, and the startup check. The gateway
+  README gains a Schema lanes section, and the lane notes in `README.md` and
+  `tools/README.md` point to it.
+
 - 2026-09-21 — **The repository states its open-specification terms where
   every visitor and every fork will see them.** A root `NOTICE` file, carried by
   every redistribution under Apache License 2.0 Section 4(d), records that the
