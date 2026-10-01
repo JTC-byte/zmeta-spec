@@ -152,9 +152,9 @@ receipt, `event.ts`, and `payload.valid_from_ts`. The contract calls a
 command's `event.ts` "the command issue time or validity anchor" (Section 5.1)
 and gives `valid_from_ts` no rule of its own, so the gateway holds for every
 reading a consumer might take. The hold belongs to the copy that was
-forwarded, because that is the only copy anything can execute. A later copy of
-a held command is answered as a duplicate and changes nothing: it neither
-shortens nor lengthens the hold.
+admitted, because that is the only copy the gateway forwards and so the only
+copy anything can execute. A later copy of a held command is answered as a
+duplicate and changes nothing: it neither shortens nor lengthens the hold.
 
 **Three refusals.** A command is refused with a `TASK_ACK` in state `REJECTED`
 and `reason_code=TASK_REJECTED`, and is not forwarded, when the gateway cannot

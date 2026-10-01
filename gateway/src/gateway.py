@@ -355,9 +355,11 @@ class TaskDedupeCache:
         """Forget a held id. For a command that was admitted and then did not leave the gateway.
 
         The receive loop calls this when the command it just admitted was
-        replaced by a diagnostic, could not be encoded, or failed to send.
-        Nothing can execute that command, so a corrected copy under the same
-        `task_id` is a first copy, not a duplicate.
+        replaced by a diagnostic, could not be encoded, or failed to send, or
+        when an exception ended the datagram before the send. process_message
+        calls it itself when it fails after admission. Nothing can execute
+        that command, so a corrected copy under the same `task_id` is a first
+        copy, not a duplicate.
         """
         self._cache.pop(task_id, None)
 

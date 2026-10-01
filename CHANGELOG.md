@@ -29,11 +29,12 @@
   dedupe does not do: a `task_id` is released when its hold ends (the
   contract sets no time bound, and the release is an open question), a
   restart forgets held ids, and an expired command is not refused at the
-  gateway. This change went through four rounds of independent review
-  before any merge was asked for, and was revised after each. Seventy tests
-  in `gateway/tests/test_command_dedupe_validity.py`, fifteen of them
-  through the real `main()` receive loop; 102 mutants killed, among them
-  every survivor the reviews found. Doctrine E1-06, open; the merge is the
+  gateway. This change went through five rounds of independent review
+  before any merge was asked for, and was revised after each; the fifth
+  found no defect in the code. Seventy-one tests in
+  `gateway/tests/test_command_dedupe_validity.py`, fifteen of them through
+  the real `main()` receive loop; 104 mutants killed, among them every
+  survivor the reviews found. Doctrine E1-06, open; the merge is the
   maintainer's.
 - 2026-10-01 — **The CoT adapter's README states that the standard profile's
   default output is not schema-valid CoT.** With no `how` token in the

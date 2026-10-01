@@ -40,8 +40,10 @@ import importlib.util
 import io
 import json
 import math
+import os
+import time
 import unittest
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone, tzinfo
 from pathlib import Path
 from unittest import mock
 
@@ -146,6 +148,47 @@ def time_status(ts=WALL - timedelta(seconds=20), source=None, version="1.0"):
         "source": dict(source or SOURCE),
         "payload": {"system_type": "TIME_STATUS", "state": "LOCKED", "metrics": metrics},
     }
+
+
+class NoOffset(tzinfo):
+    """A time zone that reports no offset. Python counts such a datetime as naive."""
+
+    def utcoffset(self, _dt):
+        return None
+
+    def dst(self, _dt):
+        return None
+
+    def tzname(self, _dt):
+        return None
+
+
+@contextlib.contextmanager
+def a_local_zone_that_is_not_utc(test):
+    """Run the body with the process's local zone five hours behind UTC.
+
+    "A naive `now` is read as UTC" can only be told apart from "read as
+    local time" where local time is not UTC. Continuous integration runs in
+    UTC, so the zone is set for the test where the platform allows it; where
+    it does not, a host whose local zone is UTC skips, visibly, instead of
+    passing for the wrong reason.
+    """
+    if hasattr(time, "tzset"):
+        saved = os.environ.get("TZ")
+        os.environ["TZ"] = "EST+05"
+        time.tzset()
+        try:
+            yield
+        finally:
+            if saved is None:
+                os.environ.pop("TZ", None)
+            else:
+                os.environ["TZ"] = saved
+            time.tzset()
+    else:
+        if WALL.replace(tzinfo=None).astimezone().utcoffset() == timedelta(0):
+            test.skipTest("the local zone is UTC and this platform cannot change it for one test")
+        yield
 
 
 class Clock:
@@ -341,11 +384,21 @@ class HoldCoversTheValidityTest(DedupeCase):
 
     def test_a_naive_now_is_read_as_utc(self):
         late = z(WALL + timedelta(seconds=600))
+        payload = {"valid_for_ms": 60000, "valid_from_ts": late}
+        expected = 60000 + 600000 + gateway.COMMAND_HOLD_MARGIN_MS
+        with a_local_zone_that_is_not_utc(self):
+            self.assertNotEqual(timedelta(0), WALL.replace(tzinfo=None).astimezone().utcoffset())
+            self.assertEqual(expected, gateway.command_hold_ms(payload, now=WALL.replace(tzinfo=None)))
+
+    def test_a_now_whose_zone_reports_no_offset_is_read_as_utc(self):
+        # Python treats such a datetime as naive: subtracting an aware
+        # instant from it raises. It is not enough to test `tzinfo is None`.
+        late = z(WALL + timedelta(seconds=600))
+        now = WALL.replace(tzinfo=NoOffset())
+        self.assertIsNotNone(now.tzinfo)
         self.assertEqual(
             60000 + 600000 + gateway.COMMAND_HOLD_MARGIN_MS,
-            gateway.command_hold_ms(
-                {"valid_for_ms": 60000, "valid_from_ts": late}, now=WALL.replace(tzinfo=None)
-            ),
+            gateway.command_hold_ms({"valid_for_ms": 60000, "valid_from_ts": late}, now=now),
         )
 
     def test_hold_falls_back_for_a_validity_int_cannot_read_or_reads_as_not_positive(self):
@@ -736,14 +789,26 @@ class NothingIsHeldForACommandThatWasNotReturnedTest(DedupeCase):
         # The timestamp plausibility check runs before the dedupe and used
         # to raise on a naive `now` whenever a metrics sink was present.
         late = z(WALL + timedelta(seconds=600))
+        for label, now in (("naive", WALL.replace(tzinfo=None)), ("no offset", WALL.replace(tzinfo=NoOffset()))):
+            with self.subTest(now=label):
+                status = time_status(WALL - timedelta(seconds=5))
+                metrics = mock.Mock()
+                self.clock.now = 1000.0
+                out = gateway.process_message(
+                    json.dumps(status).encode("utf-8"), self.validator, self.policy, "L", self.cache, "json",
+                    timing_state=self.state, metrics=metrics, ts_plausibility_horizon_ms=DAY_MS, now=now,
+                )
+                # Any event, not only a command: the plausibility check runs for all.
+                self.assertEqual(status, out[0])
         cmd = command("task-naive", valid_for_ms=60000, valid_from_ts=late)
         metrics = mock.Mock()
         self.clock.now = 1000.0
-        out = gateway.process_message(
-            json.dumps(cmd).encode("utf-8"), self.validator, self.policy, "L", self.cache, "json",
-            timing_state=self.state, metrics=metrics, ts_plausibility_horizon_ms=1000,
-            now=WALL.replace(tzinfo=None),
-        )
+        with a_local_zone_that_is_not_utc(self):
+            out = gateway.process_message(
+                json.dumps(cmd).encode("utf-8"), self.validator, self.policy, "L", self.cache, "json",
+                timing_state=self.state, metrics=metrics, ts_plausibility_horizon_ms=1000,
+                now=WALL.replace(tzinfo=None),
+            )
         self.assert_forwarded(cmd, out)
         # Read as the same instant in UTC: the command's ts equals `now`, so
         # a one-second plausibility horizon records nothing.

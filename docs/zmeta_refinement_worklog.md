@@ -2,7 +2,19 @@
 
 ## Current Resume Note
 
-- Last updated: 2026-10-01 (the held command dedupe fix went through a fourth independent review on its branch; still not merged)
+- Last updated: 2026-10-01 (the held command dedupe fix went through a fifth independent review, which found no defect in the code; still not merged)
+- **2026-10-01 (fifth independent review of the held dedupe fix;
+  `exp/command-dedupe-validity`, NOT MERGED).** One reviewer read the
+  post-review change and then the whole branch cold. Verdict: ready to
+  merge, no defect in the code, both end-to-end properties held through
+  the real `main()` loop in 24 configurations. It left a docstring, one
+  word of the README, and a point about the tests worth keeping: two tests
+  that a naive clock is read as UTC could not fail on a machine whose local
+  zone is UTC, and continuous integration runs in UTC, so a mutant killed
+  on the author's machine survived there. The tests now set a non-UTC zone
+  for themselves where the platform allows it and skip, visibly, where it
+  does not. Seventy-one tests; 104 mutants, all killed. The merge is the
+  maintainer's (design gate 6).
 - **2026-10-01 (fourth independent review of the held dedupe fix;
   `exp/command-dedupe-validity`, NOT MERGED).** One reviewer read the third
   revision's delta and found no forwarded duplicate, no released id of a

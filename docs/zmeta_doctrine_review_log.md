@@ -3352,7 +3352,7 @@ member restored). Whether an unread failure mode should instead stop the
 gateway at startup, as a mistyped `cot` block does since v1.1.26, is left to
 the maintainer.
 
-### E1-06 — The reference gateway forwarded a duplicate command after 300 s · **OPEN (a fix on `exp/command-dedupe-validity`, revised after each of four independent reviews; the merge is the maintainer's)**
+### E1-06 — The reference gateway forwarded a duplicate command after 300 s · **OPEN (a fix on `exp/command-dedupe-validity`, revised after each of five independent reviews, the fifth finding no defect in the code; the merge is the maintainer's)**
 
 **Observed:** found on 2026-10-01 by an audit of this repository's own
 answers to a downstream implementation, which had been told the reference
@@ -3498,11 +3498,28 @@ pending id set too late in the receive loop, and one uninitialised name.
 
 **After the fourth review, on the branch:** the two small code changes, and
 a test for each of the six survivors. Seventy tests, fifteen through the
-real `main()` receive loop; 102 mutants, all killed. This last change is
-small and has not itself been reviewed independently. A reader deciding on
-the merge should know that each of the four reviews found something, and
-that what they found fell from a standing refusal of all commands, in the
-first, to error-path and test-coverage points, in the fourth.
+real `main()` receive loop; 102 mutants, all killed.
+
+**Fifth independent review, 2026-10-01:** one reviewer read that last change
+and then the whole branch cold, against the README and the contract. Its
+verdict was that the branch is ready to merge and that nothing remaining
+should hold a command-path merge. It found no defect in the code. Through
+the real `main()` loop, in all 24 combinations of profile L, M and H, JSON
+and CBOR output, CoT egress on and off and strict validation on and off, a
+copy of a delivered command was never forwarded, and a corrected copy of
+an undelivered one always was. It left three small things: the `release`
+docstring listed three of its five callers, the README said "forwarded"
+where the code comment said "admitted", and two tests of the naive-clock
+handling could not fail on a machine whose local zone is UTC, which is
+what continuous integration runs. All three are corrected on the branch,
+with a test for a clock whose zone reports no offset. Seventy-one tests,
+fifteen through the real `main()` receive loop; 104 mutants, all killed.
+
+A reader deciding on the merge should know that the first four reviews
+each found something, and that what they found fell from a standing
+refusal of all commands, in the first, to error-path and test-coverage
+points, in the fourth. What was changed after the fifth is a docstring,
+one word of the README and tests.
 
 **Left to the maintainer, with the merge:**
 
