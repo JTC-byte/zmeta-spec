@@ -5,9 +5,12 @@ The profile is a post-projection transform over the standard output: the
 detail children are limited to contact, track, remarks and precisionlocation;
 `how` is a required deployment claim; remarks is replaced by one fixed-template
 line of at most 200 characters whose honesty markers always survive the cut;
-no http(s) link survives anywhere in the event; stale is the projection time
-plus a fixed window, 120 s unless the deployment sets another; an event older
-than the maximum age at projection is refused. The standard profile's bytes
+no http(s) link survives anywhere in the event; stale is the earlier of the
+event's own claim (ts + valid_for_ms) and the projection time plus a window,
+120 s unless the deployment sets another, so the window caps a claim and never
+extends one; an event whose claim has lapsed at projection is refused unless
+the deployment chooses send_stale; an event older than the maximum age at
+projection is refused. The standard profile's bytes
 are unchanged by the profile's existence, and one test freezes them.
 
 WHAT THIS FILE DOES NOT PROVE. It does not prove that any guard passes the
@@ -36,12 +39,12 @@ STAMP = "%Y-%m-%dT%H:%M:%S.%fZ"
 LINK = re.compile(r"https?://", re.I)
 AFFILIATIONS = ("a-h-S", "a-f-S", "a-n-S", "a-s-S", "a-j-S", "a-k-S", "a-a-S", "a-p-S", "a-o-S", "a-x-S", "a-f-A-M-F-Q")
 
-# The standard projection of vessel_event() as the adapter rendered it before the
-# profile existed (generated from the previous revision of this module). The
-# profile's existence must not change it.
+# The standard projection of vessel_event(). Regenerated 2026-10-01 for the
+# fixture's 300 s validity claim from the adapter as it stood before the cds
+# stale change (doctrine F3-03), never from the changed code; the cds profile's
+# existence and its stale rule must not change it.
 STANDARD_BYTES = (
-    '<event version="2.0" type="a-u-S" uid="fused:vessel/0417" time="2026-09-29T19:58:30.000000Z"'
-    ' start="2026-09-29T19:58:30.000000Z" stale="2026-09-29T19:58:35.000000Z">\n'
+    '<event version="2.0" type="a-u-S" uid="fused:vessel/0417" time="2026-09-29T19:58:30.000000Z" start="2026-09-29T19:58:30.000000Z" stale="2026-09-29T20:03:30.000000Z">\n'
     '  <point lat="12.3456" lon="-45.6789" hae="9999999.0" le="9999999.0" ce="35.0" />\n'
     '  <detail>\n'
     '    <contact callsign="Vessel 0417" />\n'
@@ -74,7 +77,7 @@ def vessel_event(**overrides):
                 "dimensionality": "2D",
                 "error_ellipse_m": {"semi_major": 35.0, "semi_minor": 12.0, "orientation_deg": 80.0},
             },
-            "valid_for_ms": 5000,
+            "valid_for_ms": 300000,
             "heading_deg": 135.0,
             "speed_mps": 6.2,
             "source_summary": ["fused from two AIS reports"],
@@ -363,10 +366,72 @@ class CdsStaleAndAgeTest(unittest.TestCase):
         self.assertIsNotNone(render(aged_60, dict(CDS, stale_window_s=90, max_age_s=61)))
         self.assertIsNone(render(aged_60, dict(CDS, stale_window_s=90, max_age_s=59)))
 
-    def test_the_window_ignores_the_events_validity_claim(self):
-        short = parsed(render(vessel_event(**{"payload.valid_for_ms": 1})))
-        long = parsed(render(vessel_event(**{"payload.valid_for_ms": 3600000})))
-        self.assertEqual(short.get("stale"), long.get("stale"))
+    def test_a_shorter_claim_is_carried(self):
+        # ts is NOW - 30 s, so a 60 s claim ends at NOW + 30 s, inside the window.
+        root = parsed(render(vessel_event(**{"payload.valid_for_ms": 60000})))
+        self.assertEqual((NOW + timedelta(seconds=30)).strftime(STAMP), root.get("stale"))
+
+    def test_the_window_caps_a_longer_claim(self):
+        for claim in (300000, 3600000):
+            with self.subTest(valid_for_ms=claim):
+                root = parsed(render(vessel_event(**{"payload.valid_for_ms": claim})))
+                self.assertEqual((NOW + timedelta(seconds=120)).strftime(STAMP), root.get("stale"))
+
+    def test_a_lapsed_claim_is_refused_and_named(self):
+        lapsed = vessel_event(**{"payload.valid_for_ms": 5000})
+        refusal = {}
+        self.assertIsNone(cot.zmeta_to_cot(lapsed, cot_config=dict(CDS), now=NOW, refusal=refusal))
+        self.assertEqual({"reason": "VALIDITY_LAPSED"}, refusal)
+        # Control: the standard profile still renders the same event.
+        self.assertIsNotNone(cot.zmeta_to_cot(lapsed))
+        # A claim ending exactly at the projection instant has lapsed.
+        self.assertIsNone(render(vessel_event(**{"payload.valid_for_ms": 30000})))
+        self.assertIsNotNone(render(vessel_event(**{"payload.valid_for_ms": 30001})))
+
+    def test_send_stale_carries_the_past_stale(self):
+        config = dict(CDS, lapsed_validity="send_stale")
+        root = parsed(render(vessel_event(**{"payload.valid_for_ms": 5000}), config))
+        self.assertEqual("2026-09-29T19:58:35.000000Z", root.get("stale"))
+        self.assertEqual("2026-09-29T19:58:30.000000Z", root.get("time"))
+        self.assertLess(root.get("stale"), NOW.strftime(STAMP))
+        # A live claim is unaffected by the option.
+        live = parsed(render(vessel_event(**{"payload.valid_for_ms": 60000}), config))
+        self.assertEqual((NOW + timedelta(seconds=30)).strftime(STAMP), live.get("stale"))
+
+    def test_send_stale_is_still_bound_by_the_maximum_age(self):
+        old = vessel_event(**{
+            "event.ts": (NOW - timedelta(seconds=121)).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "payload.valid_for_ms": 5000,
+        })
+        refusal = {}
+        config = dict(CDS, lapsed_validity="send_stale")
+        self.assertIsNone(cot.zmeta_to_cot(old, cot_config=config, now=NOW, refusal=refusal))
+        # The age rule refused it, so no lapsed-validity reason is recorded.
+        self.assertEqual({}, refusal)
+
+    def test_lapsed_validity_must_be_a_known_value(self):
+        for value in ("keep_window", "", None, True):
+            with self.subTest(value=value):
+                config = dict(CDS, lapsed_validity=value)
+                with self.assertRaises(ValueError):
+                    cot.validate_cot_config(config)
+                self.assertIsNone(render(vessel_event(), config))
+        for value in ("refuse", "send_stale"):
+            self.assertEqual("cds", cot.validate_cot_config(dict(CDS, lapsed_validity=value)))
+
+    def test_an_affiliation_refusal_is_named_and_others_are_not(self):
+        refusal = {}
+        hostile = vessel_event(**{"payload.class": "a-h-S"})
+        self.assertIsNone(cot.zmeta_to_cot(hostile, cot_config=dict(CDS), now=NOW, refusal=refusal))
+        self.assertEqual({"reason": "AFFILIATION_ASSERTED"}, refusal)
+        other = {}
+        no_track = vessel_event(**{"payload.track_id": None})
+        self.assertIsNone(cot.zmeta_to_cot(no_track, cot_config=dict(CDS), now=NOW, refusal=other))
+        self.assertEqual({}, other)
+        # The standard profile never writes a reason.
+        standard = {}
+        self.assertIsNotNone(cot.zmeta_to_cot(hostile, refusal=standard))
+        self.assertEqual({}, standard)
 
     def test_an_event_older_than_the_maximum_age_is_refused(self):
         old = vessel_event(**{"event.ts": (NOW - timedelta(seconds=121)).strftime("%Y-%m-%dT%H:%M:%SZ")})

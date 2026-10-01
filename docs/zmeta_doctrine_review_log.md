@@ -3043,7 +3043,7 @@ the advisory gate cannot be met and the locked honesty rule is kept in the
 channel that remains. It sets no precedent for moving structure into text
 where structure can pass.
 
-### F3-03 — `stale` as a fixed window, `how` as a deployment claim · **OPEN 2026-09-29**
+### F3-03 — `stale` as a fixed window, `how` as a deployment claim · **DECIDED 2026-10-01 (the window caps the claim)**
 
 **Observed:** contract section 14 says CoT and the other display formats
 "must preserve" a list that includes "`payload.valid_for_ms` as
@@ -3069,7 +3069,30 @@ deployment, never defaulted. **OPEN** with the maintainer: whether the
 profile should carry `valid_for_ms` into `stale` when shorter than the
 window, and whether the window should announce itself in `remarks`.
 
-### F3-04 — The evidence bar · **OPEN 2026-09-29 (n=1)**
+**Decision (2026-10-01):** taken on the maintainer's go of 2026-09-30,
+which handed this repository's open questions to its own recommendation
+as revertible decisions, after a top-tier review of the question. The
+contract decides it: Section 14 requires a display projection to preserve
+`valid_for_ms` as stale behaviour, Section 4.2 lets a projection lower a
+validity and never raise it, and the reference fixture showed the cost
+concretely, a track valid for 5 s and 30 s old at projection leaving with
+a stale 120 s ahead. `stale` is now the earlier of the event's own `ts` +
+`valid_for_ms` and the projection time plus the window, so the window is
+a cap and never an extension. An earlier stale cannot breach a guard's
+stale ceiling. An event whose claim has lapsed at projection is refused by
+default and counted as `VALIDITY_LAPSED`; a deployment whose far side
+shows a past-stale packet as stale may set `lapsed_validity` to
+`send_stale` (contract Section 13.3, "remains explicitly stale"). No
+option keeps the window over the claim, because that is the increase
+Section 4.2 forbids. The window does not announce itself in `remarks`: the
+attribute carries it, a second statement of the same number could disagree
+with the first, and the validated template stays unchanged. The cost is
+that packets whose claim is shorter than the window leave with an earlier
+stale than the validated packets did; a deployment confirms the shape with
+the far side before relying on it, and a guard that refused a short stale
+would be the first documented failure condition under F3-04.
+
+### F3-04 — The evidence bar · **DECIDED 2026-10-01 (recorded as evidence, n=1)**
 
 **Observed:** one deployment, one partner's guard, one day, two changes
 applied together and neither tested alone. The registry's promotion bar for
@@ -3085,7 +3108,15 @@ ZMETA-COALITION-EXPORT stays future. Booked: whether the roadmap candidate
 edit outside this branch. Open until a second guard or a controlled test of
 each change alone.
 
-### F3-05 — An asserted affiliation at the boundary · **HELD-FIRM 2026-09-29 (refuse, never retype); opt-in OPEN**
+**Decision (2026-10-01):** on the same go, roadmap candidate
+`coalition-release-export` records the 2026-09-29 validation in
+`promotion_evidence`, with its limits stated: one deployment, one guard,
+one day, two changes applied together. Its status does not change. A
+controlled comparison is now available without a switch in this
+repository, because the deployment still runs the window-only shape and
+this profile now carries the claim.
+
+### F3-05 — An asserted affiliation at the boundary · **HELD-FIRM 2026-09-29 (refuse, never retype); opt-in DECIDED 2026-10-01 (none)**
 
 **Observed:** the validated packets asserted no affiliation. Nothing in the
 contract decides whether an asserted affiliation may cross a guard.
@@ -3099,6 +3130,19 @@ would govern who may receive what are future.
 **Decision:** the profile refuses such an event, counted as a `cot_skipped`
 record under the gateway's generic `UNCONVERTIBLE` reason. **OPEN:** whether
 a deployment may opt in; not offered.
+
+**Decision (2026-10-01):** on the same go, no opt-in. Section 17 says
+ZMeta must not imply absolute friend or foe authority without
+deployment-specific policy and versioned semantics, and that an
+affiliation travels with its confidence, lineage, evidence type and trust
+context. This profile's shape carries none of those but a bare confidence,
+so a passed affiliation would be the unpaired claim Section 17 forbids, and
+a configuration flag deciding who may receive one would be an adapter
+inventing release semantics, which Section 18.3 rules out. The refusal is
+now counted as `AFFILIATION_ASSERTED`, so a hostile or friendly track that
+did not cross is visible on the sending side as that. The route to passing
+an affiliation is a release profile under `coalition-release-export`,
+whose notes now say so.
 
 ## Cycle E1 — 2026-10-01 (a deployment's command posture)
 

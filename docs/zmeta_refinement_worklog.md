@@ -2,7 +2,20 @@
 
 ## Current Resume Note
 
-- Last updated: 2026-10-01 (the strict command posture: review fixes, then the merge into `develop`)
+- Last updated: 2026-10-01 (the cds profile's stale carries the claim, on `wave/cds-f3-2026-10`)
+- **2026-10-01 (F3-03, F3-04 and F3-05 decided, `wave/cds-f3-2026-10`).** On
+  the maintainer's go of 2026-09-30, after a top-tier review whose
+  recommendation was taken whole. `stale` under the `cds` profile is the
+  earlier of the claim and the window; a lapsed claim is refused and
+  counted as `VALIDITY_LAPSED`, or sent with its past stale under
+  `lapsed_validity: send_stale`; an asserted affiliation stays refused and
+  is counted as `AFFILIATION_ASSERTED`; the window does not enter
+  `remarks`; `coalition-release-export` records the 2026-09-29 validation.
+  The frozen standard bytes were regenerated, for the fixture's new 300 s
+  claim, from the adapter before the change (the regeneration refused to
+  run against a changed adapter). Eight mutants against the new rule, the
+  option, the config check and the gateway's reason wiring were all
+  killed. This closes the booked profile-specific `cot_skip_reasons` token.
 - **2026-10-01 (review of `wave/command-authority-2026-10` and its fixes).** A
   three-agent review (an opus code refuter, a sonnet records checker, a
   top-tier judge for the open profile questions) found two majors in the

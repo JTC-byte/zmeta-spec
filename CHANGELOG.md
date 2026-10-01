@@ -2,6 +2,23 @@
 
 ## [Unreleased]
 
+- 2026-10-01 — **The CoT `cds` profile's `stale` never exceeds the event's
+  own validity claim.** On the maintainer's go of 2026-09-30 (doctrine
+  F3-03), `stale` is the earlier of the event's `ts` + `valid_for_ms` and
+  the projection time plus the window, so the window caps a claim and
+  never extends it, as contract Sections 14 and 4.2 require. An event whose
+  claim has lapsed at projection is refused, or sent with that past stale
+  when the deployment sets `lapsed_validity` to `send_stale`. The gateway
+  counts the profile's two named refusals as `VALIDITY_LAPSED` and
+  `AFFILIATION_ASSERTED` instead of `UNCONVERTIBLE`; `zmeta_to_cot` reports
+  them through an optional `refusal` argument. No deployment option passes
+  an asserted affiliation (doctrine F3-05). Roadmap candidate
+  `coalition-release-export` records the 2026-09-29 guard validation as
+  evidence, n=1 (doctrine F3-04). The standard profile's output is
+  unchanged; its frozen-bytes fixture now claims 300 s of validity and was
+  regenerated from the adapter as it stood before this change. This changes
+  the `cds` output relative to v1.1.26 for any track whose claim is shorter
+  than the window.
 - 2026-10-01 — **A strict command posture ships as two policy variants and a
   tool that assembles them.** On the maintainer's go of 2026-09-30,
   `configs/policy-variants/command-evidence.strict.yaml` requires every
