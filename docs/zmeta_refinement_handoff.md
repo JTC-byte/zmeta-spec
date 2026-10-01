@@ -2,7 +2,7 @@
 
 ## CURRENT STATE (2026-10-01): EIGHT MERGES ON DEVELOP SINCE v1.1.26, NOT RELEASED; ONE COMMAND-PATH FIX HELD ON A BRANCH
 
-`develop` == `origin/develop` at the merge 492a920 plus this records commit;
+`develop` == `origin/develop` at the merge 492a920 plus records commits;
 `main` == `origin/main` == a2e4d7a, the v1.1.26 line, unchanged. Everything
 below landed on the maintainer's go of 2026-09-30, which handed this
 repository's open questions to its own recommendations as revertible
@@ -35,11 +35,13 @@ them after their merge; and each new guard was mutation-tested:
 - `wave/records-corrections-2026-10` (merge 492a920): the `translate:`
   transform claim corrected; needs and gaps booked.
 
-Held, not merged: `exp/command-dedupe-validity` (9c4ec4b, pushed). The
-gateway forwards a duplicate command once 300 s have passed, against
-contract 13.2; the branch holds a `task_id` for the command's whole
-validity (doctrine E1-06, OPEN; item 7 below). It is a command-path change,
-so its merge is the maintainer's.
+Held, not merged: `exp/command-dedupe-validity`. The gateway forwards a
+duplicate command once 300 s have passed, against contract 13.2; the branch
+holds a `task_id` for the command's whole validity (doctrine E1-06, OPEN,
+recorded on that branch; item 7 below). The first fix was not ready: it was
+revised three times on 2026-10-01, each time after an independent review
+found defects in it. It is a command-path change, so its merge is the
+maintainer's.
 
 On 2026-10-01 the repository also answered several dozen questions from
 downstream implementations. Two rounds of independent audit against
@@ -148,7 +150,13 @@ Open, in order of proximity:
    `valid_from_ts` relates to `event.ts` and `valid_for_ms` (contract 7.8
    lists the field and gives it no rule; contract 5.1 calls a command's
    `event.ts` "the command issue time or validity anchor"), so two
-   consumers may compute different validity windows for one command.
+   consumers may compute different validity windows for one command; (y)
+   whether a trimmed copy keeps its `event_id`: contract 10.7 lets an edge
+   node under memory pressure drop "older lineage references while
+   retaining the most recent", contract 4.2 lists `lineage` among the
+   fields no one may change, and same-event projection dedupe is named as
+   future work (Section 22, ZMETA-PROJECTION-ORIGIN), so a consumer that
+   compares copies under one `event_id` has no rule for that difference.
 7. **Reference defect, booked for the maintainer (command safety).** The
    gateway caps the command dedupe window at 300 s
    (`ttl_ms_from_payload`, `gateway/README.md`), while contract 13.2 says a
@@ -164,11 +172,23 @@ Open, in order of proximity:
    forwarded at 0 s, refused as a duplicate at 10 s and forwarded again at
    301 s. It is not changed on `develop`, because a command-path change is
    the maintainer's (design gate 6). A fix is on
-   `exp/command-dedupe-validity` (9c4ec4b): the hold is `valid_for_ms`
-   plus lead time to `valid_from_ts`, the cache is bounded by count, and a
-   full cache refuses a new command. It leaves two questions with the
-   merge: whether held ids survive a restart, and whether the gateway
-   refuses a command that has already expired.
+   `exp/command-dedupe-validity`. As revised: a `task_id` is held from
+   admission until `valid_for_ms` after the latest of receipt, `event.ts`
+   and `valid_from_ts`, plus a 60 s margin; a later copy changes nothing;
+   a command is refused, not forwarded unheld, when its hold would exceed
+   a maximum (default one day), when a validity anchor is unreadable, or
+   when the cache is full; and an admitted command that does not leave the
+   gateway gives its id back. Three rounds of independent review found
+   defects in the first fix and in its first two revisions (a standing
+   refusal of all commands; a full cache kept full and a second forwarded
+   duplicate; an id held for an undelivered command), which is the reason
+   the branch was not offered for merge on its first green battery. The
+   doctrine entry on the branch leaves six questions with the merge: does
+   the duty in 13.2 expire when the hold ends; is refusing a long-lived
+   command acceptable, and is one day the right default; is refusing an
+   unreadable anchor acceptable; how `valid_from_ts` relates to `event.ts`;
+   whether held ids survive a restart; and whether the gateway refuses a
+   command that has already expired.
 8. **Reference defect, brought forward for the maintainer (gateway memory).**
    Bounding `ValidationState.events` has been an open register candidate
    since the v1.1.18 pre-cut review of 2026-07-27
