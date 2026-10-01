@@ -1,8 +1,8 @@
 # ZMeta Refinement Handoff Notes
 
-## CURRENT STATE (2026-10-01): FIVE WAVES ON DEVELOP SINCE v1.1.26, NOT RELEASED
+## CURRENT STATE (2026-10-01): EIGHT MERGES ON DEVELOP SINCE v1.1.26, NOT RELEASED; ONE COMMAND-PATH FIX HELD ON A BRANCH
 
-`develop` == `origin/develop` at the merge 9a6ee74 plus this records commit;
+`develop` == `origin/develop` at the merge 492a920 plus this records commit;
 `main` == `origin/main` == a2e4d7a, the v1.1.26 line, unchanged. Everything
 below landed on the maintainer's go of 2026-09-30, which handed this
 repository's open questions to its own recommendations as revertible
@@ -27,6 +27,27 @@ them after their merge; and each new guard was mutation-tested:
   receipt candidate state on `RAW_DATA_ABSENT_STATUS`, proposed
   `SEARCH_PATTERN`, and `docs/zmeta_event_signing_design_note.md` (doctrine
   E1-03, E1-04).
+- `wave/scope-check-2026-10` (merge a79376b): the fixes from a scope check
+  of the five waves above; the doctrine status DECIDED (delegated).
+- `exp/failure-modes-honesty` (merge 17c1a15): the shipped edge configs
+  name only the failure modes the gateway reads; a startup warning for any
+  other (doctrine E1-05).
+- `wave/records-corrections-2026-10` (merge 492a920): the `translate:`
+  transform claim corrected; needs and gaps booked.
+
+Held, not merged: `exp/command-dedupe-validity` (9c4ec4b, pushed). The
+gateway forwards a duplicate command once 300 s have passed, against
+contract 13.2; the branch holds a `task_id` for the command's whole
+validity (doctrine E1-06, OPEN; item 7 below). It is a command-path change,
+so its merge is the maintainer's.
+
+On 2026-10-01 the repository also answered several dozen questions from
+downstream implementations. Two rounds of independent audit against
+the v1.1.26 text did not uphold 43 of 101 answers in the first round and 32
+of 73 corrections and later answers in the second; each recipient was sent
+the corrections. The lesson is recorded in the worklog: an answer about
+the standard quotes the text it rests on, says so when the documents are
+silent, and is checked by an independent reader before it is relied on.
 
 Change classes (docs/zmeta_change_governance.md): the two registry waves are
 Class B registry records with Class A notes; the command wave is Class B
@@ -52,7 +73,8 @@ release-pin band until the next cut: the kernel gate's six
 
 Open, in order of proximity:
 
-1. **The next cut** is the maintainer's: it carries the five waves. The
+1. **The next cut** is the maintainer's: it carries the eight merges, and
+   the dedupe fix if the maintainer accepts it. The
    `cds` output changes relative to v1.1.26 for any track whose
    `valid_for_ms` is shorter than the window, so a consumer that re-pins to
    the cut confirms the shape with the far side first.
@@ -136,8 +158,13 @@ Open, in order of proximity:
    is valid for longer than 300 s or its `valid_from_ts` lies after
    receipt. An independent probe of `process_message` saw the command
    forwarded at 0 s, refused as a duplicate at 10 s and forwarded again at
-   301 s. It is not changed here, because a command-path change is the
-   maintainer's (design gate 6).
+   301 s. It is not changed on `develop`, because a command-path change is
+   the maintainer's (design gate 6). A fix is on
+   `exp/command-dedupe-validity` (9c4ec4b): the hold is `valid_for_ms`
+   plus lead time to `valid_from_ts`, the cache is bounded by count, and a
+   full cache refuses a new command. It leaves two questions with the
+   merge: whether held ids survive a restart, and whether the gateway
+   refuses a command that has already expired.
 
 Next session: the cut when the maintainer directs it.
 
