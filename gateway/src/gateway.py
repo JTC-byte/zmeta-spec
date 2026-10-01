@@ -1747,6 +1747,31 @@ def validate_outgoing_event(event, validator, policy, profile):
     return [violation for violation in checks if violation.get("severity") != "warn"]
 
 
+# The failure modes, and their members, this gateway reads. The shipped edge
+# configs once enabled observation_timeout, deconfliction_offline and
+# fusion_instability, and timing_loss.gate_fusion_threshold, none of which the
+# gateway ever read, so a deployment that copied them believed it had command
+# queueing and instability holds it did not have (design gate 3). Any other
+# key is reported at startup by unread_failure_mode_keys.
+IMPLEMENTED_FAILURE_MODES = {
+    "timing_loss": frozenset({"enabled", "confidence_reduction_factor"}),
+}
+
+
+def unread_failure_mode_keys(failure_modes):
+    """Sorted paths under `failure_modes` that this gateway does not read."""
+    unread = []
+    if not isinstance(failure_modes, dict):
+        return unread
+    for key, value in failure_modes.items():
+        members = IMPLEMENTED_FAILURE_MODES.get(key)
+        if members is None:
+            unread.append(f"failure_modes.{key}")
+        elif isinstance(value, dict):
+            unread.extend(f"failure_modes.{key}.{m}" for m in value if m not in members)
+    return sorted(unread)
+
+
 def build_settings(root, args, config):
     settings = {
         "profile": None,
@@ -1911,6 +1936,14 @@ def build_settings(root, args, config):
             settings["require_contract_hash"] = str(value).strip() if value is not None else None
         if "failure_modes" in config and isinstance(config["failure_modes"], dict):
             settings["failure_modes"] = config["failure_modes"]
+            for path in unread_failure_mode_keys(config["failure_modes"]):
+                # A control that reads as enabled and does nothing is worse
+                # than none, so say so at startup. Not a startup error: a
+                # deployment that copied the old shipped config keeps running.
+                _warn_stderr(
+                    f"gateway config: {path} is not implemented by this gateway "
+                    "and has no effect"
+                )
 
     if args.profile:
         settings["profile"] = args.profile

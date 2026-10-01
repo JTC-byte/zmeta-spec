@@ -98,7 +98,8 @@ The config file keys are:
 - `stamp_profile` and `stamp_profile_profiles` (profile field stamping)
 - `stamp_timing` and `stamp_timing_profiles` (t_receive/t_publish stamping; default L/M/H)
 - `strip_optional_fields` and `strip_optional_fields_profiles` (bandwidth compaction)
-- `failure_modes` (edge runtime degradation controls such as timing loss)
+- `failure_modes` (edge runtime degradation; only `timing_loss` is implemented,
+  and any other mode or member is reported at startup as having no effect)
 - `strict_validation` (treat warnings as failures)
 - `emit_metrics` and `metrics_interval_sec` (periodic gateway metrics logs)
 - `rate_limit_per_sec` (drop packets above receive rate)
