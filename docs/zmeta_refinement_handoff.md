@@ -144,7 +144,11 @@ Open, in order of proximity:
    dedupe to an actor); (w) a consumer's display of data that is not
    ZMeta, such as a rejected private dialect (contract 13.5 and 14 govern
    display projections derived from STATE_EVENT and do not say whether a
-   consumer may show non-ZMeta data beside them).
+   consumer may show non-ZMeta data beside them); (x) how a command's
+   `valid_from_ts` relates to `event.ts` and `valid_for_ms` (contract 7.8
+   lists the field and gives it no rule; contract 5.1 calls a command's
+   `event.ts` "the command issue time or validity anchor"), so two
+   consumers may compute different validity windows for one command.
 7. **Reference defect, booked for the maintainer (command safety).** The
    gateway caps the command dedupe window at 300 s
    (`ttl_ms_from_payload`, `gateway/README.md`), while contract 13.2 says a
@@ -165,6 +169,29 @@ Open, in order of proximity:
    full cache refuses a new command. It leaves two questions with the
    merge: whether held ids survive a restart, and whether the gateway
    refuses a command that has already expired.
+8. **Reference defect, booked for the maintainer (gateway memory).** The
+   gateway keeps every event it forwards for as long as it runs. `main()`
+   hands one `ValidationState` to `process_message`, and
+   `ValidationState.record` stores each forwarded event whole, with its id,
+   and never evicts (`gateway/src/validators.py`). A probe sent 3,000
+   events and found 3,000 held; a shipped example event of 542 bytes held
+   about 3.9 KB, which is about 13 GB a day at 40 events a second. The
+   store is not only a leak: the lineage check reads it to resolve a
+   parent's `event_type`, so a bound changes which parents resolve. The
+   proposal put to the maintainer is a bounded index of recent events that
+   keeps only what the lineage check reads, as the command-evidence index
+   already does at 4,096 entries; a parent older than the index is then
+   reported with the existing `LINEAGE_PARENT_UNRESOLVED` diagnostic under
+   the existing policy mode. `latest_timing` and `timing_sources` grow with
+   the number of distinct sources and are a smaller form of the same
+   question. Until it is fixed, a gateway that runs for days needs a
+   restart, and the README does not say so.
+9. **CoT `how` and the base-event schema (doctrine H1-05, evidence
+   received 2026-10-01).** The CoT base-event schema declares `how`
+   required, and the standard profile omits it unless the config asserts a
+   token. The adapter README now states that the default output is not
+   schema-valid CoT. The default itself is the maintainer's: keep omitting,
+   assert `m-r`, or require the token as the `cds` profile does.
 
 Next session: the cut when the maintainer directs it.
 

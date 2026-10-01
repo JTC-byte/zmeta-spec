@@ -362,6 +362,21 @@ element is omitted entirely and the ellipse projects as the conservative
 `point@ce` plus human-readable remarks text. An RF-triangulated fusion
 product must never reach TAK carrying a GPS pedigree.
 
+**`how`.** The event-level `how` attribute is the same kind of claim: the CoT
+base-event schema describes it as a hint about how the coordinates were
+generated. The adapter writes it only when the config asserts a token. With
+none asserted the attribute is omitted, and that output is not valid against
+the CoT base-event schema, which declares `how` required (read on 2026-10-01
+from a public copy of the MITRE "CoT Base-Event Schema (PUBLIC RELEASE)").
+TAK Server's `cotevent.proto` says a required item missing from the XML
+causes the message to be rejected on conversion to protobuf; that statement
+was read from the file and has not been tested here against a server. A
+deployment that projects toward a consumer enforcing the schema asserts
+`how`. The schema's token for a report that reached CoT through another
+system is `m-r` ("relayed - imported from another system (gateway)").
+Whether the adapter should assert a default is an open question (doctrine
+log H1-05).
+
 **Timestamps.** By default CoT `time`/`start` come from the event's `ts`, because
 event time is authoritative, and replayed or stale data must not render as
 live (semantics contract section 9.5). An event with no `event.ts`, or a

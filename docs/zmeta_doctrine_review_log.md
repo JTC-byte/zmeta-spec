@@ -749,6 +749,29 @@ every event. Validate against the real display tools at the field exercise;
 if a consumer chokes, the answer is a deployment config assertion, never a
 restored hardcoded default.
 
+**Evidence, 2026-10-01 (schema text; no field result yet):** a downstream
+implementation reported, and this repository confirmed by reading the same
+files, two things. A public copy of the MITRE "CoT Base-Event Schema (PUBLIC
+RELEASE)" declares the attribute as `<xs:attribute name="how"
+use="required">`. TAK Server's `cotevent.proto` says "All items are required
+unless otherwise noted! 'required' means if they are missing in the XML
+during outbound conversion to protobuf, the message will be rejected", and it
+does not mark `how` optional. The standard profile's default output, which
+omits `how`, is therefore not valid against that schema, and by the proto's
+own comment a TAK Server may reject it. No live TAK Server was tested. The
+same report says ATAK accepts an event without `how`; this repository did not
+check that. The schema's text for the token a relay asserts is "r - relayed -
+imported from another system (gateway)", under "m - machine generated".
+
+The entry stays OPEN, and the question for the maintainer is the default.
+Three answers are available: keep omitting `how` and state plainly that the
+output is not schema-valid CoT until a deployment asserts it (the adapter
+README now says so); assert `m-r` when the config asserts nothing, on the
+reading that every event this adapter projects reached CoT through a
+gateway; or require `how` in the standard profile, as the `cds` profile
+does. The earlier disposition, a config assertion and no hardcoded default,
+stands until the maintainer rules.
+
 ### H1-07 — Plain-`cbor` envelope ingress vs the fail-closed clause · **CHANGED 2026-07-27**
 
 The new value-model clause is enforced at the COMPACT decode seam. The
