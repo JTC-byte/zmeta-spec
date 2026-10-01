@@ -81,6 +81,33 @@ Open, in order of proximity:
    branch is its plan-only document (governance, Class D); (i) whether a
    manifest-listed file under `configs/policy-variants/` is Class B or a
    Class C overlay (governance, Change Classes).
+6. **Further guidance gaps from downstream questions (2026-10-01).** Four
+   downstream implementations asked questions their reading of v1.1.26 did
+   not settle. Each was answered from the documents, in the narrowest way the
+   text supports, and the answers are recorded privately. Where the documents
+   were silent: (j) how a prefix other than `vendor.<owner>.<name>` is
+   approved, and whether vendor keys on STATE belong at the payload root or
+   under `payload.extensions` (`spec/extension-registry.md`, Collision And
+   Namespace Rules); (k) `STRUCTURED_QUALITY_BLOCK` lists OBSERVATION_EVENT
+   only while contract 21.1 allows `payload.quality` on other payloads, and
+   neither schema applies `$defs/quality` on STATE (registry and schema,
+   Class B); (l) a canonical carrier for synthetic and replay labels, whose
+   tripwire fired on 2026-08-26 (roadmap `replay-synthetic-labels`); (m)
+   whether a consumer may refuse on an ignorable extension's value as a
+   diagnosed policy decision (contract 3.3); (n) which source field a
+   deployment binds to an authenticated credential, and whether a
+   whitespace-only identifier is valid (contract 4.5, schema); (o) what a
+   non-reference CoT egress may do with `payload.class`, including that it
+   must not supply an affiliation the event did not carry, whether the CoT
+   uid must equal `track_id` byte for byte, and the CoT egress adapter's
+   status (contract 14, ontology tension 14); (p) a convention for an unknown
+   `model.version`, where the reference estate writes `unknown` in one
+   adapter and its own version in another (contract 7.5); (q) a stability
+   contract for the experimental 1.1.0 schema across releases, which today
+   changes under one `$id` (`spec/versioning.md`); (r) whether a per-event
+   UNSYNCED label on a STATE satisfies contract 5.8 without a confidence or
+   TTL change (contract 5.8); (s) a not-measured convention for LINK_STATUS
+   metrics when the link gives no evidence (contract, LINK_STATUS).
 
 Next session: the cut when the maintainer directs it.
 
