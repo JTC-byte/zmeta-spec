@@ -1695,6 +1695,20 @@ def _cot_skip_reason(event):
     return "UNCONVERTIBLE"
 
 
+def _cot_refusal_reason(event, refusal):
+    """The counted reason for a refused CoT projection.
+
+    The adapter names two cds refusals itself, at the refusal that fired:
+    AFFILIATION_ASSERTED (a CoT type off the unknown branch, doctrine F3-05)
+    and VALIDITY_LAPSED (the event's own validity ran out before projection,
+    doctrine F3-03). Every other refusal is classified from the event's shape
+    by _cot_skip_reason. Like it, these are gateway-internal cot_skipped
+    tokens and mint no vocabulary.
+    """
+    named = refusal.get("reason") if isinstance(refusal, dict) else None
+    return named or _cot_skip_reason(event)
+
+
 def validate_outgoing_event(event, validator, policy, profile):
     """Violations that should stop an outgoing event, warnings excluded.
 
@@ -3260,8 +3274,9 @@ def main():
                 if sent and metrics:
                     metrics.record_forwarded()
                 if settings["emit_cot"]:
+                    cot_refusal = {}
                     cot_xml = zmeta_to_cot(
-                        outgoing, cot_config=settings.get("cot_config")
+                        outgoing, cot_config=settings.get("cot_config"), refusal=cot_refusal
                     )
                     if cot_xml:
                         cot_payload = cot_xml.encode("utf-8")
@@ -3285,7 +3300,7 @@ def main():
                         if cot_sent and metrics:
                             metrics.record_cot()
                     elif metrics:
-                        reason = _cot_skip_reason(outgoing)
+                        reason = _cot_refusal_reason(outgoing, cot_refusal)
                         if reason:
                             event_block = outgoing.get("event", {}) if isinstance(outgoing, dict) else {}
                             source = outgoing.get("source", {}) if isinstance(outgoing, dict) else {}

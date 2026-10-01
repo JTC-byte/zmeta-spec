@@ -1795,3 +1795,53 @@ def test_cot_skip_reason_never_attributes_a_tolerated_extension_value():
         },
     }
     assert gateway._cot_skip_reason(tolerated) == "UNCONVERTIBLE"
+
+
+def _cds_state_event(age_s, valid_for_ms, cot_class="a-u-S"):
+    from datetime import datetime, timedelta, timezone
+
+    ts = (datetime.now(timezone.utc) - timedelta(seconds=age_s)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    return {
+        "zmeta_version": "1.1.0",
+        "event": {
+            "event_id": "019c2b5c-c046-70e1-b6aa-34bf14c8a247",
+            "event_type": "STATE_EVENT",
+            "event_subtype": "TRACK_STATE",
+            "ts": ts,
+        },
+        "source": {"platform_id": "gateway-01", "node_role": "GATEWAY", "producer": "fusion-engine"},
+        "payload": {
+            "track_id": "t1",
+            "class": cot_class,
+            "geo": {"lat": 1.0, "lon": 2.0},
+            "valid_for_ms": valid_for_ms,
+        },
+        "confidence": 0.5,
+        "lineage": {"based_on": ["019c2b5c-88f0-7aa1-9b3e-5d2c41f0a9d2"]},
+    }
+
+
+def test_cot_refusal_reason_counts_the_cds_profiles_named_refusals():
+    # Doctrine F3-03 and F3-05: the adapter names the two cds refusals at the
+    # refusal that fired; the gateway counts that name and otherwise falls
+    # back to the shape classification.
+    cds = {"profile": "cds", "how": "m-f"}
+    cases = (
+        (_cds_state_event(30, 5000), "VALIDITY_LAPSED"),
+        (_cds_state_event(0, 60000, "a-h-S"), "AFFILIATION_ASSERTED"),
+    )
+    for event, expected in cases:
+        refusal = {}
+        assert gateway.zmeta_to_cot(event, cot_config=dict(cds), refusal=refusal) is None
+        assert gateway._cot_refusal_reason(event, refusal) == expected
+        # Without the adapter's name, the same event reads as the generic bucket.
+        assert gateway._cot_refusal_reason(event, {}) == "UNCONVERTIBLE"
+    live = _cds_state_event(0, 60000)
+    refusal = {}
+    assert gateway.zmeta_to_cot(live, cot_config=dict(cds), refusal=refusal) is not None
+    assert refusal == {}
+    poisoned = _cds_state_event(0, 60000)
+    poisoned["payload"]["geo"]["lon"] = float("nan")
+    refusal = {}
+    assert gateway.zmeta_to_cot(poisoned, cot_config=dict(cds), refusal=refusal) is None
+    assert gateway._cot_refusal_reason(poisoned, refusal) == "NON_FINITE_VALUE"

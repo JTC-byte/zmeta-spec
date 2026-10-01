@@ -169,7 +169,7 @@ first.
 | `type` | the class when it parses as a CoT type, else `a-u-G` | the same; an event whose type asserts an affiliation (`a-h-`, `a-f-`, and the rest) is refused rather than retyped, see below |
 | `how` | omitted unless the config asserts it | required, the config's `how` token, a deployment claim |
 | `remarks` | the class label, source summary, confidence and ellipse text | one line from a fixed template, see below; producer free text does not cross |
-| `stale` | event `ts` + `valid_for_ms` | the projection time + `stale_window_s` (default 120) |
+| `stale` | event `ts` + `valid_for_ms` | the earlier of event `ts` + `valid_for_ms` and the projection time + `stale_window_s` (default 120); an event whose own validity has lapsed at projection is refused, or sent with that past stale under `lapsed_validity: send_stale` |
 | age | any | an event whose `ts` is more than `max_age_s` (default: the stale window, which it may not exceed) before or after the projection time is refused |
 | replay-display mode | `use_wall_clock` re-stamps `time` to now | refused at config time: a re-stamped event would pass the age rule with any age |
 | links | as the event carries them | no http(s) link anywhere; one that survives outside `remarks`, for example in a callsign, refuses the event |
@@ -203,17 +203,27 @@ the doctrine pressure log (cycle F3):
   doctrine A1-02's honesty in the only channel the guard passes. Design gate
   5 (structure over free text) is not met at this boundary: no structured
   child carrying the declaration passes the guard.
-- **`stale` is a fixed window, and that costs something.** Contract section
-  14 lists `payload.valid_for_ms` as freshness/stale behavior among what a
-  CoT projection must preserve, and this profile does not preserve it: a
-  track the producer marked valid for one second and one it marked valid for
-  an hour leave with the same stale time. The shape that passed carried no
-  other stale, and the event's `valid_for_ms` is untouched. The maximum age
-  refuses the oldest case, a report older than the window leaving with a
-  stale time that reads as live, and replay-display mode is refused because
-  a re-stamped event would defeat that rule. The tension is open (F3-03),
-  and a consumer on the far side should read `stale` as the deployment's
-  display window rather than the producer's validity claim.
+- **`stale` is never later than the producer's claim; the window is a cap.**
+  Contract section 14 lists `payload.valid_for_ms` as freshness/stale
+  behavior a CoT projection must preserve, and section 4.2 lets a
+  projection lower a validity but never raise it. Since 2026-10-01 (doctrine
+  F3-03) `stale` is the earlier of the event's own `ts` + `valid_for_ms` and
+  the projection time plus the window. The validated packets carried the
+  window whatever the event claimed; an earlier stale cannot breach a
+  guard's stale ceiling, but it is a change from the shape that passed, so a
+  deployment confirms it with the far side before relying on it. An event
+  whose own validity has lapsed at projection is refused, because sending it
+  under the window would tell the far side it is live. A deployment whose
+  far-side display shows a past-stale packet as stale, rather than dropping
+  it, may set `lapsed_validity` to `send_stale`, and the packet then leaves
+  with that past stale (contract section 13.3). A producer whose
+  `valid_for_ms` is shorter than the hub-and-guard latency will have every
+  track refused; the fix is the producer's claim or the far-side display
+  policy, not the adapter. The maximum age still refuses a report older than
+  the window, and replay-display mode is still refused because a re-stamped
+  event would defeat both rules. The window does not announce itself in
+  `remarks`: the stale attribute carries it, and the validated template is
+  unchanged.
 - **`how` is asserted by the deployment.** The event model carries no
   position-source claim, so the adapter never fills it in. A deployment
   asserts the token it can stand behind: `m-f` for fused tracks, `m-r` for
@@ -228,9 +238,15 @@ event made, and section 18.2 says a redaction must not "Hide that redaction
 occurred when the consumer needs that fact"; passing it through would assert
 a claim the far side may act on, and nothing in the contract decides whether
 an affiliation may cross a guard, the release profiles of section 18.1 that
-would govern it being future. The refusal is the adapter's usual `None`,
-which the gateway counts as a `cot_skipped` record under its generic
-`UNCONVERTIBLE` reason; a profile-specific reason token is booked.
+would govern it being future. Section 17 adds that an affiliation must not
+travel without its confidence, lineage, evidence type and trust context,
+which this profile's shape cannot carry. No deployment option passes one
+(doctrine F3-05, decided 2026-10-01); the route is a release profile under
+roadmap candidate `coalition-release-export`. The refusal is the adapter's
+usual `None`, which the gateway counts as a `cot_skipped` record under the
+reason `AFFILIATION_ASSERTED`; a lapsed validity is counted as
+`VALIDITY_LAPSED`. A deployment watches the first count, because a hostile
+track absent from the far side is itself safety-relevant.
 
 The export audit metadata contract section 18.3 lists (release label,
 exporting authority, guard or policy identifier, redaction reason, removed
@@ -247,7 +263,8 @@ refused under any config. For a `cds` config it also refuses a key the
 adapter does not read (so a misspelled `stale_window_s` cannot leave the
 default in force), a missing or malformed `how` token, `use_wall_clock`, a
 window or age that is not a positive number of seconds within thirty days,
-an age larger than the window, and an attribution that is not a string, that
+an age larger than the window, a `lapsed_validity` other than `refuse` or
+`send_stale`, and an attribution that is not a string, that
 is not printable text, or that carries a link of any scheme. The gateway
 calls it when it reads `cot.config` and exits with the message, so a
 deployment learns at startup rather than as a refusal of every track.
@@ -264,7 +281,8 @@ runs always.
 cot_config = {
     "profile": "cds",
     "how": "m-f",                       # required: the deployment's own claim
-    "stale_window_s": 120,              # stale = projection time + window; 120 is the value that passed
+    "stale_window_s": 120,              # stale is capped at projection time + window; 120 is the value that passed
+    "lapsed_validity": "refuse",        # or "send_stale" if the far side shows past-stale packets as stale
     "max_age_s": 120,                   # older or newer than this at projection: refused (default: the window)
     "attribution": "Data from an open feed, attribution in words",  # optional; printable words, no link
 }

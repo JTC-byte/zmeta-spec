@@ -9,7 +9,7 @@
 # authority stays in spec/semantics-contract.md.
 
 roadmap_version: 1
-last_updated: "2026-09-28"
+last_updated: "2026-10-01"
 source_plan: docs/s1_11_future_versioned_semantic_branch_roadmap_plan.md
 evidence_bar: >
   Promotion from reserved/proposed into a named version branch requires the
@@ -402,13 +402,25 @@ candidates:
     registry_refs: [RELEASE_STATUS, EXPORT_AUDIT, RELEASE_LABEL, REDACTION_PROFILE]
     depends_on: [projection-metadata]
     required_surfaces: default
-    promotion_evidence: []
+    promotion_evidence:
+      - >
+        2026-09-29: one deployment's CoT projection passed one partner's
+        cross-domain guard into a higher enclave after two changes went live
+        together (a stale window and the removal of links); neither was
+        tested alone. Captured as the cds profile of the reference CoT egress
+        adapter (doctrine F3). One deployment, one guard, one day: n=1, and
+        the shape carried no release label, export audit or redaction
+        profile, so it is evidence of need, not of these concepts.
     tripwires:
       - Meets the promotion evidence bar after projection metadata exists.
     recommendation: >
       Defer until projection metadata and release policy are better defined;
       must not become data-rights governance.
-    notes: Policy-heavy; projection metadata dependency.
+    notes: >
+      Policy-heavy; projection metadata dependency. Passing an asserted
+      affiliation across a guard belongs here, as a release profile naming
+      who may receive it, and not in an adapter option (doctrine F3-05,
+      decided 2026-10-01).
 
   - id: uas-identity
     display_name: UAS identity / behavioral identity

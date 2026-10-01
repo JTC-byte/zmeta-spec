@@ -308,8 +308,11 @@ every track at egress. A `cot` block that is mistyped fails the same way: a
 `config` that is not an object, or a key under `cot` other than `host`,
 `port` and `config`, is a configuration error, because ignoring it would run
 the standard projection where the deployment meant another. A track the
-profile refuses at egress, such as one whose type asserts an affiliation, is
-counted under `cot_skip_reasons` as `UNCONVERTIBLE`.
+profile refuses at egress is counted under `cot_skip_reasons`: one whose
+type asserts an affiliation as `AFFILIATION_ASSERTED`, one whose own
+validity has lapsed at projection as `VALIDITY_LAPSED`, and any other as
+the shape classification gives it (`UNCONVERTIBLE` when nothing more
+specific applies).
 
 ### Run with Docker
 

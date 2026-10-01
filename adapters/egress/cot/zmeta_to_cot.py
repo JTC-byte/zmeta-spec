@@ -45,10 +45,13 @@ Supports:
     track, remarks and precisionlocation; `how` required as a deployment
     claim; remarks replaced by one fixed-template line of at most
     CDS_REMARKS_MAX characters whose honesty markers always survive; no
-    http(s) link anywhere in the event; stale = the projection time plus a
-    fixed window (CDS_STALE_S unless the deployment sets stale_window_s);
-    an event older than max_age_s at projection is refused. See the README,
-    "Profiles".
+    http(s) link anywhere in the event; stale = the earlier of the
+    event's own claim (ts + valid_for_ms) and the projection time plus a
+    window (CDS_STALE_S unless the deployment sets stale_window_s), so the
+    window caps a claim and never extends one; an event whose claim has
+    lapsed at projection is refused unless the deployment sets
+    lapsed_validity to send_stale; an event older than max_age_s at
+    projection is refused. See the README, "Profiles".
 
 Source: Z-ISR zisr/transport/publisher.py (_builtin_zmeta_to_cot)
 """
@@ -114,11 +117,19 @@ COT_UNKNOWN_ACCURACY = 9999999.0
 # standard output with the detail children limited to CDS_DETAIL_CHILDREN,
 # `how` asserted by the deployment, remarks replaced by one fixed-template
 # line of at most CDS_REMARKS_MAX characters, no http(s) link anywhere in the
-# event, and stale set to the projection time plus a fixed window of
+# event, and stale capped at the projection time plus a window of
 # CDS_STALE_S seconds unless the deployment sets stale_window_s. The window
 # and the link rule went live together on that day and neither was tested
 # alone, so the profile carries both under one name and a deployment cannot
-# lose either by accident. The reference deployment also drops a report older
+# lose either by accident. The validated packets carried the window as
+# stale whatever the event claimed; since 2026-10-01 (doctrine F3-03) the
+# window is a cap on the event's own claim (ts + valid_for_ms), because
+# contract Section 14 requires a display projection to preserve
+# valid_for_ms as stale behaviour and Section 4.2 allows a projection to
+# lower a validity, never to raise it. An earlier stale cannot breach a
+# guard's stale ceiling. An event whose claim has already lapsed at
+# projection is refused, or with lapsed_validity = "send_stale" sent with
+# that past stale so a display shows it as stale (contract Section 13.3). The reference deployment also drops a report older
 # than a maximum age at arrival, so the profile refuses one older than
 # max_age_s at projection; without that, a day-old event would leave with a
 # stale time that reads as live.
@@ -127,6 +138,7 @@ CDS_DETAIL_CHILDREN = ("contact", "track", "remarks", "precisionlocation")
 CDS_REMARKS_MAX = 200
 CDS_STALE_S = 120.0
 CDS_MAX_WINDOW_S = 30 * 86400
+CDS_LAPSED_VALIDITY = ("refuse", "send_stale")
 # The link rule the guard was passed with: an http or https URL. It removes
 # the separator before the link as well, so the words around it keep reading
 # as one line. Other schemes and scheme-less hosts are not links to this rule,
@@ -146,7 +158,7 @@ COT_CONFIG_KEYS = frozenset((
     "profile", "how", "geopointsrc", "altsrc", "default_ce", "default_le",
     "default_type", "default_valid_for_ms", "friendly_team_name",
     "friendly_team_role", "use_wall_clock", "stale_window_s", "max_age_s",
-    "attribution",
+    "attribution", "lapsed_validity",
 ))
 
 
@@ -189,6 +201,12 @@ def validate_cot_config(cot_config):
             # A report older than the window would otherwise leave with a
             # stale time that reads as live for the whole window.
             raise ValueError("max_age_s must not exceed stale_window_s")
+        lapsed = cot_config.get("lapsed_validity", "refuse")
+        if lapsed not in CDS_LAPSED_VALIDITY:
+            raise ValueError(
+                "lapsed_validity must be one of " + ", ".join(CDS_LAPSED_VALIDITY)
+                + f", got {lapsed!r}"
+            )
         attribution = cot_config.get("attribution")
         if attribution is not None:
             if not isinstance(attribution, str):
@@ -398,7 +416,7 @@ def _projected_hae(geo):
     return (alt_m, True, is_2d)
 
 
-def zmeta_to_cot(event, cot_config=None, now=None):
+def zmeta_to_cot(event, cot_config=None, now=None, refusal=None):
     """Convert a ZMeta STATE_EVENT into CoT XML.
 
     Args:
@@ -435,8 +453,12 @@ def zmeta_to_cot(event, cot_config=None, now=None):
                 event missing event.ts is refused (returns None) instead of
                 being silently stamped with the current time.
             - profile (str): "standard" (default) or "cds"; see the README.
-            - stale_window_s (number): cds only; stale is the projection
-                time plus this many seconds (default CDS_STALE_S)
+            - stale_window_s (number): cds only; stale is never later than
+                the projection time plus this many seconds (default
+                CDS_STALE_S); an earlier claim (ts + valid_for_ms) wins
+            - lapsed_validity (str): cds only; "refuse" (default) refuses
+                an event whose claim has lapsed at projection,
+                "send_stale" sends it with that past stale
             - max_age_s (number): cds only; an event whose ts is more than
                 this many seconds from the projection time, before or after,
                 is refused (default: the stale window; may not exceed it)
@@ -457,8 +479,12 @@ def zmeta_to_cot(event, cot_config=None, now=None):
         declaration paired with a present alt_m - see _projected_hae). Under
         the cds profile, also None when `how` is missing, when the type
         asserts an affiliation, when the event is older than max_age_s, when
-        the standard string is not well-formed XML, or when an http(s) link
-        survives outside remarks.
+        the event's own validity has lapsed at projection (unless
+        lapsed_validity is send_stale), when the standard string is not
+        well-formed XML, or when an http(s) link survives outside remarks.
+        When the caller passes a dict as `refusal`, a cds refusal for an
+        asserted affiliation or a lapsed validity sets its "reason" key to
+        AFFILIATION_ASSERTED or VALIDITY_LAPSED; no other path writes it.
     """
     if event.get("event", {}).get("event_type") != "STATE_EVENT":
         return None
@@ -791,6 +817,8 @@ def zmeta_to_cot(event, cot_config=None, now=None):
             cot_config,
             now=now,
             time_obj=time_obj,
+            claim_stale=stale_obj,
+            refusal=refusal,
             cot_type=cot_type,
             geo_is_2d=geo_is_2d,
             producer=event.get("source").get("producer") if isinstance(event.get("source"), dict) else None,
@@ -841,7 +869,17 @@ def _plain_decimal(value):
     return text if _PLAIN_DECIMAL.fullmatch(text) else None
 
 
-def _apply_cds_profile(cot_xml, cot_config, *, now, time_obj, cot_type, geo_is_2d, producer, confidence, raw_class):
+def _note_refusal(refusal, reason):
+    """Record why the cds profile refused, for a caller that passed a dict.
+
+    Set only at the refusal that fired, so a counted reason is never
+    attributed to a condition that did not cause it.
+    """
+    if isinstance(refusal, dict):
+        refusal["reason"] = reason
+
+
+def _apply_cds_profile(cot_xml, cot_config, *, now, time_obj, claim_stale, refusal, cot_type, geo_is_2d, producer, confidence, raw_class):
     """Reduce the standard projection to the cds shape, or refuse (None).
 
     A post-projection transform, so the standard bytes are what every other
@@ -861,6 +899,7 @@ def _apply_cds_profile(cot_xml, cot_config, *, now, time_obj, cot_type, geo_is_2
     README says so.
     """
     if not cot_type.startswith("a-u-"):
+        _note_refusal(refusal, "AFFILIATION_ASSERTED")
         return None
     window = float(cot_config.get("stale_window_s", CDS_STALE_S))
     max_age = float(cot_config.get("max_age_s", window))
@@ -869,8 +908,19 @@ def _apply_cds_profile(cot_xml, cot_config, *, now, time_obj, cot_type, geo_is_2
     # either would leave with a stale time that reads as live.
     if abs((now - time_obj).total_seconds()) > max_age:
         return None
-    stale_obj = _stale_time(now, window * 1000.0)
-    if stale_obj is None or stale_obj < time_obj:
+    window_stale = _stale_time(now, window * 1000.0)
+    if window_stale is None:
+        return None
+    if claim_stale <= now:
+        # The producer's own validity ran out before projection. Sending it
+        # under the window would tell the far side it is live.
+        if cot_config.get("lapsed_validity", "refuse") != "send_stale":
+            _note_refusal(refusal, "VALIDITY_LAPSED")
+            return None
+        stale_obj = claim_stale
+    else:
+        stale_obj = min(window_stale, claim_stale)
+    if stale_obj < time_obj:
         return None
     try:
         root = ET.fromstring(cot_xml)
