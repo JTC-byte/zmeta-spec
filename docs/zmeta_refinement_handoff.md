@@ -169,15 +169,22 @@ Open, in order of proximity:
    full cache refuses a new command. It leaves two questions with the
    merge: whether held ids survive a restart, and whether the gateway
    refuses a command that has already expired.
-8. **Reference defect, booked for the maintainer (gateway memory).** The
+8. **Reference defect, brought forward for the maintainer (gateway memory).**
+   Bounding `ValidationState.events` has been an open register candidate
+   since the v1.1.18 pre-cut review of 2026-07-27
+   (`docs/r1_11_cold_reread_findings.md`), deferred as a scoped wave
+   because it is behavior-visible. It is restated here with measurements. The
    gateway keeps every event it forwards for as long as it runs. `main()`
    hands one `ValidationState` to `process_message`, and
    `ValidationState.record` stores each forwarded event whole, with its id,
    and never evicts (`gateway/src/validators.py`). A probe sent 3,000
    events and found 3,000 held; a shipped example event of 542 bytes held
    about 3.9 KB, which is about 13 GB a day at 40 events a second. The
-   store is not only a leak: the lineage check reads it to resolve a
-   parent's `event_type`, so a bound changes which parents resolve. The
+   store is not only a leak: in the running gateway the lineage check
+   reads it to resolve a parent's `event_type`, so a bound changes which
+   parents resolve. Where the policy mode for an unresolved parent is
+   `warn` (profiles M and H in the shipped pack), strict validation turns
+   that warning into a refusal. The
    proposal put to the maintainer is a bounded index of recent events that
    keeps only what the lineage check reads, as the command-evidence index
    already does at 4,096 entries; a parent older than the index is then
