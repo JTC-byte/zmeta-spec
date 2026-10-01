@@ -2,7 +2,27 @@
 
 ## Current Resume Note
 
-- Last updated: 2026-10-01 (the held command dedupe fix was reviewed independently and revised on its branch; still not merged)
+- Last updated: 2026-10-01 (the held command dedupe fix went through a second independent review and a second revision on its branch; still not merged)
+- **2026-10-01 (second independent review of the held dedupe fix, and its
+  second revision; `exp/command-dedupe-validity`, NOT MERGED).** Three
+  reviewers read the first revision. They confirmed by execution that the
+  first review's four defects were closed, and found two new defects that
+  the revision had introduced or left: a later copy lengthened the hold, so
+  repeated copies kept a full cache full without end; and an unreadable
+  validity anchor gave the narrowest hold, so the same `task_id` was
+  forwarded twice. They also showed that four tests passed for the wrong
+  reason (the shipped-command test passed with the original 300 s cap put
+  back) and that fifteen mutants survived, the production clock path among
+  them. All 56 mutants of the first revision had been killed, which is the
+  point worth keeping: the mutants were written by the author of the code
+  and shared its blind spots. The second revision makes the hold the
+  forwarded copy's alone, refuses a command with an unreadable anchor,
+  releases the id of an admitted command that does not leave the gateway,
+  and gives the settings ceilings. The tests were rewritten so that no
+  probe can renew what it probes, and they were run against the first
+  revision's code before the second was judged: 20 tests failed there.
+  Fifty-six tests, nine through the real `main()` loop; 85 mutants, all
+  killed. Doctrine E1-06 stays OPEN with six questions for the maintainer.
 - **2026-10-01 (independent review of the held dedupe fix, and its revision;
   `exp/command-dedupe-validity`, NOT MERGED).** Three reviewers read the
   first fix before a merge was asked for, and all three returned "merge

@@ -1,4 +1,4 @@
-"""A duplicate COMMAND_EVENT is not forwarded a second time while any copy seen could execute.
+"""A duplicate COMMAND_EVENT is not forwarded a second time while the forwarded copy can execute.
 
 Contract 13.2: "Duplicate COMMAND_EVENTs MUST NOT be forwarded for execution a
 second time." The gateway used to hold a command's task_id for the smaller of
@@ -7,30 +7,38 @@ was forwarded again when its duplicate arrived at 301 s.
 
 What is pinned here:
 
-- A task_id is held from first receipt until the command's validity ends,
-  read the widest way (valid_for_ms after the latest of receipt, event.ts and
-  valid_from_ts), plus a fixed margin for clock disagreement.
-- A later copy never shortens the hold and lengthens it when its own validity
-  ends later.
-- A command the gateway would have to hold for longer than the maximum hold
-  is refused, so every held id expires and a full cache always clears.
-- The cache is bounded by count. When it is full a new command is refused
-  instead of an old id being forgotten.
-- Both limits are settings, and main() hands them to the cache.
+- A task_id is held from the moment its command is admitted until that
+  command's validity ends, read the widest way (valid_for_ms after the latest
+  of receipt, event.ts and valid_from_ts), plus a fixed margin for clock
+  disagreement.
+- A later copy of a held command is a duplicate and changes nothing. It
+  neither shortens nor lengthens the hold.
+- A command is refused, not forwarded, when the gateway cannot hold its
+  task_id: the hold would exceed the maximum, a validity anchor is present
+  and unreadable, or the cache is full. A refused command is not held.
+- A command refused by an earlier check does not claim its task_id, and a
+  command that was admitted and then did not leave the gateway gives it back.
+- Both limits are settings with ceilings, and main() hands them to the cache.
 
 What this file does not prove. The cache is in memory, so a gateway restart
 forgets every held id. A command whose validity has already ended is not
 refused. A task_id is released when its hold ends, and the same task_id is
 then admitted as a new command; contract 13.2 sets no time bound on "a second
 time", so that release is a reading the maintainer has not ruled on (doctrine
-E1-06), and test_the_id_is_released_when_the_hold_ends pins the behavior, not
-the ruling.
+E1-06), and the tests that assert a release pin the behavior, not the ruling.
+
+A note for whoever edits these tests: every probe that re-sends a command is
+itself a copy. The cache ignores copies, and CopiesChangeNothingTest exists
+to keep it that way; a cache that lengthened a hold on each copy would make
+most duplicate assertions here pass for the wrong reason.
 """
 
 import contextlib
+import copy
 import importlib.util
 import io
 import json
+import math
 import unittest
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -64,10 +72,17 @@ LANES = (
 
 CAPACITY_REASON = "command dedupe capacity reached"
 TOO_LONG_REASON = "command validity exceeds the dedupe hold limit"
+UNREADABLE_REASON = "command validity anchor is not a readable UTC instant"
+# Schema-valid on both lanes, and not an instant this gateway can read.
+IMPOSSIBLE_DATE = "2025-02-30T00:00:00Z"
 
 
 def z(moment):
     return moment.strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def parse_z(value):
+    return datetime.strptime(value, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
 
 
 def timing(ts):
@@ -157,7 +172,8 @@ class DedupeCase(unittest.TestCase):
         self.state = validators.ValidationState()
         self.state.record(time_status())
 
-    def send(self, event, at_s, cache=None, metrics=None, validator=None, identity=None):
+    def send(self, event, at_s, cache=None, validator=None, wall=WALL, **kwargs):
+        """Hand `event` to process_message `at_s` seconds after `wall`, on both clocks."""
         validator = validator or self.validator
         self.assertEqual([], list(validator.iter_errors(event)), "input must be schema-valid")
         self.clock.now = 1000.0 + at_s
@@ -169,9 +185,8 @@ class DedupeCase(unittest.TestCase):
             self.cache if cache is None else cache,
             "json",
             timing_state=self.state,
-            metrics=metrics,
-            now=WALL + timedelta(seconds=at_s),
-            gateway_identity=identity,
+            now=wall + timedelta(seconds=at_s),
+            **kwargs,
         )
 
     def assert_forwarded(self, event, out):
@@ -182,11 +197,17 @@ class DedupeCase(unittest.TestCase):
             # acknowledgement behind one would mean it was also refused.
             self.assertNotEqual("TASK_ACK", extra["event"]["event_subtype"], extra)
 
-    def assert_duplicate(self, out):
+    def assert_duplicate(self, event, out):
         self.assertEqual(1, len(out), out)
-        self.assertEqual("TASK_ACK", out[0]["event"]["event_subtype"])
-        self.assertEqual("DUPLICATE_IGNORED", out[0]["payload"]["state"])
-        self.assertEqual("TASK_DUPLICATE", out[0]["payload"]["metrics"]["reason_code"])
+        ack = out[0]
+        self.assertEqual("SYSTEM_EVENT", ack["event"]["event_type"])
+        self.assertEqual("TASK_ACK", ack["event"]["event_subtype"])
+        self.assertEqual("DUPLICATE_IGNORED", ack["payload"]["state"])
+        metrics = ack["payload"]["metrics"]
+        self.assertEqual("TASK_DUPLICATE", metrics["reason_code"])
+        self.assertEqual(event["payload"]["task_id"], metrics["task_id"])
+        self.assertEqual(event["event"]["event_id"], metrics["original_event_id"])
+        return ack
 
     def assert_refused(self, event, out, reason, limit_key, limit, validator=None):
         self.assertEqual(1, len(out), out)
@@ -212,30 +233,32 @@ class DedupeCase(unittest.TestCase):
 
 
 class HoldCoversTheValidityTest(DedupeCase):
-    def test_the_shipped_600_s_command_is_not_forwarded_again_while_valid(self):
+    def test_the_shipped_600_s_command_is_held_for_its_validity_and_no_longer(self):
         cmd = shipped_command()
         self.assertEqual(600000, cmd["payload"]["valid_for_ms"])
-        # The shipped command carries no per-event timing quality, so its node's
-        # TIME_STATUS must be current at the command's own ts.
+        self.assertNotIn("valid_from_ts", cmd["payload"])
         self.assertEqual(SOURCE, cmd["source"])
+        # Received at the command's own ts, so the hold is the 600 s validity
+        # plus the margin and nothing else. (Received earlier, the lead to
+        # event.ts would carry the hold and hide a broken validity.) The
+        # shipped command carries no per-event timing quality, so its node's
+        # TIME_STATUS must be current at that ts.
+        anchor = parse_z(cmd["event"]["ts"])
         self.state.record(time_status(cmd["event"]["ts"]))
-        self.assert_forwarded(cmd, self.send(cmd, 0))
+        self.assert_forwarded(cmd, self.send(cmd, 0, wall=anchor))
         for at_s in (10, 301, 599, 600 + MARGIN_S - 1):
             with self.subTest(at_s=at_s):
-                self.assert_duplicate(self.send(cmd, at_s))
+                self.assert_duplicate(cmd, self.send(cmd, at_s, wall=anchor))
+        self.assert_forwarded(cmd, self.send(cmd, 600 + MARGIN_S + 1, wall=anchor))
 
-    def test_a_short_command_is_deduped_through_its_validity_and_the_margin(self):
+    def test_a_short_command_is_held_through_its_validity_and_the_margin_then_released(self):
+        # The release pins the behavior, not a ruling: contract 13.2 sets no
+        # time bound on "a second time" (doctrine E1-06).
         cmd = command("task-short", valid_for_ms=60000)
         self.assert_forwarded(cmd, self.send(cmd, 0))
         for at_s in (1, 59, 61, 60 + MARGIN_S - 1):
             with self.subTest(at_s=at_s):
-                self.assert_duplicate(self.send(cmd, at_s))
-
-    def test_the_id_is_released_when_the_hold_ends(self):
-        # Pins the behavior, not a ruling: contract 13.2 sets no time bound on
-        # "a second time" (doctrine E1-06).
-        cmd = command("task-release", valid_for_ms=60000)
-        self.assert_forwarded(cmd, self.send(cmd, 0))
+                self.assert_duplicate(cmd, self.send(cmd, at_s))
         self.assert_forwarded(cmd, self.send(cmd, 60 + MARGIN_S + 1))
 
     def test_the_margin_is_one_minute(self):
@@ -244,18 +267,12 @@ class HoldCoversTheValidityTest(DedupeCase):
 
     def test_lead_time_to_valid_from_ts_is_held(self):
         # Valid for 60 s starting 600 s after receipt: executable until 660 s.
-        start = z(WALL + timedelta(seconds=600))
-        cmd = command("task-lead", valid_for_ms=60000, valid_from_ts=start)
+        cmd = command("task-lead", valid_for_ms=60000, valid_from_ts=z(WALL + timedelta(seconds=600)))
         self.assert_forwarded(cmd, self.send(cmd, 0))
-        for at_s in (61, 301, 659, 660 + MARGIN_S - 1):
+        for at_s in (61, 121, 301, 659, 660 + MARGIN_S - 1):
             with self.subTest(at_s=at_s):
-                self.assert_duplicate(self.send(cmd, at_s))
-        # The lead is held and no longer: an id nobody repeated is released
-        # when that hold ends. (Each copy above lengthened its own id's hold,
-        # so the release is checked on an id that was sent once.)
-        once = command("task-lead-once", valid_for_ms=60000, valid_from_ts=start)
-        self.assert_forwarded(once, self.send(once, 0))
-        self.assert_forwarded(once, self.send(once, 660 + MARGIN_S + 1))
+                self.assert_duplicate(cmd, self.send(cmd, at_s))
+        self.assert_forwarded(cmd, self.send(cmd, 660 + MARGIN_S + 1))
 
     def test_a_future_event_ts_is_held_as_the_validity_anchor(self):
         # Contract 5.1: a command's event.ts is "the command issue time or
@@ -265,9 +282,10 @@ class HoldCoversTheValidityTest(DedupeCase):
         self.state.record(time_status(ahead - timedelta(seconds=20)))
         cmd = command("task-future-ts", valid_for_ms=60000, ts=ahead)
         self.assert_forwarded(cmd, self.send(cmd, 0))
-        for at_s in (61, 301, 659, 660 + MARGIN_S - 1):
+        for at_s in (61, 121, 301, 659, 660 + MARGIN_S - 1):
             with self.subTest(at_s=at_s):
-                self.assert_duplicate(self.send(cmd, at_s))
+                self.assert_duplicate(cmd, self.send(cmd, at_s))
+        self.assert_forwarded(cmd, self.send(cmd, 660 + MARGIN_S + 1))
 
     def test_the_hold_is_measured_to_the_latest_anchor(self):
         hold = gateway.command_hold_ms
@@ -278,12 +296,12 @@ class HoldCoversTheValidityTest(DedupeCase):
             # (valid_from_ts, event_ts, expected lead in ms)
             (None, None, 0),
             (past, past, 0),
-            ("garbageZ", "garbageZ", 0),
             (late, None, 600000),
             (None, late, 600000),
             (late, soon, 600000),
             (soon, late, 600000),
             (soon, past, 100000),
+            (past, soon, 100000),
         )
         for valid_from_ts, event_ts, lead in cases:
             with self.subTest(valid_from_ts=valid_from_ts, event_ts=event_ts):
@@ -297,64 +315,166 @@ class HoldCoversTheValidityTest(DedupeCase):
             hold({"valid_for_ms": 60000, "valid_from_ts": late}, now=WALL + timedelta(seconds=500)),
         )
 
-    def test_hold_falls_back_for_a_value_that_is_not_a_positive_integer(self):
+    def test_a_lead_is_counted_to_the_millisecond_and_never_rounded_down(self):
+        start = z(WALL + timedelta(seconds=10))
+        margin = gateway.COMMAND_HOLD_MARGIN_MS
+        self.assertEqual(
+            60000 + 9500 + margin,
+            gateway.command_hold_ms(
+                {"valid_for_ms": 60000, "valid_from_ts": start}, now=WALL + timedelta(milliseconds=500)
+            ),
+        )
+        self.assertEqual(
+            60000 + 9001 + margin,
+            gateway.command_hold_ms(
+                {"valid_for_ms": 60000, "valid_from_ts": start}, now=WALL + timedelta(microseconds=999500)
+            ),
+        )
+
+    def test_the_hold_counts_the_lead_on_the_wall_clock_when_the_caller_gives_no_now(self):
+        # The only path main() uses: it never passes `now`.
+        start = datetime.now(timezone.utc) + timedelta(seconds=600)
+        held = gateway.command_hold_ms({"valid_for_ms": 60000, "valid_from_ts": z(start)})
+        self.assertGreaterEqual(held, 60000 + 598000 + gateway.COMMAND_HOLD_MARGIN_MS)
+        self.assertLessEqual(held, 60000 + 601000 + gateway.COMMAND_HOLD_MARGIN_MS)
+
+    def test_a_naive_now_is_read_as_utc(self):
+        late = z(WALL + timedelta(seconds=600))
+        self.assertEqual(
+            60000 + 600000 + gateway.COMMAND_HOLD_MARGIN_MS,
+            gateway.command_hold_ms(
+                {"valid_for_ms": 60000, "valid_from_ts": late}, now=WALL.replace(tzinfo=None)
+            ),
+        )
+
+    def test_hold_falls_back_for_a_validity_int_cannot_read_or_reads_as_not_positive(self):
         expected = 60000 + gateway.COMMAND_HOLD_MARGIN_MS
         for bad in (None, "x", 0, -5, float("inf"), [1]):
             with self.subTest(valid_for_ms=bad):
                 self.assertEqual(expected, gateway.command_hold_ms({"valid_for_ms": bad}, now=WALL))
         self.assertEqual(expected, gateway.command_hold_ms(None, now=WALL))
 
-    def test_the_same_task_id_from_another_platform_is_a_duplicate(self):
+    def test_the_same_task_id_from_another_platform_or_producer_is_a_duplicate(self):
         # Contract 13.2 keys the dedupe on payload.task_id alone.
-        other = dict(SOURCE, platform_id="comms-node-2")
-        self.state.record(time_status(source=other))
+        others = (
+            dict(SOURCE, platform_id="comms-node-2"),
+            dict(SOURCE, producer="retasking-engine"),
+        )
         first = command("task-shared", valid_for_ms=600000)
-        second = command("task-shared", valid_for_ms=600000, source=other)
         self.assert_forwarded(first, self.send(first, 0))
-        self.assert_duplicate(self.send(second, 5))
+        for n, other in enumerate(others, start=1):
+            with self.subTest(source=other):
+                self.state.record(time_status(source=other))
+                second = command("task-shared", valid_for_ms=600000, source=other)
+                self.assert_duplicate(second, self.send(second, 5 * n))
 
 
-class LaterCopiesTest(DedupeCase):
-    def test_a_later_copy_with_a_longer_validity_lengthens_the_hold(self):
-        # A producer repeating one task with a longer validity: the id stays
-        # held while any copy seen could execute.
+class CopiesChangeNothingTest(DedupeCase):
+    def test_a_later_copy_with_a_longer_validity_does_not_lengthen_the_hold(self):
         first = command("task-repeat", valid_for_ms=60000)
         longer = command("task-repeat", valid_for_ms=600000)
         self.assert_forwarded(first, self.send(first, 0))
-        self.assert_duplicate(self.send(longer, 50))
-        # Probed with the short copy, which cannot lengthen the hold itself
-        # until the last probe.
-        for at_s in (60 + MARGIN_S + 1, 200, 50 + 600 + MARGIN_S - 1):
-            with self.subTest(at_s=at_s):
-                self.assert_duplicate(self.send(first, at_s))
+        self.assert_duplicate(longer, self.send(longer, 50))
+        self.assert_duplicate(first, self.send(first, 60 + MARGIN_S - 1))
+        # The hold was the forwarded copy's: released on its schedule.
+        self.assert_forwarded(first, self.send(first, 60 + MARGIN_S + 1))
 
     def test_a_later_copy_with_a_shorter_validity_does_not_shorten_the_hold(self):
         first = command("task-keep", valid_for_ms=600000)
         shorter = command("task-keep", valid_for_ms=60000)
         self.assert_forwarded(first, self.send(first, 0))
-        self.assert_duplicate(self.send(shorter, 10))
-        # Probed with the short copy, so the probes do not lengthen the hold.
+        self.assert_duplicate(shorter, self.send(shorter, 10))
         for at_s in (10 + 60 + MARGIN_S + 1, 300, 600 + MARGIN_S - 1):
             with self.subTest(at_s=at_s):
-                self.assert_duplicate(self.send(shorter, at_s))
+                self.assert_duplicate(shorter, self.send(shorter, at_s))
+        self.assert_forwarded(first, self.send(first, 600 + MARGIN_S + 1))
 
-    def test_a_later_copy_cannot_lengthen_the_hold_past_the_maximum(self):
+    def test_a_copy_too_long_to_admit_is_still_a_duplicate_of_a_held_command(self):
         cache = gateway.TaskDedupeCache(max_entries=4, max_hold_ms=180000)
-        # Two ids, because a probe is itself a copy and lengthens the hold:
-        # one id shows the hold reached the maximum, the other that it
-        # stopped there.
-        for task_id, probe_at_s, held in (("task-cap-a", 10 + 180 - 1, True), ("task-cap-b", 10 + 180 + 1, False)):
-            with self.subTest(task_id=task_id):
-                first = command(task_id, valid_for_ms=60000)
-                huge = command(task_id, valid_for_ms=10 ** 15)
-                self.assert_forwarded(first, self.send(first, 0, cache=cache))
-                # A copy of a held command is a duplicate whatever its validity.
-                self.assert_duplicate(self.send(huge, 10, cache=cache))
-                out = self.send(first, probe_at_s, cache=cache)
-                if held:
-                    self.assert_duplicate(out)
-                else:
-                    self.assert_forwarded(first, out)
+        first = command("task-cap", valid_for_ms=60000)
+        huge = command("task-cap", valid_for_ms=10 ** 15)
+        unreadable = command("task-cap", valid_from_ts=IMPOSSIBLE_DATE)
+        self.assert_forwarded(first, self.send(first, 0, cache=cache))
+        self.assert_duplicate(huge, self.send(huge, 10, cache=cache))
+        self.assert_duplicate(unreadable, self.send(unreadable, 20, cache=cache))
+        self.assert_forwarded(first, self.send(first, 60 + MARGIN_S + 1, cache=cache))
+
+    def test_repeating_held_commands_cannot_keep_the_cache_full(self):
+        # The second review's reproduction: when copies lengthened a hold,
+        # re-sending held ids kept every slot taken for as long as the
+        # copies kept coming, and every new command was refused.
+        cache = gateway.TaskDedupeCache(max_entries=2, max_hold_ms=180000)
+        held = [command(f"task-held-{n}", valid_for_ms=60000) for n in (1, 2)]
+        for cmd in held:
+            self.assert_forwarded(cmd, self.send(cmd, 0, cache=cache))
+        for at_s in (30, 60, 90, 119):
+            for cmd in held:
+                refresh = command(cmd["payload"]["task_id"], valid_for_ms=10 ** 15)
+                self.assert_duplicate(refresh, self.send(refresh, at_s, cache=cache))
+        waiting = command("task-waiting", valid_for_ms=60000)
+        self.assert_refused(
+            waiting, self.send(waiting, 119, cache=cache), CAPACITY_REASON, "command_dedupe_max_entries", 2
+        )
+        self.assert_forwarded(waiting, self.send(waiting, 60 + MARGIN_S + 1, cache=cache))
+
+
+class UnreadableAnchorTest(DedupeCase):
+    def test_an_unreadable_anchor_makes_the_hold_infinite_and_is_named(self):
+        cases = (
+            ({"valid_for_ms": 60000, "valid_from_ts": IMPOSSIBLE_DATE}, None, "payload.valid_from_ts"),
+            ({"valid_for_ms": 60000, "valid_from_ts": "2025-01-17T23:59:60Z"}, None, "payload.valid_from_ts"),
+            ({"valid_for_ms": 60000, "valid_from_ts": "garbageZ"}, None, "payload.valid_from_ts"),
+            ({"valid_for_ms": 60000}, IMPOSSIBLE_DATE, "event.ts"),
+            ({"valid_for_ms": 60000}, "garbageZ", "event.ts"),
+            ({"valid_for_ms": 60000, "valid_from_ts": 5}, None, "payload.valid_from_ts"),
+        )
+        for payload, event_ts, name in cases:
+            with self.subTest(payload=payload, event_ts=event_ts):
+                self.assertEqual(name, gateway.unreadable_command_anchor(payload, event_ts))
+                self.assertEqual(math.inf, gateway.command_hold_ms(payload, now=WALL, event_ts=event_ts))
+        readable = {"valid_for_ms": 60000, "valid_from_ts": z(WALL)}
+        self.assertIsNone(gateway.unreadable_command_anchor(readable, z(WALL)))
+        self.assertIsNone(gateway.unreadable_command_anchor({"valid_for_ms": 60000}, None))
+        self.assertIsNone(gateway.unreadable_command_anchor(None, None))
+
+    def test_a_command_with_an_unreadable_valid_from_ts_is_refused_not_forwarded(self):
+        # Before this refusal the hold fell back to the narrowest reading
+        # (valid_for_ms from receipt) and the same task_id was forwarded
+        # again while a consumer that reads the date leniently, as October
+        # 1 for "September 31", still held the command valid.
+        for bad in (IMPOSSIBLE_DATE, "2025-01-17T23:59:60Z", "garbageZ"):
+            with self.subTest(valid_from_ts=bad):
+                cmd = command(f"task-unreadable-{bad}", valid_for_ms=600000, valid_from_ts=bad)
+                metrics = mock.Mock()
+                self.assert_refused(
+                    cmd, self.send(cmd, 0, metrics=metrics), UNREADABLE_REASON, "anchor", "payload.valid_from_ts"
+                )
+                metrics.record_violation.assert_called_once_with(
+                    "TASK_REJECTED",
+                    event_id=cmd["event"]["event_id"],
+                    producer="sensorops",
+                    details={"reason": UNREADABLE_REASON, "anchor": "payload.valid_from_ts"},
+                )
+                # Refused again, never "duplicate": nothing was held.
+                self.assert_refused(cmd, self.send(cmd, 700), UNREADABLE_REASON, "anchor", "payload.valid_from_ts")
+
+    def test_a_command_with_an_unreadable_event_ts_is_not_forwarded(self):
+        # An earlier check may refuse it first; whichever does, the command
+        # does not go out, and its task_id is not held against a corrected copy.
+        cmd = command("task-bad-ts", valid_for_ms=600000)
+        cmd["event"]["ts"] = IMPOSSIBLE_DATE
+        out = self.send(cmd, 0)
+        self.assertNotIn(cmd, out)
+        self.assertEqual("REJECTED", out[0]["payload"]["state"])
+        fixed = command("task-bad-ts", valid_for_ms=600000)
+        self.assert_forwarded(fixed, self.send(fixed, 1))
+
+    def test_the_unreadable_anchor_refusal_reaches_the_dedupe_for_event_ts(self):
+        # The dedupe's own refusal, isolated from the earlier checks.
+        cache = gateway.TaskDedupeCache()
+        hold = gateway.command_hold_ms({"valid_for_ms": 60000}, now=WALL, event_ts="garbageZ")
+        self.assertEqual(gateway.TaskDedupeCache.TOO_LONG, cache.admit("task", hold))
+        self.assertEqual(gateway.TaskDedupeCache.NEW, cache.admit("task", 120000))
 
 
 class MaximumHoldTest(DedupeCase):
@@ -366,7 +486,8 @@ class MaximumHoldTest(DedupeCase):
         longest = DAY_MS - gateway.COMMAND_HOLD_MARGIN_MS
         at_limit = command("task-at-limit", valid_for_ms=longest)
         self.assert_forwarded(at_limit, self.send(at_limit, 0))
-        self.assert_duplicate(self.send(at_limit, DAY_MS // 1000 - 1))
+        self.assert_duplicate(at_limit, self.send(at_limit, DAY_MS // 1000 - 1))
+        self.assert_forwarded(at_limit, self.send(at_limit, DAY_MS // 1000 + 1))
         past_limit = command("task-past-limit", valid_for_ms=longest + 1)
         self.assert_refused(
             past_limit, self.send(past_limit, 0), TOO_LONG_REASON, "command_max_hold_ms", DAY_MS
@@ -406,10 +527,11 @@ class MaximumHoldTest(DedupeCase):
         reissued = command("task-again", valid_for_ms=60000)
         self.assert_forwarded(reissued, self.send(reissued, 2, cache=cache))
 
-    def test_a_full_cache_always_clears(self):
-        # Every hold is finite, so a full cache refuses for at most the
-        # maximum hold. Before the maximum hold existed, ids held "forever"
-        # filled the cache until the gateway was restarted.
+    def test_a_full_cache_clears_within_the_maximum_hold(self):
+        # Every hold is finite and no copy lengthens one, so a full cache
+        # refuses for at most the maximum hold after its last admission.
+        # Before the maximum hold existed, ids held "forever" filled the
+        # cache until the gateway was restarted.
         cache = gateway.TaskDedupeCache(max_entries=2, max_hold_ms=180000)
         longest = 180000 - gateway.COMMAND_HOLD_MARGIN_MS
         for n in (1, 2):
@@ -436,7 +558,7 @@ class CapacityTest(DedupeCase):
         sixth = command("task-5", valid_for_ms=600000)
         metrics = mock.Mock()
         identity = {"producer": "zmeta-gateway", "node_role": "DMZ"}
-        out = self.send(sixth, 6, cache=cache, metrics=metrics, identity=identity)
+        out = self.send(sixth, 6, cache=cache, metrics=metrics, gateway_identity=identity)
 
         refusal = self.assert_refused(sixth, out, CAPACITY_REASON, "command_dedupe_max_entries", 5)
         self.assertEqual("zmeta-gateway", refusal["source"]["producer"])
@@ -450,7 +572,7 @@ class CapacityTest(DedupeCase):
         metrics.record_duplicate.assert_not_called()
         # Nothing was forgotten to make room: every held command still dedupes.
         for cmd in held:
-            self.assert_duplicate(self.send(cmd, 7, cache=cache))
+            self.assert_duplicate(cmd, self.send(cmd, 7, cache=cache))
         # The refused command was not recorded, so it is still refused, not "duplicate".
         self.assert_refused(
             sixth, self.send(sixth, 8, cache=cache), CAPACITY_REASON, "command_dedupe_max_entries", 5
@@ -473,7 +595,7 @@ class CapacityTest(DedupeCase):
         second = command("task-2", valid_for_ms=600000)
         self.assert_forwarded(first, self.send(first, 0, cache=cache))
         for at_s in (1, 2, 3):
-            self.assert_duplicate(self.send(first, at_s, cache=cache))
+            self.assert_duplicate(first, self.send(first, at_s, cache=cache))
         self.assert_forwarded(second, self.send(second, 4, cache=cache))
 
     def test_the_refusals_are_valid_on_every_lane(self):
@@ -484,7 +606,8 @@ class CapacityTest(DedupeCase):
                     cache = gateway.TaskDedupeCache(max_entries=1, max_hold_ms=180000)
                     held = command(f"task-held-{version}", version=version)
                     self.assert_forwarded(held, self.send(held, 0, cache=cache, validator=validator))
-                    self.assert_duplicate(self.send(held, 1, cache=cache, validator=validator))
+                    ack = self.assert_duplicate(held, self.send(held, 1, cache=cache, validator=validator))
+                    self.assertEqual([], gateway.validate_outgoing_event(ack, validator, self.policy, "L"))
                     extra = command(f"task-extra-{version}", version=version)
                     self.assert_refused(
                         extra, self.send(extra, 2, cache=cache, validator=validator),
@@ -495,15 +618,102 @@ class CapacityTest(DedupeCase):
                         too_long, self.send(too_long, 3, cache=cache, validator=validator),
                         TOO_LONG_REASON, "command_max_hold_ms", 180000, validator=validator,
                     )
+                    unreadable = command(
+                        f"task-unreadable-{version}", valid_from_ts=IMPOSSIBLE_DATE, version=version
+                    )
+                    self.assert_refused(
+                        unreadable, self.send(unreadable, 4, cache=cache, validator=validator),
+                        UNREADABLE_REASON, "anchor", "payload.valid_from_ts", validator=validator,
+                    )
+
+
+class DuplicateAcknowledgementTest(DedupeCase):
+    def test_a_duplicate_is_acknowledged_and_counted_when_a_metrics_sink_is_present(self):
+        # main() always passes a metrics sink; every other duplicate test here passes none.
+        cmd = command("task-dup-metrics")
+        self.assert_forwarded(cmd, self.send(cmd, 0))
+        metrics = mock.Mock()
+        self.assert_duplicate(cmd, self.send(cmd, 5, metrics=metrics))
+        metrics.record_duplicate.assert_called_once_with(task_id="task-dup-metrics")
+        metrics.record_violation.assert_called_once_with(
+            "TASK_DUPLICATE", event_id=cmd["event"]["event_id"], producer="sensorops", details="task-dup-metrics"
+        )
+
+    def test_the_acknowledgement_names_the_copy_and_carries_the_gateway_identity_and_hash(self):
+        first = command("task-dup-names")
+        again = command("task-dup-names")
+        hashes = {"contract_hash": "c" * 64, "schema_hash": "s" * 64, "policy_hash": "p" * 64}
+        self.assert_forwarded(first, self.send(first, 0))
+        ack = self.assert_duplicate(
+            again,
+            self.send(
+                again, 5,
+                gateway_identity={"producer": "zmeta-gateway", "node_role": "DMZ"},
+                contract_hashes=hashes, stamp_contract_hash=True,
+            ),
+        )
+        self.assertNotEqual(first["event"]["event_id"], ack["payload"]["metrics"]["original_event_id"])
+        self.assertEqual("zmeta-gateway", ack["source"]["producer"])
+        self.assertEqual("DMZ", ack["source"]["node_role"])
+        self.assertEqual("c" * 64, ack["payload"]["metrics"]["contract_hash"])
+
+    def test_a_resend_is_acknowledged_not_swallowed_with_the_caches_main_wires(self):
+        # main() also wires the event-id and task-ack caches. Commands are
+        # excluded from event-id dedupe; were they not, an identical resend
+        # would be dropped with no acknowledgement at all.
+        cmd = command("task-main-wiring")
+        caches = dict(
+            event_dedupe_cache=gateway.EventDedupeCache(),
+            task_ack_dedupe_cache=gateway.TaskAckDedupeCache(),
+        )
+        self.assert_forwarded(cmd, self.send(cmd, 0, **caches))
+        self.assert_duplicate(cmd, self.send(cmd, 5, **caches))
+        refused = command("task-main-wiring-long", valid_for_ms=10 ** 15)
+        for at_s in (6, 7):
+            self.assert_refused(
+                refused, self.send(refused, at_s, **caches), TOO_LONG_REASON, "command_max_hold_ms", DAY_MS
+            )
+
+
+class RefusedEarlierTest(DedupeCase):
+    def test_a_command_refused_by_policy_does_not_claim_its_task_id(self):
+        torch = dict(SOURCE, producer="torch")
+        self.state.record(time_status(source=torch))
+        denied = command("task-claim", source=torch)
+        out = self.send(denied, 0)
+        self.assertNotIn(denied, out)
+        self.assertEqual("REJECTED", out[0]["payload"]["state"])
+        legitimate = command("task-claim")
+        self.assert_forwarded(legitimate, self.send(legitimate, 1))
+
+    def test_a_command_refused_by_strict_validation_does_not_claim_its_task_id(self):
+        cited = command("task-strict")
+        cited["lineage"] = {"based_on": [str(uuid7())]}
+        out = self.send(cited, 0, strict_validation=True)
+        self.assertEqual(1, len(out), out)
+        self.assertNotEqual(cited["event"]["event_id"], out[0]["event"]["event_id"])
+        fixed = command("task-strict")
+        self.assert_forwarded(fixed, self.send(fixed, 1, strict_validation=True))
 
 
 class CacheContractTest(unittest.TestCase):
+    def setUp(self):
+        self.clock = Clock()
+        patcher = mock.patch.object(gateway.time, "monotonic", self.clock)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
     def test_the_cache_has_no_method_that_hides_a_refusal(self):
         # check_and_set(task_id, ttl_ms) answered only "duplicate or not", so
         # a caller written against it forwarded a command the cache had
         # refused to hold. It is gone; admit() is the one entry.
         self.assertFalse(hasattr(gateway.TaskDedupeCache, "check_and_set"))
         self.assertFalse(hasattr(gateway, "ttl_ms_from_payload"))
+
+    def test_an_empty_cache_is_still_a_cache(self):
+        # process_message guards on `if task_id and dedupe_cache`; a cache
+        # that reported itself empty and falsy would switch the dedupe off.
+        self.assertTrue(gateway.TaskDedupeCache())
 
     def test_the_cache_refuses_limits_that_are_not_positive_integers(self):
         for bad in (0, -1, True, 1.5, "4", None, float("inf")):
@@ -514,6 +724,20 @@ class CacheContractTest(unittest.TestCase):
                 with self.assertRaises(ValueError):
                     gateway.TaskDedupeCache(max_hold_ms=bad)
 
+    def test_the_limits_have_ceilings(self):
+        self.assertEqual(1024 * 1024, gateway.MAX_COMMAND_DEDUPE_MAX_ENTRIES)
+        self.assertEqual(31 * DAY_MS, gateway.MAX_COMMAND_MAX_HOLD_MS)
+        cache = gateway.TaskDedupeCache(
+            max_entries=gateway.MAX_COMMAND_DEDUPE_MAX_ENTRIES, max_hold_ms=gateway.MAX_COMMAND_MAX_HOLD_MS
+        )
+        self.assertEqual(gateway.TaskDedupeCache.NEW, cache.admit("task", gateway.MAX_COMMAND_MAX_HOLD_MS))
+        with self.assertRaises(ValueError):
+            gateway.TaskDedupeCache(max_entries=gateway.MAX_COMMAND_DEDUPE_MAX_ENTRIES + 1)
+        for too_big in (gateway.MAX_COMMAND_MAX_HOLD_MS + 1, 10 ** 20, 10 ** 400):
+            with self.subTest(max_hold_ms=too_big):
+                with self.assertRaises(ValueError):
+                    gateway.TaskDedupeCache(max_hold_ms=too_big)
+
     def test_admit_refuses_a_hold_that_is_not_a_positive_number(self):
         cache = gateway.TaskDedupeCache()
         for bad in (0, -1, True, "x", None, float("nan")):
@@ -522,6 +746,33 @@ class CacheContractTest(unittest.TestCase):
                     cache.admit("task", bad)
         self.assertEqual(gateway.TaskDedupeCache.NEW, cache.admit("task", 1000))
         self.assertEqual(gateway.TaskDedupeCache.TOO_LONG, cache.admit("other", float("inf")))
+        self.assertEqual(gateway.TaskDedupeCache.TOO_LONG, cache.admit("other", 10 ** 400))
+
+    def test_a_hold_is_kept_to_the_fraction_of_a_second(self):
+        cache = gateway.TaskDedupeCache()
+        self.assertEqual(gateway.TaskDedupeCache.NEW, cache.admit("task", 61500))
+        self.clock.now = 1061.2
+        self.assertEqual(gateway.TaskDedupeCache.DUPLICATE, cache.admit("task", 1000))
+        self.clock.now = 1061.6
+        self.assertEqual(gateway.TaskDedupeCache.NEW, cache.admit("task", 1000))
+
+    def test_capacity_returns_at_the_exact_end_of_a_hold(self):
+        cache = gateway.TaskDedupeCache(max_entries=1)
+        self.assertEqual(gateway.TaskDedupeCache.NEW, cache.admit("a", 60000))
+        self.clock.now = 1059.999
+        self.assertEqual(gateway.TaskDedupeCache.FULL, cache.admit("b", 60000))
+        self.clock.now = 1060.0
+        self.assertEqual(gateway.TaskDedupeCache.NEW, cache.admit("b", 60000))
+
+    def test_release_forgets_one_id_and_only_that_id(self):
+        cache = gateway.TaskDedupeCache(max_entries=2)
+        self.assertEqual(gateway.TaskDedupeCache.NEW, cache.admit("a", 60000))
+        self.assertEqual(gateway.TaskDedupeCache.NEW, cache.admit("b", 60000))
+        cache.release("a")
+        cache.release("never-held")
+        self.assertEqual(gateway.TaskDedupeCache.DUPLICATE, cache.admit("b", 60000))
+        self.assertEqual(gateway.TaskDedupeCache.NEW, cache.admit("a", 60000))
+        self.assertEqual(gateway.TaskDedupeCache.FULL, cache.admit("c", 60000))
 
 
 def args_with(*argv):
@@ -531,12 +782,12 @@ def args_with(*argv):
 
 class SettingsTest(unittest.TestCase):
     KEYS = (
-        ("command_dedupe_max_entries", "--command-dedupe-max-entries", 4096),
-        ("command_max_hold_ms", "--command-max-hold-ms", DAY_MS),
+        ("command_dedupe_max_entries", "--command-dedupe-max-entries", 4096, 1024 * 1024),
+        ("command_max_hold_ms", "--command-max-hold-ms", DAY_MS, 31 * DAY_MS),
     )
 
     def test_both_limits_are_settings_and_flags_win(self):
-        for key, flag, default in self.KEYS:
+        for key, flag, default, _ceiling in self.KEYS:
             with self.subTest(key=key):
                 self.assertEqual(default, gateway.build_settings(ROOT, args_with(), {})[key])
                 self.assertEqual(90000, gateway.build_settings(ROOT, args_with(), {key: 90000})[key])
@@ -545,7 +796,7 @@ class SettingsTest(unittest.TestCase):
                 )
 
     def test_a_limit_that_is_not_a_positive_integer_is_refused(self):
-        for key, flag, _default in self.KEYS:
+        for key, flag, _default, _ceiling in self.KEYS:
             for bad in (0, -1, "many", "16", 16.0, True, None):
                 with self.subTest(key=key, value=bad):
                     with self.assertRaises(ValueError):
@@ -555,14 +806,38 @@ class SettingsTest(unittest.TestCase):
                     with self.assertRaises(ValueError):
                         gateway.build_settings(ROOT, args_with(flag, bad), {})
 
+    def test_a_limit_above_its_ceiling_is_refused(self):
+        for key, flag, _default, ceiling in self.KEYS:
+            with self.subTest(key=key):
+                self.assertEqual(ceiling, gateway.build_settings(ROOT, args_with(), {key: ceiling})[key])
+                self.assertEqual(ceiling, gateway.build_settings(ROOT, args_with(flag, str(ceiling)), {})[key])
+                with self.assertRaises(ValueError):
+                    gateway.build_settings(ROOT, args_with(), {key: ceiling + 1})
+                with self.assertRaises(ValueError):
+                    gateway.build_settings(ROOT, args_with(flag, str(ceiling + 1)), {})
+                with self.assertRaises(ValueError):
+                    gateway.build_settings(ROOT, args_with(), {key: 10 ** 400})
+
     def test_a_maximum_hold_no_longer_than_the_margin_is_refused(self):
         # Every hold includes the margin, so such a limit would refuse every command.
         margin = gateway.COMMAND_HOLD_MARGIN_MS
         with self.assertRaises(ValueError):
             gateway.build_settings(ROOT, args_with(), {"command_max_hold_ms": margin})
+        with self.assertRaises(ValueError):
+            gateway.build_settings(ROOT, args_with("--command-max-hold-ms", str(margin)), {})
+        with self.assertRaises(ValueError):
+            gateway.build_settings(
+                ROOT, args_with("--command-max-hold-ms", str(margin)), {"command_max_hold_ms": margin + 1}
+            )
         self.assertEqual(
             margin + 1,
             gateway.build_settings(ROOT, args_with(), {"command_max_hold_ms": margin + 1})["command_max_hold_ms"],
+        )
+        self.assertEqual(
+            margin + 1,
+            gateway.build_settings(
+                ROOT, args_with("--command-max-hold-ms", str(margin + 1)), {}
+            )["command_max_hold_ms"],
         )
 
 
@@ -591,51 +866,65 @@ class _LoopSocket:
         return len(payload)
 
 
-class MainHandsTheLimitsToTheCacheTest(unittest.TestCase):
+class MainLoopCase(unittest.TestCase):
     """Through the real main() receive loop; only the two UDP sockets are replaced."""
 
-    def run_loop(self, events, *flags):
+    def setUp(self):
+        self.now = datetime.now(timezone.utc).replace(microsecond=0)
+        self.status = time_status(self.now - timedelta(seconds=20))
+
+    def live(self, task_id, valid_for_ms=60000):
+        return command(task_id, valid_for_ms=valid_for_ms, ts=self.now)
+
+    def run_loop(self, events, *flags, patches=()):
         sock_in = _LoopSocket([json.dumps(event).encode("utf-8") for event in events])
         sock_out = _LoopSocket()
         sockets = [sock_in, sock_out]
         argv = ["gateway.py", "--profile", "L", "--listen-port", "45597", "--forward-port", "45596",
                 "--no-metrics", *flags]
         out = io.StringIO()
-        with mock.patch("sys.argv", argv), \
-                mock.patch.object(gateway.socket, "socket", lambda *a, **k: sockets.pop(0)), \
-                contextlib.redirect_stdout(out), contextlib.redirect_stderr(io.StringIO()):
+        with contextlib.ExitStack() as stack:
+            stack.enter_context(mock.patch("sys.argv", argv))
+            stack.enter_context(mock.patch.object(gateway.socket, "socket", lambda *a, **k: sockets.pop(0)))
+            for patch in patches:
+                stack.enter_context(patch)
+            stack.enter_context(contextlib.redirect_stdout(out))
+            stack.enter_context(contextlib.redirect_stderr(io.StringIO()))
             with self.assertRaises(_StopReceiveLoop):
                 gateway.main()
         return [json.loads(payload) for payload, _addr in sock_out.sent], out.getvalue()
 
-    def live(self, task_id, valid_for_ms=60000):
-        return command(task_id, valid_for_ms=valid_for_ms, ts=self.now)
+    @staticmethod
+    def ids(sent):
+        return [e["event"]["event_id"] for e in sent]
 
-    def setUp(self):
-        self.now = datetime.now(timezone.utc).replace(microsecond=0)
-        self.status = time_status(self.now - timedelta(seconds=20))
+    @staticmethod
+    def acks(sent):
+        return [e for e in sent if e["event"]["event_subtype"] == "TASK_ACK"]
 
+
+class MainHandsTheLimitsToTheCacheTest(MainLoopCase):
     def assert_refusal(self, sent, original, reason, limit_key, limit):
-        acks = [e for e in sent if e["event"]["event_subtype"] == "TASK_ACK"]
+        acks = self.acks(sent)
         self.assertEqual(1, len(acks), sent)
         metrics = acks[0]["payload"]["metrics"]
         self.assertEqual("REJECTED", acks[0]["payload"]["state"])
         self.assertEqual(original["event"]["event_id"], metrics["original_event_id"])
         self.assertEqual(reason, metrics["reason"])
         self.assertEqual(limit, metrics[limit_key])
-        self.assertNotIn(original["event"]["event_id"], [e["event"]["event_id"] for e in sent])
+        self.assertNotIn(original["event"]["event_id"], self.ids(sent))
 
     def test_main_uses_the_configured_capacity(self):
         first, second = self.live("task-main-1"), self.live("task-main-2")
         sent, banner = self.run_loop([self.status, first, second], "--command-dedupe-max-entries", "1")
-        self.assertIn(first["event"]["event_id"], [e["event"]["event_id"] for e in sent])
+        self.assertIn(first["event"]["event_id"], self.ids(sent))
         self.assert_refusal(sent, second, CAPACITY_REASON, "command_dedupe_max_entries", 1)
         self.assertIn("command dedupe: up to 1 task_ids held, each for at most 86400000ms", banner)
 
     def test_main_uses_the_configured_maximum_hold(self):
         short, long_lived = self.live("task-main-short"), self.live("task-main-long", valid_for_ms=600000)
         sent, banner = self.run_loop([self.status, short, long_lived], "--command-max-hold-ms", "180000")
-        self.assertIn(short["event"]["event_id"], [e["event"]["event_id"] for e in sent])
+        self.assertIn(short["event"]["event_id"], self.ids(sent))
         self.assert_refusal(sent, long_lived, TOO_LONG_REASON, "command_max_hold_ms", 180000)
         self.assertIn("command dedupe: up to 4096 task_ids held, each for at most 180000ms", banner)
 
@@ -643,10 +932,99 @@ class MainHandsTheLimitsToTheCacheTest(unittest.TestCase):
         # The control for the two tests above: without the flags nothing is refused.
         first, second = self.live("task-main-a"), self.live("task-main-b", valid_for_ms=600000)
         sent, _banner = self.run_loop([self.status, first, second])
-        ids = [e["event"]["event_id"] for e in sent]
-        self.assertIn(first["event"]["event_id"], ids)
-        self.assertIn(second["event"]["event_id"], ids)
-        self.assertEqual([], [e for e in sent if e["event"]["event_subtype"] == "TASK_ACK"])
+        self.assertIn(first["event"]["event_id"], self.ids(sent))
+        self.assertIn(second["event"]["event_id"], self.ids(sent))
+        self.assertEqual([], self.acks(sent))
+
+    def test_main_keeps_one_cache_across_datagrams_and_acknowledges_a_duplicate(self):
+        first, again = self.live("task-main-dup"), self.live("task-main-dup")
+        sent, _banner = self.run_loop([self.status, first, again])
+        self.assertIn(first["event"]["event_id"], self.ids(sent))
+        self.assertNotIn(again["event"]["event_id"], self.ids(sent))
+        acks = self.acks(sent)
+        self.assertEqual(1, len(acks), sent)
+        self.assertEqual("DUPLICATE_IGNORED", acks[0]["payload"]["state"])
+        self.assertEqual(again["event"]["event_id"], acks[0]["payload"]["metrics"]["original_event_id"])
+
+
+class AnUndeliveredCommandGivesItsTaskIdBackTest(MainLoopCase):
+    """A command that was admitted and then did not leave the gateway is not held.
+
+    Nothing can execute it, so a corrected copy under the same task_id is a
+    first copy. Before this, the retry was answered DUPLICATE_IGNORED for the
+    rest of the first copy's hold.
+    """
+
+    def retry_is_forwarded(self, patch):
+        first, retry = self.live("task-undelivered"), self.live("task-undelivered")
+        sent, _banner = self.run_loop([self.status, first, retry], patches=[patch(first)])
+        self.assertNotIn(first["event"]["event_id"], self.ids(sent))
+        self.assertIn(retry["event"]["event_id"], self.ids(sent))
+        self.assertEqual([], [a for a in self.acks(sent) if a["payload"]["state"] == "DUPLICATE_IGNORED"])
+        return sent
+
+    def test_when_the_send_fails(self):
+        real = gateway._send_datagram
+
+        def patch(first):
+            def send(sock, payload, addr, **kwargs):
+                if kwargs.get("event_id") == first["event"]["event_id"]:
+                    return False
+                return real(sock, payload, addr, **kwargs)
+            return mock.patch.object(gateway, "_send_datagram", send)
+
+        self.retry_is_forwarded(patch)
+
+    def test_when_the_outgoing_check_replaces_it_with_a_diagnostic(self):
+        real = gateway.validate_outgoing_event
+
+        def patch(first):
+            def check(event, validator, policy, profile):
+                if event.get("event", {}).get("event_id") == first["event"]["event_id"]:
+                    return [{"code": "SCHEMA_INVALID", "message": "forced by the test", "details": {}}]
+                return real(event, validator, policy, profile)
+            return mock.patch.object(gateway, "validate_outgoing_event", check)
+
+        sent = self.retry_is_forwarded(patch)
+        rejected = [a for a in self.acks(sent) if a["payload"]["state"] == "REJECTED"]
+        self.assertEqual(1, len(rejected), sent)
+
+    def test_when_it_cannot_be_encoded(self):
+        real = gateway._encode_outgoing_or_diagnostic
+
+        def patch(first):
+            def encode(outgoing, settings, **kwargs):
+                if outgoing.get("event", {}).get("event_id") == first["event"]["event_id"]:
+                    return None, outgoing
+                return real(outgoing, settings, **kwargs)
+            return mock.patch.object(gateway, "_encode_outgoing_or_diagnostic", encode)
+
+        self.retry_is_forwarded(patch)
+
+    def test_a_delivered_command_stays_held(self):
+        # The control: with nothing failing, the second copy is a duplicate.
+        first, again = self.live("task-delivered"), self.live("task-delivered")
+        sent, _banner = self.run_loop([self.status, first, again])
+        self.assertIn(first["event"]["event_id"], self.ids(sent))
+        self.assertNotIn(again["event"]["event_id"], self.ids(sent))
+
+    def test_a_refused_duplicate_does_not_release_the_held_command(self):
+        # A duplicate's acknowledgement is not a COMMAND_EVENT, so a failed
+        # send of the acknowledgement must not release the id it protects.
+        first, again, third = (self.live("task-ack-lost") for _ in range(3))
+        real = gateway._send_datagram
+
+        def send(sock, payload, addr, **kwargs):
+            if b"DUPLICATE_IGNORED" in payload:
+                return False
+            return real(sock, payload, addr, **kwargs)
+
+        sent, _banner = self.run_loop(
+            [self.status, first, again, third], patches=[mock.patch.object(gateway, "_send_datagram", send)]
+        )
+        self.assertIn(first["event"]["event_id"], self.ids(sent))
+        self.assertNotIn(again["event"]["event_id"], self.ids(sent))
+        self.assertNotIn(third["event"]["event_id"], self.ids(sent))
 
 
 if __name__ == "__main__":

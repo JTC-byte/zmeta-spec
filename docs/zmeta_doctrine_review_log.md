@@ -3316,7 +3316,7 @@ member restored). Whether an unread failure mode should instead stop the
 gateway at startup, as a mistyped `cot` block does since v1.1.26, is left to
 the maintainer.
 
-### E1-06 — The reference gateway forwarded a duplicate command after 300 s · **OPEN (a fix on `exp/command-dedupe-validity`, revised after independent review; the merge is the maintainer's)**
+### E1-06 — The reference gateway forwarded a duplicate command after 300 s · **OPEN (a fix on `exp/command-dedupe-validity`, revised twice after independent review; the merge is the maintainer's)**
 
 **Observed:** found on 2026-10-01 by an audit of this repository's own
 answers to a downstream implementation, which had been told the reference
@@ -3364,9 +3364,9 @@ All three returned "merge after fixes". What they showed by running it:
 - The proposal released a `task_id` when the validity ended, and a test
   asserted the release. Section 13.2 sets no time bound, and
   `validate_deduplication`, which `tools/validate.py` runs over a recorded
-  stream, reports a repeated `task_id` with no expiry. The gateway and the
-  checker held different readings of the same sentence, and the entry had
-  not said so.
+  stream, reports a later command with a new `event_id` and an already-seen
+  `task_id`, with no expiry. The gateway and the checker held different
+  readings of the same sentence, and the entry had not said so.
 - The `check_and_set` method kept for older callers answered only "duplicate
   or not". A caller using it forwarded a command that a full cache had
   refused to hold.
@@ -3385,23 +3385,70 @@ one task under one `task_id` stays deduplicated while it keeps repeating.
 strict settings with flags, and three tests drive the real `main()` receive
 loop to prove the wiring. Thirty-two tests; 56 mutants, all killed.
 
+**Second independent review, 2026-10-01:** three reviewers read the revised
+proposal the same day. The four defects of the first review were confirmed
+closed by execution. All three again asked for fixes, and two of the new
+findings were defects in the revision itself:
+
+- A later copy lengthened the hold. A sender that re-sent held ids before
+  they expired kept them held and kept the cache full for as long as the
+  copies kept coming, at a cost of one datagram per id per day. The
+  reviewer ran it for 72 hours of gateway time. The revision's own claim,
+  that a full cache clears within the maximum hold, was false for that
+  sender, and the test named for the claim never sent a copy.
+- A validity anchor that was present and unreadable added nothing to the
+  hold. Both schema lanes admit such values (September 31; a leap second;
+  on the 1.0 lane any string ending in `Z`). The command was forwarded with
+  the narrowest hold and forwarded again when that hold ended, while a
+  consumer that reads the value leniently still held it valid.
+- An id stayed held when its command never left the gateway (replaced by a
+  diagnostic at the outgoing check, not encodable, or not sent), so a
+  corrected copy was answered as a duplicate.
+- Four tests passed for a reason other than the one they named. The test
+  on the shipped 600 s command passed with the original 300 s cap put back,
+  because it received the command about 23 minutes before its `event.ts`
+  and each probe renewed the hold. Fifteen mutants survived the 32 tests, among
+  them the production clock path (`main()` passes no `now`), a producer
+  added to the dedupe key, and a duplicate swallowed without an
+  acknowledgement when a metrics sink is present.
+
+**Second revision, on the branch:** the hold belongs to the copy that was
+forwarded, and a later copy changes nothing. A command with an unreadable
+anchor is refused. An admitted command that does not leave the gateway
+gives its `task_id` back. The two settings have ceilings. Lead time is
+rounded up, never down, and a caller's naive clock is read as UTC. The
+tests were rewritten so that no probe can renew what it probes, and each
+survivor the review named has a test that kills it. Fifty-six tests, nine
+through the real `main()` receive loop; 85 mutants, all killed.
+
 **Left to the maintainer, with the merge:**
 
 1. Whether the duty in Section 13.2 expires. The branch releases a `task_id`
-   at the end of its hold and then admits the same id as a new command. The
-   other reading holds an id for as long as the gateway can remember it. The
-   contract text supports neither over the other, and the answer may belong
-   in the contract's guidance.
+   at the end of its hold and then admits the same id as a new command, so a
+   producer that re-issues one task under one `task_id` after that hold has
+   it forwarded again. The other reading holds an id for as long as the
+   gateway can remember it. Section 13.2 sets no time bound, and Section
+   4.10 calls a command "TTL-bound, idempotent" without saying which governs
+   after the TTL; the text does not decide between the readings, and the
+   answer may belong in the contract's guidance. A middle course,
+   lengthening the hold whenever a later copy arrives, was built in the
+   first revision and withdrawn in the second, because it let any sender of
+   copies keep ids held without limit.
 2. Whether refusing a command because of the length of its validity is
    acceptable, and whether one day is the right default. The alternative
    accepts any validity and accepts that a full cache refuses every command
    until a restart.
-3. Whether the documents should say how `valid_from_ts` relates to
+3. Whether refusing a command because a validity anchor is unreadable is
+   acceptable. The alternative forwards a command whose validity the
+   gateway cannot bound.
+4. Whether the documents should say how `valid_from_ts` relates to
    `event.ts` and `valid_for_ms`. The field has no rule today; the branch
    holds for every reading.
-4. Whether held ids must survive a restart.
-5. Whether the gateway should refuse a command whose validity has already
-   ended, as described above.
+5. Whether held ids must survive a restart.
+6. Whether the gateway should refuse a command whose validity has already
+   ended, as described above. `docs/zmeta_mqtt_binding_guidance.md` says
+   "expired commands are rejected, not executed late" and names no actor;
+   the reference gateway does not reject them.
 
 ## Archive
 

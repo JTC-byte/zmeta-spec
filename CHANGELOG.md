@@ -8,28 +8,29 @@
   `task_id` for at most 300 s, so the shipped example command, valid for
   600 s, was forwarded again when its duplicate arrived at 301 s. The hold
   now runs to `valid_for_ms` after the latest of receipt, `event.ts` and
-  `valid_from_ts`, plus a 60 s margin for clock disagreement, and a later
-  copy of a held command can lengthen the hold and never shortens it. Two
-  limits bound the cache, and each refuses a command with `TASK_ACK` state
-  `REJECTED`, reason `TASK_REJECTED`, instead of forwarding it unheld:
-  `command_max_hold_ms` (default one day) refuses a command whose hold would
-  be longer, so every held id expires and a full cache clears without a
-  restart; `command_dedupe_max_entries` (default 4096) refuses a new command
-  when that many ids are held, and no held id is forgotten to make room. A
-  deployment that sends commands valid for longer than a day must raise
-  `command_max_hold_ms`, or those commands are refused. Both settings are
-  strict positive integers with command-line flags.
-  `ttl_ms_from_payload` is replaced by `command_hold_ms`;
-  `TaskDedupeCache.check_and_set` is replaced by `admit()` and removed,
-  because it could not report a refusal. The gateway README states what the
+  `valid_from_ts`, plus a 60 s margin for clock disagreement. It belongs to
+  the copy that was forwarded; a later copy is a duplicate and changes
+  nothing. A command is refused with `TASK_ACK` state `REJECTED`, reason
+  `TASK_REJECTED`, instead of being forwarded unheld, in three cases: its
+  hold would exceed `command_max_hold_ms` (default one day, so every held id
+  expires); a validity anchor is present and is not a UTC instant the
+  gateway can read; or `command_dedupe_max_entries` ids (default 4096) are
+  already held, and no held id is forgotten to make room. A deployment whose
+  commands need a hold longer than a day (`valid_for_ms` plus any lead to a
+  future anchor plus the 60 s margin) must raise `command_max_hold_ms`, or
+  those commands are refused. A command that was admitted and then did not
+  leave the gateway gives its `task_id` back. Both settings are strict
+  integers with ceilings and command-line flags. `ttl_ms_from_payload` is
+  replaced by `command_hold_ms`; `TaskDedupeCache.check_and_set` is replaced
+  by `admit()` and removed, because it could not report a refusal;
+  `TaskDedupeCache.release()` is new. The gateway README states what the
   dedupe does not do: a `task_id` is released when its hold ends (the
   contract sets no time bound, and the release is an open question), a
   restart forgets held ids, and an expired command is not refused at the
-  gateway. The first version of this change was revised after an
-  independent review found that it could fill the cache permanently and
-  ignored a future `event.ts`. Thirty-two tests in
-  `gateway/tests/test_command_dedupe_validity.py`, three of them through the
-  real `main()` receive loop; 56 mutants killed. Doctrine E1-06, open; the
+  gateway. This change was revised twice, after two rounds of independent
+  review, before any merge. Fifty-six tests in
+  `gateway/tests/test_command_dedupe_validity.py`, nine of them through the
+  real `main()` receive loop; 85 mutants killed. Doctrine E1-06, open; the
   merge is the maintainer's.
 - 2026-10-01 — **A claim about the `translate:` lineage transform is
   corrected.** The proposed `DIALECT_LABEL` entry, its roadmap candidate and
