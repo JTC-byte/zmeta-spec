@@ -8,6 +8,34 @@ Optional deployment policy snippets. Copy the selected file into a deployment
 - `timing-freshness-profile-L-degrade.yaml`: copy to
   `policy/timing-freshness.yaml` when Profile L should degrade stale/missing
   timing while M/H remain fail-closed.
+- `command-evidence.strict.yaml`: copy to `policy/command-evidence.yaml` when
+  every COMMAND_EVENT must cite its evidence. It sets `require_evidence: true`
+  for every task type and `unresolved_parent_mode: reject`, and changes
+  nothing else. A human operator's direct command is not exempt: the
+  operator cites the STATE_EVENT, INFERENCE_EVENT or FUSION_EVENT the command
+  acts on.
+- `routing.command-origin.yaml`: copy to `policy/routing.yaml` when an
+  automation may originate only the closed set of non-movement commands,
+  SCAN_RF and CHANGE_SENSOR_MODE. The two automation producers,
+  `retasking-engine` and `comms-deconfliction-*`, carry that set plus every
+  SYSTEM_EVENT subtype; the human-origin producer, `sensorops`, keeps every
+  task type. Origin rests on the producer name the event declares; attested
+  identity belongs to roadmap candidate `event-signing-anti-replay`.
+
+The last two together are the strict command posture: every command cites
+its evidence, and platform movement is originated by the human-origin
+producer only. `gateway/tests/test_command_policy_variants.py` pins each to
+the reference file it replaces and runs the pair through the gateway.
+
+`tools/assemble_policy_dir.py` builds a deployment policy directory from the
+reference `policy/` directory plus the selected variants, runs the policy
+lints, and prints the hashes to pin:
+
+```
+python tools/assemble_policy_dir.py --out <deployment>/policy \
+    configs/policy-variants/command-evidence.strict.yaml \
+    configs/policy-variants/routing.command-origin.yaml
+```
 
 These files are outside the reference `policy/` directory so they do not change
 the reference policy hash until explicitly adopted by a deployment.

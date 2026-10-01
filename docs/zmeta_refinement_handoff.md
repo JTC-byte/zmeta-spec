@@ -92,7 +92,7 @@ evidence lands; the scan's forward edits as elected.
 ## MERGED (2026-10-01): `wave/registry-candidates-2026-09`
 
 Merged into `develop` on 2026-10-01 after doctrine U1-02 was decided as
-recommended on the maintainer's go of 2026-09-30: DIALECT_LABEL stays
+the routing proposed, on the maintainer's go of 2026-09-30: DIALECT_LABEL stays
 `proposed` with its carrier open; one organization's implementations
 count as one instance; live streams in `data_ref` are a question for a
 `data_ref` branch; `event-signing-anti-replay` now depends on

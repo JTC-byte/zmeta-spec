@@ -2968,7 +2968,8 @@ entries it does not contain.
 
 **Decision (2026-10-01):** the maintainer's go of 2026-09-30 handed the
 open questions in this cycle to this repository's own recommendation, as
-revertible decisions. Each was taken as recommended above. (1)
+revertible decisions. Each was taken as the five questions and the
+Recommendation above propose it. (1)
 DIALECT_LABEL stays `proposed` with its carrier open. Promotion first
 weighs the `translate:` lineage transform and the other existing
 carriers, and new vocabulary is justified only by an egress projection
@@ -3098,6 +3099,66 @@ would govern who may receive what are future.
 **Decision:** the profile refuses such an event, counted as a `cot_skipped`
 record under the gateway's generic `UNCONVERTIBLE` reason. **OPEN:** whether
 a deployment may opt in; not offered.
+
+## Cycle E1 — 2026-10-01 (a deployment's command posture)
+
+On 2026-09-30 the maintainer decided the command posture a downstream
+deployment runs: every COMMAND_EVENT cites its evidence, and an
+automation may originate only a closed set of non-movement commands while
+platform movement stays with a human-origin producer. The maintainer
+directed that the posture be delivered through this repository's process.
+Both are outer-ring choices and ask nothing of the kernel. The tensions they raise
+are logged here.
+
+### E1-01 — Every command cites its evidence, a human's included · **DECIDED 2026-10-01 (a variant; the reference unchanged)**
+
+**Observed:** the reference policy keeps `require_evidence` off because "a
+human operator's direct tasking has no fused parent, and refusing it by
+default would break every fielded display loop" (`gateway/src/validators.py`,
+the command-evidence commentary). The posture decided for that deployment
+requires evidence for every COMMAND_EVENT.
+
+**The tension:** an operator who repositions a platform has no inference
+behind the move. One design offered for that case is an explicit recorded
+basis meaning "human-originated, no parent evidence". No member says that,
+and a label asserting that no evidence exists gives a consumer nothing to
+audit.
+
+**Decision:** the posture ships as
+`configs/policy-variants/command-evidence.strict.yaml`, which sets
+`require_evidence: true` for every task type and `unresolved_parent_mode:
+reject`, and nothing else. The reference stays permissive as the reference's
+own posture. Under the variant the operator cites the event the command acts
+on, the STATE_EVENT for the platform or the track, or the INFERENCE_EVENT or
+FUSION_EVENT behind it; a deployment with nothing to cite cannot issue the
+command. No "no evidence" basis is minted. A deployment that needs one
+brings it as a registry candidate with its own evidence.
+
+### E1-02 — Which commands a machine may originate · **DECIDED 2026-10-01 (a routing variant; origin declared by name)**
+
+**Observed:** the routing policy gates command origin as a name allowlist:
+`sensorops`, `retasking-engine`, `comms-deconfliction-*`. The shipped 1.1.0
+examples have `retasking-engine` issuing ORBIT and RETURN_TO_BASE. The
+decision: SCAN_RF and CHANGE_SENSOR_MODE may be machine-originated, and
+platform movement stays human-originated. An autonomy stack that re-plans
+within a human-issued intent does so on its own side; the decision governs
+only what enters the mesh as a command.
+
+**The tension:** the gateway cannot tell a person from a machine. Origin is
+the producer name the event declares. A per-producer subtype list also
+covers every event the producer emits, not only its commands.
+
+**Decision:** `configs/policy-variants/routing.command-origin.yaml` gives the
+two automation producers the closed set plus every SYSTEM_EVENT subtype, and
+leaves `sensorops` every task type. A refused command reads
+EVENT_TYPE_NOT_ALLOWED_FOR_ROLE. On the v1.0 lane all four command subtypes
+move a platform, so an automation originates no command there. A producer
+name only declares who issued a command; attested producer identity
+belongs to `event-signing-anti-replay`. The tests pin the lists to the
+schema lanes: a new SYSTEM_EVENT subtype fails them until it is listed, and
+a command subtype added later stays refused to the automations by
+construction. The shipped examples stay as they are, because they
+illustrate the reference posture.
 
 ## Archive
 

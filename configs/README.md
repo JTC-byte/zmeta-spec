@@ -24,7 +24,11 @@ Notes:
   `policy/producer-authority.yaml` for deployment authority and `policy/routing.yaml`
   for command-path routing. For deployments with authenticated producer identities,
   start from `configs/policy-variants/producer-authority.strict.yaml` and rename
-  the exact IDs.
+  the exact IDs. For the strict command posture (every command cites its
+  evidence; automations originate only SCAN_RF and CHANGE_SENSOR_MODE), use
+  `configs/policy-variants/command-evidence.strict.yaml` and
+  `configs/policy-variants/routing.command-origin.yaml`, assembled with
+  `tools/assemble_policy_dir.py`.
 - Timing freshness policy lives in `policy/timing-freshness.yaml`; tune profile
   age limits and stale/missing handling there for deployment needs. For constrained
   Profile L links, `configs/policy-variants/timing-freshness-profile-L-degrade.yaml`

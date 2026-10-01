@@ -1,0 +1,125 @@
+# COMMAND-ORIGIN ROUTING VARIANT: an automation originates only the closed set
+# of non-movement commands.
+#
+# Copy this file to policy/routing.yaml in a deployment policy directory;
+# tools/assemble_policy_dir.py does that and prints the resulting hashes. It
+# differs from the reference policy/routing.yaml only in the
+# allowed_event_subtypes lists on the two automation producers,
+# retasking-engine and comms-deconfliction-*, which
+# gateway/tests/test_command_policy_variants.py checks.
+#
+# The closed set is SCAN_RF and CHANGE_SENSOR_MODE: commands that change what a
+# sensor does and never move a platform. GOTO, ORBIT, HOLD, SEARCH_BOX,
+# RETURN_TO_BASE, LAND, LOITER and TRACK_TARGET stay with the human-origin
+# producer, sensorops, which keeps every task type. The v1.0 lane's four
+# command subtypes all move a platform, so on that lane an automation
+# originates no command at all.
+#
+# A per-producer subtype list applies to every event the producer emits, so
+# each list also carries every SYSTEM_EVENT subtype, which keeps the
+# automations' status and acknowledgement traffic flowing. The test fails if a
+# schema lane gains a SYSTEM_EVENT subtype these lists lack, or if a list gains
+# a subtype outside the closed set; a command subtype added later stays refused
+# to the automations by construction.
+#
+# Origin is declared by producer name, as the reference routing policy already
+# declares command origin. A name only declares whether a person or a machine
+# issued the command; attested producer identity belongs to roadmap candidate
+# event-signing-anti-replay. A refused command reads
+# EVENT_TYPE_NOT_ALLOWED_FOR_ROLE ("event_subtype not allowed for producer").
+# Pair this file with command-evidence.strict.yaml, so that the commands an
+# automation may originate also cite their evidence.
+#
+routing:
+  producer_enforcement:
+    require_allowlist_for_event_types:
+      - COMMAND_EVENT
+  command_event:
+    # Enforcement note (v1.0): required_origin, must_pass_through, and
+    # allowed_producers are all flattened by the reference validator
+    # (gateway/src/validators.py::_is_comms_producer) into a single
+    # origin-name allowlist checked against the event's producer. Per-event
+    # transit-path verification is not possible in v1.0: events carry no
+    # route metadata, so these keys express the intended command topology
+    # while the machine check is origin gating only.
+    required_origin: sensorops
+    must_pass_through: sensorops
+    allowed_producers:
+      - sensorops
+      - retasking-engine
+      - comms-deconfliction-*
+  producers:
+    torch:
+      allowed_event_types:
+        - INFERENCE_EVENT
+        - FUSION_EVENT
+        - STATE_EVENT
+      forbidden_event_types:
+        - COMMAND_EVENT
+    sensorops:
+      allowed_event_types:
+        - OBSERVATION_EVENT
+        - INFERENCE_EVENT
+        - FUSION_EVENT
+        - STATE_EVENT
+        - COMMAND_EVENT
+        - SYSTEM_EVENT
+    cot-ingress:
+      allowed_event_types:
+        - STATE_EVENT
+        - SYSTEM_EVENT
+    jreap-ingress:
+      allowed_event_types:
+        - STATE_EVENT
+        - SYSTEM_EVENT
+    klv-ingress:
+      allowed_event_types:
+        - OBSERVATION_EVENT
+        - SYSTEM_EVENT
+    eo-cv-adapter:
+      allowed_event_types:
+        - INFERENCE_EVENT
+        - SYSTEM_EVENT
+    mavlink-adapter:
+      allowed_event_types:
+        - STATE_EVENT
+        - SYSTEM_EVENT
+    fusion-engine:
+      allowed_event_types:
+        - INFERENCE_EVENT
+        - FUSION_EVENT
+        - STATE_EVENT
+        - SYSTEM_EVENT
+    zmeta-gateway:
+      allowed_event_types:
+        - SYSTEM_EVENT
+    retasking-engine:
+      allowed_event_types:
+        - COMMAND_EVENT
+        - SYSTEM_EVENT
+      # The closed set of automation-originated commands, then every
+      # SYSTEM_EVENT subtype so status and acknowledgement traffic flows.
+      allowed_event_subtypes:
+        - SCAN_RF
+        - CHANGE_SENSOR_MODE
+        - LINK_STATUS
+        - TIME_STATUS
+        - SCHEMA_VIOLATION
+        - TASK_ACK
+        - SENSOR_STATUS
+        - PLATFORM_STATUS
+    comms-deconfliction-*:
+      allowed_event_types:
+        - COMMAND_EVENT
+        - SYSTEM_EVENT
+      # The closed set of automation-originated commands, then every
+      # SYSTEM_EVENT subtype so status and acknowledgement traffic flows.
+      allowed_event_subtypes:
+        - SCAN_RF
+        - CHANGE_SENSOR_MODE
+        - LINK_STATUS
+        - TIME_STATUS
+        - SCHEMA_VIOLATION
+        - TASK_ACK
+        - SENSOR_STATUS
+        - PLATFORM_STATUS

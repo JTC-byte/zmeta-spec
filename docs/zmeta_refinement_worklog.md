@@ -2,11 +2,57 @@
 
 ## Current Resume Note
 
-- Last updated: 2026-10-01 (the registry wave merged into `develop` with doctrine U1-02 decided)
+- Last updated: 2026-10-01 (the strict command posture: review fixes, then the merge into `develop`)
+- **2026-10-01 (review of `wave/command-authority-2026-10` and its fixes).** A
+  three-agent review (an opus code refuter, a sonnet records checker, a
+  top-tier judge for the open profile questions) found two majors in the
+  assembly tool and its test: an output directory inside the reference
+  `policy/` directory was accepted, which changes the reference policy hash
+  because the gateway hashes the directory recursively; and the test of the
+  reference-directory refusal passed on the occupied-directory check instead.
+  Fixed: the tool refuses an output at or under the reference directory, a
+  path that is not a directory, a prefix match that does not end at `.` or
+  `-`, and an explicit target that is not a policy YAML file; it splits
+  `SOURCE=TARGET` on the last `=` and copies the whole reference tree. Each
+  refusal test now asserts its own message, the containment test runs on a
+  copy of the reference so only that guard can fire, the v1.0 lane is
+  pinned, the closed-set evidence test has a reference control, and the
+  schema lanes are discovered from `schema/`. Five mutants against the new
+  guards were all killed. The pack's enforcement held against every bypass
+  the refuter tried: producer-name case and whitespace, the v1.0 lane, a
+  self-citation, a subtype that disagrees with `task_type`, and
+  non-motivating or prohibited parents. Wording fixes from the records
+  check: U1-02's decision now says it takes the positions of the routing's
+  five questions as well as its Recommendation, the E1 prose names a
+  deployment, contrast constructions are restated, and the em dashes the
+  variants inherited from the reference commentary are replaced. 24 tests
+  in `gateway/tests/test_command_policy_variants.py`.
+- **2026-10-01 (the strict command posture, `wave/command-authority-2026-10`).**
+  On the maintainer's go of 2026-09-30, two policy variants and an assembly
+  tool. `configs/policy-variants/command-evidence.strict.yaml` sets
+  `require_evidence: true` for every task type and `unresolved_parent_mode:
+  reject`; `configs/policy-variants/routing.command-origin.yaml` gives the
+  automation producers the closed set SCAN_RF and CHANGE_SENSOR_MODE plus every
+  SYSTEM_EVENT subtype. `tools/assemble_policy_dir.py` builds a deployment
+  policy directory, lints it and prints the hashes. Twenty tests in
+  `gateway/tests/test_command_policy_variants.py`: shape pins against the
+  reference files and the schema lanes, the pipeline behaviour with the
+  reference policy as control (including the shipped 1.1.0 ORBIT and
+  RETURN_TO_BASE examples from `retasking-engine`, forwarded by the reference
+  and refused by the pack), and the tool's refusals. A mutation pass of seven
+  mutants (widening the closed set on one producer, either strict value
+  reverted, a system subtype dropped, a misspelled subtype, the overlay step
+  removed, shortest-prefix resolution) killed all seven after one test was
+  added for nested reference names. Doctrine E1-01 and E1-02. The reference
+  `policy/` directory is unchanged. Validation: kernel gate the same 6
+  `RELEASE_MANIFEST_*` lines as `develop`; examples 51 of 51; roadmap ok 22;
+  policy lint ok; `python -m pytest -q` 13 failed (the release-pin set), 1970
+  passed, 1 skipped (the CoT XSD test); `git diff --check` clean.
 - **2026-10-01 (doctrine U1-02 decided; the registry wave merges into
   `develop`).** The maintainer's go of 2026-09-30 handed this
   repository's open questions to its own recommendations, as revertible
-  decisions. U1-02's five were taken as its recommendation reads:
+  decisions. U1-02's five were taken as the routing and its recommendation propose
+  them:
   DIALECT_LABEL stays `proposed` with its carrier open and the `translate:`
   lineage transform weighed first; the label's scope is events translated
   into schema-valid ZMeta; one organization's implementations count as
