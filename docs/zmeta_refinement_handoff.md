@@ -38,12 +38,11 @@ them after their merge; and each new guard was mutation-tested:
 Held, not merged: `exp/command-dedupe-validity`. The gateway forwards a
 duplicate command once 300 s have passed, against contract 13.2; the branch
 holds a `task_id` for the command's whole validity (doctrine E1-06, OPEN,
-recorded on that branch; item 7 below). The first fix was not ready: it was
-revised three times on 2026-10-01, each time after an independent review
-found defects in it. The doctrine entry on the branch records each review,
-and the review of the latest revision is the last thing to read there
-before a merge is considered. It is a command-path change, so its merge is
-the maintainer's.
+recorded on that branch; item 7 below). The first fix was not ready: it
+went through four rounds of independent review on 2026-10-01 and was
+revised after each. The doctrine entry on the branch records every review,
+and says that the small change made after the fourth has not itself been
+reviewed. It is a command-path change, so its merge is the maintainer's.
 
 On 2026-10-01 the repository also answered several dozen questions from
 downstream implementations. Two rounds of independent audit against
@@ -188,10 +187,11 @@ Open, in order of proximity:
    a command is refused, not forwarded unheld, when its hold would exceed
    a maximum (default one day), when a validity anchor is unreadable, or
    when the cache is full; and an admitted command that does not leave the
-   gateway gives its id back. Three rounds of independent review found
-   defects in the first fix and in its first two revisions (a standing
-   refusal of all commands; a full cache kept full and a second forwarded
-   duplicate; an id held for an undelivered command), which is the reason
+   gateway gives its id back. Four rounds of independent review each found
+   something: in the first fix, a standing refusal of all commands; in its
+   first revision, a full cache kept full and a second forwarded duplicate;
+   in its second, an id held for an undelivered command; in its third,
+   error-path and test-coverage points only. That history is the reason
    the branch was not offered for merge on its first green battery. The
    doctrine entry on the branch leaves six questions with the merge: does
    the duty in 13.2 expire when the hold ends; is refusing a long-lived

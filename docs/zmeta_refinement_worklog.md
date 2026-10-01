@@ -17,9 +17,9 @@
   (about 3.9 KB held per forwarded event) and brought forward as handoff
   item 8. A first note of it called it newly booked, which was wrong; the
   search behind that note had covered five files. (3) The held dedupe fix
-  went through three rounds of independent review and three revisions on
-  its branch, and the handoff now says what the branch does and what it
-  leaves to the maintainer. (4) Three answers to downstream
+  went through four rounds of independent review on its branch and was
+  revised after each, and the handoff now says what the branch does and
+  what it leaves to the maintainer. (4) Three answers to downstream
   implementations (on a consumer acting on a producer's vendor-extension
   simulation marker; on conflicting reuse of an `event_id` and on duplicate
   codes; on CoT `how` tokens) were each sent to an independent reviewer
