@@ -2,6 +2,22 @@
 
 ## [Unreleased]
 
+- 2026-10-01 — **A strict command posture ships as two policy variants and a
+  tool that assembles them.** On the maintainer's go of 2026-09-30,
+  `configs/policy-variants/command-evidence.strict.yaml` requires every
+  COMMAND_EVENT to cite its evidence and refuses an unresolvable citation,
+  and `configs/policy-variants/routing.command-origin.yaml` lets the
+  automation producers (`retasking-engine`, `comms-deconfliction-*`)
+  originate only SCAN_RF and CHANGE_SENSOR_MODE, while the human-origin
+  producer keeps every task type. The reference `policy/` directory and its
+  hash are unchanged. `tools/assemble_policy_dir.py` builds a deployment
+  policy directory from the reference plus selected variants, lints it and
+  prints the hashes to pin. `gateway/tests/test_command_policy_variants.py`
+  pins each variant to the file it replaces and the closed set to the schema
+  lanes, and runs the pair through the gateway pipeline with the reference
+  policy as the control. Doctrine E1-01 and E1-02 record the costs: an
+  operator's direct command must cite the event it acts on, and origin is
+  declared by producer name, not proven.
 - 2026-10-01 — **The questions the five upstream asks raised are decided as
   recommended, and the registry wave merges into `develop`.** Doctrine U1-02
   moves from OPEN to DECIDED on the maintainer's go of 2026-09-30.

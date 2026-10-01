@@ -241,6 +241,23 @@ config. Because the current utility hashes the whole active policy directory,
 keep deployment-local notes and draft overlays outside `policy/` unless changing
 the deployment hash is intentional.
 
+### Assemble A Deployment Policy Directory
+
+```
+python tools/assemble_policy_dir.py --out build/policy-strict-command \
+    configs/policy-variants/command-evidence.strict.yaml \
+    configs/policy-variants/routing.command-origin.yaml
+```
+
+Copies the reference `policy/` directory into a new or empty directory, puts
+each variant in place of the reference file whose name is the longest prefix
+of the variant's name (or `SOURCE=TARGET.yaml`), runs the same lints as
+`lint_policy_risk_modes.py`, and prints the schema, policy, semantics and
+contract hashes for the deployment to pin. Pass `--schema` with the
+`schema_path` the deployment's gateway loads. It refuses an occupied output
+directory, a variant that matches no reference file, and two variants aimed
+at one file, and it never writes the reference `policy/` directory.
+
 ### Release Manifest And Package
 
 ```

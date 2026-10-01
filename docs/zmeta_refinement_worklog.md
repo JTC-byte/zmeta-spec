@@ -2,7 +2,28 @@
 
 ## Current Resume Note
 
-- Last updated: 2026-10-01 (the registry wave merged into `develop` with doctrine U1-02 decided)
+- Last updated: 2026-10-01 (the strict command posture as two policy variants, on `wave/command-authority-2026-10`)
+- **2026-10-01 (the strict command posture, `wave/command-authority-2026-10`).**
+  On the maintainer's go of 2026-09-30, two policy variants and an assembly
+  tool. `configs/policy-variants/command-evidence.strict.yaml` sets
+  `require_evidence: true` for every task type and `unresolved_parent_mode:
+  reject`; `configs/policy-variants/routing.command-origin.yaml` gives the
+  automation producers the closed set SCAN_RF and CHANGE_SENSOR_MODE plus every
+  SYSTEM_EVENT subtype. `tools/assemble_policy_dir.py` builds a deployment
+  policy directory, lints it and prints the hashes. Twenty tests in
+  `gateway/tests/test_command_policy_variants.py`: shape pins against the
+  reference files and the schema lanes, the pipeline behaviour with the
+  reference policy as control (including the shipped 1.1.0 ORBIT and
+  RETURN_TO_BASE examples from `retasking-engine`, forwarded by the reference
+  and refused by the pack), and the tool's refusals. A mutation pass of seven
+  mutants (widening the closed set on one producer, either strict value
+  reverted, a system subtype dropped, a misspelled subtype, the overlay step
+  removed, shortest-prefix resolution) killed all seven after one test was
+  added for nested reference names. Doctrine E1-01 and E1-02. The reference
+  `policy/` directory is unchanged. Validation: kernel gate the same 6
+  `RELEASE_MANIFEST_*` lines as `develop`; examples 51 of 51; roadmap ok 22;
+  policy lint ok; `python -m pytest -q` 13 failed (the release-pin set), 1970
+  passed, 1 skipped (the CoT XSD test); `git diff --check` clean.
 - **2026-10-01 (doctrine U1-02 decided; the registry wave merges into
   `develop`).** The maintainer's go of 2026-09-30 handed this
   repository's open questions to its own recommendations, as revertible
