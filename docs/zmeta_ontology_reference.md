@@ -627,14 +627,14 @@ formal v1.1.0 vocabulary, `experimental` entries remain provisional
 
 **The status ladder (ENFORCED shape).** Seven statuses: `reserved`,
 `proposed`, `experimental`, `adopted`, `deprecated`, `rejected`,
-`superseded`. Today's 67 entries split 35 reserved, 19 experimental, 10
+`superseded`. Today's 68 entries split 35 reserved, 19 experimental, 11
 proposed, 2 adopted, 1 rejected. The two adopted entries are
 `ERROR_ELLIPSE_M` and `GEO_DIMENSIONALITY`, both on branch 1.1.0. The
 registry validator enforces surface sufficiency per status, refuses
 reserved or proposed entries that claim implemented schema status, and
 builds synthetic events from reserved names to prove they do not validate
 against either branch schema (`REGISTRY_RESERVED_SCHEMA_LEAK`). That leak
-check covers the categories that map onto schema enums, 18 of the 45
+check covers the categories that map onto schema enums, 19 of the 46
 reserved and proposed entries; names living in open extension space are
 guarded by governance rather than by the leak check.
 

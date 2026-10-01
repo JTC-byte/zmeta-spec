@@ -96,7 +96,16 @@ candidates:
     registry_refs: [RAW_DATA_ABSENT_STATUS]
     depends_on: []
     required_surfaces: default
-    promotion_evidence: []
+    promotion_evidence:
+      - >
+        2026-09-30: one downstream deployment adopted crypto-shred with a
+        surviving destruction receipt as its default destruction model, with
+        the audit ledger kept. Its consumers need a data reference that no
+        longer resolves to read as destroyed with a receipt, not as broken
+        and not as never retained, and the same deployment needs the
+        withheld-by-profile and redacted-for-export states. One
+        organization: this does not meet the independent half of the bar,
+        and no promotion is asked on it.
     tripwires:
       - >
         Meets the promotion evidence bar; the natural Section 2.6 condition is
@@ -104,7 +113,13 @@ candidates:
     recommendation: >
       Good near-term candidate because it strengthens lineage honesty;
       precedes richer trust and release policy behavior.
-    notes: Schema-or-policy-only decision unresolved; Profile L lineage tolerance interaction.
+    notes: >
+      Schema-or-policy-only decision unresolved; Profile L lineage tolerance
+      interaction. A destroyed-with-receipt state is recorded as a candidate
+      beside the eight of contract Section 9.4 (2026-10-01), and whether a
+      destruction is also announced as an event is open; until a branch
+      decides, the receipt is a record in the destroying deployment's own
+      store and no event claims it.
 
   - id: pnt-integrity
     display_name: PNT integrity / navigation confidence

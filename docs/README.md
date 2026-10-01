@@ -25,6 +25,9 @@ Advisory, current-facing documents for users of the standard:
   vocabulary.
 - `zmeta_track_lifecycle_pattern.md`: track lifecycle and command-grade
   track adjudication using existing vocabulary.
+- `zmeta_event_signing_design_note.md`: what the closed event schema
+  requires of per-event signing, the three possible carriers, and the
+  recommended order for that branch (advisory; decides nothing).
 - `zmeta_contract_to_stack_crosswalk.md`: where each contract rule is
   implemented and tested in the reference stack.
 - `zmeta_change_governance.md`: the change process for humans and AI agents

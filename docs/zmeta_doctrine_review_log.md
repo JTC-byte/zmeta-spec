@@ -3144,15 +3144,18 @@ did not cross is visible on the sending side as that. The route to passing
 an affiliation is a release profile under `coalition-release-export`,
 whose notes now say so.
 
-## Cycle E1 — 2026-10-01 (a deployment's command posture)
+## Cycle E1 — 2026-10-01 (a deployment's command posture, evidence model and tasking ask)
 
 On 2026-09-30 the maintainer decided the command posture a downstream
 deployment runs: every COMMAND_EVENT cites its evidence, and an
 automation may originate only a closed set of non-movement commands while
 platform movement stays with a human-origin producer. The maintainer
 directed that the posture be delivered through this repository's process.
-Both are outer-ring choices and ask nothing of the kernel. The tensions they raise
-are logged here.
+Both are outer-ring choices and ask nothing of the kernel. The same
+deployment decided to crypto-shred stored content with a surviving
+destruction receipt, and raised a tasking need for search patterns; both
+reach this repository as registry work. The tensions they raise are logged
+here.
 
 ### E1-01 — Every command cites its evidence, a human's included · **DECIDED 2026-10-01 (a variant; the reference unchanged)**
 
@@ -3203,6 +3206,54 @@ schema lanes: a new SYSTEM_EVENT subtype fails them until it is listed, and
 a command subtype added later stays refused to the automations by
 construction. The shipped examples stay as they are, because they
 illustrate the reference posture.
+
+### E1-03 — Destroyed with a receipt is not "not retained" · **RECORDED 2026-10-01 (candidate state; status unchanged)**
+
+**Observed:** the deployment's destruction model crypto-shreds stored
+content and keeps a receipt and the audit ledger. A `data_ref` to shredded
+content no longer resolves. Contract Section 9.4 lists eight future
+evidence states, and none of them says the data existed and was destroyed
+under an authorized procedure.
+
+**The tension:** reading the reference as "not retained" hides that the
+data once existed; reading it as unresolved makes a lawful destruction look
+like a broken producer, which is Section 2.6's degraded data masquerading
+as a different condition. A destruction announced as its own event would
+need a SYSTEM_EVENT subtype that does not exist.
+
+**Decision:** on the maintainer's go of 2026-09-30, the need is recorded
+through the registry and promotes nothing. `RAW_DATA_ABSENT_STATUS`
+(`proposed`) gains destroyed-with-receipt as a candidate ninth state, with a
+reference to the receipt; roadmap candidate
+`raw-data-absent-evidence-status` records the deployment's need as its
+first evidence, one organization and short of the bar. Whether a
+destruction is also announced as an event stays open; until a branch
+decides, the receipt is a record in the destroying deployment's own store
+and no event claims it.
+
+### E1-04 — A search pattern inside a drawn area · **RECORDED 2026-10-01 (proposed, not adopted)**
+
+**Observed:** the deployment tasks platforms by drawing a shape and
+choosing a behaviour, and asked for search patterns beyond the box and the
+orbit: an expanding square, a ladder, a sector. The 1.1.0 SEARCH_BOX
+geometry already accepts a bounding box or a polygon, so a drawn area needs
+nothing new. ORBIT and LOITER carry pattern enumerations; nothing names a
+search pattern inside an area. The geometry object is closed, and the
+command subtypes are a closed enumeration in a locked kernel.
+
+**The tension:** a new subtype per pattern would grow the event vocabulary
+for what is a parameter of an existing command (design gate 1). A pattern
+carried in a deployment's own extension key is legal today under contract
+Section 20.3, and two front ends would each invent one.
+
+**Decision:** on the same go, registry entry `SEARCH_PATTERN` is
+`proposed`: an optional `payload.extensions.search_pattern` object on a
+SEARCH_BOX command, safe to ignore because the area remains the command,
+with no altitude and no control beyond the command's own. The registry
+has no command-extension category, so the entry sits under
+`command_task_type` and says it is not a task type. Member names and the
+pattern list are settled at promotion, which needs a second, independent
+implementation.
 
 ## Archive
 
