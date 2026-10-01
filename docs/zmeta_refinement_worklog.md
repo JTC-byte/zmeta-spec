@@ -97,6 +97,27 @@
   validation state keeps every forwarded event with no eviction. Doctrine
   E1-06 stays OPEN with five questions for the maintainer; the merge is the
   maintainer's (design gate 6).
+- **2026-10-01 (CoT `how` shape, `exp/cot-how-shape`).** The independent
+  check of the day's `how` evidence noted that the standard profile does
+  not validate the configured value. Four tests were written first; the
+  two refusal tests failed against the unchanged adapter (an empty string
+  was written as `how=""`, and `5` and `True` were written as text), and
+  the two that guard against refusing too much passed, as they should.
+  `validate_cot_config` now refuses, under every profile, a `how` that is
+  not one ASCII letter or digit followed by dash-separated groups of ASCII
+  letters or digits. That is the ASCII letters-and-digits subset of the CoT
+  schema's own pattern, which also admits non-ASCII letters and a few
+  symbols. The gateway reports it at startup; the adapter returns nothing
+  for a config it cannot run, as it already did for other config errors.
+  Absent or null still omits the attribute, so the open question in
+  doctrine H1-05, what the adapter does when nothing is configured, is
+  untouched. An independent review then found a way past the check for a
+  program calling the adapter directly (a `str` subclass whose text differs
+  from what was checked), wording that described the rule more loosely than
+  the code applies it, and four mutants the tests missed, one of which
+  refused `h-g-i-g-o`, a token TAK clients emit. All are closed: the check
+  requires exactly a `str`, the wording says ASCII, and the tests name the
+  real tokens.
 - **2026-10-01 (records wave `wave/records-evidence-2026-10`; no behavior
   change).** Four things were recorded. (1) A downstream implementation
   reported that the CoT base-event schema declares `how` required while

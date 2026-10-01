@@ -1,6 +1,6 @@
 # ZMeta Refinement Handoff Notes
 
-## CURRENT STATE (2026-10-01): EIGHT MERGES ON DEVELOP SINCE v1.1.26, NOT RELEASED; ONE COMMAND-PATH FIX HELD ON A BRANCH
+## CURRENT STATE (2026-10-01): TEN MERGES ON DEVELOP SINCE v1.1.26, NOT RELEASED; ONE COMMAND-PATH FIX HELD ON A BRANCH
 
 `develop` == `origin/develop` at the merge 492a920 plus records commits;
 `main` == `origin/main` == a2e4d7a, the v1.1.26 line, unchanged. Everything
@@ -34,15 +34,28 @@ them after their merge; and each new guard was mutation-tested:
   other (doctrine E1-05).
 - `wave/records-corrections-2026-10` (merge 492a920): the `translate:`
   transform claim corrected; needs and gaps booked.
+- `wave/records-evidence-2026-10` (merge edf1905): records only. Evidence
+  on the CoT `how` default, the gateway's validation-state growth with
+  measurements, the held branch's review history, guidance gaps (x) and
+  (y).
+- `exp/cot-how-shape`: a configured CoT `how` that does not have the shape
+  of a how token is a configuration error under every profile. An absent
+  `how` is still omitted; that default is item 9 below.
+
+The last two landed on 2026-10-01 under the maintainer's grant of that day
+for merges of a session's own finished, verified work, each after an
+independent review.
 
 Held, not merged: `exp/command-dedupe-validity`. The gateway forwards a
 duplicate command once 300 s have passed, against contract 13.2; the branch
 holds a `task_id` for the command's whole validity (doctrine E1-06, OPEN,
 recorded on that branch; item 7 below). The first fix was not ready: it
-went through four rounds of independent review on 2026-10-01 and was
-revised after each. The doctrine entry on the branch records every review,
-and says that the small change made after the fourth has not itself been
-reviewed. It is a command-path change, so its merge is the maintainer's.
+went through five rounds of independent review on 2026-10-01 and was
+revised after each. The fifth read the whole branch cold, found no defect
+in the code, and judged it ready to merge; what changed after it is a
+docstring, one word of the README and tests. The doctrine entry on the
+branch records every review. It is a command-path change, so its merge is
+the maintainer's.
 
 On 2026-10-01 the repository also answered several dozen questions from
 downstream implementations. Two rounds of independent audit against
@@ -76,7 +89,7 @@ release-pin band until the next cut: the kernel gate's six
 
 Open, in order of proximity:
 
-1. **The next cut** is the maintainer's: it carries the eight merges, and
+1. **The next cut** is the maintainer's: it carries the ten merges, and
    the dedupe fix if the maintainer accepts it. The
    `cds` output changes relative to v1.1.26 for any track whose
    `valid_for_ms` is shorter than the window, so a consumer that re-pins to
@@ -187,12 +200,13 @@ Open, in order of proximity:
    a command is refused, not forwarded unheld, when its hold would exceed
    a maximum (default one day), when a validity anchor is unreadable, or
    when the cache is full; and an admitted command that does not leave the
-   gateway gives its id back. Four rounds of independent review each found
-   something: in the first fix, a standing refusal of all commands; in its
-   first revision, a full cache kept full and a second forwarded duplicate;
-   in its second, an id held for an undelivered command; in its third,
-   error-path and test-coverage points only. That history is the reason
-   the branch was not offered for merge on its first green battery. The
+   gateway gives its id back. The first four rounds of independent review
+   each found something: in the first fix, a standing refusal of all
+   commands; in its first revision, a full cache kept full and a second
+   forwarded duplicate; in its second, an id held for an undelivered
+   command; in its third, error-path and test-coverage points only. The
+   fifth found no defect in the code. That history is the reason the
+   branch was not offered for merge on its first green battery. The
    doctrine entry on the branch leaves six questions with the merge: does
    the duty in 13.2 expire when the hold ends; is refusing a long-lived
    command acceptable, and is one day the right default; is refusing an

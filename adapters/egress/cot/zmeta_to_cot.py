@@ -154,6 +154,14 @@ _ANY_SCHEME = re.compile(r"[^\s:/]+://")
 # CoT `how` tokens: a letter, a dash, a letter, then optional dashed letters,
 # as in "m-g", "h-e", "m-r", "m-f". The adapter never fills this in.
 _COT_HOW = re.compile(r"[a-z]-[a-z](?:-[a-z]+)*")
+# What any profile will write as `how`. The CoT base-event schema restricts the
+# attribute to the pattern `\w(-\w+)*`: one word character, then
+# dash-separated groups. This is the ASCII letters-and-digits subset of that
+# pattern, so every value accepted here is one the schema accepts. The schema
+# also admits non-ASCII letters and a few ASCII symbols; those are refused
+# here. It checks the shape only; what a token claims stays the deployment's
+# to stand behind.
+_COT_HOW_SHAPE = re.compile(r"[A-Za-z0-9](?:-[A-Za-z0-9]+)*")
 _PLAIN_DECIMAL = re.compile(r"-?[0-9]+(?:\.[0-9]+)?")
 _NUMBER_TEXT = re.compile(r"[-+]?(?:[0-9]+\.?[0-9]*|\.[0-9]+)(?:[eE][-+]?[0-9]+)?")
 # Every key the adapter reads from cot_config. Under the cds profile a key
@@ -193,6 +201,18 @@ def validate_cot_config(cot_config):
             _finite_real(cot_config[key]) and cot_config[key] >= 0
         ):
             raise ValueError(f"{key} must be a finite, non-negative number of metres")
+    how = cot_config.get("how")
+    if how is not None and not (type(how) is str and _COT_HOW_SHAPE.fullmatch(how)):
+        # Written into the event's `how` attribute as given. An empty string
+        # went out as how="", which the CoT schema refuses, and a number or
+        # a list went out as its Python text. Absent or null still omits it.
+        # Exactly `str`: a subclass may answer `str()` with other text than
+        # the text that was checked.
+        raise ValueError(
+            "how must be a CoT how token such as m-g or m-r (one ASCII letter or "
+            "digit, then dash-separated groups of ASCII letters or digits), or be "
+            "left out"
+        )
     if profile == "cds":
         unknown = sorted(str(key) for key in cot_config if key not in COT_CONFIG_KEYS)
         if unknown:
@@ -493,6 +513,11 @@ def zmeta_to_cot(event, cot_config=None, now=None, refusal=None):
               as a CoT atom type falls back to "a-u-G", and it never applies
               to a class that is a label.
             - default_valid_for_ms (int): Stale interval (default 300000)
+            - how (str): The event's `how` token, a claim the deployment
+              asserts (for example "m-g"). Absent or None omits the
+              attribute. A value that is not an ASCII letter or digit
+              followed by dash-separated groups of ASCII letters or digits
+              is a config error under every profile.
             - default_ce (float): Circular error metres when the event
                 carries no uncertainty (default 9999999.0, CoT's
                 unknown-value convention; override only when the
@@ -542,7 +567,9 @@ def zmeta_to_cot(event, cot_config=None, now=None, refusal=None):
         _parse_utc, any non-finite (NaN/inf) number that would become a CoT
         attribute, a validity window whose stale timestamp is not
         representable - see _stale_time, or a geo.dimensionality "2D"
-        declaration paired with a present alt_m - see _projected_hae). Under
+        declaration paired with a present alt_m - see _projected_hae). Also
+        None under a config validate_cot_config refuses, a malformed `how`
+        among them. Under
         the cds profile, also None when `how` is missing, when the type
         asserts an affiliation, when the event is older than max_age_s, when
         the event's own validity has lapsed at projection (unless
@@ -886,7 +913,9 @@ def zmeta_to_cot(event, cot_config=None, now=None, refusal=None):
     # deployment asserts one via cot_config - never a hardcoded "m-g" on
     # positions that may be RF-triangulated fusion products.
     how_value = cot_config.get("how")
-    how_attr = f' how="{_esc(str(how_value))}"' if how_value is not None else ""
+    # validate_cot_config has already required exactly a `str` of a token's
+    # shape, so the value is written as it was checked.
+    how_attr = f' how="{_esc(how_value)}"' if how_value is not None else ""
     cot_xml = (
         f'<event version="2.0" type="{_esc(cot_type)}" uid="{_esc(track_id)}"'
         f' time="{time_str}" start="{time_str}" stale="{stale_str}"{how_attr}>\n'
