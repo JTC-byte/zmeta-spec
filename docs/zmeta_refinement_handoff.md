@@ -40,8 +40,10 @@ duplicate command once 300 s have passed, against contract 13.2; the branch
 holds a `task_id` for the command's whole validity (doctrine E1-06, OPEN,
 recorded on that branch; item 7 below). The first fix was not ready: it was
 revised three times on 2026-10-01, each time after an independent review
-found defects in it. It is a command-path change, so its merge is the
-maintainer's.
+found defects in it. The doctrine entry on the branch records each review,
+and the review of the latest revision is the last thing to read there
+before a merge is considered. It is a command-path change, so its merge is
+the maintainer's.
 
 On 2026-10-01 the repository also answered several dozen questions from
 downstream implementations. Two rounds of independent audit against
@@ -151,12 +153,20 @@ Open, in order of proximity:
    lists the field and gives it no rule; contract 5.1 calls a command's
    `event.ts` "the command issue time or validity anchor"), so two
    consumers may compute different validity windows for one command; (y)
-   whether a trimmed copy keeps its `event_id`: contract 10.7 lets an edge
-   node under memory pressure drop "older lineage references while
-   retaining the most recent", contract 4.2 lists `lineage` among the
-   fields no one may change, and same-event projection dedupe is named as
-   future work (Section 22, ZMETA-PROJECTION-ORIGIN), so a consumer that
-   compares copies under one `event_id` has no rule for that difference.
+   whether a copy with trimmed lineage keeps its `event_id`. Contract 4.2
+   lets a profile export stay "the same event" when it only makes listed
+   changes, among them "Omit optional fields for bandwidth", and says
+   "Such projections preserve the original `event_id`"; the same section
+   lists `lineage` among the fields a gateway, bridge, adapter, exporter or
+   consumer MUST NOT change. Contract 10.7 lets an edge node under memory
+   pressure drop "older lineage references while retaining the most
+   recent", and adds that even under degradation "Required lineage remains
+   present." What the documents do not say is whether dropping older
+   lineage references counts as omitting optional fields, so that the
+   trimmed copy is the same event, or as a change to `lineage`. Same-event
+   projection dedupe is named as future work (Section 22,
+   ZMETA-PROJECTION-ORIGIN), so a consumer that compares copies under one
+   `event_id` has no rule for this one difference.
 7. **Reference defect, booked for the maintainer (command safety).** The
    gateway caps the command dedupe window at 300 s
    (`ttl_ms_from_payload`, `gateway/README.md`), while contract 13.2 says a
@@ -199,9 +209,9 @@ Open, in order of proximity:
    `ValidationState.record` stores each forwarded event whole, with its id,
    and never evicts (`gateway/src/validators.py`). A probe sent 3,000
    events and found 3,000 held; a shipped example event of 542 bytes held
-   about 3.9 KB, which is about 13 GB a day at 40 events a second. The
-   store is not only a leak: in the running gateway the lineage check
-   reads it to resolve a parent's `event_type`, so a bound changes which
+   about 3.9 KB, which is about 13.5 GB a day at 40 events a second. The
+   store also resolves lineage parents: in the running gateway the lineage
+   check reads it for a parent's `event_type`, so a bound changes which
    parents resolve. Where the policy mode for an unresolved parent is
    `warn` (profiles M and H in the shipped pack), strict validation turns
    that warning into a refusal. The
@@ -209,16 +219,23 @@ Open, in order of proximity:
    keeps only what the lineage check reads, as the command-evidence index
    already does at 4,096 entries; a parent older than the index is then
    reported with the existing `LINEAGE_PARENT_UNRESOLVED` diagnostic under
-   the existing policy mode. `latest_timing` and `timing_sources` grow with
-   the number of distinct sources and are a smaller form of the same
-   question. Until it is fixed, a gateway that runs for days needs a
+   the existing policy mode. Bounding `events` alone would not end the
+   growth. `record` also adds every forwarded event's id to `event_ids`,
+   every command's `task_id` to `command_task_ids` and every acknowledgement
+   key to `task_ack_keys`, with no eviction; only the offline tools read
+   those three sets, through `validate_deduplication`, so the running
+   gateway could stop filling them. `latest_timing` and `timing_sources`
+   grow with the number of distinct sources and are a smaller form of the
+   same question. Until it is fixed, a gateway that runs for days needs a
    restart, and the README does not say so.
 9. **CoT `how` and the base-event schema (doctrine H1-05, evidence
    received 2026-10-01).** The CoT base-event schema declares `how`
    required, and the standard profile omits it unless the config asserts a
    token. The adapter README now states that the default output is not
-   schema-valid CoT. The default itself is the maintainer's: keep omitting,
-   assert `m-r`, or require the token as the `cds` profile does.
+   schema-valid CoT, and that ATAK fills a missing `how` with `m-g-g`. The
+   default itself is the maintainer's: keep omitting, assert `m-r` (which
+   also asserts machine-generated coordinates), or require the deployment
+   to choose a token or an explicit omission.
 
 Next session: the cut when the maintainer directs it.
 

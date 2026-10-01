@@ -752,25 +752,38 @@ restored hardcoded default.
 **Evidence, 2026-10-01 (schema text; no field result yet):** a downstream
 implementation reported, and this repository confirmed by reading the same
 files, two things. A public copy of the MITRE "CoT Base-Event Schema (PUBLIC
-RELEASE)" declares the attribute as `<xs:attribute name="how"
-use="required">`. TAK Server's `cotevent.proto` says "All items are required
-unless otherwise noted! 'required' means if they are missing in the XML
-during outbound conversion to protobuf, the message will be rejected", and it
-does not mark `how` optional. The standard profile's default output, which
-omits `how`, is therefore not valid against that schema, and by the proto's
-own comment a TAK Server may reject it. No live TAK Server was tested. The
-same report says ATAK accepts an event without `how`; this repository did not
-check that. The schema's text for the token a relay asserts is "r - relayed -
-imported from another system (gateway)", under "m - machine generated".
+RELEASE)", the one vendored in the public `NERVsystems/cotlib` repository,
+declares the attribute as `<xs:attribute name="how" use="required">`. TAK
+Server's `cotevent.proto` says "All items are required unless otherwise
+noted!" and that for a required item missing from the XML "during outbound
+conversion to protobuf, the message will be rejected"; it does not mark
+`how` optional. The standard profile's default output, which omits `how`, is
+therefore not valid against that schema.
+
+What a consumer does with the omission was then read from public source, the
+same day, and differs by consumer. TAK Server's streaming conversion logs an
+error and passes an empty `how` on (`StreamingProtoBufHelper.java`); its
+federation conversion throws (`federation/ProtoBufHelper.java`). ATAK
+replaces a missing `how` with `m-g-g` (`CotEvent.java`), which by the
+schema's letters reads as machine, GPS-derived. Omission is therefore not
+neutral: on ATAK the track carries a GPS-prefixed token that nobody
+asserted. No live server or client was tested.
+
+The schema defines the token a relay asserts, `r`, "relayed", as "imported
+from another system (gateway)". It sits under "m - machine generated", and
+the schema describes `how` as a hint about how the coordinates were
+generated, for systems that fuse multiple inputs. `m-r` therefore also
+asserts machine-generated coordinates, which the adapter cannot know: the
+event model carries positions a person entered upstream.
 
 The entry stays OPEN, and the question for the maintainer is the default.
 Three answers are available: keep omitting `how` and state plainly that the
 output is not schema-valid CoT until a deployment asserts it (the adapter
-README now says so); assert `m-r` when the config asserts nothing, on the
-reading that every event this adapter projects reached CoT through a
-gateway; or require `how` in the standard profile, as the `cds` profile
-does. The earlier disposition, a config assertion and no hardcoded default,
-stands until the maintainer rules.
+README now says so); assert `m-r` when the config asserts nothing, at the
+cost named above; or require the deployment to choose, a token or an
+explicit omission, so that no default asserts anything, as the `cds`
+profile already requires a token. The earlier disposition, a config
+assertion and no hardcoded default, stands until the maintainer rules.
 
 ### H1-07 — Plain-`cbor` envelope ingress vs the fail-closed clause · **CHANGED 2026-07-27**
 
