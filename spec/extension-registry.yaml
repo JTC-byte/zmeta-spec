@@ -3,7 +3,7 @@ generated_for_zmeta_versions:
   - "1.0"
   - "1.1.0"
 authority: spec/semantics-contract.md
-last_updated: "2026-09-28"
+last_updated: "2026-10-01"
 status_values:
   - reserved
   - proposed
@@ -681,6 +681,60 @@ entries:
     review_state: approved
 
   - <<: *entry_defaults
+    name: SEARCH_PATTERN
+    display_name: Search pattern for a search-area command
+    category: command_task_type
+    status: proposed
+    semantic_definition: >-
+      Future optional payload.extensions.search_pattern object on a SEARCH_BOX
+      command naming the pattern the executing autonomy or sensor layer is
+      asked to fly inside the commanded area: a kind (the candidates are an
+      expanding square, a parallel sweep, also called a ladder, and a sector
+      search), a track spacing in metres, the first leg's bearing in degrees
+      from true north, an optional start point as a 2-D geo, and a turn
+      direction where the kind has one. The area stays the command: a
+      receiver that ignores the pattern still searches the commanded area,
+      so the extension is safe to ignore. It carries no altitude and no
+      timing beyond the command's own valid_for_ms, and it never implies
+      continuous control or bypasses deconfliction (contract Section 7.8).
+    rationale: >-
+      A downstream common operating picture tasks platforms by drawing a
+      shape and selecting a behaviour, and hands the resulting command to
+      autonomy stacks that translate and deconflict it on their own side.
+      The 1.1.0 SEARCH_BOX command already carries the drawn area as a
+      bounding box or a polygon, and ORBIT and LOITER already carry pattern
+      enumerations, but nothing names a search pattern inside an area, so
+      each tasking front end and each autonomy plug-in would otherwise
+      invent its own key for the same idea.
+    allowed_event_types: ["COMMAND_EVENT"]
+    allowed_event_subtypes: ["SEARCH_BOX"]
+    payload_scope: ["payload.extensions.search_pattern"]
+    profile_projection_behavior: optional_omission
+    references:
+      - spec/semantics-contract.md
+      - schema/zmeta-event-1.1.0.schema.json
+      - docs/zmeta_doctrine_review_log.md
+    date_added: "2026-10-01"
+    review_state: draft
+    notes: >-
+      Proposed 2026-10-01 on the maintainer's go of 2026-09-30 as an
+      extension ask, not adopted, and not valid vocabulary under v1.0 or
+      v1.1.0. A deployment may carry the pattern today as a namespaced
+      extension under contract Section 20.3; this entry holds the name and
+      the shape so two front ends do not invent two. Member names, units
+      and the pattern enumeration are settled at promotion. The registry has
+      no command-extension category, so the entry sits under
+      command_task_type, the tasking vocabulary it extends; it is not a task
+      type, and SEARCH_BOX remains the subtype. The need comes from one
+      organization's tasking front end and its autonomy plug-in, which count
+      as one instance under the promotion bar (doctrine U1-02); promotion
+      needs a second, independent implementation and a documented failure
+      condition. Polygon areas need nothing new, because 1.1.0 SEARCH_BOX
+      geometry already accepts a polygon. The registry's reserved-name leak
+      probe exercises this entry's name only; the extension key is open
+      space, guarded by governance.
+
+  - <<: *entry_defaults
     name: RADAR
     display_name: Radar observation modality
     category: observation_modality
@@ -1013,11 +1067,24 @@ entries:
     display_name: Raw data absent status
     category: data_evidence
     status: proposed
-    semantic_definition: Candidate evidence availability status for absent, withheld, redacted, local-only, or not-retained raw data.
+    semantic_definition: Candidate evidence availability status for absent, withheld, redacted, local-only, not-retained, or destroyed raw data.
     rationale: Raw data absence should be explicit without invalidating otherwise valid events.
     schema_status: planned
     policy_status: planned
     conformance_status: planned
+    notes: >-
+      Scope note (2026-10-01): a deployment that crypto-shreds stored content
+      and keeps a destruction receipt needs a state the contract's Section
+      9.4 list does not separate from "not retained": the raw data existed,
+      was destroyed under an authorized procedure, and a receipt records
+      it. Reading such a reference as not retained would hide that the data
+      once existed, and reading it as unresolved would make a lawful
+      destruction look like a broken producer. Destroyed-with-receipt, with
+      a reference to the receipt, is recorded as a candidate ninth state.
+      Whether the destroying node also emits an event for the destruction
+      is open; the first deployment keeps the receipt as a record in its
+      own data store and claims no event. Evidence is one organization's
+      design (roadmap raw-data-absent-evidence-status); status unchanged.
 
   - <<: *entry_defaults
     name: PROJECTION_METADATA

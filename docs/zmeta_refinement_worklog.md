@@ -2,7 +2,18 @@
 
 ## Current Resume Note
 
-- Last updated: 2026-10-01 (the CoT standard-profile hardening, on `exp/cot-standard-hardening`)
+- Last updated: 2026-10-01 (two registry records, on `wave/registry-candidates-2026-10`)
+- **2026-10-01 (two registry records, `wave/registry-candidates-2026-10`).**
+  On the maintainer's go of 2026-09-30: `RAW_DATA_ABSENT_STATUS` gains the
+  destroyed-with-receipt candidate state and roadmap
+  `raw-data-absent-evidence-status` its first evidence; `SEARCH_PATTERN` is
+  proposed on SEARCH_BOX. Counts recomputed with the validator's own
+  predicates: 68 entries (35 reserved, 19 experimental, 11 proposed, 2
+  adopted, 1 rejected), 18 of the 46 reserved and proposed entries under a
+  leak probe that can see their vocabulary (the validator's predicates also
+  run on `SEARCH_PATTERN`, but only on its name), 67 of 68 with
+  `encoding_status: none`; the ontology
+  reference and handoff item 6 carry them. Doctrine E1-03 and E1-04.
 - **2026-10-01 (the CoT standard-profile hardening, `exp/cot-standard-hardening`).**
   The three items booked by the cds refutation rounds: forbidden characters
   in an identity attribute refuse (as under `cds`) and are replaced in

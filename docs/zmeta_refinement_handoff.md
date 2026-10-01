@@ -389,10 +389,10 @@ after the rulings:
    the tooling, never a compliance surface; cut as a release when verified.
 6. **Registry surface-coherence item, booked post-lock.** The registry
    prose's six-surface validity rule, the three-surface `experimental`
-   definition, and the per-entry status fields disagree: all 67 entries
-   carry `adapter_gateway_status: none` and 66 of 67 carry
-   `encoding_status: none` (counts refreshed 2026-09-28 after
-   DIALECT_LABEL; the substance is unchanged), including `adopted`
+   definition, and the per-entry status fields disagree: all 68 entries
+   carry `adapter_gateway_status: none` and 67 of 68 carry
+   `encoding_status: none` (counts refreshed 2026-10-01 after
+   SEARCH_PATTERN; the substance is unchanged), including `adopted`
    entries, so read strictly
    even adopted vocabulary fails the prose rule. Either the rule
    over-claims or the ladder needs per-status surface requirements stated.

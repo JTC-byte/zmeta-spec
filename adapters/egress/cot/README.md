@@ -107,7 +107,7 @@ gives the identical contradiction.
 | Wall-clock mode | Opt-in replay-display mode (`use_wall_clock: True`) re-stamps CoT timestamps to now; off by default, since event time is authoritative, and an event missing `event.ts` is refused (`None`) outside this mode |
 | Custom icons | Quadcopter icon for drone/sensor platforms (`a-f-A-M-F-Q`) |
 | Declared 2-D geo | `<geo_dimensionality>` detail marker distinguishes a declared horizontal-only fix from the ambiguous absent-altitude case (both still emit `hae="9999999.0"`, CoT `hae` being required and numeric); a `"2D"` geo carrying `alt_m` refuses (doctrine A1-02, see below) |
-| Profiles | `standard` (the default, everything above) and `cds`, the shape one partner's cross-domain guard passed on 2026-09-29: four detail children, `how` asserted, one fixed-template remarks line, no http(s) link, a fixed stale window, a maximum age, no replay-display mode. See "Profiles" |
+| Profiles | `standard` (the default, everything above) and `cds`, the shape one partner's cross-domain guard passed on 2026-09-29: four detail children, `how` asserted, one fixed-template remarks line, no http(s) link, a stale capped by a window and never later than the event's claim, a maximum age, no replay-display mode. See "Profiles" |
 
 ### Mapping
 
@@ -222,7 +222,8 @@ the doctrine pressure log (cycle F3):
   Contract section 14 lists `payload.valid_for_ms` as freshness/stale
   behavior a CoT projection must preserve, and section 4.2 lets a
   projection lower a validity but never raise it. Since 2026-10-01 (doctrine
-  F3-03) `stale` is the earlier of the event's own `ts` + `valid_for_ms` and
+  F3-03) `stale` is the earlier of the event's own `ts` + `valid_for_ms`
+  (the deployment's `default_valid_for_ms` when the event carries none) and
   the projection time plus the window. The validated packets carried the
   window whatever the event claimed; an earlier stale cannot breach a
   guard's stale ceiling, but it is a change from the shape that passed, so a
@@ -233,8 +234,8 @@ the doctrine pressure log (cycle F3):
   it, may set `lapsed_validity` to `send_stale`, and the packet then leaves
   with that past stale (contract section 13.3). A producer whose
   `valid_for_ms` is shorter than the hub-and-guard latency will have every
-  track refused; the fix is the producer's claim or the far-side display
-  policy, not the adapter. The maximum age still refuses a report older than
+  track refused; the fix lies in the producer's claim or the far-side
+  display policy. The maximum age still refuses a report older than
   the window, and replay-display mode is still refused because a re-stamped
   event would defeat both rules. The window does not announce itself in
   `remarks`: the stale attribute carries it, and the validated template is
