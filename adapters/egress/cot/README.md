@@ -365,12 +365,14 @@ product must never reach TAK carrying a GPS pedigree.
 **`how`.** The event-level `how` attribute is the same kind of claim: the CoT
 base-event schema describes it as a hint about how the coordinates were
 generated. The adapter writes it only when the config asserts a token. A
-configured value that does not have a token's shape (one character, then
-dash-separated groups of letters or digits, as in `m-g` or `m-g-g`) is a
-configuration error under every profile: the gateway refuses to start and the
-adapter projects nothing. The check is of the shape only; it does not know
-what a token means. With
-none asserted the attribute is omitted, and that output is not valid against
+configured value that does not have a token's shape (one ASCII letter or
+digit, then dash-separated groups of ASCII letters or digits, as in `m-g` or
+`h-g-i-g-o`) is a configuration error under every profile: the gateway
+refuses to start and the adapter projects nothing. The check is of the shape
+only; it does not check that the token is one the CoT taxonomy defines. The
+schema's own pattern is wider, admitting non-ASCII letters and a few
+symbols, and the adapter refuses those. With none asserted the attribute is
+omitted, and that output is not valid against
 the CoT base-event schema, which declares `how` required (read on 2026-10-01
 from a public copy of the MITRE "CoT Base-Event Schema (PUBLIC RELEASE)").
 What a consumer does with the omission varies. From public source read the

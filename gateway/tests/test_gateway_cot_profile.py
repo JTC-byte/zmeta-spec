@@ -53,7 +53,7 @@ class GatewayCotProfileConfigTest(unittest.TestCase):
             with self.subTest(how=bad):
                 with self.assertRaises(ValueError) as caught:
                     settings_for({"how": bad})
-                self.assertIn("how", str(caught.exception))
+                self.assertTrue(str(caught.exception).startswith("how must be a CoT how token"), caught.exception)
         self.assertEqual({"how": "m-r"}, settings_for({"how": "m-r"})["cot_config"])
         self.assertEqual({"how": None}, settings_for({"how": None})["cot_config"])
 

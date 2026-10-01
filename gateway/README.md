@@ -305,7 +305,9 @@ partner's cross-domain guard passed on 2026-09-29; `cds` requires a `how`
 token the deployment asserts. The gateway validates the block when it reads
 it and exits with the adapter's message on a profile it cannot run, so a
 `cds` config without `how` stops the gateway at startup instead of refusing
-every track at egress. A `cot` block that is mistyped fails the same way: a
+every track at egress. Under either profile, a `how` that does not have the
+shape of a CoT how token stops it the same way. A `cot` block that is
+mistyped fails the same way: a
 `config` that is not an object, or a key under `cot` other than `host`,
 `port` and `config`, is a configuration error, because ignoring it would run
 the standard projection where the deployment meant another. A track the

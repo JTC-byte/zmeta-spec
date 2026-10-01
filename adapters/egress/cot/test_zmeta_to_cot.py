@@ -1017,9 +1017,9 @@ def test_how_pedigree_is_config_asserted_never_defaulted():
 # What the CoT base-event schema admits for `how`: one word character, then
 # dash-separated groups (its pattern is `\w(-\w+)*`). The adapter accepts the
 # ASCII letters-and-digits subset of that.
-_HOW_TOKENS = ("m-g", "h-e", "m-r", "m-g-g", "m", "M-G", "m-f2")
+_HOW_TOKENS = ("m-g", "h-e", "m-r", "m-g-g", "h-g-i-g-o", "m", "M-G", "m-f2", "1-2", "0")
 _NOT_HOW_TOKENS = (
-    "", " ", "m g", "m-", "-g", "mg", "mg-x", "m--g", "m-g ", " m-g", "m_g", "_", "m-_g", "m-g\n", "m-\u01f5",
+    "", " ", "m g", "m-", "-g", "mg", "mg-x", "m--g", "m-g ", " m-g", "m_g", "_", "m-_g", "m-g\n", "m-K", "ſ-x", "ı-g", "m-$", "m-\u01f5",
     5, 0, True, False, 1.5, ["m-g"], {"how": "m-g"},
 )
 
@@ -1043,11 +1043,29 @@ def test_a_configured_how_that_is_not_a_cot_how_token_is_a_config_error():
         try:
             zmeta_to_cot_module.validate_cot_config(config)
         except ValueError as error:
-            assert "how" in str(error), (bad, str(error))
+            assert str(error).startswith("how must be a CoT how token"), (bad, str(error))
         else:
             raise AssertionError(f"how={bad!r} was accepted")
         # The adapter itself refuses to project under a config it cannot run.
         assert zmeta_to_cot_module.zmeta_to_cot(event, cot_config=config) is None, bad
+
+
+def test_a_how_that_is_a_str_subclass_is_refused_under_every_profile():
+    # A subclass can answer str() with other text than the text the check
+    # read, so only an exact str is written.
+    class Shifty(str):
+        def __str__(self):
+            return ""
+
+    event = _ellipse_event()
+    for config in (dict(_TEST_CONFIG, how=Shifty("m-f")), {"profile": "cds", "how": Shifty("m-f")}):
+        try:
+            zmeta_to_cot_module.validate_cot_config(config)
+        except ValueError as error:
+            assert "how" in str(error).split()
+        else:
+            raise AssertionError("a str subclass was accepted as how")
+        assert zmeta_to_cot_module.zmeta_to_cot(event, cot_config=config) is None
 
 
 def test_an_absent_or_null_how_is_still_omitted():
