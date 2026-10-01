@@ -29,11 +29,11 @@
   dedupe does not do: a `task_id` is released when its hold ends (the
   contract sets no time bound, and the release is an open question), a
   restart forgets held ids, and an expired command is not refused at the
-  gateway. This change was revised three times, after three rounds of
-  independent review, before any merge. Sixty-four tests in
-  `gateway/tests/test_command_dedupe_validity.py`, fourteen of them through
-  the real `main()` receive loop; 94 mutants killed, among them every
-  survivor the reviews found. Doctrine E1-06, open; the merge is the
+  gateway. This change went through four rounds of independent review
+  before any merge was asked for, and was revised after each. Seventy tests
+  in `gateway/tests/test_command_dedupe_validity.py`, fifteen of them
+  through the real `main()` receive loop; 102 mutants killed, among them
+  every survivor the reviews found. Doctrine E1-06, open; the merge is the
   maintainer's.
 - 2026-10-01 — **A claim about the `translate:` lineage transform is
   corrected.** The proposed `DIALECT_LABEL` entry, its roadmap candidate and

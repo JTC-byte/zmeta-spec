@@ -688,20 +688,86 @@ class NothingIsHeldForACommandThatWasNotReturnedTest(DedupeCase):
         self.assert_forwarded(cmd, self.send(cmd, 1))
         self.assert_duplicate(cmd, self.send(cmd, 2))
 
+    def test_an_interrupt_after_admission_gives_the_task_id_back(self):
+        # Not only ordinary errors: an interrupt or exit also means the
+        # admitted command is never returned to the caller.
+        cmd = command("task-interrupt")
+        with mock.patch.object(self.state, "record", side_effect=KeyboardInterrupt()):
+            with self.assertRaises(KeyboardInterrupt):
+                self.send(cmd, 0)
+        self.assert_forwarded(cmd, self.send(cmd, 1))
+
+    def test_a_failure_while_building_a_warning_gives_the_task_id_back(self):
+        # The whole tail of process_message is covered, not only its first
+        # statement: here the failure comes after the event was recorded.
+        cmd = command("task-warn-fails")
+        cmd["lineage"] = {"based_on": [str(uuid7())]}
+        metrics = mock.Mock()
+        metrics.record_warning.side_effect = RuntimeError("metrics failed")
+        with self.assertRaises(RuntimeError):
+            self.send(cmd, 0, metrics=metrics)
+        metrics.record_warning.assert_called_once()
+        corrected = command("task-warn-fails")
+        self.assert_forwarded(corrected, self.send(corrected, 1))
+
+    def test_a_failure_on_an_event_that_is_not_a_command_propagates_unchanged(self):
+        status = time_status(WALL - timedelta(seconds=5))
+        for error in (RuntimeError("store failed"), KeyboardInterrupt()):
+            with self.subTest(error=type(error).__name__):
+                with mock.patch.object(self.state, "record", side_effect=error):
+                    with self.assertRaises(type(error)):
+                        self.send(status, 0)
+
+    def test_a_caller_cache_without_release_does_not_hide_the_failure(self):
+        class AdmitOnly:
+            def __init__(self, inner):
+                self.inner = inner
+                self.max_entries, self.max_hold_ms = inner.max_entries, inner.max_hold_ms
+
+            def admit(self, task_id, hold_ms):
+                return self.inner.admit(task_id, hold_ms)
+
+        cmd = command("task-duck")
+        with mock.patch.object(self.state, "record", side_effect=RuntimeError("store failed")):
+            with self.assertRaises(RuntimeError):
+                self.send(cmd, 0, cache=AdmitOnly(gateway.TaskDedupeCache()))
+
     def test_a_naive_now_is_read_as_utc_by_every_check(self):
         # The timestamp plausibility check runs before the dedupe and used
         # to raise on a naive `now` whenever a metrics sink was present.
         late = z(WALL + timedelta(seconds=600))
         cmd = command("task-naive", valid_for_ms=60000, valid_from_ts=late)
+        metrics = mock.Mock()
         self.clock.now = 1000.0
         out = gateway.process_message(
             json.dumps(cmd).encode("utf-8"), self.validator, self.policy, "L", self.cache, "json",
-            timing_state=self.state, metrics=mock.Mock(), ts_plausibility_horizon_ms=DAY_MS,
+            timing_state=self.state, metrics=metrics, ts_plausibility_horizon_ms=1000,
             now=WALL.replace(tzinfo=None),
         )
         self.assert_forwarded(cmd, out)
-        # The lead to valid_from_ts was counted: still held at 659 s.
-        self.assert_duplicate(cmd, self.send(cmd, 659))
+        # Read as the same instant in UTC: the command's ts equals `now`, so
+        # a one-second plausibility horizon records nothing.
+        self.assertEqual([], [c for c in metrics.record_warning.call_args_list if c.args[0] == "EVENT_TS_IMPLAUSIBLE"])
+        # The hold is exact: the lead to valid_from_ts, the validity, the margin.
+        self.assert_duplicate(cmd, self.send(cmd, 660 + MARGIN_S - 1))
+        self.assert_forwarded(cmd, self.send(cmd, 660 + MARGIN_S + 1))
+
+    def test_an_aware_now_in_another_zone_is_the_same_instant(self):
+        late = z(WALL + timedelta(seconds=600))
+        cmd = command("task-zone", valid_for_ms=60000, valid_from_ts=late)
+        eastern = timezone(timedelta(hours=-5))
+        self.clock.now = 1000.0
+        out = gateway.process_message(
+            json.dumps(cmd).encode("utf-8"), self.validator, self.policy, "L", self.cache, "json",
+            timing_state=self.state, now=WALL.astimezone(eastern),
+        )
+        self.assert_forwarded(cmd, out)
+        self.assert_duplicate(cmd, self.send(cmd, 660 + MARGIN_S - 1))
+        self.assert_forwarded(cmd, self.send(cmd, 660 + MARGIN_S + 1))
+        self.assertEqual(
+            60000 + 600000 + gateway.COMMAND_HOLD_MARGIN_MS,
+            gateway.command_hold_ms({"valid_for_ms": 60000, "valid_from_ts": late}, now=WALL.astimezone(eastern)),
+        )
 
 
 class RefusedEarlierTest(DedupeCase):
@@ -1039,6 +1105,21 @@ class AnUndeliveredCommandGivesItsTaskIdBackTest(MainLoopCase):
         sent = self.retry_is_forwarded(patch)
         rejected = [a for a in self.acks(sent) if a["payload"]["state"] == "REJECTED"]
         self.assertEqual(1, len(rejected), sent)
+
+    def test_when_the_outgoing_check_itself_fails(self):
+        # An error before the send, at the first step that can raise after
+        # admission, reaches the receive loop's last-resort handler.
+        real = gateway.validate_outgoing_event
+
+        def patch(first):
+            def check(event, validator, policy, profile):
+                if event.get("event", {}).get("event_id") == first["event"]["event_id"]:
+                    raise RuntimeError("outgoing check failed")
+                return real(event, validator, policy, profile)
+            return mock.patch.object(gateway, "validate_outgoing_event", check)
+
+        self.retry_is_forwarded(patch)
+        self.assertIn("datagram dropped after unexpected RuntimeError", self.stderr)
 
     def test_when_the_encoder_reports_nothing_can_be_sent(self):
         # The (None, outgoing) return, forced by a patch: the path taken

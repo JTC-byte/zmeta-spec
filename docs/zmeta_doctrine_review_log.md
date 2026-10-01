@@ -3316,7 +3316,7 @@ member restored). Whether an unread failure mode should instead stop the
 gateway at startup, as a mistyped `cot` block does since v1.1.26, is left to
 the maintainer.
 
-### E1-06 — The reference gateway forwarded a duplicate command after 300 s · **OPEN (a fix on `exp/command-dedupe-validity`, revised three times after independent review; the merge is the maintainer's)**
+### E1-06 — The reference gateway forwarded a duplicate command after 300 s · **OPEN (a fix on `exp/command-dedupe-validity`, revised after each of four independent reviews; the merge is the maintainer's)**
 
 **Observed:** found on 2026-10-01 by an audit of this repository's own
 answers to a downstream implementation, which had been told the reference
@@ -3446,6 +3446,27 @@ releases nothing. A naive clock is read as UTC once, for every check. The
 encode-failure tests now drive the real encoders. Sixty-four tests,
 fourteen through the real `main()` receive loop; 94 mutants, all killed,
 the four survivors among them.
+
+**Fourth independent review, 2026-10-01:** one reviewer read the third
+revision's delta, ran 17 mutants and 18 probes, and found no defect of the
+kind the earlier rounds found: no duplicate forwarded, no delivered
+command's id released, no undelivered command's id held on the paths
+through `main()`. It found two small things in the code. A caller's own
+cache that has `admit` and no `release` replaced the failure being
+propagated with an AttributeError. A clock object whose time zone reports
+no offset was still treated as aware. Six mutants inside the delta survived
+the 64 tests, all in the new guard and the clock handling: the guard
+narrowed to ordinary errors, the guard narrowed to its first statement, an
+aware clock re-labelled as UTC, a naive clock read in another zone, the
+pending id set too late in the receive loop, and one uninitialised name.
+
+**After the fourth review, on the branch:** the two small code changes, and
+a test for each of the six survivors. Seventy tests, fifteen through the
+real `main()` receive loop; 102 mutants, all killed. This last change is
+small and has not itself been reviewed independently. A reader deciding on
+the merge should know that each of the four reviews found something, and
+that what they found fell from a standing refusal of all commands, in the
+first, to error-path and test-coverage points, in the fourth.
 
 **Left to the maintainer, with the merge:**
 

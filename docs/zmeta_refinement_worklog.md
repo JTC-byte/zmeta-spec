@@ -2,7 +2,20 @@
 
 ## Current Resume Note
 
-- Last updated: 2026-10-01 (the held command dedupe fix went through a third independent review and a third revision on its branch; still not merged)
+- Last updated: 2026-10-01 (the held command dedupe fix went through a fourth independent review on its branch; still not merged)
+- **2026-10-01 (fourth independent review of the held dedupe fix;
+  `exp/command-dedupe-validity`, NOT MERGED).** One reviewer read the third
+  revision's delta and found no forwarded duplicate, no released id of a
+  delivered command and no held id of an undelivered one through `main()`.
+  It found two small code points (a caller's cache without `release` hid
+  the real failure; a clock whose zone reports no offset was treated as
+  aware) and six mutants that survived the 64 tests, all in the guard and
+  clock handling added an hour earlier. Both code points are fixed and each
+  survivor has a test. Seventy tests, fifteen through the real `main()`
+  loop; 102 mutants, all killed. This last change has not itself been
+  reviewed. Four reviews, four sets of findings, each less severe than the
+  one before; the branch is offered to the maintainer with that history
+  stated in doctrine E1-06, not as a clean bill.
 - **2026-10-01 (third independent review of the held dedupe fix, and its
   third revision; `exp/command-dedupe-validity`, NOT MERGED).** Two
   reviewers read the second revision. The code reviewer found no path that

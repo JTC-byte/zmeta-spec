@@ -1271,7 +1271,7 @@ def command_hold_ms(payload, now=None, event_ts=None):
         valid_for_ms = 60000
     if not isinstance(now, datetime):
         now = datetime.now(timezone.utc)
-    elif now.tzinfo is None:
+    elif now.utcoffset() is None:
         now = now.replace(tzinfo=timezone.utc)
     lead_ms = 0
     valid_from_ts = payload.get("valid_from_ts") if isinstance(payload, dict) else None
@@ -2804,9 +2804,10 @@ def process_message(
     now=None,
     gateway_identity=None,
 ):
-    if isinstance(now, datetime) and now.tzinfo is None:
+    if isinstance(now, datetime) and now.utcoffset() is None:
         # A caller's naive `now` is read as UTC, here once, for every check
         # that measures against it (timestamp plausibility, command hold).
+        # An aware `now` in any zone is left alone: it is already an instant.
         now = now.replace(tzinfo=timezone.utc)
     try:
         instance = _decode_message(message, input_encoding)
@@ -3234,8 +3235,11 @@ def process_message(
         # The command was admitted and is not being returned, so nothing
         # will forward it. Give its task_id back before the failure
         # propagates.
-        if admitted_task_id is not None:
-            dedupe_cache.release(admitted_task_id)
+        release = getattr(dedupe_cache, "release", None)
+        if admitted_task_id is not None and callable(release):
+            # A caller's own cache may have no release(); the failure being
+            # propagated must not be replaced by an AttributeError here.
+            release(admitted_task_id)
         raise
 
 
