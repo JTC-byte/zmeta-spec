@@ -16,16 +16,20 @@ admits exactly `zmeta_version`, `event`, `source`, `profile`, `payload`,
 `confidence` and `lineage`. Doctrine C1-06 records the consequence: per-event
 signing cannot be met in the outer rings.
 
-The one open object, `payload.extensions`, is the wrong home for a signature.
-Contract Section 20.3 forbids an extension from overriding trust or authority
-boundaries, an extension is safe to ignore by definition, and a gateway may
-strip optional members under `strip_optional_fields`. A signature carried
-there is a hint a consumer may lawfully drop. It would also sit inside the
-bytes it signs.
+The open places are inside the payload: `payload.extensions` on every event
+type, and the payload object itself on every type except COMMAND_EVENT,
+whose payload is closed. Each is the wrong home for a signature. Contract
+Section 20.3 forbids an extension from overriding trust or authority
+boundaries, an extension is safe to ignore by definition, a gateway may
+strip optional members under `strip_optional_fields`, Section 20.4 makes
+nothing normative because a schema happens to accept it, and Section 4.11
+lets a vendor extend a payload but never alter the envelope. A
+signature carried there is a hint a consumer may lawfully drop, and it
+would sit inside the bytes it signs.
 
-A signature therefore lives outside the event, in an envelope or a sidecar
-event, or in a new member that a later schema version adds to the closed
-root.
+A signature with normative force therefore lives in a new member that a
+later schema version adds to the closed root, or outside the event, in an
+envelope or a sidecar event.
 
 ## 2. Questions every carrier must answer first
 
@@ -67,7 +71,9 @@ policy-scoped extensions excluded by rule. The branch must also decide how a
 strippable member is treated: a gateway must either leave signed members in
 place or strip only members outside the signed view. The same subset is what
 an admission boundary compares when it checks that a forwarded event was not
-altered.
+altered. Contract Section 16.2 already lists this among what signing
+semantics must define: whether gateway-added metadata is inside or outside
+the signed semantic event.
 
 ### 2.3 Key identity
 
@@ -90,7 +96,9 @@ not present it as live.
 
 The branch decides what a gateway does with a missing, invalid,
 unknown-key or replayed signature, with the dispositions this repository
-uses elsewhere (reject, warn, degrade, never a silent pass) and new violation
+uses elsewhere (reject, warn, degrade, quarantine, never a silent pass;
+contract Section 16.2 names quarantine, warning, rejection and trust
+downgrade for failed or missing signatures) and new violation
 codes minted through the registry. Profile L has size budgets, and a
 signature plus a key identifier adds tens of bytes to every event; the
 branch measures that on the Profile L examples before choosing a carrier.
@@ -105,19 +113,29 @@ branch measures that on the Profile L examples before choosing a carrier.
 
 ## 4. Recommended order
 
-This is the repository's recommendation for the branch, not a decision.
+This is the repository's recommendation for the branch, not a decision. It
+follows the split the handoff already records for this work (Tier 3 item
+9): canonicalization normative in the specification, an optional signature
+member on a versioned schema branch, and keys, algorithms, trust anchors
+and failure behavior in policy, adopting COSE and JWS wholesale and writing
+no cryptography.
 
 1. Decide C1-07: the canonical form, at minimum float width and whether the
    determinism clause becomes MUST-level. It is the cheapest step and every
    carrier needs it.
 2. Write the signed view as contract text in the branch (2.2).
-3. Prototype the envelope on a branch first. It needs no change to the event
-   schema, it lets an admission boundary verify at ingress, and it can be
-   abandoned if the sidecar or the member proves better. Measure Profile L.
+3. Add the optional signature member on a versioned schema branch, its
+   value a COSE or JWS structure over the canonical form of the signed view.
+   The member travels with the event through every hop and adds no framing
+   layer to standardize, which is why the recorded split prefers it to the
+   envelope and the sidecar. Measure Profile L.
 4. Bring `KEY_IDENTITY`, `EVENT_SIGNATURE` and the verification codes through
-   the registry with the prototype as evidence.
-5. Open a new root member only if an envelope cannot survive the hops a
-   deployment needs.
+   the registry with the branch's implementation as evidence; keys,
+   algorithms, trust anchors and failure behavior go in policy.
+5. Keep the envelope and the sidecar as recorded alternatives. An envelope
+   needs no schema change, so a deployment that needs per-event
+   authenticity before the branch lands can frame its own traffic that way,
+   as deployment configuration outside the event model.
 
 Promotion needs what the registry's bar asks of any candidate: two
 independent implementations or deployments from different organizations

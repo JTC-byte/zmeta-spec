@@ -9,8 +9,10 @@
   `raw-data-absent-evidence-status` its first evidence; `SEARCH_PATTERN` is
   proposed on SEARCH_BOX. Counts recomputed with the validator's own
   predicates: 68 entries (35 reserved, 19 experimental, 11 proposed, 2
-  adopted, 1 rejected), 19 of the 46 reserved and proposed entries under
-  the leak check, 67 of 68 with `encoding_status: none`; the ontology
+  adopted, 1 rejected), 18 of the 46 reserved and proposed entries under a
+  leak probe that can see their vocabulary (the validator's predicates also
+  run on `SEARCH_PATTERN`, but only on its name), 67 of 68 with
+  `encoding_status: none`; the ontology
   reference and handoff item 6 carry them. Doctrine E1-03 and E1-04.
 - **2026-10-01 (the CoT standard-profile hardening, `exp/cot-standard-hardening`).**
   The three items booked by the cds refutation rounds: forbidden characters

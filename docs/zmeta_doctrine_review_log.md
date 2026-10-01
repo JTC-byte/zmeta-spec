@@ -3217,8 +3217,9 @@ under an authorized procedure.
 
 **The tension:** reading the reference as "not retained" hides that the
 data once existed; reading it as unresolved makes a lawful destruction look
-like a broken producer, which is Section 2.6's degraded data masquerading
-as a different condition. A destruction announced as its own event would
+like a broken producer. Two consumers would read one unresolved reference
+two ways, the interpretation gap Section 2.6 names. A destruction announced
+as its own event would
 need a SYSTEM_EVENT subtype that does not exist.
 
 **Decision:** on the maintainer's go of 2026-09-30, the need is recorded

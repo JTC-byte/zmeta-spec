@@ -425,7 +425,7 @@ candidates:
         tested alone. Captured as the cds profile of the reference CoT egress
         adapter (doctrine F3). One deployment, one guard, one day: n=1, and
         the shape carried no release label, export audit or redaction
-        profile, so it is evidence of need, not of these concepts.
+        profile, so it is evidence of the need these concepts would serve.
     tripwires:
       - Meets the promotion evidence bar after projection metadata exists.
     recommendation: >
@@ -434,8 +434,7 @@ candidates:
     notes: >
       Policy-heavy; projection metadata dependency. Passing an asserted
       affiliation across a guard belongs here, as a release profile naming
-      who may receive it, and not in an adapter option (doctrine F3-05,
-      decided 2026-10-01).
+      who may receive it (doctrine F3-05, decided 2026-10-01).
 
   - id: uas-identity
     display_name: UAS identity / behavioral identity

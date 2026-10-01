@@ -730,7 +730,9 @@ entries:
       as one instance under the promotion bar (doctrine U1-02); promotion
       needs a second, independent implementation and a documented failure
       condition. Polygon areas need nothing new, because 1.1.0 SEARCH_BOX
-      geometry already accepts a polygon.
+      geometry already accepts a polygon. The registry's reserved-name leak
+      probe exercises this entry's name only; the extension key is open
+      space, guarded by governance.
 
   - <<: *entry_defaults
     name: RADAR

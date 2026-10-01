@@ -14,11 +14,12 @@
   ladder, a sector), safe to ignore because the area stays the command.
   The registry now holds 68 entries, 11 of them proposed. Doctrine E1-03
   and E1-04. A design note, `docs/zmeta_event_signing_design_note.md`,
-  scopes the event-signing branch: the closed schema leaves an envelope, a
-  sidecar event or a new root member as the only carriers, every carrier
+  scopes the event-signing branch: the closed root leaves a new root member,
+  an envelope or a sidecar event as the carriers with normative force, every carrier
   first needs a canonical byte form and a defined signed view that excludes
-  what a gateway legitimately stamps, and the note recommends that order
-  without deciding whether the tripwire has fired.
+  what a gateway legitimately stamps, and the note recommends that order,
+  following the split the handoff records, without deciding whether the
+  tripwire has fired.
 - 2026-10-01 — **The CoT standard profile refuses values XML cannot carry
   honestly.** A control character or lone surrogate in the callsign or the uid
   produced a document no parser reads, a string `payload.geo` value reached a
