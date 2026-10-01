@@ -1014,6 +1014,50 @@ def test_how_pedigree_is_config_asserted_never_defaulted():
     assert root.attrib["how"] == "m-g"
 
 
+# What the CoT base-event schema admits for `how`: one word character, then
+# dash-separated groups (its pattern is `\w(-\w+)*`). The adapter accepts the
+# ASCII letters-and-digits subset of that.
+_HOW_TOKENS = ("m-g", "h-e", "m-r", "m-g-g", "m", "M-G", "m-f2")
+_NOT_HOW_TOKENS = (
+    "", " ", "m g", "m-", "-g", "mg", "mg-x", "m--g", "m-g ", " m-g", "m_g", "_", "m-_g", "m-g\n", "m-\u01f5",
+    5, 0, True, False, 1.5, ["m-g"], {"how": "m-g"},
+)
+
+
+def test_a_configured_how_is_written_when_it_is_a_cot_how_token():
+    event = _ellipse_event()
+    for token in _HOW_TOKENS:
+        config = dict(_TEST_CONFIG, how=token)
+        assert zmeta_to_cot_module.validate_cot_config(config) == "standard", token
+        root = ET.fromstring(zmeta_to_cot_module.zmeta_to_cot(event, cot_config=config))
+        assert root.attrib["how"] == token
+
+
+def test_a_configured_how_that_is_not_a_cot_how_token_is_a_config_error():
+    # Before this check the standard profile wrote whatever the config held:
+    # an empty string went out as how="", which the CoT schema refuses, and a
+    # number or a list went out as its Python text.
+    event = _ellipse_event()
+    for bad in _NOT_HOW_TOKENS:
+        config = dict(_TEST_CONFIG, how=bad)
+        try:
+            zmeta_to_cot_module.validate_cot_config(config)
+        except ValueError as error:
+            assert "how" in str(error), (bad, str(error))
+        else:
+            raise AssertionError(f"how={bad!r} was accepted")
+        # The adapter itself refuses to project under a config it cannot run.
+        assert zmeta_to_cot_module.zmeta_to_cot(event, cot_config=config) is None, bad
+
+
+def test_an_absent_or_null_how_is_still_omitted():
+    event = _ellipse_event()
+    for config in (dict(_TEST_CONFIG), dict(_TEST_CONFIG, how=None)):
+        assert zmeta_to_cot_module.validate_cot_config(config) == "standard"
+        root = ET.fromstring(zmeta_to_cot_module.zmeta_to_cot(event, cot_config=config))
+        assert "how" not in root.attrib
+
+
 def test_non_string_team_config_does_not_crash_the_projection():
     # Pre-cut review: friendly_team_name/role reached _esc() without str(),
     # so a YAML scalar that parses as a number or bool raised inside the

@@ -2,6 +2,18 @@
 
 ## [Unreleased]
 
+- 2026-10-01 — **A configured CoT `how` must have the shape of a CoT how
+  token.** The standard profile wrote whatever `cot_config.how` held: an
+  empty string went out as `how=""`, which the CoT base-event schema
+  refuses, and a number or a list went out as its Python text. A value that
+  is not one character followed by dash-separated groups of letters or
+  digits is now a configuration error under every profile, so the gateway
+  refuses to start and the adapter projects nothing. A deployment whose
+  config holds such a value must correct it or remove the key. An absent or
+  null `how` is still omitted, and the `cds` profile's stricter requirement
+  is unchanged. The check is of the shape only. Three tests in
+  `adapters/egress/cot/test_zmeta_to_cot.py` and one in
+  `gateway/tests/test_gateway_cot_profile.py`.
 - 2026-10-01 — **The CoT adapter's README states that the standard profile's
   default output is not schema-valid CoT.** With no `how` token in the
   config the adapter omits the attribute, and the CoT base-event schema

@@ -2,7 +2,19 @@
 
 ## Current Resume Note
 
-- Last updated: 2026-10-01 (records: evidence on the CoT `how` default, two reference defects stated for the maintainer, three downstream answers audited)
+- Last updated: 2026-10-01 (the CoT adapter refuses a configured `how` that is not a token; `exp/cot-how-shape`)
+- **2026-10-01 (CoT `how` shape, `exp/cot-how-shape`).** The independent
+  check of the day's `how` evidence noted that the standard profile does
+  not validate the configured value. The tests were written first and
+  failed: an empty string was written as `how=""`, and `5` and `True` were
+  written as text. `validate_cot_config` now refuses, under every profile,
+  a `how` that is not one character followed by dash-separated groups of
+  letters or digits, which is the ASCII subset of the CoT schema's own
+  pattern. The gateway reports it at startup; the adapter returns nothing
+  for a config it cannot run, as it already did for other config errors.
+  Absent or null still omits the attribute, so the open question in
+  doctrine H1-05, what the adapter does when nothing is configured, is
+  untouched.
 - **2026-10-01 (records wave `wave/records-evidence-2026-10`; no behavior
   change).** Four things were recorded. (1) A downstream implementation
   reported that the CoT base-event schema declares `how` required while

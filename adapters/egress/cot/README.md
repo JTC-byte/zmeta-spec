@@ -336,7 +336,7 @@ cot_config = {
     "friendly_team_role": "Team Member",
     "use_wall_clock": False,           # Opt-in replay-display mode (see below)
     "geopointsrc": None,               # Position-source pedigree; None = omit
-    "how": None,                       # Event derivation pedigree (e.g. "m-g"); None = omit
+    "how": None,                       # Event derivation pedigree, a CoT how token (e.g. "m-g"); None = omit
     "altsrc": None,                    # Altitude-source pedigree; None = omit
     "profile": "standard",             # or "cds"; see Profiles
 }
@@ -364,7 +364,12 @@ product must never reach TAK carrying a GPS pedigree.
 
 **`how`.** The event-level `how` attribute is the same kind of claim: the CoT
 base-event schema describes it as a hint about how the coordinates were
-generated. The adapter writes it only when the config asserts a token. With
+generated. The adapter writes it only when the config asserts a token. A
+configured value that does not have a token's shape (one character, then
+dash-separated groups of letters or digits, as in `m-g` or `m-g-g`) is a
+configuration error under every profile: the gateway refuses to start and the
+adapter projects nothing. The check is of the shape only; it does not know
+what a token means. With
 none asserted the attribute is omitted, and that output is not valid against
 the CoT base-event schema, which declares `how` required (read on 2026-10-01
 from a public copy of the MITRE "CoT Base-Event Schema (PUBLIC RELEASE)").
