@@ -2,7 +2,34 @@
 
 ## Current Resume Note
 
-- Last updated: 2026-10-02 (records: five guidance gaps booked, record defects corrected in five places; `wave/records-findings-2026-10-02`)
+- Last updated: 2026-10-02 (records: an `event_id` recorded twice; `wave/records-gateway-findings-2026-10-02`)
+- **2026-10-02 (records wave `wave/records-gateway-findings-2026-10-02`; no
+  behavior change).** An independent review of unmerged gateway work
+  reported two behaviors of the gateway that are older than that work.
+  Both were reproduced on the integration line before they were written
+  down, through the real `main()` receive loop with the two sockets
+  replaced. At profiles M and H: a command with `event_id` X is forwarded,
+  and a FUSION_EVENT citing X is refused `LINEAGE_PARENT_TYPE_INVALID`;
+  with an OBSERVATION_EVENT reusing X sent between them, the observation
+  and the fusion are both forwarded and no diagnostic is emitted. At
+  profile L: one `event_id` sent 40 times as a command with a new
+  `task_id` each time, each copy carrying a distinct use token and reason
+  code of about 1,000 characters, gave 40 forwarded commands and one
+  command-evidence entry holding 40 prohibited-use tokens and 40 reason
+  codes, 80,380 characters. The exclusion of commands from the `event_id`
+  cache is why a reused id is forwarded when its first use was a command;
+  for other event types the cache holds an id for 300 s. The validation
+  state keeps the latest type of an id, and the command-evidence index
+  unions labels with no bound on an entry. Recorded as handoff item 10
+  with three questions. No code changed: both arise from how the gateway
+  treats a command's `event_id`. An independent check of the first draft
+  of this record found it inexact in four places, corrected before the
+  merge: the entry was said to grow with every copy, where it gains only
+  labels it does not hold; the exclusion was called the cause of both
+  results, where the overwrite and the growth have their own; "on the
+  command path" did not fit the first result as worded; and the draft
+  left out what the repository already records, handoff item 7, the
+  v1.0.4 release notes and the offline duplicate check.
 - **2026-10-02 (records wave `wave/records-findings-2026-10-02`; no behavior
   change).** Two pieces of work on 2026-10-01 asked the documents questions
   they had not been asked: a read of a field sample from a sensor class

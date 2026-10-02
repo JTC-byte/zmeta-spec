@@ -305,6 +305,49 @@ Open, in order of proximity:
    token it should write and was answered on 2026-10-01 on the maintainer's
    direction; the answer is recorded privately and the evidence it turned
    up about a TAK client is in doctrine H1-05.
+10. **Reference behavior, brought forward for the maintainer (an
+   `event_id` recorded twice).** Found on 2026-10-02 by an independent
+   review of unmerged gateway work and reproduced on the integration line
+   through the real `main()` loop. Contract 4.2 says an emitted event "is
+   never modified or deleted" and that "Any semantic payload change ...
+   requires a new event with a new `event_id` and lineage". By those
+   sentences a different event needs a different id. The contract does
+   not say what a gateway does when a reused id arrives. The running
+   gateway drops a repeated non-command `event_id` for 300 s
+   (`EventDedupeCache`) and keeps commands out of that cache, as it has
+   since v1.0.4, whose notes say "Kept COMMAND_EVENT dedupe anchored on
+   `payload.task_id`". That is consistent with contract 13.2,
+   "COMMAND_EVENT dedupes by `payload.task_id`"; no document names 13.2 as
+   the reason. Item 7 above already records the exclusion. The offline
+   tools do refuse a reused id of any event type, through
+   `validate_deduplication` (`EVENT_DUPLICATE`), and the gateway does not
+   call it. Two results were run. First, an event of another type that
+   reuses a forwarded command's `event_id` is forwarded, and the
+   validation state then holds that id under the newer event's type,
+   because it keeps the latest record of an id. A FUSION_EVENT that cites
+   a COMMAND_EVENT's id is refused with `LINEAGE_PARENT_TYPE_INVALID`;
+   after an OBSERVATION_EVENT reuses the id, the same citation is
+   forwarded with no diagnostic (run at profiles M and H). By the code,
+   and not run, the same overwrite follows for a non-command id reused
+   after the 300 s and for a command that reuses an earlier event's id.
+   Second, a command sent again under one `event_id` with a new `task_id`
+   each time is forwarded each time (40 of 40 as run, at profile L). The
+   command-evidence index unions each copy's `prohibited_uses` tokens and
+   reason codes into the one entry for that id. The union is deliberate
+   and dates from v1.1.18, so that a later copy cannot erase a recorded
+   prohibition. What is new is that nothing limits an entry: 40 copies,
+   each carrying a distinct use token and a distinct reason code of about
+   1,000 characters, left 80,380 characters in one entry. The index's
+   4,096-entry cap (`policy/command-evidence.yaml`) bounds how many ids it
+   holds and not how large an entry is. Nothing was changed. Both results
+   arise from how the gateway treats a command's `event_id`, which is a
+   command-path matter under design gate 6, although the first shows in
+   the handling of an observation and a fusion. The questions for the
+   maintainer are whether the running gateway refuses an `event_id` it
+   has already forwarded under another event type or another `task_id`,
+   as the offline check does; which type an id keeps when the validation
+   state records it twice; and whether a command-evidence entry needs a
+   size limit.
 
 Next session: the cut when the maintainer directs it.
 
