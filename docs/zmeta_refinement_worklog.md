@@ -2,7 +2,27 @@
 
 ## Current Resume Note
 
-- Last updated: 2026-10-01 (the CoT adapter refuses a configured `how` that is not a token; `exp/cot-how-shape`)
+- Last updated: 2026-10-02 (records: five guidance gaps booked, four record defects corrected; `wave/records-findings-2026-10-02`)
+- **2026-10-02 (records wave `wave/records-findings-2026-10-02`; no behavior
+  change).** Two pieces of work on 2026-10-01 tested the documents against
+  things they had not met: a read of a field sample from a sensor class
+  ZMeta has no modality for, and a ruling for a downstream hub on a
+  projection token. Each was checked by an independent reviewer the same
+  day. What they found in this repository is booked here. Five guidance
+  gaps, (z) to (ad) in the handoff: the contract and the producer-authority
+  policy sanction promoting an external track that has no ZMeta parent,
+  and both schema lanes make that event impossible to emit; the
+  unknown-clock convention understates a clock known to be far off, and no
+  text covers correcting a known offset; the documents are silent on a
+  sensor that runs its own tracker; nothing carries how a position was
+  derived; TIME_STATUS cannot state the basis of its bound. Four record
+  defects corrected: the C1 status table (C1-04 was decided on 2026-08-26
+  and still showed open), the "ground radar is 2-D" generalisation in
+  doctrine A1-02 (a dated note, the entry left as written) and in the
+  ADS-B adapter README, and the adapter index describing the CoT template's
+  input as XML. Each gap was verified against the text before it was
+  written down; the parent requirement was checked by validating a shipped
+  STATE example with its lineage removed, on both lanes.
 - **2026-10-01 (CoT `how` shape, `exp/cot-how-shape`).** The independent
   check of the day's `how` evidence noted that the standard profile does
   not validate the configured value. Four tests were written first; the

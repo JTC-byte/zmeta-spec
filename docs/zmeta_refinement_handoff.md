@@ -179,6 +179,43 @@ Open, in order of proximity:
    projection dedupe is named as future work (Section 22,
    ZMETA-PROJECTION-ORIGIN), so a consumer that compares copies under one
    `event_id` has no rule for this one difference.
+
+   **Five more, from a field sample read and a downstream ruling on
+   2026-10-01.** (z) How a promoted external track with no ZMeta parent is
+   emitted. Contract 4.5.1 says "When the external report has no ZMeta
+   parent event, promotion metadata MUST preserve enough source identity
+   and lineage status for audit", and `policy/producer-authority.yaml`
+   allows the lineage status `EXTERNAL_SOURCE`. Both schema lanes require
+   `lineage` on a STATE_EVENT with at least one `based_on` entry, AUTHORING
+   rule 1 says a family whose lineage is mandatory refuses rather than
+   invent a parent, and the four shipped promotion paths (CoT, JREAP,
+   MAVLink, SAPIENT fusion node) refuse without parent ids. The case the
+   contract and the policy sanction cannot be emitted. (aa) A source clock
+   known to be far from UTC. Contract 5.5 says unsynced clocks "must be
+   marked as UNSYNCED with realistic error bounds". The unknown-clock
+   convention in `tools/validation_guidance.yaml` widens `est_error_ms` to
+   60000 ms "so the bound overstates rather than understates"; for a clock
+   known to be off by more than a minute that value understates. No text
+   says whether an adapter may correct a known constant offset, or rebase
+   `event.ts` on its own receive clock and say so (the ADS-B adapter derives
+   `event.ts` from its own clock and the report's age; the bladeRF adapter
+   records whether `event.ts` came from the source or from receive time).
+   (ab) A sensor that runs its own tracker. Contract 4.5.1 names "CoT/TAK,
+   JREAP-style gateways, MAVLink bridges, and vendor COPs" as external
+   track sources and the vocabulary crosswalk sends a radar track from an
+   external system to that path, while the contract lets a sensor emit
+   OBSERVATION_EVENT and SYSTEM_EVENT and reserves `track_id` to fusion
+   authority. The documents do not say whether a sensor's own track is an
+   external report to promote, and (z) blocks that path when the sensor's
+   detections have no valid modality to stand as parents. (ac) A carrier
+   for how a position was derived. `adapters/egress/cot/README.md` says "No
+   ZMeta field carries that claim"; the 1.1.0 `quality.geo_status` carries
+   two partial statements (CONFIGURED, ESTIMATED). A projection into a
+   format that requires a derivation claim, such as CoT `how`, has to take
+   it from deployment configuration, per sensor at best. (ad) TIME_STATUS
+   cannot state the basis of its bound: `est_error_basis` is a member of
+   `payload.timing_quality` only (registry `TIMING_ERROR_BASIS`), and the
+   1.1.0 TIME_STATUS metrics list does not include it.
 7. **Reference defect, booked for the maintainer (command safety).** The
    gateway caps the command dedupe window at 300 s
    (`ttl_ms_from_payload`, `gateway/README.md`), while contract 13.2 says a
@@ -249,7 +286,10 @@ Open, in order of proximity:
    schema-valid CoT, and that ATAK fills a missing `how` with `m-g-g`. The
    default itself is the maintainer's: keep omitting, assert `m-r` (which
    also asserts machine-generated coordinates), or require the deployment
-   to choose a token or an explicit omission.
+   to choose a token or an explicit omission. A downstream hub asked which
+   token it should write and was answered on 2026-10-01 on the maintainer's
+   direction; the answer is recorded privately and the evidence it turned
+   up about a TAK client is in doctrine H1-05.
 
 Next session: the cut when the maintainer directs it.
 
