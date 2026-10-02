@@ -40,7 +40,7 @@ or command safety.
 | [EO-CV](ingress/eo-cv/) | CV inference service JSON detections | INFERENCE_EVENT (CLASSIFICATION) | Production |
 | [CoT](ingress/cot/) | Cursor-on-Target, as an already-parsed dict (the template parses no XML) | STATE_EVENT (promotion) | Template |
 | [JREAP](ingress/jreap/) | Decoded JREAP/Link-style track dicts | STATE_EVENT (promotion) | Template |
-| [KLV](ingress/klv/) | MISB KLV metadata | OBSERVATION_EVENT (EO) | Template |
+| [KLV](ingress/klv/) | MISB KLV metadata, as an already-decoded dict of tags (the template ships no KLV parser) | OBSERVATION_EVENT (EO) | Template |
 | [SAPIENT](ingress/sapient/) | BSI Flex 335 v2.0 SapientMessage dicts (protobuf-JSON) | OBSERVATION_EVENT, INFERENCE_EVENT, STATE_EVENT (promotion), SYSTEM_EVENT | Reference |
 | [bladeRF EW](ingress/bladerf/) | edge-comms bladeRF / ROS2 EW `rf_detection` JSON (`edge-comms-bladerf` pack) | OBSERVATION_EVENT (RF) | Reference |
 | [ADS-B](ingress/adsb/) | `dump1090` / `readsb` `aircraft.json` (RTL-SDR, any decoder `adsbcot` supports) | OBSERVATION_EVENT (NETWORK) | Reference |

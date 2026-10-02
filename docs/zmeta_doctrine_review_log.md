@@ -1058,16 +1058,17 @@ horizontal fix is good; the standard cannot carry it.
 ZMeta cannot canonically carry an AIS position at all. Ground radar and most DF
 systems are likewise 2-D. This is a whole class of sensors, not an edge case.
 
-**Note added 2026-10-02 (the entry above is left as written):** "Ground radar
-... likewise 2-D" does not hold for every ground radar. A 3D air-surveillance
-radar measures elevation. The dimensionality decision this entry led to is
-unaffected; the sentence generalises further than the evidence it had.
-
 **Recommendation:** again a declaration rather than a subtype — geo declares
 its **dimensionality**, the way `geo_status` already declares availability.
 
 **Whether it matters is a field question.** It is entirely possible no consumer
 misses the dropped positions, and that is cheaper to discover than to argue.
+
+**Note added 2026-10-02 (the original entry above is left as written):**
+"Ground radar ... likewise 2-D" does not hold for every ground radar. A 3D
+air-surveillance radar measures elevation. The dimensionality decision this
+entry led to is unaffected; the sentence generalises further than the
+evidence it had.
 
 **SECOND INDEPENDENT IMPLEMENTATION LANDED 2026-07-31, and it clears the
 promotion bar.** `adapters/ingress/ais/` is the AIS instance this entry

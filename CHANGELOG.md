@@ -2,18 +2,20 @@
 
 ## [Unreleased]
 
-- 2026-10-02 — **Records: five guidance gaps booked and four record defects
-  corrected.** No behavior change. The handoff books five places the
-  documents do not answer: how a promoted external track with no ZMeta
-  parent is emitted, when both schema lanes require a parent; a source
-  clock known to be far from UTC, which the 60000 ms unknown-clock
-  convention understates; a sensor that runs its own tracker; a carrier for
-  how a position was derived; and TIME_STATUS having no way to state the
-  basis of its bound. Corrected: the doctrine log's C1 table showed C1-04
-  open after it was decided; doctrine A1-02 and the ADS-B adapter README
-  classed every ground radar as 2-D; the adapter index said the CoT
-  template takes XML. Doctrine H1-05 gains a reader's report of what a TAK
-  client does with `how`.
+- 2026-10-02 — **Records: five guidance gaps booked and record defects
+  corrected in five places.** No behavior change. The handoff books five
+  places the documents do not answer: how a promoted external track with no
+  ZMeta parent is emitted, when both schema lanes require a parent id and
+  the authoring rules forbid inventing one; a source clock known to be far
+  from UTC, which the 60000 ms unknown-clock convention understates; a
+  sensor that runs its own tracker; a carrier for how a position was
+  derived; and TIME_STATUS having no declared place for the basis of its
+  bound. Corrected: the doctrine log's C1 table showed C1-04 open after it
+  was decided; doctrine A1-02 and the ADS-B adapter README classed every
+  ground radar as 2-D; the adapter index named the wire format as the input
+  of the CoT and KLV templates, which both take an already-decoded dict.
+  Doctrine H1-05 gains a reader's report of what a TAK client does with
+  `how`.
 - 2026-10-01 — **A configured CoT `how` must have the shape of a CoT how
   token.** The standard profile wrote whatever `cot_config.how` held: an
   empty string went out as `how=""`, which the CoT base-event schema
