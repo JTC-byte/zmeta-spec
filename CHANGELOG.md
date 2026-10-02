@@ -26,7 +26,8 @@
   producer wrote. The offline tools are unchanged: a `ValidationState`
   built without the cap keeps the whole of the file it validates, and so
   does any other program that builds one without passing the cap. The
-  per-source timing stores are not bounded by this change. 58 tests in
+  per-source timing stores and the size of a command-evidence entry are
+  not bounded by this change. 62 tests in
   `gateway/tests/test_event_index_bound.py`; eight send events through the
   real `main()` receive loop.
 - 2026-10-02 — **Records: five guidance gaps booked and record defects

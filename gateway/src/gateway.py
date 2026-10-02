@@ -1185,6 +1185,10 @@ def _plain_integer_flag(text):
     `int` alone also accepts "1_000", " 7 ", "+7", "0007" and digits from
     other scripts, each of which is a number the operator did not write.
     """
+    if len(text) > 18:
+        # Longer than any setting's range, and past a point int() itself
+        # refuses. The message does not repeat the value.
+        raise argparse.ArgumentTypeError(f"a value of {len(text)} characters is out of range")
     if not (text.isascii() and text.isdigit()) or (len(text) > 1 and text[0] == "0"):
         raise argparse.ArgumentTypeError(f"{text!r} is not written as plain digits")
     return int(text)

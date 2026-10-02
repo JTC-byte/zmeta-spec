@@ -34,19 +34,37 @@
   copy. The flag takes plain digits only, and a bad config value is
   refused even when the flag overrides it. The lost refusal is stated in
   the README, the CHANGELOG and doctrine G1-01 and pinned by two tests,
-  one of them through the receive loop. 58 tests; 12 run `main()`, of
-  which eight send events through the receive loop, three send none, and
-  one stops before a socket opens. 90 of 90 mutants killed, the review's
-  nine survivors among them, one test process each. Measured again with a
-  781-byte shipped example: unbounded, 488 MB after 100,000 events; at the
-  default, 15.8 MB when first full and 15.8 to 18.7 MB over the next
-  330,000 events (peak 22.6 MB); at the ceiling, 230 MB when first full
-  and 230 to 278 MB afterwards (peak 339 MB). Not done here:
-  `latest_timing` and `timing_sources` still grow with the number of
-  distinct sources; the diagnostic does not tell a dropped parent from one
-  never seen; nothing survives a restart; events go through the receive
-  loop as JSON at profile M only; the config wizard does not offer the
-  setting. The questions that go with the merge are in doctrine G1-01.
+  one of them through the receive loop. That revision (6cb794a) had 58
+  tests and killed 90 of 90 mutants, the review's nine survivors among
+  them. A second independent review of it found no defect in the code. It
+  ran a differential fuzz of bounded against unbounded state (100,000
+  operations) and a model-based fuzz with eviction (24,000 steps) and
+  found no divergence beyond the stated ones. It found the documents
+  still short in four places: the stores left outside the bound were
+  under-described (a command-evidence entry and a per-source timing entry
+  are each as large as a producer writes them); one peak figure did not
+  reproduce in its shorter run; "one refusal" understated the cost, since
+  a correct event whose parent has aged out is also warned or, under
+  strict validation, refused; and the configs README was wrong for
+  profile L. Three of its 30 mutants survived: the 64 counted in bytes,
+  a strict encoding that would have raised on a lone surrogate in a long
+  id after every check had passed, and the flag's refusal raised as the
+  wrong exception. Each has a test now. As it stands: 62 tests; 12 run
+  `main()`, of which eight send events through the receive loop, three
+  send none, and one stops before a socket opens; 96 of 96 mutants
+  killed, one test process each, both reviews' survivors among them.
+  Measured with a 781-byte shipped example: unbounded, 488 MB after
+  100,000 events; at the default, 15.8 MB when first full and 15.8 to
+  18.7 MB over the next 330,000 events (peak 22.6 MB); at the ceiling,
+  230 MB when first full and 230 to 278 MB afterwards, with a peak of 339
+  MB in the author's run of 3.4 million events and 295 MB in the second
+  reviewer's shorter run. Not done here: `latest_timing` and
+  `timing_sources` still grow with the number of distinct sources; the
+  diagnostic does not tell a dropped parent from one never seen; nothing
+  survives a restart; events go through the receive loop as JSON at
+  profile M only; the config wizard does not offer the setting; the
+  changes made after the second review have not themselves been
+  reviewed. The questions that go with the merge are in doctrine G1-01.
 - **2026-10-02 (records wave `wave/records-findings-2026-10-02`; no behavior
   change).** Two pieces of work on 2026-10-01 asked the documents questions
   they had not been asked: a read of a field sample from a sensor class

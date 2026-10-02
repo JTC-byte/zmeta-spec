@@ -55,7 +55,15 @@ DEFAULT_COMMAND_EVIDENCE_INDEX_MAX_ENTRIES = 4096
 #
 # What the bound does not cover: `latest_timing` and `timing_sources` grow
 # with the number of distinct sources and are not evicted, because a quiet
-# source's last TIME_STATUS has to outlive the events around it.
+# source's last TIME_STATUS has to outlive the events around it. Each
+# `latest_timing` entry is a copy of the metrics a producer sent and each
+# `timing_sources` key is as long as a producer wrote it. The
+# command-evidence index above caps how many entries it has, not how large
+# an entry is.
+#
+# A bounded state's stores are not the unbounded ones' types. `events` maps
+# a key to an (event_type, event_subtype) pair, read through get_event. The
+# id stores answer `in`, `len` and iteration, and are not sets.
 DEFAULT_EVENT_INDEX_MAX_ENTRIES = 65536
 MAX_EVENT_INDEX_MAX_ENTRIES = 1024 * 1024
 _BOUNDED_KEY_MAX_CHARS = 64
@@ -81,15 +89,22 @@ def _bounded_key(key):
 
     A string of up to _BOUNDED_KEY_MAX_CHARS characters is kept as it is. A
     longer one is kept as a 16-byte digest, so an entry's size does not
-    depend on what a producer wrote. A tuple is bounded part by part.
-    Anything else is kept as it is. A digest is `bytes` and a short key is
-    `str`, so the two forms cannot be mistaken for each other.
+    depend on what a producer wrote. The length is counted in characters,
+    and a lone surrogate, which JSON can carry, is digested like any other
+    character. A tuple is bounded part by part. Anything else is kept as it
+    is.
+
+    For the keys the validators record, which are strings out of a decoded
+    event, a digest is `bytes` and a short key is `str`, so the two forms
+    cannot be mistaken for each other. A caller that records `bytes` keys
+    of its own is outside that statement: a 16-byte key equal to a digest
+    would match the long string the digest stands for.
     """
-    if type(key) is str:
+    if isinstance(key, str):
         if len(key) <= _BOUNDED_KEY_MAX_CHARS:
             return key
         return hashlib.blake2b(key.encode("utf-8", "surrogatepass"), digest_size=16).digest()
-    if type(key) is tuple:
+    if isinstance(key, tuple):
         return tuple(_bounded_key(part) for part in key)
     return key
 

@@ -257,9 +257,12 @@ The bound has a cost. While a parent is in the index, the lineage check also
 refuses a citing event whose parent is of a type the policy does not allow
 (`LINEAGE_PARENT_TYPE_INVALID`). Once that parent has left the index the check
 cannot tell it from a parent it never saw, so the citing event is passed
-without a diagnostic at profile L and with a warning at M and H. A producer
-can push a parent out by sending as many events as the index holds. The same
-was already true of any parent accepted before a restart. A deployment that
+without a diagnostic at profile L and with a warning at M and H (under
+`strict_validation` that warning still refuses it). A producer can push a
+parent out by sending as many events as the index holds, and ordinary traffic
+does the same with no intent: at the default size and 40 events a second, in
+about 27 minutes. The same was already true of any parent accepted before a
+restart. A deployment that
 needs the refusal to hold sets `unresolved_parent_mode` to `reject` for its
 profile in its own policy pack, which refuses every event that cites a parent
 the index does not hold. `policy/command-evidence.yaml` describes the same
@@ -269,21 +272,27 @@ The index holds no event, and the size of an entry does not depend on what a
 producer wrote: an id longer than 64 characters is kept as a 16-byte digest.
 The same number bounds two sets kept beside the index, the task ids of
 commands and the keys of task acknowledgements. The gateway does not read
-them (its own duplicate handling uses separate time-bounded caches); the
-offline duplicate check does.
+them (its own duplicate handling uses separate time-bounded caches);
+`validate_deduplication` does, for a caller that runs it on a bounded state.
 
 Measured with a 781-byte shipped example event, the validation state held
 about 16 MB when the default index first filled and between 16 and 19 MB over
 the next 330,000 events, with a peak of 23 MB. At the maximum size it held
-230 MB when first full and between 230 and 278 MB afterwards, with a peak of
-339 MB. The size moves within those ranges because the tables behind the
-index are rebuilt from time to time. A gateway without the bound held about
-4.9 KB for each such event it had accepted, for as long as it ran.
+230 MB when first full and between 230 and 278 MB afterwards. Its peak was
+339 MB in one run of 3.4 million events and 295 MB in a shorter independent
+run. The size moves within those ranges because the tables behind the index
+are rebuilt from time to time. A gateway without the bound held about 4.9 KB
+for each such event it had accepted, for as long as it ran.
 
-Two stores are outside this bound. The latest TIME_STATUS of each source is
-kept per source and is not evicted, so that store grows with the number of
-distinct sources. The command-evidence check has its own index, sized by
-`policy/command-evidence.yaml` `evidence_index_max_entries`.
+Three stores are outside this bound, and each can hold text as long as a
+producer writes it. The latest TIME_STATUS of each source is kept per source
+and is not evicted: that store grows with the number of distinct sources, and
+each entry is a copy of the metrics the source sent. A set of source keys
+kept beside it grows the same way. The command-evidence check has its own
+index; `policy/command-evidence.yaml` `evidence_index_max_entries` caps how
+many entries it has and not how large an entry is. An entry holds the risk
+labels a producer wrote, and it gains labels when its `event_id` is recorded
+again.
 
 The index is in memory. A restart empties it, and a parent accepted before the
 restart is reported unresolved afterwards. A program that calls

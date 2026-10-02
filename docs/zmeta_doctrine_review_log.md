@@ -3378,26 +3378,34 @@ validation state keeps every forwarded event for as long as the process
 runs. It was deferred then because bounding it is behavior-visible. It was
 measured on 2026-10-01 and built on a branch on 2026-10-02.
 
-### G1-01 — A memory bound changes which lineage parents resolve · **OPEN (built on `exp/gateway-state-bound`; the merge and nine questions are the maintainer's)**
+### G1-01 — A memory bound changes which lineage parents resolve · **OPEN (built on `exp/gateway-state-bound`; the merge and twelve questions are the maintainer's)**
 
 **Observed:** the lineage check resolves a parent by looking it up among
 the events this gateway has accepted. With no bound, every parent the
 process ever accepted resolves, and the process grows without limit: 488
 MB after 100,000 copies of a 781-byte example event. With a bound, the
-state stays between 16 and 19 MB at 65,536 entries, and a parent older than
-the index no longer resolves.
+state stays between 16 and 19 MB at 65,536 entries, with a peak of 23 MB
+while its tables are rebuilt, and a parent older than the index no longer
+resolves.
 
-**The tension:** design gate 3 on both sides, and the bound does not come
-out clean. The lineage check says two things about a parent it finds: it
+**The tension:** design gate 3 on both sides, and the bound loses one
+refusal. The lineage check says two things about a parent it finds: it
 resolves, or its type is not allowed, which is a refusal. About a parent it
 does not find it can only say unresolved, which the shipped policy ignores
-at profile L and warns on at M and H. So a bound turns one refusal into a
-pass. An event citing a parent of the wrong type is refused while that
-parent is in the index, and once the parent has left it is forwarded, with
-a warning at M and H and with nothing at L. A producer can force that by
-sending as many events as the index holds. The first draft of this entry
-said the bound "launders nothing"; an independent review showed the
-sequence, and the sentence was wrong. Against that: the refusal never held
+at profile L and warns on at M and H. A bound therefore turns one refusal
+into a pass, except under `strict_validation` at M and H, where the
+unresolved warning refuses the event. An event citing a parent of the wrong
+type is refused while that parent is in the index, and once the parent has
+left it is forwarded, with a warning at M and H and with nothing at L. A
+producer can force that by sending as many events as the index holds, and
+ordinary traffic does it with no intent: about 27 minutes at the default
+size and 40 events a second. The first draft of this entry said the bound
+"launders nothing"; an independent review showed the sequence, and the
+sentence was wrong. The same refusal could already be avoided by a cheaper
+route that the bound does not change: an event that reuses a forwarded
+command's `event_id` replaces the type the store holds for that id
+(handoff, current gaps, item 10). That lowers the weight of what the bound
+gives up and does not remove it. Against the loss: the refusal never held
 for a parent sent before a restart or through another gateway, the
 command-evidence index made the same trade on 2026-07-27 and says so in its
 policy file, and the unbounded store bought the refusal at a cost no
@@ -3440,16 +3448,26 @@ changed. Two tests pin the lost refusal so that it cannot be forgotten.
    built only the reference gateway's `main()` passes the cap. A program
    that imports `process_message` and builds its own state is unbounded
    until it passes one.
-7. Should the size have a floor at the command-evidence index's 4,096?
-   Below it, a command's cited parent can be resolved by the
-   command-evidence check and unresolved by the lineage check. This was
-   read from the code and not run.
+7. Should the two index sizes be tied? At the shipped defaults a command
+   citing a parent 5,000 events old is resolved by the lineage check and
+   unresolved by the command-evidence check, whose index holds 4,096. With
+   the event index set below 4,096 the reverse happens. The second
+   reviewer ran both.
 8. Should the gateway fill the two task-id sets at all? It never reads
    them. They are bounded and digested here so that a caller of
    `validate_deduplication` on a bounded state still gets an answer.
 9. Should the per-source timing stores be bounded, and by what rule? A
    quiet source's last TIME_STATUS has to outlive the events around it, so
-   the event index's rule does not fit.
+   the event index's rule does not fit. `timing_sources` is written and
+   never read.
+10. Should the metrics report how full the index is and how many entries
+    it has dropped? An operator could then tell parents that aged out from
+    ids that never existed without any change to the diagnostic.
+11. Under `strict_validation` the bound refuses correct events that the
+    unbounded store forwarded. Is that acceptable at the default size, or
+    should a strict deployment get a larger default or a startup note?
+12. Should a refused size say whether it came from the flag or the config
+    file, and should the config wizard and the launcher offer the setting?
 
 ## Archive
 

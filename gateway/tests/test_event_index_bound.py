@@ -662,6 +662,42 @@ class BoundedIndexTest(PolicyCase):
         # A digest never matches a short key, whatever the short key spells.
         self.assertFalse(kept[1].decode("latin-1") in state.command_task_ids)
 
+    def test_the_64_is_counted_in_characters_not_bytes(self):
+        state = validators.ValidationState(event_index_max_entries=4)
+        whole = "\u00e9" * 64  # 64 characters, 128 bytes in UTF-8
+        digested = "\u00e9" * 65
+        state.record(command(whole))
+        state.record(command(digested))
+        kept = list(state.command_task_ids)
+        self.assertEqual(whole, kept[0])
+        self.assertIsInstance(kept[1], bytes)
+        self.assertTrue(digested in state.command_task_ids)
+
+    def test_a_long_id_with_a_lone_surrogate_is_recorded_and_matches(self):
+        # JSON can carry a lone surrogate, and both schema lanes accept it in
+        # a task_id. Encoding it strictly would raise after every check passed.
+        state = validators.ValidationState(event_index_max_entries=4)
+        odd = json.loads('"\\ud800"') + "t" * 100
+        self.assertEqual(101, len(odd))
+        cmd = command(odd)
+        state.record(cmd)
+        state.record(task_ack(odd, eid(cmd)))
+        self.assertTrue(odd in state.command_task_ids)
+        self.assertEqual(["TASK_DUPLICATE"], codes(self.dedupe(command(odd), state)[1]))
+        self.assertEqual(
+            ["TASK_ACK_DUPLICATE"], codes(self.dedupe(task_ack(odd, eid(cmd)), state)[1])
+        )
+        self.assertFalse(json.loads('"\\ud801"') + "t" * 100 in state.command_task_ids)
+
+    def test_a_long_key_of_a_str_subclass_is_digested_and_matches_the_plain_string(self):
+        class Tagged(str):
+            pass
+
+        state = validators.ValidationState(event_index_max_entries=4)
+        state.record(command(Tagged("t" * LONG)))
+        self.assertIsInstance(list(state.command_task_ids)[0], bytes)
+        self.assertTrue("t" * LONG in state.command_task_ids)
+
     def test_what_a_bounded_state_holds_does_not_grow_with_what_a_producer_wrote(self):
         count = 300
         bounded = validators.ValidationState(event_index_max_entries=count)
@@ -787,6 +823,23 @@ class SettingsTest(unittest.TestCase):
         self.assertEqual(7, args_with(self.FLAG, "7").event_index_max_entries)
         self.assertEqual(1000, args_with(self.FLAG, "1000").event_index_max_entries)
         self.assertEqual(0, args_with(self.FLAG, "0").event_index_max_entries)
+
+    def test_a_refused_flag_says_which_flag_and_why(self):
+        err = io.StringIO()
+        with contextlib.redirect_stderr(err), self.assertRaises(SystemExit):
+            args_with(self.FLAG, "1_000")
+        self.assertIn("argument --event-index-max-entries", err.getvalue())
+        self.assertIn("'1_000' is not written as plain digits", err.getvalue())
+
+        err = io.StringIO()
+        with contextlib.redirect_stderr(err), self.assertRaises(SystemExit):
+            args_with(self.FLAG, "9" * 5000)
+        self.assertIn("argument --event-index-max-entries", err.getvalue())
+        self.assertIn("a value of 5000 characters is out of range", err.getvalue())
+        self.assertNotIn("9" * 50, err.getvalue())
+        # Eighteen digits still reach the range check, which names the setting.
+        with self.assertRaises(ValueError):
+            gateway.build_settings(ROOT, args_with(self.FLAG, "9" * 18), {})
 
     def test_a_bad_config_value_is_refused_even_when_a_good_flag_overrides_it(self):
         for bad in (0, "16", True, None, CEILING + 1):

@@ -302,12 +302,14 @@ Open, in order of proximity:
    the same number in place of being left unfilled, so that a caller of
    `validate_deduplication` on a bounded state still gets an answer for
    recent ids, and a long id is kept as a digest. The offline tools are
-   unchanged. The bound costs one refusal: a parent of the wrong type is
-   refused only while it is in the index. The gateway README describes the
-   index, that cost, its limits and the restart behavior. Still open after
-   this branch: the per-source timing stores, a program other than the
-   gateway that builds its own `ValidationState`, and the nine questions in
-   doctrine G1-01.
+   unchanged. The bound has two costs. A parent of the wrong type is
+   refused only while it is in the index. A correct event whose parent has
+   aged out draws a warning at profiles M and H, and a refusal under
+   `strict_validation`. The gateway README describes the index, those
+   costs, its limits and the restart behavior. Still open after this
+   branch: the per-source timing stores and the size of a command-evidence
+   entry, a program other than the gateway that builds its own
+   `ValidationState`, and the twelve questions in doctrine G1-01.
 9. **CoT `how` and the base-event schema (doctrine H1-05, evidence
    received 2026-10-01).** The CoT base-event schema declares `how`
    required, and the standard profile omits it unless the config asserts a
