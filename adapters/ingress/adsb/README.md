@@ -169,9 +169,10 @@ rule. AIS was in fact adopted by this same workstream, as doctrine A1-02's
 independent second implementation: see `adapters/ingress/ais/README.md`,
 which documents every AIS observation with a usable position now getting
 canonical `geo` declared `dimensionality: "2D"` with `geo_status:
-VERTICAL_UNAVAILABLE`, the identical mechanism this adapter uses. Ground
-radar and most DF systems remain 2-D-shaped and unchanged; adopting
-`dimensionality` there is still a question for their own workstreams.
+VERTICAL_UNAVAILABLE`, the identical mechanism this adapter uses. Most DF
+systems and two-dimensional ground radars remain 2-D-shaped and unchanged;
+adopting `dimensionality` there is still a question for their own
+workstreams. A 3D radar measures elevation and is a different case.
 
 ### 3. Translation provenance cannot be recorded canonically
 
