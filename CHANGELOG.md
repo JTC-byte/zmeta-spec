@@ -2,6 +2,17 @@
 
 ## [Unreleased]
 
+- 2026-10-02 — **Records: a reference-gateway behavior is brought forward
+  for the maintainer.** No behavior change. The gateway keeps commands out
+  of its `event_id` cache, because the contract dedupes a command by its
+  `task_id`. An event of another type that reuses a forwarded command's
+  `event_id` is therefore forwarded, and a lineage citation of that id
+  that was refused for its parent's type is afterwards forwarded with no
+  diagnostic. A command re-sent under one `event_id` with a new `task_id`
+  each time is forwarded each time, and the command-evidence entry for
+  that id grows with every copy. Both were reproduced through the real
+  receive loop and are recorded in the handoff with the questions they
+  raise.
 - 2026-10-02 — **Records: five guidance gaps booked and record defects
   corrected in five places.** No behavior change. The handoff books five
   places the documents do not answer: how a promoted external track with no

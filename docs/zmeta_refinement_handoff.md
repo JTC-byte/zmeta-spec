@@ -305,6 +305,30 @@ Open, in order of proximity:
    token it should write and was answered on 2026-10-01 on the maintainer's
    direction; the answer is recorded privately and the evidence it turned
    up about a TAK client is in doctrine H1-05.
+10. **Reference behavior, brought forward for the maintainer (an
+   `event_id` used twice, where the first use is a command).** Found on
+   2026-10-02 by an independent review of unmerged gateway work and
+   reproduced on the integration line through the real `main()` loop.
+   Contract 4.2 says an emitted event "is never modified or deleted" and
+   that a correction is a new event "with new `event_id` values". Contract
+   13.2 says "COMMAND_EVENT dedupes by `payload.task_id`", and the gateway
+   keeps commands out of its `event_id` cache accordingly. It therefore
+   does not notice two kinds of reuse. First, an event of another type
+   that reuses a forwarded command's `event_id` is forwarded, and the
+   validation state then holds that id under the newer event's type. A
+   FUSION_EVENT that cites a COMMAND_EVENT's id is refused with
+   `LINEAGE_PARENT_TYPE_INVALID`; after an OBSERVATION_EVENT reuses the
+   id, the same citation is forwarded with no diagnostic (run at profiles
+   M and H). Second, a command re-sent under one `event_id` with a new
+   `task_id` each time is forwarded each time (40 of 40 as run, at profile
+   L), and the command-evidence index merges every copy's risk labels into
+   the one entry for that id, with no limit on their number or length (the
+   40 copies left 80,380 characters in one entry). Nothing was changed:
+   both sit on the command path. The questions for the maintainer are
+   whether the gateway refuses an `event_id` it has already forwarded
+   under another event type or another `task_id`, which type an id keeps
+   when the validation state records it twice, and whether a
+   command-evidence entry needs a size limit.
 
 Next session: the cut when the maintainer directs it.
 
