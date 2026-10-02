@@ -77,6 +77,10 @@ Notes:
   - `emit_metrics` and `metrics_interval_sec` control periodic gateway metrics logs.
   - `rate_limit_per_sec` drops packets above the configured receive rate.
   - `rate_limit_producer_per_sec` drops packets per producer above the configured rate.
+  - `event_index_max_entries` sets how many recently accepted events stay
+    resolvable as lineage parents (default 65536, an integer from 1 to
+    1048576). A parent older than the index is reported
+    `LINEAGE_PARENT_UNRESOLVED`. See Event index in `gateway/README.md`.
   - `metrics_log_path`, `metrics_log_max_bytes`, `metrics_log_backups` enable JSONL metrics logs.
   - `warn_datagram_bytes` logs a metrics warning when an outgoing UDP datagram
     (forward or CoT) exceeds the configured byte threshold (`0` disables, the

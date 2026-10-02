@@ -104,7 +104,7 @@ The config file keys are:
 - `emit_metrics` and `metrics_interval_sec` (periodic gateway metrics logs)
 - `rate_limit_per_sec` (drop packets above receive rate)
 - `rate_limit_producer_per_sec` (drop per-producer above receive rate)
-- `event_index_max_entries` (how many recently forwarded events stay resolvable as lineage parents; default 65536, maximum 1048576; see Event index below)
+- `event_index_max_entries` (how many recently accepted events stay resolvable as lineage parents; default 65536, maximum 1048576; see Event index below)
 - `metrics_log_path`, `metrics_log_max_bytes`, `metrics_log_backups` (JSONL metrics logs)
 - `warn_datagram_bytes` (warn when an outgoing datagram exceeds this size; 0 disables)
 - `ts_plausibility_horizon_ms` (warn when `event.ts` sits outside a window around now; 0 disables; see Event timestamp plausibility below)
@@ -231,14 +231,18 @@ event is not forwarded.
 ### Event index
 
 The gateway remembers the `event_type` and `event_subtype` of the events it
-forwarded most recently, so that the lineage check can resolve a parent an
-incoming event cites in `lineage.based_on`. `event_index_max_entries` sets how
-many it remembers: an integer from 1 to 1048576, default 65536, also settable
-as `--event-index-max-entries`. When the index is full, the oldest entry is
-dropped. A value outside that range, or one that is not an integer (a string,
-a float, a boolean, null), stops the gateway at startup. Nothing is coerced,
-and no value removes the bound. The gateway prints the size it is running with
-at startup.
+accepted most recently, so that the lineage check can resolve a parent an
+incoming event cites in `lineage.based_on`. An event is indexed when it passes
+the inbound checks, before the outgoing checks, encoding and send, so an event
+that is then refused or dropped on the way out is in the index too.
+`event_index_max_entries` sets how many the index remembers: an integer from 1
+to 1048576, default 65536, also settable as `--event-index-max-entries`. When
+the index is full, the oldest entry is dropped. A value outside that range, or
+one that is not an integer (a string, a float, a boolean, null), stops the
+gateway at startup, and a bad value in the config file does so even when the
+flag overrides it. The flag takes plain digits only. Nothing is coerced, and
+no value removes the bound. The gateway prints the size it is running with at
+startup.
 
 A parent that has left the index is reported the same way as a parent this
 gateway never saw: `LINEAGE_PARENT_UNRESOLVED`, under
@@ -249,17 +253,42 @@ diagnostic does not say which of the two causes applies. Size the index for
 the oldest parent a producer cites: at 40 events a second the default covers
 about 27 minutes of traffic.
 
-The index holds no event. Measured with a 781-byte shipped example event, it
-holds about 27 MB at the default size and about 310 MB at the maximum, and it
-stops growing once it is full. A gateway without the bound held about 4.9 KB
-for each such event it had forwarded, for as long as it ran.
+The bound has a cost. While a parent is in the index, the lineage check also
+refuses a citing event whose parent is of a type the policy does not allow
+(`LINEAGE_PARENT_TYPE_INVALID`). Once that parent has left the index the check
+cannot tell it from a parent it never saw, so the citing event is passed
+without a diagnostic at profile L and with a warning at M and H. A producer
+can push a parent out by sending as many events as the index holds. The same
+was already true of any parent accepted before a restart. A deployment that
+needs the refusal to hold sets `unresolved_parent_mode` to `reject` for its
+profile in its own policy pack, which refuses every event that cites a parent
+the index does not hold. `policy/command-evidence.yaml` describes the same
+trade for the command-evidence index.
 
-Three things are outside this bound. The latest TIME_STATUS of each source is
+The index holds no event, and the size of an entry does not depend on what a
+producer wrote: an id longer than 64 characters is kept as a 16-byte digest.
+The same number bounds two sets kept beside the index, the task ids of
+commands and the keys of task acknowledgements. The gateway does not read
+them (its own duplicate handling uses separate time-bounded caches); the
+offline duplicate check does.
+
+Measured with a 781-byte shipped example event, the validation state held
+about 16 MB when the default index first filled and between 16 and 19 MB over
+the next 330,000 events, with a peak of 23 MB. At the maximum size it held
+230 MB when first full and between 230 and 278 MB afterwards, with a peak of
+339 MB. The size moves within those ranges because the tables behind the
+index are rebuilt from time to time. A gateway without the bound held about
+4.9 KB for each such event it had accepted, for as long as it ran.
+
+Two stores are outside this bound. The latest TIME_STATUS of each source is
 kept per source and is not evicted, so that store grows with the number of
 distinct sources. The command-evidence check has its own index, sized by
-`policy/command-evidence.yaml` `evidence_index_max_entries`. The index is in
-memory, so a restart empties it, and a parent forwarded before the restart is
-reported unresolved afterwards.
+`policy/command-evidence.yaml` `evidence_index_max_entries`.
+
+The index is in memory. A restart empties it, and a parent accepted before the
+restart is reported unresolved afterwards. A program that calls
+`process_message` itself builds its own `ValidationState`, and that state is
+unbounded unless the program passes `event_index_max_entries` to it.
 
 ### Event timestamp plausibility
 

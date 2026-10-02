@@ -3378,46 +3378,76 @@ validation state keeps every forwarded event for as long as the process
 runs. It was deferred then because bounding it is behavior-visible. It was
 measured on 2026-10-01 and built on a branch on 2026-10-02.
 
-### G1-01 — A memory bound changes which lineage parents resolve · **OPEN (built on `exp/gateway-state-bound`; the merge and five questions are the maintainer's)**
+### G1-01 — A memory bound changes which lineage parents resolve · **OPEN (built on `exp/gateway-state-bound`; the merge and nine questions are the maintainer's)**
 
 **Observed:** the lineage check resolves a parent by looking it up among
-the events this gateway has forwarded. With no bound, every parent the
-process ever forwarded resolves, and the process grows without limit: 488
+the events this gateway has accepted. With no bound, every parent the
+process ever accepted resolves, and the process grows without limit: 488
 MB after 100,000 copies of a 781-byte example event. With a bound, the
-memory is flat (about 27 MB at 65,536 entries) and a parent older than the
-index no longer resolves.
+state stays between 16 and 19 MB at 65,536 entries, and a parent older than
+the index no longer resolves.
 
-**The tension:** design gate 3 on both sides. An unresolved parent is
-reported, never passed silently, so the bound launders nothing. The report
-is the same one a parent that was never seen draws, so a correct producer
-whose parent has aged out looks the same as a producer citing an id that
-never existed, and under `strict_validation` at profiles M and H its event
-is refused. The unbounded store avoided that by a cost no deployment was
-told about: a gateway that has to be restarted, at which point every parent
-is forgotten at once.
+**The tension:** design gate 3 on both sides, and the bound does not come
+out clean. The lineage check says two things about a parent it finds: it
+resolves, or its type is not allowed, which is a refusal. About a parent it
+does not find it can only say unresolved, which the shipped policy ignores
+at profile L and warns on at M and H. So a bound turns one refusal into a
+pass. An event citing a parent of the wrong type is refused while that
+parent is in the index, and once the parent has left it is forwarded, with
+a warning at M and H and with nothing at L. A producer can force that by
+sending as many events as the index holds. The first draft of this entry
+said the bound "launders nothing"; an independent review showed the
+sequence, and the sentence was wrong. Against that: the refusal never held
+for a parent sent before a restart or through another gateway, the
+command-evidence index made the same trade on 2026-07-27 and says so in its
+policy file, and the unbounded store bought the refusal at a cost no
+deployment was told about, a gateway that has to be restarted, at which
+point every parent is forgotten at once. A correct producer whose parent
+has aged out also looks the same as one citing an id that never existed,
+and under `strict_validation` at profiles M and H its event is refused.
 
-**Built, pending review:** a bounded index of `event_type` and
-`event_subtype`, oldest dropped first; the size is a gateway setting with a
-default of 65,536, a ceiling of 1,048,576, and no value that removes the
-bound; a dropped parent is `LINEAGE_PARENT_UNRESOLVED` under the existing
-policy mode; the offline tools keep the unbounded state. No policy file,
-schema or reason code changed.
+**Built, pending the maintainer's review:** a bounded index of `event_type`
+and `event_subtype`, oldest dropped first; an id longer than 64 characters
+kept as a 16-byte digest, so the bound is on bytes as well as entries; the
+size is a gateway setting with a default of 65,536, a ceiling of 1,048,576,
+and no value that removes the bound; a dropped parent is
+`LINEAGE_PARENT_UNRESOLVED` under the existing policy mode; the offline
+tools keep the unbounded state. No policy file, schema or reason code
+changed. Two tests pin the lost refusal so that it cannot be forgotten.
 
 **Questions that go with the merge:**
 
 1. Is 65,536 the right default? At 40 events a second it covers about 27
    minutes. A slow track whose STATE_EVENT cites the previous one after a
    longer gap draws the warning.
-2. Should the diagnostic tell a parent that left the index from one never
-   seen? Telling them apart needs either a second store of dropped ids,
-   which is the growth this change removes, or wording that only says the
-   index is bounded.
-3. Is a setting the right home? The command-evidence index is sized in the
+2. Is the lost refusal acceptable as built? `policy/lineage.yaml` could
+   carry the note `policy/command-evidence.yaml` carries, recommending
+   `reject` for an unresolved parent where the type check has to hold. That
+   is a policy-file change and was not made here.
+3. Should the diagnostic tell a parent that left the index from one never
+   seen? A second store of dropped ids would be the growth this change
+   removes. Two options need no growing store: event ids are UUIDv7, so a
+   cited id's embedded time could be compared with the oldest entry (that
+   time is the producer's claim, and the diagnostic would have to say so);
+   or a fixed-size filter of dropped ids, which can answer wrongly at a
+   known rate.
+4. Is a setting the right home? The command-evidence index is sized in the
    policy pack, where the value is hash-pinned and travels with the
    contract hash. This one is sized in the gateway config, as an operating
    limit of one process.
-4. Should a gateway be able to run without the bound? As built it cannot.
-5. Should the per-source timing stores be bounded, and by what rule? A
+5. Should a gateway be able to run without the bound? As built it cannot.
+6. Should `ValidationState()` be bounded unless a caller opts out? As
+   built only the reference gateway's `main()` passes the cap. A program
+   that imports `process_message` and builds its own state is unbounded
+   until it passes one.
+7. Should the size have a floor at the command-evidence index's 4,096?
+   Below it, a command's cited parent can be resolved by the
+   command-evidence check and unresolved by the lineage check. This was
+   read from the code and not run.
+8. Should the gateway fill the two task-id sets at all? It never reads
+   them. They are bounded and digested here so that a caller of
+   `validate_deduplication` on a bounded state still gets an answer.
+9. Should the per-source timing stores be bounded, and by what rule? A
    quiet source's last TIME_STATUS has to outlive the events around it, so
    the event index's rule does not fit.
 

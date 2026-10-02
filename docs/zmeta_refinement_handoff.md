@@ -297,14 +297,17 @@ Open, in order of proximity:
 
    **Built on `exp/gateway-state-bound`, 2026-10-02, and held for the
    maintainer.** The gateway keeps the `event_type` and `event_subtype` of
-   the most recent forwarded events, sized by the setting
-   `event_index_max_entries` (default 65536), and the three id sets are
-   bounded by the same number in place of being left unfilled, so that a
-   caller of `validate_deduplication` on a bounded state still gets an
-   answer for recent ids. The offline tools are unchanged. The gateway
-   README now describes the index, its limits and the restart behavior.
-   Still open after this branch: the per-source timing stores, and the five
-   questions in doctrine G1-01.
+   the most recently accepted events, sized by the setting
+   `event_index_max_entries` (default 65536). The id sets are bounded by
+   the same number in place of being left unfilled, so that a caller of
+   `validate_deduplication` on a bounded state still gets an answer for
+   recent ids, and a long id is kept as a digest. The offline tools are
+   unchanged. The bound costs one refusal: a parent of the wrong type is
+   refused only while it is in the index. The gateway README describes the
+   index, that cost, its limits and the restart behavior. Still open after
+   this branch: the per-source timing stores, a program other than the
+   gateway that builds its own `ValidationState`, and the nine questions in
+   doctrine G1-01.
 9. **CoT `how` and the base-event schema (doctrine H1-05, evidence
    received 2026-10-01).** The CoT base-event schema declares `how`
    required, and the standard profile omits it unless the config asserts a

@@ -1178,6 +1178,18 @@ def _normalize_int(value, label, allow_zero=True):
     return number
 
 
+def _plain_integer_flag(text):
+    """argparse type for a flag whose value is not coerced.
+
+    Plain ASCII digits with no sign, space, underscore or leading zero.
+    `int` alone also accepts "1_000", " 7 ", "+7", "0007" and digits from
+    other scripts, each of which is a number the operator did not write.
+    """
+    if not (text.isascii() and text.isdigit()) or (len(text) > 1 and text[0] == "0"):
+        raise argparse.ArgumentTypeError(f"{text!r} is not written as plain digits")
+    return int(text)
+
+
 def _load_jsonl(path: Path):
     lines = path.read_text(encoding="utf-8").splitlines()
     for line in lines:
@@ -3022,7 +3034,7 @@ def parse_args():
     parser.add_argument("--metrics-interval-sec", type=int)
     parser.add_argument("--no-metrics", action="store_true")
     parser.add_argument("--rate-limit-producer-per-sec", type=int)
-    parser.add_argument("--event-index-max-entries", type=int)
+    parser.add_argument("--event-index-max-entries", type=_plain_integer_flag)
     parser.add_argument("--metrics-log-path")
     parser.add_argument("--metrics-log-max-bytes", type=int)
     parser.add_argument("--metrics-log-backups", type=int)
@@ -3137,7 +3149,7 @@ def main():
     )
     print(
         f"event index: the {validation_state.event_index_max_entries} most recent "
-        "forwarded events resolve as lineage parents"
+        "accepted events resolve as lineage parents"
     )
     logger = None
     if settings["metrics_log_path"]:

@@ -10,25 +10,43 @@
   `ValidationState` takes `event_index_max_entries`. Without it the state is
   what it was, and the offline tools build it that way. With it, `events`
   is an oldest-first bounded index that holds a parent's `event_type` and
-  `event_subtype` and no event, and the three id sets
-  `validate_deduplication` reads are bounded by the same number, each
-  counted on its own. The gateway passes a new setting of the same name
+  `event_subtype` and no event, and the id sets `validate_deduplication`
+  reads are bounded by the same number: the two task sets each counted on
+  their own, and `event_ids` read from the index. The gateway passes a new
+  setting of the same name
   (default 65536, ceiling 1048576, strict parse, startup error on a bad
-  value). The tests were written first and failed first: 61 failed and 8
-  passed against the unchanged code. They pin the unbounded default, the
-  eviction order, that an entry holds nothing of the event, the three
-  lineage outcomes (dropped parent unresolved, kept parent resolved, wrong
-  type refused), the id sets, the setting and its refusals, and, through
-  the real `main()` loop, that the flag and the config value reach the
-  state, that a parent older than the index draws the warning while the
-  event is forwarded, and that strict validation refuses it. 56 author
-  mutants were killed, one test process each. Measured with a 781-byte
-  shipped example: unbounded, 488 MB after 100,000 events; bounded at the
-  default, 26.8 MB after 100,000 events and 26.6 MB after 300,000; at the
-  ceiling, 311 MB. Not done here: `latest_timing` and `timing_sources`
-  still grow with the number of distinct sources; the diagnostic does not
-  tell a dropped parent from one never seen; nothing survives a restart.
-  The questions that go with the merge are in doctrine G1-01.
+  value). The first draft of the tests was run against the unchanged code
+  before any change: 61 failed and 8 passed. The first revision (84909d8)
+  killed 56 of 56 of its author's mutants and was then reviewed
+  independently. The review's verdict was that fixes were needed, and it
+  was right on every point it ran. Nine of its 28 mutants survived. A
+  doctrine sentence was false: the entry said the bound launders nothing,
+  and a parent of the wrong type is refused only while it is in the index.
+  The bound was on entries and not on bytes: the schemas put no maximum
+  length on `task_id`, and two id sets the gateway never reads kept those
+  strings, about 4 GB at the default size with 30 KB ids by the review's
+  measurement of 1,000 events, extrapolated. The two memory
+  figures in the README were taken at different points of a cycle. The
+  flag was parsed by `int`, which coerces. "Nine tests through the real
+  `main()` loop" counted four that send no datagram. The second revision
+  answers each. A key longer than 64 characters is kept as a 16-byte
+  digest. `event_ids` reads the index's own keys in place of a second
+  copy. The flag takes plain digits only, and a bad config value is
+  refused even when the flag overrides it. The lost refusal is stated in
+  the README, the CHANGELOG and doctrine G1-01 and pinned by two tests,
+  one of them through the receive loop. 58 tests; 12 run `main()`, of
+  which eight send events through the receive loop, three send none, and
+  one stops before a socket opens. 90 of 90 mutants killed, the review's
+  nine survivors among them, one test process each. Measured again with a
+  781-byte shipped example: unbounded, 488 MB after 100,000 events; at the
+  default, 15.8 MB when first full and 15.8 to 18.7 MB over the next
+  330,000 events (peak 22.6 MB); at the ceiling, 230 MB when first full
+  and 230 to 278 MB afterwards (peak 339 MB). Not done here:
+  `latest_timing` and `timing_sources` still grow with the number of
+  distinct sources; the diagnostic does not tell a dropped parent from one
+  never seen; nothing survives a restart; events go through the receive
+  loop as JSON at profile M only; the config wizard does not offer the
+  setting. The questions that go with the merge are in doctrine G1-01.
 - **2026-10-02 (records wave `wave/records-findings-2026-10-02`; no behavior
   change).** Two pieces of work on 2026-10-01 asked the documents questions
   they had not been asked: a read of a field sample from a sensor class
