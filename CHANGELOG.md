@@ -2,6 +2,32 @@
 
 ## [Unreleased]
 
+- 2026-10-02 — **Records: a reference-gateway behavior is brought forward
+  for the maintainer.** No behavior change. The running gateway drops a
+  repeated non-command `event_id` for 300 s and keeps commands out of that
+  cache, as it has since v1.0.4. An event of another type that reuses a
+  forwarded command's `event_id` is therefore forwarded, and a lineage
+  citation of that id that was refused for its parent's type is afterwards
+  forwarded with no diagnostic. A command sent again under one `event_id`
+  with a new `task_id` each time is forwarded each time, and the
+  command-evidence entry for that id gains every label a copy carries that
+  it does not already hold, with no limit on the entry. Both were
+  reproduced through the real receive loop and are recorded in the handoff
+  (current gaps, item 10) with the questions they raise.
+- 2026-10-02 — **Records: five guidance gaps booked and record defects
+  corrected in five places.** No behavior change. The handoff books five
+  places the documents do not answer: how a promoted external track with no
+  ZMeta parent is emitted, when both schema lanes require a parent id and
+  the authoring rules forbid inventing one; a source clock known to be far
+  from UTC, which the 60000 ms unknown-clock convention understates; a
+  sensor that runs its own tracker; a carrier for how a position was
+  derived; and TIME_STATUS having no declared place for the basis of its
+  bound. Corrected: the doctrine log's C1 table showed C1-04 open after it
+  was decided; doctrine A1-02 and the ADS-B adapter README classed every
+  ground radar as 2-D; the adapter index named the wire format as the input
+  of the CoT and KLV templates, which both take an already-decoded dict.
+  Doctrine H1-05 gains a reader's report of what a TAK client does with
+  `how`.
 - 2026-10-01 — **The gateway holds a command's `task_id` for the command's
   whole validity.** Contract Section 13.2 says a duplicate COMMAND_EVENT
   "MUST NOT be forwarded for execution a second time". The gateway held a

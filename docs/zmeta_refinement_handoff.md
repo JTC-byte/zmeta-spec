@@ -179,6 +179,58 @@ Open, in order of proximity:
    projection dedupe is named as future work (Section 22,
    ZMETA-PROJECTION-ORIGIN), so a consumer that compares copies under one
    `event_id` has no rule for this one difference.
+
+   **Five more, from a field sample read and a downstream ruling on
+   2026-10-01.** (z) How a promoted external track with no ZMeta parent is
+   emitted. Contract 4.5.1 says "When the external report has no ZMeta
+   parent event, promotion metadata MUST preserve enough source identity
+   and lineage status for audit", and `policy/producer-authority.yaml`
+   allows the lineage status `EXTERNAL_SOURCE`. Both schema lanes require
+   `lineage` on a STATE_EVENT with at least one `based_on` entry, and
+   neither can check that the id resolves. `policy/lineage.yaml` ignores a
+   parent that is not in the store at profile L, warns at M and H, and
+   admits only a FUSION_EVENT or a STATE_EVENT as the parent of a
+   STATE_EVENT. AUTHORING rule 1 says a family whose lineage is mandatory
+   refuses rather than invent a parent, and the four shipped promotion
+   paths (CoT, JREAP, MAVLink, SAPIENT fusion node) refuse without parent
+   ids. The parentless case the contract and the policy provide for can
+   therefore be emitted only by inventing a parent id. Contract 4.5.1 goes
+   on to say that a future observation subtype for network and tactical
+   reports "may provide a cleaner parent evidence event" and is not valid
+   in v1.0; no text says what an adapter emits until a version branch
+   adopts one. (aa) A source clock known to be far from UTC. Contract 5.5
+   says unsynced clocks "must be marked as UNSYNCED with realistic error
+   bounds". The unknown-clock convention in `tools/validation_guidance.yaml`
+   widens `est_error_ms` to 60000 ms "so the bound overstates rather than
+   understates"; for a clock known to be off by more than a minute that
+   value understates. Contract 5.1 says `event.ts` "does not represent
+   publish time, transmit time, or receive time", and doctrine F1-01
+   records a producer's re-stamp to wall-clock time as a breach of it,
+   while the bladeRF adapter stamps one of its two cases with adapter
+   receive time and records which in `features.timestamp_source`. No text
+   says whether an adapter may correct a known constant offset, or what it
+   does with a source timestamp it knows to be wrong. (ab) A sensor that
+   runs its own tracker. Contract 4.5.1 names "CoT/TAK, JREAP-style
+   gateways, MAVLink bridges, and vendor COPs" as external track sources
+   and the vocabulary crosswalk sends a radar track from an external system
+   to that path, while the contract lets a sensor emit OBSERVATION_EVENT
+   and SYSTEM_EVENT and reserves `track_id` to fusion authority. For the
+   modality, the crosswalk's answer is "If you own the sensor and need the
+   modality, propose it". The documents do not say whether a sensor's own
+   track is an external report to promote, and (z) applies to that path
+   whatever the modality, because an observation is not an admitted parent
+   of a STATE_EVENT. (ac) A carrier for how a position was derived.
+   `adapters/egress/cot/README.md` says "No ZMeta field carries that
+   claim"; the 1.1.0 `quality.geo_status` carries two partial statements
+   (CONFIGURED, ESTIMATED), and the schema applies that block on
+   observations only (gap (k) above covers STATE). A projection into a
+   format that requires a derivation claim, such as CoT `how`, has to take
+   it from deployment configuration, per sensor at best. (ad) TIME_STATUS
+   has no declared place for the basis of its bound: `est_error_basis` is
+   registered as a member of `payload.timing_quality` only (registry
+   `TIMING_ERROR_BASIS`). Neither schema lane closes the TIME_STATUS
+   metrics object, so an undeclared `est_error_basis` key there validates,
+   and no text defines it.
 7. **Reference defect, booked for the maintainer (command safety).** The
    gateway caps the command dedupe window at 300 s
    (`ttl_ms_from_payload`, `gateway/README.md`), while contract 13.2 says a
@@ -249,7 +301,53 @@ Open, in order of proximity:
    schema-valid CoT, and that ATAK fills a missing `how` with `m-g-g`. The
    default itself is the maintainer's: keep omitting, assert `m-r` (which
    also asserts machine-generated coordinates), or require the deployment
-   to choose a token or an explicit omission.
+   to choose a token or an explicit omission. A downstream hub asked which
+   token it should write and was answered on 2026-10-01 on the maintainer's
+   direction; the answer is recorded privately and the evidence it turned
+   up about a TAK client is in doctrine H1-05.
+10. **Reference behavior, brought forward for the maintainer (an
+   `event_id` recorded twice).** Found on 2026-10-02 by an independent
+   review of unmerged gateway work and reproduced on the integration line
+   through the real `main()` loop. Contract 4.2 says an emitted event "is
+   never modified or deleted" and that "Any semantic payload change ...
+   requires a new event with a new `event_id` and lineage". By those
+   sentences a different event needs a different id. The contract does
+   not say what a gateway does when a reused id arrives. The running
+   gateway drops a repeated non-command `event_id` for 300 s
+   (`EventDedupeCache`) and keeps commands out of that cache, as it has
+   since v1.0.4, whose notes say "Kept COMMAND_EVENT dedupe anchored on
+   `payload.task_id`". That is consistent with contract 13.2,
+   "COMMAND_EVENT dedupes by `payload.task_id`"; no document names 13.2 as
+   the reason. Item 7 above already records the exclusion. The offline
+   tools do refuse a reused id of any event type, through
+   `validate_deduplication` (`EVENT_DUPLICATE`), and the gateway does not
+   call it. Two results were run. First, an event of another type that
+   reuses a forwarded command's `event_id` is forwarded, and the
+   validation state then holds that id under the newer event's type,
+   because it keeps the latest record of an id. A FUSION_EVENT that cites
+   a COMMAND_EVENT's id is refused with `LINEAGE_PARENT_TYPE_INVALID`;
+   after an OBSERVATION_EVENT reuses the id, the same citation is
+   forwarded with no diagnostic (run at profiles M and H). By the code,
+   and not run, the same overwrite follows for a non-command id reused
+   after the 300 s and for a command that reuses an earlier event's id.
+   Second, a command sent again under one `event_id` with a new `task_id`
+   each time is forwarded each time (40 of 40 as run, at profile L). The
+   command-evidence index unions each copy's `prohibited_uses` tokens and
+   reason codes into the one entry for that id. The union is deliberate
+   and dates from v1.1.18, so that a later copy cannot erase a recorded
+   prohibition. What is new is that nothing limits an entry: 40 copies,
+   each carrying a distinct use token and a distinct reason code of about
+   1,000 characters, left 80,380 characters in one entry. The index's
+   4,096-entry cap (`policy/command-evidence.yaml`) bounds how many ids it
+   holds and not how large an entry is. Nothing was changed. Both results
+   arise from how the gateway treats a command's `event_id`, which is a
+   command-path matter under design gate 6, although the first shows in
+   the handling of an observation and a fusion. The questions for the
+   maintainer are whether the running gateway refuses an `event_id` it
+   has already forwarded under another event type or another `task_id`,
+   as the offline check does; which type an id keeps when the validation
+   state records it twice; and whether a command-evidence entry needs a
+   size limit.
 
 Next session: the cut when the maintainer directs it.
 
