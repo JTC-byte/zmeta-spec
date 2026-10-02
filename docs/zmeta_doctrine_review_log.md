@@ -776,6 +776,19 @@ generated, for systems that fuse multiple inputs. `m-r` therefore also
 asserts machine-generated coordinates, which the adapter cannot know: the
 event model carries positions a person entered upstream.
 
+**Further evidence, 2026-10-01 (source reads; no client was run):** an
+independent read of ATAK's public source, made while a downstream hub's
+token was being ruled on, reports that the client does not display `how`
+and branches on it in three places only: the exact value `m-g`, a leading
+`h-`, and `m-g-l`. By that read every other token, `m-r`, `m-c` and `m-s`
+among them, leaves a marker movable and its affiliation editable, and
+`m-g` changes what the operator can do with it. This repository re-read
+only the substitution of `m-g-g` for a missing `how`; the rest is the
+reader's report. The CoT base-event schema also has an event-level
+simulation marker that the schema text states directly: "The opex
+attribute value can begin with 's' to denote a simulation." That bears on
+any later projection of a synthetic or replay label into CoT.
+
 The entry stays OPEN, and the question for the maintainer is the default.
 Three answers are available: keep omitting `how` and state plainly that the
 output is not schema-valid CoT until a deployment asserts it (the adapter
@@ -1050,6 +1063,12 @@ its **dimensionality**, the way `geo_status` already declares availability.
 
 **Whether it matters is a field question.** It is entirely possible no consumer
 misses the dropped positions, and that is cheaper to discover than to argue.
+
+**Note added 2026-10-02 (the original entry above is left as written):**
+"Ground radar ... likewise 2-D" does not hold for every ground radar. A 3D
+air-surveillance radar measures elevation. The dimensionality decision this
+entry led to is unaffected; the sentence generalises further than the
+evidence it had.
 
 **SECOND INDEPENDENT IMPLEMENTATION LANDED 2026-07-31, and it clears the
 promotion bar.** `adapters/ingress/ais/` is the AIS instance this entry
@@ -1826,7 +1845,7 @@ findings. They are what verifying its findings turned up.
 | C1-01 | The MAVLink ingress publishes an MSL altitude as canonical HAE | 3, 5 | **MINTED 2026-08-10** |
 | C1-02 | A release-notes claim credits a runtime layer that no-ops on the class it names | 3 | **MINTED 2026-08-10** (erratum) |
 | C1-03 | The governed corpora carry no malformed-timestamp vectors, while the crosswalk cites them as the evidence | 3, 7 | **MINTED 2026-08-10** |
-| C1-04 | Fusion and state uncertainty cannot express a correlated distribution, and the gap is unbooked | 2 | **OPEN — decision-due** |
+| C1-04 | Fusion and state uncertainty cannot express a correlated distribution, and the gap is unbooked | 2 | **DECIDED 2026-08-26** |
 | C1-05 | Gap detection is booked only under adversarial trust, so a cooperative-link reliability need has no home | 2, 6 | **MINTED 2026-08-10** |
 | C1-06 | Per-event signing provably cannot be met in the outer rings, because the event root is closed | 1, 6 | **OPEN** |
 | C1-07 | Float width is unspecified, so two conforming CBOR backends emit different bytes for one event | 4, 7 | **OPEN — decision-due** |
