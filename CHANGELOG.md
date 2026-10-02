@@ -2,6 +2,25 @@
 
 ## [Unreleased]
 
+- 2026-10-02 — **The reference gateway keeps a bounded index of recent
+  events in place of every event it forwards.** The gateway's validation
+  state kept each forwarded event whole, with its id, for as long as the
+  process ran: about 4.9 KB for each 781-byte example event as measured,
+  with no limit. The lineage check reads that store for one thing, a
+  parent's `event_type`. The gateway now keeps the `event_type` and
+  `event_subtype` of the most recent forwarded events, oldest dropped
+  first, sized by a new setting, `event_index_max_entries` (default 65536,
+  maximum 1048576, flag `--event-index-max-entries`). **Behavior change:**
+  a lineage parent older than the index is reported
+  `LINEAGE_PARENT_UNRESOLVED` under the existing policy mode, the same
+  answer as a parent the gateway never saw. In the shipped policy that is a
+  warning at profiles M and H, and under `strict_validation` it refuses the
+  citing event. A value that is not an integer from 1 to the maximum stops
+  the gateway at startup, and no value removes the bound. The offline tools
+  are unchanged: a `ValidationState` built without the cap keeps the whole
+  of the file it validates. The per-source timing stores are not bounded by
+  this change. Tests in `gateway/tests/test_event_index_bound.py`, nine of
+  them through the real `main()` receive loop.
 - 2026-10-01 — **A configured CoT `how` must have the shape of a CoT how
   token.** The standard profile wrote whatever `cot_config.how` held: an
   empty string went out as `how=""`, which the CoT base-event schema

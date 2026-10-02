@@ -37,6 +37,7 @@ except ImportError:  # pragma: no cover - optional dependency
     zmeta_proto = None
 
 from validators import (
+    DEFAULT_EVENT_INDEX_MAX_ENTRIES,
     ValidationState,
     _find_non_finite,
     _is_non_finite_number,
@@ -46,6 +47,7 @@ from validators import (
     apply_timing_freshness_degradation,
     load_policy,
     load_schema,
+    normalize_event_index_max_entries,
     validate_command_evidence,
     validate_lineage,
     validate_profile,
@@ -1798,6 +1800,7 @@ def build_settings(root, args, config):
         "metrics_interval_sec": DEFAULT_METRICS_INTERVAL_SEC,
         "rate_limit_per_sec": DEFAULT_RATE_LIMIT_PER_SEC,
         "rate_limit_producer_per_sec": DEFAULT_RATE_LIMIT_PRODUCER_PER_SEC,
+        "event_index_max_entries": DEFAULT_EVENT_INDEX_MAX_ENTRIES,
         "metrics_log_path": None,
         "metrics_log_max_bytes": DEFAULT_METRICS_LOG_MAX_BYTES,
         "metrics_log_backups": DEFAULT_METRICS_LOG_BACKUPS,
@@ -1892,6 +1895,12 @@ def build_settings(root, args, config):
         if "rate_limit_producer_per_sec" in config:
             settings["rate_limit_producer_per_sec"] = _normalize_int(
                 config["rate_limit_producer_per_sec"], "rate_limit_producer_per_sec", allow_zero=True
+            )
+        if "event_index_max_entries" in config:
+            # Strict, unlike the lenient integers above: nothing is coerced,
+            # and null does not mean the default.
+            settings["event_index_max_entries"] = normalize_event_index_max_entries(
+                config["event_index_max_entries"]
             )
         if "metrics_log_path" in config:
             if config["metrics_log_path"] is None:
@@ -1990,6 +1999,10 @@ def build_settings(root, args, config):
     if args.rate_limit_producer_per_sec is not None:
         settings["rate_limit_producer_per_sec"] = _normalize_int(
             args.rate_limit_producer_per_sec, "rate_limit_producer_per_sec", allow_zero=True
+        )
+    if args.event_index_max_entries is not None:
+        settings["event_index_max_entries"] = normalize_event_index_max_entries(
+            args.event_index_max_entries
         )
     if args.no_metrics:
         settings["emit_metrics"] = False
@@ -3009,6 +3022,7 @@ def parse_args():
     parser.add_argument("--metrics-interval-sec", type=int)
     parser.add_argument("--no-metrics", action="store_true")
     parser.add_argument("--rate-limit-producer-per-sec", type=int)
+    parser.add_argument("--event-index-max-entries", type=int)
     parser.add_argument("--metrics-log-path")
     parser.add_argument("--metrics-log-max-bytes", type=int)
     parser.add_argument("--metrics-log-backups", type=int)
@@ -3118,7 +3132,12 @@ def main():
             command_evidence_cfg.get("evidence_index_max_entries")
             if isinstance(command_evidence_cfg, dict)
             else None
-        )
+        ),
+        event_index_max_entries=settings["event_index_max_entries"],
+    )
+    print(
+        f"event index: the {validation_state.event_index_max_entries} most recent "
+        "forwarded events resolve as lineage parents"
     )
     logger = None
     if settings["metrics_log_path"]:

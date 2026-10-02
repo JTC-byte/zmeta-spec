@@ -1,5 +1,6 @@
 import json
 import math
+import sys
 from collections import OrderedDict, deque
 from collections.abc import Mapping, Sequence
 from collections.abc import Set as AbstractSet
@@ -22,14 +23,79 @@ from referencing.jsonschema import DRAFT202012
 # silent pass (policy/command-evidence.yaml#evidence_index_max_entries).
 #
 # Scope of the bound, stated honestly (pre-cut review): this caps THIS
-# index only. `ValidationState.events` in the same object is a plain dict
-# that retains full events and is not pruned, so a long-lived gateway
-# process is not bounded overall by this constant — capping the evidence
-# summary is a targeted limit on the new surface, not a memory guarantee
-# for the whole validation state. Bounding `events` is a separate,
-# behavior-visible change (dedupe and lineage resolution read it) and is
-# recorded as a register candidate rather than smuggled in here.
+# index only. `ValidationState.events` and the three id sets beside it have
+# their own cap, `event_index_max_entries` below, which a caller has to ask
+# for: a ValidationState built without it keeps every recorded event whole.
 DEFAULT_COMMAND_EVIDENCE_INDEX_MAX_ENTRIES = 4096
+
+# Bound on the event index a long-running caller asks a ValidationState to
+# keep (event_id -> event_type and event_subtype, which is all the lineage
+# check reads), and on each of the three id sets validate_deduplication
+# reads. Oldest entries are dropped first. A lineage parent that has been
+# dropped is reported as LINEAGE_PARENT_UNRESOLVED under the existing policy
+# mode (policy/lineage.yaml#unresolved_parent_mode), the same answer as a
+# parent this process never saw.
+#
+# The reference gateway passes its `event_index_max_entries` setting. The
+# offline tools pass nothing and keep the whole of the one file they
+# validate, as before.
+#
+# What the bound does not cover: `latest_timing` and `timing_sources` grow
+# with the number of distinct sources and are not evicted, because a quiet
+# source's last TIME_STATUS has to outlive the events around it.
+DEFAULT_EVENT_INDEX_MAX_ENTRIES = 65536
+MAX_EVENT_INDEX_MAX_ENTRIES = 1024 * 1024
+
+
+def normalize_event_index_max_entries(value):
+    """Return `value` when it is a usable event-index cap, else raise ValueError.
+
+    A usable cap is an int, not a bool, from 1 to MAX_EVENT_INDEX_MAX_ENTRIES.
+    Nothing is coerced: a cap read as a smaller or larger number than the
+    operator wrote would change which lineage parents resolve.
+    """
+    if type(value) is not int or value < 1 or value > MAX_EVENT_INDEX_MAX_ENTRIES:
+        raise ValueError(
+            "event_index_max_entries must be an integer from 1 to "
+            f"{MAX_EVENT_INDEX_MAX_ENTRIES}"
+        )
+    return value
+
+
+class _RecentKeys:
+    """The most recently added keys, at most `max_entries`, oldest dropped first.
+
+    Stands in for a set where a ValidationState is bounded. Adding a key that
+    is already held makes it the newest.
+    """
+
+    def __init__(self, max_entries):
+        self._max_entries = max_entries
+        self._keys = OrderedDict()
+
+    def add(self, key):
+        self._keys[key] = None
+        self._keys.move_to_end(key)
+        while len(self._keys) > self._max_entries:
+            self._keys.popitem(last=False)
+
+    def __contains__(self, key):
+        return key in self._keys
+
+    def __len__(self):
+        return len(self._keys)
+
+    def __iter__(self):
+        return iter(self._keys)
+
+    def __repr__(self):
+        return f"_RecentKeys({list(self._keys)!r})"
+
+
+def _interned(value):
+    # Event types and subtypes repeat across every event; one shared string
+    # each keeps a bounded index entry small.
+    return sys.intern(value) if type(value) is str else value
 
 # Internal marker (never policy or event vocabulary) recorded when a
 # parent's risk_adjudication is present but not the documented list shape,
@@ -41,13 +107,25 @@ _UNADJUDICABLE_RISK_SHAPE = "UNADJUDICABLE_RISK_SHAPE"
 
 
 class ValidationState:
-    def __init__(self, command_evidence_max_entries=None):
+    def __init__(self, command_evidence_max_entries=None, event_index_max_entries=None):
         self.timing_sources = set()
         self.latest_timing = {}
-        self.events = {}
-        self.event_ids = set()
-        self.command_task_ids = set()
-        self.task_ack_keys = set()
+        if event_index_max_entries is None:
+            # Unbounded: every recorded event is kept whole. Right for a tool
+            # that validates one file and exits, wrong for a process that
+            # runs for days.
+            self.event_index_max_entries = None
+            self.events = {}
+            self.event_ids = set()
+            self.command_task_ids = set()
+            self.task_ack_keys = set()
+        else:
+            cap = normalize_event_index_max_entries(event_index_max_entries)
+            self.event_index_max_entries = cap
+            self.events = OrderedDict()
+            self.event_ids = _RecentKeys(cap)
+            self.command_task_ids = _RecentKeys(cap)
+            self.task_ack_keys = _RecentKeys(cap)
         try:
             cap = int(command_evidence_max_entries)
         except (TypeError, ValueError):
@@ -78,11 +156,23 @@ class ValidationState:
         event_id = event_block.get("event_id")
         if event_id:
             self.event_ids.add(event_id)
-            self.events[event_id] = {
-                "event_type": event_type,
-                "event_subtype": event_block.get("event_subtype"),
-                "event": event,
-            }
+            if self.event_index_max_entries is None:
+                self.events[event_id] = {
+                    "event_type": event_type,
+                    "event_subtype": event_block.get("event_subtype"),
+                    "event": event,
+                }
+            else:
+                # Bounded: keep what the lineage check reads and no reference
+                # to the event. The newest record of an id decides its type,
+                # as in the unbounded store.
+                self.events[event_id] = (
+                    _interned(event_type),
+                    _interned(event_block.get("event_subtype")),
+                )
+                self.events.move_to_end(event_id)
+                while len(self.events) > self.event_index_max_entries:
+                    self.events.popitem(last=False)
             self._record_command_evidence(event_id, event_type, payload)
         if event_type == "COMMAND_EVENT" and isinstance(payload, dict):
             task_id = payload.get("task_id")
@@ -96,7 +186,10 @@ class ValidationState:
                     self.task_ack_keys.add(key)
 
     def get_event(self, event_id):
-        return self.events.get(event_id)
+        entry = self.events.get(event_id)
+        if entry is None or self.event_index_max_entries is None:
+            return entry
+        return {"event_type": entry[0], "event_subtype": entry[1]}
 
     def _record_command_evidence(self, event_id, event_type, payload):
         """Record the bounded summary the command-evidence check reads.

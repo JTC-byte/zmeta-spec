@@ -104,6 +104,7 @@ The config file keys are:
 - `emit_metrics` and `metrics_interval_sec` (periodic gateway metrics logs)
 - `rate_limit_per_sec` (drop packets above receive rate)
 - `rate_limit_producer_per_sec` (drop per-producer above receive rate)
+- `event_index_max_entries` (how many recently forwarded events stay resolvable as lineage parents; default 65536, maximum 1048576; see Event index below)
 - `metrics_log_path`, `metrics_log_max_bytes`, `metrics_log_backups` (JSONL metrics logs)
 - `warn_datagram_bytes` (warn when an outgoing datagram exceeds this size; 0 disables)
 - `ts_plausibility_horizon_ms` (warn when `event.ts` sits outside a window around now; 0 disables; see Event timestamp plausibility below)
@@ -226,6 +227,39 @@ own end - which is why the stderr warning and the console counters exist.
 
 When `strict_validation` is enabled, warnings are treated as failures and the original
 event is not forwarded.
+
+### Event index
+
+The gateway remembers the `event_type` and `event_subtype` of the events it
+forwarded most recently, so that the lineage check can resolve a parent an
+incoming event cites in `lineage.based_on`. `event_index_max_entries` sets how
+many it remembers: an integer from 1 to 1048576, default 65536, also settable
+as `--event-index-max-entries`. When the index is full, the oldest entry is
+dropped. A value outside that range, or one that is not an integer (a string,
+a float, a boolean, null), stops the gateway at startup. Nothing is coerced,
+and no value removes the bound. The gateway prints the size it is running with
+at startup.
+
+A parent that has left the index is reported the same way as a parent this
+gateway never saw: `LINEAGE_PARENT_UNRESOLVED`, under
+`policy/lineage.yaml` `unresolved_parent_mode`. In the shipped policy that is
+ignored at profile L and a warning at profiles M and H, and with
+`strict_validation` enabled the warning refuses the citing event. The
+diagnostic does not say which of the two causes applies. Size the index for
+the oldest parent a producer cites: at 40 events a second the default covers
+about 27 minutes of traffic.
+
+The index holds no event. Measured with a 781-byte shipped example event, it
+holds about 27 MB at the default size and about 310 MB at the maximum, and it
+stops growing once it is full. A gateway without the bound held about 4.9 KB
+for each such event it had forwarded, for as long as it ran.
+
+Three things are outside this bound. The latest TIME_STATUS of each source is
+kept per source and is not evicted, so that store grows with the number of
+distinct sources. The command-evidence check has its own index, sized by
+`policy/command-evidence.yaml` `evidence_index_max_entries`. The index is in
+memory, so a restart empties it, and a parent forwarded before the restart is
+reported unresolved afterwards.
 
 ### Event timestamp plausibility
 

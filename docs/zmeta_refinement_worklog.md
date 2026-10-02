@@ -2,7 +2,33 @@
 
 ## Current Resume Note
 
-- Last updated: 2026-10-01 (the CoT adapter refuses a configured `how` that is not a token; `exp/cot-how-shape`)
+- Last updated: 2026-10-02 (the reference gateway keeps a bounded event index; `exp/gateway-state-bound`, held for the maintainer)
+- **2026-10-02 (gateway memory, `exp/gateway-state-bound`; behavior-visible,
+  held for the maintainer's review).** The candidate open since the
+  2026-07-27 pre-cut review, brought forward with measurements on
+  2026-10-01 (handoff, current gaps, item 8), is built on its own branch.
+  `ValidationState` takes `event_index_max_entries`. Without it the state is
+  what it was, and the offline tools build it that way. With it, `events`
+  is an oldest-first bounded index that holds a parent's `event_type` and
+  `event_subtype` and no event, and the three id sets
+  `validate_deduplication` reads are bounded by the same number, each
+  counted on its own. The gateway passes a new setting of the same name
+  (default 65536, ceiling 1048576, strict parse, startup error on a bad
+  value). The tests were written first and failed first: 61 failed and 8
+  passed against the unchanged code. They pin the unbounded default, the
+  eviction order, that an entry holds nothing of the event, the three
+  lineage outcomes (dropped parent unresolved, kept parent resolved, wrong
+  type refused), the id sets, the setting and its refusals, and, through
+  the real `main()` loop, that the flag and the config value reach the
+  state, that a parent older than the index draws the warning while the
+  event is forwarded, and that strict validation refuses it. 56 author
+  mutants were killed, one test process each. Measured with a 781-byte
+  shipped example: unbounded, 488 MB after 100,000 events; bounded at the
+  default, 26.8 MB after 100,000 events and 26.6 MB after 300,000; at the
+  ceiling, 311 MB. Not done here: `latest_timing` and `timing_sources`
+  still grow with the number of distinct sources; the diagnostic does not
+  tell a dropped parent from one never seen; nothing survives a restart.
+  The questions that go with the merge are in doctrine G1-01.
 - **2026-10-01 (CoT `how` shape, `exp/cot-how-shape`).** The independent
   check of the day's `how` evidence noted that the standard profile does
   not validate the configured value. Four tests were written first; the

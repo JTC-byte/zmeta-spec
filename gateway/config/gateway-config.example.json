@@ -40,6 +40,7 @@
   "metrics_interval_sec": 30,
   "rate_limit_per_sec": 0,
   "rate_limit_producer_per_sec": 0,
+  "event_index_max_entries": 65536,
   "metrics_log_path": null,
   "metrics_log_max_bytes": 5000000,
   "metrics_log_backups": 3,

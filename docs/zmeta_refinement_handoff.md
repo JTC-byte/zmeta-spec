@@ -242,6 +242,17 @@ Open, in order of proximity:
    grow with the number of distinct sources and are a smaller form of the
    same question. Until it is fixed, a gateway that runs for days needs a
    restart, and the README does not say so.
+
+   **Built on `exp/gateway-state-bound`, 2026-10-02, and held for the
+   maintainer.** The gateway keeps the `event_type` and `event_subtype` of
+   the most recent forwarded events, sized by the setting
+   `event_index_max_entries` (default 65536), and the three id sets are
+   bounded by the same number in place of being left unfilled, so that a
+   caller of `validate_deduplication` on a bounded state still gets an
+   answer for recent ids. The offline tools are unchanged. The gateway
+   README now describes the index, its limits and the restart behavior.
+   Still open after this branch: the per-source timing stores, and the five
+   questions in doctrine G1-01.
 9. **CoT `how` and the base-event schema (doctrine H1-05, evidence
    received 2026-10-01).** The CoT base-event schema declares `how`
    required, and the standard profile omits it unless the config asserts a

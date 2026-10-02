@@ -3352,6 +3352,56 @@ member restored). Whether an unread failure mode should instead stop the
 gateway at startup, as a mistyped `cot` block does since v1.1.26, is left to
 the maintainer.
 
+## Cycle G1 — 2026-10-02 (the reference gateway's memory)
+
+A candidate left open by the pre-cut review of 2026-07-27: the gateway's
+validation state keeps every forwarded event for as long as the process
+runs. It was deferred then because bounding it is behavior-visible. It was
+measured on 2026-10-01 and built on a branch on 2026-10-02.
+
+### G1-01 — A memory bound changes which lineage parents resolve · **OPEN (built on `exp/gateway-state-bound`; the merge and five questions are the maintainer's)**
+
+**Observed:** the lineage check resolves a parent by looking it up among
+the events this gateway has forwarded. With no bound, every parent the
+process ever forwarded resolves, and the process grows without limit: 488
+MB after 100,000 copies of a 781-byte example event. With a bound, the
+memory is flat (about 27 MB at 65,536 entries) and a parent older than the
+index no longer resolves.
+
+**The tension:** design gate 3 on both sides. An unresolved parent is
+reported, never passed silently, so the bound launders nothing. The report
+is the same one a parent that was never seen draws, so a correct producer
+whose parent has aged out looks the same as a producer citing an id that
+never existed, and under `strict_validation` at profiles M and H its event
+is refused. The unbounded store avoided that by a cost no deployment was
+told about: a gateway that has to be restarted, at which point every parent
+is forgotten at once.
+
+**Built, pending review:** a bounded index of `event_type` and
+`event_subtype`, oldest dropped first; the size is a gateway setting with a
+default of 65,536, a ceiling of 1,048,576, and no value that removes the
+bound; a dropped parent is `LINEAGE_PARENT_UNRESOLVED` under the existing
+policy mode; the offline tools keep the unbounded state. No policy file,
+schema or reason code changed.
+
+**Questions that go with the merge:**
+
+1. Is 65,536 the right default? At 40 events a second it covers about 27
+   minutes. A slow track whose STATE_EVENT cites the previous one after a
+   longer gap draws the warning.
+2. Should the diagnostic tell a parent that left the index from one never
+   seen? Telling them apart needs either a second store of dropped ids,
+   which is the growth this change removes, or wording that only says the
+   index is bounded.
+3. Is a setting the right home? The command-evidence index is sized in the
+   policy pack, where the value is hash-pinned and travels with the
+   contract hash. This one is sized in the gateway config, as an operating
+   limit of one process.
+4. Should a gateway be able to run without the bound? As built it cannot.
+5. Should the per-source timing stores be bounded, and by what rule? A
+   quiet source's last TIME_STATUS has to outlive the events around it, so
+   the event index's rule does not fit.
+
 ## Archive
 
 Terminal tension entries and retired rules, one line each. Full bodies live in
