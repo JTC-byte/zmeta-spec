@@ -230,18 +230,38 @@ Open, in order of proximity:
    registered as a member of `payload.timing_quality` only (registry
    `TIMING_ERROR_BASIS`). Neither schema lane closes the TIME_STATUS
    metrics object, so an undeclared `est_error_basis` key there validates,
-   and no text defines it. (ae) FUSION_EVENT has no governed validity
-   window. Both schema lanes define `valid_for_ms` on TRACK_STATE and on
-   commands only, and the FUSION payload is open, so a `valid_for_ms` a
-   producer writes on a FUSION_EVENT validates as an ungoverned key with a
-   governed name; one deployment's producer does so today. Contract 5.1
-   makes a FUSION `ts` the time the estimate is valid for, 7.6 gives it
-   `last_seen_ts`, and 13.3 names a TTL that decays only on the STATE. The
-   documents do not say how long a fusion estimate stands. Until a second
-   organization needs a governed window, a consumer ages a fusion estimate
-   by its own labelled policy and a producer's window rides in the vendor
-   namespace (section 20.3), never as `valid_for_ms`. Booked 2026-10-07 on
-   the maintainer's go, from a consumer's question.
+   and no text defines it.
+   **One more, from a consumer's question on 2026-10-07.** (ae) FUSION_EVENT
+   has no governed validity window. Both schema lanes define `valid_for_ms`
+   on TRACK_STATE and on commands only, and the FUSION payload is open, so a
+   `valid_for_ms` a producer writes on a FUSION_EVENT validates on both lanes
+   with no definition and no type check (a string value validates too); one
+   deployment's producer wrote one when the question was asked on
+   2026-10-07. Contract 5.1 makes a FUSION_EVENT's `event.ts` "the time the
+   fused estimate is valid for", and 7.6 gives the payload `last_seen_ts`.
+   Contract 13.3 says that at STALE "confidence and TTL must decay" and that
+   at LOST state emission stops or stays stale "until TTL expires", without
+   naming the field that carries the TTL; where the contract names the field
+   behind a track's TTL, it is the STATE_EVENT's `valid_for_ms` (10.7, 14).
+   The documents set no window for a fusion estimate: 13.3 leaves STALE and
+   LOST to "a configured threshold", 13.4 leaves decay formulas to "policy
+   or producer guidance", and the advisory track lifecycle pattern judges a
+   track active by the latest TRACK_STATE's `valid_for_ms`
+   (`docs/zmeta_track_lifecycle_pattern.md`, section 2). The reading given
+   to the consumer, recorded as a reading and not as a ruling of the
+   standard: until a second independent implementation needs a governed
+   window (roadmap candidate `track-lifecycle`), a consumer ages a fusion
+   estimate by its own labelled policy (13.4), and a producer that states a
+   window on a FUSION_EVENT puts it under a namespaced vendor key (20.3)
+   rather than in `valid_for_ms`, a field the contract defines on
+   STATE_EVENT and COMMAND_EVENT (7.7, 7.8) and which 4.11 bars a vendor
+   from redefining. Two things for the maintainer to weigh: the projection
+   rules are keyed by path, not by event type, so a FUSION `valid_for_ms` is
+   held to "may be preserved or shortened, never increased"
+   (`spec/profile-precision-policy.md`; `tools/validate_projection.py`), a
+   guard a vendor key would not get; and FusionPayload has no `extensions`
+   member in either lane, so where the vendor key sits is the placement
+   question of gap (j). Booked on the maintainer's go of 2026-10-07.
 7. **Reference defect, booked for the maintainer (command safety).** The
    gateway caps the command dedupe window at 300 s
    (`ttl_ms_from_payload`, `gateway/README.md`), while contract 13.2 says a

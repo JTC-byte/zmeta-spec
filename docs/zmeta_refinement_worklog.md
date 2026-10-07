@@ -2,25 +2,37 @@
 
 ## Current Resume Note
 
-- Last updated: 2026-10-07 (records: guidance gap (ae) and a crosswalk correction; `wave/records-gaps-2026-10`, unmerged)
+- Last updated: 2026-10-07 (records: guidance gap (ae) and a crosswalk correction; `wave/records-gaps-2026-10`)
 - **2026-10-07 (records wave `wave/records-gaps-2026-10`; no behavior
-  change; prepared on the maintainer's go of 2026-10-07 and left unmerged
-  for his merge).** Two bookings. Guidance gap (ae): FUSION_EVENT has no
+  change; prepared on the maintainer's go of 2026-10-07 for the
+  maintainer's merge).** The wave makes two bookings. Guidance gap (ae): FUSION_EVENT has no
   governed validity window; both schema lanes define `valid_for_ms` on
   TRACK_STATE and on commands only and the FUSION payload is open, so a
   producer's `valid_for_ms` on a FUSION_EVENT validates as an ungoverned
-  key with a governed name, which one deployment's producer writes today;
-  the handoff records that a consumer ages a fusion estimate by its own
-  labelled policy and that a producer's window belongs in the vendor
-  namespace until a second organization needs a governed one. The advisory
+  key with no definition and no type check, which one deployment's producer
+  wrote when the question was asked; the handoff records, as a reading and
+  not a ruling, that a consumer ages a fusion estimate by its own labelled
+  policy and that a producer's window goes under a namespaced vendor key
+  until a second independent implementation needs a governed one, and it
+  names two things for the maintainer to weigh (the path-keyed projection
+  guard a vendor key would lose; FusionPayload's lack of an `extensions`
+  member). The advisory
   crosswalk's `geofence_alert` row said an inference derives "from track
   state or observations", while `policy/lineage.yaml` admits only
   OBSERVATION_EVENT parents for an inference; the row now says the claim
-  cites observations and that consulted track state is local context. Left
-  to the maintainer: contract section 22's class table names ZMETA-GATEWAY
-  where the conformance manifest's class is ZMETA-GATEWAY-REFERENCE, and
-  the claims validator refuses the table's name. An independent read of the
-  branch precedes any merge.
+  cites observations and that a consulted track is referenced by value in
+  the claim, as the correlation pattern does. Still open for the maintainer,
+  booked 2026-08-23 as tension 1 of `docs/zmeta_ontology_reference.md`
+  section 14: contract section 22's class table names ZMETA-GATEWAY where
+  the conformance manifest's class is ZMETA-GATEWAY-REFERENCE, and
+  `tools/validate_conformance_classes.py` refuses the table's name. An
+  independent read of the first draft found twelve items, corrected before
+  the merge: 13.3 names no field for the TTL (10.7 and 14 name the
+  STATE_EVENT's `valid_for_ms`); "never as `valid_for_ms`" was a ruling
+  without its label; the entry sat under the 2026-10-01 lead; the class-table
+  item was already booked; the projection guard a vendor key would lose; the
+  correlation pattern's by-value reference for the crosswalk row; and six
+  wording points.
 - **2026-10-02 (records wave `wave/records-gateway-findings-2026-10-02`; no
   behavior change).** An independent review of unmerged gateway work
   reported two behaviors of the gateway that are older than that work.
