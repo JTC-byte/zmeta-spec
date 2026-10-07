@@ -2,6 +2,14 @@
 
 ## [Unreleased]
 
+- 2026-10-07 — **Records: a sixth guidance gap booked and one crosswalk row
+  corrected.** No behavior change. The handoff books gap (ae): FUSION_EVENT
+  has no governed validity window, `valid_for_ms` being defined on
+  TRACK_STATE and on commands only, so a producer's window on a FUSION
+  validates as an ungoverned key and belongs in the vendor namespace until a
+  governed one is needed by a second organization. The advisory crosswalk's
+  `geofence_alert` row no longer says an inference derives from track state,
+  which the lineage policy does not admit as a parent of an inference.
 - 2026-10-02 — **Records: a reference-gateway behavior is brought forward
   for the maintainer.** No behavior change. The running gateway drops a
   repeated non-command `event_id` for 300 s and keeps commands out of that

@@ -2,7 +2,25 @@
 
 ## Current Resume Note
 
-- Last updated: 2026-10-02 (records: an `event_id` recorded twice; `wave/records-gateway-findings-2026-10-02`)
+- Last updated: 2026-10-07 (records: guidance gap (ae) and a crosswalk correction; `wave/records-gaps-2026-10`, unmerged)
+- **2026-10-07 (records wave `wave/records-gaps-2026-10`; no behavior
+  change; prepared on the maintainer's go of 2026-10-07 and left unmerged
+  for his merge).** Two bookings. Guidance gap (ae): FUSION_EVENT has no
+  governed validity window; both schema lanes define `valid_for_ms` on
+  TRACK_STATE and on commands only and the FUSION payload is open, so a
+  producer's `valid_for_ms` on a FUSION_EVENT validates as an ungoverned
+  key with a governed name, which one deployment's producer writes today;
+  the handoff records that a consumer ages a fusion estimate by its own
+  labelled policy and that a producer's window belongs in the vendor
+  namespace until a second organization needs a governed one. The advisory
+  crosswalk's `geofence_alert` row said an inference derives "from track
+  state or observations", while `policy/lineage.yaml` admits only
+  OBSERVATION_EVENT parents for an inference; the row now says the claim
+  cites observations and that consulted track state is local context. Left
+  to the maintainer: contract section 22's class table names ZMETA-GATEWAY
+  where the conformance manifest's class is ZMETA-GATEWAY-REFERENCE, and
+  the claims validator refuses the table's name. An independent read of the
+  branch precedes any merge.
 - **2026-10-02 (records wave `wave/records-gateway-findings-2026-10-02`; no
   behavior change).** An independent review of unmerged gateway work
   reported two behaviors of the gateway that are older than that work.

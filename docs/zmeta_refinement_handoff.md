@@ -230,7 +230,18 @@ Open, in order of proximity:
    registered as a member of `payload.timing_quality` only (registry
    `TIMING_ERROR_BASIS`). Neither schema lane closes the TIME_STATUS
    metrics object, so an undeclared `est_error_basis` key there validates,
-   and no text defines it.
+   and no text defines it. (ae) FUSION_EVENT has no governed validity
+   window. Both schema lanes define `valid_for_ms` on TRACK_STATE and on
+   commands only, and the FUSION payload is open, so a `valid_for_ms` a
+   producer writes on a FUSION_EVENT validates as an ungoverned key with a
+   governed name; one deployment's producer does so today. Contract 5.1
+   makes a FUSION `ts` the time the estimate is valid for, 7.6 gives it
+   `last_seen_ts`, and 13.3 names a TTL that decays only on the STATE. The
+   documents do not say how long a fusion estimate stands. Until a second
+   organization needs a governed window, a consumer ages a fusion estimate
+   by its own labelled policy and a producer's window rides in the vendor
+   namespace (section 20.3), never as `valid_for_ms`. Booked 2026-10-07 on
+   the maintainer's go, from a consumer's question.
 7. **Reference defect, booked for the maintainer (command safety).** The
    gateway caps the command dedupe window at 300 s
    (`ttl_ms_from_payload`, `gateway/README.md`), while contract 13.2 says a
