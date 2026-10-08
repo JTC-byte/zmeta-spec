@@ -82,14 +82,25 @@ maintainer's go of 2026-09-30, and they stand until the maintainer reviews
 them.
 
 Counts: registry 68 entries, roadmap 22 candidates. The battery reads the
-release-pin band until the next cut: the kernel gate's six
-`RELEASE_MANIFEST_*` lines on the registry and roadmap files, and
+release-pin band until the next cut: the kernel gate's nine
+`RELEASE_MANIFEST_*` lines on the registry, roadmap and semantic contract
+files, and
 `test_release_manifest.py` (3) and `test_release_package.py` (10) in
 `python -m pytest -q`; every other check passes.
 
 Open, in order of proximity:
 
-1. **The next cut** is the maintainer's: it carries the ten merges, and
+1. **The next cut** is the maintainer's: it carries the twelve merges,
+   and, once `wave/records-gaps-2026-10` merges, the first edit to
+   `spec/semantics-contract.md` since v1.1.20 (the section 22 class
+   table's `ZMETA-GATEWAY-REFERENCE`, on the maintainer's go of
+   2026-10-07), which changes the manifest's `semantic_contract_hash`,
+   the value the optional `--verify-contract-hash` cross-check compares a
+   claim's `contract_hash` with from that tag on. The reference
+   gateway's startup `contract_hash` (`tools/compute_contract_hash.py`)
+   moves with this edit too, the only change since v1.1.26 that moves it
+   for the default schema and policy, so a deployment that sets
+   `require_contract_hash` recomputes it when it re-pins; and
    the dedupe fix if the maintainer accepts it. The
    `cds` output changes relative to v1.1.26 for any track whose
    `valid_for_ms` is shorter than the window, so a consumer that re-pins to

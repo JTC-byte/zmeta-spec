@@ -2,7 +2,7 @@
 
 ## Current Resume Note
 
-- Last updated: 2026-10-07 (records: guidance gap (ae) and a crosswalk correction; `wave/records-gaps-2026-10`)
+- Last updated: 2026-10-07 (records: guidance gap (ae), a crosswalk correction and the contract section 22 class id; `wave/records-gaps-2026-10`)
 - **2026-10-07 (records wave `wave/records-gaps-2026-10`; no behavior
   change; prepared on the maintainer's go of 2026-10-07 for the
   maintainer's merge).** The wave makes two bookings. Guidance gap (ae): FUSION_EVENT has no
@@ -21,9 +21,9 @@
   state or observations", while `policy/lineage.yaml` admits only
   OBSERVATION_EVENT parents for an inference; the row now says the claim
   cites observations and that a consulted track is referenced by value in
-  the claim, as the correlation pattern does. Still open for the maintainer,
-  booked 2026-08-23 as tension 1 of `docs/zmeta_ontology_reference.md`
-  section 14: contract section 22's class table names ZMETA-GATEWAY where
+  the claim, as the correlation pattern does. Booked 2026-08-23 as tension 1
+  of `docs/zmeta_ontology_reference.md` section 14, and corrected in the
+  next entry: contract section 22's class table names ZMETA-GATEWAY where
   the conformance manifest's class is ZMETA-GATEWAY-REFERENCE, and
   `tools/validate_conformance_classes.py` refuses the table's name. An
   independent read of the first draft found twelve items, corrected before
@@ -33,6 +33,25 @@
   item was already booked; the projection guard a vendor key would lose; the
   correlation pattern's by-value reference for the crosswalk row; and six
   wording points.
+- **2026-10-07, same wave (Class B, semantic contract and its lock
+  anchor; no behavior change).** On the maintainer's go of 2026-10-07 the section
+  22 class table names `ZMETA-GATEWAY-REFERENCE` in place of
+  `ZMETA-GATEWAY`, the id the conformance manifest defines and the claims
+  validator accepts; the manifest and the validator stand. The tension
+  booked 2026-08-23 (ontology reference, section 14, tension 1) carries a
+  dated resolution. It is the first edit to `spec/semantics-contract.md`
+  since v1.1.20: the manifest's `semantic_contract_hash` is not
+  regenerated on the wave (the cut regenerates it, as for every change
+  since v1.1.26), so the kernel gate's release-manifest mismatch lines
+  grow from six to nine on this branch; nothing else in the gates
+  changes. The lock-baseline anchor on the contract text
+  (`gateway/tests/test_v1_lock_baseline.py`, CONTRACT_SHA256) moved with
+  the edit under the same go, with a dated note beside it, as the
+  2026-08-03 move did; the full battery on the branch reads 13 failed
+  (the release-pin band), 1997 passed, 1 skipped; kernel gate 9
+  `RELEASE_MANIFEST_*` lines; examples 51 of 51; roadmap ok 22;
+  `git diff --check` clean. An independent read
+  precedes any merge.
 - **2026-10-02 (records wave `wave/records-gateway-findings-2026-10-02`; no
   behavior change).** An independent review of unmerged gateway work
   reported two behaviors of the gateway that are older than that work.

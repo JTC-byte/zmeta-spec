@@ -36,7 +36,12 @@ ROOT = Path(__file__).resolve().parents[2]
 # object-not-knowledge sentence, new section 21.8 defines declared geo
 # dimensionality, and the section 21 preamble defers extension maturity to
 # the registry. The locked v1.0 sections are untouched by that edit.
-CONTRACT_SHA256 = "eb405618a2cbc1421f0947271f75a5b2716a9d7428d5ae9fe10c0963733048d4"
+# Contract anchor moved 2026-10-07 on the maintainer's go of 2026-10-07 (the
+# conformance-class name): the section 22 class table names
+# ZMETA-GATEWAY-REFERENCE, the id the conformance manifest defines, in place
+# of ZMETA-GATEWAY. One table cell (the class id); no rule text, no section
+# 4 invariant and no class scope text changed.
+CONTRACT_SHA256 = "d7c5a7b5e30575b3d4c42adb69bb17d55634266e83daee57dbd3da2ba85afda2"
 V1_0_SCHEMA_SHA256 = "1d2d84164b3a8986874e932c0e9369be3bf392a483a8ff261d464f34bd16d7b5"
 
 # Embedded verbatim from the v1.0.5 tag's example corpus. Pre-lock history:
