@@ -90,18 +90,19 @@ files, and
 
 Open, in order of proximity:
 
-1. **The next cut** is the maintainer's: it carries the twelve merges,
-   and, once `wave/records-gaps-2026-10` merges, the first edit to
-   `spec/semantics-contract.md` since v1.1.20 (the section 22 class
-   table's `ZMETA-GATEWAY-REFERENCE`, on the maintainer's go of
+1. **The next cut** is the maintainer's: it carries the twelve merges on
+   `develop` since v1.1.26 (the ten listed above and the 2026-10-02
+   records merges 78ea97b and 9ae0028), the dedupe fix if the maintainer
+   accepts it, and, once `wave/records-gaps-2026-10` merges, the first
+   edit to `spec/semantics-contract.md` since v1.1.20 (the section 22
+   class table's `ZMETA-GATEWAY-REFERENCE`, on the maintainer's go of
    2026-10-07), which changes the manifest's `semantic_contract_hash`,
    the value the optional `--verify-contract-hash` cross-check compares a
    claim's `contract_hash` with from that tag on. The reference
    gateway's startup `contract_hash` (`tools/compute_contract_hash.py`)
    moves with this edit too, the only change since v1.1.26 that moves it
    for the default schema and policy, so a deployment that sets
-   `require_contract_hash` recomputes it when it re-pins; and
-   the dedupe fix if the maintainer accepts it. The
+   `require_contract_hash` recomputes it when it re-pins. The
    `cds` output changes relative to v1.1.26 for any track whose
    `valid_for_ms` is shorter than the window, so a consumer that re-pins to
    the cut confirms the shape with the far side first.

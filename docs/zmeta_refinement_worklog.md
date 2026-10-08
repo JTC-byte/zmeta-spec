@@ -44,7 +44,7 @@
   regenerated on the wave (the cut regenerates it, as for every change
   since v1.1.26), so the kernel gate's release-manifest mismatch lines
   grow from six to nine on this branch; nothing else in the gates
-  changes. The lock-baseline anchor on the contract text
+  changes beyond the bundle line's computed value. The lock-baseline anchor on the contract text
   (`gateway/tests/test_v1_lock_baseline.py`, CONTRACT_SHA256) moved with
   the edit under the same go, with a dated note beside it, as the
   2026-08-03 move did; the full battery on the branch reads 13 failed
