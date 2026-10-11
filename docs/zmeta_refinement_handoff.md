@@ -82,15 +82,27 @@ maintainer's go of 2026-09-30, and they stand until the maintainer reviews
 them.
 
 Counts: registry 68 entries, roadmap 22 candidates. The battery reads the
-release-pin band until the next cut: the kernel gate's six
-`RELEASE_MANIFEST_*` lines on the registry and roadmap files, and
+release-pin band until the next cut: the kernel gate's nine
+`RELEASE_MANIFEST_*` lines on the registry, roadmap and semantic contract
+files, and
 `test_release_manifest.py` (3) and `test_release_package.py` (10) in
 `python -m pytest -q`; every other check passes.
 
 Open, in order of proximity:
 
-1. **The next cut** is the maintainer's: it carries the ten merges, and
-   the dedupe fix if the maintainer accepts it. The
+1. **The next cut** is the maintainer's: it carries the twelve merges on
+   `develop` since v1.1.26 (the ten listed above and the 2026-10-02
+   records merges 78ea97b and 9ae0028), the dedupe fix if the maintainer
+   accepts it, and, once `wave/records-gaps-2026-10` merges, the first
+   edit to `spec/semantics-contract.md` since v1.1.20 (the section 22
+   class table's `ZMETA-GATEWAY-REFERENCE`, on the maintainer's go of
+   2026-10-07), which changes the manifest's `semantic_contract_hash`,
+   the value the optional `--verify-contract-hash` cross-check compares a
+   claim's `contract_hash` with from that tag on. The reference
+   gateway's startup `contract_hash` (`tools/compute_contract_hash.py`)
+   moves with this edit too, the only change since v1.1.26 that moves it
+   for the default schema and policy, so a deployment that sets
+   `require_contract_hash` recomputes it when it re-pins. The
    `cds` output changes relative to v1.1.26 for any track whose
    `valid_for_ms` is shorter than the window, so a consumer that re-pins to
    the cut confirms the shape with the far side first.
@@ -231,6 +243,37 @@ Open, in order of proximity:
    `TIMING_ERROR_BASIS`). Neither schema lane closes the TIME_STATUS
    metrics object, so an undeclared `est_error_basis` key there validates,
    and no text defines it.
+   **One more, from a consumer's question on 2026-10-07.** (ae) FUSION_EVENT
+   has no governed validity window. Both schema lanes define `valid_for_ms`
+   on TRACK_STATE and on commands only, and the FUSION payload is open, so a
+   `valid_for_ms` a producer writes on a FUSION_EVENT validates on both lanes
+   with no definition and no type check (a string value validates too); one
+   deployment's producer wrote one when the question was asked on
+   2026-10-07. Contract 5.1 makes a FUSION_EVENT's `event.ts` "the time the
+   fused estimate is valid for", and 7.6 gives the payload `last_seen_ts`.
+   Contract 13.3 says that at STALE "confidence and TTL must decay" and that
+   at LOST state emission stops or stays stale "until TTL expires", without
+   naming the field that carries the TTL; where the contract names the field
+   behind a track's TTL, it is the STATE_EVENT's `valid_for_ms` (10.7, 14).
+   The documents set no window for a fusion estimate: 13.3 leaves STALE and
+   LOST to "a configured threshold", 13.4 leaves decay formulas to "policy
+   or producer guidance", and the advisory track lifecycle pattern judges a
+   track active by the latest TRACK_STATE's `valid_for_ms`
+   (`docs/zmeta_track_lifecycle_pattern.md`, section 2). The reading given
+   to the consumer, recorded as a reading and not as a ruling of the
+   standard: until a second independent implementation needs a governed
+   window (roadmap candidate `track-lifecycle`), a consumer ages a fusion
+   estimate by its own labelled policy (13.4), and a producer that states a
+   window on a FUSION_EVENT puts it under a namespaced vendor key (20.3)
+   rather than in `valid_for_ms`, a field the contract defines on
+   STATE_EVENT and COMMAND_EVENT (7.7, 7.8) and which 4.11 bars a vendor
+   from redefining. Two things for the maintainer to weigh: the projection
+   rules are keyed by path, not by event type, so a FUSION `valid_for_ms` is
+   held to "may be preserved or shortened, never increased"
+   (`spec/profile-precision-policy.md`; `tools/validate_projection.py`), a
+   guard a vendor key would not get; and FusionPayload has no `extensions`
+   member in either lane, so where the vendor key sits is the placement
+   question of gap (j). Booked on the maintainer's go of 2026-10-07.
 7. **Reference defect, booked for the maintainer (command safety).** The
    gateway caps the command dedupe window at 300 s
    (`ttl_ms_from_payload`, `gateway/README.md`), while contract 13.2 says a

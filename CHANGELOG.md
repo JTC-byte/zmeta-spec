@@ -2,6 +2,31 @@
 
 ## [Unreleased]
 
+- 2026-10-07 — **Semantic contract: the section 22 class table names the
+  conformance manifest's class.** The row that read `ZMETA-GATEWAY` now
+  reads `ZMETA-GATEWAY-REFERENCE`, the class id `conformance/conformance_classes.yaml`
+  defines and `tools/validate_conformance_classes.py` accepts; a claim
+  written from the old table name was refused as
+  CONFORMANCE_CLAIM_CLASS_UNKNOWN (booked 2026-08-23, ontology reference
+  section 14, tension 1). No semantics change. On the maintainer's go of
+  2026-10-07. This is the first edit to `spec/semantics-contract.md` since
+  v1.1.20, so the release manifest's `semantic_contract_hash` (the
+  semantic_contract group hash) changes at the next cut; until then the
+  kernel gate's release-manifest mismatch lines on `develop` grow from six
+  to nine (the contract file, the group and the top-level hash), and every
+  consumer's pinned `contract_hash` stays that of its pinned tag. The
+  reference gateway's startup `contract_hash` moves with this edit too. The lock-baseline anchor
+  on the contract text moved with the edit under the same go, with a
+  dated note beside it.
+- 2026-10-07 — **Records: one more guidance gap booked and one crosswalk row
+  corrected.** No behavior change. The handoff books gap (ae): FUSION_EVENT
+  has no governed validity window, `valid_for_ms` being defined on
+  TRACK_STATE and on commands only, so a producer's window on a FUSION_EVENT
+  validates with no definition and, on the reading given to the consumer,
+  goes under a namespaced vendor key until a second independent
+  implementation needs a governed one. The advisory crosswalk's
+  `geofence_alert` row no longer says an inference derives from track state,
+  which the lineage policy does not admit as a parent of an inference.
 - 2026-10-02 — **Records: a reference-gateway behavior is brought forward
   for the maintainer.** No behavior change. The running gateway drops a
   repeated non-command `event_id` for 300 s and keeps commands out of that

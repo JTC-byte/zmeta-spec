@@ -587,9 +587,8 @@ travels as `GEO_ZERO_FILL_SUSPECTED` with the native code in
 non-claimable, and the validator refuses claims against them, refuses
 implemented classes with zero test commands, checks every referenced path
 against the filesystem, and walks dependency cycles. The contract's own
-§22 table is stale against this manifest: of its 15 rows, 14 match manifest
-classes and one names a class the manifest does not define. Section 14
-records it.
+§22 table names 15 of the manifest's 34 classes and carries no status
+column; 19 classes have no row. Section 14 records it (items 1 and 2).
 
 **Claims are attestations (NORMATIVE, spec/conformance-classes.md;
 ENFORCED shape).** A claim file must carry 18 top-level fields, its full
@@ -726,6 +725,14 @@ landed in the same change set as this page.
    authority while the contract carries the stale id; nothing cross-checks
    the two (the manifest's `authority` value is required to exist and never
    read). Booked: contract table correction.
+   **Resolved 2026-10-07 on the maintainer's go of 2026-10-07 (the entry
+   above is left as written):** the contract's section 22 table now names
+   `ZMETA-GATEWAY-REFERENCE`; the conformance classes file and the claims
+   validator stand unchanged. The manifest's `semantic_contract_hash`
+   changes with the next cut, the first semantic-contract edit since
+   v1.1.20. Item 2, booked with this one, stays open: the 15 rows now all
+   name manifest classes, 19 classes have no row, and the table carries
+   no status column; whether the go covers item 2 is the maintainer's.
 2. **The contract's §22 table is stale against the manifest.** 15 rows
    (one naming a class that does not exist) against 34 manifest classes; 20
    classes have no row, and the table carries no status column, so five of

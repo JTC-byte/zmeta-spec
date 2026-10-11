@@ -2255,7 +2255,7 @@ may support more than one class.
 | ZMETA-PROFILE-M | Profile M event-type constraints, selective observation export, timing quality, and no inference export unless a future branch permits it. |
 | ZMETA-PROFILE-H | Full fidelity v1.0 event support with all semantic layers preserved. |
 | ZMETA-ADAPTER | Correct mapping from native formats to semantic layers, timestamp/unit normalization, UUIDv7 generation, lineage transform, rejection of ambiguous inputs, and external-boundary promotion evidence where applicable. |
-| ZMETA-GATEWAY | Schema and policy validation, profile enforcement, source-field preservation, dedupe, timing status handling, risk adjudication labels, contract hash gates, and non-semantic projection behavior. |
+| ZMETA-GATEWAY-REFERENCE | Schema and policy validation, profile enforcement, source-field preservation, dedupe, timing status handling, risk adjudication labels, contract hash gates, and non-semantic projection behavior. |
 | ZMETA-POLICY-ADJUDICATION | Tunable policy decisions using bounded actions, risk dimensions, governed reason codes, allowed/prohibited uses, effect labels, and diagnostic correlation. |
 | ZMETA-EXTERNAL-PROMOTION | Enforcement of external projection promotion requirements for lossy tactical tracks, including promotion metadata, freshness, lineage status, confidence basis, trust reference, and loop/reflection status. |
 | ZMETA-RISK-FILTERING | Consumer/filter behavior for accepted-risk data, including compact self-labels when diagnostics may not travel and enforcement of allowed/prohibited uses. |
