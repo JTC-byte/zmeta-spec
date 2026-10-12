@@ -2,7 +2,27 @@
 
 ## Current Resume Note
 
-- Last updated: 2026-10-07 (records: guidance gap (ae), a crosswalk correction and the contract section 22 class id; `wave/records-gaps-2026-10`)
+- Last updated: 2026-10-12 (records: the merge of `wave/records-gaps-2026-10`, doctrine F4-01 to F4-04, guidance gap (af), two documentation corrections; `wave/records-pass-2026-10-12`)
+- **2026-10-12 (records wave `wave/records-pass-2026-10-12`; no behavior
+  change).** `wave/records-gaps-2026-10` (456f7f7) merged into `develop` as
+  0231151 on the maintainer's go of 2026-10-11 and was pushed; the kernel
+  gate and the lock tests ran on the merged tree first (the nine
+  release-manifest mismatch lines of the recorded band; lock tests 5
+  passed; examples 51 of 51; roadmap ok). `develop` was thirteen
+  first-parent merges ahead of `main` before this wave, and its contract hash differs from
+  v1.1.26's until the next cut regenerates the manifest. This wave books,
+  for the maintainer, four tensions from the downstream answers of
+  2026-10-05 to 2026-10-12 (doctrine F4-01 to F4-04: a deterministic
+  detection's class; cooperative broadcasts received by relay against the
+  routing table, the crosswalk and contract 24.4, guidance gap (z); a
+  shipped adapter stamping send time against 5.1; in-place promotion caps
+  against 4.2 and 3.4), guidance gap (af), the handoff's state lines, a dated
+  correction to the handoff's `translate:` sentence, and two documentation
+  corrections: the track projector README and
+  `adapters/AUTHORING.md` said `identity_paths` takes `(label,
+  dotted.path)` pairs added to the stock pair, where the code takes tuples
+  of keys and replaces the stock pair (found while ruling on a downstream pack on
+  2026-10-09).
 - **2026-10-07 (records wave `wave/records-gaps-2026-10`; no behavior
   change; prepared on the maintainer's go of 2026-10-07 for the
   maintainer's merge).** The wave makes two bookings. Guidance gap (ae): FUSION_EVENT has no

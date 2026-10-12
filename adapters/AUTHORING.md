@@ -462,9 +462,11 @@ and that turns on one question:
 
 - **Yes** (ADS-B ICAO24, AIS MMSI, or any per-emitter key your source
   carries): the projector works. The stock identity paths are
-  `features.adsb_icao24` and `features.ais_mmsi`; a deployment adds its
-  own via the projector's `identity_paths` parameter. Before you widen
-  it, read the warning below.
+  `("icao24", ("payload", "features", "adsb_icao24"))` and
+  `("mmsi", ("payload", "features", "ais_mmsi"))`; a deployment passes its
+  own through the projector's `identity_paths` parameter as `(label,
+  tuple-of-keys)` entries, which replace the stock pair unless the stock
+  entries are included. Before you widen it, read the warning below.
 - **No** (an anonymous RF emitter, an energy detection, a
   bearing-only contact): **there is no track path today.** This is a
   recorded, deliberate limit (doctrine log B1-01 and the projector

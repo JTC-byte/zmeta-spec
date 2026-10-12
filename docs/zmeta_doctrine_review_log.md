@@ -3371,6 +3371,156 @@ member restored). Whether an unread failure mode should instead stop the
 gateway at startup, as a mistyped `cot` block does since v1.1.26, is left to
 the maintainer.
 
+## Cycle F4 — 2026-10-12 (fielded evidence: a downstream COP's boundary pass and a partner's tactical-network stream)
+
+Four tensions booked at the records pass of 2026-10-12 from the answers
+this repository's session gave downstream between 2026-10-05 and
+2026-10-12 (a COP's UI/UX rework and its boundary pass; a partner's JREAP
+PLI stream, found on 2026-10-12 to be Link 16 J-series words in a vendor
+wrapper). Each is recorded as a tension for the maintainer; none changes a
+document. The private session records carry the full readings and their
+refutations, and, for F4-02, the recommendation that step 3 of the protocol
+asks for; F4-01, F4-03 and F4-04 are booked for the maintainer without one.
+
+### F4-01 — A deterministic detection has no named class between measured fact and inference · **OPEN — for the maintainer**
+
+**Observed:** on 2026-10-05 a downstream COP asked how a satellite
+fire-detection product (described downstream as a deterministic radiometric
+threshold; its algorithm basis is to be verified before a producer is built)
+enters ZMeta. The contract defines the layers by method:
+"Inferences are algorithmic or analytic claims derived from observations."
+(section 1, the operating model), and 7.4's raw-data distinction says "AI detections or
+classifications derived from raw observations are INFERENCE_EVENTs." The
+advisory crosswalk routes the deterministic `geofence_alert` to
+INFERENCE_EVENT as "an analytic claim derived from observations (contract
+7.5)". The maintainer's recorded example of 2026-09-01, held in the COP's
+provenance record, draws the line at AI or ML. The first answer sent
+downstream dropped the word "AI" from 7.4 and reversed that example; it was
+withdrawn and corrected the same day.
+
+**The tension:** the contract's definition is "algorithmic or analytic",
+wider than AI or ML, and no text names a deterministic, non-learned
+detection as a class of its own; contract 11.1 reads with that definition,
+placing an analytic process inside the inference layer
+("`payload.model.name` identifies the model or analytic process."); the
+crosswalk's `eo_detection` row says "A "detection" bundles two ZMeta
+letters." while its `rf_detection` and `sonar_detection` rows route those
+detections to `OBSERVATION_EVENT`. The
+reading given, recorded as a reading:
+the product splits into an IR observation candidate (the radiometry) and an
+INFERENCE_EVENT (the fire call with its confidence); 7.4's observation rules
+and the gateway's payload denylist bar confidence on the observation
+("Top-level `confidence` is prohibited."; 11.2: model confidence
+"is not truth. It is also not observation quality"; the reference gateway's
+observation denylist in `policy/semantics.yaml` lists `confidence`).
+
+**Decision:** none here. The AI-or-ML line against "algorithmic or analytic
+claims" is the maintainer's to settle. Guidance gap (af) is booked in the
+handoff.
+
+### F4-02 — A cooperative broadcast received by relay: the routing table, the crosswalk and contract 24.4 pull apart · **OPEN — for the maintainer (guidance gap (z))**
+
+**Observed:** on 2026-10-09 a partner offered a tactical-network PLI
+stream for an adapter. The routing table in `adapters/AUTHORING.md` sends
+"Cooperative-broadcast decoded telemetry (ADS-B, AIS, rtl_433-class
+decoders)" to `OBSERVATION_EVENT` (NETWORK) and "External tactical tracks"
+to `STATE_EVENT` + promotion; the shipped ADS-B and AIS adapters emit
+observations, and the track projector uses their identifiers as its stock
+identity paths. The advisory crosswalk's row for `ais_track`, `adsb_track`,
+`external_track` and external C2 or COP track feeds routes them to
+`STATE_EVENT` "via the contract 4.5.1 external-promotion path" and says
+"AIS, ADS-B, CoT, JREAP, and vendor COP tracks are external reports or lossy
+projections, not measurements your sensor made."; the correlation pattern
+says "AIS, ADS-B, Link-16-style feeds, CoT/TAK tracks, and vendor COP
+reports are lossy external reports, not sensor observations." and admits
+such reports "never as a fusion identity source without that evidence".
+Contract 24.4 lists "OBSERVATION_EVENT/NETWORK_REPORT or equivalent
+external-report evidence subtype." among what stays future until a version
+branch, schema, policy and conformance tests are approved, and 4.5.1
+anticipates an external report with no ZMeta parent.
+
+**The tension:** the advisory documents call AIS, ADS-B, JREAP and
+Link-16-style feeds external reports, "not sensor observations" and "not
+measurements your sensor made", while the routing table and the shipped
+ADS-B and AIS adapters emit cooperative broadcasts as observations; no
+governed text gives a test that separates a receiver's own decode from a
+relayed self-report; and the parentless case 4.5.1 provides for cannot be
+emitted by the shipped promotion paths without a parent (guidance gap (z),
+booked 2026-10-02). The reading given on 2026-10-09, as a reading: the
+documents put the partner's stream on the promotion side.
+
+**Decision:** none here. The maintainer chose on 2026-10-09 to decide gap
+(z); the options are drafted in the private session record and go to him
+after their refutation. Until then the adapter emits nothing as ZMeta.
+
+### F4-03 — A shipped adapter stamps a source's send time as `event.ts` · **OPEN — for the maintainer**
+
+**Observed:** contract 5.1 (locked): "`event.ts` represents time of
+observation, capture, or validity. It does not represent publish time,
+transmit time, or receive time." The SAPIENT ingress adapter's README says
+its `event.ts` "inherits the unmeasured capture→send gap" and labels it:
+"`coerce_timing_quality()` supplies the deliberately degraded
+`UNKNOWN`/`UNSYNCED` fallback, then `est_error_ms` is widened by the
+registration-declared `maximum_latency`". The partner's
+stream of 2026-10-12 carries one transmit-clock value per message in its
+vendor wrapper, stamped by the sender's replayer; whether the Link 16 words
+inside carry a per-track time is the controlled standard's to say.
+
+**The tension:** a shipped practice sits in tension with a locked clause,
+and a format whose only defined time is a transmit clock would make it
+decisive: the reading given on 2026-10-09 takes the report's own time of
+position when the format carries a full, defined one and otherwise refuses
+the record, which would refuse that whole stream if the words carry none.
+
+**Decision:** none here. Whether an adapter may stamp a source's send time,
+and under what timing-quality label, is the maintainer's; for the partner's
+adapter, on 2026-10-09 he chose to decide it when the data is seen, the
+refuse default holding until then. A reading, not a ruling: the answer
+depends on gap (z), because 5.1
+reads `event.ts` by event type.
+
+### F4-04 — In-place caps on an admitted event against the locked replacement rule · **OPEN — for the maintainer**
+
+**Observed:** at its pinned release, v1.1.25, a downstream COP's design
+reads events that a reference gateway forwards when a deployment selects the
+quarantine mode for external promotion (the reference policy's mode is
+`reject`) in the gateway's default non-strict validation (under
+`--strict-validation` the event is refused): confidence capped at 0.25 and
+`valid_for_ms` at 1000 inside the forwarded event, beside a
+`payload.extensions.risk_adjudication` record that
+names the mode and the caps.
+Section 4.2 (locked) counts "replacement of source-authored fields" among
+the changes that require "a new event with a new `event_id` and lineage";
+3.4 says adapters and gateways "Preserve source-authored semantic fields
+when projecting or forwarding."; 4.5.1 requires that "Degrade/quarantine
+modes MUST reduce confidence, shorten TTL, cap usable trust, or otherwise
+make the accepted state visibly lower authority than a clean promoted
+state."; 4.2's own projection list lets a profile export ("Profile exports
+MAY be represented as projections of the same event when they only:")
+"Conservatively lower `confidence` or `valid_for_ms` to reflect export-path
+degradation." while keeping its `event_id`, and 3.3's `degrade` action is
+"forward the event with reduced/capped confidence, shortened/capped
+`payload.valid_for_ms`, route/display limits, or equivalent visible
+effects".
+
+**The tension:** 4.2 both counts replacement of a source-authored field as a
+new event and allows a profile export projected from the same event to lower
+`confidence` or `valid_for_ms` conservatively to reflect export-path
+degradation; 4.5.1 requires that the accepted state be made "visibly lower
+authority" under degrade and quarantine modes, by a reduction, a cap on
+usable trust "or otherwise"; 3.3 names `degrade` as a policy action, and 3.4
+requires preservation. The caps such an event carries, 0.25 and 1000, are
+the reference policy's quarantine values
+(`policy/producer-authority.yaml`, `confidence_cap` and `valid_for_ms_cap`)
+applied at admission. Whether a cap applied at admission is the "export-path
+degradation" 4.2 allows on the same event, and whether the source-authored
+value travels with the capped one, no text says; the `risk_adjudication`
+record names the cap, not the source's value, and the COP's design prints
+the capped values as the gateway's.
+
+**Decision:** none here; booked from the boundary-pass re-read of
+2026-10-07 for the maintainer.
+
 ## Archive
 
 Terminal tension entries and retired rules, one line each. Full bodies live in
