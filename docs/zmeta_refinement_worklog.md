@@ -2,7 +2,7 @@
 
 ## Current Resume Note
 
-- Last updated: 2026-10-12 (records: the merge of `wave/records-gaps-2026-10`, doctrine F4-01 to F4-04, guidance gap (af), two README corrections; `wave/records-pass-2026-10-12`)
+- Last updated: 2026-10-12 (records: the merge of `wave/records-gaps-2026-10`, doctrine F4-01 to F4-04, guidance gap (af), two documentation corrections; `wave/records-pass-2026-10-12`)
 - **2026-10-12 (records wave `wave/records-pass-2026-10-12`; no behavior
   change).** `wave/records-gaps-2026-10` (456f7f7) merged into `develop` as
   0231151 on the maintainer's go of 2026-10-11 and was pushed; the kernel

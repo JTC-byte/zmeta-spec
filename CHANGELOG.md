@@ -5,7 +5,7 @@
 - 2026-10-12 — **Records: four tensions booked, guidance gap (af), two
   documentation corrections.** Doctrine entries F4-01 to F4-04 record, for
   the maintainer, a deterministic detection's class between measured fact
-  and AI inference, cooperative broadcasts received by relay against the
+  and inference, cooperative broadcasts received by relay against the
   routing table, the crosswalk and contract 24.4 (guidance gap (z)), a
   shipped adapter stamping send time against contract 5.1, and in-place
   promotion caps against sections 4.2 and 3.4; the handoff books guidance

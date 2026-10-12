@@ -6,7 +6,7 @@
 (`wave/records-pass-2026-10-12`; 0231151 is the records wave of
 2026-10-07, merged on the maintainer's go of 2026-10-11 with the first
 edit to `spec/semantics-contract.md` since v1.1.20 and its lock anchor;
-the state below is as written on 2026-10-01; the two held gateway fixes are
+the merge list below is as written on 2026-10-01; the two held gateway fixes are
 `exp/command-dedupe-validity` and `exp/gateway-state-bound`);
 `main` == `origin/main` == a2e4d7a, the v1.1.26 line, unchanged. Everything
 below landed on the maintainer's go of 2026-09-30, which handed this
@@ -97,8 +97,10 @@ Open, in order of proximity:
 
 1. **The next cut** is the maintainer's: it carries the thirteen merges on
    `develop` since v1.1.26 (the ten listed above, the 2026-10-02 records
-   merges 78ea97b and 9ae0028, and 0231151) and this records wave, the dedupe fix if the maintainer
-   accepts it, and, with `wave/records-gaps-2026-10` merged on 2026-10-11
+   merges 78ea97b and 9ae0028, and 0231151) and this records wave, the
+   dedupe fix and the bounded event index (`exp/command-dedupe-validity`,
+   `exp/gateway-state-bound`) if the maintainer accepts them, and, with
+   `wave/records-gaps-2026-10` merged on 2026-10-11
    (0231151), the first
    edit to `spec/semantics-contract.md` since v1.1.20 (the section 22
    class table's `ZMETA-GATEWAY-REFERENCE`, on the maintainer's go of
@@ -286,8 +288,9 @@ Open, in order of proximity:
    and 7.4 says "AI detections or classifications derived from raw
    observations are INFERENCE_EVENTs"; the advisory crosswalk routes the
    deterministic `geofence_alert` to INFERENCE_EVENT. A satellite
-   fire-detection product (a radiometric threshold, no learned model) was
-   the first case, and the maintainer's own recorded example of 2026-09-01
+   fire-detection product (described downstream as a radiometric threshold;
+   its algorithm basis is to be verified before a producer is built) was the
+   first case, and the maintainer's own recorded example of 2026-09-01
    draws the line at AI or ML. The reading given, as a reading: the product
    splits into an IR observation candidate and an INFERENCE_EVENT carrying
    the fire call and its confidence; what counts as an inference where no
@@ -343,7 +346,8 @@ Open, in order of proximity:
    parents resolve. Where the policy mode for an unresolved parent is
    `warn` (profiles M and H in the shipped pack), strict validation turns
    that warning into a refusal. The
-   proposal put to the maintainer is a bounded index of recent events that
+   proposal put to the maintainer, held on `exp/gateway-state-bound`, is a
+   bounded index of recent events that
    keeps only what the lineage check reads, as the command-evidence index
    already does at 4,096 entries; a parent older than the index is then
    reported with the existing `LINEAGE_PARENT_UNRESOLVED` diagnostic under
@@ -532,7 +536,7 @@ branch amends Section 9.3 for live streams or carries them outside
 clause (C1-07), before any signing work; and whether the signing tripwire has
 fired (Tier 2 item 6).
 
-Correction (2026-10-12): "adapters already stamp" above overstates it. The
+**Correction (2026-10-12):** "adapters already stamp" above overstates it. The
 `translate:` transform is stamped when translating with real parents, and an
 original observation with no ZMeta parent carries none (doctrine U1-02's
 correction of 2026-10-01; `adapters/AUTHORING.md`).
