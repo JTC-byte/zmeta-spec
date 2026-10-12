@@ -8,19 +8,20 @@
   0231151 on the maintainer's go of 2026-10-11 and was pushed; the kernel
   gate and the lock tests ran on the merged tree first (the nine
   release-manifest mismatch lines of the recorded band; lock tests 5
-  passed; examples 51 of 51; roadmap ok). `develop` is thirteen
-  first-parent merges ahead of `main`, and its contract hash differs from
+  passed; examples 51 of 51; roadmap ok). `develop` was thirteen
+  first-parent merges ahead of `main` before this wave, and its contract hash differs from
   v1.1.26's until the next cut regenerates the manifest. This wave books,
   for the maintainer, four tensions from the downstream answers of
   2026-10-05 to 2026-10-12 (doctrine F4-01 to F4-04: a deterministic
   detection's class; cooperative broadcasts received by relay against the
   routing table, the crosswalk and contract 24.4, guidance gap (z); a
   shipped adapter stamping send time against 5.1; in-place promotion caps
-  against 4.2 and 3.4), guidance gap (af), the handoff's state lines, and
-  two documentation corrections: the track projector README and
+  against 4.2 and 3.4), guidance gap (af), the handoff's state lines, a dated
+  correction to the handoff's `translate:` sentence, and two documentation
+  corrections: the track projector README and
   `adapters/AUTHORING.md` said `identity_paths` takes `(label,
   dotted.path)` pairs added to the stock pair, where the code takes tuples
-  of keys and replaces the stock pair (found by a downstream pack author on
+  of keys and replaces the stock pair (found while ruling on a downstream pack on
   2026-10-09).
 - **2026-10-07 (records wave `wave/records-gaps-2026-10`; no behavior
   change; prepared on the maintainer's go of 2026-10-07 for the

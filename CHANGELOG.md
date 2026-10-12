@@ -9,7 +9,8 @@
   routing table, the crosswalk and contract 24.4 (guidance gap (z)), a
   shipped adapter stamping send time against contract 5.1, and in-place
   promotion caps against sections 4.2 and 3.4; the handoff books guidance
-  gap (af) and carries the merge of 2026-10-11 in its state lines. The
+  gap (af), carries the merge of 2026-10-11 in its state lines and adds a
+  dated correction to its `translate:` sentence. The
   track projector README and `adapters/AUTHORING.md` now say that
   `identity_paths` takes `(label, tuple-of-keys)` entries and replaces the
   stock ADS-B and AIS pair, as the code does. No semantics change.

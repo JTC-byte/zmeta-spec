@@ -3387,7 +3387,7 @@ refutations.
 fire-detection product (a deterministic radiometric threshold, not a
 learned model) enters ZMeta. The contract defines the layers by method:
 "Inferences are algorithmic or analytic claims derived from observations."
-(section 2), and 7.4's raw-data distinction says "AI detections or
+(section 1, the operating model), and 7.4's raw-data distinction says "AI detections or
 classifications derived from raw observations are INFERENCE_EVENTs." The
 advisory crosswalk routes the deterministic `geofence_alert` to
 INFERENCE_EVENT as "an analytic claim derived from observations (contract
@@ -3400,10 +3400,10 @@ withdrawn and corrected the same day.
 wider than AI or ML, and no text names a deterministic, non-learned
 detection as a class of its own. The reading given, recorded as a reading:
 the product splits into an IR observation candidate (the radiometry) and an
-INFERENCE_EVENT (the fire call with its confidence); confidence never rides
-on the observation (11.2: model confidence "is not truth. It is also not
-observation quality"; the reference gateway's observation denylist in
-`policy/semantics.yaml` lists `confidence`).
+INFERENCE_EVENT (the fire call with its confidence); the observation payload
+rules bar it ("Top-level `confidence` is prohibited."; 11.2: model confidence
+"is not truth. It is also not observation quality"; the reference gateway's
+observation denylist in `policy/semantics.yaml` lists `confidence`).
 
 **Decision:** none here. The AI-or-ML line against "algorithmic or analytic
 claims" is the maintainer's to settle. Guidance gap (af) is booked in the
@@ -3421,7 +3421,8 @@ identity paths. The advisory crosswalk's row for `ais_track`, `adsb_track`,
 `external_track` and external C2 or COP track feeds routes them to
 `STATE_EVENT` "via the contract 4.5.1 external-promotion path" and says
 they "are external reports or lossy projections", and the correlation
-pattern admits such reports "never as a fusion identity source". Contract
+pattern admits such reports "never as a fusion identity source
+without that evidence". Contract
 24.4 bars an "equivalent external-report evidence subtype" until a version
 branch, schema, policy and conformance tests are approved, and 4.5.1
 anticipates an external report with no ZMeta parent.
@@ -3442,14 +3443,15 @@ after their refutation. Until then the adapter emits nothing as ZMeta.
 observation, capture, or validity. It does not represent publish time,
 transmit time, or receive time." The SAPIENT ingress adapter's README says
 its `event.ts` "inherits the unmeasured capture→send gap". The partner's
-stream of 2026-10-12 carries one transmit-clock value per message, stamped
-by the sender's replayer, and no time of position for any track.
+stream of 2026-10-12 carries one transmit-clock value per message in its
+vendor wrapper, stamped by the sender's replayer; whether the Link 16 words
+inside carry a per-track time is the controlled standard's to say.
 
 **The tension:** a shipped practice sits in tension with a locked clause,
-and the first format to arrive with no time of position makes it decisive:
-the reading given on 2026-10-09 takes the report's own time of position
-when the format carries a full, defined one and otherwise refuses the
-record, which refuses that whole stream.
+and a format whose only defined time is a transmit clock would make it
+decisive: the reading given on 2026-10-09 takes the report's own time of
+position when the format carries a full, defined one and otherwise refuses
+the record, which would refuse that whole stream if the words carry none.
 
 **Decision:** none here. Whether an adapter may stamp a source's send time,
 and under what timing-quality label, is the maintainer's (the open question
@@ -3467,13 +3469,20 @@ the changes that require "a new event with a new `event_id` and lineage";
 when projecting or forwarding."; 4.5.1 requires that "Degrade/quarantine
 modes MUST reduce confidence, shorten TTL, cap usable trust, or otherwise
 make the accepted state visibly lower authority than a clean promoted
-state."
+state."; 4.2's own projection list lets a same-event export "Conservatively
+lower `confidence` or `valid_for_ms` to reflect export-path degradation."
+while keeping its `event_id`, and 3.3's `degrade` action is "forward the
+event with reduced/capped confidence, shortened/capped
+`payload.valid_for_ms`, route/display limits, or equivalent visible
+effects".
 
-**The tension:** a cap written into the forwarded event replaces the
-source's value, which 4.2 reads as a new event with lineage, while 4.5.1
-requires the reduction and says nothing about where it travels; the
-consumer prints the capped values as the gateway's with no record of the
-source-authored value. The documents do not reconcile the two at the pin.
+**The tension:** 4.2 both counts replacement of a source-authored field as a
+new event and allows a same-event projection to lower `confidence` or
+`valid_for_ms` conservatively; 3.3 and 4.5.1 require the reduction and 3.4
+requires preservation; none says whether the source-authored value travels
+with the capped one, and the consumer prints the capped values as the
+gateway's with no record of the source's. The documents cover the reduction
+and leave the record of the original value unreconciled at the pin.
 
 **Decision:** none here; booked from the boundary-pass re-read of
 2026-10-07 for the maintainer.
