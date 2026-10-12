@@ -3478,11 +3478,15 @@ effects".
 
 **The tension:** 4.2 both counts replacement of a source-authored field as a
 new event and allows a same-event projection to lower `confidence` or
-`valid_for_ms` conservatively; 3.3 and 4.5.1 require the reduction and 3.4
-requires preservation; none says whether the source-authored value travels
-with the capped one, and the consumer prints the capped values as the
-gateway's with no record of the source's. The documents cover the reduction
-and leave the record of the original value unreconciled at the pin.
+`valid_for_ms` conservatively to reflect export-path degradation; 4.5.1
+requires a visible reduction under degrade and quarantine modes, 3.3 names
+`degrade` as a policy action, and 3.4 requires preservation. The caps the
+consumer sees, 0.25 and 1000, are the reference policy's quarantine values
+(`policy/producer-authority.yaml`, `confidence_cap` and `valid_for_ms_cap`)
+applied at admission. Whether a cap applied at admission is the "export-path
+degradation" 4.2 allows on the same event, and whether the source-authored
+value travels with the capped one, no text says; the consumer prints the
+capped values as the gateway's with no record of the source's.
 
 **Decision:** none here; booked from the boundary-pass re-read of
 2026-10-07 for the maintainer.
