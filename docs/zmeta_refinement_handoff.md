@@ -1,8 +1,11 @@
 # ZMeta Refinement Handoff Notes
 
-## CURRENT STATE (2026-10-01): TEN MERGES ON DEVELOP SINCE v1.1.26, NOT RELEASED; ONE COMMAND-PATH FIX HELD ON A BRANCH
+## CURRENT STATE (2026-10-12): THIRTEEN MERGES ON DEVELOP SINCE v1.1.26, NOT RELEASED; TWO GATEWAY FIXES HELD ON BRANCHES
 
-`develop` == `origin/develop` at the merge 492a920 plus records commits;
+`develop` == `origin/develop` at the merge 0231151 (the records wave of
+2026-10-07, merged on the maintainer's go of 2026-10-11 with the first
+edit to `spec/semantics-contract.md` since v1.1.20 and its lock anchor;
+the state below is as written on 2026-10-01);
 `main` == `origin/main` == a2e4d7a, the v1.1.26 line, unchanged. Everything
 below landed on the maintainer's go of 2026-09-30, which handed this
 repository's open questions to its own recommendations as revertible
@@ -93,7 +96,8 @@ Open, in order of proximity:
 1. **The next cut** is the maintainer's: it carries the twelve merges on
    `develop` since v1.1.26 (the ten listed above and the 2026-10-02
    records merges 78ea97b and 9ae0028), the dedupe fix if the maintainer
-   accepts it, and, once `wave/records-gaps-2026-10` merges, the first
+   accepts it, and, with `wave/records-gaps-2026-10` merged on 2026-10-11
+   (0231151), the first
    edit to `spec/semantics-contract.md` since v1.1.20 (the section 22
    class table's `ZMETA-GATEWAY-REFERENCE`, on the maintainer's go of
    2026-10-07), which changes the manifest's `semantic_contract_hash`,
@@ -274,6 +278,19 @@ Open, in order of proximity:
    guard a vendor key would not get; and FusionPayload has no `extensions`
    member in either lane, so where the vendor key sits is the placement
    question of gap (j). Booked on the maintainer's go of 2026-10-07.
+   **One more, from a consumer's question on 2026-10-05.** (af) No text
+   names a deterministic, non-learned detection. Contract section 2 defines
+   inferences as "algorithmic or analytic claims derived from observations"
+   and 7.4 says "AI detections or classifications derived from raw
+   observations are INFERENCE_EVENTs"; the advisory crosswalk routes the
+   deterministic `geofence_alert` to INFERENCE_EVENT. A satellite
+   fire-detection product (a radiometric threshold, no learned model) was
+   the first case, and the maintainer's own recorded example of 2026-09-01
+   draws the line at AI or ML. The reading given, as a reading: the product
+   splits into an IR observation candidate and an INFERENCE_EVENT carrying
+   the fire call and its confidence; what counts as an inference where no
+   model is involved is the maintainer's to settle (doctrine F4-01). Booked
+   at the records pass of 2026-10-12.
 7. **Reference defect, booked for the maintainer (command safety).** The
    gateway caps the command dedupe window at 300 s
    (`ttl_ms_from_payload`, `gateway/README.md`), while contract 13.2 says a
@@ -507,7 +524,9 @@ red on the release-manifest pins until the cut.
 
 Left for the maintainer from this wave (doctrine U1-02, OPEN): the routing of
 the five asks; whether the dialect label is needed at all, given the
-`translate:` lineage transform adapters already stamp; whether a `data_ref`
+`translate:` lineage transform adapters stamp when translating with real
+parents (an original observation with no ZMeta parent carries none, as
+doctrine U1-02's correction of 2026-10-01 records); whether a `data_ref`
 branch amends Section 9.3 for live streams or carries them outside
 `data_ref`; the canonical byte form and the strength of the determinism
 clause (C1-07), before any signing work; and whether the signing tripwire has

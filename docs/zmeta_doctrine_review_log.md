@@ -3371,6 +3371,113 @@ member restored). Whether an unread failure mode should instead stop the
 gateway at startup, as a mistyped `cot` block does since v1.1.26, is left to
 the maintainer.
 
+## Cycle F4 — 2026-10-12 (fielded evidence: a downstream COP's boundary pass and a partner's tactical-network stream)
+
+Four tensions booked at the records pass of 2026-10-12 from the answers
+this repository's session gave downstream between 2026-10-05 and
+2026-10-12 (a COP's UI/UX rework and its boundary pass; a partner's JREAP
+PLI stream, found on 2026-10-12 to be Link 16 J-series words in a vendor
+wrapper). Each is recorded as a tension for the maintainer; none changes a
+document. The private session records carry the full readings and their
+refutations.
+
+### F4-01 — A deterministic detection has no named class between measured fact and AI inference · **OPEN — for the maintainer**
+
+**Observed:** on 2026-10-05 a downstream COP asked how a satellite
+fire-detection product (a deterministic radiometric threshold, not a
+learned model) enters ZMeta. The contract defines the layers by method:
+"Inferences are algorithmic or analytic claims derived from observations."
+(section 2), and 7.4's raw-data distinction says "AI detections or
+classifications derived from raw observations are INFERENCE_EVENTs." The
+advisory crosswalk routes the deterministic `geofence_alert` to
+INFERENCE_EVENT as "an analytic claim derived from observations (contract
+7.5)". The maintainer's recorded example of 2026-09-01, held in the COP's
+provenance record, draws the line at AI or ML. The first answer sent
+downstream dropped the word "AI" from 7.4 and reversed that example; it was
+withdrawn and corrected the same day.
+
+**The tension:** the contract's definition is "algorithmic or analytic",
+wider than AI or ML, and no text names a deterministic, non-learned
+detection as a class of its own. The reading given, recorded as a reading:
+the product splits into an IR observation candidate (the radiometry) and an
+INFERENCE_EVENT (the fire call with its confidence); confidence never rides
+on the observation (11.2: model confidence "is not truth. It is also not
+observation quality"; the reference gateway's observation denylist in
+`policy/semantics.yaml` lists `confidence`).
+
+**Decision:** none here. The AI-or-ML line against "algorithmic or analytic
+claims" is the maintainer's to settle. Guidance gap (af) is booked in the
+handoff.
+
+### F4-02 — A cooperative broadcast received by relay: the routing table, the crosswalk and contract 24.4 pull apart · **OPEN — for the maintainer (guidance gap (z))**
+
+**Observed:** on 2026-10-09 a partner offered a tactical-network PLI
+stream for an adapter. The routing table in `adapters/AUTHORING.md` sends
+"Cooperative-broadcast decoded telemetry (ADS-B, AIS, rtl_433-class
+decoders)" to `OBSERVATION_EVENT` (NETWORK) and "External tactical tracks"
+to `STATE_EVENT` + promotion; the shipped ADS-B and AIS adapters emit
+observations, and the track projector uses their identifiers as its stock
+identity paths. The advisory crosswalk's row for `ais_track`, `adsb_track`,
+`external_track` and external C2 or COP track feeds routes them to
+`STATE_EVENT` "via the contract 4.5.1 external-promotion path" and says
+they "are external reports or lossy projections", and the correlation
+pattern admits such reports "never as a fusion identity source". Contract
+24.4 bars an "equivalent external-report evidence subtype" until a version
+branch, schema, policy and conformance tests are approved, and 4.5.1
+anticipates an external report with no ZMeta parent.
+
+**The tension:** no text says what makes a received message an original
+observation rather than an external report, and the parentless case 4.5.1
+provides for cannot be emitted by the shipped promotion templates without a
+parent (guidance gap (z), booked 2026-10-02). A relayed self-report over a
+tactical network is the case the documents leave between the two routes.
+
+**Decision:** none here. The maintainer chose on 2026-10-09 to decide gap
+(z); the options are drafted in the private session record and go to him
+after their refutation. Until then the adapter emits nothing as ZMeta.
+
+### F4-03 — A shipped adapter stamps a source's send time as `event.ts` · **OPEN — for the maintainer**
+
+**Observed:** contract 5.1 (locked): "`event.ts` represents time of
+observation, capture, or validity. It does not represent publish time,
+transmit time, or receive time." The SAPIENT ingress adapter's README says
+its `event.ts` "inherits the unmeasured capture→send gap". The partner's
+stream of 2026-10-12 carries one transmit-clock value per message, stamped
+by the sender's replayer, and no time of position for any track.
+
+**The tension:** a shipped practice sits in tension with a locked clause,
+and the first format to arrive with no time of position makes it decisive:
+the reading given on 2026-10-09 takes the report's own time of position
+when the format carries a full, defined one and otherwise refuses the
+record, which refuses that whole stream.
+
+**Decision:** none here. Whether an adapter may stamp a source's send time,
+and under what timing-quality label, is the maintainer's (the open question
+of the 2026-10-09 ruling); the answer depends on gap (z), because 5.1 reads
+`event.ts` by event type.
+
+### F4-04 — In-place caps on an admitted event against the locked replacement rule · **OPEN — for the maintainer**
+
+**Observed:** at the pin a downstream COP reads events the reference
+gateway forwarded with a promotion response applied in place: confidence
+capped at 0.25 and `valid_for_ms` at 1000 inside the forwarded event.
+Section 4.2 (locked) counts "replacement of source-authored fields" among
+the changes that require "a new event with a new `event_id` and lineage";
+3.4 says adapters and gateways "Preserve source-authored semantic fields
+when projecting or forwarding."; 4.5.1 requires that "Degrade/quarantine
+modes MUST reduce confidence, shorten TTL, cap usable trust, or otherwise
+make the accepted state visibly lower authority than a clean promoted
+state."
+
+**The tension:** a cap written into the forwarded event replaces the
+source's value, which 4.2 reads as a new event with lineage, while 4.5.1
+requires the reduction and says nothing about where it travels; the
+consumer prints the capped values as the gateway's with no record of the
+source-authored value. The documents do not reconcile the two at the pin.
+
+**Decision:** none here; booked from the boundary-pass re-read of
+2026-10-07 for the maintainer.
+
 ## Archive
 
 Terminal tension entries and retired rules, one line each. Full bodies live in
