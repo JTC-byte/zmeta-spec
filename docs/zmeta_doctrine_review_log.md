@@ -3378,9 +3378,9 @@ this repository's session gave downstream between 2026-10-05 and
 2026-10-12 (a COP's UI/UX rework and its boundary pass; a partner's JREAP
 PLI stream, found on 2026-10-12 to be Link 16 J-series words in a vendor
 wrapper). Each is recorded as a tension for the maintainer; none changes a
-document. The private session records carry the full readings, their
-refutations and the recommendations that step 3 of the protocol asks for;
-none is published here, by design.
+document. The private session records carry the full readings and their
+refutations, and, for F4-02, the recommendation that step 3 of the protocol
+asks for; F4-01, F4-03 and F4-04 are booked for the maintainer without one.
 
 ### F4-01 — A deterministic detection has no named class between measured fact and inference · **OPEN — for the maintainer**
 
@@ -3400,10 +3400,12 @@ withdrawn and corrected the same day.
 
 **The tension:** the contract's definition is "algorithmic or analytic",
 wider than AI or ML, and no text names a deterministic, non-learned
-detection as a class of its own; on the other side, contract 11.1 places an
-analytic process inside the inference layer ("`payload.model.name`
-identifies the model or analytic process.") and the crosswalk's
-`eo_detection` row says "A "detection" bundles two ZMeta letters." The
+detection as a class of its own; contract 11.1 reads with that definition,
+placing an analytic process inside the inference layer
+("`payload.model.name` identifies the model or analytic process."); the
+crosswalk's `eo_detection` row says "A "detection" bundles two ZMeta
+letters." while its `rf_detection` and `sonar_detection` rows route those
+detections to `OBSERVATION_EVENT`. The
 reading given, recorded as a reading:
 the product splits into an IR observation candidate (the radiometry) and an
 INFERENCE_EVENT (the fire call with its confidence); 7.4's observation rules
@@ -3471,9 +3473,10 @@ position when the format carries a full, defined one and otherwise refuses
 the record, which would refuse that whole stream if the words carry none.
 
 **Decision:** none here. Whether an adapter may stamp a source's send time,
-and under what timing-quality label, is the maintainer's; on 2026-10-09 he
-chose to decide it when the data is seen, the refuse default holding until
-then. A reading, not a ruling: the answer depends on gap (z), because 5.1
+and under what timing-quality label, is the maintainer's; for the partner's
+adapter, on 2026-10-09 he chose to decide it when the data is seen, the
+refuse default holding until then. A reading, not a ruling: the answer
+depends on gap (z), because 5.1
 reads `event.ts` by event type.
 
 ### F4-04 — In-place caps on an admitted event against the locked replacement rule · **OPEN — for the maintainer**
@@ -3481,8 +3484,10 @@ reads `event.ts` by event type.
 **Observed:** at its pinned release, v1.1.25, a downstream COP's design
 reads events that a reference gateway forwards when a deployment selects the
 quarantine mode for external promotion (the reference policy's mode is
-`reject`): confidence capped at 0.25 and `valid_for_ms` at 1000 inside the
-forwarded event, beside a `payload.extensions.risk_adjudication` record that
+`reject`) in the gateway's default non-strict validation (under
+`--strict-validation` the event is refused): confidence capped at 0.25 and
+`valid_for_ms` at 1000 inside the forwarded event, beside a
+`payload.extensions.risk_adjudication` record that
 names the mode and the caps.
 Section 4.2 (locked) counts "replacement of source-authored fields" among
 the changes that require "a new event with a new `event_id` and lineage";
@@ -3510,8 +3515,8 @@ the reference policy's quarantine values
 applied at admission. Whether a cap applied at admission is the "export-path
 degradation" 4.2 allows on the same event, and whether the source-authored
 value travels with the capped one, no text says; the `risk_adjudication`
-record names the cap, not the source's value, and the consumer prints the
-capped values as the gateway's.
+record names the cap, not the source's value, and the COP's design prints
+the capped values as the gateway's.
 
 **Decision:** none here; booked from the boundary-pass re-read of
 2026-10-07 for the maintainer.
