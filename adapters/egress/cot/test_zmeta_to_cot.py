@@ -1435,8 +1435,8 @@ def test_a_callsign_that_is_not_text_renders_as_its_text():
 # outside the schema's bounds (the AIS "not available" pair 91/181 among them)
 # left as well-formed CoT, and a callsign or uid of any length left as given.
 # Run against develop d1a503d with only DEFAULT_MAX_NAME_CHARS defined there,
-# every refusal below failed and the boundary cases passed, as the positive
-# control.
+# every guard test below failed and the boundary cases passed, as the
+# positive control.
 
 
 def test_an_out_of_range_position_refuses():

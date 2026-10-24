@@ -3539,9 +3539,10 @@ that path on 2026-10-19: a position outside the schema's bounds (a maritime
 "position not available" sentinel of 91/181 among them) left as well-formed
 CoT at an impossible place; a callsign or uid of any length left as given;
 and a character XML 1.0 forbids in an identity attribute left as a document
-no parser reads. The consumer's own counts over its stream that day found
-none of the three (no position out of range, no character outside XML 1.0's
-set, a longest callsign of 22 characters), so the gaps are latent.
+no parser reads. The consumer's own counts over about four hours of its
+stream that day found no position out of range and, among callsigns, no
+character outside XML 1.0's set and none near the bound; uids were not
+counted. On what was counted the gaps are latent.
 
 **The tension:** design gate 3 (no laundering) and gate 4 (egress is a
 projection of a validated event) both assume the event was validated, and
@@ -3559,8 +3560,10 @@ already closed on `develop` by the 2026-10-01 standard-profile hardening
 (the output is parsed and refused when it does not read; `cds` has refused
 it since v1.1.26), so the branch adds no code for it and records the per-tag
 state: open at v1.1.25, which has no `cds` profile, and at v1.1.26 on the
-standard path until the next cut. Each guard was seen failing before it existed; every
-example `STATE_EVENT` projects byte for byte as before under both profiles.
+standard path until the next cut. Twelve of the fourteen guard tests fail
+on `develop` with only the name constant defined there, and the two
+boundary cases pass as the positive control; every example `STATE_EVENT`
+projects byte for byte as before under both profiles.
 The branch changes no live path until a cut and a consumer's re-pin; the
 consumer's own range check and the producers' ingress guards stay theirs.
 Left to the maintainer with the branch: whether a display string past the
@@ -3568,7 +3571,8 @@ bound should instead be cut with a stated marker; and three behaviours that
 predate the branch, whether a `track_id` that is not text (which raises out
 of `_esc` at every tag), a present null callsign (written as `None`) and an
 integer beyond float range (which raises in the point-value check) should
-refuse instead.
+refuse instead, and whether the `cds` profile should stop rewriting an
+in-range Decimal through a float (`_plain_decimal`).
 
 ## Archive
 

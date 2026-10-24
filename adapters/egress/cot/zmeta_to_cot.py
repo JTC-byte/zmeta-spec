@@ -372,13 +372,14 @@ def _within_position_bounds(lat, lon):
     numeric text. The comparison is exact, through Decimal: a float compares
     as the value it holds, a Decimal as itself, numeric text as the decimal
     it spells. A value a hair past the bound that a float would round onto
-    it is refused, not written as given.
+    it is refused, not written as given. Numeric text whose exponent the
+    decimal module cannot hold is refused too, and a NaN, which _point_value
+    never admits, is refused rather than raised.
     """
     try:
-        lat_value, lon_value = Decimal(lat), Decimal(lon)
+        return -90 <= Decimal(lat) <= 90 and -180 <= Decimal(lon) <= 180
     except (ValueError, TypeError, ArithmeticError):
         return False
-    return -90 <= lat_value <= 90 and -180 <= lon_value <= 180
 
 
 def _standard_shape(cot_xml):

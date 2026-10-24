@@ -13,13 +13,14 @@
   a deployment default, not a limit any CoT document states) refuses it
   rather than cuts it; the bound applies to what is written, in code points,
   the derived callsign included, and the position comparison is exact, so a
-  Decimal or numeric text a hair past the bound is refused too. The third gap the same read found, a
-  character XML 1.0 forbids in an identity attribute, was already closed on
-  `develop` by the 2026-10-01 hardening, and refused under `cds` since
+  Decimal or numeric text a hair past the bound is refused too. The third
+  gap the same read found, a character XML 1.0 forbids in an identity
+  attribute, was already closed on `develop` by the 2026-10-01 hardening,
+  and refused under `cds` since
   v1.1.26; it stays open at v1.1.25 and on the standard path at v1.1.26 until
-  the next cut. Fourteen new tests: twelve seen failing on
-  `develop` with only the name constant defined there, before their guards
-  existed, and the two boundary cases passing as the positive control;
+  the next cut. Fourteen new tests: twelve fail on `develop` d1a503d, where
+  the guards do not exist, with only the name constant defined there, and
+  the two boundary cases pass as the positive control;
   every example `STATE_EVENT` projects byte for byte as before under both
   profiles. Adapter code only; no semantics change. On the maintainer's go
   of 2026-10-19.

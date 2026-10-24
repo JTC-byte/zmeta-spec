@@ -64,12 +64,14 @@ than `max_name_chars` (default `DEFAULT_MAX_NAME_CHARS`, 256, counted in code
 points) is refused rather than cut, because a cut uid is a different identity
 and a cut callsign a repaired claim; the bound applies to what is written, so
 with no callsign in the event the derived `Track <uid>` counts (a hostile
-type writes `RF Emitter` instead, so there only the uid meets the bound), and
-a uid longer than the bound minus six characters needs an explicit callsign.
+type writes `RF Emitter` instead, so there only the uid meets the bound),
+and, for a type that is not hostile, a uid longer than the bound minus six
+characters needs an explicit callsign.
 The number is the adapter's deployment default, not a limit any CoT or TAK
 document states; anything but a positive integer is a configuration error
-under every profile, and the `cds` profile knows the key. Output for well-formed, in-range input is
-unchanged: every example `STATE_EVENT` projects byte for byte as before under
+under every profile, and the `cds` profile knows the key. Output for
+well-formed, in-range input is unchanged: every example `STATE_EVENT`
+projects byte for byte as before under
 both profiles. At v1.1.25 and v1.1.26 both cases pass through.
 
 ### Declared 2-D geo (doctrine A1-02)

@@ -16,10 +16,10 @@
   since v1.1.26; open at v1.1.25 and on the standard path at v1.1.26), so
   the branch adds no code for it and records the per-tag state instead.
   Fourteen tests, run first against develop d1a503d with only the name
-  constant defined there: twelve refusals failed and the two boundary
-  cases passed, the positive control; every example `STATE_EVENT` projected
-  byte for byte the same by the `develop`
-  module and the branch module under the standard profile, with and without
+  constant defined there: twelve tests failed and the two boundary cases
+  passed, the positive control; every example `STATE_EVENT` projected byte
+  for byte the same by the `develop` module and the branch module under the
+  standard profile, with and without
   a `how`, and under `cds` with the projection instant beside each event's
   time, and a mutated event (lat 91) differed as the comparison's own
   control. `max_name_chars` is a known `cds` key; anything but a positive
@@ -37,11 +37,18 @@
   above); the doctrine entry gave v1.1.25 a `cds` path it does not have. Its
   non-blocking items applied: the hostile fallback runs before the bound
   (README and a test); the bound counts code points; a fielded figure removed
-  from a public comment; two formatting lines. Put to the maintainer, not
+  from a public comment and, after the re-read, from the doctrine entry,
+  whether it may be public being his; two formatting lines. Put to the maintainer, not
   changed: a `track_id` that is not text raises out of `_esc`; a present null
   callsign writes `None`; an integer beyond float range raises in the
-  point-value check; all three predate the branch. A Sonnet 5.5 factual pass
-  over the records verified every claim but the test count, corrected here.
+  point-value check; and `cds` rewrites an in-range Decimal through a float
+  (`_plain_decimal`); all four predate the branch. A Sonnet 5.5 factual pass
+  over the records found the test count wrong and the v1.1.25 "both paths"
+  wording loose (both corrected), called the `cds` byte-for-byte comparison
+  weak (one example emits under `cds`), and could not verify six claims that
+  rest on private records or runs outside its scope. A focused Opus 5.5
+  re-read of the review answers closed the three items, reproduced the
+  control itself, and found two overclaims in the records, corrected here.
 - **2026-10-12 (records wave `wave/records-pass-2026-10-12`; no behavior
   change).** `wave/records-gaps-2026-10` (456f7f7) merged into `develop` as
   0231151 on the maintainer's go of 2026-10-11 and was pushed; the kernel
