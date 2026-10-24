@@ -45,8 +45,9 @@
   (`_plain_decimal`); all four predate the branch. A Sonnet 5.5 factual pass
   over the records found the test count wrong and the v1.1.25 "both paths"
   wording loose (both corrected), called the `cds` byte-for-byte comparison
-  weak (one example emits under `cds`), and could not verify six claims that
-  rest on private records or runs outside its scope. A focused Opus 5.5
+  weak (how many examples emit under `cds` depends on the instant chosen;
+  at ten seconds past each event's time, one), and could not verify six
+  claims that rest on private records or runs outside its scope. A focused Opus 5.5
   re-read of the review answers closed the three items, reproduced the
   control itself, and found two overclaims in the records, corrected here.
 - **2026-10-12 (records wave `wave/records-pass-2026-10-12`; no behavior
