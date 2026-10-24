@@ -2,7 +2,54 @@
 
 ## Current Resume Note
 
-- Last updated: 2026-10-12 (records: the merge of `wave/records-gaps-2026-10`, doctrine F4-01 to F4-04, guidance gap (af), two documentation corrections; `wave/records-pass-2026-10-12`)
+- Last updated: 2026-10-23 (the CoT projection guards, on `exp/cot-projection-guards-2026-10`; merge pending the maintainer's word)
+- **2026-10-23 (the CoT projection guards, `exp/cot-projection-guards-2026-10`;
+  merge pending the maintainer's word).** On the maintainer's go of
+  2026-10-19, after a read of what a consumer that translates a dialect
+  itself and feeds the result straight to the projection would send: a
+  position outside the schema's bounds now refuses (`_within_position_bounds`,
+  after the point-value checks), and a callsign or uid longer than the new
+  `max_name_chars` setting (default 256) refuses rather than cuts, the
+  derived `Track <uid>` callsign counted as written. The read's first case,
+  a character XML 1.0 forbids in an identity attribute, was found already
+  closed on `develop` by the 2026-10-01 hardening (refused under `cds`
+  since v1.1.26; open at v1.1.25 and on the standard path at v1.1.26), so
+  the branch adds no code for it and records the per-tag state instead.
+  Fourteen tests, run first against develop d1a503d with only the name
+  constant defined there: twelve tests failed and the two boundary cases
+  passed, the positive control; every example `STATE_EVENT` projected byte
+  for byte the same by the `develop` module and the branch module under the
+  standard profile, with and without
+  a `how`, and under `cds` with the projection instant beside each event's
+  time, and a mutated event (lat 91) differed as the comparison's own
+  control. `max_name_chars` is a known `cds` key; anything but a positive
+  integer is a configuration error under every profile. Found on the way
+  and not changed here: a `track_id` that is not text raises out of `_esc`
+  at every tag, where the documented signal is `None`; put to the
+  maintainer with the branch. The independent Opus 5.5 review (a fresh
+  context, with a seeded off-by-one in a control copy of the adapter, which
+  it found) returned three blocking items, all applied: the position bound
+  compared through a float, so a Decimal or numeric text a hair past the
+  bound passed and left as written, and `cds` then rewrote it (now an exact
+  Decimal comparison, with tests); the first negative-control run had failed
+  the name-bound tests for a missing constant, not a missing guard, and the
+  records had counted it (re-run with the constant defined; the counts
+  above); the doctrine entry gave v1.1.25 a `cds` path it does not have. Its
+  non-blocking items applied: the hostile fallback runs before the bound
+  (README and a test); the bound counts code points; a fielded figure removed
+  from a public comment and, after the re-read, from the doctrine entry,
+  whether it may be public being his; two formatting lines. Put to the maintainer, not
+  changed: a `track_id` that is not text raises out of `_esc`; a present null
+  callsign writes `None`; an integer beyond float range raises in the
+  point-value check; and `cds` rewrites an in-range Decimal through a float
+  (`_plain_decimal`); all four predate the branch. A Sonnet 5.5 factual pass
+  over the records found the test count wrong and the v1.1.25 "both paths"
+  wording loose (both corrected), called the `cds` byte-for-byte comparison
+  weak (how many examples emit under `cds` depends on the instant chosen;
+  at ten seconds past each event's time, one), and could not verify six
+  claims that rest on private records or runs outside its scope. A focused Opus 5.5
+  re-read of the review answers closed the three items, reproduced the
+  control itself, and found two overclaims in the records, corrected here.
 - **2026-10-12 (records wave `wave/records-pass-2026-10-12`; no behavior
   change).** `wave/records-gaps-2026-10` (456f7f7) merged into `develop` as
   0231151 on the maintainer's go of 2026-10-11 and was pushed; the kernel

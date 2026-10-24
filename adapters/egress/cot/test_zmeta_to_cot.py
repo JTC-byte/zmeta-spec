@@ -1425,3 +1425,159 @@ def test_a_callsign_that_is_not_text_renders_as_its_text():
     event["payload"]["callsign"] = 417
     root = ET.fromstring(_standard(event))
     assert root.find("detail/contact").get("callsign") == "417"
+
+
+# --- Projection guards (2026-10-23): an impossible position and an unbounded name ---
+#
+# The projection's contract is that it projects validated events, but a
+# consumer that translates a dialect itself and feeds the result straight to
+# this function never meets the validator. At v1.1.25 and v1.1.26 a position
+# outside the schema's bounds (the AIS "not available" pair 91/181 among them)
+# left as well-formed CoT, and a callsign or uid of any length left as given.
+# Run against develop d1a503d with only DEFAULT_MAX_NAME_CHARS defined there,
+# every guard test below failed and the boundary cases passed, as the
+# positive control.
+
+
+def test_an_out_of_range_position_refuses():
+    for lat, lon in (
+        (91.0, 0.0),
+        (-91.0, 0.0),
+        (0.0, 181.0),
+        (0.0, -181.0),
+        (90.000001, 0.0),
+        (0.0, -180.000001),
+        (91.0, 181.0),
+    ):
+        event = _nf_state_event()
+        event["payload"]["geo"]["lat"] = lat
+        event["payload"]["geo"]["lon"] = lon
+        assert _standard(event) is None, (lat, lon)
+    # Numeric text and a Decimal are point values too, and get the same bound.
+    for lat in ("91", Decimal("90.5")):
+        event = _nf_state_event()
+        event["payload"]["geo"]["lat"] = lat
+        assert _standard(event) is None, lat
+
+
+def test_a_position_on_the_boundary_renders_as_given():
+    for lat, lon in ((90.0, 180.0), (-90.0, -180.0), (0.0, 0.0), (90, -180)):
+        event = _nf_state_event()
+        event["payload"]["geo"]["lat"] = lat
+        event["payload"]["geo"]["lon"] = lon
+        root = ET.fromstring(_standard(event))
+        point = root.find("point")
+        assert point.get("lat") == str(lat), (lat, lon)
+        assert point.get("lon") == str(lon), (lat, lon)
+
+
+def test_a_name_longer_than_the_bound_refuses():
+    bound = zmeta_to_cot_module.DEFAULT_MAX_NAME_CHARS
+    for field in ("callsign", "track_id"):
+        event = _nf_state_event()
+        event["payload"]["callsign"] = "short"
+        event["payload"][field] = "n" * (bound + 1)
+        assert _standard(event) is None, field
+        event = _nf_state_event()
+        event["payload"]["callsign"] = "short"
+        event["payload"][field] = "n" * bound
+        root = ET.fromstring(_standard(event))
+        if field == "track_id":
+            assert root.get("uid") == "n" * bound
+        else:
+            assert root.find("detail/contact").get("callsign") == "n" * bound
+
+
+def test_the_bound_applies_to_the_written_callsign():
+    # With no callsign the adapter writes "Track <uid>", so a uid within the
+    # bound can still carry the written callsign past it.
+    bound = zmeta_to_cot_module.DEFAULT_MAX_NAME_CHARS
+    event = _nf_state_event()
+    event["payload"]["track_id"] = "n" * (bound - 5)
+    assert _standard(event) is None
+    event["payload"]["callsign"] = "short"
+    assert ET.fromstring(_standard(event)).get("uid") == "n" * (bound - 5)
+
+
+def test_the_name_bound_is_a_setting():
+    config = dict(_TEST_CONFIG, max_name_chars=16)
+    assert zmeta_to_cot_module.validate_cot_config(config) == "standard"
+    event = _nf_state_event()
+    event["payload"]["callsign"] = "c" * 17
+    assert _standard(event, config) is None
+    event["payload"]["callsign"] = "c" * 16
+    assert _standard(event, config) is not None
+    event = _nf_state_event()
+    event["payload"]["track_id"] = "t" * 17
+    assert _standard(event, config) is None
+    # Absent or null means the default, like every other optional key.
+    config = dict(_TEST_CONFIG, max_name_chars=None)
+    assert zmeta_to_cot_module.validate_cot_config(config) == "standard"
+    assert _standard(_nf_state_event(), config) is not None
+
+
+def test_a_name_bound_that_is_not_a_positive_integer_is_a_config_error():
+    for value in (0, -1, 1.5, "16", True, [16]):
+        config = dict(_TEST_CONFIG, max_name_chars=value)
+        try:
+            zmeta_to_cot_module.validate_cot_config(config)
+        except ValueError:
+            pass
+        else:
+            raise AssertionError(value)
+        assert _standard(_nf_state_event(), config) is None, value
+
+
+def test_a_value_a_float_would_round_onto_the_bound_is_refused_exactly():
+    # float(Decimal("90.00000000000000001")) is 90.0; the comparison must not
+    # go through a float, or the value leaves the adapter as written.
+    for lat, lon in (
+        (Decimal("90.00000000000000001"), 0.0),
+        ("90.00000000000000001", 0.0),
+        (0.0, "180.00000000000001"),
+        (0.0, Decimal("-180.000000000000000001")),
+    ):
+        event = _nf_state_event()
+        event["payload"]["geo"]["lat"] = lat
+        event["payload"]["geo"]["lon"] = lon
+        assert _standard(event) is None, (lat, lon)
+    event = _nf_state_event()
+    event["payload"]["geo"]["lat"] = Decimal("90")
+    event["payload"]["geo"]["lon"] = "-180"
+    point = ET.fromstring(_standard(event)).find("point")
+    assert (point.get("lat"), point.get("lon")) == ("90", "-180")
+
+
+def test_signed_and_exponent_text_get_the_same_bound():
+    for lat in ("+91", "9.1e1", "-9.1e1"):
+        event = _nf_state_event()
+        event["payload"]["geo"]["lat"] = lat
+        assert _standard(event) is None, lat
+    for lat in ("+90", "9e1", "-0.0"):
+        event = _nf_state_event()
+        event["payload"]["geo"]["lat"] = lat
+        assert ET.fromstring(_standard(event)).find("point").get("lat") == lat, lat
+
+
+def test_the_name_bound_counts_code_points():
+    bound = zmeta_to_cot_module.DEFAULT_MAX_NAME_CHARS
+    ship = "\U0001F6A2"
+    event = _nf_state_event()
+    event["payload"]["callsign"] = ship * bound
+    assert ET.fromstring(_standard(event)).find("detail/contact").get("callsign") == ship * bound
+    event["payload"]["callsign"] = ship * (bound + 1)
+    assert _standard(event) is None
+
+
+def test_the_hostile_fallback_runs_before_the_name_bound():
+    # A hostile type with no callsign writes "RF Emitter", not "Track <uid>",
+    # so only the uid itself meets the bound.
+    bound = zmeta_to_cot_module.DEFAULT_MAX_NAME_CHARS
+    event = _nf_state_event()
+    event["payload"]["class"] = "a-h-G"
+    event["payload"]["track_id"] = "h" * bound
+    root = ET.fromstring(_standard(event))
+    assert root.find("detail/contact").get("callsign") == "RF Emitter"
+    assert root.get("uid") == "h" * bound
+    event["payload"]["track_id"] = "h" * (bound + 1)
+    assert _standard(event) is None

@@ -114,6 +114,13 @@ def _class_label(value):
 # never rendered as invented precision (contract sections 4.7 / 12.2).
 COT_UNKNOWN_ACCURACY = 9999999.0
 
+# The longest callsign and uid the projection writes, in code points: the
+# adapter's deployment default, which `max_name_chars` overrides. No CoT or
+# TAK document states a limit; this one bounds what a consumer must index and
+# draw. An event past it is refused rather than cut, because a cut uid is a
+# different identity and a cut callsign a repaired claim (design gate 3).
+DEFAULT_MAX_NAME_CHARS = 256
+
 # Projection profiles. "standard" is the adapter's own output, unchanged by the
 # existence of any other profile. "cds" is the variant one partner's
 # cross-domain guard passed into a higher enclave on 2026-09-29 (n=1): the
@@ -171,7 +178,7 @@ COT_CONFIG_KEYS = frozenset((
     "profile", "how", "geopointsrc", "altsrc", "default_ce", "default_le",
     "default_type", "default_valid_for_ms", "friendly_team_name",
     "friendly_team_role", "use_wall_clock", "stale_window_s", "max_age_s",
-    "attribution", "lapsed_validity",
+    "attribution", "lapsed_validity", "max_name_chars",
 ))
 
 
@@ -201,6 +208,16 @@ def validate_cot_config(cot_config):
             _finite_real(cot_config[key]) and cot_config[key] >= 0
         ):
             raise ValueError(f"{key} must be a finite, non-negative number of metres")
+    max_name_chars = cot_config.get("max_name_chars")
+    if max_name_chars is not None and (
+        isinstance(max_name_chars, bool)
+        or not isinstance(max_name_chars, int)
+        or max_name_chars < 1
+    ):
+        # Compared with the written callsign and uid, so anything but a
+        # positive integer is a config error under every profile; absent or
+        # null keeps DEFAULT_MAX_NAME_CHARS.
+        raise ValueError("max_name_chars must be a positive integer, or be left out")
     how = cot_config.get("how")
     if how is not None and not (type(how) is str and _COT_HOW_SHAPE.fullmatch(how)):
         # Written into the event's `how` attribute as given. An empty string
@@ -346,6 +363,23 @@ def _point_value(value):
         except (ValueError, OverflowError):
             return False
     return _finite_real(value)
+
+
+def _within_position_bounds(lat, lon):
+    """True when lat lies in [-90, 90] and lon in [-180, 180], the schema's bounds.
+
+    Called after _point_value, so each value is a finite number, a Decimal or
+    numeric text. The comparison is exact, through Decimal: a float compares
+    as the value it holds, a Decimal as itself, numeric text as the decimal
+    it spells. A value a hair past the bound that a float would round onto
+    it is refused, not written as given. Numeric text whose exponent the
+    decimal module cannot hold is refused too, and a NaN, which _point_value
+    never admits, is refused rather than raised.
+    """
+    try:
+        return -90 <= Decimal(lat) <= 90 and -180 <= Decimal(lon) <= 180
+    except (ValueError, TypeError, ArithmeticError):
+        return False
 
 
 def _standard_shape(cot_xml):
@@ -543,6 +577,12 @@ def zmeta_to_cot(event, cot_config=None, now=None, refusal=None):
                 replay mode (contract section 9.5). With the mode off, an
                 event missing event.ts is refused (returns None) instead of
                 being silently stamped with the current time.
+            - max_name_chars (int): the longest callsign and uid the
+                projection writes, in code points (default
+                DEFAULT_MAX_NAME_CHARS, 256); an event with a longer one is
+                refused, never cut. Absent or None keeps the default;
+                anything but a positive integer is a config error under
+                every profile.
             - profile (str): "standard" (default) or "cds"; see the README.
             - stale_window_s (number): cds only; stale is never later than
                 the projection time plus this many seconds (default
@@ -565,8 +605,11 @@ def zmeta_to_cot(event, cot_config=None, now=None, refusal=None):
         event type, prohibited raw payload fields, missing geo/track_id,
         missing or unparseable event.ts outside wall-clock mode - see
         _parse_utc, any non-finite (NaN/inf) number that would become a CoT
-        attribute, a validity window whose stale timestamp is not
-        representable - see _stale_time, or a geo.dimensionality "2D"
+        attribute, a position outside the schema's bounds (lat beyond
+        +/-90, lon beyond +/-180; since 2026-10-23), a callsign or uid longer
+        than max_name_chars (since 2026-10-23), a validity window whose
+        stale timestamp is not representable - see _stale_time, or a
+        geo.dimensionality "2D"
         declaration paired with a present alt_m - see _projected_hae). Also
         None under a config validate_cot_config refuses, a malformed `how`
         among them. Under
@@ -748,6 +791,13 @@ def zmeta_to_cot(event, cot_config=None, now=None, refusal=None):
     for value in ellipse_members:
         if value is not None and not _finite_real(value):
             return None
+    # The schema bounds a position. A caller that skipped validation can hand
+    # this function one outside them (a maritime "position not available"
+    # sentinel of 91/181, for one), and before 2026-10-23 it left as a
+    # well-formed point at an impossible place. Refuse: a consumer cannot
+    # draw it honestly, and no repaired value is a position the event claimed.
+    if not _within_position_bounds(lat, lon):
+        return None
 
     # Callsign with hostile emitter fallback: never show raw track IDs
     # on TAK for hostile markers. Use "RF Emitter" or "Detection" instead.
@@ -763,6 +813,16 @@ def zmeta_to_cot(event, cot_config=None, now=None, refusal=None):
             or callsign.startswith("torchai-track-")
         ):
             callsign = "RF Emitter"
+
+    # A callsign or uid past the bound is refused, not cut: a cut uid is a
+    # different identity and a cut callsign a repaired claim (design gate 3).
+    # The bound is the deployment's (`max_name_chars`), DEFAULT_MAX_NAME_CHARS
+    # when it sets none.
+    max_name_chars = cot_config.get("max_name_chars")
+    if max_name_chars is None:
+        max_name_chars = DEFAULT_MAX_NAME_CHARS
+    if len(callsign) > max_name_chars or len(str(track_id)) > max_name_chars:
+        return None
 
     # Remarks: source_summary, then confidence (whenever the event carries
     # one — never dropped because other remarks are present), then error

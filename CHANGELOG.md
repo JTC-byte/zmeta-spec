@@ -2,6 +2,28 @@
 
 ## [Unreleased]
 
+- 2026-10-23 — **The CoT projection refuses an impossible position and an
+  unbounded name.** A caller that translates a dialect itself and feeds the
+  result straight to `zmeta_to_cot` never meets the validator; at v1.1.25 and
+  v1.1.26 a position outside the schema's bounds (a maritime "position not
+  available" sentinel of 91/181 among them) left as well-formed CoT at an
+  impossible place, and a callsign or uid of any length left as given. A
+  `lat` beyond ±90 or a `lon` beyond ±180 now refuses the event, and a
+  callsign or uid longer than the new `max_name_chars` setting (default 256,
+  a deployment default, not a limit any CoT document states) refuses it
+  rather than cuts it; the bound applies to what is written, in code points,
+  the derived callsign included, and the position comparison is exact, so a
+  Decimal or numeric text a hair past the bound is refused too. The third
+  gap the same read found, a character XML 1.0 forbids in an identity
+  attribute, was already closed on `develop` by the 2026-10-01 hardening,
+  and refused under `cds` since
+  v1.1.26; it stays open at v1.1.25 and on the standard path at v1.1.26 until
+  the next cut. Fourteen new tests: twelve fail on `develop` d1a503d, where
+  the guards do not exist, with only the name constant defined there, and
+  the two boundary cases pass as the positive control;
+  every example `STATE_EVENT` projects byte for byte as before under both
+  profiles. Adapter code only; no semantics change. On the maintainer's go
+  of 2026-10-19.
 - 2026-10-12 — **Records: four tensions booked, guidance gap (af), two
   documentation corrections.** Doctrine entries F4-01 to F4-04 record, for
   the maintainer, a deterministic detection's class between measured fact
