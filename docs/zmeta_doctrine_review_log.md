@@ -3521,6 +3521,52 @@ the capped values as the gateway's.
 **Decision:** none here; booked from the boundary-pass re-read of
 2026-10-07 for the maintainer.
 
+## Cycle F5 — 2026-10-23 (fielded evidence: a consumer's federation path read on 2026-10-19)
+
+One tension, found while reading what a consumer's federation path would
+send through this adapter's released projection, and resolved on the
+maintainer's go of 2026-10-19 as adapter hardening. The private session
+records carry the read and its corrections; no partner, host or position
+appears here.
+
+### F5-01 — The projection trusts a position and a name it never validated · **CHANGED 2026-10-23 (two refusals added; the third case already closed 2026-10-01)**
+
+**Observed:** the CoT egress projection's contract is that it projects
+validated events, and every path through the reference gateway validates
+first. A consumer that translates a dialect itself and imports the
+projection at its pin (v1.1.25) never meets the validator. Read against
+that path on 2026-10-19: a position outside the schema's bounds (a maritime
+"position not available" sentinel of 91/181 among them) left as well-formed
+CoT at an impossible place; a callsign or uid of any length left as given;
+and a character XML 1.0 forbids in an identity attribute left as a document
+no parser reads. The consumer's own counts found none of the three on its
+stream that day, so none caused the incident that prompted the read; the
+gaps are latent.
+
+**The tension:** design gate 3 (no laundering) and gate 4 (egress is a
+projection of a validated event) both assume the event was validated, and
+an adapter that renders whatever it is handed launders by omission when it
+is called outside that assumption. The honest fix is refusal, the
+projection's documented signal, never a repaired value: a position moved
+into range is a position the event never claimed, a cut uid is a different
+identity, and a cut callsign is a repaired display claim.
+
+**Decision:** the projection refuses a `lat` beyond ±90 or a `lon` beyond
+±180, and a callsign or uid longer than `max_name_chars` (default 256, the
+adapter's deployment default; no CoT or TAK document states a limit), the
+derived `Track <uid>` callsign counted as written. The third case was found
+already closed on `develop` by the 2026-10-01 standard-profile hardening
+(the output is parsed and refused when it does not read; `cds` has refused
+it since v1.1.26), so the branch adds no code for it and records the per-tag
+state: open at v1.1.25 on both paths and at v1.1.26 on the standard path
+until the next cut. Each guard was seen failing before it existed; every
+example `STATE_EVENT` projects byte for byte as before under both profiles.
+The branch changes no live path until a cut and a consumer's re-pin; the
+consumer's own range check and the producers' ingress guards stay theirs.
+Left to the maintainer with the branch: whether a display string past the
+bound should instead be cut with a stated marker, and whether a `track_id`
+that is not text (which raises out of `_esc` at every tag) should refuse.
+
 ## Archive
 
 Terminal tension entries and retired rules, one line each. Full bodies live in

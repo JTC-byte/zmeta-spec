@@ -1425,3 +1425,102 @@ def test_a_callsign_that_is_not_text_renders_as_its_text():
     event["payload"]["callsign"] = 417
     root = ET.fromstring(_standard(event))
     assert root.find("detail/contact").get("callsign") == "417"
+
+
+# --- Projection guards (2026-10-23): an impossible position and an unbounded name ---
+#
+# The projection's contract is that it projects validated events, but a
+# consumer that translates a dialect itself and feeds the result straight to
+# this function never meets the validator. At v1.1.25 and v1.1.26 a position
+# outside the schema's bounds (the AIS "not available" pair 91/181 among them)
+# left as well-formed CoT, and a callsign or uid of any length left as given.
+# Each case below was seen failing on develop d1a503d before the guard existed.
+
+
+def test_an_out_of_range_position_refuses():
+    for lat, lon in (
+        (91.0, 0.0),
+        (-91.0, 0.0),
+        (0.0, 181.0),
+        (0.0, -181.0),
+        (90.000001, 0.0),
+        (0.0, -180.000001),
+        (91.0, 181.0),
+    ):
+        event = _nf_state_event()
+        event["payload"]["geo"]["lat"] = lat
+        event["payload"]["geo"]["lon"] = lon
+        assert _standard(event) is None, (lat, lon)
+    # Numeric text and a Decimal are point values too, and get the same bound.
+    for lat in ("91", Decimal("90.5")):
+        event = _nf_state_event()
+        event["payload"]["geo"]["lat"] = lat
+        assert _standard(event) is None, lat
+
+
+def test_a_position_on_the_boundary_renders_as_given():
+    for lat, lon in ((90.0, 180.0), (-90.0, -180.0), (0.0, 0.0), (90, -180)):
+        event = _nf_state_event()
+        event["payload"]["geo"]["lat"] = lat
+        event["payload"]["geo"]["lon"] = lon
+        root = ET.fromstring(_standard(event))
+        point = root.find("point")
+        assert point.get("lat") == str(lat), (lat, lon)
+        assert point.get("lon") == str(lon), (lat, lon)
+
+
+def test_a_name_longer_than_the_bound_refuses():
+    bound = zmeta_to_cot_module.DEFAULT_MAX_NAME_CHARS
+    for field in ("callsign", "track_id"):
+        event = _nf_state_event()
+        event["payload"]["callsign"] = "short"
+        event["payload"][field] = "n" * (bound + 1)
+        assert _standard(event) is None, field
+        event = _nf_state_event()
+        event["payload"]["callsign"] = "short"
+        event["payload"][field] = "n" * bound
+        root = ET.fromstring(_standard(event))
+        if field == "track_id":
+            assert root.get("uid") == "n" * bound
+        else:
+            assert root.find("detail/contact").get("callsign") == "n" * bound
+
+
+def test_the_bound_applies_to_the_written_callsign():
+    # With no callsign the adapter writes "Track <uid>", so a uid within the
+    # bound can still carry the written callsign past it.
+    bound = zmeta_to_cot_module.DEFAULT_MAX_NAME_CHARS
+    event = _nf_state_event()
+    event["payload"]["track_id"] = "n" * (bound - 5)
+    assert _standard(event) is None
+    event["payload"]["callsign"] = "short"
+    assert ET.fromstring(_standard(event)).get("uid") == "n" * (bound - 5)
+
+
+def test_the_name_bound_is_a_setting():
+    config = dict(_TEST_CONFIG, max_name_chars=16)
+    assert zmeta_to_cot_module.validate_cot_config(config) == "standard"
+    event = _nf_state_event()
+    event["payload"]["callsign"] = "c" * 17
+    assert _standard(event, config) is None
+    event["payload"]["callsign"] = "c" * 16
+    assert _standard(event, config) is not None
+    event = _nf_state_event()
+    event["payload"]["track_id"] = "t" * 17
+    assert _standard(event, config) is None
+    # Absent or null means the default, like every other optional key.
+    config = dict(_TEST_CONFIG, max_name_chars=None)
+    assert zmeta_to_cot_module.validate_cot_config(config) == "standard"
+    assert _standard(_nf_state_event(), config) is not None
+
+
+def test_a_name_bound_that_is_not_a_positive_integer_is_a_config_error():
+    for value in (0, -1, 1.5, "16", True, [16]):
+        config = dict(_TEST_CONFIG, max_name_chars=value)
+        try:
+            zmeta_to_cot_module.validate_cot_config(config)
+        except ValueError:
+            pass
+        else:
+            raise AssertionError(value)
+        assert _standard(_nf_state_event(), config) is None, value

@@ -53,6 +53,23 @@ or whose root holds anything but a `point` and a `detail`, is refused. A
 configuration error under every profile, so the gateway stops at startup
 instead of writing it into every track.
 
+Two refusals were added on 2026-10-23, on the maintainer's go of 2026-10-19,
+after a read of what a consumer that translates a dialect itself and feeds
+the result straight to this function would send. A position outside the
+schema's bounds (`lat` beyond ±90 or `lon` beyond ±180, which includes a
+maritime "position not available" sentinel of 91/181) is refused rather than
+drawn at an impossible place. A callsign or uid longer than `max_name_chars`
+(default `DEFAULT_MAX_NAME_CHARS`, 256) is refused rather than cut, because a
+cut uid is a different identity and a cut callsign a repaired claim; the
+bound applies to what is written, so with no callsign in the event the
+derived `Track <uid>` counts, and a uid longer than the bound minus six
+characters needs an explicit callsign. The number is the adapter's
+deployment default, not a limit any CoT or TAK document states; anything but
+a positive integer is a configuration error under every profile, and the
+`cds` profile knows the key. Output for well-formed, in-range input is
+unchanged: every example `STATE_EVENT` projects byte for byte as before under
+both profiles. At v1.1.25 and v1.1.26 both cases pass through.
+
 ### Declared 2-D geo (doctrine A1-02)
 
 `payload.geo.dimensionality: "2D"` (schema/zmeta-event-1.1.0.schema.json
@@ -192,6 +209,8 @@ first.
 | links | as the event carries them | no http(s) link anywhere; one that survives outside `remarks`, for example in a callsign, refuses the event |
 | `point` attributes | Python's float text, exponent form for a value near zero | plain decimal notation, the form the public CoT event schema accepts; a value that is not a number refuses |
 | `uid`, `time`, `start`, `contact`, `track`, `precisionlocation` | | same values, serialized by `ElementTree` |
+| names | a callsign or uid longer than `max_name_chars` (default 256) refuses the event (2026-10-23) | the same |
+| position | `lat` beyond ±90 or `lon` beyond ±180 refuses the event (2026-10-23) | the same |
 
 The `remarks` line is built from a template, in this order, joined by `; `:
 `track via ZMeta`; `affiliation not asserted`; `confidence=<value>` when the
@@ -339,6 +358,7 @@ cot_config = {
     "how": None,                       # Event derivation pedigree, a CoT how token (e.g. "m-g"); None = omit
     "altsrc": None,                    # Altitude-source pedigree; None = omit
     "profile": "standard",             # or "cds"; see Profiles
+    "max_name_chars": 256,              # longest callsign or uid written; longer refuses (never cut)
 }
 ```
 

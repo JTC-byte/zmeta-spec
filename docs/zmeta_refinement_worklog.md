@@ -2,7 +2,30 @@
 
 ## Current Resume Note
 
-- Last updated: 2026-10-12 (records: the merge of `wave/records-gaps-2026-10`, doctrine F4-01 to F4-04, guidance gap (af), two documentation corrections; `wave/records-pass-2026-10-12`)
+- Last updated: 2026-10-23 (the CoT projection guards, on `exp/cot-projection-guards-2026-10`; merge pending the maintainer's word)
+- **2026-10-23 (the CoT projection guards, `exp/cot-projection-guards-2026-10`;
+  merge pending the maintainer's word).** On the maintainer's go of
+  2026-10-19, after a read of what a consumer that translates a dialect
+  itself and feeds the result straight to the projection would send: a
+  position outside the schema's bounds now refuses (`_within_position_bounds`,
+  after the point-value checks), and a callsign or uid longer than the new
+  `max_name_chars` setting (default 256) refuses rather than cuts, the
+  derived `Track <uid>` callsign counted as written. The read's first case,
+  a character XML 1.0 forbids in an identity attribute, was found already
+  closed on `develop` by the 2026-10-01 hardening (refused under `cds`
+  since v1.1.26; open at v1.1.25 and on the standard path at v1.1.26), so
+  the branch adds no code for it and records the per-tag state instead. Ten
+  tests, each run against the unchanged adapter first and seen failing
+  (nine) or passing as the positive control (the boundary cases); every
+  example `STATE_EVENT` projected byte for byte the same by the `develop`
+  module and the branch module under the standard profile, with and without
+  a `how`, and under `cds` with the projection instant beside each event's
+  time, and a mutated event (lat 91) differed as the comparison's own
+  control. `max_name_chars` is a known `cds` key; anything but a positive
+  integer is a configuration error under every profile. Found on the way
+  and not changed here: a `track_id` that is not text raises out of `_esc`
+  at every tag, where the documented signal is `None`; put to the
+  maintainer with the branch.
 - **2026-10-12 (records wave `wave/records-pass-2026-10-12`; no behavior
   change).** `wave/records-gaps-2026-10` (456f7f7) merged into `develop` as
   0231151 on the maintainer's go of 2026-10-11 and was pushed; the kernel
