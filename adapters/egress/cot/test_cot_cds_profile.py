@@ -646,8 +646,9 @@ class CdsPublicSchemaTest(unittest.TestCase):
 
 class ProjectionGuardsTest(unittest.TestCase):
     """The 2026-10-23 guards run on the standard path before the cds
-    reduction, so the profile inherits them; each case was seen failing on
-    develop d1a503d before the guard existed."""
+    reduction, so the profile inherits them. Run against develop d1a503d
+    with only DEFAULT_MAX_NAME_CHARS defined there, the refusals failed and
+    the boundary case passed, as the positive control."""
 
     def test_an_out_of_range_position_refuses(self):
         for lat, lon in ((91.0, 181.0), (-90.5, 0.0), (0.0, 180.5)):

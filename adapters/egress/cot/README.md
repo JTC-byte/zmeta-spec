@@ -58,15 +58,17 @@ after a read of what a consumer that translates a dialect itself and feeds
 the result straight to this function would send. A position outside the
 schema's bounds (`lat` beyond ±90 or `lon` beyond ±180, which includes a
 maritime "position not available" sentinel of 91/181) is refused rather than
-drawn at an impossible place. A callsign or uid longer than `max_name_chars`
-(default `DEFAULT_MAX_NAME_CHARS`, 256) is refused rather than cut, because a
-cut uid is a different identity and a cut callsign a repaired claim; the
-bound applies to what is written, so with no callsign in the event the
-derived `Track <uid>` counts, and a uid longer than the bound minus six
-characters needs an explicit callsign. The number is the adapter's
-deployment default, not a limit any CoT or TAK document states; anything but
-a positive integer is a configuration error under every profile, and the
-`cds` profile knows the key. Output for well-formed, in-range input is
+drawn at an impossible place; the comparison is exact, so a Decimal or
+numeric text a hair past the bound is refused too. A callsign or uid longer
+than `max_name_chars` (default `DEFAULT_MAX_NAME_CHARS`, 256, counted in code
+points) is refused rather than cut, because a cut uid is a different identity
+and a cut callsign a repaired claim; the bound applies to what is written, so
+with no callsign in the event the derived `Track <uid>` counts (a hostile
+type writes `RF Emitter` instead, so there only the uid meets the bound), and
+a uid longer than the bound minus six characters needs an explicit callsign.
+The number is the adapter's deployment default, not a limit any CoT or TAK
+document states; anything but a positive integer is a configuration error
+under every profile, and the `cds` profile knows the key. Output for well-formed, in-range input is
 unchanged: every example `STATE_EVENT` projects byte for byte as before under
 both profiles. At v1.1.25 and v1.1.26 both cases pass through.
 
@@ -358,7 +360,7 @@ cot_config = {
     "how": None,                       # Event derivation pedigree, a CoT how token (e.g. "m-g"); None = omit
     "altsrc": None,                    # Altitude-source pedigree; None = omit
     "profile": "standard",             # or "cds"; see Profiles
-    "max_name_chars": 256,              # longest callsign or uid written; longer refuses (never cut)
+    "max_name_chars": 256,             # Longest callsign or uid written, in code points; longer refuses
 }
 ```
 

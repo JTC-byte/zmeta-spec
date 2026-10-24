@@ -114,12 +114,11 @@ def _class_label(value):
 # never rendered as invented precision (contract sections 4.7 / 12.2).
 COT_UNKNOWN_ACCURACY = 9999999.0
 
-# The longest callsign and uid the projection writes, in characters: the
+# The longest callsign and uid the projection writes, in code points: the
 # adapter's deployment default, which `max_name_chars` overrides. No CoT or
 # TAK document states a limit; this one bounds what a consumer must index and
 # draw. An event past it is refused rather than cut, because a cut uid is a
-# different identity and a cut callsign a repaired claim (design gate 3). The
-# longest callsign seen on a fielded stream in October 2026 was 22 characters.
+# different identity and a cut callsign a repaired claim (design gate 3).
 DEFAULT_MAX_NAME_CHARS = 256
 
 # Projection profiles. "standard" is the adapter's own output, unchanged by the
@@ -370,13 +369,16 @@ def _within_position_bounds(lat, lon):
     """True when lat lies in [-90, 90] and lon in [-180, 180], the schema's bounds.
 
     Called after _point_value, so each value is a finite number, a Decimal or
-    numeric text. A Decimal too large for a float compares as infinite and
-    fails the bound; an int too large for a float raises and fails it too.
+    numeric text. The comparison is exact, through Decimal: a float compares
+    as the value it holds, a Decimal as itself, numeric text as the decimal
+    it spells. A value a hair past the bound that a float would round onto
+    it is refused, not written as given.
     """
     try:
-        return -90.0 <= float(lat) <= 90.0 and -180.0 <= float(lon) <= 180.0
-    except (ValueError, TypeError, OverflowError):
+        lat_value, lon_value = Decimal(lat), Decimal(lon)
+    except (ValueError, TypeError, ArithmeticError):
         return False
+    return -90 <= lat_value <= 90 and -180 <= lon_value <= 180
 
 
 def _standard_shape(cot_xml):
@@ -575,10 +577,11 @@ def zmeta_to_cot(event, cot_config=None, now=None, refusal=None):
                 event missing event.ts is refused (returns None) instead of
                 being silently stamped with the current time.
             - max_name_chars (int): the longest callsign and uid the
-                projection writes (default DEFAULT_MAX_NAME_CHARS, 256); an
-                event with a longer one is refused, never cut. Absent or
-                None keeps the default; anything but a positive integer is
-                a config error under every profile.
+                projection writes, in code points (default
+                DEFAULT_MAX_NAME_CHARS, 256); an event with a longer one is
+                refused, never cut. Absent or None keeps the default;
+                anything but a positive integer is a config error under
+                every profile.
             - profile (str): "standard" (default) or "cds"; see the README.
             - stale_window_s (number): cds only; stale is never later than
                 the projection time plus this many seconds (default
@@ -603,8 +606,9 @@ def zmeta_to_cot(event, cot_config=None, now=None, refusal=None):
         _parse_utc, any non-finite (NaN/inf) number that would become a CoT
         attribute, a position outside the schema's bounds (lat beyond
         +/-90, lon beyond +/-180; since 2026-10-23), a callsign or uid longer
-        than max_name_chars (since 2026-10-23), a validity window whose stale timestamp is not
-        representable - see _stale_time, or a geo.dimensionality "2D"
+        than max_name_chars (since 2026-10-23), a validity window whose
+        stale timestamp is not representable - see _stale_time, or a
+        geo.dimensionality "2D"
         declaration paired with a present alt_m - see _projected_hae). Also
         None under a config validate_cot_config refuses, a malformed `how`
         among them. Under
