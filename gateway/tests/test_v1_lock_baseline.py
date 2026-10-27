@@ -45,7 +45,7 @@ ROOT = Path(__file__).resolve().parents[2]
 # last_seen_ts definition, his decision 4 of 2026-10-25 and his contract 2.1
 # patch concurrence of 2026-10-27): section 7.6's Fusion rules gain one bullet
 # defining `last_seen_ts`, a field 7.6 lists and no text defined. It tightens
-# conformance around the reference projector's shipped behaviour; no other
+# conformance around the reference projector's shipped in-order behaviour; no
 # rule text, no section 4 invariant and no schema byte changed.
 CONTRACT_SHA256 = "4c89afd0b03aed8c128b8150f8f0efb84273937d79f290916dbb136612f58a1e"
 V1_0_SCHEMA_SHA256 = "1d2d84164b3a8986874e932c0e9369be3bf392a483a8ff261d464f34bd16d7b5"
