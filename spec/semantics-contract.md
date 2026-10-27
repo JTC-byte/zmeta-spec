@@ -1126,6 +1126,8 @@ Fusion rules:
   reference the same track.
 - `track_id` values MUST be globally unique.
 - `track_id` values MUST NOT be reused after loss, merge, split, or retirement.
+- `last_seen_ts`: the `event.ts` of the latest contributing observation the fused
+  estimate rests on; it is never later than the fusion's own `event.ts`.
 
 ### 7.7 STATE_EVENT
 

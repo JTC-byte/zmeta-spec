@@ -2,6 +2,19 @@
 
 ## [Unreleased]
 
+- 2026-10-27 — **Contract 7.6 defines `last_seen_ts`.** The Fusion rules
+  gain one bullet: "`last_seen_ts`: the `event.ts` of the latest contributing
+  observation the fused estimate rests on; it is never later than the fusion's
+  own `event.ts`." The field was listed in 7.6 and defined nowhere; the
+  sentence writes down what the reference track projector already emits, as a
+  contract 2.1 patch (a first definition that tightens conformance, accepted
+  by the maintainer on the record, 2026-10-27). Four shipped FUSION examples
+  disagreed with the sentence and are corrected to their member observation's
+  `event.ts` (profile-M, examples-1.0, profile-H, eo-chain); the correlation
+  example and the v1.1 example already agreed. The v1.0 lock-baseline contract
+  anchor moves with a dated note; no schema, policy or validator byte changes,
+  and no check reads the relation yet (booked as outer-ring work).
+
 - 2026-10-23 — **The CoT projection refuses an impossible position and an
   unbounded name.** A caller that translates a dialect itself and feeds the
   result straight to `zmeta_to_cot` never meets the validator; at v1.1.25 and
