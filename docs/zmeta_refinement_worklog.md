@@ -2,7 +2,20 @@
 
 ## Current Resume Note
 
-- Last updated: 2026-10-23 (the CoT projection guards, on `exp/cot-projection-guards-2026-10`; merge pending the maintainer's word)
+- Last updated: 2026-10-27 (the 7.6 `last_seen_ts` definition, on `exp/last-seen-ts-7-6`; merge pending the maintainer's word)
+- **2026-10-27 (the 7.6 `last_seen_ts` definition, `exp/last-seen-ts-7-6`;
+  merge pending the maintainer's word).** On the maintainer's adoption of the
+  sentence (2026-10-25, decision 4), his choice to correct the examples rather
+  than loosen it (2026-10-27), and his concurrence that a first definition of
+  a listed, undefined field is a contract 2.1 patch (2026-10-27): one bullet
+  added to 7.6's Fusion rules, four FUSION examples and one must-pass
+  conformance vector corrected to their member observation's `event.ts`, the
+  lock anchor moved with a dated note. Negative control: the anchor test seen
+  failing with the sentence in and the anchor unmoved, then green after the
+  move. The sentence states the reference projector's in-order behaviour; its
+  late-input stamping is a question for the relation check, which no validator
+  runs yet and which is follow-up work for the next records pass, with its own
+  failing control.
 - **2026-10-23 (the CoT projection guards, `exp/cot-projection-guards-2026-10`;
   merge pending the maintainer's word).** On the maintainer's go of
   2026-10-19, after a read of what a consumer that translates a dialect
