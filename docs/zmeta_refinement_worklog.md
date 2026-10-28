@@ -2,7 +2,34 @@
 
 ## Current Resume Note
 
-- Last updated: 2026-10-27 (v1.1.27 cut from develop: the 7.6 `last_seen_ts` definition, the CoT egress hardening and the held integration line)
+- Last updated: 2026-10-27 (v1.1.27 published)
+- **2026-10-27 (v1.1.27 published).** The cut commit 3e692ff on `develop`;
+  `main` moved to it without a checkout (`git branch -f`, after the
+  ancestor check), so no tracked file was re-smudged between signing and
+  upload; annotated tag `v1.1.27` on 3e692ff; `develop`, `main` and the tag
+  pushed together in one atomic push on the maintainer's typed go of
+  2026-10-27 ("you have my go, if all checks out and is green you can cut
+  the commit, version tag and push"). GitHub CI completed with success for
+  the release commit on develop, main and the tag, the first green
+  `develop` run since the v1.1.26 cut. The GitHub release, on his typed
+  word of the same evening ("if all is green, lets push forward"), carries
+  seventeen assets, the v1.1.26 set: the four zips, the manifest, the
+  notes, the validation report and `SHA256SUMS_v1.1.27.txt`, a detached
+  signature for each of the eight, and the public key
+  `ZMETA_RELEASE_SIGNING_KEY_v1.1.27.asc`. Verified as published: every
+  asset downloaded from the release into a clean directory, `sha256sum -c`
+  over the downloaded checksum file passed for all seven entries, the eight
+  downloaded signatures verified as good against the Incept.IO ZMeta
+  release signing key with the Gpg4win gpg, the downloaded key file
+  imported into an empty keyring verified the downloaded checksum signature
+  there, and all seventeen downloaded assets are byte-identical to the
+  local copies, the tracked ones to the committed blobs. Before the
+  signing, an independent three-reader verification of the prepared tree
+  found one false sentence in the notes and the README (that well-formed
+  CoT output is byte-identical under both profiles, which the `cds` stale
+  cap contradicts); it was corrected and the bundles, the package and the
+  checksums rebuilt before any signature was made. The battery with the
+  signed set in place read 2022 passed, 3 skipped.
 - **2026-10-27 (v1.1.27 cut: the 7.6 `last_seen_ts` definition, the
   section 22 class table row, the CoT egress hardening, the failure-modes
   honesty fix, the strict command posture variants, two registry waves and
