@@ -1,8 +1,8 @@
 manifest_version: 1
-release_id: zmeta-v1.1.26
-release_name: ZMeta v1.1.26
+release_id: zmeta-v1.1.27
+release_name: ZMeta v1.1.27
 release_status: formal_release
-release_date: '2026-09-29'
+release_date: '2026-10-27'
 zmeta_versions:
   normative:
   - '1.0'
@@ -16,10 +16,10 @@ hash_canonicalization:
   group_hashes: sha256 over sorted 'relative/path\nsha256:<file_hash>\n' entries
   release_bundle_hash: sha256 over sorted 'group_name\nsha256:<group_hash>\n' entries; release manifest file excluded
   release_manifest_hash: sha256 over canonical YAML manifest content with release_manifest_hash set to null
-semantic_contract_hash: sha256:3893bbbdbd25944062581b465d5e23ac65a5ac5df0fe1d704b8540419c0226fa
+semantic_contract_hash: sha256:1ed6c6eeca32dfe53e9ab0d6fde8578e4556b9322a74bb3426cbcb845ea21c9f
 schema_bundle_hash: sha256:0a5023e1d7b23dc71450dfbd3b25d3ec367b5f183f4aa9e42951708899630f01
-policy_bundle_hash: sha256:6c6f14b0f9dbe7220f2e6d4c05ad40155ade8e11e68ed2a4851f8bece624f3fa
-extension_registry_hash: sha256:105155550c6f94f7a75d4dbb95b2ce89415a57b31a7988853b7c5011b04f3239
+policy_bundle_hash: sha256:0150177c1c601e46db7415a228904f543f4f5b3ff4151fb8bef40df0db9cd108
+extension_registry_hash: sha256:9f5155b737a438affb0126d7c60451ab371f7a561fecf2f2282479e3fdd65947
 conformance_class_manifest_hash: sha256:6a3a9d930cc06d5228cb2d1ad8b42a91048425ff1e500bf7bfee3528bf2b4524
 profile_projection_catalog_hash: sha256:bae61b3a01cc0a3c2aa1f90391f231d40484175280bce9dbb43371eb0ea04341
 encoding_negative_suite_hash: sha256:d36e2109e535fde0dd191b92fd3a7dbd07839ce3539b3d9fdf5dd8aed04487b0
@@ -27,9 +27,9 @@ profile_precision_policy_hash: sha256:8c4dcb6ee305b31cb08d4cc429138fd9d1ed149024
 bad_event_corpus_hash: sha256:bf7e0546c2923b1fb20bf2ebcc0e78c919f381ffb3eea14d75549e8c6467a14f
 adapter_conformance_hash: sha256:b1c8ff49878facbd699a5ab323c3ab3bbadfbf4a3fafc606816240b191191a97
 encoding_projection_specs_hash: sha256:5e14298cb0ffb42b84f2d835bc4d1266c629f1a1468e0416caaaadc449e29cce
-process_governance_hash: sha256:8bf6ea58b0694d11b6e7467467fd78ee6ac1cda6a42d20f2eac7d663e28bd24f
-release_bundle_hash: sha256:ff32f4f0cc8a37a8b717bffc48e0d6a53f5eb36bd04d648bdff47ee071ccd647
-release_manifest_hash: sha256:def714e2db757f564b92c333510c108896c78a4c9712b7d032f34c74af249a4d
+process_governance_hash: sha256:b2f531b5e9a0940ee49ade530c26f939dfd2b5e2a85f5d12e74bf1a8da2edda4
+release_bundle_hash: sha256:f4adda34298c72890da53fcbcbefb44a98d345055b79a07d4763e34d0ae2ae53
+release_manifest_hash: sha256:f9612a89f54fd48e4fdd6749c6f7422370b4046f9ae51d81e27a5318c6ae6f96
 artifact_hashes:
 - path: AGENTS.md
   group: process_governance
@@ -51,9 +51,17 @@ artifact_hashes:
   group: process_governance
   hash: sha256:0085d72ae8c4d11550562a784980275258a99b5b72450a2d6937b0971b91b201
   canonicalization: text_lf
+- path: configs/policy-variants/command-evidence.strict.yaml
+  group: policy_bundle
+  hash: sha256:aa257f161491ff091eb02266e287db8be557c48c2e0eac948f5a7b7bfe359e7c
+  canonicalization: text_lf
 - path: configs/policy-variants/producer-authority.strict.yaml
   group: policy_bundle
   hash: sha256:4f9ab94813f97ff30b38bec62f4cfddddbb180b66ff82906a7e4573fdc5c628b
+  canonicalization: text_lf
+- path: configs/policy-variants/routing.command-origin.yaml
+  group: policy_bundle
+  hash: sha256:e45c789c9c846bab07b71ae312d7ffe9bde1580f2a7996c367a74fb3b43d7eca
   canonicalization: text_lf
 - path: configs/policy-variants/timing-freshness-profile-L-degrade.yaml
   group: policy_bundle
@@ -69,11 +77,11 @@ artifact_hashes:
   canonicalization: text_lf
 - path: conformance/claims/example-core-producer.yaml
   group: claims
-  hash: sha256:4d97e9c9f52e40bcae64835cdfe0632be1c5c8f84c7cb7dbcae7946f977689e8
+  hash: sha256:fcd167b4e24d6e32893c9583836c9b8632f70e61acff8858b75d54fd39d19e1a
   canonicalization: text_lf
 - path: conformance/claims/example-reference-gateway.yaml
   group: claims
-  hash: sha256:beda45f153e59f76430d9bab92cdff4756df9140d516b7999954b3d302ad5933
+  hash: sha256:9f70f55144d19e6b16a0d774b751c6ef67c8f80b29b0b165f5abc7194bdb2bf6
   canonicalization: text_lf
 - path: conformance/conformance_classes.yaml
   group: conformance_classes
@@ -101,7 +109,7 @@ artifact_hashes:
   canonicalization: text_lf
 - path: conformance/must-pass.jsonl
   group: core_conformance
-  hash: sha256:d1b4abb264493d97274537eca1dd5306319491467357ac0d3287ccc3411071d4
+  hash: sha256:3bff60ab252f457a0470a4b91dbcab4a2b44b93ac89923dcf2f53ceced6e0d69
   canonicalization: text_lf
 - path: conformance/profile-precision/context.jsonl
   group: profile_precision
@@ -133,7 +141,7 @@ artifact_hashes:
   canonicalization: text_lf
 - path: docs/zmeta_change_governance.md
   group: process_governance
-  hash: sha256:e3f47ced33e17fa7dede5ec15dbbd8b519a4d8c84c8a05689192a351dc09e19e
+  hash: sha256:161064c7d3af95ad37ca3ab351f99b3d076c380b641ee9000a5cb78ba6353b5f
   canonicalization: text_lf
 - path: docs/zmeta_defensive_publication.md
   group: process_governance
@@ -241,7 +249,7 @@ artifact_hashes:
   canonicalization: text_lf
 - path: release/governed-baseline.yaml
   group: release_packaging
-  hash: sha256:cc28f8aff90b591296baa02bc7934ee046d7b57b5b6aee7b8ad02a909a088bab
+  hash: sha256:d2bc7917035bd41c247fadded95eea2baef14fdde997da5925be71c29d642faa
   canonicalization: text_lf
 - path: schema/proto/zmeta_event_v1.proto
   group: encoding_projection_specs
@@ -265,7 +273,7 @@ artifact_hashes:
   canonicalization: text_lf
 - path: spec/extension-registry.yaml
   group: extension_registry
-  hash: sha256:1372715d2965c261736a5309ca10456d378edad8b3cdb9876f8688c724076a4d
+  hash: sha256:6c2806e82dd0fa5fad67e4afa80b679261fe493a29deacc5c40e6b9167a3b459
   canonicalization: text_lf
 - path: spec/future-branch-roadmap.md
   group: future_branch_roadmap
@@ -273,7 +281,7 @@ artifact_hashes:
   canonicalization: text_lf
 - path: spec/future-branch-roadmap.yaml
   group: future_branch_roadmap
-  hash: sha256:7bb0d31251bbce4c84fd5277754b600bc2181d8e8c993bfa992bad13e1c2ad2a
+  hash: sha256:221499620df224124deca35d63d4b73a47914a44d2e72e09358887155df89d95
   canonicalization: text_lf
 - path: spec/protobuf-encoding.md
   group: encoding_projection_specs
@@ -289,7 +297,7 @@ artifact_hashes:
   canonicalization: text_lf
 - path: spec/semantics-contract.md
   group: semantic_contract
-  hash: sha256:eb405618a2cbc1421f0947271f75a5b2716a9d7428d5ae9fe10c0963733048d4
+  hash: sha256:4c89afd0b03aed8c128b8150f8f0efb84273937d79f290916dbb136612f58a1e
   canonicalization: text_lf
 - path: tools/build_release_manifest.py
   group: release_tools
@@ -372,7 +380,7 @@ artifact_groups:
     description: Narrow normative semantic baseline.
     paths:
     - spec/semantics-contract.md
-    hash: sha256:3893bbbdbd25944062581b465d5e23ac65a5ac5df0fe1d704b8540419c0226fa
+    hash: sha256:1ed6c6eeca32dfe53e9ab0d6fde8578e4556b9322a74bb3426cbcb845ea21c9f
   schema_bundle:
     description: Canonical dispatcher plus locked v1.0 and experimental v1.1.0 schemas.
     paths:
@@ -383,7 +391,9 @@ artifact_groups:
   policy_bundle:
     description: Release-included policy YAML and policy variant baselines.
     paths:
+    - configs/policy-variants/command-evidence.strict.yaml
     - configs/policy-variants/producer-authority.strict.yaml
+    - configs/policy-variants/routing.command-origin.yaml
     - configs/policy-variants/timing-freshness-profile-L-degrade.yaml
     - policy/command-evidence.yaml
     - policy/lineage.yaml
@@ -395,7 +405,7 @@ artifact_groups:
     - policy/semantics.yaml
     - policy/timing-freshness.yaml
     - policy/violation-codes.yaml
-    hash: sha256:6c6f14b0f9dbe7220f2e6d4c05ad40155ade8e11e68ed2a4851f8bece624f3fa
+    hash: sha256:0150177c1c601e46db7415a228904f543f4f5b3ff4151fb8bef40df0db9cd108
   policy_json_export:
     description: 'Derived verbatim JSON projection of the governed policy YAML, with the generator that defines it. Not authoritative: policy_bundle is the source.'
     paths:
@@ -416,13 +426,13 @@ artifact_groups:
     description: Machine-readable extension and reserved-vocabulary registry.
     paths:
     - spec/extension-registry.yaml
-    hash: sha256:105155550c6f94f7a75d4dbb95b2ce89415a57b31a7988853b7c5011b04f3239
+    hash: sha256:9f5155b737a438affb0126d7c60451ab371f7a561fecf2f2282479e3fdd65947
   future_branch_roadmap:
     description: Machine-readable future versioned-branch roadmap with promotion evidence and tripwires.
     paths:
     - spec/future-branch-roadmap.md
     - spec/future-branch-roadmap.yaml
-    hash: sha256:48e1396c1ce923b6df961f9bcf0cc1f10be66896be43ac9a143c32e743b2ea15
+    hash: sha256:22370090ad43b23a12dc571db8fd0235c98fec4094bc5794d21b25cd2482976d
   conformance_classes:
     description: Machine-readable conformance class manifest.
     paths:
@@ -433,7 +443,7 @@ artifact_groups:
     paths:
     - conformance/must-fail.jsonl
     - conformance/must-pass.jsonl
-    hash: sha256:3d0a4388c20a64d76e96d0c29d9f79aab985f36aa75eeb40c03f45fda198dee5
+    hash: sha256:3a529a3cf0b0db480f589aa57af1497c774beb47f634540e67e45a68e3bd097a
   profile_projection:
     description: Profile projection field catalog and source/projected fixtures.
     paths:
@@ -483,7 +493,7 @@ artifact_groups:
     paths:
     - conformance/claims/example-core-producer.yaml
     - conformance/claims/example-reference-gateway.yaml
-    hash: sha256:ca2d336d00e176b1e87a81eee57f5fbf30c37410d01edbbefae6a55e0c167912
+    hash: sha256:5924ac507bf65a6c515f7f74dfd33bb5bb5d35ef2b784d11131eac5da0c7dac5
   release_policy:
     description: Human-readable release hash taxonomy and canonicalization policy.
     paths:
@@ -499,7 +509,7 @@ artifact_groups:
     - TRADEMARK.md
     - docs/zmeta_change_governance.md
     - docs/zmeta_defensive_publication.md
-    hash: sha256:8bf6ea58b0694d11b6e7467467fd78ee6ac1cda6a42d20f2eac7d663e28bd24f
+    hash: sha256:b2f531b5e9a0940ee49ade530c26f939dfd2b5e2a85f5d12e74bf1a8da2edda4
   release_packaging:
     description: Formal release signing, attestation, package template, and package validation support.
     paths:
@@ -510,7 +520,7 @@ artifact_groups:
     - spec/release-signing-attestation.md
     - tools/build_release_package.py
     - tools/validate_release_package.py
-    hash: sha256:87ebe8ba28c69b576befcff4794d7105ec915455ddeb4759ead155cea6bb3271
+    hash: sha256:74906e38f4ac38d71e525800eb611b82d92b662b980fe4d1d3c2b520a20285b0
   release_tools:
     description: Release hash build and validation tooling.
     paths:

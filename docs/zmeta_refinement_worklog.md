@@ -2,9 +2,48 @@
 
 ## Current Resume Note
 
-- Last updated: 2026-10-27 (the 7.6 `last_seen_ts` definition, on `exp/last-seen-ts-7-6`; merge pending the maintainer's word)
+- Last updated: 2026-10-27 (v1.1.27 cut from develop: the 7.6 `last_seen_ts` definition, the CoT egress hardening and the held integration line)
+- **2026-10-27 (v1.1.27 cut: the 7.6 `last_seen_ts` definition, the
+  section 22 class table row, the CoT egress hardening, the failure-modes
+  honesty fix, the strict command posture variants, two registry waves and
+  the October records waves).** On the maintainer's direction of
+  2026-10-27, given in this repository's session ("please review and
+  either concur and cut or let me know what issues arise for us to fix",
+  after his option B of 2026-10-27: the cut waits for the 7.6 branch and
+  lands by 2026-10-31), with the merge of `exp/last-seen-ts-7-6` (dcf3428,
+  on his typed sentence of 2026-10-27 in the team-account session)
+  re-verified here first: the kernel gate's eleven expected
+  release-manifest lines and nothing else, examples 51 of 51, the lock
+  baseline 5 of 5, the battery 13 failed in the release-pin set, 2,011
+  passed, 1 skipped, `git diff --check` clean. `develop` is cut whole as
+  v1.1.27, sixteen first-parent merges since v1.1.26. The cut followed
+  `RELEASE_CHECKLIST.md`: the governed baseline regenerated from the
+  v1.1.26 manifest before the bump; the release identity bumped across
+  every current-facing surface the v1.1.26 cut touched; the manifest
+  rebuilt with `--update-claims`, after which the kernel gate reads clean
+  and the generated governance sentence names `conformance/must-pass.jsonl`
+  beside the contract, the registry and the two policy variants, as the
+  corrected vector requires; the notes and the validation report written;
+  the bundles, the formal package and the checksums built; the retention
+  pass moved the 2026-08-23 through 2026-09-29 session records to the
+  archive, wrote the handoff's new state (the 2026-10-12 state had counted
+  thirteen merges and stands as written below it) and corrected this
+  note's two "merge pending" leads, the D1 and D2 items of the cut
+  preparation, fixed here on the maintainer's choice of 2026-10-27; and the
+  handoff books the follow-ups the 7.6 definition's reviews left for the
+  next records pass: the relation check with its own failing control, the
+  two inline test fixtures that carry the old relation
+  (`gateway/tests/test_lineage_semantics.py`,
+  `tools/test_workflow_end_to_end.py`), the guidance file's contract line
+  citations, and the "follow-up work for the next records pass" wording of
+  the 2026-10-27 changelog entry, now a booking. The live runtime harnesses
+  and the Docker build and run were exercised because gateway and adapter
+  code changed. Validation at the cut is in
+  `release/VALIDATION_REPORT_v1.1.27.md`. The signing, tagging, pushing and
+  publishing steps are recorded in the entry that follows the cut commit,
+  each on the maintainer's own typed word.
 - **2026-10-27 (the 7.6 `last_seen_ts` definition, `exp/last-seen-ts-7-6`;
-  merge pending the maintainer's word).** On the maintainer's adoption of the
+  merged into `develop` as dcf3428 on 2026-10-27).** On the maintainer's adoption of the
   sentence (2026-10-25, decision 4), his choice to correct the examples rather
   than loosen it (2026-10-27), and his concurrence that a first definition of
   a listed, undefined field is a contract 2.1 patch (2026-10-27): one bullet
@@ -17,7 +56,7 @@
   runs yet and which is follow-up work for the next records pass, with its own
   failing control.
 - **2026-10-23 (the CoT projection guards, `exp/cot-projection-guards-2026-10`;
-  merge pending the maintainer's word).** On the maintainer's go of
+  merged into `develop` as 9157ce3 on 2026-10-24).** On the maintainer's go of
   2026-10-19, after a read of what a consumer that translates a dialect
   itself and feeds the result straight to the projection would send: a
   position outside the schema's bounds now refuses (`_within_position_bounds`,
@@ -395,436 +434,14 @@
   -q` 13 failed (the release-pin set: `test_release_manifest.py` 3,
   `test_release_package.py` 10), 1948 passed, 3 skipped; `git diff
   --check` clean. The release-pin set stays red until the next cut.
-- **2026-09-29 (v1.1.26 published).** The cut commit baf86f1 on `develop`;
-  `main` moved to it without a checkout (`git branch -f`, after the
-  ancestor check), so no tracked file was re-smudged between signing and
-  upload; annotated tag `v1.1.26` on baf86f1; `develop`, `main` and the tag
-  pushed together. The GitHub release carries seventeen assets, the
-  v1.1.25 set: the four zips, the manifest, the notes, the validation
-  report and `SHA256SUMS_v1.1.26.txt`, a detached signature for each of
-  the eight, and the public key `ZMETA_RELEASE_SIGNING_KEY_v1.1.26.asc`.
-  Verified as published: every asset downloaded from the release,
-  `sha256sum -c` over the downloaded checksum file passed for all seven
-  entries, the eight downloaded signatures verified as good against the
-  Incept.IO ZMeta release signing key with the Gpg4win gpg, and the
-  downloaded notes, report, checksum file, its signature and the public key
-  are byte-identical to the tracked copies. One trap re-learned on the
-  way: the signing tooling's `--verify-signatures` run from Git Bash
-  resolves the Git-bundled gpg and an empty keyring and fails with exit 2;
-  every signature step ran from PowerShell, where `gpg` is Gpg4win's, and
-  the secret-key listing there hung until `gpgconf --kill gpg-agent`
-  restarted the agent. GitHub CI completed with success for the release commit on develop, main and the tag.
-- **2026-09-29 (v1.1.26 cut: the `cds` CoT profile, the CoT type parse,
-  the gateway identity setting, the gateway's diagnostics on the 1.1.0
-  lane, and the held integration line).** On the maintainer's direction
-  of 2026-09-29, given in this repository's session ("once you have run
-  all checks and tests to validate the adapter, I want it merged and on
-  Main for public use", with the scope answered as the adapter plus the
-  identity and lane-diagnostics branches, `develop` cut whole as v1.1.26,
-  and tag, sign, push and publish), the five merges landed on `develop`
-  in dependency order with no fast-forward: `main` (the notice set),
-  `exp/cot-type-parse`, `exp/cot-cds-profile`, `exp/gateway-identity`,
-  `exp/gateway-lane-diagnostics`. Every conflict was the known shape:
-  two insertions at the same anchor in the three record files (both
-  kept, the worklog sentinel deduplicated) and one `gateway.py` hunk
-  where the identity and lane-diagnostics branches each added helpers
-  before `build_violation_event` (both kept, the signature carrying
-  `identity=None`). `wave/registry-candidates-2026-09` stays local, its
-  U1-02 questions open. The cut followed `RELEASE_CHECKLIST.md`: the
-  governed baseline regenerated from the v1.1.25 manifest before the
-  bump; the release identity bumped across every current-facing
-  surface the v1.1.25 cut touched; the manifest rebuilt with
-  `--update-claims`; the notes and the validation report written; the
-  bundles, the formal package and the checksums built; the signing key
-  exported; the retention pass moved the 2026-08-10 through 2026-08-13
-  session records to the archive. Validation at the cut is in
-  `release/VALIDATION_REPORT_v1.1.26.md`.
-  The signing, tagging, pushing and publishing steps are recorded in
-  the entry that follows the cut commit.
-- **2026-09-29 (the `cds` CoT profile on `exp/cot-cds-profile`, based on
-  `exp/cot-type-parse`, not merged).** On the maintainer's direction of
-  2026-09-29, given in this repository's session, the shape one partner's
-  cross-domain guard passed on 2026-09-29 is captured as a profile of the
-  reference CoT egress adapter, selected by `cot_config["profile"]`. The
-  definition came from the downstream ecosystem's TAK session as data: the
-  pinned reference adapter's output with the detail children limited to
-  four, `how` asserted per source, one remarks line, no links, and stale
-  set to arrival plus 120 s; the last two went live together at 20:01 UTC
-  and neither was tested alone. The documentation test found the governing
-  text: contract section 14 decides that display conveniences are adapter
-  behavior, and also lists `valid_for_ms` as freshness/stale behavior among
-  what a projection must preserve, which this profile does not, so F3-03 is
-  open; section 18.2 guides (section 18 is stated as future direction and
-  policy guidance) what a redaction may not do, and five of its six
-  prohibitions are tests, the sixth being the README's statement of the
-  profile; section 18.3 guides that export audit metadata belongs to policy
-  and conformance, and the profile carries none; nothing decides whether an
-  asserted affiliation may cross a guard, so the profile refuses it. The
-  profile is a transform applied after the standard projection, which keeps
-  the standard bytes untouched (a test freezes them) and makes the profile
-  exactly what was validated. Two refutation rounds shaped it. The first
-  (fourteen readers, fourteen findings confirmed) turned a draft that built
-  remarks from the standard text plus markers into the validated
-  deployment's fixed template with the markers first; the mutation check on
-  that rewrite found two vacuous items (a config-time link check that could
-  never fire, a circle-wrapper test passing on the age gate). The second
-  round, four readers against the rewrite (adapter code, test vacuity,
-  documents against code, and the gateway run live): thirteen adapter
-  defects reproduced and closed (a non-UTC instant mis-stamped every time;
-  replay-display mode defeated the age rule and is now refused; a producer
-  name could forge a marker and the separator is now replaced in every
-  part; a string confidence or one out of range reached the far side and is
-  now not sent; control characters and lone surrogates raised or produced
-  ill-formed XML; a string point value could smuggle elements past the
-  child filter and the root shape is now checked; a source that is not an
-  object raised); four vacuous tests and five gaps closed; eleven document
-  errors corrected, among them a contract quote that joined a lead-in to a
-  bullet, a section 18.2 phrase applied to a case it does not cover, and a
-  claim that the oldest case "cannot occur" that replay-display mode
-  falsified; and one gateway fail-open (a `cot.config` given as a string
-  ran the standard profile in silence), closed by refusing a mistyped `cot`
-  block, which reverses the 2026-07-27 rule that a malformed block is
-  ignored, on the changed premise that the block now selects a redaction.
-  Fifty-four behavior-changing mutants, every one killed;
-  the output validates against MITRE's public event schema with lxml.
-  Validation at the branch tip: `python -m pytest -q adapters/egress/cot
-  gateway/tests/test_gateway_cot_profile.py gateway/tests/test_gateway_cot_config.py`
-  134 passed and 1 skipped (the public schema test, which passed with
-  `COT_EVENT_XSD` set); `python tools/validate_examples.py --strict
-  --require-all` 51 of 51; `python tools/validate_conformance.py
-  --kernel-gate` 14 `RELEASE_MANIFEST_*` lines over the same items as
-  `develop` and no other failure; `python tools/validate_future_roadmap.py`
-  ok; `python -m pytest -q` 13 failed (the release-pin set), 1930 passed,
-  1 skipped; `git diff --check` clean. Nothing pushed.
-- **2026-09-28 (the CoT egress class parse on `exp/cot-type-parse`, not
-  merged).** On the maintainer's ruling of 2026-09-28, the CoT egress now
-  accepts `payload.class` as the CoT type only when it parses as a CoT atom
-  type. Otherwise it sends `a-u-G`, which claims no affiliation, and carries
-  the label in `remarks` as one quoted token, with characters that are not
-  printable replaced and the length capped at 64. A configured `default_type`
-  is held to the same grammar. The documentation test found the reason for the
-  defect. Both schema versions declare `TrackStatePayload.class` only as a
-  string, the CoT ingress stores a CoT type there, and the egress README
-  described a fallback for an absent class only, so it was silent on a class
-  that is a label. The first draft's five tests failed four of five against
-  the unchanged egress. An opus refuter then found that a label could forge a
-  remarks fragment and that six mutants of the fix survived those tests. The
-  second draft quotes the label, adds five tests, and validates
-  `default_type`. A mutation check over ten mutants, the refuter's six plus
-  four against the new safeguards, killed all ten. Validation at the branch
-  tip:
-  `python -m pytest -q adapters/egress/cot/` 69 passed;
-  `python tools/validate_examples.py --strict --require-all` 51 of 51;
-  `python tools/validate_conformance.py --kernel-gate` 14
-  `RELEASE_MANIFEST_*` lines over the same items as `develop` and no other
-  failure; `python -m pytest -q` 13 failed (the release-pin set) and 1869
-- **2026-09-28 (the gateway identity setting on `exp/gateway-identity`, not
-  merged).** On the maintainer's concurrence of 2026-09-28, the producer name
-  and node role the reference gateway stamps on its own diagnostics are the
-  settings `gateway_producer` and `gateway_node_role`, defaulting to the
-  historical `zmeta-gateway` and `GATEWAY`; `platform_id` stays fixed, since
-  the concurrence named the producer and the role. The identity reaches all
-  three diagnostic builders, all thirteen builder calls inside
-  `process_message` through a new `gateway_identity` argument, and the
-  encoding fallback. The gateway's outgoing self-check runs role and producer
-  authority over its own diagnostics, so a configured identity the loaded
-  policy refuses would have had every one of them refused; a startup check now
-  exits instead. It covers identity only, because the schema half of the
-  self-check depends on the lane, and running it at startup would stop a
-  gateway on the 1.1.0 lane from starting at all. The default identity is
-  never checked. Twelve tests were written first and ten failed against the
-  unchanged gateway, the other two being controls on the defaults; two more
-  cover `main()`. A mutation check over fourteen mutants killed all fourteen,
-  including a dropped identity at a single later builder call, which only the
-  structural test catches. Validation at the branch tip:
-  `python -m pytest -q gateway/tests/test_gateway_identity.py` 14 passed;
-  `python tools/validate_examples.py --strict --require-all` 51 of 51;
-  `python tools/validate_conformance.py --kernel-gate` 14
-  `RELEASE_MANIFEST_*` lines over the same items as `develop` and no other
-  failure; `python -m pytest -q` 13 failed (the release-pin set) and 1873
-- **2026-09-28 (the 1.1.0-lane diagnostic self-check on
-  `exp/gateway-lane-diagnostics`, not merged).** Under the maintainer's
-  ruling of 2026-09-12 (handoff item 1), the reference gateway's outgoing
-  self-check validates a diagnostic the gateway minted against the schema its
-  own declared `zmeta_version` selects, and a forwarded producer event against
-  the inbound lane as before. The v1.0 stamp stays. The TV-09 pins were
-  parameterised first, across the v1.0 lane, the 1.1.0 lane and the union,
-  and three pin classes holding five tests were added. Against the unchanged
-  gateway, six of the nine test functions failed, every failure on the 1.1.0
-  lane or on the missing mark, while the v1.0 lane and the union passed; pins
-  built on the v1.0 schema alone could not have seen the defect. The end-to-end pin through
-  `main()` found a second symptom the ruling did not name. On the 1.1.0 lane,
-  each warning on an accepted event was replaced by a REJECTED
-  `SCHEMA_INVALID`, so the output showed an accepted event beside refusals of
-  events that were never sent. The self-check tells a minted diagnostic from a
-  forwarded event by type: the three builders return `GatewayDiagnostic`, a
-  `dict` subclass that encodes byte for byte like a plain dict on all four
-  output encodings. Three alternatives were rejected. Keying on the source
-  block trusts a self-declared field, and the identity setting on
-  `exp/gateway-identity` makes that block configurable. A registry of minted
-  ids is module state. Changing the shape `process_message` returns would
-  break a deployment that imports it. The ruling also asked for an interim
-  README sentence naming the dispatching schema as the lane for legible 1.1.0
-  diagnostics until the fix lands. It is not written, because the fix lands in
-  the same commit; the gateway README states the lanes as they now behave.
-  An opus refuter found no blocker or major defect and nine minor ones.
-  Seven are resolved on the branch and two are booked in the handoff. A
-  missing or unreadable `schema/` directory would have left the self-check
-  falling back to the lane without a word, so `main()` now mints a probe
-  diagnostic at startup and exits unless the schema it declares is present
-  and accepts it; a tenth test covers that. The forged-wire test could not
-  fail on the rule it was credited with, so its docstring now says what it
-  shows and it gains the union-lane case. The gateway README now names the
-  two diagnostics the self-check does not cover. The records now state the
-  drop in violation counts on the 1.1.0 lane, the changed check for a v1.0
-  lane served from another directory, the test count, and the merge conflict
-  with the identity branch. The two booked are the contract hash, which does
-  not pin the v1.0 schema a 1.1.0-lane gateway now checks its diagnostics
-  against, and the README sentence on native codes, already booked. A
-  mutation check over fifteen mutants killed
-  the fourteen that change behavior. The fifteenth validates diagnostics
-  against the dispatching schema, which accepts exactly what the v1.0 schema
-  accepts for a v1.0 diagnostic and differs only in how an invalid one's
-  error reads. Validation at the branch tip:
-  `python -m pytest -q gateway/tests/test_violation_event_self_validity.py`
-  10 passed; `python tools/validate_examples.py --strict --require-all` 51
-  of 51; `python tools/validate_future_roadmap.py` ok;
-  `python tools/validate_conformance.py --kernel-gate` 14
-  `RELEASE_MANIFEST_*` lines over the same items as `develop` and no other
-  failure; `python -m pytest -q` 13 failed (the release-pin set) and 1865
-  passed; `git diff --check` clean. Nothing pushed.
-- **2026-09-28 (five upstream asks on `wave/registry-candidates-2026-09`,
-  not merged).** On the maintainer's go of 2026-09-28 to open five upstream
-  asks as candidates, doctrine U1-01 records the go and U1-02, OPEN, records
-  the routing as this session's disposition with the questions it surfaced.
-  Two asks open as new candidates: DIALECT_LABEL, `proposed`, with roadmap
-  candidate `dialect-label` and its carrier left to promotion; and roadmap
-  candidate `canonical-byte-form` with no registry name. Three are recorded on
-  existing records: the signing concepts were already open, the F2-04 booking
-  is recorded in SENSOR_STATUS's notes, and DATA_REF_MEDIA_METADATA's notes
-  record the live-versus-recording question against contract Section 9.3. The
-  ontology reference's present-tense counts move to 67 entries (10 proposed),
-  18 of 45 reserved or proposed entries under the leak check, and 22 roadmap
-  candidates. Its section 13 registry row, headed as of v1.1.25, is corrected
-  to v1.1.25's 63 entries, and the heading now says earlier sections describe
-  the current tree; the section's figure is left for regeneration at the next
-  release. Handoff item 6's counts are refreshed to 67. Two independent opus
-  refuters reviewed the first draft and found one blocker, eleven majors (nine
-  distinct) and ten minors. The blocker was that the draft ruled out carrying
-  the label inside the admitted event, which contract Section 3.3 permits, and
-  requires when the admission is itself a warn, degrade or quarantine
-  decision. A second pass over the rewrite found sixteen of the prior findings
-  resolved and raised further corrections, the largest being that every
-  shipped ingress adapter already names the source dialect in
-  `lineage.transform`. Each was addressed before the commit. Validation at the
-  branch tip:
-  `python tools/validate_extension_registry.py` ok entries=67;
-  `python tools/validate_future_roadmap.py` ok candidates=22
-  rejected_or_deferred=3; `python tools/validate_examples.py --strict
-  --require-all` 51 of 51; `python tools/validate_conformance.py
-  --kernel-gate` 14 `RELEASE_MANIFEST_*` lines over the same items as
-  `develop` and no other failure; `python -m pytest -q` 13 failed (the
-  release-pin set) and 1859 passed; `git diff --check` clean. Nothing pushed.
-- **2026-09-21 (pre-push history rewrite: the held develop records
-  generalised, the consent recorded, the three trailers removed).** Before
-  the first push of `develop` since v1.1.25, a share-readiness scan
-  (verdict in the private session record) found the published line clean
-  and the unpushed records carrying material that belongs in the private
-  evidence record: the capture station's hosting model, retention figures,
-  dated gap and store inventory in doctrine entry F1-06 and handoff item
-  8; a named downstream consumer in twelve places across the doctrine log,
-  the handoff, this worklog, the merge review register and one
-  extension-registry note; and two build-host paths in the merge review
-  register. On the maintainer's direction of 2026-09-21 the unpushed
-  history was rewritten so those passages never reach the remote: each
-  introducing commit was replayed with the passage generalised in place,
-  the three commits carrying an attribution trailer (doctrine F2-09) were
-  reworded without it, and the specifics moved to the private companion
-  under `local/`. The fielding organization's consent to publish the
-  cycle's derived findings, given 2026-09-21, is recorded in the Cycle F1
-  header. Every unpushed commit changed identifier; the records above cite
-  the old ones, and this table is the map (old, new, subject):
-  9814f2b -> df781b3 (Write the branching rule into the change governance doc and )
-  7a01d35 -> b1dcb26 (Record the F1 field-evidence adjudications and land the vali)
-  b0666d0 -> aa070cd (Mint two experimental 1.1.0 markers from a live hydrophone a)
-  8930fb8 -> f1cf0d3 (Let the 1.1.0 ACOUSTIC arm carry a linear-pressure level bes)
-  c7819bb -> 0ad6c1e (Name both level forms in the INVALID_MODALITY_FEATURES hint)
-  e7c1959 -> 2d4195c (Scope level_reference to spl_db in the descriptions and reco)
-  e434096 -> d8b5c53 (Merge branch 'wave/f1-field-evidence' into develop)
-  80d8181 -> 76e7692 (Merge branch 'exp/acoustic-1.1.0' into develop)
-  4932afb -> 62b02ea (Merge branch 'exp/acoustic-pressure' into develop)
-  29dd5b6 -> 3e399c8 (Record the integration of three waves into develop and the m)
-  893ca9b -> f79c808 (Correct the battery count in the integration record)
-  05be3c5 -> 72049fb (Merge branch 'exp/open-specification-notice' into develop)
-  A second pass the same day reworded three commit messages that still
-  named the consumer (found by a peer check of message bodies, which the
-  first pass's gate had not scanned) and corrected this map to
-  original-to-final identifiers; every tree is unchanged. The first-pass
-  identifiers, on the remote for about twenty minutes before the
-  force-push on the maintainer's direction: 633848b, 3a52700, e1e2f67, 5add606, e595b31, 4b1e9f2, 4a1214e, 53035b6, bd5e284, e4c2c99.
-  The extension-registry note edit leaves the release manifest stale on
-  purpose (Branching section); the manifest regenerates at the cut.
-  Process records were altered only to remove the passages named here. No
-  CHANGELOG entry: nothing user-visible changes.
-- **2026-09-12 (integration: three waves merged into develop, held for
-  live evidence).** `wave/f1-field-evidence` (7a01d35), `exp/acoustic-1.1.0`
-  (b0666d0) and `exp/acoustic-pressure` (8930fb8, c7819bb, e7c1959)
-  merged into `develop` in dependency order, each with `--no-ff`, after a
-  review of all three against the guiding documents (register:
-  `docs/merge_review_2026-09-12_findings.md`; determination: good to merge,
-  six conditions, none withholding the merge) and three rulings made on the
-  repository's own documentation at the maintainer's direction (doctrine
-  F2-08 orphan note and F2-09; the gateway diagnostic ruling is in the
-  handoff). `develop` is held without a
-  cut until more live acoustic evidence arrives; the downstream COP consumes the
-  1.1.0 lane from `develop` during the hold. Validation at the merged tip:
-  `python tools/validate_extension_registry.py` ok entries=66;
-  `python tools/validate_future_roadmap.py` ok candidates=20;
-  `python tools/validate_examples.py --strict --require-all` 51 of 51 passed;
-  `python tools/validate_conformance.py --kernel-gate` exit 1 with
-  14 `RELEASE_MANIFEST_*` lines and no other failure line (four of
-  those lines come from `docs/zmeta_change_governance.md` on `develop`
-  itself, the rest from the four manifest-listed artifacts the branches
-  change); `python -m pytest -q` 1859 passed, 13 failed (1858 in the
-  rehearsal worktree, where one environment-dependent test skipped), every
-  failure a manifest hash mismatch in `gateway/tests/test_release_manifest.py`
-  or `gateway/tests/test_release_package.py`; `git diff --check` clean. That
-  red band is the expected state of `develop` between these merges and the
-  cut, by construction of the Branching section; the cut regenerates the
-  manifest. One further failure appears about one run in fifty:
-  `test_release_signing.py::test_ensure_package_zip_refuses_a_stale_zip_and_never_overwrites`,
-  a pre-existing mtime-granularity race, booked in the register. Four
-  negative guards in `test_release_package.py` abort in fixture setup on the
-  stale manifest for the whole hold, so the packager's refusal of bad input
-  is unproven until the cut; booked. This entry also records the 2026-09-11
-  docs-class commit on `develop` (9814f2b, the branching rule in
-  `docs/zmeta_change_governance.md` and `CLAUDE.md`), which had no worklog
-  line of its own.
-- **2026-09-12 (doctrine entry F2-08: a linear-pressure level on the
-  ACOUSTIC arm, on its own branch).** The downstream COP investigated two more
-  acoustic sources after Orcasound, a calibrated research hydrophone
-  stated re 1 uPa and an atmospheric infrasound array whose field
-  publishes calibrated pascals and no decibel, and reported that neither
-  could emit. Verification found the refusal was one schema line, `spl_db`
-  required on the experimental arm, not contract text, and that a named
-  pascals feature already validated beside it; it also corrected three
-  framings in the note (the contract does not mandate a decibel; the
-  underwater and airborne references differ by a fixed 20 log10(20) =
-  26.02 dB and
-  the objection is laundering; the implementation count is one, not
-  three). The maintainer ruled: the arm requires `center_freq_hz` and
-  any of `spl_db` or `pressure_pa` with `pressure_statistic`, preserving
-  the level-present guarantee; the `spl_db` description states its window
-  and that it declares no amplitude statistic; a statistic marker is held
-  behind a second implementation; a governed pressure contract is refused
-  on gates 1 and 6 and the pair registered experimental with the bar
-  stated unmet. The pre-cut verification returned twenty-six findings,
-  led by a first draft that registered the name as reserved while the same
-  change made the fields valid; the entry was re-registered, the
-  reserved-leak check gained the arm that would have caught it, the level
-  choice was rewritten so a missing level names the pressure pair on the
-  wire,
-  the pair was bound both ways with zero refused, and the schema gained
-  nine fixtures in the discrimination suite so the red/green proof is an
-  in-repo artifact rather than a session act. A second verification found
-  the pressure-to-statistic direction of the binding unpinned and an
-  existing power_db fixture made vacuous by the relaxation; both were
-  repaired and a mirror guidance rule added. Landed on
-  `exp/acoustic-pressure` stacked on the acoustic branch. The three-branch
-  merge review of 2026-09-12 found the per-code hint for
-  `INVALID_MODALITY_FEATURES` still saying `spl_db` is required; corrected
-  on the branch before the merge.
-- **2026-09-10 (doctrine cycle F2: the acoustic modality worked on 1.1.0
-  from live evidence; two experimental markers minted; the lane fix).**
-  The downstream COP session brought seven spec questions ahead of an Orcasound
-  hydrophone producer and an environmental-station feed. The drafted
-  answers were adversarially refuted before sending (three refuters, all
-  three corrected the draft: the environmental blocker premise was false
-  because `metrics.modality` is optional on SENSOR_STATUS, the drafted
-  three-way split ran against the slot's documented coarse grain, and the
-  drafted dBFS-in-`spl_db` form is the shape contract 6.5 prohibits), the
-  COP's finding that SENSOR_STATUS has no canonical position was confirmed,
-  and the maintainer ruled on every open point. A live Orcasound Lab
-  segment was captured, analysed and templated on both lanes; the honest
-  1.1.0 form validated only by laundering, and the honest v1.0 form failed
-  on `timing_quality.est_error_ms` rather than fabricate a bound. Landed,
-  additive on 1.1.0 with v1.0 byte-identical: ACOUSTIC_LEVEL_REFERENCE
-  (`features.level_reference`, `spl_db` description corrected) and
-  TIMING_ERROR_BASIS (`timing_quality.est_error_basis`), each experimental
-  on the A1-01 mechanism with discrimination fixtures on both lanes; the
-  D1-01 launcher passthrough with its red/green test and README lane notes;
-  guidance lane gates with three new structural rules and the first fixture
-  for the structural layer; and two registry validator checks the pre-cut
-  verification showed were missing (a note containing ": " had parsed as a
-  mapping and passed; the top-level stamp had lagged the newest entry).
-  Booked: a
-  producer-authority pattern for environmental stations, a governed `geo`
-  on the SENSOR_STATUS arm, the cross-modality generalization of the level
-  reference, and the contract sentences for the post-lock pass.
-- Last updated: 2026-08-26 (field-evidence adjudications: the 2026-08 sonar/chat edge deployment)
-- **2026-08-26 (doctrine cycle F1: eight maintainer rulings from live field
-  evidence; no governed vocabulary moved; the lock stands).** A second edge
-  organization fielded an imaging sonar with its own fusion pipeline and a
-  bidirectional tactical-chat bridge, publishing a self-declared dialect
-  onto the live bus the private capture station records. Live packets were
-  measured directly and two audits ran with adversarial verification
-  (thirteen agents each); the maintainer then ruled on every open question
-  from the evidence. The rulings: the `replay-synthetic-labels` tripwire is
-  adjudicated fired, with the deployment recorded as the second independent
-  instance on the roadmap branch and a promotion blocker booked for the
-  reserved replay records' droppable-label flags; chat is ruled in scope,
-  evidence-gated, with the incoming adapter to be received as field
-  telemetry; the `rssi`/`snr` zero pair is booked as second-instance
-  evidence for generalizing the `RF_ZERO_FILL_SUSPECTED` predicate at the
-  AAR; C1-04 closes with a recorded rationale and no mint, its narrow
-  residue booked as a declaration-floor and adapter-consistency wave; and
-  the diagnostics-carry-the-fix system graduates during the lock as a
-  separate advisory file with coverage scaling to all 61 violation codes
-  under per-hint adversarial verification. Cycle entry F1-05 records the
-  counter-result worth as much as any change: five mint candidates from a
-  novel sensor domain were all refuted as composable today, and the
-  canonical templates built from the live data validate strict. One
-  apparatus finding (F1-06): the capture station's rolling default plus a
-  missed pull cadence discarded the deployment's raw feed before the final
-  window; the prune manifest records what was lost, the recovered window is
-  preserved in the capture repo, and the cadence question is booked. Public
-  reasoning in doctrine log cycle F1; raw specimens, measurements, and the
-  full adjudication records in the private evidence store.
-- Last updated: 2026-08-23 (ontology reference wave: new doc, nine figures, corrections)
-- **2026-08-23 (ontology reference, appreciation layer, doc corrections).**
-  A docs-class wave, maintainer-directed while the repo stays locked for
-  the field user's refactor: no governed artifact changed.
-  `docs/zmeta_ontology_reference.md` is new, built from a fan-out of ten
-  readers over the primary sources with ten adversarial verifiers
-  re-deriving every fact; of 585 gathered facts, 370 survived unchanged,
-  153 were corrected, 58 were re-tagged, 4 were refuted, and the page was
-  written only from the verified residue. Its tension register carries
-  sixteen confirmed divergences. The documentation-only ones were fixed
-  in this wave (schema/README branch wording, the field dictionary's
-  timestamp glosses, the lifecycle guide's stale-arm default, the
-  registry prose ladder, README enumerations, the overview's adapter
-  tables); the ones touching governed surfaces are booked for the
-  post-AAR window, led by the contract section 22 class table naming
-  ZMETA-GATEWAY where the conformance manifest defines
-  ZMETA-GATEWAY-REFERENCE. `docs/diagrams/generate_figures.py` grows
-  nine figures that read their counts from the manifests, the examples,
-  and the adapter estate at generation time, with parsers that raise on
-  drift rather than rendering stale numbers. Seven adversarial passes
-  ran against the wave's own drafts and every pass found real defects,
-  including a figure regex over-counting roadmap candidates by summing
-  two YAML lists and three overclaims the honesty doctrine forbids; the
-  shipped text states only what the data supports. The overview, README,
-  and docs index now route readers between the narrative overview and
-  the reference, and the reference opens with the first-exposure
-  category material before its how-to-read apparatus, per maintainer
-  direction on pacing.
-- Last updated: 2026-08-13 (RF zero-fill minted; v1.1.25 cut)
 ## Archived Task Sections
 
 Completed task sections S0-01 through R1-05 are archived verbatim in
 `docs/zmeta_refinement_worklog_archive.md` (retention pass, 2026-07-15).
 The session records from 2026-08-10 through 2026-08-13 were moved there at
-the v1.1.26 retention pass (2026-09-29).
+the v1.1.26 retention pass (2026-09-29), and the records from 2026-08-23
+through 2026-09-29 (the v1.1.26 cycle) at the v1.1.27 retention pass
+(2026-10-27).
 Newer session records live in the Current Resume Note above; deferred issues
 remain below.
 

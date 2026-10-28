@@ -1,6 +1,84 @@
 # ZMeta Refinement Handoff Notes
 
-## CURRENT STATE (2026-10-12): THIRTEEN MERGES ON DEVELOP SINCE v1.1.26 PLUS THIS RECORDS WAVE, NOT RELEASED; TWO GATEWAY FIXES HELD ON BRANCHES
+## CURRENT STATE (2026-10-27): v1.1.27 CUT FROM DEVELOP; TWO GATEWAY FIXES HELD ON BRANCHES
+
+`develop` is cut as v1.1.27 on 2026-10-27 on the maintainer's direction
+given in this repository's session, after the merge of
+`exp/last-seen-ts-7-6` (dcf3428, on his typed sentence of 2026-10-27) was
+re-verified here; `main` moves to the cut commit at the tag. The release
+carries sixteen first-parent merges since v1.1.26: the 7.6 `last_seen_ts`
+definition (a contract 2.1 patch) with four FUSION examples and the
+must-pass FUSION vector corrected to it; the section 22 class table row
+`ZMETA-GATEWAY-REFERENCE`; the CoT egress hardening (the `cds` stale cap,
+the standard profile's XML hardening, the `how` shape check, the position
+and name guards); the failure-modes honesty fix; the strict command posture
+as two policy variants with `tools/assemble_policy_dir.py`; the two
+registry waves and the event-signing design note; and the records waves of
+October. Both schemas and the reference `policy/` directory are
+byte-identical to v1.1.26; the semantic contract file changes for the first
+time since v1.1.20, so the manifest's `semantic_contract_hash` and the
+gateway's startup `contract_hash` move. Governed delta relative to v1.1.26,
+as the manifest classifies it:
+`configs/policy-variants/command-evidence.strict.yaml`,
+`configs/policy-variants/routing.command-origin.yaml`,
+`conformance/must-pass.jsonl`, `spec/extension-registry.yaml`,
+`spec/semantics-contract.md`. Validation at the cut:
+`release/VALIDATION_REPORT_v1.1.27.md`. The 2026-10-12 state below counted
+thirteen merges and was stale by the cut; it stands as written.
+
+Held, not merged: `exp/command-dedupe-validity` (ca3d35d; item 7 of the
+2026-10-12 list below) and `exp/gateway-state-bound` (ca077f7; item 8),
+each a command-path or behavior-visible gateway change and the maintainer's
+merge. Both now conflict with `develop` in the doctrine log and the worklog
+(the state-bound branch also in the CHANGELOG), to be resolved by hand at
+the merge; each branch's CHANGELOG entry then belongs under
+`[Unreleased]`, not inside the released `[1.1.27]` section where a clean
+merge would put it.
+
+Open, in order of proximity:
+
+1. **The consumers' re-pin to v1.1.27**, once at this tag in the order the
+   maintainer chose on 2026-10-26: the hub, the COP, the plane with the
+   partner's far-side `cds` re-check (the `cds` output changes for any track
+   whose remaining validity at projection is shorter than the window), the
+   producers last. Every
+   consumer's pinned `contract_hash` stays its tag's until it re-pins.
+2. **Follow-ups from the 7.6 definition's reviews**, booked here for the
+   next records pass: (a) a relation check that reads a FUSION_EVENT's
+   `last_seen_ts` against its members' times, with its own failing
+   negative control, which also decides what the reference projector's
+   late-input stamping means (it stamps the just-processed observation's
+   time, so a late arrival yields a `last_seen_ts` earlier than the latest
+   member's; the never-later clause still holds); (b) two inline test
+   fixtures that carry the old relation, in
+   `gateway/tests/test_lineage_semantics.py` and
+   `tools/test_workflow_end_to_end.py`, which the check would read; (c)
+   `tools/validation_guidance.yaml`'s contract line citations past the
+   7.6 insertion point, shifted by the two inserted lines (its header
+   accepts drift); (d) the
+   "follow-up work for the next records pass" wording of the 2026-10-27
+   changelog entry, which this item is.
+3. **The maintainer's definitions and bookings, with the evidence put to
+   him first** (the session records of 2026-10-27, each with seeded
+   refuters): the `heading_deg` definition; the media-evidence bookings;
+   hazard 4 (whether `ENCODING_UNSUPPORTED` extends to every output lane);
+   F4-02 (a cooperative broadcast received by relay: who measured it).
+4. **The signing tripwire** and **C1-07** (canonical byte form) stay with
+   the maintainer; the design note gives the order.
+5. **Forward edits from the 2026-09-21 share-readiness scan** (private
+   session record), each the maintainer's election, unchanged.
+6. **Local hygiene:** `refs/backup/*` holds the pre-rewrite tips; delete
+   them once satisfied. The merged branch ref `exp/last-seen-ts-7-6` is
+   kept, as prior practice keeps merged refs, unless the maintainer says
+   otherwise.
+7. Items 5 through 10 of the 2026-10-12 state below (guidance gaps (a)
+   through (af), the two held gateway defects, the CoT `how` default, the
+   `event_id` recorded twice) carry unchanged.
+
+Next session: the publication record after the tag, the signatures, the
+push and the release; then the re-pins as each consumer's session reports.
+
+## Previous state (2026-10-12): THIRTEEN MERGES ON DEVELOP SINCE v1.1.26 PLUS THIS RECORDS WAVE, NOT RELEASED; TWO GATEWAY FIXES HELD ON BRANCHES
 
 `develop` == `origin/develop` at the merge 0231151 plus this records wave
 (`wave/records-pass-2026-10-12`; 0231151 is the records wave of
@@ -2284,7 +2362,8 @@ Current stack status:
   bearing/heading fields unless callers explicitly assert `TRUE_NORTH`;
   unasserted native values remain auditable under explicitly named
   non-canonical fields.
-- Use tag `v1.1.26` for current formal release assets and checksums.
+- Use tag `v1.1.27` for current formal release assets and checksums. (The
+  rest of this item records the v1.1.25 publication as written then.)
   Published 2026-08-13 at the maintainer's direction: PR #8 merged with its
   record wave completed, and the release signed with the Incept.IO release
   key, the first signed release since v1.1.4. The signing decision names

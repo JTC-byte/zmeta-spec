@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+(Nothing yet - the next work lands here.)
+
+## [1.1.27] - 2026-10-27
+
 - 2026-10-27 — **Contract 7.6 defines `last_seen_ts`.** The Fusion rules
   gain one bullet: "`last_seen_ts`: the `event.ts` of the latest contributing
   observation the fused estimate rests on; it is never later than the fusion's
