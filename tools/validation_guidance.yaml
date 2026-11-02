@@ -92,7 +92,7 @@ guidance:
       "1.0"` permits only the Section 7.3 table, while `"1.1.0"` adds
       RETURN_TO_BASE, LAND, LOITER, SCAN_RF, TRACK_TARGET and
       CHANGE_SENSOR_MODE on COMMAND_EVENT and SENSOR_STATUS and
-      PLATFORM_STATUS on SYSTEM_EVENT (spec/semantics-contract.md:2173-2201,
+      PLATFORM_STATUS on SYSTEM_EVENT (spec/semantics-contract.md:2175-2203,
       schema/zmeta-event-1.1.0.schema.json:350-509). Free-form and
       vendor-specific subtypes are never permitted, so re-spell it with the
       locked alphabet and carry the adapter label in payload-scoped provenance
@@ -103,7 +103,7 @@ guidance:
       - "spec/semantics-contract.md:1001-1008"
       - "spec/semantics-contract.md:1010-1014"
       - "spec/semantics-contract.md:131-141"
-      - "spec/semantics-contract.md:2173-2201"
+      - "spec/semantics-contract.md:2175-2203"
       - "schema/zmeta-event-1.1.0.schema.json:350-509"
       - "schema/zmeta-event-1.1.0.schema.json:516-699"
       - "schema/zmeta-event-1.1.0.schema.json:1847-1876"
@@ -152,7 +152,7 @@ guidance:
       STATE_EVENT instead of the raw event, keeping lineage to the
       non-exported parents and letting confidence, timing quality, and TTL
       reflect the degraded conditions (policy/profiles.yaml:1-21;
-      spec/semantics-contract.md:1522-1543). The same code also fires when the
+      spec/semantics-contract.md:1524-1545). The same code also fires when the
       target profile string has no entry in policy/profiles.yaml at all, which
       the violation details show as a profile with no event_type, and that is
       a policy or configuration defect rather than a producer error.
@@ -164,11 +164,11 @@ guidance:
       - "gateway/src/gateway.py:1696, gateway/src/gateway.py:2446, tools/validate.py:153 (callers pass the target export/validation profile)"
       - "policy/profiles.yaml:1-21 (L, M, H allowed_event_types)"
       - "policy/violation-codes.yaml:12-13 (severity: fail)"
-      - "spec/semantics-contract.md:1522-1543 (Profile L transmits STATE_EVENT/SYSTEM_EVENT/COMMAND_EVENT; prohibits raw observation and INFERENCE_EVENT export)"
-      - "spec/semantics-contract.md:1531-1536 (nodes SHALL perform local processing to emit honest, time-bounded STATE_EVENTs; lineage MUST still be included even when parents were not exported; confidence, timing quality, and short TTL MUST reflect degraded conditions)"
-      - "spec/semantics-contract.md:1545-1557 (Profile M; no INFERENCE_EVENT)"
-      - "spec/semantics-contract.md:1559-1571 (Profile H transmits all valid event types)"
-      - "spec/semantics-contract.md:1573-1578 (profile rule global; schema enforces event-type compatibility when profile is present)"
+      - "spec/semantics-contract.md:1524-1545 (Profile L transmits STATE_EVENT/SYSTEM_EVENT/COMMAND_EVENT; prohibits raw observation and INFERENCE_EVENT export)"
+      - "spec/semantics-contract.md:1533-1538 (nodes SHALL perform local processing to emit honest, time-bounded STATE_EVENTs; lineage MUST still be included even when parents were not exported; confidence, timing quality, and short TTL MUST reflect degraded conditions)"
+      - "spec/semantics-contract.md:1547-1559 (Profile M; no INFERENCE_EVENT)"
+      - "spec/semantics-contract.md:1561-1573 (Profile H transmits all valid event types)"
+      - "spec/semantics-contract.md:1575-1580 (profile rule global; schema enforces event-type compatibility when profile is present)"
       - "schema/zmeta-event-1.1.0.schema.json:702-748 (profileExportConsistency L and M arms)"
       - "gateway/tests/test_gateway_smoke.py:264-270 (OBSERVATION_EVENT under profile L yields this code)"
   - code: COMMAND_NOT_DECONFLICTED
@@ -194,8 +194,8 @@ guidance:
       - "gateway/src/validators.py:4386-4389"
       - "gateway/src/validators.py:4523-4525"
       - "gateway/src/validators.py:4534-4541"
-      - "spec/semantics-contract.md:1186"
-      - "spec/semantics-contract.md:1195-1196"
+      - "spec/semantics-contract.md:1188"
+      - "spec/semantics-contract.md:1197-1198"
       - "spec/semantics-contract.md:529-530"
       - "schema/zmeta-event-1.1.0.schema.json:1505-1510"
       - "schema/zmeta-event-1.1.0.schema.json:1549"
@@ -210,13 +210,13 @@ guidance:
       A COMMAND_EVENT payload must not carry altitude at any nesting depth;
       ZMeta commands express no vertical intent, and the deconfliction node or
       receiving autonomy handles vertical out of band when it converts the
-      task into a native command channel (spec/semantics-contract.md:1206-1209
+      task into a native command channel (spec/semantics-contract.md:1208-1211
       for the rule, 1197-1198 and 1858-1875 for the reason). Delete the
       altitude key rather than relocating it, and do not add `target_geo` in
       its place: `target_geo` is `{lat, lon}` only, and several task types
       forbid `target_geo` outright, `SEARCH_BOX` in every version plus
       `SCAN_RF`, `TRACK_TARGET` and `CHANGE_SENSOR_MODE` in 1.1.0
-      (spec/semantics-contract.md:1181,
+      (spec/semantics-contract.md:1183,
       schema/zmeta-event-1.1.0.schema.json:1640,1698,1714,1729). The
       denylisted names are `alt`, `alt_m`, `altitude`, `altitude_m`,
       `alt_hae_m`, `alt_msl_m`, `agl_m`, `target_alt_m` and `target_altitude`
@@ -225,9 +225,9 @@ guidance:
       inside `payload.extensions`, where the schema's own pins do not reach
       (gateway/src/validators.py:3581-3595).
     citations:
-      - "spec/semantics-contract.md:1178-1189"
-      - "spec/semantics-contract.md:1197-1209"
-      - "spec/semantics-contract.md:1858-1875"
+      - "spec/semantics-contract.md:1180-1191"
+      - "spec/semantics-contract.md:1199-1211"
+      - "spec/semantics-contract.md:1860-1877"
       - "policy/semantics.yaml:37-56"
       - "schema/zmeta-event-1.1.0.schema.json:1640"
       - "schema/zmeta-event-1.1.0.schema.json:1698"
@@ -262,7 +262,7 @@ guidance:
       - "schema/zmeta-event-1.1.0.schema.json:960-1044"
       - "schema/zmeta-event-1.0.schema.json:1275-1346"
       - "schema/zmeta-event-1.0.schema.json:1577"
-      - "spec/semantics-contract.md:1199-1205"
+      - "spec/semantics-contract.md:1201-1207"
       - "gateway/src/validators.py:3568-3595"
       - "gateway/tests/test_reason_codes.py:188-201"
   - code: COMMAND_TASK_TYPE_INVALID
@@ -281,7 +281,7 @@ guidance:
       equal the payload discriminator (spec/semantics-contract.md:1007); a
       subtype that disagrees with an otherwise valid task_type is the separate
       EVENT_SUBTYPE_MISMATCH code, not this one. A task the enum cannot
-      express is a kernel vocabulary gap, and spec/semantics-contract.md:2203
+      express is a kernel vocabulary gap, and spec/semantics-contract.md:2205
       requires semantic definition plus a validation contract before a new
       task type exists, so escalate it instead of emitting a local value.
     citations:
@@ -295,8 +295,8 @@ guidance:
       - "schema/zmeta-event-1.0.schema.json:1183-1204"
       - "schema/zmeta-event-1.0.schema.json:1578"
       - "spec/semantics-contract.md:1003-1008"
-      - "spec/semantics-contract.md:2103-2108"
-      - "spec/semantics-contract.md:2189-2204"
+      - "spec/semantics-contract.md:2105-2110"
+      - "spec/semantics-contract.md:2191-2206"
       - "spec/field-dictionary.md:139-143"
       - "spec/extension-registry.yaml:351-356"
       - "docs/zmeta_vocabulary_crosswalk.md:30-37"
@@ -327,8 +327,8 @@ guidance:
       - "spec/semantics-contract.md:1076-1095 (InferencePayload: inference_type, claim, model{name,version}, based_on; MUST include top-level confidence; payload and payload.claim MUST NOT contain track_id, members, estimated_state)"
       - "spec/semantics-contract.md:525-526 (fusion nodes are the only components permitted to create track_id; state projectors and fusion nodes may emit STATE_EVENT)"
       - "spec/semantics-contract.md:1123 (fusion rule: only fusion-authorized producers may create track_id)"
-      - "spec/semantics-contract.md:1138-1139 (TrackStatePayload carries track_id)"
-      - "spec/semantics-contract.md:2075-2087 (vendor extensions SHOULD use collision-resistant namespaces such as vendor.<name>, must be safe to ignore, must not create alternate track identity semantics)"
+      - "spec/semantics-contract.md:1140-1141 (TrackStatePayload carries track_id)"
+      - "spec/semantics-contract.md:2077-2089 (vendor extensions SHOULD use collision-resistant namespaces such as vendor.<name>, must be safe to ignore, must not create alternate track identity semantics)"
       - "schema/zmeta-event-1.0.schema.json (top-level properties are zmeta_version, event, source, profile, payload, confidence, lineage with additionalProperties false: confidence is a sibling of the event block, not a member of it; ObservationPayload pins the six denylist names to false at payload and features level)"
       - "examples/zmeta-examples-1.0.jsonl:2 (sanctioned pattern: INFERENCE_EVENT/CLASSIFICATION with payload.claim.label, payload.model, payload.based_on, and top-level confidence)"
       - "adapters/ingress/sapient/README.md:259-269 (native_-prefixed renames inside payload.extensions[\"vendor.sapient\"] after a per-entry confidence copy failed OBSERVATION_HAS_IDENTITY while top-level extension keys looked clean)"
@@ -359,7 +359,7 @@ guidance:
       - "spec/semantics-contract.md:1063-1069 (Raw data distinction: AI detections or classifications derived from raw observations are INFERENCE_EVENTs; a bounding box, entity class, source label, behavior, or model score is an inference claim)"
       - "spec/semantics-contract.md:1080-1091 (InferencePayload: inference_type CLASSIFICATION|ASSOCIATION|ANOMALY|BEHAVIOR, claim, model{name,version}, based_on UUIDv7[]; inference rules require lineage reference, model.name/model.version, and top-level confidence)"
       - "spec/semantics-contract.md:1004 (subtype table: INFERENCE_EVENT requires event_subtype == payload.inference_type)"
-      - "spec/semantics-contract.md:1355-1358 (top-level confidence MUST be in [0.0, 1.0] and MUST be present for INFERENCE_EVENT)"
+      - "spec/semantics-contract.md:1357-1360 (top-level confidence MUST be in [0.0, 1.0] and MUST be present for INFERENCE_EVENT)"
       - "policy/semantics.yaml:4-10 (observation_event.payload_must_not_contain: track_id, entity_class, classification, label, class_name, confidence)"
       - "schema/zmeta-event-1.1.0.schema.json:64-81 (INFERENCE_EVENT branch: payload $ref InferencePayload, required [confidence, lineage])"
       - "schema/zmeta-event-1.1.0.schema.json:1380-1388 (InferencePayload required: inference_type, claim, model, based_on)"
@@ -386,9 +386,9 @@ guidance:
       - "spec/semantics-contract.md:1123"
       - "spec/semantics-contract.md:1125"
       - "spec/semantics-contract.md:525"
-      - "spec/semantics-contract.md:1436"
-      - "spec/semantics-contract.md:1658-1660"
-      - "spec/semantics-contract.md:1677-1679"
+      - "spec/semantics-contract.md:1438"
+      - "spec/semantics-contract.md:1660-1662"
+      - "spec/semantics-contract.md:1679-1681"
       - "schema/zmeta-event-1.1.0.schema.json:1380-1382"
       - "schema/zmeta-event-1.1.0.schema.json:1402"
       - "schema/zmeta-event-1.1.0.schema.json:1407"
@@ -433,14 +433,14 @@ guidance:
       including inside `extensions`, matches one of `features`,
       `raw_features`, `modality`, `measurement`, `measurements`, `t_start`,
       `t_end`, `data_ref`, or `data_refs` (policy/semantics.yaml:27-36,
-      spec/semantics-contract.md:1159-1163). Six of those nine names are
+      spec/semantics-contract.md:1161-1165). Six of those nine names are
       OBSERVATION_EVENT payload fields (spec/semantics-contract.md:1026-1037),
       so check first whether this is an observation payload stamped as a
       STATE_EVENT rather than a state derived from fusion. Emit the raw side
       as its own OBSERVATION_EVENT, remove those keys from the state payload,
       and carry traceability in the envelope `lineage.based_on` array of
       parent UUIDv7s, which every STATE_EVENT already requires
-      (spec/semantics-contract.md:1164-1165, :648, :1435-1436). Name the
+      (spec/semantics-contract.md:1166-1167, :648, :1435-1436). Name the
       fusion parent there rather than the observation, because
       policy/lineage.yaml:40-42 allows only FUSION_EVENT and STATE_EVENT
       parents for a STATE_EVENT and a resolved observation parent is rejected
@@ -452,9 +452,9 @@ guidance:
       - "gateway/src/validators.py:509-560"
       - "policy/semantics.yaml:21-36"
       - "spec/semantics-contract.md:1026-1037"
-      - "spec/semantics-contract.md:1130-1167"
+      - "spec/semantics-contract.md:1132-1169"
       - "spec/semantics-contract.md:641-652"
-      - "spec/semantics-contract.md:1435-1436"
+      - "spec/semantics-contract.md:1437-1438"
       - "schema/zmeta-event-1.0.schema.json:131-158"
       - "schema/zmeta-event-1.0.schema.json:1740-1753"
       - "policy/lineage.yaml:19"
@@ -488,7 +488,7 @@ guidance:
       - "spec/semantics-contract.md:906-913 (section 6.5: distances and ranges are meters, frequency and bandwidth Hertz, power dBm unless a field name explicitly states another unit; alternate or vendor-specific units converted or placed in explicitly named payload-scoped extension fields)"
       - "spec/semantics-contract.md:915-920 (section 6.6: durations and time deltas are milliseconds unless otherwise specified)"
       - "spec/semantics-contract.md:922-926 (section 6.7: consumers MUST NOT infer units; absence of units does not imply defaults)"
-      - "spec/semantics-contract.md:2110-2117 (section 21.1: payload.quality.measurement_error is an object with explicit value, unit, and metric)"
+      - "spec/semantics-contract.md:2112-2119 (section 21.1: payload.quality.measurement_error is an object with explicit value, unit, and metric)"
       - "gateway/src/validators.py:3352-3382 (the only payload.quality semantic checks: INVALID_QUALITY_BEARING_FRAME at 3363, INVALID_QUALITY_HEADING_SOURCE at 3375; comment at 3354 records that the v1.0 schema leaves quality free-form)"
       - "gateway/tests/test_reason_codes.py:189-201 (asserts the code is schema-valid as a SCHEMA_VIOLATION reason_code; exercises no unit logic)"
   - code: INVALID_QUALITY_BEARING_FRAME
@@ -546,7 +546,7 @@ guidance:
       or pressure_pa with pressure_statistic, and prohibits power_db and
       source_type (lines 1293-1305, 1354-1355), NETWORK
       requires protocol (line 1347), and EO requires nothing, carrying raw
-      image metadata only (spec/semantics-contract.md:2163-2164). Any detector
+      image metadata only (spec/semantics-contract.md:2165-2166). Any detector
       score, class name, or label moves to a separate INFERENCE_EVENT that
       lists this observation in both payload.based_on and lineage.based_on
       (spec/semantics-contract.md:1063-1069; schema lines 1380-1388 and
@@ -566,7 +566,7 @@ guidance:
       - "schema/zmeta-event-1.1.0.schema.json:1380-1388"
       - "schema/zmeta-event-1.1.0.schema.json:64-81"
       - "spec/semantics-contract.md:1040-1069"
-      - "spec/semantics-contract.md:2159-2171"
+      - "spec/semantics-contract.md:2161-2173"
       - "gateway/src/validators.py:2957-2969"
       - "gateway/src/validators.py:3482-3495"
       - "gateway/src/validators.py:3638-3650"
@@ -594,8 +594,8 @@ guidance:
       - "gateway/tests/test_reason_codes.py:184-201"
       - "docs/zmeta_doctrine_review_log.md:131-134"
       - "spec/semantics-contract.md:928-937"
-      - "spec/semantics-contract.md:2110-2131"
-      - "spec/semantics-contract.md:2206-2238"
+      - "spec/semantics-contract.md:2112-2133"
+      - "spec/semantics-contract.md:2208-2240"
   - code: GEO_ZERO_FILL_SUSPECTED
     remediation: >-
       This warn-only heuristic fires when a canonical geo block carries lat
@@ -691,16 +691,16 @@ guidance:
       because JSON Schema's minimum/maximum bounds compare vacuously against
       NaN and cannot catch it (gateway/src/validators.py:3296-3298) while
       contract 8.1 requires top-level confidence to be in [0.0, 1.0]
-      (spec/semantics-contract.md:1355-1356). Replace the non-finite result
+      (spec/semantics-contract.md:1357-1358). Replace the non-finite result
       with a genuine computed value in that range: contract 8.1 directs that
       confidence be reduced or capped when timing, lineage, input quality,
       stale data, degraded compute, profile thinning, or raw-data absence
-      materially reduces use safety (spec/semantics-contract.md:1360-1362),
+      materially reduces use safety (spec/semantics-contract.md:1362-1364),
       and contract 8.3 lists the inputs fusion and state confidence must
-      account for (spec/semantics-contract.md:1377-1386). The contract defines
+      account for (spec/semantics-contract.md:1379-1388). The contract defines
       no sentinel or unknown confidence value and the field is mandatory for
       INFERENCE_EVENT, FUSION_EVENT, and STATE_EVENT
-      (spec/semantics-contract.md:1357), so a placeholder is not a sanctioned
+      (spec/semantics-contract.md:1359), so a placeholder is not a sanctioned
       repair.
     citations:
       - "policy/violation-codes.yaml:48-49"
@@ -709,9 +709,9 @@ guidance:
       - "gateway/src/validators.py:3296-3298"
       - "gateway/src/validators.py:3308-3309"
       - "gateway/src/validators.py:3327-3339"
-      - "spec/semantics-contract.md:1355-1358"
-      - "spec/semantics-contract.md:1360-1362"
-      - "spec/semantics-contract.md:1377-1386"
+      - "spec/semantics-contract.md:1357-1360"
+      - "spec/semantics-contract.md:1362-1364"
+      - "spec/semantics-contract.md:1379-1388"
       - "schema/zmeta-event-1.1.0.schema.json:35-39"
       - "schema/zmeta-event-1.1.0.schema.json:56-62"
   - code: ENCODING_UNSUPPORTED
@@ -796,7 +796,7 @@ guidance:
       - "schema/zmeta-event-1.0.schema.json:897-903"
       - "spec/semantics-contract.md:779-781"
       - "spec/semantics-contract.md:783"
-      - "spec/semantics-contract.md:2155"
+      - "spec/semantics-contract.md:2157"
       - "gateway/tests/test_reason_codes.py:196"
   - code: RF_WINDOW_MIDPOINT_INVALID
     remediation: >-
@@ -820,8 +820,8 @@ guidance:
       - "policy/semantics.yaml:1-3 (semantics.observation_event.rf_window_midpoint_tolerance_ms: 1 - nested key, not top level)"
       - "policy/semantics.yaml:106 (RF_WINDOW_MIDPOINT_INVALID listed in schema_violation_allowed_reason_codes)"
       - "spec/semantics-contract.md:777-785 (5.6 Windowed Observations; the midpoint MUST at 783, the 1 ms tolerance MAY granted to validation tooling at 784-785)"
-      - "spec/semantics-contract.md:2155 ('`t_start` and `t_end` appear together.')"
-      - "spec/semantics-contract.md:1324-1325 ('`metrics.reason_code` MUST be one of the codes defined by the active governed diagnostic vocabulary'; located under '## 7. v1.0 Event Model and Payload Contracts' at line 939, not section 8)"
+      - "spec/semantics-contract.md:2157 ('`t_start` and `t_end` appear together.')"
+      - "spec/semantics-contract.md:1326-1327 ('`metrics.reason_code` MUST be one of the codes defined by the active governed diagnostic vocabulary'; located under '## 7. v1.0 Event Model and Payload Contracts' at line 939, not section 8)"
       - "schema/zmeta-event-1.0.schema.json:890-904 ($defs.ObservationPayload dependentRequired {t_start:[t_end], t_end:[t_start]}; required is only modality+features, so omitting both is legal)"
       - "schema/zmeta-event-1.1.0.schema.json:1094-1096 ($defs.ObservationPayload carries the identical dependentRequired pairing)"
       - "gateway/src/validators.py:3482 (enclosing `if event_type == \"OBSERVATION_EVENT\":` guard)"
@@ -869,7 +869,7 @@ guidance:
     citations:
       - "spec/semantics-contract.md:648-652"
       - "spec/semantics-contract.md:641-643"
-      - "spec/semantics-contract.md:1690-1691"
+      - "spec/semantics-contract.md:1692-1693"
       - "gateway/src/validators.py:3824-3846"
       - "gateway/src/validators.py:2950-2954"
       - "gateway/src/validators.py:3892-3939"
@@ -902,7 +902,7 @@ guidance:
       - "spec/semantics-contract.md:475-477"
       - "spec/semantics-contract.md:648"
       - "spec/semantics-contract.md:1099-1120"
-      - "spec/semantics-contract.md:1435-1436"
+      - "spec/semantics-contract.md:1437-1438"
       - "schema/zmeta-event-1.1.0.schema.json:1428-1445"
       - "gateway/tests/test_lineage_semantics.py:193-209"
   - code: LINEAGE_PARENT_UNRESOLVED
@@ -931,8 +931,8 @@ guidance:
       - "gateway/src/validators.py:72-86"
       - "gateway/src/validators.py:98-99"
       - "gateway/src/validators.py:290-323"
-      - "spec/semantics-contract.md:1435-1441"
-      - "spec/semantics-contract.md:1487-1488"
+      - "spec/semantics-contract.md:1437-1443"
+      - "spec/semantics-contract.md:1489-1490"
       - "policy/lineage.yaml:13-16"
       - "policy/lineage.yaml:21-31"
       - "policy/violation-codes.yaml:64-65"
@@ -965,7 +965,7 @@ guidance:
       - "gateway/src/validators.py:4128-4139"
       - "adapters/projector/track/README.md:54-59"
       - "spec/semantics-contract.md:249-250"
-      - "spec/semantics-contract.md:1157-1158"
+      - "spec/semantics-contract.md:1159-1160"
   - code: SCHEMA_VIOLATION_MISSING_REASON_CODE
     remediation: >-
       This fires when a SYSTEM_EVENT carries system_type SCHEMA_VIOLATION but
@@ -988,7 +988,7 @@ guidance:
       - "policy/semantics.yaml:79-140 (system_event.schema_violation_allowed_reason_codes, the full 61-value governed vocabulary; the list ends at line 140, not 89)"
       - "policy/semantics.yaml:141-153 (comment plus schema_violation_v1_0_wire_fallback: the locked v1.0 reason_code enum cannot grow, so post-lock codes ride a documented legacy fallback on the v1.0 wire)"
       - "policy/violation-codes.yaml:68-69 (SCHEMA_VIOLATION_MISSING_REASON_CODE, severity: fail)"
-      - "spec/semantics-contract.md:1313-1325 (SCHEMA_VIOLATION section: Required metrics reason_code and original_event_id; metrics.reason_code MUST be one of the codes defined by the active governed diagnostic vocabulary)"
+      - "spec/semantics-contract.md:1315-1327 (SCHEMA_VIOLATION section: Required metrics reason_code and original_event_id; metrics.reason_code MUST be one of the codes defined by the active governed diagnostic vocabulary)"
       - "schema/zmeta-event-1.1.0.schema.json:1847-1934 (SYSTEM_EVENT/SCHEMA_VIOLATION arm: metrics required, metrics.required = [reason_code, original_event_id], reason_code enum at 1863-1925)"
       - "schema/zmeta-event-1.0.schema.json:1546-1640 (v1.0 SCHEMA_VIOLATION arm: same required metrics, but the reason_code enum at 1569-1625 omits RF_ZERO_FILL_SUSPECTED, SENSOR_STATUS_STATE_MISMATCH, PLATFORM_STATUS_POWER_MISSING, NON_FINITE_VALUE, COMMAND_EVIDENCE_UNRESOLVED, COMMAND_EVIDENCE_PROHIBITED)"
   - code: SCHEMA_VIOLATION_MISSING_ORIGINAL_EVENT_ID
@@ -1004,7 +1004,7 @@ guidance:
       because a metrics object that is missing reason_code is reported as
       SCHEMA_VIOLATION_MISSING_REASON_CODE instead.
     citations:
-      - "spec/semantics-contract.md:1313-1322 (SCHEMA_VIOLATION is the v1.0 diagnostic envelope for rejected, malformed, and policy-warned events; required metrics are reason_code and original_event_id)"
+      - "spec/semantics-contract.md:1315-1324 (SCHEMA_VIOLATION is the v1.0 diagnostic envelope for rejected, malformed, and policy-warned events; required metrics are reason_code and original_event_id)"
       - "spec/semantics-contract.md:312 (soft-acceptance decisions filterable through 'a same-stream diagnostic event keyed by `original_event_id`')"
       - "spec/field-dictionary.md:102-106 (SCHEMA_VIOLATION metrics: reason_code, original_event_id, optional path, error; not a generic trust, quarantine, lifecycle, or operational status label)"
       - "schema/zmeta-event-1.1.0.schema.json:1847-1858 (SystemPayload conditional on system_type const SCHEMA_VIOLATION: metrics required, metrics.required = [\"reason_code\", \"original_event_id\"])"
@@ -1024,7 +1024,7 @@ guidance:
       of schema/zmeta-event-1.1.0.schema.json. The contract does not restate
       that list; it requires metrics.reason_code to be one of the codes
       defined by the active governed diagnostic vocabulary
-      (spec/semantics-contract.md:1324-1325). There is no free-text or
+      (spec/semantics-contract.md:1326-1327). There is no free-text or
       namespaced-extension path for this field, so pick the governed code that
       actually names the condition being reported, for example SCHEMA_INVALID,
       COMMAND_HAS_ALTITUDE, or OBSERVATION_HAS_IDENTITY. When the event is
@@ -1040,7 +1040,7 @@ guidance:
       - "gateway/src/validators.py:3638-3650"
       - "schema/zmeta-event-1.1.0.schema.json:1860-1926"
       - "schema/zmeta-event-1.0.schema.json:1569-1625"
-      - "spec/semantics-contract.md:1324-1325"
+      - "spec/semantics-contract.md:1326-1327"
       - "spec/semantics-contract.md:121-122"
       - "gateway/src/gateway.py:1727"
   - code: TASK_ACK_MISSING_TASK_ID
@@ -1060,8 +1060,8 @@ guidance:
       - "gateway/src/validators.py:3717-3767"
       - "policy/semantics.yaml:154-156"
       - "policy/violation-codes.yaml:74-75"
-      - "spec/semantics-contract.md:1230-1236"
-      - "spec/semantics-contract.md:1782-1783"
+      - "spec/semantics-contract.md:1232-1238"
+      - "spec/semantics-contract.md:1784-1785"
       - "spec/field-dictionary.md:84-87"
       - "schema/zmeta-event-1.0.schema.json:1669-1683"
       - "schema/zmeta-event-1.0.schema.json:1186-1196"
@@ -1080,7 +1080,7 @@ guidance:
       absent or empty (gateway/src/validators.py:3732-3734). The shipped
       policy sets the first key to task_id and original_event_id alone
       (policy/semantics.yaml:154-156), matching the normative contract
-      (spec/semantics-contract.md:1234-1236) and the schema
+      (spec/semantics-contract.md:1236-1238) and the schema
       (schema/zmeta-event-1.1.0.schema.json:1954), so this code has no live
       trigger under the repo's own policy and appears only where a deployment
       added a further required field name under either key. Populate
@@ -1093,7 +1093,7 @@ guidance:
       - "gateway/src/validators.py:3752-3767"
       - "policy/semantics.yaml:154-156"
       - "schema/zmeta-event-1.1.0.schema.json:1941-1957"
-      - "spec/semantics-contract.md:1230-1236"
+      - "spec/semantics-contract.md:1232-1238"
   - code: TASK_ACK_MISSING_ORIGINAL_EVENT_ID
     remediation: >-
       This fires on a SYSTEM_EVENT TASK_ACK (payload.system_type or
@@ -1111,8 +1111,8 @@ guidance:
       - "gateway/src/validators.py:3757 (emit site, metrics-is-a-dict branch, the reachable one under default policy)"
       - "policy/semantics.yaml:154-156 (task_ack_required_metrics_fields: task_id, original_event_id)"
       - "schema/zmeta-event-1.0.schema.json:1668-1682 (TASK_ACK metrics object requires task_id and original_event_id, both string minLength 1)"
-      - "spec/semantics-contract.md:1230-1236 (#### TASK_ACK, \"TASK_ACK provides an auditable lifecycle for COMMAND_EVENTs\", Required metrics: task_id, original_event_id)"
-      - "spec/semantics-contract.md:1774,1782-1783 (event_id is the immutable dedup key; TASK_ACK dedupes by payload.metrics.task_id + payload.metrics.original_event_id + payload.state)"
+      - "spec/semantics-contract.md:1232-1238 (#### TASK_ACK, \"TASK_ACK provides an auditable lifecycle for COMMAND_EVENTs\", Required metrics: task_id, original_event_id)"
+      - "spec/semantics-contract.md:1776,1782-1783 (event_id is the immutable dedup key; TASK_ACK dedupes by payload.metrics.task_id + payload.metrics.original_event_id + payload.state)"
       - "spec/semantics-contract.md:949 (event_id: UUIDv7 in the canonical envelope)"
       - "examples/zmeta-command-examples.jsonl:2-4 (canonical trace: COMMAND_EVENT event_id 019c2b5c-c047-73ea-8f1a-302fc3049334 with payload.task_id task-l-0001, echoed by both TASK_ACKs as metrics.original_event_id and metrics.task_id)"
       - "conformance/adapter-harness/must-pass.jsonl:36 (sapient-task-ack-with-task-index: task_index maps the task_id to the command's event id, expected at payload.metrics.original_event_id)"
@@ -1137,8 +1137,8 @@ guidance:
       - "gateway/src/validators.py:3783-3794 (sibling TASK_ACK_INVALID_REASON_CODE for an out-of-list string)"
       - "policy/semantics.yaml:167-172 (task_ack_reason_code_required_states: REJECTED, FAILED, CANCELLED, EXPIRED, DUPLICATE_IGNORED)"
       - "policy/semantics.yaml:173-185 (task_ack_allowed_reason_codes: the twelve values)"
-      - "spec/semantics-contract.md:1249-1254 (metrics.reason_code required for those five states)"
-      - "spec/semantics-contract.md:1256-1268 (Allowed TASK_ACK reason codes, normative)"
+      - "spec/semantics-contract.md:1251-1256 (metrics.reason_code required for those five states)"
+      - "spec/semantics-contract.md:1258-1270 (Allowed TASK_ACK reason codes, normative)"
       - "schema/zmeta-event-1.1.0.schema.json:1935-1979 ($defs/SystemPayload TASK_ACK case: metrics.reason_code enum, identical twelve values)"
       - "schema/zmeta-event-1.1.0.schema.json:1981-1998 (schema-side conditional requiring metrics.reason_code for the five states)"
       - "policy/violation-codes.yaml:80-81 (TASK_ACK_MISSING_REASON_CODE severity: fail)"
@@ -1155,7 +1155,7 @@ guidance:
       DUPLICATE_IGNORED, payload.metrics.reason_code is also required and must
       be one of the twelve allowed TASK_ACK reason codes.
     citations:
-      - "spec/semantics-contract.md:1230-1268"
+      - "spec/semantics-contract.md:1232-1270"
       - "policy/semantics.yaml:157-185"
       - "schema/zmeta-event-1.1.0.schema.json:1935-1999"
       - "gateway/src/validators.py:3597-3729"
@@ -1166,7 +1166,7 @@ guidance:
       EVENT_TYPE_NOT_ALLOWED_FOR_ROLE, EVENT_TYPE_NOT_ALLOWED_FOR_PROFILE,
       PRODUCER_NOT_ALLOWED, COMMAND_NOT_DECONFLICTED, COMMAND_HAS_ALTITUDE,
       TASK_DUPLICATE, TASK_EXPIRED, TASK_CANCELLED, TASK_FAILED, TASK_ABORTED,
-      or TASK_REJECTED (spec/semantics-contract.md:1256-1268;
+      or TASK_REJECTED (spec/semantics-contract.md:1258-1270;
       policy/semantics.yaml:173-185;
       schema/zmeta-event-1.1.0.schema.json:1958-1975). This is not a free-text
       or extensible field: pick the listed code that matches why the task was
@@ -1176,7 +1176,7 @@ guidance:
     citations:
       - "gateway/src/validators.py:3783-3794 (emit site: inside validate_semantics, event_type == \"SYSTEM_EVENT\" gate at :3597, TASK_ACK branch opens at :3717, reason_code read from payload.metrics at :3769; TASK_ACK_INVALID_REASON_CODE returned at :3789 when reason_code is a non-empty string not present in system_policy['task_ack_allowed_reason_codes'])"
       - "policy/semantics.yaml:173-185 (task_ack_allowed_reason_codes: the 12-entry policy list the validator enforces; code registered in the semantics violation list at :120)"
-      - "spec/semantics-contract.md:1256-1268 (normative 'Allowed TASK_ACK reason codes' list, identical 12 entries; reason_code-required states at :1249-1254)"
+      - "spec/semantics-contract.md:1258-1270 (normative 'Allowed TASK_ACK reason codes' list, identical 12 entries; reason_code-required states at :1249-1254)"
       - "schema/zmeta-event-1.1.0.schema.json:1958-1975 (payload.metrics.reason_code enum under the system_type == TASK_ACK if/then, identical 12 entries)"
       - "schema/zmeta-event-1.0.schema.json:1684-1701 (same reason_code enum, identical 12 entries, so the guidance holds on both wire schema versions)"
       - "policy/violation-codes.yaml:84-85 (TASK_ACK_INVALID_REASON_CODE severity: fail; no message text carried in this file)"
@@ -1186,7 +1186,7 @@ guidance:
       a payload.metrics object that is missing, not an object, or missing one
       or more of the four fields the LINK_STATUS system type requires:
       link_id, latency_ms, packet_loss_pct, and throughput_bps
-      (spec/semantics-contract.md:1275-1279; policy/semantics.yaml:186-190).
+      (spec/semantics-contract.md:1277-1281; policy/semantics.yaml:186-190).
       The sanctioned fix is to populate payload.metrics with all four named
       fields before emitting the event; there is no alternate path or optional
       subset, since the gateway checks the metrics object against exactly this
@@ -1194,22 +1194,22 @@ guidance:
     citations:
       - "gateway/src/validators.py:3652-3688"
       - "policy/semantics.yaml:186-190"
-      - "spec/semantics-contract.md:1270-1279"
+      - "spec/semantics-contract.md:1272-1281"
       - "policy/violation-codes.yaml:86-87"
   - code: LINK_STATUS_INVALID_STATE
     remediation: >-
       A SYSTEM_EVENT payload with system_type LINK_STATUS carried a
       payload.state that is missing or outside the allowed set. Set
       payload.state to one of the four canonical LINK_STATUS states, UP,
-      DEGRADED, DOWN, or UNKNOWN (spec/semantics-contract.md:1281-1285;
+      DEGRADED, DOWN, or UNKNOWN (spec/semantics-contract.md:1283-1287;
       schema/zmeta-event-1.1.0.schema.json:1799-1802), and when the state is
       DEGRADED or DOWN also populate metrics.reason_code with one of the
-      allowed LINK_STATUS reason codes (spec/semantics-contract.md:1287-1301),
+      allowed LINK_STATUS reason codes (spec/semantics-contract.md:1289-1303),
       rather than inventing a new state string.
     citations:
       - "gateway/src/validators.py:3652-3664"
       - "policy/semantics.yaml:191-198"
-      - "spec/semantics-contract.md:1270-1301"
+      - "spec/semantics-contract.md:1272-1303"
       - "schema/zmeta-event-1.1.0.schema.json:1737-1802"
       - "policy/violation-codes.yaml:88-89"
   - code: LINK_STATUS_MISSING_REASON_CODE
@@ -1227,13 +1227,13 @@ guidance:
       - "policy/semantics.yaml:199-211"
       - "schema/zmeta-event-1.1.0.schema.json:1830-1846"
       - "schema/zmeta-event-1.1.0.schema.json:1815-1824"
-      - "spec/semantics-contract.md:1287"
-      - "spec/semantics-contract.md:1289-1301"
+      - "spec/semantics-contract.md:1289"
+      - "spec/semantics-contract.md:1291-1303"
   - code: LINK_STATUS_INVALID_REASON_CODE
     remediation: >-
       This fires when a SYSTEM_EVENT whose payload.system_type is LINK_STATUS
       carries a non-empty metrics.reason_code that is not one of the twelve
-      canonical values fixed at spec/semantics-contract.md:1289-1301
+      canonical values fixed at spec/semantics-contract.md:1291-1303
       (LINK_LOSS, LOW_RSSI, HIGH_LATENCY, HIGH_PACKET_LOSS, LOW_THROUGHPUT,
       INTERFERENCE, JAMMED, BACKHAUL_DOWN, NO_ROUTE, CONFIG_ERROR, POWER_SAVE,
       UNKNOWN_CAUSE). The same twelve are enum-constrained in the schema
@@ -1248,7 +1248,7 @@ guidance:
       - "gateway/src/validators.py:3690-3702 (reason_code sourced from payload.metrics.reason_code; required for the policy-listed states DEGRADED/DOWN)"
       - "gateway/src/validators.py:3704-3715 (emit site: fires only when reason_code is a non-empty string outside link_status_allowed_reason_codes)"
       - "policy/semantics.yaml:196-211 (link_status_reason_code_required_states DEGRADED/DOWN; link_status_allowed_reason_codes, the same twelve)"
-      - "spec/semantics-contract.md:1270-1301 (LINK_STATUS: required metrics, allowed states, metrics.reason_code required for DEGRADED and DOWN, and the twelve allowed reason codes)"
+      - "spec/semantics-contract.md:1272-1303 (LINK_STATUS: required metrics, allowed states, metrics.reason_code required for DEGRADED and DOWN, and the twelve allowed reason codes)"
       - "schema/zmeta-event-1.0.schema.json:1495-1512 (metrics.reason_code enum, the same twelve values)"
       - "schema/zmeta-event-1.1.0.schema.json:1815-1824 (metrics.reason_code enum, the same twelve values)"
       - "adapters/ingress/mavlink/mavlink_to_zmeta_template.py:983-999 and :1110-1119 (reference adapter refuses an out-of-vocabulary carried reason_code rather than substituting a value)"
@@ -1300,7 +1300,7 @@ guidance:
       - "policy/semantics.yaml:126"
       - "schema/zmeta-event-1.1.0.schema.json:2066-2151"
       - "schema/zmeta-event-1.1.0.schema.json:2079-2087"
-      - "spec/semantics-contract.md:2181-2188"
+      - "spec/semantics-contract.md:2183-2190"
       - "gateway/tests/test_reason_codes.py:67-93"
       - "gateway/tests/test_violation_event_self_validity.py:160-163"
   - code: PRODUCER_NOT_ALLOWED
@@ -1339,7 +1339,7 @@ guidance:
       - "docs/s1_14_external_projection_promotion_contract.md:11-27 (a lossy projection must not become authoritative STATE_EVENT without valid promotion evidence; enforced as producer authority via PRODUCER_NOT_ALLOWED)"
       - "conformance/bad-events/must-fail.jsonl:5,28,31,33 (external-state-missing-promotion-evidence fixtures for cot/sapient/jreap/mavlink, expect_code PRODUCER_NOT_ALLOWED)"
       - "conformance/README.md:64-68 (external promotion evidence or PRODUCER_NOT_ALLOWED under the default reject mode)"
-      - "spec/semantics-contract.md:1260 (PRODUCER_NOT_ALLOWED listed as an allowed TASK_ACK reason_code)"
+      - "spec/semantics-contract.md:1262 (PRODUCER_NOT_ALLOWED listed as an allowed TASK_ACK reason_code)"
       - "policy/violation-codes.yaml:98-99 (severity: fail)"
       - "schema/zmeta-event-1.0.schema.json:1614,1691 (SCHEMA_VIOLATION metrics.reason_code enum and TASK_ACK reason_code enum)"
       - "schema/zmeta-event-1.0.schema.json:1157-1171 (TrackStatePayload.extensions is an open object, additionalProperties true: external_promotion is policy-declared, not schema-declared)"
@@ -1355,7 +1355,7 @@ guidance:
       forward: either omit `profile`, since the check fires only when the
       field is present and an omitted `profile` leaves the runtime
       gateway/policy profile governing export behavior
-      (spec/semantics-contract.md:1576-1578), or set it to the export profile
+      (spec/semantics-contract.md:1578-1580), or set it to the export profile
       actually applied at that hop, since `profile` is optional and reflects
       the export profile applied at emission time
       (spec/semantics-contract.md:963, spec/semantics-contract.md:980-981).
@@ -1377,7 +1377,7 @@ guidance:
       - "schema/zmeta-event-1.0.schema.json:23-30"
       - "spec/semantics-contract.md:963"
       - "spec/semantics-contract.md:980-981"
-      - "spec/semantics-contract.md:1573-1578"
+      - "spec/semantics-contract.md:1575-1580"
   - code: TIMING_STATUS_MISSING
     remediation: >-
       This fires when the event carried no complete timing quality object and
@@ -1437,7 +1437,7 @@ guidance:
       - "spec/semantics-contract.md:728-731"
       - "spec/semantics-contract.md:745-748"
       - "spec/semantics-contract.md:1024-1036"
-      - "spec/semantics-contract.md:1177-1190"
+      - "spec/semantics-contract.md:1179-1192"
       - "schema/zmeta-event-1.1.0.schema.json:862-878"
   - code: TIMING_STATUS_AGE_NEGATIVE
     remediation: >-
@@ -1471,7 +1471,7 @@ guidance:
       - "spec/semantics-contract.md:728-731"
       - "spec/semantics-contract.md:733-742"
       - "spec/semantics-contract.md:750-757"
-      - "spec/semantics-contract.md:1308-1311"
+      - "spec/semantics-contract.md:1310-1313"
       - "schema/zmeta-event-1.1.0.schema.json:862-878"
       - "schema/zmeta-event-1.1.0.schema.json:1129,1424,1457,1475,1564 (payload.timing_quality, one per payload family)"
       - "schema/zmeta-event-1.1.0.schema.json:1502-1504 (CommandPayload additionalProperties false: payload.quality is not a legal key on a COMMAND_EVENT)"
@@ -1566,7 +1566,7 @@ guidance:
       gateway/src/validators.py:78-80 as each event is recorded), and
       OBSERVATION_EVENT, INFERENCE_EVENT, FUSION_EVENT, STATE_EVENT, and
       ordinary SYSTEM_EVENTs dedupe by `event_id`, so the second copy is
-      rejected rather than applied (spec/semantics-contract.md:1774-1779).
+      rejected rather than applied (spec/semantics-contract.md:1776-1781).
       ZMeta events are append-only and immutable once emitted, so any
       correction, reinterpretation, refinement, or increase in confidence,
       TTL, precision, or specificity must be emitted as a new event with a
@@ -1585,8 +1585,8 @@ guidance:
       - "spec/semantics-contract.md:468-471"
       - "spec/semantics-contract.md:475-477"
       - "spec/semantics-contract.md:966-967"
-      - "spec/semantics-contract.md:1435"
-      - "spec/semantics-contract.md:1772-1783"
+      - "spec/semantics-contract.md:1437"
+      - "spec/semantics-contract.md:1774-1785"
       - "policy/violation-codes.yaml:114-115"
       - "schema/zmeta-event-1.1.0.schema.json:2153-2166"
   - code: TASK_DUPLICATE
@@ -1601,9 +1601,9 @@ guidance:
       `payload.state` is `DUPLICATE_IGNORED` and whose
       `payload.metrics.reason_code` is `TASK_DUPLICATE`.
     citations:
-      - "spec/semantics-contract.md:1194 (\"COMMAND_EVENT MUST be idempotent by `payload.task_id`.\")"
-      - "spec/semantics-contract.md:1780-1781 (\"COMMAND_EVENT dedupes by `payload.task_id`.\" / \"Duplicate COMMAND_EVENTs MUST NOT be forwarded for execution a second time.\")"
-      - "spec/semantics-contract.md:1247-1263 (TASK_ACK: DUPLICATE_IGNORED is an allowed state, metrics.reason_code is required for it, and TASK_DUPLICATE is an allowed TASK_ACK reason code)"
+      - "spec/semantics-contract.md:1196 (\"COMMAND_EVENT MUST be idempotent by `payload.task_id`.\")"
+      - "spec/semantics-contract.md:1782-1783 (\"COMMAND_EVENT dedupes by `payload.task_id`.\" / \"Duplicate COMMAND_EVENTs MUST NOT be forwarded for execution a second time.\")"
+      - "spec/semantics-contract.md:1249-1265 (TASK_ACK: DUPLICATE_IGNORED is an allowed state, metrics.reason_code is required for it, and TASK_DUPLICATE is an allowed TASK_ACK reason code)"
       - "schema/zmeta-event-1.1.0.schema.json:1502-1512 (CommandPayload requires `task_id`, type string, minLength 1)"
       - "gateway/src/validators.py:3253-3263 (validate_deduplication: COMMAND_EVENT whose payload.task_id is already in state.command_task_ids yields the TASK_DUPLICATE violation \"COMMAND_EVENT task_id has already been applied\")"
       - "gateway/src/validators.py:49,90 (state.command_task_ids is an unbounded set populated from every COMMAND_EVENT payload.task_id; no TTL on this path)"
@@ -1630,9 +1630,9 @@ guidance:
       - "gateway/src/validators.py:3266-3282 (validate_deduplication: SYSTEM_EVENT with payload.system_type == \"TASK_ACK\" builds key = (metrics.get(\"task_id\"), metrics.get(\"original_event_id\"), payload.get(\"state\")); if all(key) and key in state.task_ack_keys, emits TASK_ACK_DUPLICATE at :3273 with message \"TASK_ACK state transition has already been applied\" and those three details)"
       - "gateway/src/validators.py:3244-3252 (the event_id check runs first and returns EVENT_DUPLICATE, so TASK_ACK_DUPLICATE reports a repeat of the triple rather than a replay of the same event_id)"
       - "gateway/src/validators.py:88-96 (ValidationState.record adds the same three-part key to task_ack_keys only when all three parts are present)"
-      - "spec/semantics-contract.md:1782-1783 (13.2 Deduplication: \"TASK_ACK dedupes by `payload.metrics.task_id` + `payload.metrics.original_event_id` + `payload.state`.\")"
-      - "spec/semantics-contract.md:1234-1236 (TASK_ACK required metrics: task_id, original_event_id)"
-      - "spec/semantics-contract.md:1238-1247 (heading \"Allowed states:\" followed by RECEIVED, ACCEPTED, REJECTED, EXECUTING, COMPLETED, FAILED, CANCELLED, EXPIRED, DUPLICATE_IGNORED; no ordering or transition rule is stated here or elsewhere in the contract)"
+      - "spec/semantics-contract.md:1784-1785 (13.2 Deduplication: \"TASK_ACK dedupes by `payload.metrics.task_id` + `payload.metrics.original_event_id` + `payload.state`.\")"
+      - "spec/semantics-contract.md:1236-1238 (TASK_ACK required metrics: task_id, original_event_id)"
+      - "spec/semantics-contract.md:1240-1249 (heading \"Allowed states:\" followed by RECEIVED, ACCEPTED, REJECTED, EXECUTING, COMPLETED, FAILED, CANCELLED, EXPIRED, DUPLICATE_IGNORED; no ordering or transition rule is stated here or elsewhere in the contract)"
       - "schema/zmeta-event-1.1.0.schema.json:1935-1977 (system_type TASK_ACK branch: payload.state enum of the nine states, payload.metrics required task_id and original_event_id)"
       - "policy/semantics.yaml:154-166 (task_ack_required_metrics_fields, task_ack_allowed_states)"
       - "policy/violation-codes.yaml:118-119 (code: TASK_ACK_DUPLICATE, severity: fail)"
@@ -1652,15 +1652,15 @@ guidance:
       `payload.quality.geo_status: VERTICAL_UNAVAILABLE`, which prohibits
       `alt_m` outright; that member never appears under `zmeta_version:
       "1.0"`, where `geo` requires `alt_m` and forbids added members
-      (spec/semantics-contract.md:2119-2130, :2222-2233;
+      (spec/semantics-contract.md:2121-2132, :2222-2233;
       schema/zmeta-event-1.0.schema.json:649-671).
     citations:
       - "policy/violation-codes.yaml:120-127"
       - "gateway/src/validators.py:563-588"
       - "gateway/src/validators.py:3296-3349"
       - "gateway/src/validators.py:643-657"
-      - "spec/semantics-contract.md:2105-2130"
-      - "spec/semantics-contract.md:2222-2233"
+      - "spec/semantics-contract.md:2107-2132"
+      - "spec/semantics-contract.md:2224-2235"
       - "schema/zmeta-event-1.0.schema.json:649-671"
       - "schema/zmeta-event-1.1.0.schema.json:1922"
       - "policy/semantics.yaml:138,147-148"
@@ -1697,7 +1697,7 @@ guidance:
       - "schema/zmeta-event-1.0.schema.json:1740-1755 (same lineage shape on the locked v1.0 schema)"
       - "spec/semantics-contract.md:635-636 (COMMAND_EVENT and SYSTEM_EVENT lineage is optional unless a subtype or deployment policy requires it)"
       - "spec/semantics-contract.md:645-648 (under constrained profiles, especially Profile L, lineage MAY reference non-exported events; envelope `lineage.based_on` is the authoritative audit lineage)"
-      - "spec/semantics-contract.md:1438-1441 (unresolved lineage is allowed as a profile/deployment policy decision and should affect trust or confidence when material)"
+      - "spec/semantics-contract.md:1440-1443 (unresolved lineage is allowed as a profile/deployment policy decision and should affect trust or confidence when material)"
   - code: COMMAND_EVIDENCE_PROHIBITED
     remediation: >-
       This fires when a COMMAND_EVENT cites, in its top-level

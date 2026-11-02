@@ -9,7 +9,7 @@
 # authority stays in spec/semantics-contract.md.
 
 roadmap_version: 1
-last_updated: "2026-10-01"
+last_updated: "2026-11-02"
 source_plan: docs/s1_11_future_versioned_semantic_branch_roadmap_plan.md
 evidence_bar: >
   Promotion from reserved/proposed into a named version branch requires the
@@ -106,6 +106,14 @@ candidates:
         withheld-by-profile and redacted-for-export states. One
         organization: this does not meet the independent half of the bar,
         and no promotion is asked on it.
+      - >
+        2026-10-27: the ZISR demonstration's photograph path (PHOTO-01): a
+        hub-held photograph whose bytes exist only in the operator's browser,
+        so a STATE's `data_ref` would name bytes no server holds, and a
+        consumer needs the reference to read as not retained, honestly, rather
+        than as broken. The same organization as the 2026-09-30 entry: this
+        does not meet the independent half of the bar, and no promotion is
+        asked on it.
     tripwires:
       - >
         Meets the promotion evidence bar; the natural Section 2.6 condition is
