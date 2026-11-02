@@ -50,9 +50,11 @@ ROOT = Path(__file__).resolve().parents[2]
 # Contract anchor moved 2026-11-02 on the maintainer's word of 2026-11-02 (the
 # heading_deg definition: his selection of course over ground on 2026-10-28
 # and of its wording on 2026-11-02, under his contract 2.1 patch reading):
-# section 6.4 gains one paragraph defining `heading_deg`, a field 7.6 and 7.7
-# list and no text defined. It tightens conformance around the meaning the
-# reference projector and the egress adapters already carry; no other rule
+# section 6.4 gains one paragraph defining `heading_deg` as the course over
+# ground, a member 7.6 and 7.7 list whose frame and range 6.4 gave and whose
+# angle (motion or body) no text named. It narrows which true-north angle the
+# member is, the meaning the reference projector and the egress adapters
+# already carry; no other rule
 # text, no section 4 invariant and no schema byte changed.
 CONTRACT_SHA256 = "6ffcff6c655f0f7cdbd6c2b81b125f86da2b71d6d135d49c9c2d54ae90cf0543"
 V1_0_SCHEMA_SHA256 = "1d2d84164b3a8986874e932c0e9369be3bf392a483a8ff261d464f34bd16d7b5"

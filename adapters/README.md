@@ -111,8 +111,10 @@ For v1.1.8 and later:
 
 - Moth tunnel/replay callers must pass `bearing_frame="TRUE_NORTH"` before
   those bearings are emitted as canonical `payload.bearing`.
-- MAVLink platform-state callers must pass `heading_frame="TRUE_NORTH"` before
-  `GLOBAL_POSITION_INT.hdg` is emitted as canonical `payload.heading_deg`.
+- MAVLink platform-state `payload.heading_deg` is the course over ground from
+  `GLOBAL_POSITION_INT` `vx`/`vy` (adapter 1.3.0, contract 6.4); `hdg` is a
+  body angle kept in `payload.quality`, and `heading_frame="TRUE_NORTH"` only
+  labels it there. Before 1.3.0 the assertion emitted `hdg` as canonical.
 - Kraken callers must provide `platform_heading_deg` before array-relative DOA
   is converted to canonical `payload.bearing`.
 - Kraken CSV input does not provide a noise floor; `quality.snr_db` is omitted

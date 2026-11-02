@@ -3579,36 +3579,41 @@ in-range Decimal through a float (`_plain_decimal`).
 One tension, raised by a downstream COP reading the reference projector's
 and the MAVLink template's events side by side, and resolved by the
 maintainer's selections of 2026-10-28 and 2026-11-02. The private session
-records (a ruling in five revisions, each with a seeded refuter, and the
-branch's preparation record) carry the evidence; no partner, host or
-position appears here.
+records (a ruling in five revisions, three of them refuted with a seeded
+error, and the branch's preparation record) carry the evidence; no partner,
+host or position appears here.
 
-### F6-01 — `heading_deg` was listed in 7.6 and 7.7 and defined nowhere · **DECIDED 2026-11-02 (the course over ground; the MAVLink template made conformant)**
+### F6-01 — `heading_deg` had a frame and a range, and no text said which angle it is · **DECIDED 2026-11-02 (the course over ground; the MAVLink template made conformant)**
 
-**Observed:** contract 7.6 and 7.7 list `payload.heading_deg` beside
-`speed_mps`, and 6.4 gives bearings and headings their frame and range, but
-no text said whether the field is the course over ground or the direction
-the body points. The shipped sources disagreed. The reference track
-projector fills it from the ADS-B `track` (a ground track), the CoT egress
-writes it to `<track course>` and the SAPIENT egress decomposes it with
-`speed_mps` into a ground velocity: a course, three times. The MAVLink
+**Observed:** contract 7.6 lists `estimated_state.heading_deg` and 7.7
+`payload.heading_deg`, each beside `speed_mps`, and 6.4 gives bearings and
+headings their frame and range, but no text said whether the member is the
+course over ground or the direction the body points. The shipped sources
+disagreed. The reference track projector fills it from the ADS-B `track`
+(a ground track), the CoT egress writes it to `<track course>` and the
+SAPIENT egress decomposes it with `speed_mps` into a ground velocity: a
+course in all three (the JREAP egress drops the member). The MAVLink
 template filled it from `GLOBAL_POSITION_INT.hdg`, the autopilot's yaw,
-when a caller asserted a true-north frame: a body angle, and in its own
-README example (nose at 135 degrees while moving north) a course claim the
-telemetry contradicts. A consumer asked which one the field is on
-2026-10-19.
+when a caller asserted a true-north frame: a body angle, and for its own
+README example's inputs (nose at 135 degrees while moving north, lineage
+supplied) a course claim the telemetry contradicts. A consumer asked which
+one the member is on 2026-10-19.
 
 **The tension:** two compliant implementations could read one event
 differently, the threshold contract 2.6 names for a change to the core
-text, and design gate 3 (no laundering) is met by neither reading while the
-text stays silent: a consumer that steers by a yaw, or a display that
-draws a course arrow from a body angle, shows a direction the object does
-not move in. Contract 2.1 lets a patch tighten conformance around
-already-defined semantics and forbids redefining an existing field; a
-first definition of a listed, undefined member is the former, as the
-`last_seen_ts` definition was on 2026-10-27, and the one shipped mapping it
-makes non-conformant is an adapter's choice made under the text's silence,
-outer-ring under 2.6, corrected in the same branch.
+text, and design gate 3 (no laundering) is breached while the text stays
+silent: a consumer that steers by a yaw, or a display that draws a course
+arrow from a body angle, shows a direction the object does not move in.
+Contract 2.1 lets a patch tighten conformance around already-defined
+semantics and forbids redefining an existing field. The maintainer's
+reading, accepted on the record: the member's frame and range were already
+defined, and the sentence narrows which true-north angle it is, as the
+`last_seen_ts` definition of 2026-10-27 tightened a listed member; 2.1's
+prohibitions do not name the making of a previously valid mapping invalid,
+and the one shipped mapping the sentence makes non-conformant is an
+adapter's choice made under the text's silence, outer-ring under 2.6,
+corrected in the same branch. The texts carry the reading as his, not as
+their own entailment.
 
 **Decision:** the maintainer selected the course over ground on 2026-10-28
 and its wording on 2026-11-02, accepting the 2.1 reading on the record.

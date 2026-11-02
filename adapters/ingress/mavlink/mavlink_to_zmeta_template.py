@@ -213,13 +213,21 @@ def _course_deg_or_none(vx, vy):
     GLOBAL_POSITION_INT defines ``vx`` as "Ground X Speed (Latitude, positive
     north)" and ``vy`` as "Ground Y Speed (Longitude, positive east)" in the
     MAVLink common message set, so ``atan2(east, north)`` is the course from
-    true north, clockwise. A GPS-derived ground velocity in that frame is
+    true north, clockwise. On a GNSS-aided estimate that velocity is
     true-north-referenced by construction, so no declination assertion is
-    needed, unlike for ``hdg``. Both components must be reported: a course from
+    needed, unlike for ``hdg``; an estimate without GNSS aiding (optical flow,
+    dead reckoning) rotates body velocity into NED by its own yaw and the
+    course inherits that yaw's declination dependence, a deployment's claim
+    to make, as the minimum speed is. Both components must be reported: a course from
     one axis would be a direction the telemetry never measured, and a zero
     velocity has no direction.
     """
     if not (_is_real_number(vx) and _is_real_number(vy)):
+        return None
+    if not (math.isfinite(vx) and math.isfinite(vy)):
+        # hypot of an infinite component clears any minimum and atan2(inf, inf)
+        # is 45 degrees: a direction nobody measured. No course; the kernel's
+        # value-honesty gate still sees the non-finite quality.vx/vy.
         return None
     if vx == 0 and vy == 0:
         return None
@@ -706,7 +714,9 @@ def decode_global_position_int(msg_dict):
     defines ``payload.heading_deg`` as the course over ground, so the decoded
     ``heading_deg`` (from ``hdg``) is never canonical; translate_platform_state
     keeps it as ``quality`` context. The course, ``course_deg``, is derived
-    from ``vx`` and ``vy`` when both are reported (``_course_deg_or_none``).
+    from ``vx`` and ``vy`` when both are reported and finite
+    (``_course_deg_or_none``); it is returned ungated, at any non-zero speed,
+    and translate_platform_state applies the minimum ground speed itself.
     Unknown heading decodes to None (omitted downstream, never defaulted).
 
     Every absent field decodes to None rather than to a zero: absent

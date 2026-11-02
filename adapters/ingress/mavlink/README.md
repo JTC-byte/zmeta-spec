@@ -87,6 +87,9 @@ from adapters.ingress.mavlink.mavlink_to_zmeta_template import (
 state = {}
 state.update(decode_global_position_int({"lat": 434900000, "lon": -1120400000, "alt": 1500000, "hdg": 13500, "vx": 500, "vy": 0, "vz": 0}))
 state.update(decode_gps_raw_int({"fix_type": 3, "satellites_visible": 12}))
+# STATE_EVENT lineage is mandatory (contract 4.8): name the parent ZMeta event
+# id(s); without real lineage translate_platform_state returns None.
+state["based_on"] = ["019c2b5c-c053-70e1-b6aa-340000000001"]
 
 event = translate_platform_state(
     state,
@@ -277,8 +280,12 @@ separately:
 
 - `GLOBAL_POSITION_INT.vx` and `vy` are the ground velocity, north-positive
   and east-positive in cm/s. Their direction, `atan2(vy, vx)` from true north
-  clockwise, is the course over ground, true-north-referenced by construction
-  (a GPS-derived velocity in the NED frame). This adapter emits it as
+  clockwise, is the course over ground. On a GNSS-aided estimate it is
+  true-north-referenced by construction (a GNSS velocity in the NED frame);
+  an estimator without GNSS aiding rotates body velocity by its own yaw, and
+  the course then inherits the yaw's declination dependence, which a
+  deployment knows about its vehicle as it knows its receiver's velocity
+  accuracy. This adapter emits it as
   `payload.heading_deg` with `quality.heading_source =
   "MAVLINK_GLOBAL_POSITION_INT_GROUND_COURSE"`, and only when both
   components are reported and their magnitude is at or above
@@ -297,17 +304,22 @@ separately:
   resemble each other is the error `adapters/AUTHORING.md` names ("never map
   by name similarity").
 - `ATTITUDE.yaw` (retained as `payload.quality.yaw_deg`) is the same body
-  angle from the attitude message; platform-state context, not a heading.
+  angle from the attitude message; it is platform-state context, not a heading.
 
 Deployments may still pass `heading_frame="TRUE_NORTH"` (and a
 `heading_source` label) to `translate_platform_state()` when upstream
 configuration guarantees the frame of `hdg`. The assertion now labels the
 retained body angle only: it is recorded as `quality.mavlink_hdg_frame` and
-`quality.mavlink_hdg_source` beside `mavlink_hdg_frame_unknown_deg`, and it
-promotes nothing into `payload.heading_deg`. Before adapter version 1.3.0
-the same assertion emitted `hdg` as the canonical heading; a consumer tells
-the two behaviours apart by the lineage transform
-(`promote:mavlink-telemetry@1.2.0` a body angle, `@1.3.0` a course).
+`quality.mavlink_hdg_source` beside `mavlink_hdg_frame_unknown_deg` (a
+historical key name, kept so its consumers keep reading it; with a frame
+asserted the frame is the neighbouring key's value), and it promotes nothing
+into `payload.heading_deg`. Before adapter version 1.3.0 the same assertion
+emitted `hdg` as the canonical heading, and the earliest versions emitted it
+unconditionally; a consumer tells the behaviours apart by the lineage
+transform (`promote:mavlink-telemetry@` any version before 1.3.0 a body
+angle, `@1.3.0` a course). The version applies to every transform this
+template writes, the SYSTEM_EVENT `translate:` strings included, whose
+behaviour did not change.
 
 ## Source
 

@@ -155,8 +155,9 @@ def _state_event(**overrides):
 
 
 def test_mavlink_known_heading_without_frame_omits_canonical_heading():
-    # GLOBAL_POSITION_INT.hdg does not declare a true-vs-magnetic reference,
-    # so the adapter must not emit canonical payload.heading_deg by default.
+    # GLOBAL_POSITION_INT.hdg is a body angle (yaw), and contract 6.4 defines
+    # payload.heading_deg as the course over ground, so the adapter never emits
+    # hdg as the canonical heading; the value stays in quality.
     event = _state_event(heading_deg=90.0)
 
     assert "heading_deg" not in event["payload"]
@@ -247,6 +248,17 @@ def test_mavlink_readme_example_emits_the_course_not_the_nose():
     assert event["payload"]["heading_deg"] == pytest.approx(0.0)
     assert event["payload"]["quality"]["mavlink_hdg_frame_unknown_deg"] == 135.0
     VALIDATOR.validate(event)
+
+
+def test_mavlink_course_is_not_asserted_from_an_infinite_velocity():
+    # math.hypot of an infinite component is infinite, which clears any minimum,
+    # and atan2(inf, inf) is 45 degrees: a direction nobody measured. The course
+    # guard refuses non-finite components; the kernel's value-honesty gate still
+    # sees the infinite quality.vx/vy and refuses the event as a whole.
+    for vx, vy in ((float("inf"), float("inf")), (float("inf"), 0.0), (float("-inf"), float("inf"))):
+        event = _state_event(vx=vx, vy=vy)
+        assert "heading_deg" not in event["payload"]
+        assert "heading_source" not in event["payload"]["quality"]
 
 
 def test_decode_global_position_int_course_is_none_without_both_components():
