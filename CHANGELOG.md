@@ -26,6 +26,19 @@
   tests failed on the unchanged template first (four axis cases pin the
   convention), then 80 passed; the README is rewritten for the rule.
 
+- 2026-11-02 — **Records pass after the 7.6 `last_seen_ts` definition.** Two
+  inline test fixtures that carried the old relation
+  (`gateway/tests/test_lineage_semantics.py`, `tools/test_workflow_end_to_end.py`)
+  now give the member observation's `event.ts`, as the sentence requires. The
+  92 contract citations in `tools/validation_guidance.yaml` that pointed past
+  the 7.6 insertion, and seven continuation line references on six of its
+  lines, were re-anchored by the two inserted lines (every one verified to
+  name the same text as before). The 2026-10-27 entry's booking
+  sentence names where the relation check goes. One evidence bullet added to
+  the roadmap candidate `raw-data-absent-evidence-status` for the
+  demonstration's photograph path (same organization; no promotion asked). No
+  schema, policy or validator byte changes.
+
 ## [1.1.27] - 2026-10-27
 
 - 2026-10-27 — **Contract 7.6 defines `last_seen_ts`.** The Fusion rules
@@ -45,7 +58,10 @@
   example and the v1.1 example already agreed. The v1.0 lock-baseline contract
   anchor moves with a dated note; no schema, policy or validator byte changes.
   No check reads the relation yet; that check, with its own failing control,
-  is follow-up work for the next records pass.
+  is its own branch (handoff item 2 (a)); the two inline test fixtures that
+  carried the old relation, the guidance file's contract citations past the
+  insertion point and this sentence were corrected in the records pass of
+  2026-11-02.
 
 - 2026-10-23 — **The CoT projection refuses an impossible position and an
   unbounded name.** A caller that translates a dialect itself and feeds the

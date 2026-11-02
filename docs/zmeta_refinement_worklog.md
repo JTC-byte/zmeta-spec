@@ -2,7 +2,7 @@
 
 ## Current Resume Note
 
-- Last updated: 2026-11-02 (heading_deg defined)
+- Last updated: 2026-11-02 (heading_deg defined; records pass after 7.6)
 - **2026-11-02 (the `heading_deg` definition and the MAVLink course).** On the
   maintainer's word of 2026-11-02 in this repository's session (his
   selection of course over ground on 2026-10-28 and of the wording on
@@ -38,6 +38,42 @@
   apart by the lineage transform (`promote:mavlink-telemetry@1.2.0` a body
   angle, `@1.3.0` a course). The merge into `develop` and the push wait
   for the maintainer's words.
+- **2026-11-02 (records pass after the 7.6 `last_seen_ts` definition).** On
+  the maintainer's word of 2026-11-02 in this repository's session, the
+  branch `wave/records-7-6-followups-2026-10` off `develop` fbe6ad4, two
+  commits, records class: the two inline test fixtures that carried the
+  old relation (`gateway/tests/test_lineage_semantics.py`,
+  `tools/test_workflow_end_to_end.py`) now give the member observation's
+  `event.ts`, as 7.6 requires; the 92 contract citations in
+  `tools/validation_guidance.yaml` past the 7.6 insertion were re-anchored
+  by the two inserted lines (a before-and-after comparison read 92 of 92
+  naming on `develop` the text they named at v1.1.26; the same comparison
+  on the unedited file read 0 of 92 first; seven continuation references,
+  contract line numbers written after a prefixed citation without the
+  prefix on six lines, were found unshifted by the branch's seeded review
+  and shifted in the second commit, each verified the same way); the
+  review also corrected the PHOTO-01 bullet's event type (the pointer is
+  the OBSERVATION's; a STATE carries no `data_ref`, contract 7.7); the
+  2026-10-27 changelog
+  entry's booking sentence now names where the relation check goes; one
+  evidence bullet (2026-10-27, PHOTO-01) added to the roadmap candidate
+  `raw-data-absent-evidence-status` (a mis-indented trial copy failed the
+  roadmap validator first; the edited file reads ok, candidates=22). Gates
+  in the worktree: examples strict 51 of 51; roadmap ok; the two edited
+  test files 7 passed; the full battery 2008 passed, 4 skipped, 13 failed;
+  `git diff --check` clean. The kernel gate and thirteen battery tests
+  (`test_release_manifest.py`, `test_release_package.py`) read red on the
+  release-manifest pins alone, because the roadmap is a manifest-listed
+  artifact; the same thirteen pass on the unedited tree. An unreleased
+  branch leaves the manifest stale on purpose
+  (`docs/zmeta_change_governance.md`, Branching); the cut regenerates it,
+  so `develop` reads red on those pins from the merge to the next cut, as
+  it did between v1.1.26 and v1.1.27. No schema, policy or validator byte
+  changes.
+  The relation check on `last_seen_ts` (handoff item 2 (a)) is its own
+  branch; the maintainer selected the sentence as written (never later and
+  the latest member's time) on 2026-11-02. The merge into `develop` and the
+  push wait for the maintainer's words.
 - **2026-10-27 (v1.1.27 published).** The cut commit 3e692ff on `develop`;
   `main` moved to it without a checkout (`git branch -f`, after the
   ancestor check), so no tracked file was re-smudged between signing and

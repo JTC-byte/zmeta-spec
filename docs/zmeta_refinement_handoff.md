@@ -43,21 +43,31 @@ Open, in order of proximity:
    whose remaining validity at projection is shorter than the window), the
    producers last. Every
    consumer's pinned `contract_hash` stays its tag's until it re-pins.
-2. **Follow-ups from the 7.6 definition's reviews**, booked here for the
-   next records pass: (a) a relation check that reads a FUSION_EVENT's
-   `last_seen_ts` against its members' times, with its own failing
-   negative control, which also decides what the reference projector's
-   late-input stamping means (it stamps the just-processed observation's
-   time, so a late arrival yields a `last_seen_ts` earlier than the latest
-   member's; the never-later clause still holds); (b) two inline test
-   fixtures that carry the old relation, in
-   `gateway/tests/test_lineage_semantics.py` and
-   `tools/test_workflow_end_to_end.py`, which the check would read; (c)
-   `tools/validation_guidance.yaml`'s contract line citations past the
-   7.6 insertion point, shifted by the two inserted lines (its header
-   accepts drift); (d) the
-   "follow-up work for the next records pass" wording of the 2026-10-27
-   changelog entry, which this item is.
+2. **Follow-ups from the 7.6 definition's reviews.** Still open, its own
+   branch: (a) a relation check that reads a FUSION_EVENT's `last_seen_ts`
+   against its members' times, with its own failing negative control,
+   which also decides what the reference projector's late-input stamping
+   means (it stamps the just-processed observation's time, so a late
+   arrival yields a `last_seen_ts` earlier than the latest member's; the
+   never-later clause still holds). The three candidate relations (never
+   later; some member's time; the latest member's time) and a prototype
+   with four controls seen failing are in the private session record
+   `local/evidence_relation_check_last_seen_ts_2026-10-28.md`; on
+   2026-11-02 the maintainer selected the sentence as written (never later
+   AND the latest member's time), so the projector change rides that
+   branch. Done in the records pass of 2026-11-02: (b) the two inline
+   test fixtures that carried the old relation
+   (`gateway/tests/test_lineage_semantics.py`,
+   `tools/test_workflow_end_to_end.py`) now give the member observation's
+   `event.ts`; (c) the 92 contract line citations in
+   `tools/validation_guidance.yaml` past the 7.6 insertion point, and
+   seven continuation references on six of its lines, shifted by the two
+   inserted lines, each verified to name the same text as before; (d) the 2026-10-27 changelog entry's "follow-up work for the
+   next records pass" wording. The same pass added one evidence bullet
+   (the demonstration's photograph path, PHOTO-01) to the roadmap
+   candidate `raw-data-absent-evidence-status` on the maintainer's
+   selection of 2026-10-28; same organization as the 2026-09-30 entry, no
+   promotion asked.
 3. **The maintainer's definitions and bookings, with the evidence put to
    him first** (the session records of 2026-10-27, each with seeded
    refuters): the media-evidence bookings; hazard 4 (whether
