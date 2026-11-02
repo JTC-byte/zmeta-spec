@@ -7,8 +7,9 @@
   (`gateway/tests/test_lineage_semantics.py`, `tools/test_workflow_end_to_end.py`)
   now give the member observation's `event.ts`, as the sentence requires. The
   92 contract citations in `tools/validation_guidance.yaml` that pointed past
-  the 7.6 insertion were re-anchored by the two inserted lines (every one
-  verified to name the same text as before). The 2026-10-27 entry's booking
+  the 7.6 insertion, and eight continuation line references on six of its
+  lines, were re-anchored by the two inserted lines (every one verified to
+  name the same text as before). The 2026-10-27 entry's booking
   sentence names where the relation check goes. One evidence bullet added to
   the roadmap candidate `raw-data-absent-evidence-status` for the
   demonstration's photograph path (same organization; no promotion asked). No

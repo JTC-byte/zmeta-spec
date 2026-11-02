@@ -5,15 +5,20 @@
 - Last updated: 2026-11-02 (records pass after 7.6)
 - **2026-11-02 (records pass after the 7.6 `last_seen_ts` definition).** On
   the maintainer's word of 2026-11-02 in this repository's session, the
-  branch `wave/records-7-6-followups-2026-10` off `develop` fbe6ad4, one
-  commit, records class: the two inline test fixtures that carried the
+  branch `wave/records-7-6-followups-2026-10` off `develop` fbe6ad4, two
+  commits, records class: the two inline test fixtures that carried the
   old relation (`gateway/tests/test_lineage_semantics.py`,
   `tools/test_workflow_end_to_end.py`) now give the member observation's
   `event.ts`, as 7.6 requires; the 92 contract citations in
   `tools/validation_guidance.yaml` past the 7.6 insertion were re-anchored
   by the two inserted lines (a before-and-after comparison read 92 of 92
   naming on `develop` the text they named at v1.1.26; the same comparison
-  on the unedited file read 0 of 92 first); the 2026-10-27 changelog
+  on the unedited file read 0 of 92 first; eight continuation references,
+  contract line numbers written after a prefixed citation without the
+  prefix on six lines, were found unshifted by the branch's seeded review
+  and shifted in the second commit, each verified the same way); the
+  review also corrected the PHOTO-01 bullet's event type (the pointer is
+  the OBSERVATION's; a STATE carries no `data_ref`, contract 7.7); the 2026-10-27 changelog
   entry's booking sentence now names where the relation check goes; one
   evidence bullet (2026-10-27, PHOTO-01) added to the roadmap candidate
   `raw-data-absent-evidence-status` (a mis-indented trial copy failed the

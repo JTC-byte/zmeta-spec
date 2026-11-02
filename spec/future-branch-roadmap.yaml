@@ -109,11 +109,11 @@ candidates:
       - >
         2026-10-27: the ZISR demonstration's photograph path (PHOTO-01): a
         hub-held photograph whose bytes exist only in the operator's browser,
-        so a STATE's `data_ref` would name bytes no server holds, and a
-        consumer needs the reference to read as not retained, honestly, rather
-        than as broken. The same organization as the 2026-09-30 entry: this
-        does not meet the independent half of the bar, and no promotion is
-        asked on it.
+        so the OBSERVATION's `data_ref` (a STATE carries none, contract 7.7)
+        would name bytes no server holds, and a consumer needs the reference
+        to read as not retained, honestly, rather than as broken. The same
+        organization as the 2026-09-30 entry: this does not meet the
+        independent half of the bar, and no promotion is asked on it.
     tripwires:
       - >
         Meets the promotion evidence bar; the natural Section 2.6 condition is

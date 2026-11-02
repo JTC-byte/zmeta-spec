@@ -211,7 +211,7 @@ guidance:
       ZMeta commands express no vertical intent, and the deconfliction node or
       receiving autonomy handles vertical out of band when it converts the
       task into a native command channel (spec/semantics-contract.md:1208-1211
-      for the rule, 1197-1198 and 1858-1875 for the reason). Delete the
+      for the rule, 1199-1200 and 1860-1877 for the reason). Delete the
       altitude key rather than relocating it, and do not add `target_geo` in
       its place: `target_geo` is `{lat, lon}` only, and several task types
       forbid `target_geo` outright, `SEARCH_BOX` in every version plus
@@ -440,7 +440,7 @@ guidance:
       as its own OBSERVATION_EVENT, remove those keys from the state payload,
       and carry traceability in the envelope `lineage.based_on` array of
       parent UUIDv7s, which every STATE_EVENT already requires
-      (spec/semantics-contract.md:1166-1167, :648, :1435-1436). Name the
+      (spec/semantics-contract.md:1166-1167, :648, :1437-1438). Name the
       fusion parent there rather than the observation, because
       policy/lineage.yaml:40-42 allows only FUSION_EVENT and STATE_EVENT
       parents for a STATE_EVENT and a resolved observation parent is rejected
@@ -881,7 +881,7 @@ guidance:
     remediation: >-
       This FUSION_EVENT lists IDs in `payload.members` that are absent from
       the envelope's `lineage.based_on`, the authoritative audit lineage for
-      the event (spec/semantics-contract.md:648, 1435-1436). The check is
+      the event (spec/semantics-contract.md:648, 1437-1438). The check is
       advisory rather than a hard requirement: policy/lineage.yaml:7-9 holds
       `fusion_members_in_lineage_mode` at warn to allow future track and
       member-reference patterns, and the validator states that members should
@@ -1112,7 +1112,7 @@ guidance:
       - "policy/semantics.yaml:154-156 (task_ack_required_metrics_fields: task_id, original_event_id)"
       - "schema/zmeta-event-1.0.schema.json:1668-1682 (TASK_ACK metrics object requires task_id and original_event_id, both string minLength 1)"
       - "spec/semantics-contract.md:1232-1238 (#### TASK_ACK, \"TASK_ACK provides an auditable lifecycle for COMMAND_EVENTs\", Required metrics: task_id, original_event_id)"
-      - "spec/semantics-contract.md:1776,1782-1783 (event_id is the immutable dedup key; TASK_ACK dedupes by payload.metrics.task_id + payload.metrics.original_event_id + payload.state)"
+      - "spec/semantics-contract.md:1778,1784-1785 (event_id is the immutable dedup key; TASK_ACK dedupes by payload.metrics.task_id + payload.metrics.original_event_id + payload.state)"
       - "spec/semantics-contract.md:949 (event_id: UUIDv7 in the canonical envelope)"
       - "examples/zmeta-command-examples.jsonl:2-4 (canonical trace: COMMAND_EVENT event_id 019c2b5c-c047-73ea-8f1a-302fc3049334 with payload.task_id task-l-0001, echoed by both TASK_ACKs as metrics.original_event_id and metrics.task_id)"
       - "conformance/adapter-harness/must-pass.jsonl:36 (sapient-task-ack-with-task-index: task_index maps the task_id to the command's event id, expected at payload.metrics.original_event_id)"
@@ -1572,7 +1572,7 @@ guidance:
       TTL, precision, or specificity must be emitted as a new event with a
       freshly minted UUIDv7 `event.event_id` plus a `lineage.based_on`
       reference back to the prior event (spec/semantics-contract.md:441-443,
-      :468-471, :475-477, :966-967, :1435). Preserving the original `event_id`
+      :468-471, :475-477, :966-967, :1437). Preserving the original `event_id`
       is sanctioned only for a profile export that adds no semantics, and even
       that projection trips this check on a node that already recorded the
       original (spec/semantics-contract.md:456-466).
@@ -1652,7 +1652,7 @@ guidance:
       `payload.quality.geo_status: VERTICAL_UNAVAILABLE`, which prohibits
       `alt_m` outright; that member never appears under `zmeta_version:
       "1.0"`, where `geo` requires `alt_m` and forbids added members
-      (spec/semantics-contract.md:2121-2132, :2222-2233;
+      (spec/semantics-contract.md:2121-2132, :2224-2235;
       schema/zmeta-event-1.0.schema.json:649-671).
     citations:
       - "policy/violation-codes.yaml:120-127"
