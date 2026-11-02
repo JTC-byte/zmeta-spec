@@ -162,7 +162,7 @@ def _build_events(profile, expect):
             "track_id": "track-001",
             "members": [obs_id],
             "stability": 0.6,
-            "last_seen_ts": "2025-01-17T14:30:03Z",
+            "last_seen_ts": "2025-01-17T14:30:00Z",
             "timing_quality": dict(TIMING_QUALITY),
         },
         "confidence": 0.75,
