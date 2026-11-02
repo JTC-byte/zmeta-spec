@@ -165,17 +165,94 @@ def test_mavlink_known_heading_without_frame_omits_canonical_heading():
     VALIDATOR.validate(event)
 
 
-def test_mavlink_true_north_heading_frame_emits_canonical_heading():
+def test_mavlink_true_north_frame_labels_hdg_and_never_promotes_it():
+    # Contract 6.4 defines payload.heading_deg as the course over ground. hdg
+    # is a body angle (yaw), so a frame assertion cannot make it a course: the
+    # value stays in quality, the assertion is recorded beside it, and no
+    # canonical heading is emitted without a ground velocity.
     event = _state_event(
         heading_deg=90.0,
         heading_frame="TRUE_NORTH",
         heading_source="AHRS_TRUE",
     )
 
-    assert event["payload"]["heading_deg"] == 90.0
-    assert event["payload"]["quality"]["heading_source"] == "AHRS_TRUE"
-    assert "mavlink_hdg_frame_unknown_deg" not in event["payload"]["quality"]
+    assert "heading_deg" not in event["payload"]
+    assert "heading_source" not in event["payload"]["quality"]
+    assert event["payload"]["quality"]["mavlink_hdg_frame_unknown_deg"] == 90.0
+    assert event["payload"]["quality"]["mavlink_hdg_frame"] == "TRUE_NORTH"
+    assert event["payload"]["quality"]["mavlink_hdg_source"] == "AHRS_TRUE"
     VALIDATOR.validate(event)
+
+
+@pytest.mark.parametrize(
+    "vx, vy, course",
+    [(5.0, 0.0, 0.0), (0.0, 5.0, 90.0), (-5.0, 0.0, 180.0), (0.0, -5.0, 270.0)],
+)
+def test_mavlink_course_over_ground_from_velocity_pins_the_axis_convention(vx, vy, course):
+    # GLOBAL_POSITION_INT vx is north-positive, vy east-positive, so the course
+    # from true north clockwise is atan2(east, north): north 0, east 90,
+    # south 180, west 270. The four axes pin the convention.
+    event = _state_event(vx=vx, vy=vy)
+
+    assert event["payload"]["heading_deg"] == pytest.approx(course)
+    assert (
+        event["payload"]["quality"]["heading_source"]
+        == "MAVLINK_GLOBAL_POSITION_INT_GROUND_COURSE"
+    )
+    VALIDATOR.validate(event)
+
+
+def test_mavlink_course_below_minimum_ground_speed_is_not_asserted():
+    # 0.3 north and 0.4 east is 0.5 m/s, below the 1.0 m/s default: at that
+    # speed the direction of a GPS velocity is noise, so no course is claimed.
+    # A deployment that trusts its receiver lowers the minimum and gets 53.1.
+    slow = _state_event(vx=0.3, vy=0.4)
+    assert "heading_deg" not in slow["payload"]
+    assert "heading_source" not in slow["payload"]["quality"]
+    VALIDATOR.validate(slow)
+
+    state = dict(_BASE_STATE, vx=0.3, vy=0.4)
+    trusted = translate_platform_state(
+        state,
+        platform_id="uav-1",
+        producer="mavlink-adapter",
+        ts="2025-01-17T15:20:00+00:00",
+        min_course_speed_mps=0.4,
+    )
+    assert trusted["payload"]["heading_deg"] == pytest.approx(53.13, abs=0.01)
+    VALIDATOR.validate(trusted)
+
+
+def test_mavlink_course_needs_both_velocity_components():
+    # One axis is not a direction. The existing speed rule (both components or
+    # nothing) extends to the course.
+    event = _state_event(vx=5.0)
+
+    assert "heading_deg" not in event["payload"]
+    assert "heading_source" not in event["payload"]["quality"]
+    VALIDATOR.validate(event)
+
+
+def test_mavlink_readme_example_emits_the_course_not_the_nose():
+    # The README example: hdg 13500 (nose at 135 degrees) while moving due
+    # north at 5 m/s. The course is 0.0; the body angle stays in quality.
+    decoded = decode_global_position_int(
+        {"lat": 434900000, "lon": -1120400000, "alt": 1500000, "hdg": 13500, "vx": 500, "vy": 0, "vz": 0}
+    )
+    assert decoded["heading_deg"] == 135.0
+    assert decoded["course_deg"] == pytest.approx(0.0)
+    assert decoded["speed_mps"] == pytest.approx(5.0)
+
+    event = _state_event(heading_deg=135.0, vx=5.0, vy=0.0)
+    assert event["payload"]["heading_deg"] == pytest.approx(0.0)
+    assert event["payload"]["quality"]["mavlink_hdg_frame_unknown_deg"] == 135.0
+    VALIDATOR.validate(event)
+
+
+def test_decode_global_position_int_course_is_none_without_both_components():
+    assert decode_global_position_int({"vx": 500})["course_deg"] is None
+    assert decode_global_position_int({"vy": 500})["course_deg"] is None
+    assert decode_global_position_int({"vx": 0, "vy": 0})["course_deg"] is None
 
 
 def test_mavlink_invalid_heading_frame_rejected():
@@ -682,7 +759,14 @@ def test_mavlink_every_emitted_leaf_traces_to_input_or_declaration():
         "$.payload.track_id": "mavlink-adapter-uav-1-platform-position",
         "$.payload.valid_for_ms": 30000,
         "$.payload.quality.geo_status": "AVAILABLE",
-        "$.payload.quality.heading_source": "MAVLINK_GLOBAL_POSITION_INT_TRUE_NORTH",
+        # The course over ground, derived from the two reported velocity
+        # components by the declared rule atan2(vy, vx) from true north
+        # clockwise (contract 6.4; vx north-positive, vy east-positive). The
+        # rule is written out here, not imported from the module under test.
+        "$.payload.heading_deg": math.degrees(math.atan2(13.25, 12.5)) % 360,
+        "$.payload.quality.heading_source": "MAVLINK_GLOBAL_POSITION_INT_GROUND_COURSE",
+        # The caller's frame assertion for the retained hdg, recorded as given.
+        "$.payload.quality.mavlink_hdg_frame": "TRUE_NORTH",
         # Reported last_sync_ts, normalized to Z.
         "$.payload.timing_quality.last_sync_ts": "2025-01-17T15:19:59Z",
         # _gps_fix_confidence table value for a 3D+ fix.

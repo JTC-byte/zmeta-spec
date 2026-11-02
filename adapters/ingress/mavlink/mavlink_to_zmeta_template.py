@@ -17,9 +17,17 @@ import math
 from adapters.ingress.time_utils import coerce_timing_quality, normalize_utc_z, utc_now_z
 from zmeta_uuid import uuid7
 
-ADAPTER_VERSION = "1.2.0"
+ADAPTER_VERSION = "1.3.0"
 SCHEMA_ID = "mavlink-telemetry"
 PROMOTION_POLICY_ID = "PROMOTE-MAVLINK-STATE-V1"
+# The ground speed below which no course is asserted. Contract 6.4 defines
+# payload.heading_deg as the course over ground; at hover or near it the
+# direction of a GPS velocity is noise, and a course asserted from a velocity
+# the receiver cannot resolve is a claim the telemetry never made. The value
+# is a deployment claim: translate_platform_state takes it as
+# min_course_speed_mps so a deployment can set it from its receiver's
+# velocity accuracy.
+MIN_COURSE_SPEED_MPS = 1.0
 
 # The v1.0 schema's LINK_STATUS state vocabulary. "UNKNOWN" is the honest label
 # for a link whose health verdict nobody supplied; DEGRADED/DOWN additionally
@@ -199,6 +207,25 @@ def _battery_voltage_or_none(volts):
     return volts
 
 
+def _course_deg_or_none(vx, vy):
+    """Course over ground, degrees true north clockwise, from a ground velocity.
+
+    GLOBAL_POSITION_INT defines ``vx`` as "Ground X Speed (Latitude, positive
+    north)" and ``vy`` as "Ground Y Speed (Longitude, positive east)" in the
+    MAVLink common message set, so ``atan2(east, north)`` is the course from
+    true north, clockwise. A GPS-derived ground velocity in that frame is
+    true-north-referenced by construction, so no declination assertion is
+    needed, unlike for ``hdg``. Both components must be reported: a course from
+    one axis would be a direction the telemetry never measured, and a zero
+    velocity has no direction.
+    """
+    if not (_is_real_number(vx) and _is_real_number(vy)):
+        return None
+    if vx == 0 and vy == 0:
+        return None
+    return math.degrees(math.atan2(vy, vx)) % 360
+
+
 def _heading_deg_or_none(heading_deg):
     """Drop a heading that is outside the only range a heading can occupy.
 
@@ -353,6 +380,7 @@ def translate_platform_state(
     ts=None,
     heading_frame=None,
     heading_source=None,
+    min_course_speed_mps=MIN_COURSE_SPEED_MPS,
 ):
     """Translate a MAVLink platform state into a ZMeta STATE_EVENT.
 
@@ -384,8 +412,10 @@ def translate_platform_state(
                 0-360 (655.35 is the UINT16_MAX "hdg unknown" sentinel a
                 bridge produces by dividing before handing it over) means
                 unknown and omits both heading destinations (no 0.0 default,
-                and no clamp). A known value is canonical only when
-                heading_frame is explicitly "TRUE_NORTH".
+                and no clamp). A known value is a body angle (hdg) kept as
+                quality.mavlink_hdg_frame_unknown_deg; it never becomes
+                payload.heading_deg, which contract 6.4 defines as the
+                course over ground (derived from vx and vy, below).
               speed_mps (float, optional): ground speed m/s; None or absent
                 omits payload.speed_mps (no 0.0 "stationary" default)
               gps_fix_type (int, optional): ArduPilot fix type 0-6; absent
@@ -393,7 +423,13 @@ def translate_platform_state(
               satellites_visible (int, optional): absent, or the MAVLink
                 UINT8_MAX "satellite count unknown" sentinel (255), means
                 unreported and omits payload.quality.satellites_visible
-              vx, vy, vz (float): velocity components m/s (optional)
+              vx, vy, vz (float): velocity components m/s (optional). When vx
+                and vy are both reported and their magnitude is at least
+                min_course_speed_mps, payload.heading_deg is the course over
+                ground, atan2(vy, vx) from true north clockwise, and
+                quality.heading_source records
+                MAVLINK_GLOBAL_POSITION_INT_GROUND_COURSE; below the minimum,
+                or with one component missing, no course is asserted.
               roll_deg, pitch_deg, yaw_deg (float): attitude (optional)
               battery_voltage (float): volts (optional); a non-positive value
                 or the SYS_STATUS UINT16_MAX "voltage not sent" sentinel in
@@ -403,11 +439,17 @@ def translate_platform_state(
         platform_id: Platform identifier string.
         producer: Producer string (default "mavlink-adapter").
         ts: ISO timestamp (default: current UTC).
-        heading_frame: Optional heading reference-frame assertion. Only
-            "TRUE_NORTH" is accepted; absent keeps MAVLink hdg out of the
-            canonical payload.heading_deg field.
-        heading_source: Optional quality.heading_source label to record when
-            heading_frame is "TRUE_NORTH".
+        heading_frame: Optional frame assertion for the retained hdg. Only
+            "TRUE_NORTH" is accepted; it is recorded as
+            quality.mavlink_hdg_frame beside the retained value and never
+            promotes hdg into payload.heading_deg (a body angle is not a
+            course).
+        heading_source: Optional label for the retained hdg's reference,
+            recorded as quality.mavlink_hdg_source when heading_frame is
+            "TRUE_NORTH". quality.heading_source is written by the adapter
+            for the ground course only.
+        min_course_speed_mps: Ground speed (m/s) below which no course is
+            asserted; default MIN_COURSE_SPEED_MPS, a deployment claim.
 
     Returns:
         ZMeta STATE_EVENT dict, or None when no usable position exists
@@ -447,10 +489,10 @@ def translate_platform_state(
     # heading_deg comes from GLOBAL_POSITION_INT.hdg, which reports the value
     # as unknown (UINT16_MAX -> None after decode). An unknown heading is
     # omitted from the payload, never fabricated as a 0.0 (due-north) default.
-    # MAVLink does not declare a true-vs-magnetic reference for hdg, so a known
-    # heading is canonical only when deployment config explicitly asserts
-    # heading_frame="TRUE_NORTH"; otherwise the raw value is retained only as
-    # quality context.
+    # hdg is a body angle (yaw), and contract 6.4 defines payload.heading_deg
+    # as the course over ground, so a known hdg is retained only as quality
+    # context whatever frame the caller asserts; the canonical heading comes
+    # from the ground velocity (vx, vy) at the end of this function.
     # A heading outside 0-360 is not a bearing in any frame: the commonest
     # arrival is 655.35, the UINT16_MAX "hdg unknown" sentinel divided by 100
     # by a bridge that does the conversion itself. Guarded here as well as in
@@ -621,13 +663,23 @@ def translate_platform_state(
     }
     if speed_mps is not None:
         event["payload"]["speed_mps"] = speed_mps
-    if heading_deg is not None and heading_frame == "TRUE_NORTH":
-        event["payload"]["heading_deg"] = heading_deg
+    # Contract 6.4: payload.heading_deg is the course over ground. It comes from
+    # the ground velocity alone, and only at or above the minimum ground speed;
+    # hdg is a body angle and stays in quality whatever frame the caller asserts.
+    vx = _get("vx")
+    vy = _get("vy")
+    course_deg = _course_deg_or_none(vx, vy)
+    if course_deg is not None and math.hypot(vx, vy) >= min_course_speed_mps:
+        event["payload"]["heading_deg"] = course_deg
         event["payload"]["quality"]["heading_source"] = (
-            heading_source or "MAVLINK_GLOBAL_POSITION_INT_TRUE_NORTH"
+            "MAVLINK_GLOBAL_POSITION_INT_GROUND_COURSE"
         )
-    elif heading_deg is not None:
+    if heading_deg is not None:
         event["payload"]["quality"]["mavlink_hdg_frame_unknown_deg"] = heading_deg
+        if heading_frame == "TRUE_NORTH":
+            event["payload"]["quality"]["mavlink_hdg_frame"] = "TRUE_NORTH"
+            if heading_source:
+                event["payload"]["quality"]["mavlink_hdg_source"] = heading_source
     return event
 
 
@@ -650,11 +702,12 @@ def decode_global_position_int(msg_dict):
     decode_gps_raw_int derives from GPS_RAW_INT.alt_ellipsoid.
 
     The MAVLink common message definition describes ``hdg`` only as
-    "vehicle heading (yaw angle)" in centidegrees; it does not declare a
-    true-vs-magnetic north reference. The decoded ``heading_deg`` therefore
-    remains non-canonical until translate_platform_state receives an explicit
-    heading_frame="TRUE_NORTH" assertion. Unknown heading decodes to None
-    (omitted downstream, never defaulted).
+    "vehicle heading (yaw angle)" in centidegrees: a body angle. Contract 6.4
+    defines ``payload.heading_deg`` as the course over ground, so the decoded
+    ``heading_deg`` (from ``hdg``) is never canonical; translate_platform_state
+    keeps it as ``quality`` context. The course, ``course_deg``, is derived
+    from ``vx`` and ``vy`` when both are reported (``_course_deg_or_none``).
+    Unknown heading decodes to None (omitted downstream, never defaulted).
 
     Every absent field decodes to None rather than to a zero: absent
     ``lat``/``lon``/``alt`` so the translator can refuse to fabricate a
@@ -681,12 +734,14 @@ def decode_global_position_int(msg_dict):
     hdg_cdeg = msg_dict.get("hdg", 65535)
     heading_deg = hdg_cdeg / 100.0 if hdg_cdeg != 65535 else None
     speed_mps = math.sqrt(vx ** 2 + vy ** 2) if vx is not None and vy is not None else None
+    course_deg = _course_deg_or_none(vx, vy)
     return {
         "lat": lat,
         "lon": lon,
         "alt_msl_m": alt_msl_m,
         "heading_deg": heading_deg,
         "speed_mps": speed_mps,
+        "course_deg": course_deg,
         "vx": vx,
         "vy": vy,
         "vz": vz,
