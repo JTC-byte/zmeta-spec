@@ -872,6 +872,13 @@ Bearings and headings are degrees true north, increasing clockwise, range
 0-360 inclusive. `360` is valid and equivalent to `0`; adapters MAY normalize
 `360` to `0`, but consumers MUST treat both as valid.
 
+`heading_deg` on a `TrackStatePayload` and in a `FusionPayload.estimated_state`
+is the course over ground: the direction of the object's motion over the
+earth's surface, in the frame and range above. It is not the direction the
+body points. A producer that knows a body heading or yaw and no course omits
+`heading_deg` and MAY carry the body value in an explicitly named
+payload-scoped field such as `quality.yaw_deg`.
+
 Canonical `bearing.az_deg` SHALL be degrees true north. Sensor-native frames,
 such as array-relative, platform-relative, or magnetic bearings, MUST be
 converted to true north before canonical emission or the canonical `bearing`

@@ -47,7 +47,14 @@ ROOT = Path(__file__).resolve().parents[2]
 # defining `last_seen_ts`, a field 7.6 lists and no text defined. It tightens
 # conformance around the reference projector's shipped in-order behaviour;
 # no other rule text, no section 4 invariant and no schema byte changed.
-CONTRACT_SHA256 = "4c89afd0b03aed8c128b8150f8f0efb84273937d79f290916dbb136612f58a1e"
+# Contract anchor moved 2026-11-02 on the maintainer's word of 2026-11-02 (the
+# heading_deg definition: his selection of course over ground on 2026-10-28
+# and of its wording on 2026-11-02, under his contract 2.1 patch reading):
+# section 6.4 gains one paragraph defining `heading_deg`, a field 7.6 and 7.7
+# list and no text defined. It tightens conformance around the meaning the
+# reference projector and the egress adapters already carry; no other rule
+# text, no section 4 invariant and no schema byte changed.
+CONTRACT_SHA256 = "6ffcff6c655f0f7cdbd6c2b81b125f86da2b71d6d135d49c9c2d54ae90cf0543"
 V1_0_SCHEMA_SHA256 = "1d2d84164b3a8986874e932c0e9369be3bf392a483a8ff261d464f34bd16d7b5"
 
 # Embedded verbatim from the v1.0.5 tag's example corpus. Pre-lock history:

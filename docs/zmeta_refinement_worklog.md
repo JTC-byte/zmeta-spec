@@ -2,7 +2,42 @@
 
 ## Current Resume Note
 
-- Last updated: 2026-10-27 (v1.1.27 published)
+- Last updated: 2026-11-02 (heading_deg defined)
+- **2026-11-02 (the `heading_deg` definition and the MAVLink course).** On the
+  maintainer's word of 2026-11-02 in this repository's session (his
+  selection of course over ground on 2026-10-28 and of the wording on
+  2026-11-02), the branch `exp/heading-deg-course-2026-10` off `develop`
+  fbe6ad4, two commits. First, contract 6.4 gains the definition paragraph
+  and `spec/field-dictionary.md` the same meaning; the v1.0 lock-baseline
+  contract anchor moves with a dated note (the anchor test failed with the
+  sentence in and the anchor unmoved, then passed); the records (this entry,
+  the changelog, doctrine F6-01, handoff items 3 and 18, an addendum to the
+  s1_08a record). Second, the MAVLink template derives the course from the
+  ground velocity at or above `MIN_COURSE_SPEED_MPS` (1.0 m/s, a deployment
+  keyword), keeps `hdg` and yaw in `quality`, records an asserted frame
+  beside the retained `hdg`, and moves to adapter version 1.3.0 so the
+  lineage transform tells a course from a body angle; nine tests failed on
+  the unchanged template first, then 80 passed; the README is rewritten.
+  Gates in the worktree: examples strict 51 of 51; roadmap ok; the kernel
+  gate green except four release-manifest lines (the contract is a
+  manifest-listed artifact: the artifact, group, top-level and bundle
+  hashes), the stale manifest an unreleased branch leaves on purpose
+  (`docs/zmeta_change_governance.md`, Branching); the full battery 2016
+  passed, 4 skipped, 13 failed, the thirteen the release-manifest pin tests
+  (`test_release_manifest.py`, `test_release_package.py`), which pass on
+  the unedited tree; `git diff --check` clean. The adapter conformance
+  harness vector for the template passes unchanged (it asserts no frame).
+  Confirmed conformant under the definition with no change: the track
+  projector (ADS-B ground track), the CoT egress (`<track course>`), the
+  SAPIENT egress (velocity from course and speed); no other shipped ingress
+  writes `payload.heading_deg`. Booked, not this branch: the projector could
+  fill an AIS-derived state's `heading_deg` from `ais_cog_deg_true`; the CoT
+  egress's `speed="0.0"` placeholder when only a heading is present
+  (handoff item 18). Consumers at v1.1.25 see no definition until the next
+  cut and their re-pin; a consumer tells the template's two behaviours
+  apart by the lineage transform (`promote:mavlink-telemetry@1.2.0` a body
+  angle, `@1.3.0` a course). The merge into `develop` and the push wait
+  for the maintainer's words.
 - **2026-10-27 (v1.1.27 published).** The cut commit 3e692ff on `develop`;
   `main` moved to it without a checkout (`git branch -f`, after the
   ancestor check), so no tracked file was re-smudged between signing and

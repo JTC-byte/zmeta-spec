@@ -2,7 +2,29 @@
 
 ## [Unreleased]
 
-(Nothing yet - the next work lands here.)
+- 2026-11-02 — **`heading_deg` defined as the course over ground; the MAVLink
+  template fills it from the ground velocity.** Contract 7.6 and 7.7 listed
+  `payload.heading_deg` and no text defined it; the reference projector and
+  the egress adapters carried a course while the MAVLink template emitted
+  the autopilot's yaw under an asserted frame, so two compliant
+  implementations could read one event differently. Section 6.4 gains one
+  paragraph: `heading_deg` on a `TrackStatePayload` and in a
+  `FusionPayload.estimated_state` is the course over ground, not the
+  direction the body points, and a producer with only a body heading omits
+  it and MAY carry the body value in a named payload-scoped field such as
+  `quality.yaw_deg`; the field dictionary says the same. A contract 2.1
+  patch (a first definition that tightens conformance, accepted by the
+  maintainer on the record, 2026-11-02). The v1.0 lock-baseline contract
+  anchor moves with a dated note; no schema, policy or validator byte
+  changes. The MAVLink ingress template (adapter version 1.3.0) derives the
+  course from `GLOBAL_POSITION_INT` `vx`/`vy` (north-positive, east-positive;
+  `atan2(vy, vx)` from true north clockwise) at or above a minimum ground
+  speed (`MIN_COURSE_SPEED_MPS`, 1.0 m/s, a deployment keyword), with
+  `quality.heading_source` `MAVLINK_GLOBAL_POSITION_INT_GROUND_COURSE`; `hdg`
+  is a body angle and stays in `quality.mavlink_hdg_frame_unknown_deg`, with
+  an asserted frame recorded beside it and promoting nothing. Nine MAVLink
+  tests failed on the unchanged template first (four axis cases pin the
+  convention), then 80 passed; the README is rewritten for the rule.
 
 ## [1.1.27] - 2026-10-27
 

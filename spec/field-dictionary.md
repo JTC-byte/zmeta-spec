@@ -54,8 +54,9 @@ validation rules, see the JSON schemas in `schema/` and the semantic contract in
 - `valid_for_ms` (int) - freshness window.
 - `class` (string, optional) - CoT type or platform class.
 - `source_summary` (string array, optional) - short provenance hints.
-- `heading_deg` (number, optional, 0-360 inclusive), `speed_mps` (number,
-  optional, non-negative).
+- `heading_deg` (number, optional, 0-360 inclusive; the course over ground,
+  degrees true north, never a body heading), `speed_mps` (number, optional,
+  non-negative).
 - `extensions.external_promotion` (object, policy-scoped) - required by the
   reference producer-authority policy for explicitly marked external ingress
   producers such as CoT, JREAP, and MAVLink when they promote external reports

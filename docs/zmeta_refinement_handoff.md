@@ -60,9 +60,12 @@ Open, in order of proximity:
    changelog entry, which this item is.
 3. **The maintainer's definitions and bookings, with the evidence put to
    him first** (the session records of 2026-10-27, each with seeded
-   refuters): the `heading_deg` definition; the media-evidence bookings;
-   hazard 4 (whether `ENCODING_UNSUPPORTED` extends to every output lane);
-   F4-02 (a cooperative broadcast received by relay: who measured it).
+   refuters): the media-evidence bookings; hazard 4 (whether
+   `ENCODING_UNSUPPORTED` extends to every output lane); F4-02 (a
+   cooperative broadcast received by relay: who measured it). The
+   `heading_deg` definition left this item on 2026-11-02: contract 6.4
+   defines it as the course over ground, and the MAVLink template was made
+   conformant in the same branch (doctrine F6-01).
 4. **The signing tripwire** and **C1-07** (canonical byte form) stay with
    the maintainer; the design note gives the order.
 5. **Forward edits from the 2026-09-21 share-readiness scan** (private
@@ -1128,7 +1131,9 @@ design waves, then hygiene, then anything genuinely waiting on field evidence.
     altitude class: the KLV ingress hardcodes EO subtype/modality regardless
     of `sensor_mode` (an IR stream publishes as EO, and the old test pinned
     it vacuously); the track projector maps ADS-B ground track into
-    `heading_deg`, which diverges from airframe heading by the crab angle;
+    `heading_deg`, which diverges from airframe heading by the crab angle
+    (triaged 2026-11-02: contract 6.4 defines `heading_deg` as the course
+    over ground, so that mapping is the defined one and the note closes);
     the CoT egress emits a `course="0.0"` placeholder when heading is absent;
     the command-egress `_ALTITUDE_FIELDS` denylist omits `z`, the one synonym
     SAPIENT itself uses for its vertical (a policy-list question); kraken and

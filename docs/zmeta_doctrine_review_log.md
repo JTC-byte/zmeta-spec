@@ -3574,6 +3574,62 @@ integer beyond float range (which raises in the point-value check) should
 refuse instead, and whether the `cds` profile should stop rewriting an
 in-range Decimal through a float (`_plain_decimal`).
 
+## Cycle F6 — 2026-11-02 (a consumer's question of 2026-10-19: is `heading_deg` the course or the body heading)
+
+One tension, raised by a downstream COP reading the reference projector's
+and the MAVLink template's events side by side, and resolved by the
+maintainer's selections of 2026-10-28 and 2026-11-02. The private session
+records (a ruling in five revisions, each with a seeded refuter, and the
+branch's preparation record) carry the evidence; no partner, host or
+position appears here.
+
+### F6-01 — `heading_deg` was listed in 7.6 and 7.7 and defined nowhere · **DECIDED 2026-11-02 (the course over ground; the MAVLink template made conformant)**
+
+**Observed:** contract 7.6 and 7.7 list `payload.heading_deg` beside
+`speed_mps`, and 6.4 gives bearings and headings their frame and range, but
+no text said whether the field is the course over ground or the direction
+the body points. The shipped sources disagreed. The reference track
+projector fills it from the ADS-B `track` (a ground track), the CoT egress
+writes it to `<track course>` and the SAPIENT egress decomposes it with
+`speed_mps` into a ground velocity: a course, three times. The MAVLink
+template filled it from `GLOBAL_POSITION_INT.hdg`, the autopilot's yaw,
+when a caller asserted a true-north frame: a body angle, and in its own
+README example (nose at 135 degrees while moving north) a course claim the
+telemetry contradicts. A consumer asked which one the field is on
+2026-10-19.
+
+**The tension:** two compliant implementations could read one event
+differently, the threshold contract 2.6 names for a change to the core
+text, and design gate 3 (no laundering) is met by neither reading while the
+text stays silent: a consumer that steers by a yaw, or a display that
+draws a course arrow from a body angle, shows a direction the object does
+not move in. Contract 2.1 lets a patch tighten conformance around
+already-defined semantics and forbids redefining an existing field; a
+first definition of a listed, undefined member is the former, as the
+`last_seen_ts` definition was on 2026-10-27, and the one shipped mapping it
+makes non-conformant is an adapter's choice made under the text's silence,
+outer-ring under 2.6, corrected in the same branch.
+
+**Decision:** the maintainer selected the course over ground on 2026-10-28
+and its wording on 2026-11-02, accepting the 2.1 reading on the record.
+Section 6.4 gains one paragraph: `heading_deg` on a `TrackStatePayload` and
+in a `FusionPayload.estimated_state` is the course over ground, the
+direction of the object's motion over the earth's surface, in the frame and
+range above; it is not the direction the body points; a producer that knows
+a body heading or yaw and no course omits `heading_deg` and MAY carry the
+body value in an explicitly named payload-scoped field such as
+`quality.yaw_deg`. The field dictionary says the same. The lock-baseline
+contract anchor moves with a dated note; no schema, policy or validator
+byte changes. The MAVLink template now derives the course from the ground
+velocity at or above a minimum ground speed (a deployment claim, 1.0 m/s by
+default) and keeps `hdg` and yaw in `quality` whatever frame the caller
+asserts, at adapter version 1.3.0 so the lineage transform tells the two
+behaviours apart. The projector and the egress adapters stand as the
+defined mapping. A governed discriminator member for the two meanings was
+considered and not chosen: the definition makes it unnecessary. Consumers
+see the definition at the next cut and their re-pin; until then the
+lineage transform is the discriminator.
+
 ## Archive
 
 Terminal tension entries and retired rules, one line each. Full bodies live in

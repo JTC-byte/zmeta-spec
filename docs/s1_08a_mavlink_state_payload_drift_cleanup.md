@@ -177,3 +177,12 @@ find implementation drift that would require a new implementation follow-up.
 ## Recommended Next Item
 
 S1-09A - Contract Hash / Release Hash Follow-Up Plan Only.
+
+## Addendum 2026-11-02
+
+Contract 6.4 now defines `payload.heading_deg` as the course over ground.
+The MAVLink contribution to it (the lists above) is the ground-velocity
+course from `GLOBAL_POSITION_INT` `vx`/`vy` at or above a minimum ground
+speed, not `hdg`; `hdg` and `ATTITUDE.yaw` are body angles carried as
+`quality` context (adapter version 1.3.0). The lists above stand as written
+on 2026-05-07; this note is their reconciliation.
