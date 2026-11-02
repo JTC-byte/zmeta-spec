@@ -2,10 +2,59 @@
 
 ## Current Resume Note
 
-- Last updated: 2026-11-02 (records pass after 7.6)
+- Last updated: 2026-11-02 (heading_deg defined; records pass after 7.6)
+- **2026-11-02 (the `heading_deg` definition and the MAVLink course).** On the
+  maintainer's word of 2026-11-02 in this repository's session (his
+  selection of course over ground on 2026-10-28 and of the wording on
+  2026-11-02), the branch `exp/heading-deg-course-2026-10` off `develop`
+  fbe6ad4, two commits. First, contract 6.4 gains the definition paragraph
+  and `spec/field-dictionary.md` the same meaning; the v1.0 lock-baseline
+  contract anchor moves with a dated note (the anchor test failed with the
+  sentence in and the anchor unmoved, then passed); the records (this entry,
+  the changelog, doctrine F6-01, handoff items 3 and 18, an addendum to the
+  s1_08a record). Second, the MAVLink template derives the course from the
+  ground velocity at or above `MIN_COURSE_SPEED_MPS` (1.0 m/s, a deployment
+  keyword), keeps `hdg` and yaw in `quality`, records an asserted frame
+  beside the retained `hdg`, refuses a course from a non-finite velocity,
+  and moves to adapter version 1.3.0 so the lineage transform tells a
+  course from a body angle (the version applies to every transform the
+  template writes, the SYSTEM_EVENT `translate:` strings included, whose
+  behaviour did not change); ten tests failed on the unchanged template
+  first, then 81 passed; the README is rewritten, and the adapters' README
+  sentence that made the frame assertion canonical is corrected. Third, on
+  the seeded refuter's findings: the 150 contract citations in
+  `tools/validation_guidance.yaml` past the 6.4 insertion and eleven
+  continuation references re-anchored by the seven inserted lines (the
+  before-and-after comparison read 0 of 150 on the unedited file first,
+  then 150 of 150, non-blank text required); the README example given the
+  lineage it needs to emit at all; the records corrected (three of the
+  ruling's five revisions were refuted with a seeded error, not five; 7.6
+  lists `estimated_state.heading_deg`; the dictionary speaks for the STATE
+  scope; JREAP drops the member; any version before 1.3.0 is the body
+  angle, not 1.2.0 alone; the 2.1 reading is his, accepted on the record).
+  Gates in the worktree: examples strict 51 of 51; roadmap ok; the kernel
+  gate green except four release-manifest lines (the contract is a
+  manifest-listed artifact: the artifact, group, top-level and bundle
+  hashes), the stale manifest an unreleased branch leaves on purpose
+  (`docs/zmeta_change_governance.md`, Branching); the full battery 2016
+  passed, 4 skipped, 13 failed, the thirteen the release-manifest pin tests
+  (`test_release_manifest.py`, `test_release_package.py`), which pass on
+  the unedited tree; `git diff --check` clean. The adapter conformance
+  harness vector for the template passes unchanged (it asserts no frame).
+  Confirmed conformant under the definition with no change: the track
+  projector (ADS-B ground track), the CoT egress (`<track course>`), the
+  SAPIENT egress (velocity from course and speed); no other shipped ingress
+  writes `payload.heading_deg`. Booked, not this branch: the projector could
+  fill an AIS-derived state's `heading_deg` from `ais_cog_deg_true`; the CoT
+  egress's `speed="0.0"` placeholder when only a heading is present
+  (handoff item 18). Consumers at v1.1.25 see no definition until the next
+  cut and their re-pin; a consumer tells the template's two behaviours
+  apart by the lineage transform (`promote:mavlink-telemetry@` any version
+  before 1.3.0 a body angle, `@1.3.0` a course). The merge into `develop`
+  and the push wait for the maintainer's words.
 - **2026-11-02 (records pass after the 7.6 `last_seen_ts` definition).** On
   the maintainer's word of 2026-11-02 in this repository's session, the
-  branch `wave/records-7-6-followups-2026-10` off `develop` fbe6ad4, two
+  branch `wave/records-7-6-followups-2026-10` off `develop` fbe6ad4, three
   commits, records class: the two inline test fixtures that carried the
   old relation (`gateway/tests/test_lineage_semantics.py`,
   `tools/test_workflow_end_to_end.py`) now give the member observation's

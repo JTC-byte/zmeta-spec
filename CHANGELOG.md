@@ -2,6 +2,40 @@
 
 ## [Unreleased]
 
+- 2026-11-02 — **`heading_deg` defined as the course over ground; the MAVLink
+  template fills it from the ground velocity.** Contract 7.6 lists
+  `estimated_state.heading_deg` and 7.7 `payload.heading_deg`, 6.4 gave
+  headings their frame and range, and no text said which angle, motion or
+  body, the member is; the reference projector and the CoT and SAPIENT
+  egress adapters carried a course (JREAP drops the member) while the
+  MAVLink template emitted the autopilot's yaw under an asserted frame, so
+  two compliant implementations could read one event differently. Section
+  6.4 gains one paragraph: `heading_deg` on a `TrackStatePayload` and in a
+  `FusionPayload.estimated_state` is the course over ground, not the
+  direction the body points, and a producer with only a body heading omits
+  it and MAY carry the body value in a named payload-scoped field such as
+  `quality.yaw_deg`; the field dictionary's STATE line says the same. A
+  contract 2.1 patch on the maintainer's reading, accepted on the record on
+  2026-11-02: the member's frame and range were already defined and the
+  sentence narrows which true-north angle it is, as the `last_seen_ts`
+  definition of 2026-10-27 tightened a listed member. The v1.0 lock-baseline
+  contract anchor moves with a dated note; no schema, policy or validator byte
+  changes. The MAVLink ingress template (adapter version 1.3.0) derives the
+  course from `GLOBAL_POSITION_INT` `vx`/`vy` (north-positive, east-positive;
+  `atan2(vy, vx)` from true north clockwise) at or above a minimum ground
+  speed (`MIN_COURSE_SPEED_MPS`, 1.0 m/s, a deployment keyword), with
+  `quality.heading_source` `MAVLINK_GLOBAL_POSITION_INT_GROUND_COURSE`; `hdg`
+  is a body angle and stays in `quality.mavlink_hdg_frame_unknown_deg`, with
+  an asserted frame recorded beside it and promoting nothing; a non-finite
+  velocity component asserts no course. Ten MAVLink tests failed on the
+  unchanged template first (four axis cases pin the convention), then 81
+  passed; the README is rewritten for the rule. The version applies to
+  every transform the template writes, the SYSTEM_EVENT `translate:` strings
+  included, whose behaviour did not change. The 150 contract citations in
+  `tools/validation_guidance.yaml` past the 6.4 insertion, and eleven
+  continuation references, were re-anchored by the seven inserted lines
+  (every one verified to name the same text as before).
+
 - 2026-11-02 — **Records pass after the 7.6 `last_seen_ts` definition.** Two
   inline test fixtures that carried the old relation
   (`gateway/tests/test_lineage_semantics.py`, `tools/test_workflow_end_to_end.py`)
