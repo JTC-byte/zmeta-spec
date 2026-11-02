@@ -61,7 +61,7 @@ Open, in order of proximity:
    `tools/test_workflow_end_to_end.py`) now give the member observation's
    `event.ts`; (c) the 92 contract line citations in
    `tools/validation_guidance.yaml` past the 7.6 insertion point, and
-   eight continuation references on six of its lines, shifted by the two
+   seven continuation references on six of its lines, shifted by the two
    inserted lines, each verified to name the same text as before; (d) the 2026-10-27 changelog entry's "follow-up work for the
    next records pass" wording. The same pass added one evidence bullet
    (the demonstration's photograph path, PHOTO-01) to the roadmap

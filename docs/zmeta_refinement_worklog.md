@@ -13,12 +13,13 @@
   `tools/validation_guidance.yaml` past the 7.6 insertion were re-anchored
   by the two inserted lines (a before-and-after comparison read 92 of 92
   naming on `develop` the text they named at v1.1.26; the same comparison
-  on the unedited file read 0 of 92 first; eight continuation references,
+  on the unedited file read 0 of 92 first; seven continuation references,
   contract line numbers written after a prefixed citation without the
   prefix on six lines, were found unshifted by the branch's seeded review
   and shifted in the second commit, each verified the same way); the
   review also corrected the PHOTO-01 bullet's event type (the pointer is
-  the OBSERVATION's; a STATE carries no `data_ref`, contract 7.7); the 2026-10-27 changelog
+  the OBSERVATION's; a STATE carries no `data_ref`, contract 7.7); the
+  2026-10-27 changelog
   entry's booking sentence now names where the relation check goes; one
   evidence bullet (2026-10-27, PHOTO-01) added to the roadmap candidate
   `raw-data-absent-evidence-status` (a mis-indented trial copy failed the
