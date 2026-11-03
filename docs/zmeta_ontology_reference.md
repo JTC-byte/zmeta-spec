@@ -564,7 +564,7 @@ are tunable within the contract, and none can make invalid semantics valid
 | `command-evidence.yaml` | Command citation resolution and prohibited-use blocking |
 | `profiles.yaml` | Profile allowlists |
 | `profile-precision.yaml` | Quantization, immutable paths, utility floors |
-| `violation-codes.yaml` | 61 governed reason codes with severities (9 warn, 52 fail) |
+| `violation-codes.yaml` | 62 governed reason codes with severities (9 warn, 53 fail) |
 
 Severity defaults are fail-closed: a code missing from the severity map
 resolves to `fail`. Under `strict_validation` every accumulated warning
@@ -701,7 +701,7 @@ current tree and can run ahead of this table between releases.
 | What runs in CI? | schema lint, examples (v1.0 and v1.1), roadmap, compat, strict conformance pack, kernel gate, contract hash, packet-size budget, package smoke, self-test, pytest | `.github/workflows/ci.yml` |
 | Conformance classes | 34 defined; 21 implemented, 13 non-claimable | `conformance/conformance_classes.yaml` |
 | Registry entries | 63; 35 reserved, 16 experimental, 9 proposed, 2 adopted, 1 rejected | `spec/extension-registry.yaml` |
-| Governed diagnostics | 61 codes; 9 warn, 52 fail | `policy/violation-codes.yaml` |
+| Governed diagnostics | 62 codes; 9 warn, 53 fail | `policy/violation-codes.yaml` |
 | Ingress adapters | 13 shipped plus the authoring template; 5 marked Production in the aggregator table | `adapters/` |
 | Egress adapters | 5 shipped (CoT is the only one the reference gateway wires directly) | `adapters/egress/`, `gateway/src/gateway.py` |
 | Projectors and packs | 1 projector (track, identity-gated); 3 mapping packs (declarative evidence, no runtime engine) | `adapters/` |

@@ -18,6 +18,7 @@ if str(ROOT) not in sys.path:
 import zmeta_cbor
 import zmeta_compact
 import zmeta_proto
+from zmeta_decode_guard import pairs_refusing_duplicates
 
 
 INPUT_ENCODINGS = {"json", "cbor", "compact", "proto", "auto"}
@@ -118,14 +119,14 @@ def _decode_json(data: bytes, allow_jsonl_first: bool = False) -> Dict[str, Any]
     if not text:
         raise ValueError("empty JSON input")
     try:
-        obj = json.loads(text)
+        obj = json.loads(text, object_pairs_hook=pairs_refusing_duplicates)
     except json.JSONDecodeError:
         if not allow_jsonl_first:
             raise
         for line in text.splitlines():
             line = line.strip()
             if line:
-                obj = json.loads(line)
+                obj = json.loads(line, object_pairs_hook=pairs_refusing_duplicates)
                 break
         else:
             raise ValueError("no JSONL event found")

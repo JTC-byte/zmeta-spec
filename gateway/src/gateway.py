@@ -31,6 +31,11 @@ try:
 except ImportError:  # pragma: no cover - optional dependency
     zmeta_compact = None
 
+# The decode guard is required, not optional: without it the JSON lanes would
+# keep the last of two duplicate keys silently (doctrine F7-01), so a missing
+# module fails the gateway at import, never open.
+from zmeta_decode_guard import is_decode_ambiguous, pairs_refusing_duplicates
+
 try:
     import zmeta_proto
 except ImportError:  # pragma: no cover - optional dependency
@@ -1420,10 +1425,16 @@ def _looks_like_event(obj):
     return isinstance(obj, dict) and {"event", "source", "payload"}.issubset(obj)
 
 
+def _json_loads(text):
+    # Contract 3.4; doctrine F7-01: a duplicate key in one object is refused, never
+    # resolved to the last value (DECODE_AMBIGUOUS at the decode stage).
+    return json.loads(text, object_pairs_hook=pairs_refusing_duplicates)
+
+
 def _decode_message(message, input_encoding):
     if input_encoding == "json":
         text = message.decode("utf-8")
-        return json.loads(text)
+        return _json_loads(text)
     if input_encoding == "cbor":
         return _decode_cbor_envelope(message)
     if input_encoding == "compact":
@@ -1438,7 +1449,7 @@ def _decode_message(message, input_encoding):
         if prefix in (b"{", b"["):
             try:
                 text = message.decode("utf-8")
-                return json.loads(text)
+                return _json_loads(text)
             except (UnicodeDecodeError, json.JSONDecodeError):
                 decoded = _decode_cbor(message)
                 if zmeta_compact is not None and zmeta_compact.is_compact(decoded):
@@ -1456,10 +1467,13 @@ def _decode_message(message, input_encoding):
         if zmeta_proto is not None:
             try:
                 return zmeta_proto.loads(message)
-            except Exception:
-                pass
+            except Exception as exc:
+                if is_decode_ambiguous(exc):
+                    # a protobuf message the decoder refused as ambiguous is not
+                    # JSON in disguise; report the refusal, never a UTF-8 error
+                    raise
         text = message.decode("utf-8")
-        return json.loads(text)
+        return _json_loads(text)
     raise ValueError(f"unsupported input encoding: {input_encoding}")
 
 
@@ -2623,11 +2637,16 @@ def process_message(
         # diagnostic event, since a decode exception's str() can itself echo
         # the offending wire value.
         decode_error = str(exc)
+        # A decode the gateway would have had to repair (a duplicate JSON key, a
+        # protobuf field the schema does not define or types otherwise) is refused
+        # under DECODE_AMBIGUOUS (doctrine F7-01); every other decode failure
+        # stays SCHEMA_INVALID.
+        decode_code = "DECODE_AMBIGUOUS" if is_decode_ambiguous(exc) else "SCHEMA_INVALID"
         if metrics:
-            metrics.record_violation("SCHEMA_INVALID", details=decode_error)
+            metrics.record_violation(decode_code, details=decode_error)
         return [
             build_violation_event(
-                "SCHEMA_INVALID",
+                decode_code,
                 details={"error": _bounded_diagnostic_error(decode_error)},
                 contract_hashes=contract_hashes,
                 stamp_contract_hash=stamp_contract_hash,

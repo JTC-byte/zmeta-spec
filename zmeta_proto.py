@@ -12,6 +12,8 @@ import json
 import struct
 from typing import Any, Dict, Tuple
 
+from zmeta_decode_guard import DecodeAmbiguousError, pairs_refusing_duplicates
+
 
 WIRE_VARINT = 0
 WIRE_FIXED64 = 1
@@ -52,16 +54,31 @@ def loads(
     max_payload_bytes: int = DEFAULT_MAX_PAYLOAD_BYTES,
     max_json_depth: int = DEFAULT_MAX_JSON_DEPTH,
     max_message_depth: int = DEFAULT_MAX_MESSAGE_DEPTH,
+    unknown_fields: str = "refuse",
 ) -> Dict[str, Any]:
+    """Decode a ZMeta protobuf message to the canonical event dict.
+
+    ``unknown_fields`` is "refuse" (the default; contract 3.4, doctrine F7-01): a
+    field number the schema does not define at that message level, a known
+    field carrying a wire type the schema does not use for it, or a
+    non-repeatable field that appears twice (``lineage.based_on`` is the one
+    repeated field) raises DecodeAmbiguousError, because skipping it or keeping
+    the last value would hand consumers a message the producer never sent.
+    "skip" keeps the pre-2026-11-02 behaviour (last wins, payload JSON included)
+    for a caller that asks for it by name.
+    """
+    _check_unknown_fields_mode(unknown_fields)
     data = _coerce_bytes(data)
     if max_bytes is not None and len(data) > max_bytes:
         raise ValueError("protobuf message exceeds max_bytes")
 
     out: Dict[str, Any] = {}
+    seen: set = set()
     index = 0
     while index < len(data):
         field, wire_type, index = _read_key(data, index)
         _validate_field_number(field)
+        repeated = _note_field(seen, field, field <= 7)
         if field == 1 and wire_type == WIRE_LEN:
             value, index = _read_string(data, index, max_field_bytes)
             out["zmeta_version"] = value
@@ -72,6 +89,7 @@ def loads(
                 depth=1,
                 max_field_bytes=max_field_bytes,
                 max_message_depth=max_message_depth,
+                unknown_fields=unknown_fields,
             )
         elif field == 3 and wire_type == WIRE_LEN:
             value, index = _read_message(data, index, max_field_bytes)
@@ -80,10 +98,13 @@ def loads(
                 depth=1,
                 max_field_bytes=max_field_bytes,
                 max_message_depth=max_message_depth,
+                unknown_fields=unknown_fields,
             )
         elif field == 4 and wire_type == WIRE_LEN:
             value, index = _read_bytes(data, index, max_field_bytes)
-            out["payload"] = _payload_from_bytes(value, max_payload_bytes, max_json_depth)
+            out["payload"] = _payload_from_bytes(
+                value, max_payload_bytes, max_json_depth, strict_json=unknown_fields != "skip"
+            )
         elif field == 5 and wire_type == WIRE_FIXED64:
             value, index = _read_double(data, index)
             out["confidence"] = value
@@ -94,12 +115,15 @@ def loads(
                 depth=1,
                 max_field_bytes=max_field_bytes,
                 max_message_depth=max_message_depth,
+                unknown_fields=unknown_fields,
             )
         elif field == 7 and wire_type == WIRE_LEN:
             value, index = _read_string(data, index, max_field_bytes)
             out["profile"] = value
         else:
-            index = _skip_field(data, index, wire_type, max_field_bytes)
+            index = _skip_or_refuse(data, index, field, wire_type, max_field_bytes, unknown_fields, "the message")
+        if repeated:
+            _refuse_repeat(field, wire_type, unknown_fields, "the message")
     return out
 
 
@@ -121,11 +145,15 @@ def _payload_from_bytes(
     payload: bytes,
     max_payload_bytes: int = DEFAULT_MAX_PAYLOAD_BYTES,
     max_json_depth: int = DEFAULT_MAX_JSON_DEPTH,
+    strict_json: bool = True,
 ) -> Any:
     if max_payload_bytes is not None and len(payload) > max_payload_bytes:
         raise ValueError("protobuf payload exceeds max_payload_bytes")
     _assert_json_depth(payload, max_json_depth)
-    return json.loads(payload.decode("utf-8"))
+    # strict_json is False only in the forensic "skip" mode, which reads the
+    # payload last-wins as json.loads does; the gateway never asks for it.
+    hook = pairs_refusing_duplicates if strict_json else None
+    return json.loads(payload.decode("utf-8"), object_pairs_hook=hook)
 
 
 def _encode_event_block(block: Dict[str, Any]) -> bytes:
@@ -149,6 +177,7 @@ def _decode_event_block(
     depth: int = 0,
     max_field_bytes: int = DEFAULT_MAX_FIELD_BYTES,
     max_message_depth: int = DEFAULT_MAX_MESSAGE_DEPTH,
+    unknown_fields: str = "refuse",
 ) -> Dict[str, Any]:
     names = {
         1: "event_id",
@@ -164,6 +193,8 @@ def _decode_event_block(
         depth=depth,
         max_field_bytes=max_field_bytes,
         max_message_depth=max_message_depth,
+        unknown_fields=unknown_fields,
+        where="event",
     )
 
 
@@ -187,6 +218,7 @@ def _decode_source(
     depth: int = 0,
     max_field_bytes: int = DEFAULT_MAX_FIELD_BYTES,
     max_message_depth: int = DEFAULT_MAX_MESSAGE_DEPTH,
+    unknown_fields: str = "refuse",
 ) -> Dict[str, Any]:
     names = {
         1: "platform_id",
@@ -201,6 +233,8 @@ def _decode_source(
         depth=depth,
         max_field_bytes=max_field_bytes,
         max_message_depth=max_message_depth,
+        unknown_fields=unknown_fields,
+        where="source",
     )
 
 
@@ -220,6 +254,7 @@ def _decode_lineage(
     depth: int = 0,
     max_field_bytes: int = DEFAULT_MAX_FIELD_BYTES,
     max_message_depth: int = DEFAULT_MAX_MESSAGE_DEPTH,
+    unknown_fields: str = "refuse",
 ) -> Dict[str, Any]:
     _check_message_depth(depth, max_message_depth)
     out: Dict[str, Any] = {}
@@ -233,9 +268,11 @@ def _decode_lineage(
             based_on.append(value)
         elif field == 2 and wire_type == WIRE_LEN:
             value, index = _read_string(data, index, max_field_bytes)
+            if "transform" in out:
+                _refuse_repeat(2, wire_type, unknown_fields, "lineage")
             out["transform"] = value
         else:
-            index = _skip_field(data, index, wire_type, max_field_bytes)
+            index = _skip_or_refuse(data, index, field, wire_type, max_field_bytes, unknown_fields, "lineage")
     if based_on:
         out["based_on"] = based_on
     return out
@@ -248,18 +285,24 @@ def _decode_string_fields(
     depth: int = 0,
     max_field_bytes: int = DEFAULT_MAX_FIELD_BYTES,
     max_message_depth: int = DEFAULT_MAX_MESSAGE_DEPTH,
+    unknown_fields: str = "refuse",
+    where: str = "the message",
 ) -> Dict[str, Any]:
     _check_message_depth(depth, max_message_depth)
     out: Dict[str, Any] = {}
+    seen: set = set()
     index = 0
     while index < len(data):
         field, wire_type, index = _read_key(data, index)
         _validate_field_number(field)
+        repeated = _note_field(seen, field, field in names)
         if field in names and wire_type == WIRE_LEN:
             value, index = _read_string(data, index, max_field_bytes)
             out[names[field]] = value
         else:
-            index = _skip_field(data, index, wire_type, max_field_bytes)
+            index = _skip_or_refuse(data, index, field, wire_type, max_field_bytes, unknown_fields, where)
+        if repeated:
+            _refuse_repeat(field, wire_type, unknown_fields, where)
     return out
 
 
@@ -357,6 +400,65 @@ def _read_double(data: bytes, index: int) -> Tuple[float, int]:
     if end > len(data):
         raise ValueError("unexpected end of protobuf fixed64 field")
     return struct.unpack("<d", data[index:end])[0], end
+
+
+def _check_unknown_fields_mode(mode: str) -> None:
+    if mode not in ("refuse", "skip"):
+        raise ValueError(f"unknown_fields must be 'refuse' or 'skip', not {mode!r}")
+
+
+def _note_field(seen: set, field: int, tracked: bool) -> bool:
+    """Record a non-repeatable field; True when it was already seen in this message."""
+    if not tracked:
+        return False
+    repeated = field in seen
+    seen.add(field)
+    return repeated
+
+
+def _refuse_repeat(field: int, wire_type: int, unknown_fields: str, where: str) -> None:
+    """A non-repeatable field that appears twice: last-wins is a choice the decoder will not make.
+
+    `lineage.based_on` is the one repeated field the schema defines; every other
+    field appears once. Called after the repeated field's bytes were read or skipped,
+    so malformed bytes and a wrong wire type are reported first. In the forensic
+    "skip" mode the later value wins, as before.
+    """
+    if unknown_fields == "skip":
+        return
+    raise DecodeAmbiguousError(
+        f"ambiguous protobuf: field {field} (wire type {wire_type}) repeated in {where}; "
+        "the decoder will not choose between its values"
+    )
+
+
+def _skip_or_refuse(
+    data: bytes,
+    index: int,
+    field: int,
+    wire_type: int,
+    max_field_bytes: int,
+    unknown_fields: str,
+    where: str,
+) -> int:
+    """A field the schema does not define here, or a known field with the wrong wire type.
+
+    Contract 3.4 and the compact mapping's value model read against fabricating
+    canonical content; a message missing a member the producer sent is such a
+    fabrication (doctrine F7-01, the rebuild ruling's hazards 1 and 3). Refused by
+    default.
+    """
+    # Malformed bytes are reported as malformed first (an unsupported wire type, a
+    # truncated field); only a well-formed field the schema does not place here is
+    # ambiguous.
+    next_index = _skip_field(data, index, wire_type, max_field_bytes)
+    if unknown_fields == "skip":
+        return next_index
+    raise DecodeAmbiguousError(
+        f"ambiguous protobuf: field {field} with wire type {wire_type} in {where} is "
+        "not a field the schema defines there, or carries a wire type the schema does "
+        "not use for it; the decoder will not drop it"
+    )
 
 
 def _skip_field(

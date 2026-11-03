@@ -2,8 +2,97 @@
 
 ## Current Resume Note
 
-- Last updated: 2026-11-02 (two contract sentences; carried-list records pass;
-  heading_deg defined; records pass after 7.6)
+- Last updated: 2026-11-02 (DECODE_AMBIGUOUS, three commits, the third on
+  2026-11-03; two contract sentences; carried-list records pass; heading_deg
+  defined; records pass after 7.6)
+- **2026-11-02 (the decoders refuse ambiguity: `DECODE_AMBIGUOUS`).** On the
+  maintainer's selection of 2026-11-02 in this repository's session (the
+  carried list's item 4, option (a): refuse with a governed code; the
+  rebuild ruling's hazards 1 and 3), the branch `exp/decode-ambiguous-2026-11`
+  off `develop` 6089a9a, three commits (this paragraph records the first;
+  where the second superseded it, the note says so). Tests first (eleven in
+  `gateway/tests/test_decode_ambiguous.py`; nine failed on the unchanged code,
+  the two clean-event controls passed), then the code: `zmeta_decode_guard.py`
+  (the exception and the JSON `object_pairs_hook`), the gateway's three JSON
+  decode sites and its decode-failure branch (the code `DECODE_AMBIGUOUS`
+  where the exception is the guard's, `SCHEMA_INVALID` otherwise),
+  `zmeta_proto.loads` with `unknown_fields="refuse"` by default at every
+  message level (malformed bytes still reported first; three pre-existing
+  tests on unsupported wire types and truncated fields kept green by that
+  order), the protobuf payload's JSON held to the same rule, and
+  `convert_encoding` reading JSON the same way. The registry route: the code
+  in `policy/violation-codes.yaml` (62 codes; 9 warn, 53 fail, the ontology
+  reference updated), `policy/semantics.yaml`, both schemas' reason-code
+  enums (the v1.0 schema anchor moved with a dated note; the lock test failed
+  with the enum changed and the anchor unmoved, then passed; superseded by
+  the second commit, which took the post-lock route and returned the
+  anchor), the guidance
+  entry (the no-orphans test failed without it, then passed). Fixtures: two
+  protobuf and one gateway encoding-negative fixtures, seen failing with the
+  decoders stashed, passing with them; the first run exposed a vacuous pass
+  in `validate_encoding_negative.py` (a forwarded event counted as a
+  rejection when the fixture had not decoded), closed in the same commit.
+  Gates in the worktree: the sub-checks explicit (projection 37, registry 68,
+  classes 34, encoding negative 53, precision 41, bad-event corpus 36,
+  adapter harness 53, conformance pass=22 fail=42); examples 51 of 51;
+  roadmap ok; the full battery 2042 passed, 2 skipped, 13 failed (the
+  release-manifest pin tests); `git diff --check` clean.
+  The first battery read four more failures, all consequences of the new
+  code: the policy JSON export under `export/policy/` is a verbatim
+  projection of `policy/*.yaml` and was regenerated with
+  `tools/export_policy_json.py` (three files), and a second v1.0 schema
+  anchor in `test_time_status_state_enum.py` moved with a dated note on his
+  selection, the adjudication that test asks for (returned to 1d2d8416 in
+  the second commit).
+  Doctrine F7-01 records the decision; handoff item 3 names it and books
+  what stays open. A seeded refuter then found its plant and twenty-seven
+  mismatches; the maintainer took three as selections (the post-lock route,
+  so the code lives in the 1.1.0 enum only with a v1.0 wire fallback to
+  SCHEMA_INVALID and both v1.0 anchors restored; protobuf repeated
+  non-repeatable fields refused too; the rule stated in
+  `spec/protobuf-encoding.md` with its forward-compatibility cost, the JSON
+  contract sentence booked), and the rest were this lane's, applied in a
+  second commit: the guard required at import (its fallback had failed
+  open) and shipped in the four release and conformance lists; the auto
+  lane surfaces an ambiguous protobuf refusal instead of a UTF-8
+  SCHEMA_INVALID; `skip` reads the payload last-wins too; `tools/validate.py`
+  and `tools/explain.py` read JSON with the hook, and `validate.py` reports
+  the refusal as a FAIL line under the code (a producer's validator had
+  passed what the gateway refuses); the fixture tool compares the gateway's
+  own code; four more tests seen failing first; the records corrected (the
+  plane's protobuf lane is not enabled; "reads against"; CBOR and compact
+  duplicates and trailing bytes booked; the rule binds the reference
+  decoders). Gates after the second commit: 2047 passed, 2 skipped, 13
+  failed (the release-manifest pin tests). Corrections of record to the
+  second commit's message, which is immutable: its test-first figures ("8 of
+  24"; "78 across seven files") were measured before the test files took
+  their final form and do not reproduce; the figure of record is the second
+  refuter's (b5eec25 with the HEAD test files: 10 failed, 25 passed; four of
+  the five new tests failed first, the malformed-JSON test is a regression
+  guard that passed; 33 tests across the four touched test files pass); and
+  its CBOR booking named cbor2 where the reference path is this repository's
+  `zmeta_cbor` (F7-01 has the corrected booking). A second seeded refuter over
+  the whole branch diff found its plant and sixteen findings, all applied in
+  a third commit on 2026-11-03: the decoder reads a repeated field's bytes
+  before refusing the repeat (the refuter's two probes, a truncated repeated
+  field and a repeated field with the wrong wire type, reported "repeated"
+  before and malformed or mistyped after) and names the wire type;
+  `tools/explain.py` catches the refusal (a traceback before);
+  `tools/replay.py` and `tools/udp_sender.py` read a line with the hook and
+  refuse to re-encode a duplicate key into a binary lane (the JSON lane sends
+  verbatim); the fixture tool reports a gateway exception against
+  `expect_gateway_code`; a repeated-field fixture (its control: b5eec25's
+  decoder accepts the bytes as `{"zmeta_version": "1.1"}`); the governed-code
+  test asserts the v1.0 enum was found and the allowlist membership; eight
+  tests seen failing first; 54 encoding-negative fixtures; the records
+  corrected (the plane's boundary is a ratified design, not yet built; the
+  CBOR booking; the guidance citations and header; the commit count). Gates
+  after the third commit: 2055 passed, 2 skipped, 13 failed (the
+  release-manifest pin tests). The merge into `develop` and the push wait for
+  the maintainer's words. A downstream boundary's ratified
+  design (not yet built) refuses the JSON case to quarantine under its
+  interim; the reference's rule for JSON now matches it, and its re-pin reads
+  this.
 - **2026-11-02 (two contract sentences: admission caps, the command window).**
   On the maintainer's word of 2026-11-02 in this repository's session (his
   selections of F4-04 R1 and gap (x) R1 with the carried list's refuted

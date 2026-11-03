@@ -192,6 +192,8 @@ def _map_compact_decode_error(exc: BaseException) -> dict[str, Any]:
 
 def _map_proto_decode_error(exc: BaseException) -> dict[str, Any]:
     message = str(exc)
+    if getattr(exc, "decode_ambiguous", False):
+        return _result("decode", "ENCODE_NEGATIVE_DECODE_AMBIGUOUS", message)
     if isinstance(exc, UnicodeDecodeError):
         return _result("decode", "ENCODE_NEGATIVE_INVALID_UTF8", message)
     if "unsupported protobuf wire type" in message:
@@ -210,6 +212,10 @@ def _map_proto_decode_error(exc: BaseException) -> dict[str, Any]:
 def decode_bytes(data: bytes, encoding: str, fixture: dict[str, Any]) -> tuple[dict[str, Any] | None, dict[str, Any] | None]:
     limits = _decode_limits(fixture)
     try:
+        if encoding == "json":
+            from zmeta_decode_guard import pairs_refusing_duplicates
+
+            return json.loads(data.decode("utf-8"), object_pairs_hook=pairs_refusing_duplicates), None
         if encoding == "compact":
             return zmeta_compact.loads(data, **limits), None
         if encoding in {"proto", "protobuf"}:
@@ -226,6 +232,9 @@ def decode_bytes(data: bytes, encoding: str, fixture: dict[str, Any]) -> tuple[d
         if encoding == "auto":
             return convert_encoding.decode_event(data, "auto"), None
     except Exception as exc:
+        if encoding == "json":
+            code = "ENCODE_NEGATIVE_DECODE_AMBIGUOUS" if getattr(exc, "decode_ambiguous", False) else "ENCODE_NEGATIVE_MALFORMED_JSON"
+            return None, _result("decode", code, str(exc))
         if encoding == "compact":
             return None, _map_compact_decode_error(exc)
         if encoding in {"proto", "protobuf"}:
@@ -577,6 +586,12 @@ def _gateway_rejected(outputs: list[dict[str, Any]], original_event: dict[str, A
     first_type = _event_type(first)
     if first_type == "SYSTEM_EVENT":
         return True
+    if original_event is None:
+        # The fixture never decoded here, so the gateway's refusal can only be a
+        # SYSTEM_EVENT diagnostic; any other output means it decoded and forwarded
+        # what this tool refused (the comparison below would otherwise read a
+        # STATE_EVENT against None as a rejection, a vacuous pass).
+        return False
     if original_id and _event_id(first) == original_id:
         return False
     return first_type != _event_type(original_event)
@@ -617,6 +632,13 @@ def _evaluate_gateway_fixture(
                 strict_validation=True,
             )
         except Exception as exc:
+            if fixture.get("expect_gateway_code"):
+                # the fixture names the gateway's own code; a crash emitted none
+                return _result(
+                    "gateway_cli",
+                    "ENCODE_NEGATIVE_GATEWAY_CODE_MISMATCH",
+                    f"gateway raised instead of refusing under {fixture['expect_gateway_code']}: {exc}",
+                )
             return _result("gateway_cli", semantic_issue["code"], f"gateway rejected invalid input with exception: {exc}")
         if not _gateway_rejected(outputs, decoded):
             return _result(
@@ -625,6 +647,23 @@ def _evaluate_gateway_fixture(
                 "gateway accepted invalid decoded input",
                 details={"event_id": _event_id(decoded), "outputs": outputs},
             )
+        expected_gateway_code = fixture.get("expect_gateway_code")
+        if expected_gateway_code:
+            # the fixture names the gateway's own code; the minted code rides
+            # metrics.diagnostic_code on the v1.0 wire, else reason_code
+            emitted = [
+                (out.get("payload", {}).get("metrics", {}).get("diagnostic_code")
+                 or out.get("payload", {}).get("metrics", {}).get("reason_code"))
+                for out in outputs
+                if _event_type(out) == "SYSTEM_EVENT"
+            ]
+            if expected_gateway_code not in emitted:
+                return _result(
+                    "gateway_cli",
+                    "ENCODE_NEGATIVE_GATEWAY_CODE_MISMATCH",
+                    f"gateway refused under {emitted}, not {expected_gateway_code}",
+                    details={"outputs": outputs},
+                )
         return _result("gateway_cli", semantic_issue["code"], f"gateway rejected invalid input: {semantic_issue['message']}", details=semantic_issue.get("details", {}))
 
     if path == "convert_validate":

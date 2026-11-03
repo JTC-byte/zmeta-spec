@@ -68,6 +68,12 @@ ROOT = Path(__file__).resolve().parents[2]
 # case the text left open; section 4.5.1 gains one rule and 4.3 one clause,
 # every other section 4 text is unchanged, and no schema byte changed.
 CONTRACT_SHA256 = "15a9bf4e234e2621922ac11754142b5a3ec399185eb544e558b17e89b0bd142c"
+# The v1.0 reason-code enum stays locked (adjudication of 2026-08-09): the code
+# DECODE_AMBIGUOUS of 2026-11-02 (doctrine F7-01) lives in the 1.1.0 enum only and
+# rides the v1.0 wire as SCHEMA_INVALID with the minted code in
+# metrics.diagnostic_code (policy schema_violation_v1_0_wire_fallback), the route
+# the maintainer selected on 2026-11-02; this anchor returned to 1d2d8416 in the
+# branch's second commit after the first had moved it.
 V1_0_SCHEMA_SHA256 = "1d2d84164b3a8986874e932c0e9369be3bf392a483a8ff261d464f34bd16d7b5"
 
 # Embedded verbatim from the v1.0.5 tag's example corpus. Pre-lock history:

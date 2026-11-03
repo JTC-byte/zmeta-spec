@@ -2,6 +2,62 @@
 
 ## [Unreleased]
 
+- 2026-11-02 — **The reference decoders refuse what they would have had to
+  repair: `DECODE_AMBIGUOUS`.** A JSON object carrying one key twice decoded
+  to the last value, and a protobuf message carrying a field number the schema
+  does not define at that level, or a known field with a wire type the
+  schema does not use for it, decoded to a message missing the member;
+  either forwarded the gateway's choice as the producer's content (contract
+  3.4; the compact mapping's value model; the rebuild ruling's hazards 1 and
+  3, decided by the maintainer on 2026-11-02, doctrine F7-01). The gateway's
+  JSON lanes refuse a duplicate key (`object_pairs_hook`), `zmeta_proto.loads`
+  refuses an unknown, mistyped or repeated non-repeatable field at every
+  message level (`lineage.based_on` stays repeatable; a forensic caller may
+  pass `unknown_fields="skip"` by name and then reads last-wins throughout;
+  the gateway never does), the protobuf payload's JSON is held to the same
+  rule, and `convert_encoding`, `tools/validate.py` and `tools/explain.py`
+  read JSON the same way (`validate.py` reports the refusal as a FAIL line
+  under the code); malformed bytes are still reported as malformed, field by
+  field. The refusal is the new governed diagnostic code `DECODE_AMBIGUOUS`
+  (fail) on the post-lock route of 2026-08-09: registered in
+  `policy/violation-codes.yaml` and `policy/semantics.yaml` (the allowlist
+  and the v1.0 wire fallback to SCHEMA_INVALID, the minted code riding
+  `metrics.diagnostic_code`), in the 1.1.0 schema's reason-code enum only
+  (the locked v1.0 enum does not grow; its anchors returned to 1d2d8416 in
+  the branch's second commit), with its
+  guidance entry, a decoder-bounds paragraph in `spec/protobuf-encoding.md`
+  (the rule and its chosen cost to forward compatibility) and the policy JSON
+  export regenerated; the shared guard `zmeta_decode_guard.py` is required at
+  import and ships in the release and conformance lists. The rule binds the
+  reference decoders; a consumer that parses the bytes itself is its own
+  decoder. Booked for the maintainer's word: a contract sentence for the JSON
+  rule; duplicate map keys on the CBOR and compact lanes (last-wins in this
+  repository's `zmeta_cbor` and in the cbor2 fallback); trailing CBOR bytes
+  on the cbor2 fallback (`zmeta_cbor` already refuses them). Eleven tests
+  were written first and nine failed on the unchanged code; three
+  encoding-negative fixtures (an unknown protobuf field, a mistyped known
+  field, a duplicate JSON key on the gateway) failed with the decoders
+  stashed and pass with them; a second pass added the repeated-field,
+  auto-lane, skip-mode and malformed-JSON cases and the gateway fixture now
+  names the gateway's own code. `validate_encoding_negative.py` gains a
+  `json` lane, an `expect_gateway_code` check, and stops counting a forwarded
+  event as a rejection when the fixture never decoded (a vacuous pass the new
+  gateway fixture exposed). The governed code count moves to 62 (9 warn, 53
+  fail); the SYSTEM_EVENT payload vocabulary of the 1.1.0 schema widens by
+  one diagnostic code; no event type changed; the protobuf encoding's decoder
+  bounds gain the refusal rule. A second seeded refutation of the whole
+  branch (sixteen findings, applied in a third commit on 2026-11-03) ordered
+  the decoder to read a repeated field's bytes before refusing the repeat, so
+  malformed bytes and a wrong wire type report first as the specification
+  says, and to name the wire type; made `tools/explain.py` report a duplicate
+  key instead of raising; made `tools/replay.py` and `tools/udp_sender.py`
+  refuse to re-encode a duplicate-key line into a binary lane (the JSON lane
+  sends the bytes verbatim; the gateway is the decoder there); added a
+  repeated-field fixture (54 encoding-negative fixtures); and made the fixture
+  tool report a gateway exception against `expect_gateway_code`. Native
+  vendor input read by `adapters/ingress/` is outside the rule; corpus readers
+  are not datagram paths.
+
 - 2026-11-02 — **Two contract sentences on the maintainer's decisions:
   admission caps are projections that carry the replaced values; a command's
   validity window starts at `valid_from_ts`, else `event.ts`.** Section 4.5.1

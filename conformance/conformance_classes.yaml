@@ -364,7 +364,7 @@ class_records:
     status: implemented
     version_scope: ["1.0"]
     description: Experimental protobuf wire projection that decodes to canonical JSON before semantic validation.
-    required_encoding_surfaces: ["zmeta_proto.py", "schema/proto/zmeta_event_v1.proto", "spec/protobuf-encoding.md"]
+    required_encoding_surfaces: ["zmeta_proto.py", "zmeta_decode_guard.py", "schema/proto/zmeta_event_v1.proto", "spec/protobuf-encoding.md"]
     required_conformance_fixtures: ["examples/encoding-roundtrip.jsonl", "conformance/profile-projection/must-pass.jsonl", "conformance/profile-projection/must-fail.jsonl", "conformance/encoding-negative/protobuf-must-fail.jsonl", "conformance/encoding-negative/gateway-must-fail.jsonl"]
     required_test_commands: ["python -m pytest -q gateway/tests/test_encoding_roundtrip.py gateway/tests/test_profile_projection_encoding.py", "python tools/validate_encoding_negative.py --compact conformance/encoding-negative/compact-must-fail.jsonl --protobuf conformance/encoding-negative/protobuf-must-fail.jsonl --gateway conformance/encoding-negative/gateway-must-fail.jsonl"]
     dependencies: ["ZMETA-CORE", "ZMETA-PROJECTION-PRESERVATION"]

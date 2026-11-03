@@ -30,10 +30,13 @@ The experimental protobuf schema is:
 schema/proto/zmeta_event_v1.proto
 ```
 
-The reference pure-Python codec is:
+The reference pure-Python codec is `zmeta_proto.py`; since 2026-11-02 it imports
+`zmeta_decode_guard.py` (the shared refusal of an ambiguous decode) and does not
+load without it:
 
 ```text
 zmeta_proto.py
+zmeta_decode_guard.py
 ```
 
 ## Projection Rules
@@ -105,6 +108,25 @@ validation:
 Unsupported wire types and invalid field number 0 are rejected. Deployments with
 stricter link budgets should pass lower `loads(..., max_*)` values at trust
 boundaries.
+
+Since 2026-11-02 (doctrine F7-01) the reference decoder also refuses, at every
+message level, a field number the schema does not define there, a known field
+carrying a wire type the schema does not use for it, and a non-repeatable field
+that appears twice (`lineage.based_on` is the one repeated field); the gateway
+reports the refusal under `DECODE_AMBIGUOUS` (on the v1.0 wire the diagnostic's
+`reason_code` is `SCHEMA_INVALID` and the code rides `metrics.diagnostic_code`).
+Skipping such a field, or keeping the last of two values, would hand consumers a
+message the producer never sent. Two costs are chosen. A producer on a later
+schema revision that adds fields is refused by a decoder on this one, the
+reverse of protobuf's usual forward compatibility, until the decoder is revised
+with the schema. A parser generated from `zmeta_event_v1.proto` accepts bytes
+this decoder refuses, because the protobuf encoding rules take the last value of
+a repeated scalar and merge a repeated embedded message; the idiom of
+concatenating two serialized messages is therefore refused here. A caller that
+must read such a message for forensics passes `unknown_fields="skip"` by name,
+and the gateway never does. Malformed bytes (an unsupported wire type, a
+truncated field, an over-long varint) are reported as malformed, field by field,
+before the ambiguity check reaches them.
 
 ## Tooling
 
