@@ -6,8 +6,9 @@
   heading_deg defined; records pass after 7.6)
 - **2026-11-02 (two contract sentences: admission caps, the command window).**
   On the maintainer's word of 2026-11-02 in this repository's session (his
-  selections of F4-04 R1 and gap (x) R1, then of wording A in 4.5.1 and
-  wording B in 7.8, each put to him with a seeded refuter's corrections),
+  selections of F4-04 R1 and gap (x) R1 with the carried list's refuted
+  corrections, then of wording A in 4.5.1 and wording B in 7.8 from a
+  read-only preparation, refuted after his selection in this branch),
   the branch `exp/contract-sentences-2026-11` off `develop` 44175a3. First
   commit: the 4.5.1 bullet and the 7.8 rule as he worded them, the field
   dictionary's `valid_from_ts` line, doctrine F4-04 to DECIDED, the handoff's
@@ -26,7 +27,25 @@
   the same command on `develop` 44175a3 is green with pass=21); examples 51 of
   51; roadmap ok; the full battery 2024 passed, 2 skipped, 13 failed (the
   release-manifest pin tests); `git diff --check` clean. The merge into
-  `develop` and the push wait for the maintainer's words.
+  `develop` and the push wait for the maintainer's words. Third commit, on the
+  branch's seeded refuter (it found its plant and twenty findings): his
+  words of 2026-11-02 took "lacks either" for 4.5.1's second sentence, a 4.3
+  clause (a command's `event.ts` is its issue time when `valid_from_ts` is
+  present), the profile projection catalog preserving `valid_from_ts` (the
+  projection vector seen failing first, then corrected) and the SAPIENT
+  refusal of a window that opens after `event.ts`, and he concurred that
+  both sentences are 2.1 patches; the anchor moved to 15a9bf4e234e2621...
+  with its control. This lane's fixes: the claimed values are the values a
+  cap or reduction changed, on the timing-degrade paths too; a reduction
+  factor below 1 is declined; the lock comment says section 4.5.1 gains a
+  rule; the F4-04 paragraph names the mode, drops a vector that did not
+  exist and books the replacement-case check; the handoff's gap (x) note
+  names the dedupe hold and the MAVLink mission intent as measured by the
+  rule. Gates after the third commit: the sub-checks explicit (projection 37,
+  registry 68, classes 34, encoding negative 50, precision 41, bad-event
+  corpus 36, adapter harness 53, conformance pass=22 fail=42); examples 51 of
+  51; roadmap ok; the full battery 2028 passed, 2 skipped, 13 failed (the
+  release-manifest pin tests); `git diff --check` clean.
 - **2026-11-02 (records pass on the maintainer's carried-list decisions).** On
   the maintainer's word of 2026-11-02 in this repository's session, after
   his thirteen selections over the carried list (each put to him with a

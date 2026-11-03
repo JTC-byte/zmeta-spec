@@ -293,8 +293,17 @@ Open, in order of proximity:
    (decided 2026-11-02: contract 7.8's last command rule now says the
    window begins at `valid_from_ts` when present, otherwise at `event.ts`,
    and ends `valid_for_ms` after that start; the SAPIENT egress computes
-   `task_end_time` from that start; whether `valid_from_ts` may precede
-   `event.ts` is left open); (y)
+   `task_end_time` from that start and refuses a window that opens after
+   `event.ts`, which its end-only bound cannot carry; the profile
+   projection catalog preserves `valid_from_ts`; 4.3 names a command's
+   `event.ts` its issue time when `valid_from_ts` is present. Measured by
+   the rule and still open: the reference gateway's task dedupe holds a
+   `task_id` from receipt for min(`valid_for_ms`, 300 s), shorter than a
+   window that opens later (the subject of the held branch
+   `exp/command-dedupe-validity`); the MAVLink mission intent carries
+   `valid_for_ms` and neither anchor, so a receiver can only start the
+   duration at receipt; whether `valid_from_ts` may precede `event.ts`);
+   (y)
    whether a copy with trimmed lineage keeps its `event_id`. Contract 4.2
    lets a profile export stay "the same event" when it only makes listed
    changes, among them "Omit optional fields for bandwidth", and says

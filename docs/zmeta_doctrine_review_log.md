@@ -3526,7 +3526,7 @@ refuse default holding until then. A reading, not a ruling: the answer
 depends on gap (z), because 5.1
 reads `event.ts` by event type.
 
-### F4-04 — In-place caps on an admitted event against the locked replacement rule · **DECIDED 2026-11-02 (a projection that keeps the `event_id`, provided the record carries the replaced values)**
+### F4-04 — In-place caps on an admitted event against the locked replacement rule · **DECIDED 2026-11-02 (a projection that keeps the `event_id`, provided the record names the mode and carries the replaced values)**
 
 **Observed:** at its pinned release, v1.1.25, a downstream COP's design
 reads events that a reference gateway forwards when a deployment selects the
@@ -3568,23 +3568,34 @@ the capped values as the gateway's.
 **Decision (2026-11-02):** taken by the maintainer in the repository's
 session on the evidence put to him first (the carried-list pass of
 2026-10-29, refuted with a seeded error on 2026-11-02; the texts were read
-as silent on admission caps, so the choice is his, not a reading of what
-they already carried). Section 4.5.1 gains one bullet: a reduction of
+as silent on admission caps, so the sentence is his choice and the texts
+carried no reading of their own). Section 4.5.1 gains one bullet: a reduction of
 `confidence` or `valid_for_ms` applied at admission under a declared
 degrade or quarantine mode is a projection of the same event under
 Section 4.2 and keeps its `event_id`, provided the policy-scoped record on
 the accepted event names the mode and carries the values it replaced; a
-reduction whose record carries neither is a replacement and requires a new
-event. A contract 2.1 patch on his reading: it decides a case the text left
-open without redefining a field, and the condition it adds is the one gate
-3 (no laundering) needs, the producer's own figure visible beside the cap.
-The reference gateway's `risk_adjudication` record gains
-`confidence_claimed` and `valid_for_ms_claimed` under `effects` whenever a
-cap or reduction changes a value, with a test seen failing first; a
-must-pass vector carries a capped event with the claimed values. A
-downstream boundary's check 4 may now admit an in-place cap that carries
-the claimed values (its lane, at its re-pin). The lock-baseline contract
-anchor moves with a dated note; no schema or policy byte changes.
+reduction whose record lacks either is a replacement and requires a new
+event (the second sentence read "carries neither" until the branch's
+seeded refuter showed that a record naming the mode without the values,
+the shape of every timing record then shipped, fell between the two
+sentences; "lacks either" is his word of 2026-11-02). A contract 2.1
+patch, the maintainer concurring on 2026-11-02: it decides a case the text
+left open without redefining a field, and the condition it adds is the one
+gate 3 (no laundering) needs, the producer's own figure visible beside the
+cap. The reference gateway's `risk_adjudication` record carries
+`confidence_claimed` and `valid_for_ms_claimed` under `effects` for the
+values a cap or reduction changed, on the promotion paths and on the
+timing-degrade paths alike, with tests seen failing first; a reduction
+factor below 1, which would raise a value, is declined. The record is
+chained: each carries the value its own step replaced, so a consumer
+recovers the producer's figure from the first record. Not built here, and
+booked: a validator check that flags an accepted event whose record lacks
+the mode or the replaced values (the sentence's replacement case), with a
+governed code through the registry route and its must-fail and must-pass
+vectors. A downstream boundary's check 4 may now admit an in-place cap
+that carries the claimed values (its lane, at its re-pin). The
+lock-baseline contract anchor moves with a dated note; no schema or policy
+byte changes.
 
 ## Cycle F5 — 2026-10-23 (fielded evidence: a consumer's federation path read on 2026-10-19)
 

@@ -888,15 +888,23 @@ def apply_timing_freshness_degradation(event, violations, timing_freshness_polic
         # NON_FINITE_CONFIDENCE - louder than any degraded forward - and the
         # timing violation is still reported by the caller either way.
         return False
+    if factor < 1:
+        # a reduction that would increase: declined (contract 4.2)
+        return False
+    claimed = _claimed_values(event)
     event["confidence"] = max(0.0, min(1.0, confidence / factor))
     changed = True
+    replaced = _replaced_values(claimed, event)
+    replaced.pop("valid_for_ms_claimed", None)
     for violation in violations or []:
         if (
             violation.get("details", {}).get("action") == "degrade"
             and violation.get("code") in _TIMING_DEGRADABLE_CODES
         ):
             changed = _append_risk_adjudication(
-                event, violation, {"confidence_reduction_factor": factor}
+                event,
+                violation,
+                {"confidence_reduction_factor": factor, **replaced},
             ) or changed
     return changed
 
@@ -1341,34 +1349,11 @@ def _ensure_path_dict(value, dotted_path):
 # changes, and because these are reachable directly. Declining to compute
 # leaves the offending value intact for the gate to refuse - it never
 # substitutes a cleaner one.
-def _claimed_values(event):
-    """The confidence and valid_for_ms an event carries before a cap or reduction.
-
-    Contract 4.5.1: a reduction at admission under a declared degrade or
-    quarantine mode keeps the event_id only when the policy-scoped record
-    carries the values it replaced. Only a finite numeric value is a claim;
-    an absent or non-numeric member is not restated as one.
-    """
-    claimed = {}
-    confidence = event.get("confidence") if isinstance(event, dict) else None
-    if (
-        isinstance(confidence, (int, float))
-        and not isinstance(confidence, bool)
-        and not _is_non_finite_number(confidence)
-    ):
-        claimed["confidence_claimed"] = confidence
-    payload = event.get("payload", {}) if isinstance(event, dict) else {}
-    value = payload.get("valid_for_ms") if isinstance(payload, dict) else None
-    if (
-        isinstance(value, (int, float))
-        and not isinstance(value, bool)
-        and not _is_non_finite_number(value)
-    ):
-        claimed["valid_for_ms_claimed"] = value
-    return claimed
-
-
 def _reduce_confidence(event, factor):
+    # A factor below 1 would raise the value; contract 4.2 makes an increase in
+    # confidence a new event, so the reducer declines rather than increase.
+    if not isinstance(factor, (int, float)) or factor < 1:
+        return False
     confidence = event.get("confidence") if isinstance(event, dict) else None
     if isinstance(confidence, bool) or not isinstance(confidence, (int, float)):
         return False
@@ -1389,6 +1374,8 @@ def _cap_confidence(event, cap):
 
 
 def _reduce_valid_for_ms(event, factor):
+    if not isinstance(factor, (int, float)) or factor < 1:
+        return False
     payload = event.get("payload", {}) if isinstance(event, dict) else {}
     if not isinstance(payload, dict):
         return False
@@ -1412,6 +1399,43 @@ def _cap_valid_for_ms(event, cap):
         return False
     payload["valid_for_ms"] = max(0, int(min(float(value), cap)))
     return True
+
+def _claimed_values(event):
+    """The finite confidence and valid_for_ms an event carries at this moment.
+
+    Read before a cap or reduction and compared after it by _replaced_values:
+    contract 4.5.1 keeps the event_id for a reduction at admission under a
+    declared degrade or quarantine mode only when the policy-scoped record
+    carries the values it replaced. Only a finite numeric member is a claim.
+    """
+    claimed = {}
+    confidence = event.get("confidence") if isinstance(event, dict) else None
+    if (
+        isinstance(confidence, (int, float))
+        and not isinstance(confidence, bool)
+        and not _is_non_finite_number(confidence)
+    ):
+        claimed["confidence_claimed"] = confidence
+    payload = event.get("payload", {}) if isinstance(event, dict) else {}
+    value = payload.get("valid_for_ms") if isinstance(payload, dict) else None
+    if (
+        isinstance(value, (int, float))
+        and not isinstance(value, bool)
+        and not _is_non_finite_number(value)
+    ):
+        claimed["valid_for_ms_claimed"] = value
+    return claimed
+
+
+def _replaced_values(before, event):
+    """The members of `before` (from _claimed_values) that a cap or reduction changed.
+
+    A value already under the cap is not replaced, so it is not claimed; the
+    record carries the values it replaced and nothing more.
+    """
+    after = _claimed_values(event)
+    return {key: value for key, value in before.items() if after.get(key) != value}
+
 
 
 def apply_external_promotion_policy_action(event, violations, authority_policy):
@@ -1457,7 +1481,7 @@ def apply_external_promotion_policy_action(event, violations, authority_policy):
                 {
                     "confidence_reduction_factor": confidence_factor,
                     "valid_for_ms_reduction_factor": valid_for_factor,
-                    **claimed,
+                    **_replaced_values(claimed, event),
                 },
             ) or changed
             continue
@@ -1476,7 +1500,7 @@ def apply_external_promotion_policy_action(event, violations, authority_policy):
             {
                 "confidence_cap": confidence_cap,
                 "valid_for_ms_cap": valid_for_cap,
-                **claimed,
+                **_replaced_values(claimed, event),
             },
         ) or changed
 

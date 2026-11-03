@@ -346,6 +346,50 @@ class ExternalStatePromotionTest(unittest.TestCase):
         self.assertEqual(0.25, risk["effects"]["confidence_cap"])
         self.assertEqual(1000, risk["effects"]["valid_for_ms_cap"])
 
+    def test_quarantine_record_claims_only_what_the_cap_changed(self):
+        # A value already under the cap is not replaced, so no claimed value is
+        # recorded for it: the record carries the values it replaced, no more.
+        event = state_event(
+            metadata=promotion_metadata(),
+            transform="translate:cot@template",
+        )
+        event["confidence"] = 0.1
+        event["payload"]["valid_for_ms"] = 2000
+        authority = self.authority_with_promotion_mode("quarantine")
+        ok, violations = validators.validate_producer_authority(
+            event, authority, self.severity_map
+        )
+        validators.apply_external_promotion_policy_action(event, violations, authority)
+
+        risk = event["payload"]["extensions"]["risk_adjudication"][0]
+        self.assertNotIn("confidence_claimed", risk["effects"])
+        self.assertEqual(2000, risk["effects"]["valid_for_ms_claimed"])
+        self.assertAlmostEqual(0.1, event["confidence"])
+
+    def test_degrade_factor_below_one_never_increases(self):
+        # Contract 4.2: an increase in confidence or TTL requires a new event. A
+        # misconfigured reduction factor below 1 would turn the reduction into an
+        # increase and the record would still grant projection status; the
+        # reducers leave the values as they are instead.
+        event = state_event(metadata=None)
+        event["confidence"] = 0.4
+        event["payload"]["valid_for_ms"] = 2000
+        authority = self.authority_with_promotion_mode("degrade")
+        authority["external_state_promotion"]["degrade"] = {
+            "confidence_reduction_factor": 0.5,
+            "valid_for_ms_reduction_factor": 0.5,
+        }
+        ok, violations = validators.validate_producer_authority(
+            event, authority, self.severity_map
+        )
+        validators.apply_external_promotion_policy_action(event, violations, authority)
+
+        self.assertAlmostEqual(0.4, event["confidence"])
+        self.assertEqual(2000, event["payload"]["valid_for_ms"])
+        risk = event["payload"]["extensions"]["risk_adjudication"][0]
+        self.assertNotIn("confidence_claimed", risk["effects"])
+        self.assertNotIn("valid_for_ms_claimed", risk["effects"])
+
     def test_quarantine_record_omits_a_claimed_value_the_event_never_carried(self):
         # No valid_for_ms on the event: nothing was replaced, so nothing is
         # claimed; the record must not invent a figure.

@@ -1639,15 +1639,20 @@ def _apply_failure_mode_degradation(
         # one (R1-11 residual against A-01).
         return False
 
+    before = confidence
     event["confidence"] = max(0.0, min(1.0, confidence / factor))
     limits = _timing_use_limits(timing_freshness_policy, "degrade")
+    effects = {"confidence_reduction_factor": factor}
+    if event["confidence"] != before:
+        # contract 4.5.1: the record carries the value the reduction replaced
+        effects["confidence_claimed"] = before
     record = {
         "risk_dimension": "timing",
         "reason_code": "TIMING_STATUS_UNSYNCED",
         "policy_mode": "degrade",
         "policy_decision": "DEGRADED_ACCEPT",
         "policy_ref": "gateway.failure_modes.timing_loss",
-        "effects": {"confidence_reduction_factor": factor},
+        "effects": effects,
     }
     allowed_uses = _config_list_values(limits.get("allowed_uses"))
     prohibited_uses = _config_list_values(limits.get("prohibited_uses"))

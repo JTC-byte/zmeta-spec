@@ -492,7 +492,8 @@ Profile, transport, producer, and event type MUST NOT be encoded into
 `event_id`.
 
 The timestamp bits inside UUIDv7 represent identity-generation time only.
-`event.ts` remains the authoritative capture, observation, or validity time.
+`event.ts` remains the authoritative capture, observation, or validity time,
+or, for a command with `valid_from_ts`, its issue time.
 Consumers MUST NOT infer event timing, ordering, or freshness from UUIDv7
 timestamp bits when `event.ts` and timing quality metadata are available.
 
@@ -592,7 +593,7 @@ Enforcement behavior:
   declared degrade or quarantine mode is a projection of the same event under
   Section 4.2 and keeps its `event_id`, provided the policy-scoped record on
   the accepted event names the mode and carries the values it replaced. A
-  reduction whose record carries neither is a replacement and requires a new
+  reduction whose record lacks either is a replacement and requires a new
   event.
 - Loop/reflection risk SHOULD remain a hard rejection unless an operator
   deliberately enables a softer response with equivalent audit diagnostics.
