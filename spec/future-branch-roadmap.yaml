@@ -724,7 +724,8 @@ candidates:
       The recommended order puts this candidate before
       event-signing-anti-replay, because a signature over an undefined byte
       form proves nothing, and the signing candidate lists this one in
-      depends_on (doctrine U1-02, decided 2026-10-01). The outcome may be a
+      depends_on (doctrine U1-02, decided 2026-10-01; the content and
+      strength were decided 2026-11-02, see notes). The outcome may be a
       clause change in spec/compact-binary-mapping.md rather than a version
       branch, and its content and strength are the maintainer's decision.
     notes: >

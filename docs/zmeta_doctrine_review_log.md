@@ -2064,19 +2064,22 @@ on the evidence put to him first (the carried-list pass of 2026-10-29,
 refuted with a seeded error on 2026-11-02). The canonical float width is
 binary64, float64 on the wire; the determinism clause becomes a MUST in the
 version that adopts the `canonical-byte-form` candidate; the value model is
-binary64, so digits a binary64 cannot hold are not content (the rebuild
-ruling's hazard 8: a producer that needs them carries them as a string in
-an explicitly named field). A digest of a datagram's received bytes,
-recorded with its encoding and never offered as the event's identity
-across a re-encoding, does not fire the candidate's tripwire; the
-ecosystem's own interim, that it hashes nothing until its signing question
-is decided, stays the ecosystem's rule. The text change in
+binary64, so digits a binary64 cannot hold are not content (the question
+the rebuild ruling's hazard 8 put to him; a producer that needs them
+carries them as a string in an explicitly named field). A digest of a
+datagram's received bytes, recorded with its encoding and never offered as
+the event's identity across a re-encoding, does not fire the candidate's
+tripwire; the downstream deployments' shared interim, that they hash
+nothing until their canonical-byte-form ask is decided, is theirs to
+revisit now that this entry decides the form. The text change in
 `spec/compact-binary-mapping.md` rides the `canonical-byte-form` branch,
 opened when the first hashing need appears; `zmeta_cbor.py` already writes
-float64 and the documented `cbor2` fallback is corrected on that branch.
-This reverses the 2026-10-01 recommendation to wait for signing, because
-hazard 8 and a downstream boundary's byte-comparison design waited on it
-and the decision changes no byte today.
+float64, and the `cbor2` path, which writes shortest floats, is corrected
+on that branch. This reverses the 2026-10-01 recommendation to wait for
+signing, because hazard 8, and a downstream boundary's value-comparison
+check (its B4) and its choice of what to do with digits a binary64 cannot
+hold (its section 18 item 29), waited on it, and the decision changes no
+byte today.
 
 ### C1-08 — A format checker is installed at a dozen sites and validates nothing · **DECIDED 2026-08-10**
 
@@ -2976,7 +2979,7 @@ candidates through this repository's own process and evidence bar, and
 promotes nothing. How each ask was routed is recorded in U1-02 as this
 session's disposition, pending the maintainer's word on the merge.
 
-### U1-02 — How the five asks were routed, and what routing them surfaced · **DECIDED 2026-11-02 (ratified; the delegated decision of 2026-10-01, merged as routed)**
+### U1-02 — How the five asks were routed, and what routing them surfaced · **DECIDED 2026-11-02 (ratified; the delegated decision of 2026-10-01: merged as routed)**
 
 **Observed:** the disposition, pending the maintainer. Two asks open as new
 candidates. The dialect label opens as registry entry DIALECT_LABEL,
@@ -3080,7 +3083,7 @@ carrier on the event names its source dialect, so promotion weighs that
 case as well as lineage dropped at egress. The registry entry and the
 roadmap candidate are corrected.
 
-**Ratified 2026-11-02:** the maintainer ratified the four delegated
+**Ratification (2026-11-02):** the maintainer ratified the four delegated
 decisions of 2026-10-01 (this entry, F3-03, F3-04 and F3-05) on 2026-11-02
 in the repository's session, on the evidence put to him first (a records
 pass over each entry's texts, refuted with a seeded error). Their status
@@ -3204,15 +3207,16 @@ event is past its TTL, so the contract does not address projecting it.
 decisions in this entry were made in the same pass as the code, under the
 delegated go, and stand until the maintainer's review.
 
-**Ratified 2026-11-02:** the maintainer ratified this decision on 2026-11-02;
-DECIDED. The cap shipped first in v1.1.27 (the merge of 2026-10-01 postdates
+**Ratification (2026-11-02):** the maintainer ratified this decision on
+2026-11-02 and it stands as DECIDED. The cap shipped first in v1.1.27 (the
+merge of 2026-10-01 postdates
 the v1.1.26 cut). One deployment's own `cds` egress keeps a 120 s ceiling
 from arrival over a shorter claim, which is the increase in TTL this
 entry's decision says Section 4.2 forbids; it stands by the maintainer's
 answer of 2026-10-13 ("Cap, but keep cds as is") as his held choice,
 recorded as such, until that deployment's partner guard is re-checked at
 its re-pin. The ratification does not wait on that re-check, which gates
-the re-pin, not the doctrine.
+the re-pin and leaves the doctrine untouched.
 
 ### F3-04 — The evidence bar · **DECIDED 2026-11-02 (ratified; the delegated decision of 2026-10-01: recorded as evidence, n=1)**
 
@@ -3238,8 +3242,8 @@ controlled comparison is now available without a switch in this
 repository, because the deployment still runs the window-only shape and
 this profile now carries the claim.
 
-**Ratified 2026-11-02:** the maintainer ratified this decision on 2026-11-02;
-DECIDED.
+**Ratification (2026-11-02):** the maintainer ratified this decision on
+2026-11-02 and it stands as DECIDED.
 
 ### F3-05 — An asserted affiliation at the boundary · **HELD-FIRM 2026-09-29 (refuse, never retype); opt-in DECIDED 2026-11-02 (ratified; the delegated decision of 2026-10-01: none)**
 
@@ -3269,7 +3273,7 @@ did not cross is visible on the sending side as that. The route to passing
 an affiliation is a release profile under `coalition-release-export`,
 whose notes now say so.
 
-**Ratified 2026-11-02:** the maintainer ratified the opt-in decision of
+**Ratification (2026-11-02):** the maintainer ratified the opt-in decision of
 2026-10-01 on 2026-11-02; the HELD-FIRM refusal of 2026-09-29 is unchanged.
 
 ## Cycle E1 — 2026-10-01 (a deployment's command posture, evidence model and tasking ask)

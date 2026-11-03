@@ -10,8 +10,8 @@
   the wire, the determinism clause a MUST at adoption, digits beyond
   binary64 not content, a labelled received-bytes digest fires no tripwire;
   the text change rides the `canonical-byte-form` branch. The signing
-  tripwire is recorded as not yet, with its firing conditions. The KLV row
-  names the evidence that moves it. Records and advisory text only; no
+  tripwire is recorded as not yet, with what would make it arguable. The KLV
+  row names the evidence that moves it. Records and advisory text only; no
   schema, policy or validator byte changes.
 
 - 2026-11-02 — **`heading_deg` defined as the course over ground; the MAVLink
