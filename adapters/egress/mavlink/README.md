@@ -15,6 +15,7 @@ Output: autonomy-agnostic MissionIntent JSON
 |-----------|-------------|
 | An altitude field anywhere inside `target_geo` or `geometry` | `ValueError`; semantics contract 7.8: a `COMMAND_EVENT` carries no vertical intent, the receiving autonomy deconflicts vertical internally |
 | Not a `COMMAND_EVENT`, missing `task_id`/`task_type`/`valid_for_ms`/`requires_deconfliction`, or `requires_deconfliction` is not `True` | `None` |
+| `payload.valid_from_ts` and `event.ts` | Dropped: the intent carries `valid_for_ms` and neither anchor, so a receiver can only start the duration at receipt; for a window that opens later (contract 7.8) that is early. Booked in the handoff's gap (x) note. |
 | `payload.extensions.risk_adjudication` is a non-empty list (see Risk adjudication below) and `allow_flagged` is not passed | `None` |
 | Non-finite (`NaN`/`inf`) number anywhere in the projected mission | `None`; a non-finite target is a fly-to command with no destination, and it satisfies every structural check |
 

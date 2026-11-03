@@ -2,6 +2,33 @@
 
 ## [Unreleased]
 
+- 2026-11-02 — **Two contract sentences on the maintainer's decisions:
+  admission caps are projections that carry the replaced values; a command's
+  validity window starts at `valid_from_ts`, else `event.ts`.** Section 4.5.1
+  gains a bullet (doctrine F4-04 DECIDED): a reduction of `confidence` or
+  `valid_for_ms` at admission under a declared degrade or quarantine mode
+  is a projection of the same event under 4.2 and keeps its `event_id`,
+  provided the policy-scoped record names the mode and carries the values
+  it replaced; a reduction whose record lacks either is a replacement.
+  Section 7.8 gains a last command rule: the validity window begins at
+  `payload.valid_from_ts` when present, otherwise at `event.ts`, and ends
+  `payload.valid_for_ms` after that start, the "validity anchor" of 5.1;
+  the field dictionary says the same (handoff gap (x) closed; whether
+  `valid_from_ts` may precede `event.ts` stays open). Section 4.3 names a
+  command's `event.ts` its issue time when `valid_from_ts` is present. Both
+  sentences are contract 2.1 patches, the maintainer concurring on
+  2026-11-02. The v1.0 lock-baseline contract anchor moves with a dated
+  note; no schema or policy byte changes. The reference gateway's
+  `risk_adjudication` record carries the values a cap or reduction changed
+  (promotion and both timing paths; a factor below 1 is declined on each,
+  and recorded as declined); the gateway's strip guard protects
+  `payload.valid_from_ts`; the SAPIENT
+  command egress computes `task_end_time` from the window's start and
+  refuses a window that opens after `event.ts`, which its end-only bound
+  cannot carry; the profile projection catalog preserves `valid_from_ts`
+  (its vector corrected, seen failing first). A validator check for a record
+  lacking the mode or the replaced values is booked (registry route).
+
 - 2026-11-02 — **Records pass on the maintainer's carried-list decisions.**
   Four delegated decisions of 2026-10-01 are ratified (doctrine U1-02, F3-03,
   F3-04, F3-05 move to DECIDED; the handoff's stale "OPEN" for U1-02 is

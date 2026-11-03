@@ -199,6 +199,30 @@ class TimingFreshnessTest(unittest.TestCase):
         self.assertEqual("WARN_ACCEPT", violations[0]["details"]["policy_decision"])
         self.assertIn("COMMAND_BASIS", violations[0]["details"]["prohibited_uses"])
 
+    def test_degrade_record_carries_the_confidence_it_replaced(self):
+        # Contract 4.5.1 (2026-11-02): the timing degrade path is a reduction at
+        # admission under a declared mode, so its record carries the value it
+        # replaced too.
+        policy = copy.deepcopy(self.freshness)
+        policy["mode"] = "degrade"
+        event = state_event("2025-01-17T14:30:11Z", confidence=0.8)
+        state = validators.ValidationState()
+        state.record_timing(time_status("2025-01-17T14:30:00Z"))
+        ok, violations = validators.validate_timing_quality(
+            event,
+            self.semantics,
+            state=state,
+            severity_map=self.severity_map,
+            timing_freshness_policy=policy,
+            profile="H",
+        )
+        validators.apply_timing_freshness_degradation(event, violations, policy)
+
+        risk = event["payload"]["extensions"]["risk_adjudication"][0]
+        self.assertAlmostEqual(0.8, risk["effects"]["confidence_claimed"])
+        self.assertEqual(2.0, risk["effects"]["confidence_reduction_factor"])
+        self.assertAlmostEqual(0.4, event["confidence"])
+
     def test_degrade_mode_reduces_confidence(self):
         policy = copy.deepcopy(self.freshness)
         policy["mode"] = "degrade"
@@ -232,7 +256,8 @@ class TimingFreshnessTest(unittest.TestCase):
         self.assertEqual("TIMING_STATUS_STALE", risk["reason_code"])
         self.assertEqual("DEGRADED_ACCEPT", risk["policy_decision"])
         self.assertEqual(
-            {"confidence_reduction_factor": 2.0},
+            # contract 4.5.1 (2026-11-02): the record carries the value it replaced
+            {"confidence_reduction_factor": 2.0, "confidence_claimed": 0.8},
             risk["effects"],
         )
         self.assertIn("COMMAND_BASIS", risk["prohibited_uses"])

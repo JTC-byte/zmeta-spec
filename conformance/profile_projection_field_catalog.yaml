@@ -609,9 +609,13 @@ rules:
   - path: payload.valid_from_ts
     event_types: ["COMMAND_EVENT"]
     profiles: ["L", "M", "H"]
-    status: [optional_removable]
-    comparison: optional_omission
-    notes: Optional command start time may be omitted.
+    status: [never_mutable]
+    comparison: equality
+    notes: >
+      Optional command start time; when present it is preserved exactly.
+      Contract 7.8 (2026-11-02) makes it the start of the validity window,
+      so omitting it would move the window, a reinterpretation Section 10.4
+      forbids a profile projection.
 
   - path: payload.priority
     event_types: ["COMMAND_EVENT"]

@@ -55,8 +55,13 @@ Command safety rules (semantics contract 7.8) dominate this projection:
   seen-set: sender-controlled nesting is a memory cost, never a
   `RecursionError` past the documented `ValueError`/None contract, and a
   cyclic (CBOR value-sharing) structure terminates instead of hanging.
-- `task_end_time` = `event.ts` + `payload.valid_for_ms` (the ZMeta TTL is
-  the only honest task bound available).
+- `task_end_time` = the window's start + `payload.valid_for_ms`, the start
+  being `payload.valid_from_ts` when present and `event.ts` otherwise
+  (contract 7.8). SAPIENT's Task carries an end bound only and
+  `CONTROL_START` runs from receipt, so a window that opens after
+  `event.ts` is refused (None): projecting it would start the node before
+  the window. A `valid_from_ts` the egress cannot parse refuses the task the
+  same way.
 - `destination_id` is a required caller kwarg; a SAPIENT task without a
   destination node is undeliverable.
 
@@ -65,7 +70,7 @@ Command lossiness:
 | ZMeta concern | Disposition |
 | --- | --- |
 | `payload.priority` | Dropped. SAPIENT Task has no priority field; it is not smuggled through free-text. |
-| `payload.valid_from_ts` | Dropped; only the end bound (`task_end_time`) has a SAPIENT carrier. |
+| `payload.valid_from_ts` | Not carried as a field; it sets the start from which `task_end_time` is computed, the only bound SAPIENT carries. A start later than `event.ts` refuses the task. |
 | `payload.timing_quality` | Dropped; Task has no timing-quality carrier. |
 | `payload.extensions` | Dropped; vendor extension content is not re-exported across an external boundary. |
 | `lineage` | Dropped; recover provenance through the originating ZMeta event. |

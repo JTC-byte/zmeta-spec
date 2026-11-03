@@ -56,7 +56,18 @@ ROOT = Path(__file__).resolve().parents[2]
 # member is, the meaning the reference projector and the egress adapters
 # already carry; no other rule
 # text, no section 4 invariant and no schema byte changed.
-CONTRACT_SHA256 = "6ffcff6c655f0f7cdbd6c2b81b125f86da2b71d6d135d49c9c2d54ae90cf0543"
+# Contract anchor moved 2026-11-02 (second and third moves of the day) on the
+# maintainer's selections of 2026-11-02: section 4.5.1 gains one bullet (an
+# admission cap under a declared mode is a 4.2 projection that keeps the
+# event_id, provided the policy-scoped record names the mode and carries the
+# replaced values; a record lacking either makes it a replacement; doctrine
+# F4-04), section 7.8 one last command rule (the validity window begins at
+# valid_from_ts when present, otherwise at event.ts, and ends valid_for_ms
+# after that start; handoff gap (x)), and section 4.3 one clause (for a
+# command with valid_from_ts, event.ts is its issue time). Each decides a
+# case the text left open; section 4.5.1 gains one rule and 4.3 one clause,
+# every other section 4 text is unchanged, and no schema byte changed.
+CONTRACT_SHA256 = "15a9bf4e234e2621922ac11754142b5a3ec399185eb544e558b17e89b0bd142c"
 V1_0_SCHEMA_SHA256 = "1d2d84164b3a8986874e932c0e9369be3bf392a483a8ff261d464f34bd16d7b5"
 
 # Embedded verbatim from the v1.0.5 tag's example corpus. Pre-lock history:

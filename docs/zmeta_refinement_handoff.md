@@ -289,7 +289,27 @@ Open, in order of proximity:
    `valid_from_ts` relates to `event.ts` and `valid_for_ms` (contract 7.8
    lists the field and gives it no rule; contract 5.1 calls a command's
    `event.ts` "the command issue time or validity anchor"), so two
-   consumers may compute different validity windows for one command; (y)
+   consumers may compute different validity windows for one command
+   (decided 2026-11-02: contract 7.8's last command rule now says the
+   window begins at `valid_from_ts` when present, otherwise at `event.ts`,
+   and ends `valid_for_ms` after that start; the SAPIENT egress computes
+   `task_end_time` from that start and refuses a window that opens after
+   `event.ts`, which its end-only bound cannot carry; the profile
+   projection catalog preserves `valid_from_ts`; 4.3 names a command's
+   `event.ts` its issue time when `valid_from_ts` is present; the reference
+   gateway's strip guard protects `payload.valid_from_ts`. Measured by the
+   rule and still open: the reference gateway's task dedupe holds a
+   `task_id` from receipt for min(`valid_for_ms`, 300 s), shorter than a
+   window that opens later (the subject of the held branch
+   `exp/command-dedupe-validity`); the MAVLink mission intent carries
+   `valid_for_ms` and neither anchor, so a receiver can only start the
+   duration at receipt; the SAPIENT egress projects a window already closed
+   at issue (a start before `event.ts` whose end precedes it). Open on the
+   text, for the maintainer: whether `valid_from_ts` may precede `event.ts`;
+   whether the 2.1 concurrence of 2026-11-02 covers the 4.3 clause (it picks
+   one of the two readings 5.1 already offered); whether 4.2, 4.7 and 10.4,
+   which permit omitting optional members, should except `valid_from_ts`
+   as the projection catalog now does); (y)
    whether a copy with trimmed lineage keeps its `event_id`. Contract 4.2
    lets a profile export stay "the same event" when it only makes listed
    changes, among them "Omit optional fields for bandwidth", and says
@@ -432,7 +452,9 @@ Open, in order of proximity:
    doctrine entry on the branch leaves six questions with the merge: does
    the duty in 13.2 expire when the hold ends; is refusing a long-lived
    command acceptable, and is one day the right default; is refusing an
-   unreadable anchor acceptable; how `valid_from_ts` relates to `event.ts`;
+   unreadable anchor acceptable; how `valid_from_ts` relates to `event.ts`
+   (answered 2026-11-02 by 7.8's last command rule, see gap (x); the
+   pre-dating question stays);
    whether held ids survive a restart; and whether the gateway refuses a
    command that has already expired.
 8. **Reference defect, brought forward for the maintainer (gateway memory).**

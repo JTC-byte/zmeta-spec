@@ -82,6 +82,9 @@ DEFAULT_STRIP_OPTIONAL_FIELDS_PROFILES = ["L", "M", "H"]
 PROTECTED_STRIP_PATH_PREFIXES = [
     "payload.extensions.risk_adjudication",
     "payload.extensions.external_promotion",
+    # contract 7.8 (2026-11-02): the start of a command's validity window;
+    # stripping it from a same-event_id projection moves the window
+    "payload.valid_from_ts",
 ]
 DEFAULT_METRICS_INTERVAL_SEC = 30
 DEFAULT_RATE_LIMIT_PER_SEC = 0
@@ -1639,15 +1642,23 @@ def _apply_failure_mode_degradation(
         # one (R1-11 residual against A-01).
         return False
 
+    if factor < 1:
+        # a reduction that would raise the value is declined (contract 4.2)
+        return False
+    before = confidence
     event["confidence"] = max(0.0, min(1.0, confidence / factor))
     limits = _timing_use_limits(timing_freshness_policy, "degrade")
+    effects = {"confidence_reduction_factor": factor}
+    if event["confidence"] != before:
+        # contract 4.5.1: the record carries the value the reduction replaced
+        effects["confidence_claimed"] = before
     record = {
         "risk_dimension": "timing",
         "reason_code": "TIMING_STATUS_UNSYNCED",
         "policy_mode": "degrade",
         "policy_decision": "DEGRADED_ACCEPT",
         "policy_ref": "gateway.failure_modes.timing_loss",
-        "effects": {"confidence_reduction_factor": factor},
+        "effects": effects,
     }
     allowed_uses = _config_list_values(limits.get("allowed_uses"))
     prohibited_uses = _config_list_values(limits.get("prohibited_uses"))

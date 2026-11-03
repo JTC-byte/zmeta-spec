@@ -219,7 +219,7 @@ egress:
     accepts: COMMAND_EVENT with requires_deconfliction true only; else None
     task.task_id: payload.task_id
     task.control: CONTROL_START
-    task.task_end_time: event.ts + payload.valid_for_ms
+    task.task_end_time: window start + payload.valid_for_ms, the start being payload.valid_from_ts when present, else event.ts (contract 7.8); a start later than event.ts => None (SAPIENT carries no start bound)
     task.command.move_to: GOTO target_geo as one Location (x=lon, y=lat, LAT_LNG_DEG_M, WGS84_E, NO z ever — contract 7.8)
     task.command.follow.follow_object_id: TRACK_TARGET via caller track_to_object map; unmapped => None
     task.command.mode_change: CHANGE_SENSOR_MODE sensor_mode

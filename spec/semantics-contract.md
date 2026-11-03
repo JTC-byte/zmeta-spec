@@ -492,7 +492,8 @@ Profile, transport, producer, and event type MUST NOT be encoded into
 `event_id`.
 
 The timestamp bits inside UUIDv7 represent identity-generation time only.
-`event.ts` remains the authoritative capture, observation, or validity time.
+`event.ts` remains the authoritative capture, observation, or validity time,
+or, for a command with `valid_from_ts`, its issue time.
 Consumers MUST NOT infer event timing, ordering, or freshness from UUIDv7
 timestamp bits when `event.ts` and timing quality metadata are available.
 
@@ -588,6 +589,12 @@ Enforcement behavior:
 - Degrade/quarantine modes MUST reduce confidence, shorten TTL, cap usable
   trust, or otherwise make the accepted state visibly lower authority than a
   clean promoted state.
+- A reduction of `confidence` or `valid_for_ms` applied at admission under a
+  declared degrade or quarantine mode is a projection of the same event under
+  Section 4.2 and keeps its `event_id`, provided the policy-scoped record on
+  the accepted event names the mode and carries the values it replaced. A
+  reduction whose record lacks either is a replacement and requires a new
+  event.
 - Loop/reflection risk SHOULD remain a hard rejection unless an operator
   deliberately enables a softer response with equivalent audit diagnostics.
 
@@ -1218,6 +1225,9 @@ Command rules:
   `alt_msl_m`, `agl_m`, `target_alt_m`, `altitude`, or `target_altitude`.
 - `extensions` MAY carry command-safe vendor metadata, but MUST NOT imply
   vertical control, continuous control, or bypass deconfliction.
+- A command's validity window begins at `payload.valid_from_ts` when present,
+  otherwise at `event.ts`, and ends `payload.valid_for_ms` after that start;
+  the "validity anchor" of Section 5.1 is that start.
 
 ### 7.9 SYSTEM_EVENT
 

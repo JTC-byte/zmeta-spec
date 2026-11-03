@@ -71,7 +71,8 @@ validation rules, see the JSON schemas in `schema/` and the semantic contract in
 - `target_geo` (object, optional) - `lat`, `lon`; altitude is prohibited.
 - `geometry` (object, optional).
 - `valid_for_ms` (int).
-- `valid_from_ts` (UTC-Z timestamp, optional).
+- `valid_from_ts` (UTC-Z timestamp, optional; the start of the command's
+  validity window when present; when absent, the window starts at `event.ts`).
 - `priority` (enum, optional).
 - `requires_deconfliction` (bool, required by policy and must be `true`).
 
