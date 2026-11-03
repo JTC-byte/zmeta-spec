@@ -2,6 +2,34 @@
 
 ## [Unreleased]
 
+- 2026-11-02 — **The reference decoders refuse what they would have had to
+  repair: `DECODE_AMBIGUOUS`.** A JSON object carrying one key twice decoded
+  to the last value, and a protobuf message carrying a field number the schema
+  does not define at that level, or a known field with a wire type the
+  schema does not use for it, decoded to a message missing the member;
+  either forwarded the gateway's choice as the producer's content (contract
+  3.4; the compact mapping's value model; the rebuild ruling's hazards 1 and
+  3, decided by the maintainer on 2026-11-02, doctrine F7-01). The gateway's
+  JSON lanes refuse a duplicate key (`object_pairs_hook`), `zmeta_proto.loads`
+  refuses an unknown or mistyped field at every message level (a caller may
+  pass `unknown_fields="skip"` by name; the gateway never does), the
+  protobuf payload's JSON is held to the same rule, and `convert_encoding`
+  reads JSON the same way; malformed bytes are still reported as malformed.
+  The refusal is the new governed diagnostic code `DECODE_AMBIGUOUS` (fail),
+  registered in `policy/violation-codes.yaml`, `policy/semantics.yaml` and
+  both schemas' reason-code enums (the v1.0 schema anchor moves with a dated
+  note; diagnostic vocabulary, Class B through the registry route), with its
+  guidance entry and the policy JSON export regenerated; the shared guard is
+  `zmeta_decode_guard.py`. Eleven tests
+  were written first and nine failed on the unchanged code; three
+  encoding-negative fixtures (an unknown protobuf field, a mistyped known
+  field, a duplicate JSON key on the gateway) failed with the decoders
+  stashed and pass with them. `validate_encoding_negative.py` gains a `json`
+  lane and stops counting a forwarded event as a rejection when the fixture
+  never decoded (a vacuous pass the new gateway fixture exposed). The
+  governed code count moves to 62 (9 warn, 53 fail). No event-type, payload
+  or rule text changed.
+
 - 2026-11-02 — **Two contract sentences on the maintainer's decisions:
   admission caps are projections that carry the replaced values; a command's
   validity window starts at `valid_from_ts`, else `event.ts`.** Section 4.5.1

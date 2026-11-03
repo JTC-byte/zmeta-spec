@@ -69,7 +69,8 @@ Open, in order of proximity:
    selection of 2026-10-28; same organization as the 2026-09-30 entry, no
    promotion asked.
 3. **The maintainer's definitions and bookings, with the evidence put to
-   him first** (the session records of 2026-10-27, each with seeded
+   him first** (the rebuild ruling's hazards 1 and 3 were decided on
+   2026-11-02, doctrine F7-01: the decoders refuse under `DECODE_AMBIGUOUS`) (the session records of 2026-10-27, each with seeded
    refuters): the media-evidence bookings; hazard 4 (whether
    `ENCODING_UNSUPPORTED` extends to every output lane); F4-02 (a
    cooperative broadcast received by relay: who measured it). The

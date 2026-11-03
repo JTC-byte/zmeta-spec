@@ -742,6 +742,30 @@ guidance:
       - "zmeta_compact.py:594-671"
       - "docs/r1_11_fix_pass_findings.md:1249-1255"
       - "docs/r1_11_full_stack_audit.md:1054"
+  - code: DECODE_AMBIGUOUS
+    remediation: >-
+      The gateway refused the datagram at the decode stage because its bytes
+      admit more than one canonical reading and the decoder will not choose:
+      a JSON object carried the same key twice (the last value would have
+      won silently), or a protobuf message carried a field number the
+      schema does not define at that message level, or a known field with a
+      wire type the schema does not use for it (the member would have been
+      dropped silently). Forwarding either would hand every consumer the
+      gateway's choice as the producer's content (contract 3.4; the compact
+      mapping's value-model clause). The diagnostic's `payload.metrics.error`
+      names the key or the field and the message level. Fix the producer or
+      the bridge that emits the duplicate or the stray field; the reference
+      decoders repair nothing. A caller that must read such a message for
+      forensics passes `unknown_fields="skip"` to zmeta_proto.loads by name;
+      the gateway never does.
+    citations:
+      - "policy/violation-codes.yaml:52-53"
+      - "spec/semantics-contract.md:390"
+      - "spec/compact-binary-mapping.md:249-253"
+      - "gateway/src/gateway.py:1431-1434"
+      - "gateway/src/gateway.py:2636-2652"
+      - "zmeta_proto.py:392-418"
+      - "zmeta_decode_guard.py:1-45"
   - code: INVALID_TIME_FORMAT
     remediation: >-
       INVALID_TIME_FORMAT means a canonical timestamp is not a UTC RFC 3339

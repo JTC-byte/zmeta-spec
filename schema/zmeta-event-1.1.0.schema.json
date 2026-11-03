@@ -1912,6 +1912,7 @@
                       "GEO_ZERO_FILL_SUSPECTED",
                       "RF_ZERO_FILL_SUSPECTED",
                       "ENCODING_UNSUPPORTED",
+                      "DECODE_AMBIGUOUS",
                       "BEARING_FRAME_UNLABELED",
                       "NON_FINITE_CONFIDENCE",
                       "INVALID_TIME_FORMAT",

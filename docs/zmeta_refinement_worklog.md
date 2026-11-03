@@ -2,8 +2,48 @@
 
 ## Current Resume Note
 
-- Last updated: 2026-11-02 (two contract sentences; carried-list records pass;
-  heading_deg defined; records pass after 7.6)
+- Last updated: 2026-11-02 (DECODE_AMBIGUOUS; two contract sentences;
+  carried-list records pass; heading_deg defined; records pass after 7.6)
+- **2026-11-02 (the decoders refuse ambiguity: `DECODE_AMBIGUOUS`).** On the
+  maintainer's selection of 2026-11-02 in this repository's session (the
+  carried list's item 4, option (a): refuse with a governed code; the
+  rebuild ruling's hazards 1 and 3), the branch `exp/decode-ambiguous-2026-11`
+  off `develop` 6089a9a, one commit. Tests first (eleven in
+  `gateway/tests/test_decode_ambiguous.py`; nine failed on the unchanged code,
+  the two clean-event controls passed), then the code: `zmeta_decode_guard.py`
+  (the exception and the JSON `object_pairs_hook`), the gateway's three JSON
+  decode sites and its decode-failure branch (the code `DECODE_AMBIGUOUS`
+  where the exception is the guard's, `SCHEMA_INVALID` otherwise),
+  `zmeta_proto.loads` with `unknown_fields="refuse"` by default at every
+  message level (malformed bytes still reported first; three pre-existing
+  tests on unsupported wire types and truncated fields kept green by that
+  order), the protobuf payload's JSON held to the same rule, and
+  `convert_encoding` reading JSON the same way. The registry route: the code
+  in `policy/violation-codes.yaml` (62 codes; 9 warn, 53 fail, the ontology
+  reference updated), `policy/semantics.yaml`, both schemas' reason-code
+  enums (the v1.0 schema anchor moved with a dated note; the lock test failed
+  with the enum changed and the anchor unmoved, then passed), the guidance
+  entry (the no-orphans test failed without it, then passed). Fixtures: two
+  protobuf and one gateway encoding-negative fixtures, seen failing with the
+  decoders stashed, passing with them; the first run exposed a vacuous pass
+  in `validate_encoding_negative.py` (a forwarded event counted as a
+  rejection when the fixture had not decoded), closed in the same commit.
+  Gates in the worktree: the sub-checks explicit (projection 37, registry 68,
+  classes 34, encoding negative 53, precision 41, bad-event corpus 36,
+  adapter harness 53, conformance pass=22 fail=42); examples 51 of 51;
+  roadmap ok; the full battery 2042 passed, 2 skipped, 13 failed (the
+  release-manifest pin tests); `git diff --check` clean.
+  The first battery read four more failures, all consequences of the new
+  code: the policy JSON export under `export/policy/` is a verbatim
+  projection of `policy/*.yaml` and was regenerated with
+  `tools/export_policy_json.py` (three files), and a second v1.0 schema
+  anchor in `test_time_status_state_enum.py` moved with a dated note on his
+  selection, the adjudication that test asks for.
+  Doctrine F7-01 records the decision; the handoff's item 4 of the rebuild
+  ruling's interim is replaced by the rule. The merge into `develop` and the
+  push wait for the maintainer's words. A downstream boundary's interim
+  (refuse to quarantine under its own `DECODE_AMBIGUOUS`) is now the
+  reference's rule too; its re-pin reads this.
 - **2026-11-02 (two contract sentences: admission caps, the command window).**
   On the maintainer's word of 2026-11-02 in this repository's session (his
   selections of F4-04 R1 and gap (x) R1 with the carried list's refuted

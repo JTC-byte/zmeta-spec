@@ -3717,6 +3717,51 @@ considered and not chosen: the definition makes it unnecessary. Consumers
 see the definition at the next cut and their re-pin; until then the
 lineage transform is the discriminator.
 
+## Cycle F7 — 2026-11-02 (the rebuild ruling's hazards 1 and 3: a decode that chooses)
+
+One tension, booked by the boundary-rebuild ruling of 2026-10-13 for the
+maintainer and decided by his selection of 2026-11-02. The private session
+records (the ruling's eleven revisions, the carried-list evidence pass of
+2026-10-29 and its seeded refutation) carry the evidence; no partner, host or
+position appears here.
+
+### F7-01 — The reference decoders chose silently between two readings of one datagram · **DECIDED 2026-11-02 (refuse under `DECODE_AMBIGUOUS`)**
+
+**Observed:** `json.loads` resolves a duplicate key to its last value, so an
+object carrying `confidence` twice decoded to one of them with no trace of
+the other, identity members included. The reference protobuf decoder
+skipped a field number the schema does not define at a message level, and
+a known field carrying a wire type the schema does not use for it, so the
+member the producer sent was dropped and the message decoded clean. The
+gateway then validated and forwarded the result. A downstream boundary
+that rebuilds native input refused both cases to quarantine under its own
+interim since 2026-10-13, as its deployment strictness.
+
+**The tension:** a decode that chose between two values, or dropped a
+member, produced an event the producer did not send, and forwarding it
+made every consumer behind the gateway agree on the gateway's choice. The
+compact mapping's value-model clause reads against fabricating canonical
+content on its lane (its refusal there is guidance the ruling left to the
+maintainer); the JSON documents are silent on duplicates; design gate 3 (no
+laundering) and contract 3.4 (preserve source-authored fields; schema
+acceptance is not semantic authorization) read against forwarding
+fabricated content with a label. The silence was a gap, not a permission.
+
+**Decision:** the maintainer selected refusal with a governed code. The
+reference decoders refuse a duplicate JSON key and an unknown or mistyped
+protobuf field at every message level, and the gateway reports the refusal
+under the new diagnostic code `DECODE_AMBIGUOUS` (severity fail), minted
+through the registry route: `policy/violation-codes.yaml`,
+`policy/semantics.yaml`, both schemas' reason-code enums (the v1.0 schema
+anchor moved with a dated note; Class B, diagnostic vocabulary, no
+event-type, payload or rule text), the guidance entry and three
+encoding-negative fixtures. Malformed bytes stay reported as malformed; a
+caller that must read an ambiguous message for forensics asks
+`zmeta_proto.loads` for `unknown_fields="skip"` by name, and the gateway
+never does. The downstream boundary's interim becomes the reference's rule
+and may map its own code to this one at its re-pin. Hazard 8 of the same
+ruling (digits a binary64 cannot hold) was decided with C1-07 on 2026-11-02.
+
 ## Archive
 
 Terminal tension entries and retired rules, one line each. Full bodies live in
