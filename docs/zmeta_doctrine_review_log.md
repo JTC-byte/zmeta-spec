@@ -3526,7 +3526,7 @@ refuse default holding until then. A reading, not a ruling: the answer
 depends on gap (z), because 5.1
 reads `event.ts` by event type.
 
-### F4-04 — In-place caps on an admitted event against the locked replacement rule · **OPEN — for the maintainer**
+### F4-04 — In-place caps on an admitted event against the locked replacement rule · **DECIDED 2026-11-02 (a projection that keeps the `event_id`, provided the record carries the replaced values)**
 
 **Observed:** at its pinned release, v1.1.25, a downstream COP's design
 reads events that a reference gateway forwards when a deployment selects the
@@ -3565,8 +3565,26 @@ value travels with the capped one, no text says; the `risk_adjudication`
 record names the cap, not the source's value, and the COP's design prints
 the capped values as the gateway's.
 
-**Decision:** none here; booked from the boundary-pass re-read of
-2026-10-07 for the maintainer.
+**Decision (2026-11-02):** taken by the maintainer in the repository's
+session on the evidence put to him first (the carried-list pass of
+2026-10-29, refuted with a seeded error on 2026-11-02; the texts were read
+as silent on admission caps, so the choice is his, not a reading of what
+they already carried). Section 4.5.1 gains one bullet: a reduction of
+`confidence` or `valid_for_ms` applied at admission under a declared
+degrade or quarantine mode is a projection of the same event under
+Section 4.2 and keeps its `event_id`, provided the policy-scoped record on
+the accepted event names the mode and carries the values it replaced; a
+reduction whose record carries neither is a replacement and requires a new
+event. A contract 2.1 patch on his reading: it decides a case the text left
+open without redefining a field, and the condition it adds is the one gate
+3 (no laundering) needs, the producer's own figure visible beside the cap.
+The reference gateway's `risk_adjudication` record gains
+`confidence_claimed` and `valid_for_ms_claimed` under `effects` whenever a
+cap or reduction changes a value, with a test seen failing first; a
+must-pass vector carries a capped event with the claimed values. A
+downstream boundary's check 4 may now admit an in-place cap that carries
+the claimed values (its lane, at its re-pin). The lock-baseline contract
+anchor moves with a dated note; no schema or policy byte changes.
 
 ## Cycle F5 — 2026-10-23 (fielded evidence: a consumer's federation path read on 2026-10-19)
 

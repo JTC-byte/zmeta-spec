@@ -289,7 +289,12 @@ Open, in order of proximity:
    `valid_from_ts` relates to `event.ts` and `valid_for_ms` (contract 7.8
    lists the field and gives it no rule; contract 5.1 calls a command's
    `event.ts` "the command issue time or validity anchor"), so two
-   consumers may compute different validity windows for one command; (y)
+   consumers may compute different validity windows for one command
+   (decided 2026-11-02: contract 7.8's last command rule now says the
+   window begins at `valid_from_ts` when present, otherwise at `event.ts`,
+   and ends `valid_for_ms` after that start; the SAPIENT egress computes
+   `task_end_time` from that start; whether `valid_from_ts` may precede
+   `event.ts` is left open); (y)
    whether a copy with trimmed lineage keeps its `event_id`. Contract 4.2
    lets a profile export stay "the same event" when it only makes listed
    changes, among them "Omit optional fields for bandwidth", and says
