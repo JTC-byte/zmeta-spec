@@ -1341,6 +1341,33 @@ def _ensure_path_dict(value, dotted_path):
 # changes, and because these are reachable directly. Declining to compute
 # leaves the offending value intact for the gate to refuse - it never
 # substitutes a cleaner one.
+def _claimed_values(event):
+    """The confidence and valid_for_ms an event carries before a cap or reduction.
+
+    Contract 4.5.1: a reduction at admission under a declared degrade or
+    quarantine mode keeps the event_id only when the policy-scoped record
+    carries the values it replaced. Only a finite numeric value is a claim;
+    an absent or non-numeric member is not restated as one.
+    """
+    claimed = {}
+    confidence = event.get("confidence") if isinstance(event, dict) else None
+    if (
+        isinstance(confidence, (int, float))
+        and not isinstance(confidence, bool)
+        and not _is_non_finite_number(confidence)
+    ):
+        claimed["confidence_claimed"] = confidence
+    payload = event.get("payload", {}) if isinstance(event, dict) else {}
+    value = payload.get("valid_for_ms") if isinstance(payload, dict) else None
+    if (
+        isinstance(value, (int, float))
+        and not isinstance(value, bool)
+        and not _is_non_finite_number(value)
+    ):
+        claimed["valid_for_ms_claimed"] = value
+    return claimed
+
+
 def _reduce_confidence(event, factor):
     confidence = event.get("confidence") if isinstance(event, dict) else None
     if isinstance(confidence, bool) or not isinstance(confidence, (int, float)):
@@ -1421,6 +1448,7 @@ def apply_external_promotion_policy_action(event, violations, authority_policy):
             valid_for_factor = _positive_float(
                 degrade_cfg.get("valid_for_ms_reduction_factor"), confidence_factor
             )
+            claimed = _claimed_values(event)
             changed = _reduce_confidence(event, confidence_factor) or changed
             changed = _reduce_valid_for_ms(event, valid_for_factor) or changed
             changed = _append_risk_adjudication(
@@ -1429,6 +1457,7 @@ def apply_external_promotion_policy_action(event, violations, authority_policy):
                 {
                     "confidence_reduction_factor": confidence_factor,
                     "valid_for_ms_reduction_factor": valid_for_factor,
+                    **claimed,
                 },
             ) or changed
             continue
@@ -1438,6 +1467,7 @@ def apply_external_promotion_policy_action(event, violations, authority_policy):
             quarantine_cfg = {}
         confidence_cap = _bounded_float(quarantine_cfg.get("confidence_cap"), 0.25)
         valid_for_cap = _non_negative_int(quarantine_cfg.get("valid_for_ms_cap"), 1000)
+        claimed = _claimed_values(event)
         changed = _cap_confidence(event, confidence_cap) or changed
         changed = _cap_valid_for_ms(event, valid_for_cap) or changed
         changed = _append_risk_adjudication(
@@ -1446,6 +1476,7 @@ def apply_external_promotion_policy_action(event, violations, authority_policy):
             {
                 "confidence_cap": confidence_cap,
                 "valid_for_ms_cap": valid_for_cap,
+                **claimed,
             },
         ) or changed
 

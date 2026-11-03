@@ -198,6 +198,23 @@ def _real_2d_state_event():
 # --- command egress: happy paths -------------------------------------------
 
 
+def test_task_end_time_starts_at_valid_from_ts_when_present():
+    # Contract 7.8 (2026-11-02): the validity window begins at valid_from_ts
+    # when present, otherwise at event.ts, and ends valid_for_ms after that
+    # start. A command issued at 12:00 for 12:05, valid ten minutes, ends at
+    # 12:15, not 12:10.
+    message = _task(_command_event(valid_from_ts="2026-07-17T12:05:00Z"))
+
+    assert message["timestamp"] == "2026-07-17T12:00:00Z"
+    assert message["task"]["task_end_time"] == "2026-07-17T12:15:00Z"
+
+
+def test_malformed_valid_from_ts_refuses_not_raises():
+    # A start the egress cannot read is a window it cannot compute; the
+    # documented None contract, never a fabricated bound from event.ts.
+    assert _task(_command_event(valid_from_ts="noon")) is None
+
+
 def test_goto_maps_move_to():
     message = _task(_command_event())
 

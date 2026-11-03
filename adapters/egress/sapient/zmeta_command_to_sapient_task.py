@@ -259,9 +259,17 @@ def zmeta_command_to_sapient_task(event, *, node_id, destination_id, track_to_ob
     # OSError(EINVAL) on Windows for any pre-1970 instant. A naive
     # pre-epoch ts is the bad-clock symptom arriving without a zone —
     # without this arm it escapes the guard and the projection raises.
+    #
+    # Contract 7.8: the validity window begins at payload.valid_from_ts when
+    # present, otherwise at event.ts, and ends valid_for_ms after that start.
+    # task_end_time is that end. A valid_from_ts the egress cannot read is a
+    # window it cannot compute: refused under the same None contract, never
+    # a bound fabricated from event.ts.
     try:
         time_dt = _parse_utc(ts)
-        end_dt = time_dt + timedelta(milliseconds=int(valid_for_ms))
+        valid_from_ts = payload.get("valid_from_ts")
+        start_dt = _parse_utc(valid_from_ts) if valid_from_ts is not None else time_dt
+        end_dt = start_dt + timedelta(milliseconds=int(valid_for_ms))
     except (ValueError, TypeError, OverflowError, OSError):
         return None
 

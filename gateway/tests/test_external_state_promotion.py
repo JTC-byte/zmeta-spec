@@ -300,9 +300,70 @@ class ExternalStatePromotionTest(unittest.TestCase):
             {
                 "confidence_reduction_factor": 2.0,
                 "valid_for_ms_reduction_factor": 2.0,
+                # contract 4.5.1 (2026-11-02): the values the reduction replaced
+                "confidence_claimed": 0.8,
+                "valid_for_ms_claimed": 2000,
             },
             risk["effects"],
         )
+
+    def test_degrade_record_carries_the_values_it_replaced(self):
+        # Contract 4.5.1 (2026-11-02): a reduction at admission is a projection
+        # that keeps the event_id only when the policy-scoped record carries the
+        # values it replaced. The producer's own figures stay visible beside
+        # the reduced ones.
+        event = state_event(metadata=None)
+        event["confidence"] = 0.8
+        event["payload"]["valid_for_ms"] = 2000
+        authority = self.authority_with_promotion_mode("degrade")
+        ok, violations = validators.validate_producer_authority(
+            event, authority, self.severity_map
+        )
+        validators.apply_external_promotion_policy_action(event, violations, authority)
+
+        risk = event["payload"]["extensions"]["risk_adjudication"][0]
+        self.assertAlmostEqual(0.8, risk["effects"]["confidence_claimed"])
+        self.assertEqual(2000, risk["effects"]["valid_for_ms_claimed"])
+        self.assertAlmostEqual(0.4, event["confidence"])
+        self.assertEqual(1000, event["payload"]["valid_for_ms"])
+
+    def test_quarantine_record_carries_the_values_it_replaced(self):
+        event = state_event(
+            metadata=promotion_metadata(),
+            transform="translate:cot@template",
+        )
+        event["confidence"] = 0.8
+        event["payload"]["valid_for_ms"] = 2000
+        authority = self.authority_with_promotion_mode("quarantine")
+        ok, violations = validators.validate_producer_authority(
+            event, authority, self.severity_map
+        )
+        validators.apply_external_promotion_policy_action(event, violations, authority)
+
+        risk = event["payload"]["extensions"]["risk_adjudication"][0]
+        self.assertAlmostEqual(0.8, risk["effects"]["confidence_claimed"])
+        self.assertEqual(2000, risk["effects"]["valid_for_ms_claimed"])
+        self.assertEqual(0.25, risk["effects"]["confidence_cap"])
+        self.assertEqual(1000, risk["effects"]["valid_for_ms_cap"])
+
+    def test_quarantine_record_omits_a_claimed_value_the_event_never_carried(self):
+        # No valid_for_ms on the event: nothing was replaced, so nothing is
+        # claimed; the record must not invent a figure.
+        event = state_event(
+            metadata=promotion_metadata(),
+            transform="translate:cot@template",
+        )
+        event["confidence"] = 0.8
+        event["payload"].pop("valid_for_ms", None)
+        authority = self.authority_with_promotion_mode("quarantine")
+        ok, violations = validators.validate_producer_authority(
+            event, authority, self.severity_map
+        )
+        validators.apply_external_promotion_policy_action(event, violations, authority)
+
+        risk = event["payload"]["extensions"]["risk_adjudication"][0]
+        self.assertAlmostEqual(0.8, risk["effects"]["confidence_claimed"])
+        self.assertNotIn("valid_for_ms_claimed", risk["effects"])
 
     def test_quarantine_mode_caps_confidence_and_ttl(self):
         event = state_event(
@@ -333,7 +394,13 @@ class ExternalStatePromotionTest(unittest.TestCase):
         self.assertEqual("QUARANTINE_ACCEPT", risk["policy_decision"])
         self.assertIn("AAR_ONLY", risk["allowed_uses"])
         self.assertEqual(
-            {"confidence_cap": 0.25, "valid_for_ms_cap": 1000},
+            {
+                "confidence_cap": 0.25,
+                "valid_for_ms_cap": 1000,
+                # contract 4.5.1 (2026-11-02): the values the caps replaced
+                "confidence_claimed": 0.8,
+                "valid_for_ms_claimed": 2000,
+            },
             risk["effects"],
         )
 

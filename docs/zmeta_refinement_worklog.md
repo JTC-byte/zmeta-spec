@@ -2,8 +2,31 @@
 
 ## Current Resume Note
 
-- Last updated: 2026-11-02 (carried-list records pass; heading_deg defined;
-  records pass after 7.6)
+- Last updated: 2026-11-02 (two contract sentences; carried-list records pass;
+  heading_deg defined; records pass after 7.6)
+- **2026-11-02 (two contract sentences: admission caps, the command window).**
+  On the maintainer's word of 2026-11-02 in this repository's session (his
+  selections of F4-04 R1 and gap (x) R1, then of wording A in 4.5.1 and
+  wording B in 7.8, each put to him with a seeded refuter's corrections),
+  the branch `exp/contract-sentences-2026-11` off `develop` 44175a3. First
+  commit: the 4.5.1 bullet and the 7.8 rule as he worded them, the field
+  dictionary's `valid_from_ts` line, doctrine F4-04 to DECIDED, the handoff's
+  gap (x) closed, the lock-baseline anchor moved to aa62e3d2d0e0986f...
+  (the anchor test failed with the sentences in and the anchor unmoved,
+  then passed). Second commit: the gateway's `risk_adjudication` record
+  carries `confidence_claimed` and `valid_for_ms_claimed` whenever a cap or
+  reduction changes a value, and the SAPIENT command egress computes
+  `task_end_time` from `valid_from_ts` when present, else `event.ts`; tests
+  seen failing first (five tests); one must-pass vector (a GOTO with a later
+  `valid_from_ts`). Gates in the worktree: the kernel gate's sub-checks run
+  explicitly beside the gate, because `--kernel-gate` stops at its first red
+  stage and on an unreleased branch the stale manifest hides the stages after
+  it (projection 37, registry 68, classes 34, encoding negative 50, precision
+  41, bad-event corpus 36, adapter harness 53, conformance pass=22 fail=42;
+  the same command on `develop` 44175a3 is green with pass=21); examples 51 of
+  51; roadmap ok; the full battery 2024 passed, 2 skipped, 13 failed (the
+  release-manifest pin tests); `git diff --check` clean. The merge into
+  `develop` and the push wait for the maintainer's words.
 - **2026-11-02 (records pass on the maintainer's carried-list decisions).** On
   the maintainer's word of 2026-11-02 in this repository's session, after
   his thirteen selections over the carried list (each put to him with a
