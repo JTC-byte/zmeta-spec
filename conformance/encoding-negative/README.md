@@ -60,8 +60,8 @@ the bytes at runtime. No committed binary blobs are required for this suite.
 
 - `ENCODE_NEGATIVE_DECODE_AMBIGUOUS`: the bytes admit more than one canonical
   reading (a duplicate JSON key; a protobuf field the schema does not define
-  at that level, or a known field with a wire type the schema does not use for
-  it) and the decoder refuses rather than repairs (doctrine F7-01, gateway code
+  at that level, a known field with a wire type the schema does not use for
+  it, or a non-repeatable field that appears twice) and the decoder refuses rather than repairs (doctrine F7-01, gateway code
   `DECODE_AMBIGUOUS`).
 - `ENCODE_NEGATIVE_MALFORMED_JSON`: JSON input that does not parse.
 - `ENCODE_NEGATIVE_GATEWAY_CODE_MISMATCH`: the gateway refused, but not under

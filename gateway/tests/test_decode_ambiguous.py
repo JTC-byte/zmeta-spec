@@ -1,10 +1,12 @@
 """The reference gateway refuses a decode it would otherwise have to repair (DECODE_AMBIGUOUS).
 
 Doctrine F7-01 (2026-11-02), the rebuild ruling's hazards 1 and 3: a JSON object
-with a duplicate key, or a protobuf message with an unknown field number or a
-known field carrying a wire type the schema does not use for it, is refused
-with the governed code DECODE_AMBIGUOUS rather than decoded to the last value
-or to a message missing the member. Written before the code; seen failing first.
+with a duplicate key, or a protobuf message with an unknown field number, a
+known field carrying a wire type the schema does not use for it, or a
+non-repeatable field twice, is refused with the governed code DECODE_AMBIGUOUS
+rather than decoded to the last value or to a message missing the member.
+Written before the code; the refusal tests were seen failing first (the
+clean-event and malformed-JSON tests are controls that passed throughout).
 """
 
 import importlib.util
@@ -162,7 +164,8 @@ class ProtobufUnknownFieldTest(unittest.TestCase):
         self.assertTrue(getattr(ctx.exception, "decode_ambiguous", False))
 
     def test_a_repeated_non_repeatable_field_is_refused(self):
-        # a second source block, and a repeated scalar: last wins today
+        # a second source block, and a repeated scalar: last-wins was the behaviour
+        # before the branch (b5eec25 kept the later value)
         event = _event()
         wire = zmeta_proto.dumps(event) + zmeta_proto._field_message(3, zmeta_proto._encode_source({"platform_id": "other"}))
         with self.assertRaises(ValueError) as ctx:
@@ -252,10 +255,125 @@ class GovernedCodeTest(unittest.TestCase):
                         walk(v)
             walk(schema)
             return found
+        # finding 16 of the second refuter: the `all` passes on an empty list; the walk
+        # must have found the v1.0 enum for the assertion to say anything
+        self.assertTrue(enum_of(v10), "the v1.0 reason-code enum was not found")
         self.assertTrue(all("DECODE_AMBIGUOUS" not in e for e in enum_of(v10)), "the locked v1.0 enum must not grow")
+        self.assertIn("DECODE_AMBIGUOUS", system["schema_violation_allowed_reason_codes"])
         self.assertTrue(enum_of(v11) and all("DECODE_AMBIGUOUS" in e for e in enum_of(v11)))
         guidance = (ROOT / "tools" / "validation_guidance.yaml").read_text(encoding="utf-8")
         self.assertIn("- code: DECODE_AMBIGUOUS", guidance)
+
+
+class ThirdPassTest(unittest.TestCase):
+    """The second seeded refuter's findings (2026-11-02, pass 2); written before the code."""
+
+    def _tool(self, name):
+        spec_t = importlib.util.spec_from_file_location(f"zmeta_tool_{name}", ROOT / "tools" / f"{name}.py")
+        module = importlib.util.module_from_spec(spec_t)
+        spec_t.loader.exec_module(module)
+        return module
+
+    def _duplicate_text(self):
+        return json.dumps(_event()).replace('"confidence": 0.8', '"confidence": 0.8, "confidence": 0.1')
+
+    def test_explain_reports_a_duplicate_key_without_a_traceback(self):
+        # finding 2: the explainer's second read of the file escaped as a traceback
+        import subprocess
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "dup.jsonl"
+            path.write_text(self._duplicate_text() + "\n", encoding="utf-8")
+            proc = subprocess.run(
+                [sys.executable, str(ROOT / "tools" / "explain.py"), "--file", str(path), "--profile", "L"],
+                capture_output=True, text=True, cwd=str(ROOT),
+            )
+        self.assertNotIn("Traceback", proc.stderr + proc.stdout)
+        self.assertIn("FAIL DECODE_AMBIGUOUS", proc.stdout)
+        self.assertEqual(1, proc.returncode)
+
+    def test_a_truncated_repeated_field_is_reported_as_malformed_first(self):
+        # finding 5: the repeat was refused before the bytes were read
+        wire = zmeta_proto.dumps(_event()) + zmeta_proto._field_key(7, zmeta_proto.WIRE_LEN) + b"\x09A"
+        with self.assertRaises(ValueError) as ctx:
+            zmeta_proto.loads(wire)
+        self.assertFalse(getattr(ctx.exception, "decode_ambiguous", False), str(ctx.exception))
+        self.assertIn("unexpected end", str(ctx.exception))
+
+    def test_a_repeated_field_with_the_wrong_wire_type_is_reported_as_mistyped(self):
+        # finding 5: field 5 (confidence, fixed64) arriving a second time as a varint
+        wire = zmeta_proto.dumps(_event()) + bytes([0x28, 0x05])
+        with self.assertRaises(ValueError) as ctx:
+            zmeta_proto.loads(wire)
+        self.assertTrue(getattr(ctx.exception, "decode_ambiguous", False))
+        self.assertIn("wire type 0", str(ctx.exception))
+        self.assertNotIn("repeated", str(ctx.exception))
+
+    def test_a_repeated_field_message_names_the_field_and_its_wire_type(self):
+        wire = zmeta_proto.dumps(_event()) + zmeta_proto._field_string(7, "M")
+        with self.assertRaises(ValueError) as ctx:
+            zmeta_proto.loads(wire)
+        self.assertTrue(getattr(ctx.exception, "decode_ambiguous", False))
+        self.assertIn("field 7 (wire type 2) repeated in the message", str(ctx.exception))
+
+    def test_a_repeated_block_field_is_reported_the_same_way(self):
+        event = _event()
+        wire = zmeta_proto.dumps(event) + zmeta_proto._field_message(3, zmeta_proto._encode_source(event["source"]))
+        with self.assertRaises(ValueError) as ctx:
+            zmeta_proto.loads(wire)
+        self.assertIn("field 3 (wire type 2) repeated in the message", str(ctx.exception))
+        block = zmeta_proto._encode_source(event["source"]) + zmeta_proto._field_string(1, "other")
+        wire = zmeta_proto._field_string(1, "1.0") + zmeta_proto._field_message(3, block)
+        with self.assertRaises(ValueError) as ctx:
+            zmeta_proto.loads(wire)
+        self.assertIn("field 1 (wire type 2) repeated in source", str(ctx.exception))
+
+    def test_udp_sender_refuses_a_duplicate_key_before_a_binary_re_encode(self):
+        # finding 11: the sender read last-wins and sent a clean binary message
+        udp_sender = self._tool("udp_sender")
+        with self.assertRaises(SystemExit) as ctx:
+            udp_sender.encode_payload(self._duplicate_text(), "proto")
+        self.assertIn("duplicate key", str(ctx.exception))
+        # the JSON lane sends the bytes verbatim; the gateway is the decoder there
+        self.assertEqual(self._duplicate_text().encode("utf-8"), udp_sender.encode_payload(self._duplicate_text(), "json"))
+
+    def test_replay_refuses_a_duplicate_key_line(self):
+        replay = self._tool("replay")
+        with self.assertRaises(ValueError) as ctx:
+            replay.load_message(self._duplicate_text())
+        self.assertTrue(getattr(ctx.exception, "decode_ambiguous", False))
+        self.assertIsNone(replay.load_message("{not json"))
+        self.assertEqual("STATE_EVENT", replay.load_message(json.dumps(_event()))["event"]["event_type"])
+
+    def test_the_fixture_tool_reports_a_gateway_exception_against_the_expected_code(self):
+        # finding 15: an exception out of process_message returned the fixture's
+        # expected code before expect_gateway_code was read
+        tool = self._tool("validate_encoding_negative")
+        fixtures = [
+            json.loads(line)
+            for line in (ROOT / "conformance" / "encoding-negative" / "gateway-must-fail.jsonl").read_text(encoding="utf-8").splitlines()
+            if line.strip()
+        ]
+        fixture = [f for f in fixtures if f["name"] == "gateway-json-duplicate-key-refused"][0]
+        schema_validator = tool.validators.load_schema(ROOT / "schema" / "zmeta-event.schema.json")
+        policy = tool.validators.load_policy(ROOT / "policy")
+        contexts = tool.load_contexts(ROOT / "conformance" / "encoding-negative" / "context.jsonl")
+        original = tool.gateway.process_message
+
+        def boom(*args, **kwargs):
+            raise RuntimeError("gateway crashed")
+
+        tool.gateway.process_message = boom
+        try:
+            result = tool._evaluate_gateway_fixture(fixture, schema_validator, policy, contexts)
+            self.assertEqual("ENCODE_NEGATIVE_GATEWAY_CODE_MISMATCH", result["code"], result)
+            self.assertIn("gateway crashed", result["message"])
+            plain = dict(fixture)
+            plain.pop("expect_gateway_code")
+            result = tool._evaluate_gateway_fixture(plain, schema_validator, policy, contexts)
+            self.assertEqual("ENCODE_NEGATIVE_DECODE_AMBIGUOUS", result["code"], result)
+        finally:
+            tool.gateway.process_message = original
 
 
 if __name__ == "__main__":

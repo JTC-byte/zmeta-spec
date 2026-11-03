@@ -23,14 +23,17 @@
   `policy/violation-codes.yaml` and `policy/semantics.yaml` (the allowlist
   and the v1.0 wire fallback to SCHEMA_INVALID, the minted code riding
   `metrics.diagnostic_code`), in the 1.1.0 schema's reason-code enum only
-  (the locked v1.0 enum does not grow; its anchors did not move), with its
+  (the locked v1.0 enum does not grow; its anchors returned to 1d2d8416 in
+  the branch's second commit), with its
   guidance entry, a decoder-bounds paragraph in `spec/protobuf-encoding.md`
   (the rule and its chosen cost to forward compatibility) and the policy JSON
   export regenerated; the shared guard `zmeta_decode_guard.py` is required at
   import and ships in the release and conformance lists. The rule binds the
   reference decoders; a consumer that parses the bytes itself is its own
   decoder. Booked for the maintainer's word: a contract sentence for the JSON
-  rule; CBOR and compact duplicate keys and trailing CBOR bytes. Eleven tests
+  rule; duplicate map keys on the CBOR and compact lanes (last-wins in this
+  repository's `zmeta_cbor` and in the cbor2 fallback); trailing CBOR bytes
+  on the cbor2 fallback (`zmeta_cbor` already refuses them). Eleven tests
   were written first and nine failed on the unchanged code; three
   encoding-negative fixtures (an unknown protobuf field, a mistyped known
   field, a duplicate JSON key on the gateway) failed with the decoders
@@ -41,7 +44,19 @@
   event as a rejection when the fixture never decoded (a vacuous pass the new
   gateway fixture exposed). The governed code count moves to 62 (9 warn, 53
   fail); the SYSTEM_EVENT payload vocabulary of the 1.1.0 schema widens by
-  one diagnostic code; no event type or rule text changed.
+  one diagnostic code; no event type changed; the protobuf encoding's decoder
+  bounds gain the refusal rule. A second seeded refutation of the whole
+  branch (sixteen findings, applied in a third commit on 2026-11-03) ordered
+  the decoder to read a repeated field's bytes before refusing the repeat, so
+  malformed bytes and a wrong wire type report first as the specification
+  says, and to name the wire type; made `tools/explain.py` report a duplicate
+  key instead of raising; made `tools/replay.py` and `tools/udp_sender.py`
+  refuse to re-encode a duplicate-key line into a binary lane (the JSON lane
+  sends the bytes verbatim; the gateway is the decoder there); added a
+  repeated-field fixture (54 encoding-negative fixtures); and made the fixture
+  tool report a gateway exception against `expect_gateway_code`. Native
+  vendor input read by `adapters/ingress/` is outside the rule; corpus readers
+  are not datagram paths.
 
 - 2026-11-02 — **Two contract sentences on the maintainer's decisions:
   admission caps are projections that carry the replaced values; a command's

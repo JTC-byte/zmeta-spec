@@ -3734,10 +3734,12 @@ field number the schema does not define at a message level and a known field
 carrying a wire type the schema does not use for it, so the member the
 producer sent was dropped, and it kept the last of a repeated field, so a
 second `source` block replaced the first; the message decoded clean. The
-gateway then validated and forwarded the result. A downstream boundary that
-rebuilds native input has refused the JSON case to quarantine under its own
-interim since 2026-10-13, as its deployment strictness, and holds the same
-interim for a protobuf lane it has not enabled.
+gateway then validated and forwarded the result. A downstream boundary's
+ratified design (2026-10-12, amended 2026-10-13; not yet built as code, by
+its own record) refuses the JSON case to quarantine under its interim and
+applies the same interim to a protobuf lane it does not enable; the one
+duplicate-key refusal running there today is its state sender's own
+`refused_json`.
 
 **The tension:** a decode that chose between two values, or dropped a
 member, produced an event the producer did not send, and forwarding it
@@ -3760,22 +3762,30 @@ diagnostic code `DECODE_AMBIGUOUS` (severity fail), minted through the
 registry route on the post-lock path of 2026-08-09: `policy/violation-codes.yaml`,
 `policy/semantics.yaml` (the allowlist and the `schema_violation_v1_0_wire_fallback`
 row to SCHEMA_INVALID, the decode-stage legacy code), the 1.1.0 schema's
-reason-code enum only (the locked v1.0 enum does not grow and its anchors
-did not move), the guidance entry, `spec/protobuf-encoding.md`'s decoder
-bounds (the rule and its chosen cost: a later schema revision's fields are
-refused by a decoder on this one until the decoder is revised), and three
+reason-code enum only (the locked v1.0 enum does not grow; its anchors
+returned to 1d2d8416 in the branch's second commit), the guidance entry,
+`spec/protobuf-encoding.md`'s decoder bounds (the rule and its chosen costs: a
+later schema revision's fields are refused by a decoder on this one until the
+decoder is revised; a generated parser accepts a repeated field this decoder
+refuses), and three
 encoding-negative fixtures. Malformed bytes are reported as malformed, field
 by field, before the ambiguity check; a caller that must read an ambiguous
 message for forensics asks `zmeta_proto.loads` for `unknown_fields="skip"`
 by name (last-wins throughout, payload JSON included), and the gateway never
-does. The producer-side validator and the explainer read JSON the same way.
-The rule binds the reference decoders; a consumer that parses the bytes
-itself is its own decoder. The downstream boundary's interim becomes the
-reference's rule and may map its own code to this one at its re-pin. Left
-open, booked in the handoff: a contract sentence for the JSON duplicate-key
-rule (his word; the JSON documents are silent); duplicate map keys on the
-CBOR and compact lanes and trailing CBOR bytes (the cbor2 decoder resolves
-them silently and offers no hook; a decoder-level change). Hazard 8 of the
+does. The producer-side validator, the explainer and the two sender tools
+read JSON the same way (the senders refuse to re-encode a duplicate key into
+a binary lane; the JSON lane sends the bytes verbatim and the gateway
+decides). The rule binds the reference decoders; a consumer that parses the
+bytes itself is its own decoder, and native vendor input read by the ingress
+adapters under `adapters/ingress/` by the vendor's grammar is outside it. The
+downstream boundary's interim and the reference's rule now agree for JSON; it
+may map its own code to this one at its re-pin. Left open, booked in the
+handoff: a contract sentence for the JSON duplicate-key rule (his word; the
+JSON documents are silent); duplicate map keys on the CBOR and compact lanes,
+which this repository's `zmeta_cbor` (the reference CBOR path) and the cbor2
+fallback both resolve last-wins (a change to `zmeta_cbor` here; cbor2 offers
+no hook); trailing CBOR bytes, which `zmeta_cbor` already refuses and only
+the cbor2 fallback ignores. Hazard 8 of the
 same ruling (digits a binary64 cannot hold) was decided with C1-07 on
 2026-11-02.
 

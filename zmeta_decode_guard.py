@@ -8,8 +8,10 @@ DECODE_AMBIGUOUS instead of repairing it:
 
 - JSON: an object with a duplicate key. `json.loads` keeps the last value
   silently; `pairs_refusing_duplicates` is the `object_pairs_hook` that raises.
-- protobuf: an unknown field number, or a known field number carrying a wire
-  type the schema does not use for it, at any message level (zmeta_proto).
+- protobuf: an unknown field number, a known field number carrying a wire
+  type the schema does not use for it, or a non-repeatable field that appears
+  twice, at any message level (zmeta_proto; `lineage.based_on` is the one
+  repeated field).
 
 The exception is a ValueError, so every caller that already refuses malformed
 input keeps refusing; `decode_ambiguous` lets the gateway name the code.

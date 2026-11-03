@@ -59,11 +59,13 @@ def loads(
     """Decode a ZMeta protobuf message to the canonical event dict.
 
     ``unknown_fields`` is "refuse" (the default; contract 3.4, doctrine F7-01): a
-    field number the schema does not define at that message level, or a known
-    field carrying a wire type the schema does not use for it, raises
-    DecodeAmbiguousError, because skipping it would hand consumers a message
-    the producer never sent. "skip" keeps the pre-2026-11-02 behaviour for a
-    caller that asks for it by name.
+    field number the schema does not define at that message level, a known
+    field carrying a wire type the schema does not use for it, or a
+    non-repeatable field that appears twice (``lineage.based_on`` is the one
+    repeated field) raises DecodeAmbiguousError, because skipping it or keeping
+    the last value would hand consumers a message the producer never sent.
+    "skip" keeps the pre-2026-11-02 behaviour (last wins, payload JSON included)
+    for a caller that asks for it by name.
     """
     _check_unknown_fields_mode(unknown_fields)
     data = _coerce_bytes(data)
@@ -76,8 +78,7 @@ def loads(
     while index < len(data):
         field, wire_type, index = _read_key(data, index)
         _validate_field_number(field)
-        if field <= 7:
-            _refuse_repeat(seen, field, unknown_fields, "the message")
+        repeated = _note_field(seen, field, field <= 7)
         if field == 1 and wire_type == WIRE_LEN:
             value, index = _read_string(data, index, max_field_bytes)
             out["zmeta_version"] = value
@@ -121,6 +122,8 @@ def loads(
             out["profile"] = value
         else:
             index = _skip_or_refuse(data, index, field, wire_type, max_field_bytes, unknown_fields, "the message")
+        if repeated:
+            _refuse_repeat(field, wire_type, unknown_fields, "the message")
     return out
 
 
@@ -266,7 +269,7 @@ def _decode_lineage(
         elif field == 2 and wire_type == WIRE_LEN:
             value, index = _read_string(data, index, max_field_bytes)
             if "transform" in out:
-                _refuse_repeat({2}, 2, unknown_fields, "lineage")
+                _refuse_repeat(2, wire_type, unknown_fields, "lineage")
             out["transform"] = value
         else:
             index = _skip_or_refuse(data, index, field, wire_type, max_field_bytes, unknown_fields, "lineage")
@@ -292,13 +295,14 @@ def _decode_string_fields(
     while index < len(data):
         field, wire_type, index = _read_key(data, index)
         _validate_field_number(field)
-        if field in names:
-            _refuse_repeat(seen, field, unknown_fields, where)
+        repeated = _note_field(seen, field, field in names)
         if field in names and wire_type == WIRE_LEN:
             value, index = _read_string(data, index, max_field_bytes)
             out[names[field]] = value
         else:
             index = _skip_or_refuse(data, index, field, wire_type, max_field_bytes, unknown_fields, where)
+        if repeated:
+            _refuse_repeat(field, wire_type, unknown_fields, where)
     return out
 
 
@@ -403,20 +407,29 @@ def _check_unknown_fields_mode(mode: str) -> None:
         raise ValueError(f"unknown_fields must be 'refuse' or 'skip', not {mode!r}")
 
 
-def _refuse_repeat(seen: set, field: int, unknown_fields: str, where: str) -> None:
+def _note_field(seen: set, field: int, tracked: bool) -> bool:
+    """Record a non-repeatable field; True when it was already seen in this message."""
+    if not tracked:
+        return False
+    repeated = field in seen
+    seen.add(field)
+    return repeated
+
+
+def _refuse_repeat(field: int, wire_type: int, unknown_fields: str, where: str) -> None:
     """A non-repeatable field that appears twice: last-wins is a choice the decoder will not make.
 
     `lineage.based_on` is the one repeated field the schema defines; every other
-    field appears once. In the forensic "skip" mode the later value wins, as before.
+    field appears once. Called after the repeated field's bytes were read or skipped,
+    so malformed bytes and a wrong wire type are reported first. In the forensic
+    "skip" mode the later value wins, as before.
     """
-    if field in seen:
-        if unknown_fields == "skip":
-            return
-        raise DecodeAmbiguousError(
-            f"ambiguous protobuf: field {field} repeated in {where}; the decoder will not "
-            "choose between its values"
-        )
-    seen.add(field)
+    if unknown_fields == "skip":
+        return
+    raise DecodeAmbiguousError(
+        f"ambiguous protobuf: field {field} (wire type {wire_type}) repeated in {where}; "
+        "the decoder will not choose between its values"
+    )
 
 
 def _skip_or_refuse(

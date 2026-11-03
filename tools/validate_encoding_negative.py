@@ -632,6 +632,13 @@ def _evaluate_gateway_fixture(
                 strict_validation=True,
             )
         except Exception as exc:
+            if fixture.get("expect_gateway_code"):
+                # the fixture names the gateway's own code; a crash emitted none
+                return _result(
+                    "gateway_cli",
+                    "ENCODE_NEGATIVE_GATEWAY_CODE_MISMATCH",
+                    f"gateway raised instead of refusing under {fixture['expect_gateway_code']}: {exc}",
+                )
             return _result("gateway_cli", semantic_issue["code"], f"gateway rejected invalid input with exception: {exc}")
         if not _gateway_rejected(outputs, decoded):
             return _result(

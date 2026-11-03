@@ -76,14 +76,15 @@ Open, in order of proximity:
    `heading_deg` definition left this item on 2026-11-02: contract 6.4
    defines it as the course over ground, and the MAVLink template was made
    conformant in the same branch (doctrine F6-01). The rebuild ruling's
-   hazards 1 and 3 were decided on 2026-11-02 (doctrine F7-01): the reference
-   decoders refuse a duplicate JSON key and an unknown, mistyped or repeated
-   protobuf field under `DECODE_AMBIGUOUS`, on the post-lock route. Booked
-   from that decision, for his word: a contract sentence stating the JSON
-   duplicate-key rule (class (a); the JSON documents are silent on
-   duplicates); duplicate map keys on the CBOR and compact lanes and
-   trailing CBOR bytes, which the cbor2 decoder resolves silently and offers
-   no hook for (a decoder-level change, a later branch).
+   hazards 1 and 3 left this item on 2026-11-02 (doctrine F7-01): the
+   reference decoders refuse a duplicate JSON key and an unknown, mistyped or
+   repeated protobuf field under `DECODE_AMBIGUOUS`, on the post-lock route.
+   Still open from that decision, for his word: a contract sentence stating
+   the JSON duplicate-key rule (class (a); the JSON documents are silent on
+   duplicates); duplicate map keys on the CBOR and compact lanes, which this
+   repository's `zmeta_cbor` (the reference CBOR path) and the cbor2 fallback
+   both resolve last-wins (a change to `zmeta_cbor` here, a later branch);
+   trailing CBOR bytes on the cbor2 fallback only (`zmeta_cbor` refuses them).
 4. **The signing tripwire** (Tier 2 item 6 below; the downstream decision
    register outside this repository carries it as DR-15): not yet, by the
    maintainer's word of 2026-11-02. The registry bar is two independent

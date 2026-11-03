@@ -29,6 +29,9 @@ try:
 except ImportError:  # pragma: no cover - optional dependency
     zmeta_proto = None
 
+from zmeta_decode_guard import DecodeAmbiguousError, pairs_refusing_duplicates  # noqa: E402
+
+
 def parse_args():
     parser = argparse.ArgumentParser(description="Replay ZMeta JSONL over UDP")
     parser.add_argument("--file", default="examples/zmeta-examples-1.0.jsonl")
@@ -50,6 +53,19 @@ def iter_messages(path):
             yield line
 
 
+def load_message(raw):
+    """Parse one JSONL line as the gateway parses it (doctrine F7-01).
+
+    Returns None for a line that is not JSON (skipped, as before); raises
+    DecodeAmbiguousError for a duplicate key, which the caller refuses to
+    re-encode instead of resolving it last-wins.
+    """
+    try:
+        return json.loads(raw, object_pairs_hook=pairs_refusing_duplicates)
+    except json.JSONDecodeError:
+        return None
+
+
 def main():
     args = parse_args()
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -58,8 +74,18 @@ def main():
     while True:
         for raw in iter_messages(args.file):
             try:
-                msg = json.loads(raw)
-            except json.JSONDecodeError:
+                msg = load_message(raw)
+            except DecodeAmbiguousError as exc:
+                if args.encoding == "json":
+                    # the JSON lane sends the bytes verbatim; the gateway is the
+                    # decoder there and refuses the duplicate under its own code
+                    sock.sendto(raw.encode("utf-8"), (args.host, args.port))
+                    print(f"sent verbatim (the gateway decides): {exc}", file=sys.stderr)
+                    sent += 1
+                else:
+                    print(f"line refused, not re-encoded: {exc}", file=sys.stderr)
+                continue
+            if msg is None:
                 continue
 
             event = msg.get("event", {})

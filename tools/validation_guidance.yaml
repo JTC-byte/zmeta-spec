@@ -11,7 +11,10 @@
 # Provenance: each `guidance` entry was drafted against the primary sources
 # cited on it, adversarially refuted by an independent verifier, and then
 # re-verified in a second independent pass before graduation (2026-08-26/27,
-# doctrine log F1-04; maintainer-ruled coverage of all 61 codes as of 2026-10; the DECODE_AMBIGUOUS entry of 2026-11-02 was refuted by two seeded Opus passes within its branch and graduates with the next independent pass). The
+# doctrine log F1-04; maintainer-ruled coverage of all 61 codes as of
+# 2026-10; the DECODE_AMBIGUOUS entry of 2026-11-02 was refuted by two seeded
+# Opus passes within its branch, on 2026-11-02 and 2026-11-03, and graduates
+# with the next independent pass). The
 # `structural_rules` section is the field-proven prototype layer: rules
 # detect the STRUCTURE of the event, not substrings of schema error text,
 # so they still work on dialect input. Citations are file:line at the time
@@ -751,7 +754,10 @@ guidance:
       schema does not define at that message level, or a known field with a
       wire type the schema does not use for it, or a non-repeatable field twice
       (the member would have been dropped, or the later value kept, silently).
-      Forwarding either would hand every consumer the gateway's choice as the
+      On the protobuf and auto lanes, bytes that are not a ZMeta message but
+      parse as a protobuf key report here too, as a field number the schema
+      does not define, rather than as SCHEMA_INVALID. Forwarding either would
+      hand every consumer the gateway's choice as the
       producer's content (contract 3.4; the compact mapping's value-model
       clause). On the v1.0 wire the diagnostic's `reason_code` is the
       decode-stage legacy code SCHEMA_INVALID and this code rides
@@ -769,11 +775,11 @@ guidance:
       - "spec/semantics-contract.md:390"
       - "spec/compact-binary-mapping.md:249-253"
       - "spec/compact-binary-mapping.md:258-260"
-      - "gateway/src/gateway.py:1431-1434"
+      - "gateway/src/gateway.py:1428-1431"
       - "gateway/src/gateway.py:2640-2656"
-      - "zmeta_proto.py:406-448"
-      - "zmeta_decode_guard.py:1-43"
-      - "spec/protobuf-encoding.md:109-122"
+      - "zmeta_proto.py:410-463"
+      - "zmeta_decode_guard.py:1-45"
+      - "spec/protobuf-encoding.md:112-129"
   - code: INVALID_TIME_FORMAT
     remediation: >-
       INVALID_TIME_FORMAT means a canonical timestamp is not a UTC RFC 3339
