@@ -76,8 +76,20 @@ Open, in order of proximity:
    `heading_deg` definition left this item on 2026-11-02: contract 6.4
    defines it as the course over ground, and the MAVLink template was made
    conformant in the same branch (doctrine F6-01).
-4. **The signing tripwire** and **C1-07** (canonical byte form) stay with
-   the maintainer; the design note gives the order.
+4. **The signing tripwire** (DR-15): not yet, by the maintainer's word of
+   2026-11-02. The registry bar is two independent organizations and a
+   documented 2.6 failure the outer rings cannot solve; no second
+   organization's need is on file, and the ecosystem files the
+   independent-need evidence when its DMZ exists. The conditions that
+   would fire it are recorded: a peer's COMMAND_EVENT or STATE_EVENT used
+   as a command basis or a fusion input on the strength of its declared
+   producer; human authorization of a movement command; a label whose
+   scope reaches a trust boundary. The counter-reading stays his to weigh
+   (one record calls the condition arguably met for coalition or contested
+   use; C1-06 names that class as the one most likely to evaluate ZMeta).
+   **C1-07** (canonical byte form) is DECIDED 2026-11-02 (doctrine C1-07);
+   its text change rides the `canonical-byte-form` branch when the first
+   hashing need appears; the design note gives the order.
 5. **Forward edits from the 2026-09-21 share-readiness scan** (private
    session record), each the maintainer's election, unchanged.
 6. **Local hygiene:** `refs/backup/*` holds the pre-rewrite tips; delete
@@ -619,8 +631,9 @@ Counts on this branch: registry 67 entries, roadmap 22 candidates. The branch
 merges into `develop` on the maintainer's word, and like `develop` it reads
 red on the release-manifest pins until the cut.
 
-Left for the maintainer from this wave (doctrine U1-02, OPEN): the routing of
-the five asks; whether the dialect label is needed at all, given the
+Left for the maintainer from this wave (doctrine U1-02, ratified 2026-11-02):
+the routing of the five asks; whether the dialect label is needed at all,
+given the
 `translate:` lineage transform adapters already stamp; whether a `data_ref`
 branch amends Section 9.3 for live streams or carries them outside
 `data_ref`; the canonical byte form and the strength of the determinism

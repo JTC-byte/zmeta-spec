@@ -734,6 +734,10 @@ candidates:
       deterministic-CBOR rule in spec/compact-binary-mapping.md and still emit
       different bytes for the fixture value 120.0, one float64 and one
       shortest-float.
+      Decided 2026-11-02 (doctrine C1-07): binary64, float64 on the wire; the
+      determinism clause a MUST at adoption; digits beyond binary64 not
+      content; the clause change rides this candidate's branch when the
+      first hashing need appears.
 
 rejected_or_deferred:
   - id: payload-schema-uri

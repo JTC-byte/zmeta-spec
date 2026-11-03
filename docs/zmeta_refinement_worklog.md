@@ -2,7 +2,33 @@
 
 ## Current Resume Note
 
-- Last updated: 2026-11-02 (heading_deg defined; records pass after 7.6)
+- Last updated: 2026-11-02 (carried-list records pass; heading_deg defined;
+  records pass after 7.6)
+- **2026-11-02 (records pass on the maintainer's carried-list decisions).** On
+  the maintainer's word of 2026-11-02 in this repository's session, after
+  his thirteen selections over the carried list (each put to him with a
+  seeded refuter's corrections), the branch `wave/records-t7-2026-11` off
+  `develop` 32ae445, one commit, records class: doctrine U1-02, F3-03,
+  F3-04 and F3-05 ratified (DECIDED, with a dated paragraph each; the cds
+  cap's first release named as v1.1.27; one deployment's `cds` window
+  recorded as his held choice against 4.2 until its partner re-check);
+  C1-07 decided (binary64, float64 on the wire, the determinism clause a
+  MUST at adoption, digits beyond binary64 not content, a labelled
+  received-bytes digest fires no tripwire; the compact-mapping text rides
+  the `canonical-byte-form` branch when the first hashing need appears;
+  the roadmap note says so); the signing tripwire recorded in the handoff
+  as not yet with its firing conditions and the counter-reading kept; the
+  handoff's stale U1-02 "OPEN" corrected; the KLV row names the evidence
+  that moves it. His other selections of the day open their own branches
+  on his word (F4-04 R1 and gap (x) R1 as class (a) sentences; the
+  hazards 1 and 3 refusal; zmeta-18; the relation check under R-A; the
+  gap (z) refuter before T5; the replay branch after the demonstration)
+  and are recorded in the private session file. Gates in the worktree:
+  roadmap ok, candidates=22; examples 51 of 51; the kernel gate red on the
+  six release-manifest lines `develop` already carries; the full battery
+  2019 passed, 2 skipped, 13 failed (the release-manifest pin tests);
+  `git diff --check` clean. The merge into `develop` and the push wait for
+  the maintainer's words.
 - **2026-11-02 (the `heading_deg` definition and the MAVLink course).** On the
   maintainer's word of 2026-11-02 in this repository's session (his
   selection of course over ground on 2026-10-28 and of the wording on

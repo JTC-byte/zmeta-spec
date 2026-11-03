@@ -2,6 +2,18 @@
 
 ## [Unreleased]
 
+- 2026-11-02 — **Records pass on the maintainer's carried-list decisions.**
+  Four delegated decisions of 2026-10-01 are ratified (doctrine U1-02, F3-03,
+  F3-04, F3-05 move to DECIDED; the handoff's stale "OPEN" for U1-02 is
+  corrected; the one deployment whose `cds` keeps its window is recorded
+  as the maintainer's held choice). C1-07 is decided: binary64, float64 on
+  the wire, the determinism clause a MUST at adoption, digits beyond
+  binary64 not content, a labelled received-bytes digest fires no tripwire;
+  the text change rides the `canonical-byte-form` branch. The signing
+  tripwire is recorded as not yet, with its firing conditions. The KLV row
+  names the evidence that moves it. Records and advisory text only; no
+  schema, policy or validator byte changes.
+
 - 2026-11-02 — **`heading_deg` defined as the course over ground; the MAVLink
   template fills it from the ground velocity.** Contract 7.6 lists
   `estimated_state.heading_deg` and 7.7 `payload.heading_deg`, 6.4 gave
