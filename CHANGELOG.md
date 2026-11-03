@@ -20,7 +20,9 @@
   2026-11-02. The v1.0 lock-baseline contract anchor moves with a dated
   note; no schema or policy byte changes. The reference gateway's
   `risk_adjudication` record carries the values a cap or reduction changed
-  (promotion and timing paths; a factor below 1 is declined); the SAPIENT
+  (promotion and both timing paths; a factor below 1 is declined on each,
+  and recorded as declined); the gateway's strip guard protects
+  `payload.valid_from_ts`; the SAPIENT
   command egress computes `task_end_time` from the window's start and
   refuses a window that opens after `event.ts`, which its end-only bound
   cannot carry; the profile projection catalog preserves `valid_from_ts`

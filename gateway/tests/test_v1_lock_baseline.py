@@ -57,7 +57,7 @@ ROOT = Path(__file__).resolve().parents[2]
 # already carry; no other rule
 # text, no section 4 invariant and no schema byte changed.
 # Contract anchor moved 2026-11-02 (second and third moves of the day) on the
-# maintainer's words of 2026-11-02: section 4.5.1 gains one bullet (an
+# maintainer's selections of 2026-11-02: section 4.5.1 gains one bullet (an
 # admission cap under a declared mode is a 4.2 projection that keeps the
 # event_id, provided the policy-scoped record names the mode and carries the
 # replaced values; a record lacking either makes it a replacement; doctrine

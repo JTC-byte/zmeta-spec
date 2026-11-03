@@ -33,7 +33,8 @@
   clause (a command's `event.ts` is its issue time when `valid_from_ts` is
   present), the profile projection catalog preserving `valid_from_ts` (the
   projection vector seen failing first, then corrected) and the SAPIENT
-  refusal of a window that opens after `event.ts`, and he concurred that
+  refusal of a window that opens after `event.ts` (his selections, clicks
+  in the repository's session), and he concurred that
   both sentences are 2.1 patches; the anchor moved to 15a9bf4e234e2621...
   with its control. This lane's fixes: the claimed values are the values a
   cap or reduction changed, on the timing-degrade paths too; a reduction
@@ -41,7 +42,16 @@
   rule; the F4-04 paragraph names the mode, drops a vector that did not
   exist and books the replacement-case check; the handoff's gap (x) note
   names the dedupe hold and the MAVLink mission intent as measured by the
-  rule. Gates after the third commit: the sub-checks explicit (projection 37,
+  rule. A second seeded refuter found its plant and ten findings, applied in
+  a fourth commit: the gateway's failure-mode path declines a factor below
+  1 and its record is tested; the promotion record says `reduction_declined`
+  instead of reporting a reduction that did not run; the strip guard
+  protects `payload.valid_from_ts`; the SAPIENT mapping pack and the MAVLink
+  egress README say what their commands carry; the handoff's item 7 line
+  and the gap (x) note name what is answered and what stays open (the 4.3
+  clause's 2.1 coverage, the 4.2 pointer, the optional-field permissions,
+  the closed-at-issue window, the factor lint). Gates after the third
+  commit: the sub-checks explicit (projection 37,
   registry 68, classes 34, encoding negative 50, precision 41, bad-event
   corpus 36, adapter harness 53, conformance pass=22 fail=42); examples 51 of
   51; roadmap ok; the full battery 2028 passed, 2 skipped, 13 failed (the

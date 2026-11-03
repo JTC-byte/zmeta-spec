@@ -54,6 +54,14 @@ class ProtectedStripPathConfigTest(unittest.TestCase):
         self.assertIn("payload.extensions.external_promotion.evidence", message)
         self.assertIn("payload.extensions.external_promotion", message)
 
+    def test_config_stripping_a_command_start_is_rejected_at_load(self):
+        # Contract 7.8 (2026-11-02): valid_from_ts is the start of a command's
+        # validity window, so stripping it from a same-event_id projection
+        # moves the window; the catalog preserves it and so does the gateway.
+        config = {"strip_optional_fields": ["payload.valid_from_ts"]}
+        with self.assertRaises(ValueError):
+            gateway.build_settings(ROOT, default_args(), config)
+
     def test_shipped_default_config_strip_list_is_accepted(self):
         shipped = json.loads(
             (ROOT / "configs" / "gateway-config.json").read_text(encoding="utf-8")

@@ -389,6 +389,12 @@ class ExternalStatePromotionTest(unittest.TestCase):
         risk = event["payload"]["extensions"]["risk_adjudication"][0]
         self.assertNotIn("confidence_claimed", risk["effects"])
         self.assertNotIn("valid_for_ms_claimed", risk["effects"])
+        # the record says the factors were declined, not that they were applied
+        self.assertNotIn("confidence_reduction_factor", risk["effects"])
+        self.assertEqual(
+            {"confidence_reduction_factor": 0.5, "valid_for_ms_reduction_factor": 0.5},
+            risk["effects"]["reduction_declined"],
+        )
 
     def test_quarantine_record_omits_a_claimed_value_the_event_never_carried(self):
         # No valid_for_ms on the event: nothing was replaced, so nothing is

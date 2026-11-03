@@ -889,7 +889,8 @@ def apply_timing_freshness_degradation(event, violations, timing_freshness_polic
         # timing violation is still reported by the caller either way.
         return False
     if factor < 1:
-        # a reduction that would increase: declined (contract 4.2)
+        # A factor below 1 would raise the value, so the reduction is declined
+        # (contract 4.2 makes an increase a new event).
         return False
     claimed = _claimed_values(event)
     event["confidence"] = max(0.0, min(1.0, confidence / factor))
@@ -1475,14 +1476,22 @@ def apply_external_promotion_policy_action(event, violations, authority_policy):
             claimed = _claimed_values(event)
             changed = _reduce_confidence(event, confidence_factor) or changed
             changed = _reduce_valid_for_ms(event, valid_for_factor) or changed
+            # The record states the factors as applied. A factor below 1 is
+            # declined by the reducers (it would raise the value), and the
+            # record says so rather than report a reduction that did not run.
+            effects = {}
+            declined = {}
+            for key, factor in (
+                ("confidence_reduction_factor", confidence_factor),
+                ("valid_for_ms_reduction_factor", valid_for_factor),
+            ):
+                (declined if factor < 1 else effects)[key] = factor
+            if declined:
+                effects["reduction_declined"] = declined
             changed = _append_risk_adjudication(
                 event,
                 violation,
-                {
-                    "confidence_reduction_factor": confidence_factor,
-                    "valid_for_ms_reduction_factor": valid_for_factor,
-                    **_replaced_values(claimed, event),
-                },
+                {**effects, **_replaced_values(claimed, event)},
             ) or changed
             continue
 

@@ -3578,21 +3578,27 @@ reduction whose record lacks either is a replacement and requires a new
 event (the second sentence read "carries neither" until the branch's
 seeded refuter showed that a record naming the mode without the values,
 the shape of every timing record then shipped, fell between the two
-sentences; "lacks either" is his word of 2026-11-02). A contract 2.1
+sentences; "lacks either" is his selection of 2026-11-02). A contract 2.1
 patch, the maintainer concurring on 2026-11-02: it decides a case the text
 left open without redefining a field, and the condition it adds is the one
 gate 3 (no laundering) needs, the producer's own figure visible beside the
 cap. The reference gateway's `risk_adjudication` record carries
 `confidence_claimed` and `valid_for_ms_claimed` under `effects` for the
-values a cap or reduction changed, on the promotion paths and on the
-timing-degrade paths alike, with tests seen failing first; a reduction
-factor below 1, which would raise a value, is declined. The record is
-chained: each carries the value its own step replaced, so a consumer
-recovers the producer's figure from the first record. Not built here, and
-booked: a validator check that flags an accepted event whose record lacks
-the mode or the replaced values (the sentence's replacement case), with a
-governed code through the registry route and its must-fail and must-pass
-vectors. A downstream boundary's check 4 may now admit an in-place cap
+values a cap or reduction changed, on the promotion paths and on both
+timing-degrade paths (the validators' and the gateway's failure mode),
+each with a test seen failing first; a reduction factor below 1, which
+would raise a value, is declined on every path and the promotion record
+says so under `reduction_declined` rather than report a reduction that
+did not run. The records chain: each carries the value its own step
+replaced, so the producer's figure for a member is the claimed value in
+the first record that carries that member, and the event's own value when
+no record does. Three things are booked, not built here: a validator
+check that flags an accepted event whose record lacks the mode or the
+replaced values (the sentence's replacement case), with a governed code
+through the registry route and its must-fail and must-pass vectors; a
+configuration lint that refuses a reduction factor below 1 at load; and a
+clause in 4.2 pointing to this bullet, for the maintainer's word. A
+downstream boundary's check 4 may now admit an in-place cap
 that carries the claimed values (its lane, at its re-pin). The
 lock-baseline contract anchor moves with a dated note; no schema or policy
 byte changes.
