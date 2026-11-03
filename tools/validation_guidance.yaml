@@ -13,8 +13,8 @@
 # re-verified in a second independent pass before graduation (2026-08-26/27,
 # doctrine log F1-04; maintainer-ruled coverage of all 61 codes as of
 # 2026-10; the DECODE_AMBIGUOUS entry of 2026-11-02 was refuted by two seeded
-# Opus passes within its branch, on 2026-11-02 and 2026-11-03, and graduates
-# with the next independent pass). The
+# Opus passes within its branch, both on 2026-11-02, and graduates with the
+# next independent pass). The
 # `structural_rules` section is the field-proven prototype layer: rules
 # detect the STRUCTURE of the event, not substrings of schema error text,
 # so they still work on dialect input. Citations are file:line at the time

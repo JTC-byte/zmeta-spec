@@ -87,8 +87,9 @@
   tests seen failing first; 54 encoding-negative fixtures; the records
   corrected (the plane's boundary is a ratified design, not yet built; the
   CBOR booking; the guidance citations and header; the commit count). Gates
-  after the third commit: 2055 passed, 2 skipped, 13 failed (the release-manifest pin tests). The merge into `develop` and the
-  push wait for the maintainer's words. A downstream boundary's ratified
+  after the third commit: 2055 passed, 2 skipped, 13 failed (the
+  release-manifest pin tests). The merge into `develop` and the push wait for
+  the maintainer's words. A downstream boundary's ratified
   design (not yet built) refuses the JSON case to quarantine under its
   interim; the reference's rule for JSON now matches it, and its re-pin reads
   this.

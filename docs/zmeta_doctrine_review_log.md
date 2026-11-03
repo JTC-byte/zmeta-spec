@@ -3738,8 +3738,8 @@ gateway then validated and forwarded the result. A downstream boundary's
 ratified design (2026-10-12, amended 2026-10-13; not yet built as code, by
 its own record) refuses the JSON case to quarantine under its interim and
 applies the same interim to a protobuf lane it does not enable; the one
-duplicate-key refusal running there today is its state sender's own
-`refused_json`.
+duplicate-key refusal in that repository's code today is its state sender's
+own `refused_json`, itself marked proposed and not deployed.
 
 **The tension:** a decode that chose between two values, or dropped a
 member, produced an event the producer did not send, and forwarding it
