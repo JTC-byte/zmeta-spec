@@ -640,6 +640,23 @@ def _evaluate_gateway_fixture(
                 "gateway accepted invalid decoded input",
                 details={"event_id": _event_id(decoded), "outputs": outputs},
             )
+        expected_gateway_code = fixture.get("expect_gateway_code")
+        if expected_gateway_code:
+            # the fixture names the gateway's own code; the minted code rides
+            # metrics.diagnostic_code on the v1.0 wire, else reason_code
+            emitted = [
+                (out.get("payload", {}).get("metrics", {}).get("diagnostic_code")
+                 or out.get("payload", {}).get("metrics", {}).get("reason_code"))
+                for out in outputs
+                if _event_type(out) == "SYSTEM_EVENT"
+            ]
+            if expected_gateway_code not in emitted:
+                return _result(
+                    "gateway_cli",
+                    "ENCODE_NEGATIVE_GATEWAY_CODE_MISMATCH",
+                    f"gateway refused under {emitted}, not {expected_gateway_code}",
+                    details={"outputs": outputs},
+                )
         return _result("gateway_cli", semantic_issue["code"], f"gateway rejected invalid input: {semantic_issue['message']}", details=semantic_issue.get("details", {}))
 
     if path == "convert_validate":

@@ -3728,14 +3728,16 @@ position appears here.
 ### F7-01 — The reference decoders chose silently between two readings of one datagram · **DECIDED 2026-11-02 (refuse under `DECODE_AMBIGUOUS`)**
 
 **Observed:** `json.loads` resolves a duplicate key to its last value, so an
-object carrying `confidence` twice decoded to one of them with no trace of
-the other, identity members included. The reference protobuf decoder
-skipped a field number the schema does not define at a message level, and
-a known field carrying a wire type the schema does not use for it, so the
-member the producer sent was dropped and the message decoded clean. The
-gateway then validated and forwarded the result. A downstream boundary
-that rebuilds native input refused both cases to quarantine under its own
-interim since 2026-10-13, as its deployment strictness.
+object carrying any key twice, an identity member among them, decoded to one
+value with no trace of the other. The reference protobuf decoder skipped a
+field number the schema does not define at a message level and a known field
+carrying a wire type the schema does not use for it, so the member the
+producer sent was dropped, and it kept the last of a repeated field, so a
+second `source` block replaced the first; the message decoded clean. The
+gateway then validated and forwarded the result. A downstream boundary that
+rebuilds native input has refused the JSON case to quarantine under its own
+interim since 2026-10-13, as its deployment strictness, and holds the same
+interim for a protobuf lane it has not enabled.
 
 **The tension:** a decode that chose between two values, or dropped a
 member, produced an event the producer did not send, and forwarding it
@@ -3745,22 +3747,37 @@ content on its lane (its refusal there is guidance the ruling left to the
 maintainer); the JSON documents are silent on duplicates; design gate 3 (no
 laundering) and contract 3.4 (preserve source-authored fields; schema
 acceptance is not semantic authorization) read against forwarding
-fabricated content with a label. The silence was a gap, not a permission.
+fabricated content with a label. The JSON documents' silence left a gap the
+reference filled by choosing; it granted no permission to choose.
 
-**Decision:** the maintainer selected refusal with a governed code. The
-reference decoders refuse a duplicate JSON key and an unknown or mistyped
-protobuf field at every message level, and the gateway reports the refusal
-under the new diagnostic code `DECODE_AMBIGUOUS` (severity fail), minted
-through the registry route: `policy/violation-codes.yaml`,
-`policy/semantics.yaml`, both schemas' reason-code enums (the v1.0 schema
-anchor moved with a dated note; Class B, diagnostic vocabulary, no
-event-type, payload or rule text), the guidance entry and three
-encoding-negative fixtures. Malformed bytes stay reported as malformed; a
-caller that must read an ambiguous message for forensics asks
-`zmeta_proto.loads` for `unknown_fields="skip"` by name, and the gateway
-never does. The downstream boundary's interim becomes the reference's rule
-and may map its own code to this one at its re-pin. Hazard 8 of the same
-ruling (digits a binary64 cannot hold) was decided with C1-07 on 2026-11-02.
+**Decision:** the maintainer selected refusal with a governed code, and on
+the branch's seeded refutation three further words: the post-lock route for
+the code, protobuf repeated fields in scope, the rule stated in the protobuf
+encoding specification. The reference decoders refuse a duplicate JSON key,
+and an unknown, mistyped or repeated (non-repeatable) protobuf field at
+every message level, and the gateway reports the refusal under the new
+diagnostic code `DECODE_AMBIGUOUS` (severity fail), minted through the
+registry route on the post-lock path of 2026-08-09: `policy/violation-codes.yaml`,
+`policy/semantics.yaml` (the allowlist and the `schema_violation_v1_0_wire_fallback`
+row to SCHEMA_INVALID, the decode-stage legacy code), the 1.1.0 schema's
+reason-code enum only (the locked v1.0 enum does not grow and its anchors
+did not move), the guidance entry, `spec/protobuf-encoding.md`'s decoder
+bounds (the rule and its chosen cost: a later schema revision's fields are
+refused by a decoder on this one until the decoder is revised), and three
+encoding-negative fixtures. Malformed bytes are reported as malformed, field
+by field, before the ambiguity check; a caller that must read an ambiguous
+message for forensics asks `zmeta_proto.loads` for `unknown_fields="skip"`
+by name (last-wins throughout, payload JSON included), and the gateway never
+does. The producer-side validator and the explainer read JSON the same way.
+The rule binds the reference decoders; a consumer that parses the bytes
+itself is its own decoder. The downstream boundary's interim becomes the
+reference's rule and may map its own code to this one at its re-pin. Left
+open, booked in the handoff: a contract sentence for the JSON duplicate-key
+rule (his word; the JSON documents are silent); duplicate map keys on the
+CBOR and compact lanes and trailing CBOR bytes (the cbor2 decoder resolves
+them silently and offers no hook; a decoder-level change). Hazard 8 of the
+same ruling (digits a binary64 cannot hold) was decided with C1-07 on
+2026-11-02.
 
 ## Archive
 

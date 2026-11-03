@@ -106,6 +106,20 @@ Unsupported wire types and invalid field number 0 are rejected. Deployments with
 stricter link budgets should pass lower `loads(..., max_*)` values at trust
 boundaries.
 
+Since 2026-11-02 (doctrine F7-01) the reference decoder also refuses, at every
+message level, a field number the schema does not define there, a known field
+carrying a wire type the schema does not use for it, and a non-repeatable field
+that appears twice (`lineage.based_on` is the one repeated field); the gateway
+reports the refusal as `DECODE_AMBIGUOUS`. Skipping such a field, or keeping the
+last of two values, would hand consumers a message the producer never sent. The
+cost is chosen: a producer on a later schema revision that adds fields is refused
+by a decoder on this one, the reverse of protobuf's usual forward compatibility,
+until the decoder is revised with the schema; a caller that must read such a
+message for forensics passes `unknown_fields="skip"` by name, and the gateway
+never does. Malformed bytes (an unsupported wire type, a truncated field, an
+over-long varint) are reported as malformed, field by field, before the
+ambiguity check reaches them.
+
 ## Tooling
 
 Measure size:

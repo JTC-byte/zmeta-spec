@@ -31,13 +31,10 @@ try:
 except ImportError:  # pragma: no cover - optional dependency
     zmeta_compact = None
 
-try:
-    from zmeta_decode_guard import is_decode_ambiguous, pairs_refusing_duplicates
-except ImportError:  # pragma: no cover - the guard ships beside the gateway
-    pairs_refusing_duplicates = None
-
-    def is_decode_ambiguous(exc):
-        return bool(getattr(exc, "decode_ambiguous", False))
+# The decode guard is required, not optional: without it the JSON lanes would
+# keep the last of two duplicate keys silently (doctrine F7-01), so a missing
+# module fails the gateway at import, never open.
+from zmeta_decode_guard import is_decode_ambiguous, pairs_refusing_duplicates
 
 try:
     import zmeta_proto
@@ -1470,8 +1467,11 @@ def _decode_message(message, input_encoding):
         if zmeta_proto is not None:
             try:
                 return zmeta_proto.loads(message)
-            except Exception:
-                pass
+            except Exception as exc:
+                if is_decode_ambiguous(exc):
+                    # a protobuf message the decoder refused as ambiguous is not
+                    # JSON in disguise; report the refusal, never a UTF-8 error
+                    raise
         text = message.decode("utf-8")
         return _json_loads(text)
     raise ValueError(f"unsupported input encoding: {input_encoding}")

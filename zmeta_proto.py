@@ -71,10 +71,13 @@ def loads(
         raise ValueError("protobuf message exceeds max_bytes")
 
     out: Dict[str, Any] = {}
+    seen: set = set()
     index = 0
     while index < len(data):
         field, wire_type, index = _read_key(data, index)
         _validate_field_number(field)
+        if field <= 7:
+            _refuse_repeat(seen, field, unknown_fields, "the message")
         if field == 1 and wire_type == WIRE_LEN:
             value, index = _read_string(data, index, max_field_bytes)
             out["zmeta_version"] = value
@@ -98,7 +101,9 @@ def loads(
             )
         elif field == 4 and wire_type == WIRE_LEN:
             value, index = _read_bytes(data, index, max_field_bytes)
-            out["payload"] = _payload_from_bytes(value, max_payload_bytes, max_json_depth)
+            out["payload"] = _payload_from_bytes(
+                value, max_payload_bytes, max_json_depth, strict_json=unknown_fields != "skip"
+            )
         elif field == 5 and wire_type == WIRE_FIXED64:
             value, index = _read_double(data, index)
             out["confidence"] = value
@@ -137,11 +142,15 @@ def _payload_from_bytes(
     payload: bytes,
     max_payload_bytes: int = DEFAULT_MAX_PAYLOAD_BYTES,
     max_json_depth: int = DEFAULT_MAX_JSON_DEPTH,
+    strict_json: bool = True,
 ) -> Any:
     if max_payload_bytes is not None and len(payload) > max_payload_bytes:
         raise ValueError("protobuf payload exceeds max_payload_bytes")
     _assert_json_depth(payload, max_json_depth)
-    return json.loads(payload.decode("utf-8"), object_pairs_hook=pairs_refusing_duplicates)
+    # strict_json is False only in the forensic "skip" mode, which reads the
+    # payload last-wins as json.loads does; the gateway never asks for it.
+    hook = pairs_refusing_duplicates if strict_json else None
+    return json.loads(payload.decode("utf-8"), object_pairs_hook=hook)
 
 
 def _encode_event_block(block: Dict[str, Any]) -> bytes:
@@ -256,6 +265,8 @@ def _decode_lineage(
             based_on.append(value)
         elif field == 2 and wire_type == WIRE_LEN:
             value, index = _read_string(data, index, max_field_bytes)
+            if "transform" in out:
+                _refuse_repeat({2}, 2, unknown_fields, "lineage")
             out["transform"] = value
         else:
             index = _skip_or_refuse(data, index, field, wire_type, max_field_bytes, unknown_fields, "lineage")
@@ -276,10 +287,13 @@ def _decode_string_fields(
 ) -> Dict[str, Any]:
     _check_message_depth(depth, max_message_depth)
     out: Dict[str, Any] = {}
+    seen: set = set()
     index = 0
     while index < len(data):
         field, wire_type, index = _read_key(data, index)
         _validate_field_number(field)
+        if field in names:
+            _refuse_repeat(seen, field, unknown_fields, where)
         if field in names and wire_type == WIRE_LEN:
             value, index = _read_string(data, index, max_field_bytes)
             out[names[field]] = value
@@ -389,6 +403,22 @@ def _check_unknown_fields_mode(mode: str) -> None:
         raise ValueError(f"unknown_fields must be 'refuse' or 'skip', not {mode!r}")
 
 
+def _refuse_repeat(seen: set, field: int, unknown_fields: str, where: str) -> None:
+    """A non-repeatable field that appears twice: last-wins is a choice the decoder will not make.
+
+    `lineage.based_on` is the one repeated field the schema defines; every other
+    field appears once. In the forensic "skip" mode the later value wins, as before.
+    """
+    if field in seen:
+        if unknown_fields == "skip":
+            return
+        raise DecodeAmbiguousError(
+            f"ambiguous protobuf: field {field} repeated in {where}; the decoder will not "
+            "choose between its values"
+        )
+    seen.add(field)
+
+
 def _skip_or_refuse(
     data: bytes,
     index: int,
@@ -400,9 +430,10 @@ def _skip_or_refuse(
 ) -> int:
     """A field the schema does not define here, or a known field with the wrong wire type.
 
-    Contract 3.4 and the compact mapping's value model forbid fabricating canonical
-    content; a message missing a member the producer sent is such a fabrication
-    (doctrine F7-01, the rebuild ruling's hazards 1 and 3). Refused by default.
+    Contract 3.4 and the compact mapping's value model read against fabricating
+    canonical content; a message missing a member the producer sent is such a
+    fabrication (doctrine F7-01, the rebuild ruling's hazards 1 and 3). Refused by
+    default.
     """
     # Malformed bytes are reported as malformed first (an unsupported wire type, a
     # truncated field); only a well-formed field the schema does not place here is

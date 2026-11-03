@@ -231,6 +231,7 @@ def artifact_groups(root: Path = ROOT, *, include_tool_source: bool = True) -> d
                 "zmeta_compact.py",
                 "zmeta_cbor.py",
                 "zmeta_proto.py",
+                "zmeta_decode_guard.py",
             ],
         },
         "claims": {

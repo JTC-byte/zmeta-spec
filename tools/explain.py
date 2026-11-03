@@ -22,6 +22,9 @@ from pathlib import Path
 import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+from zmeta_decode_guard import pairs_refusing_duplicates  # noqa: E402
 GUIDANCE = ROOT / "tools" / "validation_guidance.yaml"
 KNOWN_VERSIONS = {"1.0", "1.1.0"}
 # Every key a rule may use under `detect:`; the fixture asserts the file stays
@@ -165,7 +168,7 @@ def main():
             line = line.strip()
             if line:
                 try:
-                    events.append(json.loads(line))
+                    events.append(json.loads(line, object_pairs_hook=pairs_refusing_duplicates))
                 except json.JSONDecodeError:
                     pass
 

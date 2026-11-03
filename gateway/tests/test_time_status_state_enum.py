@@ -56,11 +56,7 @@ spec.loader.exec_module(validators)
 # (contract section 7.3) is the lock's true baseline and the block is lawful
 # enforcement of it. Moving this hash requires a maintainer adjudication on
 # the record.
-# Moved 2026-11-02 on the maintainer's selection of 2026-11-02 (the carried
-# list's item 4; doctrine F7-01): the SYSTEM_EVENT diagnostic reason-code enum
-# gains DECODE_AMBIGUOUS. Diagnostic vocabulary only; the TIME_STATUS state
-# enum this test guards is untouched and stays v1.1.0 only.
-V1_0_SCHEMA_SHA256 = "8eced8919e25d888c6b19d83e4bf794a0a181648967a21c31934d16dc3737e66"
+V1_0_SCHEMA_SHA256 = "1d2d84164b3a8986874e932c0e9369be3bf392a483a8ff261d464f34bd16d7b5"
 
 # The derived vocabulary, in declared order: the sync-state trio in the
 # metrics.sync_state enum's own order, then the mavlink template's health

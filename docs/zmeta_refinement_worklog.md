@@ -39,11 +39,28 @@
   `tools/export_policy_json.py` (three files), and a second v1.0 schema
   anchor in `test_time_status_state_enum.py` moved with a dated note on his
   selection, the adjudication that test asks for.
-  Doctrine F7-01 records the decision; the handoff's item 4 of the rebuild
-  ruling's interim is replaced by the rule. The merge into `develop` and the
-  push wait for the maintainer's words. A downstream boundary's interim
-  (refuse to quarantine under its own `DECODE_AMBIGUOUS`) is now the
-  reference's rule too; its re-pin reads this.
+  Doctrine F7-01 records the decision; handoff item 3 names it and books
+  what stays open. A seeded refuter then found its plant and twenty-seven
+  mismatches; the maintainer took three as selections (the post-lock route,
+  so the code lives in the 1.1.0 enum only with a v1.0 wire fallback to
+  SCHEMA_INVALID and both v1.0 anchors restored; protobuf repeated
+  non-repeatable fields refused too; the rule stated in
+  `spec/protobuf-encoding.md` with its forward-compatibility cost, the JSON
+  contract sentence booked), and the rest were this lane's, applied in a
+  second commit: the guard required at import (its fallback had failed
+  open) and shipped in the four release and conformance lists; the auto
+  lane surfaces an ambiguous protobuf refusal instead of a UTF-8
+  SCHEMA_INVALID; `skip` reads the payload last-wins too; `tools/validate.py`
+  and `tools/explain.py` read JSON with the hook, and `validate.py` reports
+  the refusal as a FAIL line under the code (a producer's validator had
+  passed what the gateway refuses); the fixture tool compares the gateway's
+  own code; four more tests seen failing first; the records corrected (the
+  plane's protobuf lane is not enabled; "reads against"; CBOR and compact
+  duplicates and trailing bytes booked; the rule binds the reference
+  decoders). Gates after the second commit: 2047 passed, 2 skipped, 13 failed (the release-manifest pin tests). The merge into
+  `develop` and the push wait for the maintainer's words. A downstream
+  boundary's interim (refuse to quarantine under its own `DECODE_AMBIGUOUS`)
+  is now the reference's rule for JSON; its re-pin reads this.
 - **2026-11-02 (two contract sentences: admission caps, the command window).**
   On the maintainer's word of 2026-11-02 in this repository's session (his
   selections of F4-04 R1 and gap (x) R1 with the carried list's refuted

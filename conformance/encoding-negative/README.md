@@ -40,6 +40,7 @@ Each fixture is a JSON object on one line with:
 - `expected_stage`
 - `expect_code`
 - `expect_message_contains`
+- `expect_gateway_code` (gateway path only): the gateway's own minted code
 - `notes`
 
 Short malformed bytes are stored as hex. Schema, policy, and projection
@@ -63,6 +64,9 @@ the bytes at runtime. No committed binary blobs are required for this suite.
   it) and the decoder refuses rather than repairs (doctrine F7-01, gateway code
   `DECODE_AMBIGUOUS`).
 - `ENCODE_NEGATIVE_MALFORMED_JSON`: JSON input that does not parse.
+- `ENCODE_NEGATIVE_GATEWAY_CODE_MISMATCH`: the gateway refused, but not under
+  the code the fixture's `expect_gateway_code` names (read from
+  `metrics.diagnostic_code`, else `metrics.reason_code`).
 - `ENCODE_NEGATIVE_MALFORMED_CBOR`
 - `ENCODE_NEGATIVE_MALFORMED_COMPACT`
 - `ENCODE_NEGATIVE_UNSUPPORTED_COMPACT_VERSION`

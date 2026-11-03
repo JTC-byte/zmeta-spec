@@ -11,24 +11,37 @@
   3.4; the compact mapping's value model; the rebuild ruling's hazards 1 and
   3, decided by the maintainer on 2026-11-02, doctrine F7-01). The gateway's
   JSON lanes refuse a duplicate key (`object_pairs_hook`), `zmeta_proto.loads`
-  refuses an unknown or mistyped field at every message level (a caller may
-  pass `unknown_fields="skip"` by name; the gateway never does), the
-  protobuf payload's JSON is held to the same rule, and `convert_encoding`
-  reads JSON the same way; malformed bytes are still reported as malformed.
-  The refusal is the new governed diagnostic code `DECODE_AMBIGUOUS` (fail),
-  registered in `policy/violation-codes.yaml`, `policy/semantics.yaml` and
-  both schemas' reason-code enums (the v1.0 schema anchor moves with a dated
-  note; diagnostic vocabulary, Class B through the registry route), with its
-  guidance entry and the policy JSON export regenerated; the shared guard is
-  `zmeta_decode_guard.py`. Eleven tests
+  refuses an unknown, mistyped or repeated non-repeatable field at every
+  message level (`lineage.based_on` stays repeatable; a forensic caller may
+  pass `unknown_fields="skip"` by name and then reads last-wins throughout;
+  the gateway never does), the protobuf payload's JSON is held to the same
+  rule, and `convert_encoding`, `tools/validate.py` and `tools/explain.py`
+  read JSON the same way (`validate.py` reports the refusal as a FAIL line
+  under the code); malformed bytes are still reported as malformed, field by
+  field. The refusal is the new governed diagnostic code `DECODE_AMBIGUOUS`
+  (fail) on the post-lock route of 2026-08-09: registered in
+  `policy/violation-codes.yaml` and `policy/semantics.yaml` (the allowlist
+  and the v1.0 wire fallback to SCHEMA_INVALID, the minted code riding
+  `metrics.diagnostic_code`), in the 1.1.0 schema's reason-code enum only
+  (the locked v1.0 enum does not grow; its anchors did not move), with its
+  guidance entry, a decoder-bounds paragraph in `spec/protobuf-encoding.md`
+  (the rule and its chosen cost to forward compatibility) and the policy JSON
+  export regenerated; the shared guard `zmeta_decode_guard.py` is required at
+  import and ships in the release and conformance lists. The rule binds the
+  reference decoders; a consumer that parses the bytes itself is its own
+  decoder. Booked for the maintainer's word: a contract sentence for the JSON
+  rule; CBOR and compact duplicate keys and trailing CBOR bytes. Eleven tests
   were written first and nine failed on the unchanged code; three
   encoding-negative fixtures (an unknown protobuf field, a mistyped known
   field, a duplicate JSON key on the gateway) failed with the decoders
-  stashed and pass with them. `validate_encoding_negative.py` gains a `json`
-  lane and stops counting a forwarded event as a rejection when the fixture
-  never decoded (a vacuous pass the new gateway fixture exposed). The
-  governed code count moves to 62 (9 warn, 53 fail). No event-type, payload
-  or rule text changed.
+  stashed and pass with them; a second pass added the repeated-field,
+  auto-lane, skip-mode and malformed-JSON cases and the gateway fixture now
+  names the gateway's own code. `validate_encoding_negative.py` gains a
+  `json` lane, an `expect_gateway_code` check, and stops counting a forwarded
+  event as a rejection when the fixture never decoded (a vacuous pass the new
+  gateway fixture exposed). The governed code count moves to 62 (9 warn, 53
+  fail); the SYSTEM_EVENT payload vocabulary of the 1.1.0 schema widens by
+  one diagnostic code; no event type or rule text changed.
 
 - 2026-11-02 — **Two contract sentences on the maintainer's decisions:
   admission caps are projections that carry the replaced values; a command's

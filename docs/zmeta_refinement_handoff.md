@@ -69,14 +69,21 @@ Open, in order of proximity:
    selection of 2026-10-28; same organization as the 2026-09-30 entry, no
    promotion asked.
 3. **The maintainer's definitions and bookings, with the evidence put to
-   him first** (the rebuild ruling's hazards 1 and 3 were decided on
-   2026-11-02, doctrine F7-01: the decoders refuse under `DECODE_AMBIGUOUS`) (the session records of 2026-10-27, each with seeded
+   him first** (the session records of 2026-10-27, each with seeded
    refuters): the media-evidence bookings; hazard 4 (whether
    `ENCODING_UNSUPPORTED` extends to every output lane); F4-02 (a
    cooperative broadcast received by relay: who measured it). The
    `heading_deg` definition left this item on 2026-11-02: contract 6.4
    defines it as the course over ground, and the MAVLink template was made
-   conformant in the same branch (doctrine F6-01).
+   conformant in the same branch (doctrine F6-01). The rebuild ruling's
+   hazards 1 and 3 were decided on 2026-11-02 (doctrine F7-01): the reference
+   decoders refuse a duplicate JSON key and an unknown, mistyped or repeated
+   protobuf field under `DECODE_AMBIGUOUS`, on the post-lock route. Booked
+   from that decision, for his word: a contract sentence stating the JSON
+   duplicate-key rule (class (a); the JSON documents are silent on
+   duplicates); duplicate map keys on the CBOR and compact lanes and
+   trailing CBOR bytes, which the cbor2 decoder resolves silently and offers
+   no hook for (a decoder-level change, a later branch).
 4. **The signing tripwire** (Tier 2 item 6 below; the downstream decision
    register outside this repository carries it as DR-15): not yet, by the
    maintainer's word of 2026-11-02. The registry bar is two independent

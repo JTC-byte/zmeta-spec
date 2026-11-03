@@ -68,13 +68,12 @@ ROOT = Path(__file__).resolve().parents[2]
 # case the text left open; section 4.5.1 gains one rule and 4.3 one clause,
 # every other section 4 text is unchanged, and no schema byte changed.
 CONTRACT_SHA256 = "15a9bf4e234e2621922ac11754142b5a3ec399185eb544e558b17e89b0bd142c"
-# v1.0 schema anchor moved 2026-11-02 on the maintainer's selection of 2026-11-02
-# (the carried list's item 4): the SYSTEM_EVENT diagnostic reason-code enum gains
-# DECODE_AMBIGUOUS, the governed code under which the reference decoders refuse a
-# duplicate JSON key or a protobuf field the schema does not define or types
-# otherwise (doctrine F7-01). Diagnostic vocabulary, Class B through the
-# registry route; no event-type, payload or rule text changed.
-V1_0_SCHEMA_SHA256 = "8eced8919e25d888c6b19d83e4bf794a0a181648967a21c31934d16dc3737e66"
+# The v1.0 reason-code enum stays locked (adjudication of 2026-08-09): the code
+# DECODE_AMBIGUOUS of 2026-11-02 (doctrine F7-01) lives in the 1.1.0 enum only and
+# rides the v1.0 wire as SCHEMA_INVALID with the minted code in
+# metrics.diagnostic_code (policy schema_violation_v1_0_wire_fallback), the route
+# the maintainer selected on 2026-11-02; this anchor did not move for it.
+V1_0_SCHEMA_SHA256 = "1d2d84164b3a8986874e932c0e9369be3bf392a483a8ff261d464f34bd16d7b5"
 
 # Embedded verbatim from the v1.0.5 tag's example corpus. Pre-lock history:
 # written under the premature April stamp, superseded by the lockdown audit.

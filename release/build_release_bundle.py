@@ -45,6 +45,7 @@ def collect_sources(root, version):
         root / "zmeta_cbor.py",
         root / "zmeta_compact.py",
         root / "zmeta_proto.py",
+        root / "zmeta_decode_guard.py",
         root / "zmeta_uuid.py",
         root / "schema" / "README.md",
         root / "schema" / "zmeta-event.schema.json",
