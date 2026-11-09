@@ -2,9 +2,43 @@
 
 ## Current Resume Note
 
-- Last updated: 2026-11-02 (DECODE_AMBIGUOUS, three commits, the third on
-  2026-11-03; two contract sentences; carried-list records pass; heading_deg
-  defined; records pass after 7.6)
+- Last updated: 2026-11-09 (the TAK Protocol Version 1 egress adapter;
+  DECODE_AMBIGUOUS, three commits, the third on 2026-11-03; two contract
+  sentences; carried-list records pass; heading_deg defined; records pass
+  after 7.6)
+- **2026-11-09 (TAK Protocol Version 1 egress).** On the maintainer's
+  selection of 2026-11-09 (his "all recommended" on the open decisions, which
+  took option (a): the egress adapter builds open with TAK Protocol Version 1
+  first, then the signing tripwire's question, behind the demonstration
+  lanes' rulings), the branch `exp/tak-protocol-egress-2026-11` off `develop`
+  c1f5800, one commit, Class C. The egress recce of 2026-11-03 (a private
+  session record) ranked this first of six candidates and measured the shape
+  through the `takproto` package: 809 fielded and 1,680 live-derived events
+  through the CoT projection to protobuf and back with no field mismatch.
+  Tests first: forty-four in `adapters/egress/tak_protocol/test_tak_protocol_egress.py`
+  (two run only when `TAK_PROTO_SITE` names a directory holding `takproto`),
+  which failed at collection with no module; then the module
+  `zmeta_to_tak_protocol.py`: a hand-written canonical proto3 encoder for the
+  TAK Protocol Version 1 schema (field numbers checked against `takproto`'s
+  descriptors), the mesh and stream framings, a reader that refuses by the
+  decoders' rule of 2026-11-02, and the typed route: a typed detail child
+  goes to its typed field only when the typed message carries it whole, else
+  whole in `xmlDetail`, so the CoT projection's `precisionlocation` keeps its
+  ellipse attributes (doctrine F8-01). Times floor to the millisecond
+  (contract 4.2: a validity may be lowered, never raised). Refusals rather
+  than silent drops for everything the schema cannot carry. Verification:
+  the known-answer bytes are computed in the test from the field numbers and
+  an independent varint writer; three encoder mutants (the `uid` field
+  number, rounding instead of flooring, the typed route's attribute check)
+  each failed the suite, 3, 1 and 2 failures; with `TAK_PROTO_SITE` set the
+  mesh and stream bytes for the known event equal `takproto.xml2proto`'s and
+  `takproto.parse_mesh` reads a declared 2-D vessel's projection with every
+  checked field equal. Records: the adapter README (schema, mapping, the
+  typed route, refusals, what the encoding changes, the reader,
+  verification), the adapters overview line, this entry, the handoff's
+  current-state paragraph, the CHANGELOG, doctrine F8-01. No manifest-listed
+  artifact changed; the release manifest's state is as `develop` left it. No
+  TAK Server or client was driven; the adapter opens no connection.
 - **2026-11-02 (the decoders refuse ambiguity: `DECODE_AMBIGUOUS`).** On the
   maintainer's selection of 2026-11-02 in this repository's session (the
   carried list's item 4, option (a): refuse with a governed code; the

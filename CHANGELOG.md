@@ -2,6 +2,33 @@
 
 ## [Unreleased]
 
+- 2026-11-09 — **TAK Protocol Version 1 egress adapter**
+  (`adapters/egress/tak_protocol/`, Class C, Reference). A wire step over the
+  CoT egress projection: `zmeta_to_tak_protocol` runs `zmeta_to_cot` under
+  either profile and encodes the XML as a protobuf `TakMessage`, framed for
+  mesh (`bf 01 bf`) or stream (`bf` plus a varint length), with no protobuf
+  dependency; `cot_xml_to_tak_message` encodes CoT 2.0 XML from any source;
+  `read_tak_message` reads the bytes back and refuses an unknown field, a
+  wrong wire type, a repeated field or a bad frame by the decoders' rule of
+  2026-11-02. The typed detail children (`contact`, `__group`,
+  `precisionlocation`, `status`, `takv`, `track`) go to their typed fields
+  only when the typed message carries the element whole; otherwise the
+  element travels whole in `xmlDetail`, so the CoT projection's
+  `precisionlocation` keeps its ellipse attributes, which the typed message
+  has no field for. Times are floored to the millisecond, so `stale` is never
+  later than the event's claim. The adapter refuses, rather than drops, an
+  attribute or child the schema cannot carry, a comment, text inside
+  `detail`, an empty optional attribute, a version other than 2.0, a time
+  before 1970 and a typed numeric attribute that is not a number. Tests
+  (forty-two, plus two that cross-check against the `takproto` package when
+  `TAK_PROTO_SITE` names it) were written first and failed at collection; a
+  known-answer test holds hand-computed bytes, three encoder mutants each
+  failed the suite, and the mesh and stream bytes for the known event are
+  identical to `takproto`'s. No manifest-listed artifact changes; the
+  conformance classes are unchanged (the adapter is not a required surface
+  of `ZMETA-COT-PROJECTION`). Built on the maintainer's selection of
+  2026-11-09, taking the egress recce's first recommendation of 2026-11-03;
+  no TAK Server or client was driven.
 - 2026-11-02 — **The reference decoders refuse what they would have had to
   repair: `DECODE_AMBIGUOUS`.** A JSON object carrying one key twice decoded
   to the last value, and a protobuf message carrying a field number the schema

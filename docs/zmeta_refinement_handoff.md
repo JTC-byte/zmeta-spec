@@ -35,6 +35,19 @@ the merge; each branch's CHANGELOG entry then belongs under
 `[Unreleased]`, not inside the released `[1.1.27]` section where a clean
 merge would put it.
 
+Merged into `develop` on 2026-11-09: `exp/tak-protocol-egress-2026-11`, the
+TAK Protocol Version 1 egress adapter (`adapters/egress/tak_protocol/`, Class
+C, Reference), a wire step over the CoT projection with no new dependency;
+built on the maintainer's selection of 2026-11-09 taking the egress recce's
+first recommendation of 2026-11-03. The recce's next recommendations, each
+his word to open: MISB ST 0601 binary behind the KLV tag dict (the FMV
+plane's named gap; a build writes the target-location tags itself and
+verifies with a checksum-checking decoder), ASTERIX CAT021 for ADS-B
+observations and CAT062 for tracks (the items read from the editions first),
+GeoJSON as a labelled container, OGC SensorThings for observations at rest,
+DIS Entity State on the replay side. Not manifest-listed, so the release
+manifest's state is unchanged by the merge.
+
 Open, in order of proximity:
 
 1. **The consumers' re-pin to v1.1.27**, once at this tag in the order the
