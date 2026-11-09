@@ -5,7 +5,8 @@ They are intentionally minimal and may be lossy.
 
 - Ingress adapters: `adapters/ingress/`
 - Mapping packs: `adapters/mapping-packs/`
-- Egress projections: `adapters/egress/` (CoT, MissionIntent, JREAP, KLV, SAPIENT)
+- Egress projections: `adapters/egress/` (CoT and its TAK Protocol Version 1
+  wire form, MissionIntent, JREAP, KLV, SAPIENT)
 - Projectors: `adapters/projector/` (ZMeta in, ZMeta out)
 
 Building a new adapter? Start with the step-by-step authoring guide:
