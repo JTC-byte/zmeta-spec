@@ -105,6 +105,15 @@ Open, in order of proximity:
    organizations and a documented 2.6 failure the outer rings cannot
    solve; no second organization's need is on file, and the downstream
    deployments file the independent-need evidence when their DMZ exists.
+   Re-affirmed 2026-11-09 on the maintainer's selection, after a reading of
+   the downstream records: a peer organization's STATE and FUSION reach a
+   domain display, against producer authority and under a failure banner,
+   as display only, not as a fusion input or a command basis; the
+   downstream admission boundary's first slice is merged code deployed on
+   no host, and a boundary from the same maintainer cannot be the second
+   organization (the independence rule of 2026-09-30); the partner
+   federation is outbound only with an empty inbound group. Nothing moves
+   the candidate past `proposed`.
    What would make the question arguable is recorded: a peer's
    COMMAND_EVENT or STATE_EVENT used as a command basis or a fusion input on
    the strength of its declared producer; human authorization of a movement
