@@ -49,22 +49,27 @@ What the encoding changes, and what it refuses (the README has the table):
     `status`, `takv`, `track`) go to their typed fields only when the typed
     message carries the element whole: every attribute has a typed field,
     no attribute is empty (proto3 cannot tell an empty string from an absent
-    one), and the element has no text and no children. Otherwise the element
-    travels whole in `xmlDetail`, as every other child does. The CoT
-    projection's `<precisionlocation>` carries the error ellipse as
-    attributes the typed message has no field for, so it travels in
-    `xmlDetail` whenever the ellipse is present; `geopointsrc` and `altsrc`
-    alone go typed. A typed element's numeric attribute that is not a number
-    (`course="east"`, `battery="-1"`) refuses the event.
-  * A second element of one typed kind, an attribute of `<event>` or
-    `<point>` the schema has no field for, a child of `<event>` other than
-    `point` and `detail`, text directly inside `<detail>` or `<event>`, a
-    comment or processing instruction anywhere, a `version` other than
-    `2.0`, a missing `point` or point attribute, a point value that is not a
-    finite number, a missing or unparseable `time`, `start` or `stale`, and
-    an empty optional attribute (`access=""`, which proto3 would read back
-    as absent) all refuse: the adapter never drops a part of the event in
-    silence and never writes a claim the XML did not make. A refusal is the
+    one), every numeric field of the message is present (an absent number
+    would read back as 0, a value), and the element has no text and no
+    children. Otherwise the element travels whole in `xmlDetail`, as every
+    other child does. The CoT projection's `<precisionlocation>` carries the
+    error ellipse as attributes the typed message has no field for, so it
+    travels in `xmlDetail`; `geopointsrc` and `altsrc` alone go typed (a
+    shape the projection does not write, since it emits the element only
+    with an ellipse). A typed element's numeric attribute that is not a
+    number (`course="east"`, `battery="-1"`) refuses the event.
+  * Two elements of one typed kind that both qualify for the typed field
+    refuse the event, since the field holds one and choosing would drop the
+    other; when only one qualifies the other travels in `xmlDetail`. An
+    attribute of `<event>` or `<point>` the schema has no field for, a child
+    of `<event>` other than `point` and `detail`, text directly inside
+    `<detail>` or `<event>`, a comment, a document type declaration or a
+    processing instruction anywhere, a `version` other than `2.0`, a missing
+    `point` or point attribute, a point value that is not a finite number, a
+    missing or unparseable `time`, `start` or `stale`, and an empty optional
+    attribute (`access=""`, which proto3 would read back as absent) all
+    refuse: the adapter never drops a part of the event in silence and never
+    writes a claim the XML did not make. A refusal is the
     documented `None`, the CoT adapter's own signal; a caller that passes a
     `refusal` dict reads `TAK_PROTOCOL_UNREPRESENTABLE` there when the
     encoding, not the CoT projection, refused.
@@ -195,10 +200,16 @@ def _write_uint(field, value):
     return _key(field, _WIRE_VARINT) + _varint(value)
 
 
+_ZERO_DOUBLE = struct.pack("<d", 0.0)
+
+
 def _write_double(field, value):
-    if value == 0.0:
+    """A double; the proto3 default is written as absent. The comparison is
+    on the bits, as protobuf's own serializers compare, so -0.0 is written."""
+    packed = struct.pack("<d", value)
+    if packed == _ZERO_DOUBLE:
         return b""
-    return _key(field, _WIRE_FIXED64) + struct.pack("<d", value)
+    return _key(field, _WIRE_FIXED64) + packed
 
 
 def _write_message(field, payload):
@@ -210,15 +221,30 @@ def _write_message(field, payload):
 
 # --- the XML side ------------------------------------------------------------
 
+# Markup the encoding has no carrier for, anywhere in the document: a comment,
+# a document type declaration (whose entities the parser would expand into
+# content the event never carried), and a processing instruction other than
+# the XML declaration that may open the document. In well-formed XML these
+# sequences cannot occur inside text or an attribute value, so a text scan is
+# exact. CDATA sections are content and pass; the parser re-escapes them.
+_XML_DECLARATION = re.compile(r"\A\s*<\?xml\s[^?]*\?>")
+_FORBIDDEN_MARKUP = re.compile(r"<!--|<!DOCTYPE|<\?")
+
+
 def _parse(cot_xml):
-    """The parsed root, or None. Comments and processing instructions are kept
-    as nodes so the caller can refuse them instead of losing them."""
+    """The parsed root, or None. A comment, a document type declaration or a
+    processing instruction anywhere refuses here, before parsing; the parser
+    keeps any that reach it as nodes, so the caller can refuse those too."""
     if isinstance(cot_xml, bytes):
         try:
             cot_xml = cot_xml.decode("utf-8")
         except UnicodeDecodeError:
             return None
     if not isinstance(cot_xml, str) or not cot_xml.strip():
+        return None
+    if cot_xml.startswith("﻿"):
+        cot_xml = cot_xml[1:]
+    if _FORBIDDEN_MARKUP.search(_XML_DECLARATION.sub("", cot_xml, count=1)):
         return None
     parser = ET.XMLParser(target=ET.TreeBuilder(insert_comments=True, insert_pis=True))
     try:
@@ -232,8 +258,14 @@ def _is_blank(text):
 
 
 def _epoch_ms(text):
-    """Milliseconds since the epoch, floored, or None when the text is not an
-    RFC 3339 instant with an offset or lies before 1970."""
+    """Milliseconds since the epoch, floored, or None.
+
+    Accepts what `datetime.fromisoformat` accepts when it carries an offset
+    (`Z` is read as `+00:00`), which is wider than RFC 3339: a space in place
+    of `T`, a basic-format date, a week date. The CoT projection writes
+    `%Y-%m-%dT%H:%M:%S.%fZ`, which is inside both. Refuses text without an
+    offset, text the parser does not read, an instant before 1970 (no uint64)
+    and one the datetime module cannot convert."""
     if not isinstance(text, str) or not text:
         return None
     if text.endswith("Z"):
@@ -278,13 +310,22 @@ def _uint32(text):
 
 def _typed_route(element):
     """True when the typed message carries this element whole: every
-    attribute has a typed field, none is empty, and the element has neither
-    text nor children. False sends it whole to xmlDetail."""
+    attribute has a typed field, none is empty, every numeric field of the
+    message is present, and the element has neither text nor children. False
+    sends it whole to xmlDetail.
+
+    An absent string reads back as absent (proto3's empty default), so a
+    string attribute may be left out. An absent number would read back as
+    0, which is a value, so `<track course="90.0" />` without `speed` is not
+    carried typed: the reader could not tell it from a speed of 0.
+    """
     _, members = _TYPED_CHILDREN[element.tag]
     names = {attr for attr, _, _ in members}
     if not set(element.attrib) <= names:
         return False
     if any(value == "" for value in element.attrib.values()):
+        return False
+    if any(kind != "string" and attr not in element.attrib for attr, _, kind in members):
         return False
     if not _is_blank(element.text) or len(element) > 0:
         return False
@@ -509,6 +550,8 @@ def _read_varint(data, pos):
         pos += 1
         result |= (byte & 0x7F) << shift
         if not byte & 0x80:
+            if result > _UINT64_MAX:
+                raise ValueError("varint longer than 64 bits")
             return result, pos
         shift += 7
         if shift > 63:
@@ -566,10 +609,16 @@ def read_tak_message(data):
     into a dict of the fields present, nested as the schema nests them.
 
     Raises ValueError for a frame or message the schema does not describe:
-    a truncated or oversized stream frame, trailing bytes after it, an
-    unknown field, a wrong wire type, a repeated field, a truncated field.
+    an empty input, a truncated or oversized stream frame, trailing bytes
+    after it, an unknown field, a wrong wire type, a repeated field, a
+    truncated field, a string that is not UTF-8. The three bytes `bf 01 bf`
+    alone are read as an empty mesh frame (an empty TakMessage, `{}`); the
+    same bytes as a stream frame would carry a one-byte message, which no
+    TakMessage is.
     """
     data = bytes(data)
+    if not data:
+        raise ValueError("no bytes to read")
     if data.startswith(MESH_HEADER):
         body = data[len(MESH_HEADER):]
     elif data.startswith(STREAM_HEADER):

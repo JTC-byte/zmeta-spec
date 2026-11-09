@@ -15,20 +15,29 @@
   only when the typed message carries the element whole; otherwise the
   element travels whole in `xmlDetail`, so the CoT projection's
   `precisionlocation` keeps its ellipse attributes, which the typed message
-  has no field for. Times are floored to the millisecond, so `stale` is never
-  later than the event's claim. The adapter refuses, rather than drops, an
-  attribute or child the schema cannot carry, a comment, text inside
-  `detail`, an empty optional attribute, a version other than 2.0, a time
-  before 1970 and a typed numeric attribute that is not a number. Tests
-  (forty-two, plus two that cross-check against the `takproto` package when
-  `TAK_PROTO_SITE` names it) were written first and failed at collection; a
-  known-answer test holds hand-computed bytes, three encoder mutants each
-  failed the suite, and the mesh and stream bytes for the known event are
-  identical to `takproto`'s. No manifest-listed artifact changes; the
-  conformance classes are unchanged (the adapter is not a required surface
-  of `ZMETA-COT-PROJECTION`). Built on the maintainer's selection of
-  2026-11-09, taking the egress recce's first recommendation of 2026-11-03;
-  no TAK Server or client was driven.
+  has no field for; a numeric field left out of a typed element (`track`
+  without `speed`) also sends the element to `xmlDetail`, since an absent
+  number would read back as 0. Times are floored to the millisecond, so
+  `stale` is never later than the event's claim. The adapter refuses, rather
+  than drops, an attribute or child the schema cannot carry, a comment, a
+  document type declaration or a processing instruction anywhere in the
+  document, text inside `detail`, an empty optional attribute, a version
+  other than 2.0, a time before 1970, a typed numeric attribute that is not a
+  number, and two elements of one typed kind that both qualify for the typed
+  field. Tests (fifty-two, plus two that cross-check against the `takproto`
+  package when `TAK_PROTO_SITE` names it) were written first and failed at
+  collection; two known-answer tests hold hand-computed bytes, one setting
+  every typed field; three encoder mutants each failed the suite and a
+  fourth, which moved the typed messages' field numbers and passed the first
+  known answer, is caught by the second; the mesh bytes for the known events
+  and the stream bytes for the first are identical to `takproto`'s. No manifest-listed artifact
+  changes; the conformance class manifest is unchanged (the adapter is not a
+  required surface of `ZMETA-COT-PROJECTION`); `adapters/README.md`, a
+  required surface of `ZMETA-ADAPTER`, gains one line, and the governed-doc
+  tests that read it pass. Built on the maintainer's selection of 2026-11-09,
+  taking the egress recce's first recommendation of 2026-11-03; a seeded
+  refuter's twenty findings applied in the branch's second commit; no TAK
+  Server or client was driven.
 - 2026-11-02 — **The reference decoders refuse what they would have had to
   repair: `DECODE_AMBIGUOUS`.** A JSON object carrying one key twice decoded
   to the last value, and a protobuf message carrying a field number the schema

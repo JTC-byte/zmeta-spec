@@ -11,12 +11,14 @@
   took option (a): the egress adapter builds open with TAK Protocol Version 1
   first, then the signing tripwire's question, behind the demonstration
   lanes' rulings), the branch `exp/tak-protocol-egress-2026-11` off `develop`
-  c1f5800, one commit, Class C. The egress recce of 2026-11-03 (a private
-  session record) ranked this first of six candidates and measured the shape
-  through the `takproto` package: 809 fielded and 1,680 live-derived events
-  through the CoT projection to protobuf and back with no field mismatch.
-  Tests first: forty-four in `adapters/egress/tak_protocol/test_tak_protocol_egress.py`
-  (two run only when `TAK_PROTO_SITE` names a directory holding `takproto`),
+  c1f5800, two commits, Class C. The egress recce of 2026-11-03 (a private
+  session record) assessed fifteen rows of formats, ranked six for a build,
+  placed this one first, and measured the shape
+  through the `takproto` package: 809 events of the producers' run 7 and
+  1,680 live ADS-B events through the CoT projection to protobuf and back with
+  no field mismatch. Tests first: forty-two in
+  `adapters/egress/tak_protocol/test_tak_protocol_egress.py`, plus two that
+  run only when `TAK_PROTO_SITE` names a directory holding `takproto`,
   which failed at collection with no module; then the module
   `zmeta_to_tak_protocol.py`: a hand-written canonical proto3 encoder for the
   TAK Protocol Version 1 schema (field numbers checked against `takproto`'s
@@ -36,9 +38,37 @@
   checked field equal. Records: the adapter README (schema, mapping, the
   typed route, refusals, what the encoding changes, the reader,
   verification), the adapters overview line, this entry, the handoff's
-  current-state paragraph, the CHANGELOG, doctrine F8-01. No manifest-listed
-  artifact changed; the release manifest's state is as `develop` left it. No
-  TAK Server or client was driven; the adapter opens no connection.
+  current-state paragraph, the CHANGELOG, doctrine F8-01 and F8-02. No
+  manifest-listed artifact changed; the release manifest's state is as
+  `develop` left it. `adapters/README.md` is a required surface of
+  `ZMETA-ADAPTER` and a governed-doc test surface; the two test files that
+  read it pass (42). The second commit applies a seeded refuter's twenty
+  findings (Opus 5.5, read-only, on the first commit with one planted
+  contradiction in the README, found): the encoder writes `-0.0` (a bit
+  comparison, as protobuf's serializers compare), refuses a comment, a
+  document type declaration or a processing instruction outside the root
+  element too (a text scan before parsing; the parser dropped those in
+  silence), sends a typed element with a numeric field left out to
+  `xmlDetail` (an absent number reads back as 0), the reader bounds a varint
+  at 64 bits and refuses an empty input; a second known answer sets every
+  typed field, because a fourth mutant that moved the typed messages' field
+  numbers had passed the suite; the reader's repeated-field, trailing-bytes,
+  non-UTF-8 and wide-varint refusals and the `refusal` dict gain tests; the
+  documents' over-statements corrected (two typed elements refuse only when
+  both qualify; the projection writes `precisionlocation` only with an
+  ellipse, so the typed field is never reached through it; the gateway does
+  not yet call the adapter; the doctrine entries are OPEN, not HELD-FIRM,
+  under the log's own protocol). Suite after: 52 passed, 2 skipped; 54 with
+  `TAK_PROTO_SITE`. Gates in the worktree on the second commit's tree: the
+  focused suite and the two governed-doc test files 94 passed, 2 skipped;
+  examples 51 of 51; roadmap ok; `git diff --check` clean; the kernel gate
+  stops at the release-manifest pins as it does on `develop` since 2026-11-02
+  (no manifest-listed artifact changed here); the full battery under the
+  estate's heavy-run lock 2107 passed, 4 skipped, 1273 subtests passed,
+  13 failed, the thirteen being the release-manifest pin tests
+  (`test_release_manifest.py`, `test_release_package.py`) that fail on
+  `develop` until the next cut, no feature failure. No TAK Server or client
+  was driven; the adapter opens no connection.
 - **2026-11-02 (the decoders refuse ambiguity: `DECODE_AMBIGUOUS`).** On the
   maintainer's selection of 2026-11-02 in this repository's session (the
   carried list's item 4, option (a): refuse with a governed code; the

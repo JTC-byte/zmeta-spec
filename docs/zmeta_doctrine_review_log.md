@@ -3793,60 +3793,73 @@ same ruling (digits a binary64 cannot hold) was decided with C1-07 on
 
 Two tensions met while building the TAK Protocol Version 1 egress adapter
 (`adapters/egress/tak_protocol/`), a wire step over the CoT projection, on
-the maintainer's selection of 2026-11-09. Both resolved in the documents'
-favour; both are recorded because the same pressure will return with every
-binary wire form the egress set grows into.
+the maintainer's selection of 2026-11-09. In both the build implemented what
+the documents already permit (protocol step 1) and the entries are OPEN for
+the separate adjudication pass (step 4); they are recorded because the same
+pressure will return with every binary wire form the egress set grows into.
 
-### F8-01 — The typed `PrecisionLocation` message cannot carry the ellipse the CoT projection writes · **HELD-FIRM 2026-11-09 (the element travels whole in `xmlDetail`)**
+### F8-01 — The typed `PrecisionLocation` message cannot carry the ellipse the CoT projection writes · **OPEN 2026-11-09 (the build sends the element whole in `xmlDetail`; adjudication at the next pass)**
 
 **Observed:** TAK Protocol Version 1 types six detail children. Its
 `PrecisionLocation` message has two fields, `geopointsrc` and `altsrc`. The
 CoT projection's `<precisionlocation>` also carries `ellipse_major`,
-`ellipse_minor` and `ellipse_angle` when a position source is configured:
-the one place the projection carries the uncertainty's shape rather than its
-circular bound. The `takproto` package, the common Python encoder, types the
+`ellipse_minor` and `ellipse_angle` (it writes the element only when a
+position source is configured and the event carries an ellipse with a
+`semi_major`): the one
+structured place the projection carries the uncertainty's shape rather than
+its circular bound, the standard profile's `remarks` carrying it as text. The
+`takproto` package, the common Python encoder, types the
 element and drops the other attributes without a word. A reader of the typed
 field alone would see a position source and no ellipse; nothing would say an
 ellipse had been written.
 
-**The tension:** design gate 5 (structure is authoritative) favours the typed
-field, which is what a typed consumer reads; design gate 3 (no laundering)
-and contract 3.4 (preserve source-authored fields) forbid dropping the
-attributes in silence. The wire form offers no carrier that is both typed and
-whole.
+**The tension:** a typed consumer reads the typed field, and design gate 5
+(structure is authoritative) names CoT's `<detail>` sub-elements as the
+structured form, which an element in `xmlDetail` still is; design gate 3 (no
+laundering) and contract 3.4 (preserve source-authored fields) forbid
+dropping the attributes in silence. The wire form offers no carrier that is
+both typed and whole.
 
-**Decision:** the documents won. A typed child goes to its typed field only
-when the typed message carries the element whole (every attribute has a
-field, none is empty, no text, no children); otherwise the element travels
-whole in `xmlDetail`, where a reader that rebuilds `<detail>` sees it as it
-was written. The cost is named in the adapter README: a consumer that reads
-only the typed field sees nothing for such an event. The same rule sends a
-`<contact>` with a `phone` attribute, or an empty attribute (proto3 cannot
-tell an empty string from an absent one), whole into `xmlDetail`. A typed
-element whose numeric attribute is not a number, and two elements of one
-typed kind, refuse the event rather than choose. The pattern to watch: a
-binary standard whose typed vocabulary is narrower than CoT's attribute
-space; MISB ST 0601 and ASTERIX will meet it next with no `xmlDetail` to
-fall back on, and there the loss register, not a carrier, is the answer.
+**The build's reading, for adjudication:** the documents permit the whole
+element in `xmlDetail`, so that is what the build does. A typed child goes to
+its typed field only when the typed message carries the element whole (every
+attribute has a field, none is empty, every numeric field present, no text,
+no children); otherwise the element travels whole in `xmlDetail`, where a
+reader that rebuilds `<detail>` sees it as it was written. The cost is named
+in the adapter README: a consumer that reads only the typed field sees
+nothing for such an event. The same rule sends a `<contact>` with a `phone`
+attribute, an empty attribute (proto3 cannot tell an empty string from an
+absent one), or a `<track>` with one of its two numbers (an absent number
+would read back as 0) whole into `xmlDetail`. A typed element whose numeric
+attribute is not a number, and two elements of one typed kind that both
+qualify for the typed field, refuse the event rather than choose. The
+question for the pass is whether a deployment may elect the typed field and
+the ellipse's loss by name, as the `cds` profile elects other losses. The
+pattern to watch is a binary standard whose typed vocabulary is narrower
+than CoT's attribute space; MISB ST 0601 and ASTERIX will meet it next with
+no `xmlDetail` to fall back on, and there the answer is the loss register.
 
-### F8-02 — Millisecond times on a wire for a projection that writes microseconds · **HELD-FIRM 2026-11-09 (floor, never round)**
+### F8-02 — Millisecond times on a wire for a projection that writes microseconds · **OPEN 2026-11-09 (the build floors, never rounds; adjudication at the next pass)**
 
 **Observed:** the protobuf times are unsigned milliseconds since the epoch;
 the CoT projection writes `time`, `start` and `stale` to the microsecond.
-Rounding to the nearest millisecond would, half the time, move `stale` later
-than the event's own claim by up to half a millisecond.
+Rounding to the nearest millisecond would move `stale` later than the
+event's own claim, by up to half a millisecond, whenever the dropped
+microseconds reach five hundred (times built from a whole-millisecond `ts`
+and `valid_for_ms` carry none; a producer's own microseconds may).
 
 **The tension:** contract 4.2 lets a projection lower a validity and never
 raise it; contract 14 requires a display projection to preserve
 `valid_for_ms` as stale behaviour. A sub-millisecond lengthening is
 immaterial to any display and would be the simplest code.
 
-**Decision:** the documents won, at no cost: the adapter floors every time,
-so `stale` is never later than the claim and `time` and `start` never move
-forward. A mutant that rounds fails the suite (the time test). A time before
-1970 has no unsigned representation and refuses rather than wraps. Recorded
-so the next wire form with coarser time (ASTERIX's 1/128 s) applies the same
-rule and says so.
+**The build's reading, for adjudication:** the documents permit the floor at
+no cost, so the adapter floors every time: `stale` is never later than the
+claim and `time` and `start` never move forward. A mutant that rounds fails
+the suite (the time test). A time before 1970 has no unsigned representation
+and refuses rather than wraps. The question for the pass is only whether the
+rule is stated once for every wire form with coarser time (ASTERIX's 1/128 s
+next), so each adapter applies it and says so.
 
 ## Archive
 
