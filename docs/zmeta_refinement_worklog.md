@@ -2,10 +2,28 @@
 
 ## Current Resume Note
 
-- Last updated: 2026-11-09 (the TAK Protocol Version 1 egress adapter;
-  DECODE_AMBIGUOUS, three commits, the third on 2026-11-03; two contract
-  sentences; carried-list records pass; heading_deg defined; records pass
-  after 7.6)
+- Last updated: 2026-11-09 (the signing tripwire re-affirmed not fired; the
+  pre-cut dry run; the TAK Protocol Version 1 egress adapter; DECODE_AMBIGUOUS,
+  three commits, the third on 2026-11-03; two contract sentences;
+  carried-list records pass; heading_deg defined; records pass after 7.6)
+- **2026-11-09 (the signing tripwire, and the pre-cut dry run).** On the
+  maintainer's selection of 2026-11-09, handoff item 4 records that the
+  signing tripwire (roadmap `event-signing-anti-replay`; the downstream
+  register's DR-15) has not fired, re-affirmed after a reading of the
+  downstream records; the evidence is in the item. The same selection took
+  the pre-cut dry run: every leg `RELEASE_CHECKLIST.md` names for a
+  runtime-code cut was run on `develop` dffe599 with no cut (the twelve gate
+  legs, ten green and the two release-manifest pin legs red until a cut; the
+  two live runtime harnesses, both passed; the gateway container by the
+  v1.1.27 report's compose command, its four hashes equal to the host's and
+  one shipped event forwarded with its CoT and the same two expected
+  warnings as that report). No feature failure. The next cut, v1.1.28, waits
+  until after the demonstration and comes on the maintainer's word, with
+  more testing and validation first by his line of the same day. Booked for
+  a records branch on his word: `RELEASE_CHECKLIST.md` :125 names a "Docker
+  build" the tree does not define (no Dockerfile); the leg the validation
+  reports run is `docker compose -f deploy/gateway/docker-compose.yml up`,
+  and the line should name that command and what "verified" means.
 - **2026-11-09 (TAK Protocol Version 1 egress).** On the maintainer's
   selection of 2026-11-09 (his "all recommended" on the open decisions, which
   took option (a): the egress adapter builds open with TAK Protocol Version 1
