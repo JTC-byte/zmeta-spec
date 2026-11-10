@@ -49,6 +49,19 @@ GeoJSON as a labelled container, OGC SensorThings for observations at rest,
 DIS Entity State on the replay side. Not manifest-listed, so the release
 manifest's state is unchanged by the merge.
 
+The branch `exp/tak-protocol-first-contact-2026-11` (2026-11-10) changes
+that adapter before its first contact with a server or client, on the
+maintainer's selection of 2026-11-10 after an independent review against the
+published protocol documents: `how` is required; the typed route follows
+the published required items and the published sender rule;
+`tak_control_message` writes the mesh announcement; the README states what a
+sender does on mesh and on a stream. The adapter is still unreleased. By the
+maintainer's selection of the same day, three field legs come before the
+next cut, each the other lane's act on his word: the plane drives this
+adapter against a TAK Server and one client, a real sender exercises the
+`DECODE_AMBIGUOUS` refusal, and one consumer runs a `develop` gateway for a
+day.
+
 Open, in order of proximity:
 
 1. **The consumers' re-pin to v1.1.27**, once at this tag in the order the

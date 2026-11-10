@@ -32,8 +32,9 @@ package's descriptors on 2026-11-09):
 
 The encoder is written here against that schema, with no protobuf dependency,
 in the canonical proto3 form: fields in field-number order, a scalar equal to
-its default (an empty string, 0, 0.0) written as absent. `takControl` is not
-written; it is a connection negotiation, not part of the event.
+its default (an empty string, 0, 0.0) written as absent. An event message
+carries no `takControl`; `tak_control_message` writes the standalone
+announcement the published mesh rules ask a sender to broadcast.
 
 Framing: `mesh` prefixes the message with the three bytes `bf 01 bf`; `stream`
 prefixes it with `bf` and the message length as a base-128 varint; `none`
@@ -47,22 +48,29 @@ What the encoding changes, and what it refuses (the README has the table):
     never raise it). A time before 1970 has no uint64 and is refused.
   * The typed detail children (`contact`, `__group`, `precisionlocation`,
     `status`, `takv`, `track`) go to their typed fields only when the typed
-    message carries the element whole: every attribute has a typed field,
-    no attribute is empty (proto3 cannot tell an empty string from an absent
-    one), every numeric field of the message is present (an absent number
-    would read back as 0, a value), and the element has no text and no
-    children. Otherwise the element travels whole in `xmlDetail`, as every
-    other child does. The CoT projection's `<precisionlocation>` carries the
-    error ellipse as attributes the typed message has no field for, so it
-    travels in `xmlDetail`; `geopointsrc` and `altsrc` alone go typed (a
-    shape the projection does not write, since it emits the element only
-    with an ellipse). A typed element's numeric attribute that is not a
-    number (`course="east"`, `battery="-1"`) refuses the event.
-  * Two elements of one typed kind that both qualify for the typed field
-    refuse the event, since the field holds one and choosing would drop the
-    other; when only one qualifies the other travels in `xmlDetail`. An
-    attribute of `<event>` or `<point>` the schema has no field for, a child
-    of `<event>` other than `point` and `detail`, text directly inside
+    message carries the element whole and the published message takes it:
+    every attribute has a typed field, no attribute is empty (proto3 cannot
+    tell an empty string from an absent one), every item of the message is
+    present except the contact's endpoint (the published messages mark every
+    item required unless noted, and note only that one as optional), and the
+    element has no text and no children. Otherwise the element travels whole
+    in `xmlDetail`, as every other child does. The CoT projection's
+    `<precisionlocation>` carries the error ellipse as attributes the typed
+    message has no field for, so it travels in `xmlDetail`; `geopointsrc` and
+    `altsrc` alone go typed (a shape the projection does not write, since it
+    emits the element only with an ellipse).
+  * Two elements of one typed kind both travel in `xmlDetail` and neither is
+    typed, and a typed element whose numeric attribute is not a number
+    (`course="east"`, `battery="-1"`) travels in `xmlDetail` too. That is the
+    published sender rule: when a child appears more times than its message
+    field holds, or mapping it fails, the element stays in the XML and the
+    field is not populated. The event is sent, and each element travels as
+    it was written.
+  * `how` is required, as the published schema requires it. The CoT
+    projection writes `how` only when the deployment configures one, so an
+    event with none is refused here.
+  * An attribute of `<event>` or `<point>` the schema has no field for, a
+    child of `<event>` other than `point` and `detail`, text directly inside
     `<detail>` or `<event>`, a comment, a document type declaration or a
     processing instruction anywhere, a `version` other than `2.0`, a missing
     `point` or point attribute, a point value that is not a finite number, a
@@ -71,8 +79,9 @@ What the encoding changes, and what it refuses (the README has the table):
     refuse: the adapter never drops a part of the event in silence and never
     writes a claim the XML did not make. A refusal is the
     documented `None`, the CoT adapter's own signal; a caller that passes a
-    `refusal` dict reads `TAK_PROTOCOL_UNREPRESENTABLE` there when the
-    encoding, not the CoT projection, refused.
+    `refusal` dict reads `TAK_PROTOCOL_HOW_REQUIRED` there when a missing
+    `how` is the one thing refused, and `TAK_PROTOCOL_UNREPRESENTABLE` for
+    any other refusal of the encoding.
   * Attribute values become float64 (`lat`, `lon`, `hae`, `ce`, `le`,
     `course`, `speed`): a decimal with more digits than a double holds is
     rounded to the nearest double, which the XML form, as text, was not.
@@ -88,9 +97,11 @@ frame and trailing bytes, by the rule of the repository's own decoders
 decode. It is not the proof of the encoder; the known-answer bytes in the
 tests and the optional `takproto` cross-check are.
 
-Not covered here: the connection itself (TakControl, TLS, the stream's
-message boundaries beyond one frame) and any TAK Server or client's
-acceptance of the bytes, which no test in this repository drives.
+Not covered here: the connection itself (on mesh, tracking the contacts and
+choosing the version to send; on a stream, the XML negotiation that comes
+before any frame; TLS; the stream's message boundaries beyond one frame) and
+any TAK Server or client's acceptance of the bytes, which no test in this
+repository drives. The README lists what a sender does around these bytes.
 """
 
 import copy
@@ -109,12 +120,17 @@ STREAM_HEADER = b"\xbf"
 FRAMINGS = ("mesh", "stream", "none")
 COT_VERSION = "2.0"
 
-# The refusal reason written to a caller's `refusal` dict when the encoding,
-# not the CoT projection, refused.
+# The refusal reasons written to a caller's `refusal` dict when the encoding,
+# not the CoT projection, refused: the CoT XML holds something the encoding
+# cannot carry, or the event has no `how`, which the published schema requires
+# and the CoT projection writes only when the deployment configures one.
 REFUSAL_UNREPRESENTABLE = "TAK_PROTOCOL_UNREPRESENTABLE"
+REFUSAL_HOW_REQUIRED = "TAK_PROTOCOL_HOW_REQUIRED"
 
 _UINT32_MAX = 2**32 - 1
 _UINT64_MAX = 2**64 - 1
+# The published range of the stream header's length varint.
+_STREAM_LENGTH_MAX = 2**63 - 1
 _EPOCH = datetime(1970, 1, 1, tzinfo=timezone.utc)
 _ONE_MS = timedelta(milliseconds=1)
 
@@ -128,6 +144,10 @@ _DIGITS = re.compile(r"[0-9]+")
 # is the XML form's own and must be 2.0, the CoT this schema encodes.
 _EVENT_STRINGS = (("type", 1), ("access", 2), ("qos", 3), ("opex", 4), ("uid", 5), ("how", 9))
 _EVENT_TIMES = (("time", 6), ("start", 7), ("stale", 8))
+# The published CotEvent marks every item required unless noted, and notes
+# `access`, `qos`, `opex` and `detail` as optional. `how` carries no note, so
+# it is required too; it is checked last, so that a missing `how` is named
+# only when it is the one thing the encoding refuses.
 _EVENT_REQUIRED = ("type", "uid", "time", "start", "stale")
 _EVENT_ATTRIBUTES = frozenset(("version",) + tuple(n for n, _ in _EVENT_STRINGS) + tuple(n for n, _ in _EVENT_TIMES))
 _POINT_DOUBLES = (("lat", 10), ("lon", 11), ("hae", 12), ("ce", 13), ("le", 14))
@@ -308,16 +328,22 @@ def _uint32(text):
     return value
 
 
-def _typed_route(element):
-    """True when the typed message carries this element whole: every
-    attribute has a typed field, none is empty, every numeric field of the
-    message is present, and the element has neither text nor children. False
-    sends it whole to xmlDetail.
+# The one item the published typed messages note as optional.
+_TYPED_OPTIONAL = frozenset({("contact", "endpoint")})
 
-    An absent string reads back as absent (proto3's empty default), so a
-    string attribute may be left out. An absent number would read back as
-    0, which is a value, so `<track course="90.0" />` without `speed` is not
-    carried typed: the reader could not tell it from a speed of 0.
+
+def _typed_route(element):
+    """True when the typed message carries this element whole and the
+    published message takes it: every attribute has a typed field, none is
+    empty, every item of the message is present except the contact's
+    endpoint, and the element has neither text nor children. False sends it
+    whole to xmlDetail.
+
+    The published messages mark every item required unless noted, and a
+    missing item on send falls back to the XML form; the contact's endpoint
+    is the one item noted as optional. An absent number would also read back
+    as 0, which is a value, so `<track course="90.0" />` without `speed`
+    could not be told from a speed of 0.
     """
     _, members = _TYPED_CHILDREN[element.tag]
     names = {attr for attr, _, _ in members}
@@ -325,7 +351,7 @@ def _typed_route(element):
         return False
     if any(value == "" for value in element.attrib.values()):
         return False
-    if any(kind != "string" and attr not in element.attrib for attr, _, kind in members):
+    if any(attr not in element.attrib and (element.tag, attr) not in _TYPED_OPTIONAL for attr, _, _ in members):
         return False
     if not _is_blank(element.text) or len(element) > 0:
         return False
@@ -363,28 +389,37 @@ def _serialize_child(element):
 
 
 def _encode_detail(detail):
-    """The Detail message bytes, or None on a refusal."""
+    """The Detail message bytes, or None on a refusal.
+
+    The published sender rule (detail.proto, rule 1): a child that populates
+    a message field is removed from the XML; when the same child appears more
+    times than its field holds, or mapping it to the message fails, the
+    element stays in the XML and the field is not populated. So two elements
+    of one typed kind both travel in xmlDetail, and so does a typed element
+    whose numeric attribute is not a number. Neither refuses the event, and
+    nothing is dropped: each element travels as it was written.
+    """
     if not _is_blank(detail.text):
         return None
-    xml_detail = []
-    typed = {}
-    for child in detail:
+    children = list(detail)
+    for child in children:
         if not isinstance(child.tag, str):
             # A comment or processing instruction: no carrier, never dropped.
             return None
         if not _is_blank(child.tail):
             return None
-        if child.tag in _TYPED_CHILDREN and _typed_route(child):
-            field = _TYPED_CHILDREN[child.tag][0]
-            if field in typed:
-                # Two elements of one typed kind: the field holds one, and
-                # choosing would drop the other.
-                return None
+    seen = {}
+    for child in children:
+        if child.tag in _TYPED_CHILDREN:
+            seen[child.tag] = seen.get(child.tag, 0) + 1
+    xml_detail = []
+    typed = {}
+    for child in children:
+        if child.tag in _TYPED_CHILDREN and seen[child.tag] == 1 and _typed_route(child):
             encoded = _encode_typed(child)
-            if encoded is None:
-                return None
-            typed[field] = encoded
-            continue
+            if encoded is not None:
+                typed[_TYPED_CHILDREN[child.tag][0]] = encoded
+                continue
         xml_detail.append(_serialize_child(child))
     out = _write_string(_XML_DETAIL_FIELD, "".join(xml_detail))
     for field in sorted(typed):
@@ -396,44 +431,57 @@ def cot_xml_to_tak_message(cot_xml):
     """Encode one CoT XML event as a TAK Protocol Version 1 `TakMessage`.
 
     Returns the message bytes without framing, or None when the XML does not
-    parse, is not a CoT 2.0 event, or carries anything the encoding cannot
-    hold without loss or invention (the module docstring lists the cases).
+    parse, is not a CoT 2.0 event, has no `how`, or carries anything the
+    encoding cannot hold without loss or invention (the module docstring
+    lists the cases).
     """
+    return _encode_event(cot_xml)[0]
+
+
+def _encode_event(cot_xml):
+    """`(message, None)`, or `(None, reason)` on a refusal.
+
+    The reason is REFUSAL_HOW_REQUIRED only when a missing `how` is the one
+    thing refused: every other check runs first, so an event that would be
+    refused anyway reads REFUSAL_UNREPRESENTABLE, and setting `how` clears
+    exactly the refusals that name it.
+    """
+    refused = (None, REFUSAL_UNREPRESENTABLE)
     root = _parse(cot_xml)
     if root is None or root.tag != "event":
-        return None
+        return refused
     for node in root.iter():
         if not isinstance(node.tag, str):
-            return None
+            return refused
     if not _is_blank(root.text):
-        return None
+        return refused
     attrs = root.attrib
     if not set(attrs) <= _EVENT_ATTRIBUTES:
-        return None
+        return refused
     if attrs.get("version") != COT_VERSION:
-        return None
+        return refused
     for name in _EVENT_REQUIRED:
         if not attrs.get(name):
-            return None
+            return refused
     for name, _ in _EVENT_STRINGS:
         if name in attrs and attrs[name] == "":
-            return None
+            return refused
 
     point = None
     detail = None
     for child in root:
         if not _is_blank(child.tail):
-            return None
+            return refused
         if child.tag == "point" and point is None:
             point = child
         elif child.tag == "detail" and detail is None:
             detail = child
         else:
-            return None
+            return refused
     if point is None:
-        return None
+        return refused
     if set(point.attrib) != _POINT_ATTRIBUTES or not _is_blank(point.text) or len(point) > 0:
-        return None
+        return refused
 
     out = b""
     strings = dict(_EVENT_STRINGS)
@@ -447,21 +495,25 @@ def cot_xml_to_tak_message(cot_xml):
     for name in ("time", "start", "stale"):
         ms = _epoch_ms(attrs[name])
         if ms is None:
-            return None
+            return refused
         out += _write_uint(times[name], ms)
     if "how" in attrs:
         out += _write_string(strings["how"], attrs["how"])
     for name in ("lat", "lon", "hae", "ce", "le"):
         value = _finite_double(point.attrib[name])
         if value is None:
-            return None
+            return refused
         out += _write_double(doubles[name], value)
     if detail is not None:
         encoded = _encode_detail(detail)
         if encoded is None:
-            return None
+            return refused
         out += _write_message(_DETAIL_FIELD, encoded)
-    return _write_message(2, out)
+    if "how" not in attrs:
+        # Everything else encodes. The published schema requires `how`, and
+        # the adapter does not invent one.
+        return None, REFUSAL_HOW_REQUIRED
+    return _write_message(2, out), None
 
 
 # --- framing -----------------------------------------------------------------
@@ -485,6 +537,39 @@ def frame_stream(message):
 
 
 _FRAMERS = {"mesh": frame_mesh, "stream": frame_stream, "none": bytes}
+
+
+# --- the mesh announcement -----------------------------------------------------
+
+def tak_control_message(contact_uid, max_version=1):
+    """A `TakMessage` that carries only `takControl`: the announcement the
+    published mesh rules ask a device that speaks a version above 0 to
+    broadcast at least once every 60 seconds, and again at once whenever the
+    version it sends changes. It states the lowest and the highest TAK
+    Protocol version the sending device can decode. Frame it with
+    `frame_mesh`.
+
+    The announced minimum is always 1. `frame_mesh` writes a version 1
+    frame, and the published ground rule says a client that sends version V
+    also decodes version V, so a sender of these frames decodes version 1.
+    `max_version` is 1 by default, the version this module encodes and reads;
+    a deployment whose receiving side decodes a later version says so. The
+    published rules allow no version of 0 in the message.
+
+    `contact_uid` is the uid of the sending contact. The published message
+    lets it be left out only when the message is paired with a CotEvent that
+    carries it; this helper writes the standalone form, so it is required.
+
+    Raises ValueError for a contact uid that is not a non-empty string, or a
+    maximum that is not an integer from 1 to 2^32 - 1: a configuration error,
+    as an unknown framing is.
+    """
+    if not isinstance(contact_uid, str) or not contact_uid:
+        raise ValueError("contact_uid must be a non-empty string")
+    if isinstance(max_version, bool) or not isinstance(max_version, int) or not 1 <= max_version <= _UINT32_MAX:
+        raise ValueError(f"max_version must be an integer from 1 to {_UINT32_MAX}, got {max_version!r}")
+    control = _write_uint(1, 1) + _write_uint(2, max_version) + _write_string(3, contact_uid)
+    return _write_message(1, control)
 
 
 # --- the adapter entry point ---------------------------------------------------
@@ -515,8 +600,10 @@ def zmeta_to_tak_protocol(event, cot_config=None, now=None, framing="mesh", refu
         now: the projection instant, passed through to the CoT adapter.
         framing: "mesh" (default), "stream" or "none".
         refusal: an optional dict; the CoT adapter writes its cds reasons
-            there, and this adapter writes TAK_PROTOCOL_UNREPRESENTABLE when
-            the encoding refused a CoT string the projection produced.
+            there, and this adapter writes TAK_PROTOCOL_HOW_REQUIRED when a
+            missing `how` is the one thing the encoding refuses (set `how`
+            in cot_config), and TAK_PROTOCOL_UNREPRESENTABLE when the
+            encoding refused the XML for any other reason.
 
     Returns:
         The framed bytes, or None on any refusal: the CoT adapter's (wrong
@@ -530,10 +617,10 @@ def zmeta_to_tak_protocol(event, cot_config=None, now=None, framing="mesh", refu
     cot_xml = _cot().zmeta_to_cot(event, cot_config=cot_config, now=now, refusal=refusal)
     if cot_xml is None:
         return None
-    message = cot_xml_to_tak_message(cot_xml)
+    message, reason = _encode_event(cot_xml)
     if message is None:
         if isinstance(refusal, dict):
-            refusal["reason"] = REFUSAL_UNREPRESENTABLE
+            refusal["reason"] = reason
         return None
     return _FRAMERS[framing](message)
 
@@ -623,6 +710,8 @@ def read_tak_message(data):
         body = data[len(MESH_HEADER):]
     elif data.startswith(STREAM_HEADER):
         length, pos = _read_varint(data, len(STREAM_HEADER))
+        if length > _STREAM_LENGTH_MAX:
+            raise ValueError("stream frame length exceeds 2^63 - 1, the published range of the header varint")
         if pos + length != len(data):
             raise ValueError("stream frame length does not match the bytes present")
         body = data[pos:]

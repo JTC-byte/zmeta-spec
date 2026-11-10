@@ -2,6 +2,49 @@
 
 ## [Unreleased]
 
+- 2026-11-10 — **TAK Protocol Version 1 egress adapter, before its first
+  contact with a server or client: `how` required, the published sender rule
+  for typed children, the mesh announcement, and a sender's steps**
+  (`adapters/egress/tak_protocol/`, Class C, Reference; the adapter has not
+  been released). An independent review read the adapter against the `.proto`
+  files and the protocol text published in the ATAK-CIV repository. The bytes
+  of a track from the CoT projection matched the published schema. Four
+  things change. (1) `how` is required, as the published `CotEvent` requires
+  it: an event whose projection has no `how` is refused, and a caller's
+  `refusal` dict reads `TAK_PROTOCOL_HOW_REQUIRED` when the missing `how` is
+  the one thing refused. The CoT projection writes `how` only when
+  `cot_config` sets it, so a deployment sets it. (2) A typed
+  detail child goes to its typed field only when every item of the published
+  message is present, except the contact's `endpoint`, the one item the
+  published messages note as optional. Before, a string item could be left
+  out. (3) Two elements of one typed kind both travel in `xmlDetail` with
+  neither typed, and a typed element whose numeric attribute is not a number
+  travels in `xmlDetail` as it was written; the event is sent. Both cases
+  refused the event before, and where only one of two elements qualified the
+  adapter typed that one, which a receiver that follows the published rule
+  ignores. This replaces the last two refusals listed in the entry of
+  2026-11-09 below. (4) `tak_control_message` writes the standalone
+  `TakControl` announcement that the published mesh rules ask a sender to
+  broadcast, always with a minimum version of 1, and the reader refuses a
+  stream length beyond 2^63 - 1, the published range. The README gains "What a sender does": on mesh, one frame
+  per datagram, the announcement at least once every 60 seconds, and the
+  version that all known contacts support; on a stream, XML first and a
+  negotiation of three XML events before any frame. It no longer calls
+  `takControl` a stream's negotiation. Neither (2) nor (3) can occur with the
+  CoT projection's own output; they apply to CoT XML from another source.
+  Tests were written first, in two rounds: seven new or changed tests failed
+  against the module as it stood, and after an independent reviewer's
+  findings two more failed against the first change. Fifty-eight pass now,
+  and sixty when `takproto` is present, its byte comparison for the known
+  events unchanged. Fifteen mutants were each run against the suite and each
+  failed it: thirteen of the change, and two of the required-attribute
+  checks beside it. The reviewer read the change against the published text,
+  found the error planted for it, and its seven other findings are applied.
+  A separate factual pass over these records found the error planted for it
+  and one statement that no test pinned (a missing or empty `type` or `uid`
+  is refused), which now has a test.
+  No manifest-listed artifact changes. Built on the maintainer's selection of
+  2026-11-10. No TAK Server or client was driven.
 - 2026-11-09 — **TAK Protocol Version 1 egress adapter**
   (`adapters/egress/tak_protocol/`, Class C, Reference). A wire step over the
   CoT egress projection: `zmeta_to_tak_protocol` runs `zmeta_to_cot` under

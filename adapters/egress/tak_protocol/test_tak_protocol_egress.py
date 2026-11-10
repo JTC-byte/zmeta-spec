@@ -332,6 +332,57 @@ def test_reader_refuses_empty_input_and_reads_an_empty_mesh_frame():
     assert tak.read_tak_message(b"\xbf\x01\xbf") == {}
 
 
+def test_reader_refuses_a_stream_length_beyond_the_published_range():
+    """The published header varint is limited to the range 0 to 2^63 - 1. The
+    message names that limit, so this is not the length-mismatch refusal."""
+    with pytest.raises(ValueError, match="2\\^63"):
+        tak.read_tak_message(b"\xbf" + _varint(2**63))
+    # the largest length in range is refused for the bytes it does not have, not for its size
+    with pytest.raises(ValueError, match="does not match"):
+        tak.read_tak_message(b"\xbf" + _varint(2**63 - 1))
+
+
+# --- the mesh announcement -----------------------------------------------------
+
+def test_tak_control_message_known_answer():
+    """The mesh announcement: a TakMessage that carries only takControl. The
+    expected bytes are computed here from the published field numbers
+    (TakMessage.takControl = 1; TakControl minProtoVersion 1, maxProtoVersion
+    2, contactUid 3), not from the module's tables."""
+    expected = _ld(1, _u64(1, 1) + _u64(2, 1) + _str(3, "ZMETA-GW-1"))
+    message = tak.tak_control_message("ZMETA-GW-1")
+    assert message == expected
+    assert tak.frame_mesh(message) == b"\xbf\x01\xbf" + expected
+    assert tak.read_tak_message(tak.frame_mesh(message)) == {
+        "takControl": {"minProtoVersion": 1, "maxProtoVersion": 1, "contactUid": "ZMETA-GW-1"}
+    }
+    wider = tak.tak_control_message("ZMETA-GW-1", max_version=3)
+    assert wider == _ld(1, _u64(1, 1) + _u64(2, 3) + _str(3, "ZMETA-GW-1"))
+
+
+def test_tak_control_message_refuses_what_the_published_rules_exclude():
+    for bad_uid in ("", None, 7):
+        with pytest.raises(ValueError):
+            tak.tak_control_message(bad_uid)
+    # the published text allows no version of 0 in the message, and the
+    # maximum is a uint32
+    for bad_max in (0, "2", True, 1.0, 2**32):
+        with pytest.raises(ValueError):
+            tak.tak_control_message("ZMETA-GW-1", max_version=bad_max)
+
+
+def test_tak_control_message_always_announces_a_minimum_of_1():
+    """The frame this module writes is a version 1 frame, and the published
+    ground rule says a client that sends version V also decodes version V.
+    So the announced minimum is 1 and is not the caller's to raise."""
+    for max_version in (1, 2, 7):
+        read = tak.read_tak_message(tak.frame_mesh(tak.tak_control_message("ZMETA-GW-1", max_version=max_version)))
+        assert read["takControl"]["minProtoVersion"] == 1
+        assert read["takControl"]["maxProtoVersion"] == max_version
+    with pytest.raises(TypeError):
+        tak.tak_control_message("ZMETA-GW-1", min_version=2)
+
+
 def test_refusal_dict_names_the_encoding_when_the_projection_passed():
     """The CoT projection accepts a 1969 instant; the uint64 times cannot."""
     event = state_event()
@@ -413,6 +464,9 @@ def test_status_and_takv_are_typed_when_lossless():
     assert detail["status"] == {"battery": 77}
     assert detail["takv"] == {"device": "x", "platform": "ATAK", "os": "34", "version": "5.1"}
     assert "xmlDetail" not in detail
+    # a typed integer is carried as its value: the leading zeros of the text are not
+    padded = KNOWN_XML.replace("<remarks>confidence=0.82</remarks>", '<status battery="007" />')
+    assert tak.read_tak_message(tak.cot_xml_to_tak_message(padded))["cotEvent"]["detail"]["status"] == {"battery": 7}
 
 
 def test_typed_child_with_an_extra_attribute_rides_xml_detail_whole():
@@ -429,6 +483,11 @@ def test_typed_child_with_an_empty_attribute_rides_xml_detail_whole():
     detail = tak.read_tak_message(tak.cot_xml_to_tak_message(xml))["cotEvent"]["detail"]
     assert "contact" not in detail
     assert '<contact callsign="" />' in detail["xmlDetail"]
+    # the optional endpoint too: an empty one is kept as written, not dropped
+    xml = KNOWN_XML.replace('<contact callsign="Track t1" />', '<contact endpoint="" callsign="Track t1" />')
+    detail = tak.read_tak_message(tak.cot_xml_to_tak_message(xml))["cotEvent"]["detail"]
+    assert "contact" not in detail
+    assert '<contact endpoint="" callsign="Track t1" />' in detail["xmlDetail"]
 
 
 def test_track_with_one_numeric_attribute_rides_xml_detail_whole():
@@ -443,13 +502,50 @@ def test_track_with_one_numeric_attribute_rides_xml_detail_whole():
     assert detail["status"] == {}
 
 
-def test_a_second_element_of_a_typed_kind_that_does_not_qualify_rides_xml_detail():
-    xml = KNOWN_XML.replace(
+def test_two_elements_of_one_typed_kind_ride_xml_detail_and_none_is_typed():
+    """The published sender rule (detail.proto, rule 1): when the same child
+    appears more times than its message field holds, the elements stay in the
+    XML and the message field is not populated. The published receiver rule
+    ignores a typed field whose element is also in xmlDetail, so typing one of
+    two would lose it at a receiver that follows the rule."""
+    both_qualify = KNOWN_XML.replace(
+        '<contact callsign="Track t1" />', '<contact callsign="Track t1" /><contact callsign="other" />'
+    )
+    detail = tak.read_tak_message(tak.cot_xml_to_tak_message(both_qualify))["cotEvent"]["detail"]
+    assert "contact" not in detail
+    assert detail["xmlDetail"].startswith('<contact callsign="Track t1" /><contact callsign="other" />')
+    one_qualifies = KNOWN_XML.replace(
         '<contact callsign="Track t1" />', '<contact callsign="Track t1" phone="555" /><contact callsign="other" />'
     )
-    detail = tak.read_tak_message(tak.cot_xml_to_tak_message(xml))["cotEvent"]["detail"]
-    assert detail["contact"] == {"callsign": "other"}
-    assert '<contact callsign="Track t1" phone="555" />' in detail["xmlDetail"]
+    detail = tak.read_tak_message(tak.cot_xml_to_tak_message(one_qualifies))["cotEvent"]["detail"]
+    assert "contact" not in detail
+    assert '<contact callsign="Track t1" phone="555" /><contact callsign="other" />' in detail["xmlDetail"]
+    # the other typed child of the same event is still typed
+    assert detail["track"] == {"speed": 12.5, "course": 135.0}
+
+
+def test_a_typed_child_with_a_required_string_left_out_rides_xml_detail_whole():
+    """The published messages mark every item required unless noted, and a
+    missing item on send falls back to the XML form. Only the contact's
+    endpoint is noted as optional."""
+    cases = (
+        ('<__group name="Cyan" />', "group"),
+        ('<__group role="Team Member" />', "group"),
+        ('<takv device="x" platform="ATAK" os="34" />', "takv"),
+        ('<precisionlocation geopointsrc="GPS" />', "precisionLocation"),
+    )
+    for element, field in cases:
+        xml = KNOWN_XML.replace("<remarks>confidence=0.82</remarks>", element)
+        detail = tak.read_tak_message(tak.cot_xml_to_tak_message(xml))["cotEvent"]["detail"]
+        assert field not in detail, element
+        assert element in detail["xmlDetail"], element
+    no_callsign = KNOWN_XML.replace('<contact callsign="Track t1" />', '<contact endpoint="192.0.2.1:4242:tcp" />')
+    detail = tak.read_tak_message(tak.cot_xml_to_tak_message(no_callsign))["cotEvent"]["detail"]
+    assert "contact" not in detail
+    assert '<contact endpoint="192.0.2.1:4242:tcp" />' in detail["xmlDetail"]
+    # the endpoint is the one optional item: a contact with a callsign alone is typed
+    detail = tak.read_tak_message(tak.cot_xml_to_tak_message(KNOWN_XML))["cotEvent"]["detail"]
+    assert detail["contact"] == {"callsign": "Track t1"}
 
 
 def test_typed_child_with_text_or_children_rides_xml_detail_whole():
@@ -547,18 +643,22 @@ def test_a_point_value_that_is_not_a_finite_number_is_refused():
     assert tak.cot_xml_to_tak_message(KNOWN_XML.replace('lat="43.5"', 'lat="north"')) is None
 
 
-def test_a_typed_numeric_attribute_that_is_not_a_number_is_refused():
-    assert tak.cot_xml_to_tak_message(KNOWN_XML.replace('course="135.0"', 'course="east"')) is None
-    assert tak.cot_xml_to_tak_message(KNOWN_XML.replace('course="135.0"', 'course="nan"')) is None
-    bad_battery = KNOWN_XML.replace("<remarks>confidence=0.82</remarks>", '<status battery="-1" />')
-    assert tak.cot_xml_to_tak_message(bad_battery) is None
-    bad_battery = KNOWN_XML.replace("<remarks>confidence=0.82</remarks>", '<status battery="4294967296" />')
-    assert tak.cot_xml_to_tak_message(bad_battery) is None
-
-
-def test_two_elements_of_one_typed_kind_are_refused():
-    xml = KNOWN_XML.replace('<contact callsign="Track t1" />', '<contact callsign="Track t1" /><contact callsign="other" />')
-    assert tak.cot_xml_to_tak_message(xml) is None
+def test_a_typed_numeric_attribute_that_is_not_a_number_rides_xml_detail():
+    """The published sender rule (detail.proto, rule 1): on an error mapping
+    an element to its message, the element stays in the XML and the message
+    field is not populated. The event is sent, and the element travels as it
+    was written."""
+    for bad in ('course="east"', 'course="nan"'):
+        xml = KNOWN_XML.replace('course="135.0"', bad)
+        detail = tak.read_tak_message(tak.cot_xml_to_tak_message(xml))["cotEvent"]["detail"]
+        assert "track" not in detail, bad
+        assert f'<track {bad} speed="12.5" />' in detail["xmlDetail"], bad
+        assert detail["contact"] == {"callsign": "Track t1"}
+    for bad in ('battery="-1"', 'battery="4294967296"'):
+        xml = KNOWN_XML.replace("<remarks>confidence=0.82</remarks>", f"<status {bad} />")
+        detail = tak.read_tak_message(tak.cot_xml_to_tak_message(xml))["cotEvent"]["detail"]
+        assert "status" not in detail, bad
+        assert f"<status {bad} />" in detail["xmlDetail"], bad
 
 
 def test_a_child_of_event_other_than_point_and_detail_is_refused():
@@ -590,16 +690,50 @@ def test_empty_optional_event_attributes_are_refused_not_defaulted():
     assert tak.cot_xml_to_tak_message(KNOWN_XML.replace('how="m-g"', 'how="m-g" access=""')) is None
 
 
+def test_a_missing_or_empty_required_event_attribute_is_refused():
+    """`type`, `uid` and `how` are required, and an empty value is refused as
+    a missing one is: proto3 writes no field for an empty string, so an empty
+    value would read back as absent."""
+    assert tak.cot_xml_to_tak_message(KNOWN_XML) is not None
+    for attribute, value in (("type", "a-u-G"), ("uid", "t1"), ("how", "m-g")):
+        present = f' {attribute}="{value}"'
+        assert present in KNOWN_XML
+        assert tak.cot_xml_to_tak_message(KNOWN_XML.replace(present, "")) is None, f"missing {attribute}"
+        assert tak.cot_xml_to_tak_message(KNOWN_XML.replace(present, f' {attribute}=""')) is None, f"empty {attribute}"
+
+
 def test_access_qos_opex_are_carried():
     xml = KNOWN_XML.replace('how="m-g"', 'how="m-g" access="Undefined" qos="1-r-c" opex="e"')
     ev = tak.read_tak_message(tak.cot_xml_to_tak_message(xml))["cotEvent"]
     assert (ev["access"], ev["qos"], ev["opex"]) == ("Undefined", "1-r-c", "e")
 
 
-def test_how_absent_is_absent_on_the_wire():
-    xml = KNOWN_XML.replace(' how="m-g"', "")
-    ev = tak.read_tak_message(tak.cot_xml_to_tak_message(xml))["cotEvent"]
-    assert "how" not in ev
+def test_how_absent_is_refused_and_the_refusal_names_it():
+    """The published CotEvent marks every item required unless noted, and
+    `how` carries no note. The CoT projection writes `how` only when the
+    deployment configures one, so an event with none is refused here, and the
+    refusal says why."""
+    assert tak.cot_xml_to_tak_message(KNOWN_XML.replace(' how="m-g"', "")) is None
+    assert cot.zmeta_to_cot(state_event()) is not None, "the projection itself accepts an event with no `how`"
+    refusal = {}
+    assert tak.zmeta_to_tak_protocol(state_event(), refusal=refusal) is None
+    assert refusal == {"reason": "TAK_PROTOCOL_HOW_REQUIRED"}
+    assert tak.REFUSAL_HOW_REQUIRED == "TAK_PROTOCOL_HOW_REQUIRED"
+    configured = tak.read_tak_message(tak.zmeta_to_tak_protocol(state_event(), cot_config={"how": "m-f"}))
+    assert configured["cotEvent"]["how"] == "m-f"
+
+
+def test_a_missing_how_is_named_only_when_setting_it_would_clear_the_refusal():
+    """An event with no `how` that the encoding would refuse anyway (here a
+    time before 1970) is not reported as a missing `how`: setting `how` would
+    not clear that refusal."""
+    early = state_event()
+    early["event"]["ts"] = "1969-12-31T23:59:59Z"
+    if cot.zmeta_to_cot(early) is None:
+        pytest.skip("this platform's CoT projection refuses a pre-1970 instant itself")
+    refusal = {}
+    assert tak.zmeta_to_tak_protocol(early, refusal=refusal) is None
+    assert refusal == {"reason": "TAK_PROTOCOL_UNREPRESENTABLE"}
 
 
 # --- the cds profile passes through ------------------------------------------
