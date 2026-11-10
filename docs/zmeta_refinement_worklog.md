@@ -2,10 +2,53 @@
 
 ## Current Resume Note
 
-- Last updated: 2026-11-09 (the signing tripwire re-affirmed not fired; the
+- Last updated: 2026-11-10 (the TAK Protocol Version 1 egress adapter before
+  its first contact; the signing tripwire re-affirmed not fired; the
   pre-cut dry run; the TAK Protocol Version 1 egress adapter; DECODE_AMBIGUOUS,
   three commits, the third on 2026-11-03; two contract sentences;
   carried-list records pass; heading_deg defined; records pass after 7.6)
+- **2026-11-10 (TAK Protocol Version 1 egress, before its first contact).**
+  On the maintainer's selection of 2026-11-10 ("fix all before the leg"),
+  after an independent review of the same day read the adapter against the
+  `.proto` files and the protocol text published in the ATAK-CIV repository.
+  The review found the bytes of a projected track correct and four things
+  that a first contact with a server or client would meet badly. Changed in
+  `adapters/egress/tak_protocol/zmeta_to_tak_protocol.py`: `how` is required,
+  as the published `CotEvent` requires it, and a missing one is refused with
+  `TAK_PROTOCOL_HOW_REQUIRED` (the CoT projection writes `how` only when the
+  deployment configures it); the typed route requires every item of the
+  published message except the contact's `endpoint`, the one item noted as
+  optional; two elements of one typed kind, and a typed element whose
+  numeric attribute is not a number, travel in `xmlDetail` and the event is
+  sent, as the published sender rule says, where both refused the event
+  before; `tak_control_message` writes the standalone mesh announcement; the
+  reader refuses a stream length beyond the published range. The README
+  states what a sender does on mesh and on a stream, and no longer calls
+  `takControl` a stream's negotiation: a stream starts in XML and negotiates
+  with three XML events before any frame. Verification: tests were written
+  first, in two rounds (the build's private record holds both first runs).
+  Seven new or changed tests failed against the module as it stood, with
+  forty-eight passing. An independent reviewer then read
+  the change against the published text, found the error planted for it, and
+  made seven other findings; two more tests, written for those findings,
+  failed against the first change. A factual pass over the records, by a
+  second model on a copy with its own planted error, found that error and
+  one statement no test pinned, a missing or empty `type` or `uid` refused;
+  a test now pins it. Fifty-eight pass now, and sixty when `takproto` is
+  present. Fifteen mutants were each run against the suite and each failed
+  it, thirteen of the change and two of the required-attribute checks. The
+  reviewer's findings changed three things:
+  a missing `how` is named as the reason only when it is the one thing
+  refused; the announcement always states a minimum version of 1; the
+  README's mesh steps restate the published rules for counting contacts and
+  for falling back to XML. Records: the adapter README, the module's
+  docstring, this entry, the handoff's current-state paragraph, the
+  CHANGELOG, and a dated note under doctrine F8-01. No manifest-listed
+  artifact changed. The field leg that drives the adapter against a TAK
+  Server and a client is the plane's, on the maintainer's word, and by his
+  selection of the same day it comes before the next cut, with two more
+  legs: a real sender exercising the `DECODE_AMBIGUOUS` refusal, and one
+  consumer running a `develop` gateway for a day.
 - **2026-11-09 (the signing tripwire, and the pre-cut dry run).** On the
   maintainer's selection of 2026-11-09, handoff item 4 records that the
   signing tripwire (roadmap `event-signing-anti-replay`; the downstream

@@ -3839,6 +3839,19 @@ pattern to watch is a binary standard whose typed vocabulary is narrower
 than CoT's attribute space; MISB ST 0601 and ASTERIX will meet it next with
 no `xmlDetail` to fall back on, and there the answer is the loss register.
 
+**Note added 2026-11-10 (the entry above is left as written):** two
+behaviours it describes changed on 2026-11-10, after a review read the
+adapter against the published `.proto` files. The published sender rule
+keeps an element in the XML, and leaves its message field unpopulated, when
+the element appears more times than the field holds or when mapping it
+fails. So two elements of one typed kind, and a typed element whose numeric
+attribute is not a number, now travel in `xmlDetail` and the event is sent,
+where both refused the event before. The published messages also mark every
+item required unless noted, and note only the contact's `endpoint` as
+optional, so a typed child with any other item left out travels whole in
+`xmlDetail`. The tension this entry records, a typed field that cannot
+carry the ellipse, is unchanged, and so is the entry's status.
+
 ### F8-02 — Millisecond times on a wire for a projection that writes microseconds · **OPEN 2026-11-09 (the build floors, never rounds; adjudication at the next pass)**
 
 **Observed:** the protobuf times are unsigned milliseconds since the epoch;
