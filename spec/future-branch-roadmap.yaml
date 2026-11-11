@@ -9,7 +9,7 @@
 # authority stays in spec/semantics-contract.md.
 
 roadmap_version: 1
-last_updated: "2026-11-02"
+last_updated: "2026-11-11"
 source_plan: docs/s1_11_future_versioned_semantic_branch_roadmap_plan.md
 evidence_bar: >
   Promotion from reserved/proposed into a named version branch requires the
@@ -359,6 +359,24 @@ candidates:
         reference mechanism, zero for a pascals value (doctrine entries F2-01
         and F2-08). Both entries entered experimental by maintainer
         adjudication with the bar stated as not met.
+      - >
+        2026-11-10 and 2026-11-11: a downstream consumer's local window
+        held between 2,259 and 2,424 ACOUSTIC observations, by the read,
+        from one producer with the role EDGE. Each carries spl_db with
+        level_reference "DB_RE_1UPA". That token is not in the 1.1.0
+        vocabulary, where the reference re 1 micropascal is spelled
+        SPL_RE_1UPA, so a validator at v1.1.26 or later refuses each of
+        them at the schema. The producer's name is in no tracked file of
+        this repository or of the six downstream repositories searched on
+        2026-11-11. The maintainer confirmed on 2026-11-10 that the
+        producer is an edge user's. Its name marks it as a sensor
+        simulator, and the consumer does not admit its events. Recorded as
+        evidence only: whether a simulator that declares a reference under
+        an unregistered token counts toward the first tripwire below is
+        the maintainer's adjudication and has not been made. Nothing is
+        promoted: promotion needs the roadmap's evidence bar and an
+        explicit maintainer adoption decision, and an emitted spelling
+        does not become vocabulary (contract section 20.4).
     tripwires:
       - >
         A second independent implementation, not derived from the same

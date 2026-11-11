@@ -2,6 +2,37 @@
 
 ## [Unreleased]
 
+- 2026-11-11 — **Records: doctrine cycle F10, the maintainer's confirmation
+  under SIM1-01, and one evidence item for the acoustic level carriers**
+  (`docs/zmeta_doctrine_review_log.md` and `spec/future-branch-roadmap.yaml`;
+  records only, each on a selection the maintainer made on 2026-11-10). The
+  doctrine log gains cycle F10, four tensions met on 2026-11-10. Three are
+  OPEN for the adjudication pass. F10-01: a downstream camera processor places
+  a track at its sensor's own site when it has no position for the object, and
+  only a private payload key says so. F10-02: `payload.quality` on a STATE is
+  an open key, so a `geo_status` token outside the vocabulary passes there.
+  F10-03: the purpose sentence of the 2D geo form describes an exact
+  horizontal fix, while fielded producers use the form, lawfully, for an
+  estimate with an ellipse. F10-04 is CHANGED: the TAK Protocol egress adapter
+  follows the protocol's published fallback rule and keeps an element whole in
+  `xmlDetail` where it used to refuse the event, as merged on 2026-11-10.
+  SIM1-01 gains a dated note: the maintainer confirmed on 2026-11-10 that
+  HELD-FIRM stands on the corrected facts. The roadmap candidate
+  `acoustic-level-carriers` gains a second evidence item: the ACOUSTIC
+  observations of one outside producer, a sensor simulator, declare a level
+  reference under a token the 1.1.0 vocabulary does not hold (`DB_RE_1UPA`,
+  where the registered token is `SPL_RE_1UPA`), so a validator at v1.1.26 or
+  later refuses them. The item is evidence only. Whether it counts toward the
+  candidate's first tripwire is the maintainer's adjudication, which has not
+  been made; nothing is promoted and the vocabulary does not widen. No schema,
+  policy, contract, validator or adapter byte changes. The roadmap file is
+  manifest-listed and had already changed since the last cut, so the kernel
+  gate reads the same 46 release-pin lines, three of them with new values. An
+  independent reviewer read the change against its sources, found the error
+  planted for it, and made fifteen other findings; fourteen are applied, and
+  one, a stale line on the remaining JSON readers in the handoff, is left to
+  the branch that moves those readers. A separate factual pass over these
+  records found the error planted for it and nothing else wrong.
 - 2026-11-10 — **Contract 7.7 names `observed_at` among the prohibited STATE
   payload fields, and the policy refuses it at any depth**
   (`spec/semantics-contract.md` and `policy/semantics.yaml`, Class B, a

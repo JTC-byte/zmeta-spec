@@ -120,6 +120,25 @@ other text, were repaired in this branch's first commit, and four tests
 now read them. A policy edit that adds or removes lines has to move those
 citations in the same change.
 
+The branch `wave/records-f10-acoustic-2026-11` (2026-11-11) is a records
+wave on the maintainer's selections of 2026-11-10. The doctrine log gains
+cycle F10: F10-01 (a track placed at its sensor's own site), F10-02
+(`payload.quality` on a STATE is an open key) and F10-03 (the 2D geo form
+used for an estimate) are OPEN for the adjudication pass, and F10-04 (a
+wire standard's own fallback rule) is CHANGED. SIM1-01 carries the
+maintainer's confirmation of 2026-11-10 that HELD-FIRM stands on the
+corrected facts. The roadmap candidate `acoustic-level-carriers` holds a
+second evidence item, a sensor simulator's level reference under an
+unregistered token. Whether that item counts toward the candidate's first
+tripwire waits for the maintainer's adjudication. The second of the three
+field legs ran on 2026-11-11 against `develop` at 65366f7: each tampered
+message was refused as `DECODE_AMBIGUOUS` and every clean one forwarded.
+Its protobuf half used this repository's encoder, so the refusal is to be
+run once more against the first fielded protobuf sender. Three notes from
+that leg wait for a README pass: `tools/run_gateway.py` passes only some
+of the gateway's flags, `--profile` is required, and the default lane is
+the v1.0 schema. The other two legs have not run.
+
 Open, in order of proximity:
 
 1. **The consumers' re-pin to v1.1.27**, once at this tag in the order the
