@@ -2,6 +2,32 @@
 
 ## [Unreleased]
 
+- 2026-11-11 — **Golden CoT outputs for every example STATE event, as a
+  conformance artifact** (`conformance/cot-golden/`, Class B). The maintainer
+  selected it on 2026-11-10 ("Add the fixtures").
+  `conformance/cot-golden/golden.jsonl` holds sixteen cases: each of the eight
+  STATE_EVENT lines in `examples/` under the `standard` and the `cds` profile
+  of the reference CoT projection, at a fixed projection instant, with the CoT
+  XML it writes or the reason it refuses. One case is a refusal: the
+  round-trip example asserts an affiliation, which the `cds` profile refuses
+  as `AFFILIATION_ASSERTED`. `tools/validate_cot_golden.py` projects each case
+  again and compares the result byte for byte, and reads the corpus through
+  the refusing reader of contract 3.5. The `ZMETA-COT-PROJECTION` class names
+  the corpus among its required fixtures and the tool among its required
+  commands, and the example claim of the reference gateway lists the command.
+  The TAK Protocol bytes are not part of the artifact. The release-manifest
+  builder pins the corpus and the tool from the next cut. The corpus is not a
+  kernel-gate sub-check; the class's required command and the test battery run
+  it. The new test file `gateway/tests/test_cot_golden.py` was written first;
+  it holds the corpus to the examples, number types included, so a changed
+  example fails it until the corpus is rebuilt. Eleven mutants each fail it.
+  An independent reviewer read the change against its sources, found the error
+  planted for it, and made eight other findings; seven are applied, and one, a
+  kernel-gate sub-check for the corpus, is left out on purpose. A separate
+  factual pass over these records found the error planted for it and nothing
+  else wrong. The class manifest, the example claim and the release-manifest
+  builder are manifest-listed, so the kernel gate reads two more release-pin
+  lines and six of its lines read new values until the next cut.
 - 2026-11-11 — **The remaining reference readers of event and fixture JSON
   refuse a repeated member name** (reference tools and the gateway's self-test
   reader, Class C; the contract is unchanged). The maintainer selected this on

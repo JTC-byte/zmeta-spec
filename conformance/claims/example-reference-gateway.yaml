@@ -188,7 +188,8 @@ class_claims:
   commands:
   - python -m pytest -q adapters/egress/cot adapters/ingress/cot
   - python tools/validate_adapter_conformance.py --fixtures conformance/adapter-harness/must-pass.jsonl
-  result_summary: CoT ingress/egress tests and shared adapter harness passed
+  - python tools/validate_cot_golden.py
+  result_summary: CoT ingress/egress tests, shared adapter harness and golden CoT outputs passed
   limitations: []
   exceptions: []
 test_commands_run:
@@ -212,6 +213,7 @@ test_commands_run:
 - python -m pytest -q gateway/tests/test_gateway_smoke.py gateway/tests/test_timing_freshness.py gateway/tests/test_producer_authority.py gateway/tests/test_lineage_semantics.py
 - python tools/validate_adapter_conformance.py --fixtures conformance/adapter-harness/must-pass.jsonl
 - python -m pytest -q adapters/egress/cot adapters/ingress/cot
+- python tools/validate_cot_golden.py
 test_results:
 - command: python tools/validate_conformance.py --strict
   status: passed
@@ -273,6 +275,9 @@ test_results:
 - command: python -m pytest -q adapters/egress/cot adapters/ingress/cot
   status: passed
   summary: CoT adapter focused tests passed
+- command: python tools/validate_cot_golden.py
+  status: passed
+  summary: golden CoT outputs matched the reference projection
 schema_versions:
 - '1.0'
 - 1.1.0-experimental

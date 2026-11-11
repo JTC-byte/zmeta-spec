@@ -2,7 +2,8 @@
 
 ## Current Resume Note
 
-- Last updated: 2026-11-11 (the twelve remaining JSON readers refuse a
+- Last updated: 2026-11-11 (golden CoT outputs as a conformance artifact;
+  the twelve remaining JSON readers refuse a
   repeated member; records: doctrine cycle F10, the SIM1-01
   confirmation and an acoustic evidence item; `observed_at` named in
   contract 7.7 and refused
@@ -15,6 +16,55 @@
   pre-cut dry run; the TAK Protocol Version 1 egress adapter; DECODE_AMBIGUOUS,
   three commits, the third on 2026-11-03; two contract sentences;
   carried-list records pass; heading_deg defined; records pass after 7.6)
+- **2026-11-11 (golden CoT outputs, A8).** The maintainer selected it on
+  2026-11-10 ("Add the fixtures"). Branch `wave/cot-golden-2026-11`. Each case
+  is built by a script in the session's records from the eight STATE_EVENT
+  lines of `examples/`: the `standard` profile with the default config, and
+  the `cds` profile with `how` `m-f`, which that profile requires; the
+  projection instant is the event's `ts` plus 500 ms. At an instant of `ts`
+  plus one second the `cds` profile refused the Profile L example, whose
+  window of 1,000 ms had lapsed (`VALIDITY_LAPSED`), so the instant sits
+  inside every example's window. Measured on the corpus: the `standard` output
+  of all eight is the same at an instant 400 days later, so that profile does
+  not read the instant; the `cds` profile refuses all seven of its projected
+  cases at that later instant (its age rule). The corpus README says the
+  strings are the reference implementation's and that the `standard` profile's
+  float text may take an exponent form. Tests first: the first ten tests
+  failed with no corpus and no tool; four more came with the review's
+  corrections (the event comparison seeing a number whose type changed, the
+  coverage check seeing a missing case, a malformed case reported as a FAIL
+  line, the manifest builder naming the corpus and the tool). All fourteen
+  pass. Eleven mutants, each killed by the test file: the comparison cut to 20
+  characters; the refusal cases skipped; the corpus read last-wins; an empty
+  corpus passed; the projection instant dropped; the corpus without its last
+  case; an example's confidence changed; the class without the corpus; a case
+  with no instant accepted; an empty refusal accepted; the drift test
+  comparing events with Python's `==`, which cannot see `120` against `120.0`.
+  An independent reviewer, on a sealed copy with one planted error, found that
+  error (a projection instant of `ts` plus 250 ms in the README) and made
+  eight other findings. Seven are applied: the event comparison made to see
+  number types, with its control; the change's records, which are these; the
+  release-manifest builder pinning the corpus and the tool; the test file's
+  controls for drift and coverage; the `cds` number format stated for the
+  point attributes only; a malformed case reported as a FAIL line, with an
+  instant ending in Z and one non-empty expectation required; and the nits
+  (the `description` member, the refusal named in the README lines, the class
+  description, the stale cap the corpus does not reach, the corpus read
+  through the refusing reader in the test file, and the README's sentence
+  about other implementations). One is left out on purpose: the corpus as a
+  kernel-gate sub-check, which would change what every release bundle runs. A
+  factual pass over these records, by a second model on a copy with its own
+  planted error, found that error and nothing else wrong; it re-projected the
+  corpus, the later instants and the Profile L case, and recounted the
+  kernel-gate lines. Gates before the commit: the kernel gate, whose 52 FAIL
+  lines are all release-pin lines (develop's 50, two more on the claim, six
+  reading new values); the example and roadmap validators; the bad-event
+  corpus, 37; the conformance pack with the class and claim checks and the
+  adapter harness; the CoT adapter tests and six test files that read the
+  changed files, 256 passed; `git diff --check`. The eleven mutants and the
+  fact checker of these records run under the heavy-run lock before the
+  commit; the twelve gate legs, the conformance sub-checks, both live
+  harnesses and the full battery run on it.
 - **2026-11-11 (the twelve remaining JSON readers refuse a repeated member).**
   The maintainer selected it on 2026-11-10 ("Yes, before the cut"). Branch
   `exp/json-readers-refuse-2026-11`. The readers and what each does with a

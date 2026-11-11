@@ -390,10 +390,10 @@ class_records:
     display_name: CoT/TAK Projection
     status: implemented
     version_scope: ["1.0"]
-    description: CoT/TAK state egress projection plus CoT ingress treatment as external report evidence unless Section 4.5.1 promotion policy authorizes STATE_EVENT output; evidence includes adapter-specific tests and the shared adapter harness.
+    description: CoT/TAK state egress projection plus CoT ingress treatment as external report evidence unless Section 4.5.1 promotion policy authorizes STATE_EVENT output; evidence includes adapter-specific tests, the shared adapter harness, and the golden CoT outputs of conformance/cot-golden.
     required_adapter_surfaces: ["adapters/egress/cot/zmeta_to_cot.py", "adapters/ingress/cot/cot_to_zmeta_template.py", "adapters/egress/cot/test_zmeta_to_cot.py", "adapters/ingress/cot/test_cot_ingress.py"]
-    required_conformance_fixtures: ["conformance/adapter-harness/must-pass.jsonl"]
-    required_test_commands: ["python -m pytest -q adapters/egress/cot adapters/ingress/cot", "python tools/validate_adapter_conformance.py --fixtures conformance/adapter-harness/must-pass.jsonl"]
+    required_conformance_fixtures: ["conformance/adapter-harness/must-pass.jsonl", "conformance/cot-golden/golden.jsonl"]
+    required_test_commands: ["python -m pytest -q adapters/egress/cot adapters/ingress/cot", "python tools/validate_adapter_conformance.py --fixtures conformance/adapter-harness/must-pass.jsonl", "python tools/validate_cot_golden.py"]
     dependencies: ["ZMETA-CORE", "ZMETA-GATEWAY-REFERENCE", "ZMETA-TIMING-QUALITY", "ZMETA-LINEAGE-POLICY", "ZMETA-EXTERNAL-PROMOTION", "ZMETA-ADAPTER"]
     allowed_claimants: ["adapter", "gateway", "reference_stack"]
     current_repo_support: implemented
