@@ -23,6 +23,10 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+from zmeta_decode_guard import DecodeAmbiguousError, pairs_refusing_duplicates  # noqa: E402
+
 FIXTURE_SCHEMA_PATH = ROOT / "conformance" / "adapter-harness" / "fixture.schema.json"
 MANIFEST_PATH = ROOT / "release" / "zmeta-release-manifest.yaml"
 
@@ -75,7 +79,11 @@ def lint_fixtures(path: Path):
                 continue
             total += 1
             try:
-                fixture = json.loads(line)
+                fixture = json.loads(line, object_pairs_hook=pairs_refusing_duplicates)
+            except DecodeAmbiguousError as exc:
+                # contract 3.5: a repeated member name is refused, never read last-wins
+                errors.append(f"line {line_no}: DECODE_AMBIGUOUS ({exc})")
+                continue
             except json.JSONDecodeError as exc:
                 errors.append(f"line {line_no}: invalid JSON ({exc.msg})")
                 continue

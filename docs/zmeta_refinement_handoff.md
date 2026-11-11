@@ -139,6 +139,15 @@ that leg wait for a README pass: `tools/run_gateway.py` passes only some
 of the gateway's flags, `--profile` is required, and the default lane is
 the v1.0 schema. The other two legs have not run.
 
+The branch `exp/json-readers-refuse-2026-11` (2026-11-11) moves the twelve
+remaining readers of event and fixture JSON to the refusing reader of
+contract 3.5, on the maintainer's selection of 2026-11-10. In
+`gateway/src` it changes `gateway.py` alone, in two places, and keeps its
+line count: the import line and the self-test reader of
+`examples/encoding-roundtrip.jsonl`. The decoder of the traffic the
+gateway receives is not touched. Five of the tools are manifest-listed,
+so the kernel gate reads four more release-pin lines until the next cut.
+
 Open, in order of proximity:
 
 1. **The consumers' re-pin to v1.1.27**, once at this tag in the order the
@@ -188,16 +197,12 @@ Open, in order of proximity:
    of that day, together with the move of four reference tools to the
    refusing reader (`tools/check_compat.py`, `tools/validate_examples.py`,
    `tools/validate_bad_events.py` and `tools/validate_conformance.py`).
-   Other readers of event or fixture JSON still keep the last value and
-   wait for his word. Eight are tools: `tools/compat_normalize.py`,
-   `tools/filter_risk.py` and `tools/measure_packet_size.py` read events;
-   `tools/check_adapter.py`, `tools/validate_adapter_conformance.py`,
-   `tools/validate_encoding_negative.py` (its fixture file),
-   `tools/validate_precision_policy.py` and `tools/validate_projection.py`
-   read fixtures. The gateway's self-test reads its shipped example file
-   the same way, and so do three development harnesses
-   (`tools/sim/throughput.py`, `tools/sim/two_node.py`,
-   `tools/test_workflow_end_to_end.py`). Also waiting: one sentence in
+   The twelve other readers of event or fixture JSON, eight tools, the
+   gateway's self-test reader and three development harnesses, moved to
+   the refusing reader on 2026-11-11 on his selection of 2026-11-10
+   ("Yes, before the cut"; branch `exp/json-readers-refuse-2026-11`).
+   Reads of schema files and of the gateway's config file stay as they
+   were. Also waiting: one sentence in
    `spec/protobuf-encoding.md` that a member repeated inside `payload_json`
    falls under contract 3.5.
    Selected the same day, for branches after the

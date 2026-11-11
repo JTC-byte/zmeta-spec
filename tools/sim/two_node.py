@@ -20,6 +20,10 @@ import time
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from zmeta_decode_guard import DecodeAmbiguousError, pairs_refusing_duplicates  # noqa: E402
 
 EXIT_PASS = 0
 EXIT_FAIL = 1
@@ -35,6 +39,7 @@ class Sink:
         self.bound = False
         self.bind_error = None
         self.datagrams = []
+        self.ambiguous = 0
         self._stop = threading.Event()
         self._thread = threading.Thread(target=self._run, daemon=True)
 
@@ -70,14 +75,24 @@ class Sink:
         self._thread.join(timeout=3)
 
     def events(self):
+        """The received datagrams that decode to one JSON object each.
+
+        A datagram that repeats a member name is counted in `ambiguous` and
+        not read (contract 3.5); one that is not JSON is skipped, as before.
+        """
         out = []
+        ambiguous = 0
         for raw in self.datagrams:
             try:
-                obj = json.loads(raw.decode("utf-8"))
+                obj = json.loads(raw.decode("utf-8"), object_pairs_hook=pairs_refusing_duplicates)
+            except DecodeAmbiguousError:
+                ambiguous += 1
+                continue
             except Exception:
                 continue
             if isinstance(obj, dict):
                 out.append(obj)
+        self.ambiguous = ambiguous
         return out
 
 
@@ -159,12 +174,18 @@ def reason_codes(payload):
 def replay(corpus, host, port, delay_ms):
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     sent = []
-    for line in Path(corpus).read_text(encoding="utf-8").splitlines():
+    for line_no, line in enumerate(Path(corpus).read_text(encoding="utf-8").splitlines(), start=1):
         line = line.strip()
         if not line:
             continue
+        try:
+            # read before it is sent: a repeated member name is refused (contract 3.5)
+            event = json.loads(line, object_pairs_hook=pairs_refusing_duplicates)
+        except DecodeAmbiguousError as exc:
+            sock.close()
+            raise DecodeAmbiguousError(f"{corpus} line {line_no}: {exc}") from exc
         sock.sendto(line.encode("utf-8"), (host, port))
-        sent.append(event_id(json.loads(line)))
+        sent.append(event_id(event))
         time.sleep(delay_ms / 1000.0)
     sock.close()
     return sent
@@ -204,6 +225,17 @@ def main():
     if not corpus.is_file():
         print(f"VERDICT: INVALID - corpus not found: {corpus}")
         return EXIT_INVALID
+    # A corpus line that repeats a member name is refused before any node
+    # starts (contract 3.5); a line that is not JSON is left to the replay,
+    # as before.
+    for line_no, line in enumerate(corpus.read_text(encoding="utf-8").splitlines(), start=1):
+        try:
+            json.loads(line, object_pairs_hook=pairs_refusing_duplicates) if line.strip() else None
+        except DecodeAmbiguousError as exc:
+            print(f"VERDICT: INVALID - DECODE_AMBIGUOUS: {corpus} line {line_no}: {exc}")
+            return EXIT_INVALID
+        except json.JSONDecodeError:
+            continue
 
     print(f"# two-node wire path   control={args.control}")
     print(f"# corpus={corpus.name} edge_profile={args.edge_profile} gcs_profile={args.gcs_profile}")
@@ -272,7 +304,7 @@ def main():
                    if (e.get("event") or {}).get("event_subtype") == "SCHEMA_VIOLATION"]
 
     print(f"observed        consumer={len(received)} forwarded={len(forwarded)} "
-          f"diagnostics={len(diagnostics)} cot={len(cot.datagrams)}")
+          f"diagnostics={len(diagnostics)} ambiguous={consumer.ambiguous} cot={len(cot.datagrams)}")
     for e in forwarded:
         ev = e.get("event") or {}
         pl = e.get("payload") or {}

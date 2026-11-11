@@ -15,6 +15,8 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+from zmeta_decode_guard import DecodeAmbiguousError, pairs_refusing_duplicates  # noqa: E402
+
 VALIDATORS_PATH = ROOT / "gateway" / "src" / "validators.py"
 validators_spec = importlib.util.spec_from_file_location("zmeta_validators", VALIDATORS_PATH)
 validators = importlib.util.module_from_spec(validators_spec)
@@ -127,7 +129,26 @@ def iter_jsonl(path: Path | str):
         line = line.strip()
         if not line:
             continue
-        yield line_no, json.loads(line)
+        try:
+            fixture = json.loads(line, object_pairs_hook=pairs_refusing_duplicates)
+        except DecodeAmbiguousError as exc:
+            # A fixture line that repeats a member name admits two readings and
+            # is refused, never read last-wins (contract 3.5).
+            raise DecodeAmbiguousError(f"{fixture_path} line {line_no}: {exc}") from exc
+        yield line_no, fixture
+
+
+def _fixtures_or_refusal(path, refused):
+    """Yield the fixtures of `path` as they are read.
+
+    A line that repeats a member name ends the reading: the refusal is printed
+    and noted in `refused`, and the caller fails the run.
+    """
+    try:
+        yield from iter_jsonl(path)
+    except DecodeAmbiguousError as exc:
+        print(f"FAIL DECODE_AMBIGUOUS {exc}")
+        refused.append(str(exc))
 
 
 def _result(stage: str, code: str, message: str, *, details: dict[str, Any] | None = None) -> dict[str, Any]:
@@ -760,13 +781,20 @@ def run(
 
     schema_validator = validators.load_schema(ROOT / "schema" / "zmeta-event.schema.json")
     policy = validators.load_policy(ROOT / "policy")
-    contexts = load_contexts(resolved_context_path)
+    try:
+        contexts = load_contexts(resolved_context_path)
+    except DecodeAmbiguousError as exc:
+        print(f"FAIL DECODE_AMBIGUOUS {exc}")
+        print("encoding negative failed: the context file is refused")
+        return 1
 
     failures = 0
     passed = 0
+    refused = []
     for path in paths:
         file_total = 0
-        for line_no, fixture in iter_jsonl(path):
+        refused_before = len(refused)
+        for line_no, fixture in _fixtures_or_refusal(path, refused):
             file_total += 1
             label = _case_label(fixture, line_no)
             expected_stage = fixture.get("expected_stage")
@@ -783,7 +811,9 @@ def run(
                 passed += 1
                 if not quiet:
                     print(f"PASS name={label} expected={expected_stage}/{expected_code}")
-        if file_total == 0:
+        if len(refused) > refused_before:
+            failures += 1
+        elif file_total == 0:
             failures += 1
             print(f"FAIL {path} contains no fixtures - an empty file proves nothing")
 

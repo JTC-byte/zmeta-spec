@@ -34,7 +34,7 @@ except ImportError:  # pragma: no cover - optional dependency
 # The decode guard is required, not optional: without it the JSON lanes would
 # keep the last of two duplicate keys silently (doctrine F7-01), so a missing
 # module fails the gateway at import, never open.
-from zmeta_decode_guard import is_decode_ambiguous, pairs_refusing_duplicates
+from zmeta_decode_guard import DecodeAmbiguousError, is_decode_ambiguous, pairs_refusing_duplicates
 
 try:
     import zmeta_proto
@@ -1185,12 +1185,12 @@ def _normalize_int(value, label, allow_zero=True):
 
 
 def _load_jsonl(path: Path):
-    lines = path.read_text(encoding="utf-8").splitlines()
+    lines = [raw.strip() for raw in path.read_text(encoding="utf-8").splitlines() if raw.strip()]
     for line in lines:
-        line = line.strip()
-        if not line:
-            continue
-        yield json.loads(line)
+        try:  # contract 3.5: a repeated member name is refused, never read to its last value
+            yield json.loads(line, object_pairs_hook=pairs_refusing_duplicates)
+        except DecodeAmbiguousError as exc:
+            raise SystemExit(f"self-test failed: DECODE_AMBIGUOUS in {path.name}: {exc}") from exc
 
 
 def run_self_test(root: Path, settings: dict):

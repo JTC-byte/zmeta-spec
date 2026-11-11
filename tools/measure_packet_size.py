@@ -23,17 +23,25 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+from zmeta_decode_guard import DecodeAmbiguousError, pairs_refusing_duplicates  # noqa: E402
+
 import zmeta_cbor
 import zmeta_compact
 import zmeta_proto
 
 
 def _iter_events(path: Path) -> Iterable[Dict[str, Any]]:
-    for line in path.read_text(encoding="utf-8").splitlines():
+    for line_no, line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
         text = line.strip()
         if not text or text.startswith("#"):
             continue
-        yield json.loads(text)
+        try:
+            event = json.loads(text, object_pairs_hook=pairs_refusing_duplicates)
+        except DecodeAmbiguousError as exc:
+            # A repeated member name is refused, never measured at its last
+            # value (contract 3.5).
+            raise SystemExit(f"measurement refused: {path} line {line_no}: DECODE_AMBIGUOUS: {exc}") from exc
+        yield event
 
 
 def _event_label(event: Dict[str, Any]) -> str:
