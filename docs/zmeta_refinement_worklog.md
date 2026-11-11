@@ -2,11 +2,83 @@
 
 ## Current Resume Note
 
-- Last updated: 2026-11-10 (the TAK Protocol Version 1 egress adapter before
-  its first contact; the signing tripwire re-affirmed not fired; the
+- Last updated: 2026-11-10 (the records wave of two registry entries, the
+  enrichment note and three terminal doctrine statuses; the TAK Protocol
+  Version 1 egress adapter before its first contact; the signing tripwire
+  re-affirmed not fired; the
   pre-cut dry run; the TAK Protocol Version 1 egress adapter; DECODE_AMBIGUOUS,
   three commits, the third on 2026-11-03; two contract sentences;
   carried-list records pass; heading_deg defined; records pass after 7.6)
+- **2026-11-10 (records wave: two registry entries, the enrichment note,
+  three terminal doctrine statuses).** On the maintainer's selections of
+  2026-11-10 in this repository's session. Branch
+  `wave/records-lookup-held-firm-2026-11`. Registry
+  (`spec/extension-registry.yaml`, Class B): `COLLECT_EXTERNAL_RECORDS`
+  reserved under `command_task_type` and risk-relevant, the first reserved
+  entry so marked; `OSINT` rejected under `observation_modality`;
+  `last_updated` 2026-11-10; 70 entries (36 reserved, 19 experimental, 11
+  proposed, 2 adopted, 2 rejected). New advisory note
+  `docs/zmeta_enrichment_results_note.md`, listed in `docs/README.md` and in
+  the release-context list of `gateway/tests/test_release_currency.py`; its
+  quotations were checked against the contract sections it names by a script
+  with two controls seen failing. Doctrine log: cycle F9 with F9-01 OPEN;
+  F8-01 and F8-02 HELD-FIRM, with the SAPIENT egress recorded as F8-02's
+  second occurrence; SIM1-01 HELD-FIRM with a dated note and the TAK plane's
+  answers. One statement was corrected on the way. A session record of
+  2026-11-03 said the CoT projection wrote no `<remarks>` for a captured run
+  of 809 STATE events; re-run on 2026-11-10, all 809 carry `confidence=` in
+  `<remarks>`. The maintainer's selection of 2026-11-03 was made on that
+  statement, and the correction is put to him with this wave.
+  `RELEASE_CHECKLIST.md`: the container step names
+  `docker compose -f deploy/gateway/docker-compose.yml up` and what verified
+  means. The ontology reference's count sentence and the handoff (a
+  current-state paragraph, items 3 and 6, and the surface-coherence counts)
+  are brought to the tree. Verification: the two entry tests were written
+  first and failed for the missing entries; with the entries in, the count
+  test failed on the ontology reference's 68 until the sentence was
+  corrected; the registry validator reported `REGISTRY_LAST_UPDATED_STALE`
+  until the stamp moved, and reads 70 entries now; the release-context
+  completeness test failed until the note was listed; four doctored schemas
+  that admit the new names each turn the registry's probe valid, which is
+  the state the entry tests refuse. An independent reviewer, a different
+  model on a sealed copy with one planted error, read the change against
+  the contract, both schemas, the lineage policy and checks, the three
+  adapters, the compose file and the last validation report. It built the
+  receipt and the claim the note describes and ran them through the
+  validators, where both pass. It found the planted error and made ten
+  other findings. Applied: these records said five tests when four had
+  been added; the ontology reference's next sentence, the count of names
+  the leak probe runs on, was stale at 18 of 46 and reads 20 of 47 by the
+  validator's own function, held by a fifth test that failed on the stale
+  sentence; the reserved-name test gains a control for the 1.0 branch; the
+  note names the `model` and `based_on` members a claim cannot validate
+  without, and says which part of its held-results rule is the contract
+  and which is a reading; the rejected entry's rationale makes the
+  reporting observation conditional; the SIM1-01 decision says whose
+  reading it is that the answer stands; the checklist names a
+  STATE_EVENT; the handoff names the four tools. Left as it is: the three
+  terminal entries stay in place until the next Archive sweep, as earlier
+  terminal entries have. A factual pass over the records, by a second
+  model on a copy with its own planted error, found that error and no
+  other wrong statement; it lists what it could not check from the tree,
+  which is the maintainer's selections, the TAK plane's answers, the
+  809-event run and the history of which test failed when.
+  Gates before the commit: the registry validator, 70 entries; the kernel
+  gate, whose 41 FAIL lines are develop's 38 release-pin lines and three
+  more on the registry, with the bundle hash line reading a new value; the
+  example and roadmap validators; the six registry and currency test
+  files, 87 passed; `git diff --check`. The twelve gate legs, the
+  conformance sub-checks, both live harnesses and the full battery run on
+  the commit, and the merge message carries their result.
+  Not in this wave, booked: the two governed reason codes for looked-up
+  results, which wait for a real result; four doctrine tensions met on
+  2026-11-10, which wait for the maintainer's word to be logged; a general
+  validator probe that holds every rejected name out of the schemas, which
+  today only the `OSINT` test does for its one name; a matching durable
+  decision for `OSINT` in the roadmap's `rejected_or_deferred` list, which
+  the `PAYLOAD_SCHEMA_URI` rejection has and the roadmap validator does not
+  require; one Archive line each for SIM1-01, F8-01 and F8-02 at the next
+  sweep.
 - **2026-11-10 (TAK Protocol Version 1 egress, before its first contact).**
   On the maintainer's selection of 2026-11-10 ("fix all before the leg"),
   after an independent review of the same day read the adapter against the

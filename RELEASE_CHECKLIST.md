@@ -122,7 +122,14 @@ Use this as the template for each release.
 - [ ] Release manifest and release package artifact attached or otherwise published
 - [ ] GitHub Release body includes checksum/signature verification instructions
 - [ ] GitHub CI passes for the release commit
-- [ ] Gateway Docker build + run verified
+- [ ] Gateway container run verified:
+      `docker compose -f deploy/gateway/docker-compose.yml up`. The compose
+      file runs the working tree in a stock Python image, so there is no
+      image to build. Verified means two things, each stated in the
+      validation report: the container prints the same four hashes as
+      `python tools/compute_contract_hash.py` on the host (schema, policy,
+      semantics, contract), and one shipped STATE_EVENT sent to the
+      published port is forwarded to the host with its CoT projection
 - [ ] *(runtime-code cuts only)* Live runtime harnesses executed:
       `python tools/test_gateway_live.py` and
       `python tools/test_workflow_end_to_end.py`. These were release

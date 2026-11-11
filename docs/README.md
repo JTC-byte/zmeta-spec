@@ -25,6 +25,9 @@ Advisory, current-facing documents for users of the standard:
   vocabulary.
 - `zmeta_track_lifecycle_pattern.md`: track lifecycle and command-grade
   track adjudication using existing vocabulary.
+- `zmeta_enrichment_results_note.md`: the result of looking up an observed
+  identifier in an outside source, carried as a receipt observation and an
+  association inference using existing vocabulary.
 - `zmeta_event_signing_design_note.md`: what the closed event schema
   requires of per-event signing, the three possible carriers, and the
   recommended order for that branch (advisory; decides nothing).

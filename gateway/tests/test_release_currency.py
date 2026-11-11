@@ -115,6 +115,7 @@ def test_installation_guide_baseline_matches_manifest():
 RELEASE_CONTEXT_DOCS = (
     "docs/zmeta_professional_overview.md",
     "docs/zmeta_correlation_pattern.md",
+    "docs/zmeta_enrichment_results_note.md",
     "docs/zmeta_mqtt_binding_guidance.md",
     "docs/zmeta_track_lifecycle_pattern.md",
     "docs/zmeta_vocabulary_crosswalk.md",

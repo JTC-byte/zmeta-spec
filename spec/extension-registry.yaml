@@ -3,7 +3,7 @@ generated_for_zmeta_versions:
   - "1.0"
   - "1.1.0"
 authority: spec/semantics-contract.md
-last_updated: "2026-10-01"
+last_updated: "2026-11-10"
 status_values:
   - reserved
   - proposed
@@ -1338,3 +1338,77 @@ entries:
       Recorded so the concept is not re-litigated. Any future payload-typing
       need must route through mapping packs or a maintainer-approved
       versioned branch.
+
+  - <<: *entry_defaults
+    name: COLLECT_EXTERNAL_RECORDS
+    display_name: Collection of external records as a command task type
+    category: command_task_type
+    status: reserved
+    semantic_definition: >-
+      Reserved COMMAND_EVENT task type candidate: a task that cues a
+      collector to gather records about a named subject from information
+      sources outside the deployment.
+    rationale: >-
+      Reserved 2026-11-10 on the maintainer's selection, after rulings of
+      2026-11-08 on one deployment's design for looking up an observed
+      identifier in outside sources. A request from an operator interface to
+      look a subject up is not this task and gets no name: an operator
+      interface authors no ZMeta event (contract Section 4.5), and the
+      request is the interface's own call, made outside ZMeta. A collection
+      service's own schedule is likewise its own. The name is held for the
+      remaining case, a task addressed to a collector through the command
+      path. COMMAND_EVENT is used only for tipping, cueing and
+      waypoint-level autonomy (Section 7.8), bounded and deconflicted
+      (Sections 4.10 and 15), and such a task would be cueing. One
+      deployment's design is one instance under the promotion bar (doctrine
+      U1-02). Holding the name keeps a deployment from minting it as a
+      dialect.
+    allowed_event_types: ["COMMAND_EVENT"]
+    risk_relevant: true
+    profile_projection_behavior: future_branch_required
+    security_privacy_notes:
+      - A collector that queries a source outside the deployment discloses the subject asked about, and the asker's interest in it, to a party outside the deployment.
+      - A reserved name is not vocabulary. A deployment that issues such a task today carries it out of band, never as a COMMAND_EVENT task type.
+    references:
+      - spec/semantics-contract.md
+      - docs/zmeta_enrichment_results_note.md
+      - docs/zmeta_doctrine_review_log.md
+    date_added: "2026-11-10"
+    review_state: draft
+    notes: ["Not valid v1.0 or v1.1.0 COMMAND_EVENT task vocabulary."]
+
+  - <<: *entry_defaults
+    name: OSINT
+    display_name: Open-source content as an observation modality or event kind (rejected)
+    category: observation_modality
+    status: rejected
+    semantic_definition: >-
+      An observation modality, an OBSERVATION_EVENT subtype, or a separate
+      event kind for content retrieved from an open source about an observed
+      entity (a registry row, a listing, a catalogue entry).
+    rationale: >-
+      Rejected 2026-11-10 on the maintainer's selection, after rulings of
+      2026-11-08 on one deployment's design for looking up an observed
+      identifier in outside sources. What such a lookup yields is a claim
+      about an entity made by an analytics producer. The contract already
+      places that claim as an INFERENCE_EVENT (Sections 4.4 and 7.5), here
+      with the inference type ASSOCIATION, whose lineage names a receipt
+      and, where one exists, the observation that reported the identifier.
+      The receipt is an OBSERVATION_EVENT of modality NETWORK that records
+      the retrieval and points to the stored record through data_ref. The
+      record's content never rides in an event (Sections 1 and 9.3, and the
+      PAYLOAD_SCHEMA_URI entry: external shapes are adapted to canonical
+      events, never carried through). A new subtype value needs a version
+      branch (Section 7.3), and a new kind or modality would duplicate the
+      inference family for one class of producer and reopen the carrier for
+      unnormalized content that this registry rejected on 2026-07-07.
+    references:
+      - spec/semantics-contract.md
+      - docs/zmeta_enrichment_results_note.md
+      - docs/zmeta_change_governance.md
+    date_added: "2026-11-10"
+    review_state: approved
+    notes: >-
+      Recorded so the concept is not re-litigated. A deployment that needs
+      results from open sources emits the receipt observation and the
+      inference; docs/zmeta_enrichment_results_note.md gives the pattern.
