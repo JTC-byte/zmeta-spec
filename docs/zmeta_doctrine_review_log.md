@@ -1589,6 +1589,14 @@ the correction to him on the same day, and the decision stands unless he
 says otherwise. The entry re-opens only on new evidence, which a consumer
 that must read confidence by machine from CoT would be.
 
+**Note added 2026-11-11 (the entry above is left as written):** the
+maintainer answered the correction on the evening of 2026-11-10, after the
+decision paragraph above was written. Asked in the repository's session
+whether the decision stands now that the 809 events are known to carry
+`confidence` in `<remarks>`, he confirmed that it stands. The decision
+therefore rests on the corrected facts by his word, and no longer on the
+reading of the repository's session.
+
 ### SIM1-02 — A counter that can only see what arrived is read as a loss counter · OPEN
 
 The gateway's `drops` counter is honest about what the gateway discarded. It
@@ -4013,6 +4021,128 @@ a form of its own. The recommendation is that no vocabulary and no lineage
 policy moves until a second deployment needs the summary as an event. The
 pattern to watch is an analytics producer that composes other producers'
 inferences.
+
+## Cycle F10 — 2026-11-10 (a track placed at its sensor, and a wire standard's own fallback rule)
+
+Four tensions met on 2026-11-10: three while ruling on a downstream stack's
+camera tracks for a second consumer, and one while fitting the TAK Protocol
+Version 1 egress adapter to the published protocol documents. Nothing in the
+kernel changed. The first three are OPEN for the separate adjudication pass
+(step 4). The fourth was resolved inside the adapter and is recorded as
+CHANGED. The four are logged on the maintainer's selection of 2026-11-10.
+
+### F10-01 — A track placed at its sensor's own site · **OPEN 2026-11-10 (ruled for one consumer route from contract 20.3 and 8.3; adjudication at the next pass)**
+
+**Observed:** a camera processor in a downstream stack, in its code as read
+on 2026-11-10, builds a STATE_EVENT / TRACK_STATE for every detection. With a
+calibration loaded the track's `geo` is the detection's projected ground
+position. Without one the `geo` is the camera's own configured site, marked
+only by a private payload key that carries the token `CONFIGURED`, with no
+uncertainty and the same `confidence`. The stack's own display reads the
+key. No file of the stack's STATE events was read. The reference validator
+accepts any coordinates on a STATE, so it cannot tell such a track from one
+placed on its object. The same stack's EO OBSERVATION_EVENT file holds one
+position across all 60,887 of its events, which is what a sensor's own site
+looks like; by the stack's own note those observations do not leave it.
+
+**The tension:** B1-01 decided on 2026-08-09 that on an OBSERVATION_EVENT
+`payload.geo` is the position of the observation's subject, with the
+normative sentence deferred to a governed wave. That entry speaks of
+observations. For a track, contract 14 has a display preserve `payload.geo`
+"as WGS-84/HAE position" and does not say whose position it is. A
+TRACK_STATE requires `geo`, so a producer that has no position for the
+object either emits no track or fills the member with something. Design
+gate 3 (no laundering) is against a track that looks placed when it is not.
+Contract 20.3 ("Extensions must be safe to ignore") is against a private
+key that a consumer has to read to place the track correctly.
+
+**The ruling's reading, for adjudication:** the documents guide rather than
+decide. A TRACK_STATE's `geo` is where the producer believes the tracked
+object is. A fallback to the sensor's site that only a private key marks
+does not conform once the event leaves its own stack: the key is not safe to
+ignore, and state confidence "MUST account for" a list of inputs that
+includes "Observation quality" (contract 8.3). The ruling names two forms.
+The first, which it recommends, is that the producer emits no track where it
+has no position. The second, under `zmeta_version` 1.1.0, states the area
+the sensor covers as `geo.error_ellipse_m` with a lowered `confidence`; it
+rests on a condition of the ruling's own (an ellipse that contains the
+covered area), it leaves the consumer to draw the area, and the ruling does
+not recommend it. The question for the pass is whether the governed wave
+that lands B1-01's sentence should also state the referent of a STATE's
+`geo`. The EO observation file above is one more row for B1-01's table of
+adapters that put the sensor's own position in an observation's `geo`.
+
+### F10-02 — `payload.quality` on a STATE is an open key · **OPEN 2026-11-10 (an enforcement gap; adjudication at the next pass)**
+
+**Observed:** the 1.1.0 schema declares `quality` on `ObservationPayload`
+alone, and `TrackStatePayload` admits additional properties. A STATE that
+carries `payload.quality.geo_status` with a token outside the vocabulary
+passes the reference check, while the coherence arm that refuses a 2D geo
+beside `AVAILABLE` does apply to a STATE. The registry allows the quality
+block on OBSERVATION_EVENT only. `policy/profile-precision.yaml` lists
+`payload.quality.geo_status` as an immutable path with no event-type scope.
+Fielded STATE events carry the member: on 2026-11-11 a downstream
+consumer's window held 5,152 of 5,295 STATE events with
+`quality.geo_status` `VERTICAL_UNAVAILABLE`.
+
+**The tension:** contract 21.1 says the block is for "observations and other
+payloads that need machine-readable quality metadata". Contract 21.8 holds a
+2D geo and `quality.geo_status` to one coherence rule on any event that
+carries both, and the registry's dimensionality entry allows STATE_EVENT. A
+STATE may therefore carry the token under that rule, and nothing checks the
+token's vocabulary there.
+
+**The reading, for adjudication:** this is a gap in enforcement and not in
+vocabulary. The question for the pass is whether the 1.1.0 schema should
+declare `quality` on the STATE and FUSION payloads (Class B), or whether the
+documents should say that the token is checked on observations only.
+
+### F10-03 — The 2D form's stated purpose against a 2D geo for an estimated position · **OPEN 2026-11-10 (lawful under the rules; adjudication at the next pass)**
+
+**Observed:** contract 21.8 says of the 2D form: "The declaration exists for
+sources whose horizontal fix is real and exact while a geometric vertical
+does not exist to assert". The rules beneath that sentence do not ask for
+exactness, and "`geo.error_ellipse_m` attaches to either form unchanged".
+Fielded events use the form for estimates: an EO producer's tracks carry a
+2D geo with an error ellipse for positions projected onto the ground from an
+image (809 of 809 STATE events of one recorded run), and a downstream
+consumer's window held several thousand STATE events with a 2D geo and an
+ellipse on 2026-11-10.
+
+**The tension:** the rule text permits a 2D position with an ellipse. The
+purpose sentence, and the definition of `VERTICAL_UNAVAILABLE` in 21.1 ("the
+horizontal fix is real and exact"), describe a narrower case. A producer of
+a ground-projected position has no vertical to assert and a horizontal that
+is not exact, and `geo_status` holds one token, so it cannot say both that
+the vertical is unavailable and that the horizontal is an estimate.
+
+**The reading, for adjudication:** the form is lawful for an estimate, and
+the purpose sentence describes the case that introduced it. The question for
+the pass is whether 21.1 and 21.8 should say that a 2D position may be an
+estimate with an ellipse, and which token such a position carries.
+
+### F10-04 — A wire standard's own fallback rule against the adapter's refusal · **CHANGED 2026-11-10 (the adapter follows the published rule; nothing is dropped)**
+
+**Observed:** the TAK Protocol Version 1 egress adapter refused a whole
+event when a typed detail element carried a numeric attribute that was not a
+number, or when two elements of one typed kind both qualified for the typed
+field. Where only one of two qualified it typed that one and sent the other
+as XML. The published sender rule for the protocol keeps such elements in
+the XML and leaves the message field unpopulated, and the published
+receiver rule ignores a typed field whose element is also in the XML.
+
+**The tension:** the adapter's rule is to refuse rather than drop or choose.
+The target standard defines a carrier that drops nothing, the element as it
+was written, and a receiver that follows the standard would have ignored
+the one element the adapter did type.
+
+**Changed 2026-11-10** on the maintainer's selection of that day: the
+adapter follows the published rule. The elements travel whole in
+`xmlDetail` and the event is sent. A refusal remains where the published
+schema has no carrier, or requires a value the event lacks. The pattern to
+watch for the next wire form: where the target standard defines a lossless
+fallback, an adapter uses it. The note under F8-01 records which of that
+entry's sentences this changed.
 
 ## Archive
 

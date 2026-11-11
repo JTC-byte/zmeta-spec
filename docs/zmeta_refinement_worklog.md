@@ -2,7 +2,9 @@
 
 ## Current Resume Note
 
-- Last updated: 2026-11-10 (`observed_at` named in contract 7.7 and refused
+- Last updated: 2026-11-11 (records: doctrine cycle F10, the SIM1-01
+  confirmation and an acoustic evidence item; `observed_at` named in
+  contract 7.7 and refused
   on a STATE; the JSON duplicate-key sentence in contract 3.5,
   four tools and the re-anchored guidance citations; the records wave of two
   registry entries, the
@@ -12,6 +14,75 @@
   pre-cut dry run; the TAK Protocol Version 1 egress adapter; DECODE_AMBIGUOUS,
   three commits, the third on 2026-11-03; two contract sentences;
   carried-list records pass; heading_deg defined; records pass after 7.6)
+- **2026-11-11 (records: cycle F10, the SIM1-01 confirmation, an acoustic
+  evidence item).** Branch `wave/records-f10-acoustic-2026-11`. Three records
+  acts, each on a selection the maintainer made on 2026-11-10. First, the
+  doctrine log gains cycle F10 ("Yes, log them"): F10-01, F10-02 and F10-03
+  OPEN, F10-04 CHANGED. Before the entries were written their statements were
+  run again on this tree. The 1.1.0 schema declares `quality` on
+  `ObservationPayload` alone, and `TrackStatePayload` admits additional
+  properties. The registry allows the quality block on OBSERVATION_EVENT only
+  and the dimensionality entry on STATE_EVENT too. A STATE with a 2D geo and
+  an unregistered `quality.geo_status` token passes the reference check, and
+  the same STATE with `AVAILABLE` is refused. On a downstream consumer's
+  window of 2026-11-11, 5,152 of 5,295 STATE events carry `quality.geo_status`
+  `VERTICAL_UNAVAILABLE`, each with a 2D geo and an error ellipse (counts
+  only; no value of an event was read out). Second, SIM1-01 gains a note dated
+  2026-11-11: the maintainer confirmed on 2026-11-10 ("Yes, it stands") that
+  HELD-FIRM stands on the corrected facts, so the status is his decision and
+  no longer the session's reading. The entry above the note is left as
+  written. Third, the roadmap candidate `acoustic-level-carriers` gains a
+  second `promotion_evidence` item and the file's `last_updated` reads
+  2026-11-11. The item was measured again on the same window: 2,305 ACOUSTIC
+  observations from one producer with the role EDGE, each with `spl_db` and
+  `level_reference` `DB_RE_1UPA`; the producer's name marks it as a sensor
+  simulator and is in no tracked file of this repository or of the six
+  downstream repositories searched. Three earlier reads on 2026-11-10 gave
+  2,266, 2,372 and 2,424, and the consumer's own count was 2,259. The
+  maintainer confirmed on 2026-11-10 that the producer is an edge user's. The
+  first tripwire asks for a second independent implementation. The candidate's
+  first evidence item counts one implementation of the reference mechanism,
+  and the registry note on ACOUSTIC_LEVEL_REFERENCE names the Orcasound
+  hydrophone capture as the first independent evidence instance; which
+  implementation the tripwire counts as the first is a reading that waits for
+  the maintainer. The item does not say the tripwire fired: a simulator that
+  declares a reference under an unregistered token is the maintainer's to
+  adjudicate, and contract 20.4 keeps an emitted spelling out of the
+  vocabulary. Not done here: the Archive sweep booked on 2026-11-10, and the
+  README notes from the field leg below. The field leg. The second of the
+  three field legs before the cut ran on 2026-11-11 against `develop` at
+  65366f7, by the sender's own record (counts only): a live JSON stream of 411
+  clean events and one text with a repeated member, and three protobuf
+  messages, one carrying an unknown field. The gateway refused each tampered
+  message as `DECODE_AMBIGUOUS` and forwarded every clean one. The protobuf
+  bytes came from this repository's encoder, because no producer in the
+  downstream program emits protobuf, so that half shows the gateway's refusal
+  and says nothing about another implementation's protobuf. `git diff --stat
+  65366f7 76aed0f -- gateway/src` is empty. An independent reviewer, on a
+  sealed copy with one planted error, found that error (the quality block's
+  registry scope widened to FUSION_EVENT) and made fifteen other findings.
+  Fourteen are applied: the repositories searched for the producer's name (six
+  downstream, the search run again on 2026-11-11 with no hit); what the TAK
+  Protocol adapter still refuses, and its pattern written as one to watch
+  (F10-04); what was read for F10-01, the processor's code and one position
+  across 60,887 observations; the measured count behind F10-02 and what
+  contract 21.8 says of a STATE; the source of each half of F10-03; contract
+  8.3 quoted as it stands and the ruling's ranking of its two forms (F10-01);
+  the roadmap's own evidence bar beside contract 20.4; the simulator named in
+  the CHANGELOG and the handoff; the source of the first implementation; the
+  producer's name kept out of the records; the scope of the protobuf sentence;
+  the wording of the SIM1-01 note; and "confirmed" for his selection. One is
+  left to the readers branch, which rewrites the handoff's item 3. A factual
+  pass over these records, by a second model on a copy with its own planted
+  error, found that error and nothing else wrong; it counted the window again
+  and searched the six downstream repositories again, with the same results.
+  Gates before the commit: the kernel gate, whose 46 FAIL lines are all
+  release-pin lines, three of them reading new values on the roadmap; the
+  example and roadmap validators; the bad-event corpus, 37; the conformance
+  pack; the eight test files that read the changed records, 101 passed; `git
+  diff --check`. The fact checker of these records runs under the heavy-run
+  lock before the commit; the twelve gate legs, the conformance sub-checks,
+  both live harnesses and the full battery run on it.
 - **2026-11-10 (contract 7.7: `observed_at` on a STATE).** The maintainer
   selected it on 2026-11-10 ("Policy and contract now") after seeing the
   bullet before and after. Branch `exp/state-observed-at-2026-11`. Contract
