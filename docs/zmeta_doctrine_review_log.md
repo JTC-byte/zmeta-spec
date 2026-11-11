@@ -3828,6 +3828,27 @@ the cbor2 fallback ignores. Hazard 8 of the
 same ruling (digits a binary64 cannot hold) was decided with C1-07 on
 2026-11-02.
 
+**Note added 2026-11-10 (the entry above is left as written):** the
+contract sentence this entry left open has landed, on the maintainer's
+selection of 2026-11-10. Contract 3.5 now says that a JSON text in which
+one object repeats a member name, at any depth, does not decode to one
+canonical event and is not a valid encoded event. The entry says the rule
+"binds the reference decoders; a consumer that parses the bytes itself is
+its own decoder". For a duplicate JSON key that no longer holds: a
+contract sentence binds every implementation, so a consumer whose own
+parser keeps the last value is non-conforming on such a text. That reaches
+a member repeated inside a protobuf message's `payload_json`, which is a
+JSON text. The protobuf field cases (an unknown field, a mistyped one, a
+repeated non-repeatable one) stay as the entry describes them, a rule of
+the reference decoders. Four more reference tools read JSON through the
+refusing reader in the same change (`tools/check_compat.py`,
+`tools/validate_examples.py`, `tools/validate_bad_events.py`,
+`tools/validate_conformance.py`). Eight other tools, the gateway's
+self-test reader and three development harnesses still read event or
+fixture JSON to its last value and are booked. Duplicate map keys on the
+CBOR and compact lanes, and trailing CBOR bytes on the cbor2 fallback, stay
+booked as the entry left them.
+
 ## Cycle F8 — 2026-11-09 (a wire form whose typed fields hold less than the projection writes)
 
 Two tensions met while building the TAK Protocol Version 1 egress adapter

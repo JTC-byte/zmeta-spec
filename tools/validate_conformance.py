@@ -1,10 +1,14 @@
 import argparse
 import importlib.util
 import json
+import sys
 from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+from zmeta_decode_guard import DecodeAmbiguousError, pairs_refusing_duplicates  # noqa: E402
 VALIDATORS_PATH = ROOT / "gateway" / "src" / "validators.py"
 spec = importlib.util.spec_from_file_location("zmeta_validators", VALIDATORS_PATH)
 validators = importlib.util.module_from_spec(spec)
@@ -111,7 +115,26 @@ def _iter_jsonl(path):
         line = line.strip()
         if not line:
             continue
-        yield line_no, json.loads(line)
+        try:
+            item = json.loads(line, object_pairs_hook=pairs_refusing_duplicates)
+        except DecodeAmbiguousError as exc:
+            # A fixture line that repeats a member name admits two readings and
+            # is refused, never read last-wins (contract 3.5).
+            raise DecodeAmbiguousError(f"{path} line {line_no}: {exc}") from exc
+        yield line_no, item
+
+
+def _fixtures_or_refusal(path, refused):
+    """Yield the fixtures of `path` as they are read.
+
+    A line that repeats a member name ends the reading: the refusal is printed
+    and noted in `refused`, and the caller counts one failure for the file.
+    """
+    try:
+        yield from _iter_jsonl(path)
+    except DecodeAmbiguousError as exc:
+        print(f"FAIL DECODE_AMBIGUOUS {exc}")
+        refused.append(str(exc))
 
 
 def _run_checks(event, profile, policy, validator, strict, state=None):
@@ -172,7 +195,8 @@ def main():
     fail_total = 0
 
     pass_state = validators.ValidationState()
-    for line_no, item in _iter_jsonl(args.pass_file):
+    pass_refused = []
+    for line_no, item in _fixtures_or_refusal(args.pass_file, pass_refused):
         pass_total += 1
         profile = item.get("profile", "H")
         event = item.get("event")
@@ -189,11 +213,14 @@ def main():
         else:
             pass_state.record(event)
 
-    if pass_total == 0:
+    if pass_refused:
+        failures += 1
+    elif pass_total == 0:
         failures += 1
         print(f"FAIL pass file {args.pass_file} contains no fixtures - an empty file proves nothing")
 
-    for line_no, item in _iter_jsonl(args.fail_file):
+    fail_refused = []
+    for line_no, item in _fixtures_or_refusal(args.fail_file, fail_refused):
         fail_total += 1
         profile = item.get("profile", "H")
         event = item.get("event")
@@ -215,7 +242,9 @@ def main():
                 f"FAIL fail line={line_no} profile={profile} expected={expected} got={code_str}"
             )
 
-    if fail_total == 0:
+    if fail_refused:
+        failures += 1
+    elif fail_total == 0:
         failures += 1
         print(f"FAIL fail file {args.fail_file} contains no fixtures - an empty file proves nothing")
 

@@ -407,6 +407,10 @@ passes the applicable schema, policy, and conformance requirements. Map order,
 wire field order, compact integer keys, and protobuf field order are not
 semantic.
 
+A JSON text in which one object repeats a member name, at any depth, does not
+decode to one canonical event and is not a valid encoded event. A decoder that
+keeps one of the repeated values chooses a reading the text does not state.
+
 Encoding versions, such as `compact_version`, track wire mapping compatibility.
 They do not change ZMeta semantic meaning.
 

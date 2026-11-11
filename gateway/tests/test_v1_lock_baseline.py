@@ -67,7 +67,16 @@ ROOT = Path(__file__).resolve().parents[2]
 # command with valid_from_ts, event.ts is its issue time). Each decides a
 # case the text left open; section 4.5.1 gains one rule and 4.3 one clause,
 # every other section 4 text is unchanged, and no schema byte changed.
-CONTRACT_SHA256 = "15a9bf4e234e2621922ac11754142b5a3ec399185eb544e558b17e89b0bd142c"
+# Contract anchor moved 2026-11-10 on the maintainer's selection of that day:
+# section 3.5 gains one paragraph of two sentences. A JSON text in which one
+# object repeats a member name, at any depth, does not decode to one canonical
+# event and is not a valid encoded event; a decoder that keeps one of the
+# repeated values chooses a reading the text does not state. It states for
+# every implementation the rule the reference decoders have applied since
+# 2026-11-02 (doctrine F7-01), under the contract's own trigger for a
+# clarification (section 2.6: two compliant implementations can interpret the
+# same event differently). No other contract text and no schema byte changed.
+CONTRACT_SHA256 = "8ceb83ce356f9bf28e1c5966c72405212d600b6882ced0ff3ddee4e6821b600b"
 # The v1.0 reason-code enum stays locked (adjudication of 2026-08-09): the code
 # DECODE_AMBIGUOUS of 2026-11-02 (doctrine F7-01) lives in the 1.1.0 enum only and
 # rides the v1.0 wire as SCHEMA_INVALID with the minted code in

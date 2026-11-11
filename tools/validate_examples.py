@@ -6,6 +6,9 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+from zmeta_decode_guard import DecodeAmbiguousError, pairs_refusing_duplicates  # noqa: E402
 VALIDATORS_PATH = ROOT / "gateway" / "src" / "validators.py"
 spec = importlib.util.spec_from_file_location("zmeta_validators", VALIDATORS_PATH)
 validators = importlib.util.module_from_spec(spec)
@@ -63,7 +66,13 @@ def validate_file(path: Path, profile: str, validator, policy, severity_map, str
     for line_no, raw in items:
         total += 1
         try:
-            instance = json.loads(raw)
+            instance = json.loads(raw, object_pairs_hook=pairs_refusing_duplicates)
+        except DecodeAmbiguousError as exc:
+            # Contract 3.5: a text that repeats a member name is not a valid
+            # encoded event, so it fails here as it does at the gateway.
+            failed += 1
+            print(f"FAIL DECODE_AMBIGUOUS event_id=UNKNOWN line={line_no} file={path} error={exc}")
+            continue
         except json.JSONDecodeError:
             warnings += 1
             print(f"WARN SCHEMA_INVALID event_id=UNKNOWN line={line_no} file={path}")

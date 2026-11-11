@@ -238,3 +238,67 @@ def test_the_citation_reader_reports_a_reference_moved_off_its_text():
         (2, 2, "one blank line"),
         (9, 12, "outside the contract"),
     ]
+
+
+def _bare_contract_line_numbers(strings):
+    """Line numbers written after a contract citation in a form the reader above cannot see.
+
+    The reader takes `spec/semantics-contract.md:` followed by line references,
+    with continuations written `, :N` or `, N-M`. A number written as prose
+    after such a citation ("and 1047-1051", "at 783", "at line 939") is a
+    contract line number too, and nothing moved it when the contract moved:
+    eight of them sat wrong on 2026-11-10. This finds a three or four digit
+    number, or range, that follows "and", "at", "at line", a comma, a bracket
+    or a colon, when the citation nearest before it in the same string is a
+    contract citation and not another file's.
+    """
+    import re
+
+    contract = re.compile(r"spec/semantics-contract\.md:(\d+(?:-\d+)?(?:,\s*:?\d+(?:-\d+)?)*)")
+    other = re.compile(r"[\w./-]+\.(?:json|yaml|yml|py|md|proto|jsonl):\d+(?:-\d+)?(?:,\s*:?\d+(?:-\d+)?)*")
+    token = re.compile(
+        r"CONTRACTCITE|FILECITE|(?:\band |\bat |\bat line |, |\(|:)(:?\d{3,4}(?:-\d{3,4})?)\b(?![-\d])"
+    )
+    found = []
+    for text in strings:
+        flat = " ".join(text.split())
+        stripped = other.sub("FILECITE", contract.sub("CONTRACTCITE", flat))
+        last = None
+        for match in token.finditer(stripped):
+            if match.group(0) in ("CONTRACTCITE", "FILECITE"):
+                last = match.group(0)
+            elif last == "CONTRACTCITE":
+                found.append(match.group(1))
+    return found
+
+
+def _guidance_strings():
+    def walk(node):
+        if isinstance(node, str):
+            yield node
+        elif isinstance(node, dict):
+            for value in node.values():
+                yield from walk(value)
+        elif isinstance(node, list):
+            for value in node:
+                yield from walk(value)
+
+    return list(walk(yaml.safe_load(GUIDANCE_PATH.read_text(encoding="utf-8"))))
+
+
+def test_no_bare_line_number_follows_a_contract_citation():
+    # Every contract line number is written in the form the edge test reads,
+    # so a later contract edit moves it with the others or the edge test says so.
+    assert _bare_contract_line_numbers(_guidance_strings()) == []
+
+
+def test_the_bare_number_reader_tells_contract_numbers_from_another_files():
+    found = _bare_contract_line_numbers(
+        [
+            "the rule (spec/semantics-contract.md:1226-1229 for the rule, 1206-1207 and 1867-1884 for the reason)",
+            "the schema (schema/zmeta-event-1.1.0.schema.json:1170-1174), IR requires band (line 1250)",
+            "written right (spec/semantics-contract.md:1038-1039, :1058-1062; policy/semantics.yaml:4-10) in 2026",
+            "a tolerance of 1 ms at 5.6 (spec/semantics-contract.md:788-796)",
+        ]
+    )
+    assert found == ["1206-1207", "1867-1884"]

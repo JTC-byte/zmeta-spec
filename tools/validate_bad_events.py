@@ -11,6 +11,7 @@ from typing import Any
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
+from zmeta_decode_guard import DecodeAmbiguousError, pairs_refusing_duplicates  # noqa: E402
 
 VALIDATORS_PATH = ROOT / "gateway" / "src" / "validators.py"
 validators_spec = importlib.util.spec_from_file_location("zmeta_validators", VALIDATORS_PATH)
@@ -37,7 +38,26 @@ def iter_jsonl(path: Path | str):
         line = line.strip()
         if not line:
             continue
-        yield line_no, json.loads(line)
+        try:
+            fixture = json.loads(line, object_pairs_hook=pairs_refusing_duplicates)
+        except DecodeAmbiguousError as exc:
+            # A fixture line that repeats a member name admits two readings and
+            # is refused, never read last-wins (contract 3.5).
+            raise DecodeAmbiguousError(f"{fixture_path} line {line_no}: {exc}") from exc
+        yield line_no, fixture
+
+
+def _fixtures_or_refusal(path, refused):
+    """Yield the fixtures of `path` as they are read.
+
+    A line that repeats a member name ends the reading: the refusal is printed
+    and noted in `refused`, and the caller fails the run.
+    """
+    try:
+        yield from iter_jsonl(path)
+    except DecodeAmbiguousError as exc:
+        print(f"FAIL DECODE_AMBIGUOUS {exc}")
+        refused.append(str(exc))
 
 
 def _run_checks(
@@ -129,7 +149,8 @@ def run(*, must_fail_path: Path | str | None = None, quiet: bool = False) -> int
 
     failures = 0
     passed = 0
-    for line_no, fixture in iter_jsonl(path):
+    refused = []
+    for line_no, fixture in _fixtures_or_refusal(path, refused):
         label = str(fixture.get("name") or f"line-{line_no}")
         result = evaluate_fixture(fixture, schema_validator, policy)
         if result["passed"]:
@@ -139,6 +160,9 @@ def run(*, must_fail_path: Path | str | None = None, quiet: bool = False) -> int
         else:
             failures += 1
             print(f"FAIL name={label}: {result['message']}")
+
+    if refused:
+        return 1
 
     if passed + failures == 0:
         print(f"FAIL {path} contains no fixtures - an empty file proves nothing")
