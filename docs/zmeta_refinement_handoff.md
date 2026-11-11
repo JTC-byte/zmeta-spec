@@ -94,6 +94,32 @@ number written as prose. A contract edit that adds or removes lines has to
 move those citations in the same change. The tests are tripwires for a
 shift that was not made; they do not read what the cited lines say.
 
+The branch `exp/state-observed-at-2026-11` (2026-11-10) names `observed_at`
+in contract 7.7's list of prohibited state payload fields and in the policy
+list the validators enforce, on the maintainer's selection of that day. A
+STATE that carries the member at any depth is refused as
+`STATE_HAS_RAW_FEATURES`. A fielded producer's STATE carries it today, so
+the cut that ships this follows two acts in the other lanes, in this order:
+the consumer's dating fix, then the producer's removal of the field. The
+contract hash and the policy hash both move, and with them the gateway's
+startup `contract_hash`. Four items are booked from this branch and wait for
+the maintainer's word. The first is the two code copies of the nine names
+that read the payload's top level only (`tools/validate_projection.py`,
+`adapters/egress/cot/zmeta_to_cot.py`), with
+`conformance/profile_projection_field_catalog.yaml`, which lists the nine
+paths. The second is a repair of the guidance file's line citations into
+the validators, where the two read on this branch began 64 lines above
+their code, the schemas and the gateway. No test reads them. The third is
+`last_seen_ts` as a candidate for the 7.7 list: contract 7.6 defines it as
+the `event.ts` of an observation, and a STATE that carries it passes the
+check today. The fourth is a check that refuses a map key that is not text
+in a STATE payload; a byte-string key passes the check for all ten names,
+as it did before this branch. The citations
+into the policy file, 32 of which two commits of 2026-11-02 had left on
+other text, were repaired in this branch's first commit, and four tests
+now read them. A policy edit that adds or removes lines has to move those
+citations in the same change.
+
 Open, in order of proximity:
 
 1. **The consumers' re-pin to v1.1.27**, once at this tag in the order the

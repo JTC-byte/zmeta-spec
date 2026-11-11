@@ -295,9 +295,10 @@ and a nested one fails the recursive policy walk:
 - Inference payloads and `payload.claim` must not carry `track_id`,
   `members`, or `estimated_state`.
 - State payloads must not carry `features`, `raw_features`, `modality`,
-  `measurement`, `measurements`, `t_start`, `t_end`, `data_ref`, or
-  `data_refs`; the same nine names are schema-false at the payload top level
-  and inside `extensions`.
+  `measurement`, `measurements`, `t_start`, `t_end`, `observed_at`,
+  `data_ref`, or `data_refs`. The policy check refuses all ten at any depth.
+  Nine of them, every name but `observed_at`, are also schema-false at the
+  payload top level and inside `extensions`.
 - Command payloads must not carry altitude under any of eight contract-named
   keys; the schema prohibits them at the payload top level, inside
   `geometry`, and inside `extensions`, `target_geo` is structurally 2-D, and

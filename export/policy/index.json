@@ -43,7 +43,7 @@
     {
       "export": "export/policy/semantics.json",
       "source": "policy/semantics.yaml",
-      "source_sha256": "sha256:ff87efd7a3d78c9489d6e7389e6e6e5e5e206e19bf6d1dee3a5553a52bb524c2"
+      "source_sha256": "sha256:6bfee06e7527fd5dc7cc427e5004041d2c6134a84b87493af75751ccc54c835c"
     },
     {
       "export": "export/policy/timing-freshness.json",

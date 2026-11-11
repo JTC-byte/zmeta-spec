@@ -2,7 +2,8 @@
 
 ## Current Resume Note
 
-- Last updated: 2026-11-10 (the JSON duplicate-key sentence in contract 3.5,
+- Last updated: 2026-11-10 (`observed_at` named in contract 7.7 and refused
+  on a STATE; the JSON duplicate-key sentence in contract 3.5,
   four tools and the re-anchored guidance citations; the records wave of two
   registry entries, the
   enrichment note and three terminal doctrine statuses; the TAK Protocol
@@ -11,6 +12,121 @@
   pre-cut dry run; the TAK Protocol Version 1 egress adapter; DECODE_AMBIGUOUS,
   three commits, the third on 2026-11-03; two contract sentences;
   carried-list records pass; heading_deg defined; records pass after 7.6)
+- **2026-11-10 (contract 7.7: `observed_at` on a STATE).** The maintainer
+  selected it on 2026-11-10 ("Policy and contract now") after seeing the
+  bullet before and after. Branch `exp/state-observed-at-2026-11`. Contract
+  7.7's list of prohibited state payload fields and `policy/semantics.yaml`
+  `state_event.payload_must_not_contain` each gain `observed_at`, after
+  `t_end`. The category sentence above the list already forbade observation
+  timestamps; the list says "include" and the reference check enforces the
+  list, so a STATE that carried the member under `payload.provenance` passed.
+  Such a STATE was already outside the contract, so the change invalidates no
+  payload that complied with it (`spec/versioning.md`, Backward Compatibility
+  Expectations), and contract 2.1 lets a patch tighten conformance around
+  already-defined semantics. The check is unchanged: it searches the payload
+  at any depth and reports `STATE_HAS_RAW_FEATURES` with the path. Measured on
+  the branch: the name is refused as a text key under `provenance`, nested
+  under `extensions`, in another letter case and with surrounding spaces;
+  `observedAt`, `observation_ts`, `last_observed_at`, `t_observed` and
+  `last_seen_ts` pass, as before, at the top level and under `provenance`.
+  `last_seen_ts` is the one of these the contract defines: 7.6 makes it the
+  `event.ts` of the latest contributing observation, so it is an observation
+  timestamp under 7.7's category sentence. It is booked as a candidate for the
+  list, for the maintainer's selection, and the guidance entry names it. A map
+  key that is a byte string passes the check for all ten names, as it did
+  before the branch; a check that refuses such a key in a STATE payload is
+  booked. Thirty-two shipped OBSERVATION, INFERENCE and FUSION events (the
+  examples and the must-pass pack) keep their verdict when given the member.
+  Surfaces: the contract bullet, three lines before and after, so no contract
+  citation moves; the anchor, with a dated comment; the policy list and the
+  regenerated JSON export; the guidance entry for `STATE_HAS_RAW_FEATURES`
+  (the tenth name, "six of those ten", two stale citations to the validators
+  set to their lines by reading, and a sentence on where an observation time
+  belongs: on the parent OBSERVATION's `event.ts` and the FUSION's
+  `last_seen_ts`, while the STATE's `event.ts` is its valid time);
+  `schema/README.md`, which now says the policy refuses the tenth name where
+  the schemas do not list it; `adapters/AUTHORING.md` rule 8, its line count
+  unchanged; the ontology reference, which now says the policy refuses ten
+  names and the schemas nine; the vocabulary crosswalk. The policy file gains
+  one line. Of the guidance file's 61 line references into it, 50 move by one,
+  two grow to include the new line and nine stand above it, each compared with
+  the old file's text. The branch's first commit, on the maintainer's
+  selection of 2026-11-10 ("Yes, repair them"), had put those references back
+  on their text. Two commits of 2026-11-02 (`b5eec25`, `61232f7`) added five
+  lines to the policy file and moved no reference into it, so 32 of the 60
+  named other text: a code one line above its own, or a key five lines above
+  its own. That commit moves 29 of them, two of which it also extends to the
+  present end of the v1.0 wire fallback map, and grows three by the code
+  inserted inside the list they cite whole. It writes one line number that
+  stood as prose as a citation, which is the sixty-first reference, and
+  corrects a count beside another. It adds four tests to
+  `gateway/tests/test_validation_guidance.py` that read the references and
+  fail on a policy line number written as prose; seven mutants each fail them.
+  On the file as it stood the reader reports 21 of the 32, so it is a tripwire
+  and not a proof. The same drift in the citations to the validators (the two
+  corrected here each began 64 lines above its code), the schemas and the
+  gateway is booked as its own repair; no test reads those citations.
+  Unchanged, each with its reason: both schemas, because the v1.0 schema is
+  byte-locked (`V1_0_SCHEMA_SHA256`), a schema refuses a name only at the
+  paths it lists, and naming the member in the 1.1.0 schema alone would split
+  the two version schemas, so the policy's any-depth check enforces the rule
+  for both versions (a schema could refuse `payload.provenance.observed_at`
+  and leave `provenance` open; an earlier draft of these records said it could
+  not, which was wrong); the two code copies of the nine names that read the
+  payload's top level only (`tools/validate_projection.py`,
+  `adapters/egress/cot/zmeta_to_cot.py`), booked with
+  `conformance/profile_projection_field_catalog.yaml`. Called directly, the
+  CoT adapter projects a STATE that carries `observed_at`, nested or at the
+  top level, and refuses one that carries a top-level `t_end`, so its own
+  guard disagrees with the contract; the gateway runs the policy check before
+  it projects, and the copies are taken together with the catalog when the
+  booked item is opened. Verification: the fixture
+  `state-observed-at-nested-collapse` was written first; on the unchanged tree
+  the must-fail runner reported it as not refused (its only code was the
+  lineage warning), and it is refused now with the path
+  `provenance/observed_at`; the same event without `payload.provenance` is not
+  refused under either list.
+  `gateway/tests/test_state_prohibited_fields_pin.py` was written first: its
+  test for the name failed on the unchanged tree, and its two synthetic tests
+  show the comparison reporting a missing name and allowing a policy superset.
+  It pins the contract's list of ten names in order, so a name that loses its
+  backticks fails it. The fixture's `observed_at` is five seconds earlier than
+  its `ts`, as an observation time carried forward would be. Ten mutants, each
+  killed by the five test files that hold the change: the policy list without
+  the name, or with it spelled `observedAt` (under either, the must-fail
+  runner reports the new fixture alone as no longer refused); the contract
+  bullet without the name, or with it spelled `observedAt`; the anchor with
+  the old hash; the exported list as it stood before; the export index as it
+  stood before; the STATE check reading the payload's top level only, under
+  which eight nested fixtures stop being refused, the new one among them; the
+  guidance file as the branch's first commit left it, with no reference moved
+  for the new policy line; and the contract bullet with one name's backticks
+  removed, which the pin's earlier floor of nine names let pass. An
+  independent reviewer, on a sealed copy with one planted error, found that
+  error (a count of "seven" for six) and made thirteen other findings. The
+  branch's first commit answers three: the 32 drifted policy citations, a
+  policy line number written as prose, and a citation whose note contradicted
+  it. Nine are applied: the false reason given for leaving the schemas
+  unchanged; the pin's floor; `last_seen_ts`; `schema/README.md`; the CoT
+  adapter's top-level asymmetry; the text-key qualifier; where an observation
+  time belongs; the fixture's times; and one finding on wording, the
+  maintainer's selection and the anchor comment's clause. One needs no change:
+  `exp/` names this governed unit, as it named the previous one. A factual
+  pass over these records, by a second model on a copy with its own planted
+  error, found that error and nothing else wrong; it found two lists that
+  could be counted two ways, the mutants and the applied findings, and both
+  are written out one by one. Gates before the commit: the kernel gate, whose
+  46 FAIL lines are all release-pin lines (develop's 43, three more on the
+  bad-event corpus, ten reading new values); the example and roadmap
+  validators; the bad-event corpus, 37; the conformance pack; the seven test
+  files that hold the change or read the guidance file, 80 passed; `git diff
+  --check`. The ten mutants and the fact checker of these records run under
+  the heavy-run lock before the commit; the twelve gate legs, the conformance
+  sub-checks, both live harnesses and the full battery run on it. What this
+  ties together: a gateway on this policy refuses that producer's STATE while
+  it carries the field, so the cut that carries this change follows the
+  consumer's dating fix and the producer's removal of the field, in that
+  order. Both are the other lanes' acts.
 - **2026-11-10 (contract 3.5: the JSON duplicate-key sentence, four tools,
   and the guidance file's citations).** On the maintainer's selection of
   2026-11-10 ("Sentence and tools now"), who was shown the paragraph in the

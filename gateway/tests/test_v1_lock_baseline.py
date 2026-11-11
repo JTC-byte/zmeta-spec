@@ -76,7 +76,16 @@ ROOT = Path(__file__).resolve().parents[2]
 # 2026-11-02 (doctrine F7-01), under the contract's own trigger for a
 # clarification (section 2.6: two compliant implementations can interpret the
 # same event differently). No other contract text and no schema byte changed.
-CONTRACT_SHA256 = "8ceb83ce356f9bf28e1c5966c72405212d600b6882ced0ff3ddee4e6821b600b"
+# Contract anchor moved 2026-11-10 (the second move of the day) on the
+# maintainer's selection of that day: the section 7.7 list of prohibited state
+# payload fields gains one name, `observed_at`. Section 7.7 already forbade
+# observation timestamps in a STATE_EVENT payload as a category; the list of
+# names says "include" and did not hold this one, so the reference check,
+# which enforces the list, passed it. The name joins the contract's list and
+# the policy's in the same change, as a patch that tightens conformance around
+# already-defined semantics (section 2.1). No other contract text and no schema
+# byte changed.
+CONTRACT_SHA256 = "cdb2247dc8ce2dfa7d908638214de715fa1f3d353557429381869226d4b03fd8"
 # The v1.0 reason-code enum stays locked (adjudication of 2026-08-09): the code
 # DECODE_AMBIGUOUS of 2026-11-02 (doctrine F7-01) lives in the 1.1.0 enum only and
 # rides the v1.0 wire as SCHEMA_INVALID with the minted code in
