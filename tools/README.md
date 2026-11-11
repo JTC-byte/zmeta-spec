@@ -124,6 +124,28 @@ line by line.
 `validate_bad_events.py` and `validate_conformance.py` refuse a fixture file
 that carries such a line.
 
+The other reference readers of events and fixtures refuse such a text too.
+`compat_normalize.py` lists the line under `rejected` with the code
+`DECODE_AMBIGUOUS` and writes no output, and it refuses a `.json` document
+whole. `filter_risk.py` stops with the file and line and exits 1, as it does
+for a line that is not JSON. `measure_packet_size.py` refuses the measurement
+with the file and line. `check_adapter.py` reports the line in its fixture
+lint. `validate_adapter_conformance.py`, `validate_encoding_negative.py` (its
+fixture and context files), `validate_precision_policy.py` and
+`validate_projection.py` print `FAIL DECODE_AMBIGUOUS` with the file and
+line and fail the run. The gateway's self-test stops with
+`self-test failed: DECODE_AMBIGUOUS` and the name of its shipped example
+file if that file repeats a member; in a full checkout the example
+validator, which the self-test runs first, refuses the file before that.
+Among the development harnesses, `sim/two_node.py` checks every corpus line
+and `sim/throughput.py` the lines it reads up to its template event; each
+reports a line that repeats a member as `VERDICT: INVALID` with the file
+and line and exits 2 before any node starts, and `sim/two_node.py`
+counts a received datagram that repeats one as `ambiguous` and does not
+read it; `test_workflow_end_to_end.py` stops on a forwarded datagram that
+repeats one. Schema files, the gateway's config file and other repository
+JSON that is not an event or a fixture are read as before.
+
 ### Filter Accepted-Risk Streams
 
 ```

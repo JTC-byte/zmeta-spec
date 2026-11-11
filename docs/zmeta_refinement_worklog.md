@@ -2,7 +2,8 @@
 
 ## Current Resume Note
 
-- Last updated: 2026-11-11 (records: doctrine cycle F10, the SIM1-01
+- Last updated: 2026-11-11 (the twelve remaining JSON readers refuse a
+  repeated member; records: doctrine cycle F10, the SIM1-01
   confirmation and an acoustic evidence item; `observed_at` named in
   contract 7.7 and refused
   on a STATE; the JSON duplicate-key sentence in contract 3.5,
@@ -14,6 +15,64 @@
   pre-cut dry run; the TAK Protocol Version 1 egress adapter; DECODE_AMBIGUOUS,
   three commits, the third on 2026-11-03; two contract sentences;
   carried-list records pass; heading_deg defined; records pass after 7.6)
+- **2026-11-11 (the twelve remaining JSON readers refuse a repeated member).**
+  The maintainer selected it on 2026-11-10 ("Yes, before the cut"). Branch
+  `exp/json-readers-refuse-2026-11`. The readers and what each does with a
+  text that repeats a member name, at any depth: see the CHANGELOG entry and
+  the paragraph added to `tools/README.md`. Reading sites: the twelve readers'
+  files held 21 `json.loads` calls without the refusing hook (the private
+  count of 2026-11-10 said nineteen, counting the gateway's self-test reader
+  alone of its three). Fifteen change: two in `compat_normalize.py` (a
+  `.jsonl` line, a `.json` document), one in each of `filter_risk.py`,
+  `measure_packet_size.py`, `check_adapter.py` and the four fixture tools, the
+  gateway's `_load_jsonl`, two in `sim/throughput.py` (now one helper), two in
+  `sim/two_node.py` (a corpus line, now read before it is sent, and a received
+  datagram, now counted in `ambiguous` and not read) and one in
+  `test_workflow_end_to_end.py` (a forwarded datagram). Six stay: the schema
+  reads of `measure_packet_size.py`, `check_adapter.py`,
+  `validate_adapter_conformance.py` and the gateway, the gateway's config
+  read, and `json.loads(json.dumps(template))` in `sim/throughput.py`, a deep
+  copy that cannot repeat a member. One behaviour moves for a corpus line that
+  is not JSON: `sim/two_node.py` now reads a line before it sends it, so such
+  a line is no longer sent before the same traceback. `gateway/src/gateway.py`
+  changes in two places and keeps its 3,389 lines, so none of the guidance
+  file's line citations into it moves: the import line names
+  `DecodeAmbiguousError`, and `_load_jsonl` reads through the refusing hook
+  and stops the self-test with a named failure. The decoder of received
+  traffic (`json.loads(text, object_pairs_hook=pairs_refusing_duplicates)`,
+  which refused a repeat before this branch) is not touched. Tests first: the
+  new test file's refusal tests and subtests failed on the unchanged tree and
+  its controls passed; after the change all pass. Twenty-one mutants, each
+  killed by the new test file and `test_decode_ambiguous.py`: fourteen put the
+  changed reads back to last-wins (the two corpus reads of `sim/throughput.py`
+  share one helper, so one mutant covers both), a refused fixture file treated
+  as an empty one in two tools, a refused context file left to raise, a
+  refused file left uncounted in two tools, and each harness's INVALID report
+  of a refused corpus removed. An independent reviewer, on a sealed copy with
+  one planted error, found that error (an exit code of 2 for `filter_risk.py`)
+  and made six other findings, all applied: what the gateway's self-test and
+  each harness print, in the README; the harnesses' report of a refused corpus
+  as `VERDICT: INVALID` with exit 2 before any node starts, where they had
+  exited 1 after the nodes started; the `ambiguous` count on two_node's
+  observed line; the changed behaviour for a corpus line that is not JSON,
+  recorded above; the names of three tests made true, the two_node test now
+  checking that nothing was sent; and the sim tests skipped only in a release
+  bundle, as `test_sim_boundary.py` does. It also counted the reading sites
+  and found 21, which these records state. A first launch of the review was
+  stopped before it reported, because the error planted for it was not false;
+  the review ran again on a copy with a false one. A factual pass over these
+  records, by a second model on a copy with its own planted error, found that
+  error and two real points, both applied: the mutant list added up to 22
+  against the script's 21, and `sim/throughput.py` reads a corpus only up to
+  its template event, so a repeat on a later line is never read and is not
+  reported. Gates before the commit: the kernel gate, whose 50 FAIL lines are
+  all release-pin lines (develop's 46, four more on tool files, three reading
+  new values); the example and roadmap validators; the bad-event corpus, 37;
+  the conformance pack and its sub-checks; seventeen test files that hold the
+  readers or read the records, 191 passed; `git diff --check`. The twenty-one
+  mutants and the fact checker of these records run under the heavy-run lock
+  before the commit; the twelve gate legs, the conformance sub-checks, both
+  live harnesses and the full battery run on it.
 - **2026-11-11 (records: cycle F10, the SIM1-01 confirmation, an acoustic
   evidence item).** Branch `wave/records-f10-acoustic-2026-11`. Three records
   acts, each on a selection the maintainer made on 2026-11-10. First, the

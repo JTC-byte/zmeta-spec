@@ -32,6 +32,7 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
 from zmeta_uuid import uuid7  # noqa: E402
+from zmeta_decode_guard import DecodeAmbiguousError, pairs_refusing_duplicates  # noqa: E402
 
 EXIT_PASS = 0
 EXIT_INVALID = 2
@@ -88,16 +89,24 @@ def pick_template(corpus_path):
     Lineage parents that never arrive produce warnings that have nothing to do
     with capacity and would muddy every count in the report.
     """
-    for line in corpus_path.read_text(encoding="utf-8").splitlines():
+    for line_no, line in enumerate(corpus_path.read_text(encoding="utf-8").splitlines(), start=1):
         if not line.strip():
             continue
-        obj = json.loads(line)
+        obj = _load_corpus_line(corpus_path, line_no, line)
         if (obj.get("event") or {}).get("event_type") == "OBSERVATION_EVENT" and not obj.get("lineage"):
             return obj
-    for line in corpus_path.read_text(encoding="utf-8").splitlines():
+    for line_no, line in enumerate(corpus_path.read_text(encoding="utf-8").splitlines(), start=1):
         if line.strip():
-            return json.loads(line)
+            return _load_corpus_line(corpus_path, line_no, line)
     return None
+
+
+def _load_corpus_line(corpus_path, line_no, line):
+    """One corpus line, read as the gateway reads it: a repeated member name is refused (contract 3.5)."""
+    try:
+        return json.loads(line, object_pairs_hook=pairs_refusing_duplicates)
+    except DecodeAmbiguousError as exc:
+        raise DecodeAmbiguousError(f"{corpus_path} line {line_no}: {exc}") from exc
 
 
 def parse_args():
@@ -121,7 +130,11 @@ def main():
     if not corpus.is_file():
         print(f"VERDICT: INVALID - corpus not found: {corpus}")
         return EXIT_INVALID
-    template = pick_template(corpus)
+    try:
+        template = pick_template(corpus)
+    except DecodeAmbiguousError as exc:
+        print(f"VERDICT: INVALID - DECODE_AMBIGUOUS: {exc}")
+        return EXIT_INVALID
     if template is None:
         print(f"VERDICT: INVALID - no usable event in {corpus}")
         return EXIT_INVALID

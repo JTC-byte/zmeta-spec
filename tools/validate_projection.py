@@ -17,6 +17,8 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+from zmeta_decode_guard import DecodeAmbiguousError, pairs_refusing_duplicates  # noqa: E402
+
 VALIDATORS_PATH = ROOT / "gateway" / "src" / "validators.py"
 spec = importlib.util.spec_from_file_location("zmeta_validators", VALIDATORS_PATH)
 validators = importlib.util.module_from_spec(spec)
@@ -222,7 +224,26 @@ def iter_jsonl(path: str | Path):
         line = line.strip()
         if not line:
             continue
-        yield line_no, json.loads(line)
+        try:
+            fixture = json.loads(line, object_pairs_hook=pairs_refusing_duplicates)
+        except DecodeAmbiguousError as exc:
+            # A fixture line that repeats a member name admits two readings and
+            # is refused, never read last-wins (contract 3.5).
+            raise DecodeAmbiguousError(f"{path} line {line_no}: {exc}") from exc
+        yield line_no, fixture
+
+
+def _fixtures_or_refusal(path, refused):
+    """Yield the fixtures of `path` as they are read.
+
+    A line that repeats a member name ends the reading: the refusal is printed
+    and noted in `refused`, and the caller fails the run.
+    """
+    try:
+        yield from iter_jsonl(path)
+    except DecodeAmbiguousError as exc:
+        print(f"FAIL DECODE_AMBIGUOUS {exc}")
+        refused.append(str(exc))
 
 
 def _violation(code: str, message: str, path: str | None = None, details: dict[str, Any] | None = None):
@@ -1153,7 +1174,8 @@ def run_suite(
     must_pass_total = 0
     must_fail_total = 0
 
-    for line_no, item in iter_jsonl(must_pass_path) or []:
+    refused_pass, refused_fail = [], []
+    for line_no, item in _fixtures_or_refusal(must_pass_path, refused_pass):
         must_pass_total += 1
         label = _case_label(item, line_no)
         violations = compare_projection(item, catalog, policy, schema_validator)
@@ -1168,7 +1190,7 @@ def run_suite(
             if not quiet:
                 print(f"PASS must-pass name={label}")
 
-    for line_no, item in iter_jsonl(must_fail_path) or []:
+    for line_no, item in _fixtures_or_refusal(must_fail_path, refused_fail):
         must_fail_total += 1
         label = _case_label(item, line_no)
         expected = item.get("expect_code")
@@ -1188,10 +1210,11 @@ def run_suite(
             if not quiet:
                 print(f"PASS must-fail name={label} expected={expected}")
 
-    if must_pass_total == 0:
+    failures += len(refused_pass) + len(refused_fail)
+    if must_pass_total == 0 and not refused_pass:
         failures += 1
         print(f"FAIL must-pass file {must_pass_path} contains no fixtures - an empty file proves nothing")
-    if must_fail_total == 0:
+    if must_fail_total == 0 and not refused_fail:
         failures += 1
         print(f"FAIL must-fail file {must_fail_path} contains no fixtures - an empty file proves nothing")
 

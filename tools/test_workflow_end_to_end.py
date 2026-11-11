@@ -32,6 +32,7 @@ except ImportError:  # pragma: no cover - optional dependency
     zmeta_proto = None
 
 from zmeta_uuid import uuid7
+from zmeta_decode_guard import DecodeAmbiguousError, pairs_refusing_duplicates  # noqa: E402
 
 TIMING_QUALITY = {
     "time_source": "GPS_PPS",
@@ -249,6 +250,15 @@ def _build_events(profile, expect):
     raise ValueError(f"unsupported profile: {profile}")
 
 
+def _parse_forwarded(data):
+    """One forwarded datagram, read as the gateway reads its input: a repeated
+    member name is refused, never read to its last value (contract 3.5)."""
+    try:
+        return json.loads(data.decode("utf-8"), object_pairs_hook=pairs_refusing_duplicates)
+    except DecodeAmbiguousError as exc:
+        raise SystemExit(f"forwarded datagram refused: DECODE_AMBIGUOUS: {exc}") from exc
+
+
 def main():
     args = build_args()
     cmd = [
@@ -288,7 +298,7 @@ def main():
         forwarded = []
         for _ in range(len(events)):
             data = _recv(recv_sock, args.timeout)
-            forwarded.append(json.loads(data.decode("utf-8")))
+            forwarded.append(_parse_forwarded(data))
 
         forwarded_types = [e["event"]["event_type"] for e in forwarded]
         expected_types = [e["event"]["event_type"] for e in events]

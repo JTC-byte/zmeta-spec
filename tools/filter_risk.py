@@ -3,6 +3,12 @@ import json
 import sys
 from pathlib import Path
 
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from zmeta_decode_guard import DecodeAmbiguousError, pairs_refusing_duplicates  # noqa: E402
+
 
 DECISION_RANKS = {
     "IGNORED": 0,
@@ -227,7 +233,12 @@ def _iter_jsonl(path):
             if not line.strip():
                 continue
             try:
-                event = json.loads(line)
+                # A repeated member name is refused, never read to its last
+                # value (contract 3.5); main() prints it and exits 1, as it
+                # does for a line that is not JSON.
+                event = json.loads(line, object_pairs_hook=pairs_refusing_duplicates)
+            except DecodeAmbiguousError as exc:
+                raise ValueError(f"{path}:{line_no}: DECODE_AMBIGUOUS: {exc}") from exc
             except json.JSONDecodeError as exc:
                 raise ValueError(f"{path}:{line_no}: invalid JSON: {exc.msg}") from exc
             yield line_no, event

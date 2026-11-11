@@ -2,6 +2,49 @@
 
 ## [Unreleased]
 
+- 2026-11-11 — **The remaining reference readers of event and fixture JSON
+  refuse a repeated member name** (reference tools and the gateway's self-test
+  reader, Class C; the contract is unchanged). The maintainer selected this on
+  2026-11-10 ("Yes, before the cut"). Contract 3.5 says a JSON text in which
+  one object repeats a member name is not a valid encoded event. The gateway
+  and four tools refused such a text from 2026-11-10, and twelve other readers
+  still kept the last value. They now read through
+  `zmeta_decode_guard.pairs_refusing_duplicates`. Three tools read events:
+  `tools/compat_normalize.py` lists a refused line under `rejected` with the
+  code `DECODE_AMBIGUOUS`, writes no output, and refuses a `.json` document
+  whole; `tools/filter_risk.py` stops with the file and line and exits 1, as
+  it does for a line that is not JSON; `tools/measure_packet_size.py` refuses
+  the measurement with the file and line. Five read fixtures:
+  `tools/check_adapter.py` reports the line in its fixture lint, and
+  `tools/validate_adapter_conformance.py`,
+  `tools/validate_encoding_negative.py` (its fixture and context files),
+  `tools/validate_precision_policy.py` and `tools/validate_projection.py`
+  print `FAIL DECODE_AMBIGUOUS` with the file and line and fail the run, also
+  when the conformance tool runs them in process. The gateway's self-test
+  stops with a named failure on a repeat in its shipped example file
+  (`_load_jsonl` in `gateway/src/gateway.py`, which keeps its line count; the
+  decoder of the traffic the gateway receives is not touched). Three
+  development harnesses refuse it too: `tools/sim/two_node.py` checks every
+  corpus line, and `tools/sim/throughput.py` the lines it reads up to its
+  template event; each reports a line that repeats a member as `VERDICT:
+  INVALID` and exits 2 before any node starts, `two_node.py` counts a received
+  datagram that repeats one as `ambiguous`, and
+  `tools/test_workflow_end_to_end.py` stops on a forwarded one. Of the 21
+  `json.loads` calls without the refusing hook in these twelve readers' files,
+  fifteen read events or fixtures and change. Six stay as they were, none of
+  them a read of an event or a fixture: four reads of schema files, the
+  gateway's read of its config file, and one deep copy of an object a harness
+  built itself. A clean input reads and exits as before. The new test file
+  `gateway/tests/test_decode_ambiguous_readers.py` tries each reader with a
+  repeat at the top level, with one below it, and with the same text without
+  the repeat; its refusal tests were written first and failed on the unchanged
+  tree. Twenty-one mutants each fail it. An independent reviewer read the
+  change against its sources, found the error planted for it, and made six
+  other findings; all six are applied. A separate factual pass over these
+  records found the error planted for it and two real points, applied: the
+  mutant count's list, and how much of a corpus `sim/throughput.py` reads.
+  Five of the tools are manifest-listed, so the kernel gate reads four more
+  release-pin lines and three of its lines read new values until the next cut.
 - 2026-11-11 — **Records: doctrine cycle F10, the maintainer's confirmation
   under SIM1-01, and one evidence item for the acoustic level carriers**
   (`docs/zmeta_doctrine_review_log.md` and `spec/future-branch-roadmap.yaml`;
