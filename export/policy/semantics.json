@@ -42,6 +42,7 @@
         "measurements",
         "t_start",
         "t_end",
+        "observed_at",
         "data_ref",
         "data_refs"
       ]

@@ -93,7 +93,9 @@ state-safe fields such as `track_id`, `geo`, `class`, `source_summary`,
 `heading_deg`, `speed_mps`, `valid_for_ms`, and UI/rendering `extensions`, but
 they cannot contain raw observation fields: `features`, `raw_features`,
 `modality`, `measurement`, `measurements`, `t_start`, `t_end`, `data_ref`, or
-`data_refs`. Traceability belongs in `lineage.based_on`.
+`data_refs`. The policy check in `policy/semantics.yaml` refuses a tenth name,
+`observed_at`, at any depth of the payload (contract 7.7), which the schemas
+do not list. Traceability belongs in `lineage.based_on`.
 Scalar `speed_mps` values are non-negative. Heading and bearing angles keep the
 contract range of 0-360 inclusive; adapters may normalize 360 to 0 before
 emission, but both values are valid.

@@ -2,6 +2,69 @@
 
 ## [Unreleased]
 
+- 2026-11-10 — **Contract 7.7 names `observed_at` among the prohibited STATE
+  payload fields, and the policy refuses it at any depth**
+  (`spec/semantics-contract.md` and `policy/semantics.yaml`, Class B, a
+  clarification under contract 2.1). The maintainer selected it on 2026-11-10
+  after seeing the bullet before and after. Section 7.7 already says a
+  STATE_EVENT payload "MUST NOT contain raw sensor features, raw measurements,
+  observation modalities, observation timestamps, or raw artifact references".
+  Its list of field names says "include" and did not hold `observed_at`, a
+  name a fielded producer's STATE carries under `payload.provenance`, so the
+  reference check, which enforces the list, passed it. The contract's list and
+  `policy/semantics.yaml` `state_event.payload_must_not_contain` each gain the
+  name, after `t_end`. The existing check searches the whole payload,
+  `extensions` included, and reports `STATE_HAS_RAW_FEATURES` (fail) with the
+  path. No code is minted, no schema changes, and no vocabulary grows. A STATE
+  that carries an observation timestamp was already outside 7.7, so no payload
+  that complied with the contract becomes invalid (`spec/versioning.md`,
+  Backward Compatibility Expectations). Refused: `observed_at` as a text key
+  on a STATE at any depth, in any letter case, with surrounding spaces. A map
+  key that is a byte string passes the check for all ten names, as it did
+  before this change; a check for it is booked. Not refused: another spelling
+  of an observation timestamp, `last_seen_ts` among them, which contract 7.6
+  defines as the `event.ts` of an observation. The category sentence still
+  forbids those and nothing checks them; `last_seen_ts` is booked as a
+  candidate for the list, for the maintainer. `observed_at` on an OBSERVATION,
+  INFERENCE or FUSION event is not refused, as before, and no shipped example
+  or vector changes verdict. A gateway on this policy refuses that producer's
+  STATE for as long as it carries the field, so the cut that carries this
+  follows the consumer's dating fix and the producer's removal of the field,
+  in that order. The schemas keep their nine schema-false names. The v1.0
+  schema is byte-locked (`V1_0_SCHEMA_SHA256`), a schema refuses a name only
+  at the paths it lists, and naming the member in the 1.1.0 schema alone would
+  split the two version schemas, so the policy's any-depth check enforces the
+  rule for both versions. Two code copies of the nine names that read the
+  payload's top level only (`tools/validate_projection.py`,
+  `adapters/egress/cot/zmeta_to_cot.py`) are unchanged and booked. Called
+  directly, the CoT adapter projects a STATE that carries `observed_at` and
+  refuses one that carries a top-level `t_end`; the gateway runs the policy
+  check before egress. One fixture is added,
+  `state-observed-at-nested-collapse` (the bad-event corpus reads 37), and a
+  new test file, `gateway/tests/test_state_prohibited_fields_pin.py`, fails
+  when the contract names a field the policy does not enforce; the policy may
+  hold more. Both were written first: on the unchanged tree the fixture was
+  not refused and the file's test for the name failed. The contract anchor
+  moves with a dated comment; the contract's line count does not change. The
+  policy file gains one line, so 50 of the guidance file's 61 line references
+  into it move by one and two grow by it, each checked against the old file.
+  The branch's first commit had put those references back on their text, on
+  the maintainer's selection of the same day: two commits of 2026-11-02 added
+  five lines to the policy file and moved none of them, so 32 of 60 named
+  other text. Four tests in `gateway/tests/test_validation_guidance.py` now
+  read them. The guidance entry for `STATE_HAS_RAW_FEATURES`, the adapter
+  authoring guide's rule 8, the ontology reference and the vocabulary
+  crosswalk name the tenth field, and `schema/README.md` says the policy
+  refuses it where the schemas do not list it. The policy JSON export is
+  regenerated. An independent reviewer read the change against its sources,
+  found the error planted for it, and made thirteen other findings: the
+  branch's first commit answers three, nine are applied, and one, the prefix
+  of the branch's name, needs no change. A separate factual pass over these
+  records found the error planted for it and nothing else wrong. The gateway's
+  startup `contract_hash` moves again. The contract, the policy file, its
+  export and the fixture file are manifest-listed, so the kernel gate reads
+  three more release-pin lines and ten of its lines read new values until the
+  next cut regenerates the manifest.
 - 2026-11-10 — **Contract 3.5 states the JSON duplicate-key rule; four more
   reference tools refuse such a text; the guidance file's contract citations
   are re-anchored** (`spec/semantics-contract.md` is Class B, a clarification
