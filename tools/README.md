@@ -221,6 +221,7 @@ Additional focused conformance validators:
 ```
 python tools/validate_bad_events.py --must-fail conformance/bad-events/must-fail.jsonl
 python tools/validate_adapter_conformance.py --fixtures conformance/adapter-harness/must-pass.jsonl
+python tools/validate_cot_golden.py
 ```
 
 `validate_bad_events.py` proves dishonest or unsafe semantic examples are not
@@ -230,6 +231,9 @@ layer separation, UTC-Z timestamps, lineage, promotion evidence, and exact
 output values pinned by per-fixture `expected_values` maps (numeric values
 compare within a 1e-6 absolute tolerance; a boolean never matches a
 non-boolean, so a `true` pin cannot be satisfied by `1`/`1.0` output).
+`validate_cot_golden.py` projects every case of
+`conformance/cot-golden/golden.jsonl` with the reference CoT projection and
+compares the result byte for byte with the golden string or refusal.
 
 ### Check An Adapter (One Command)
 

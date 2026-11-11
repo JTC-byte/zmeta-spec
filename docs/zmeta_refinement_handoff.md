@@ -148,6 +148,15 @@ line count: the import line and the self-test reader of
 gateway receives is not touched. Five of the tools are manifest-listed,
 so the kernel gate reads four more release-pin lines until the next cut.
 
+The branch `wave/cot-golden-2026-11` (2026-11-11) adds the golden CoT
+outputs on the maintainer's selection of 2026-11-10:
+`conformance/cot-golden/golden.jsonl`, the reference CoT XML or refusal
+for each example STATE event under the `standard` and `cds` profiles,
+checked by `tools/validate_cot_golden.py` and required by the
+`ZMETA-COT-PROJECTION` class. A change to an example STATE event, or to
+the CoT projection's output for one, now fails a test until the corpus
+is rebuilt and the change recorded.
+
 Open, in order of proximity:
 
 1. **The consumers' re-pin to v1.1.27**, once at this tag in the order the

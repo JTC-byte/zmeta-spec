@@ -222,6 +222,15 @@ def artifact_groups(root: Path = ROOT, *, include_tool_source: bool = True) -> d
                 root,
             ),
         },
+        "cot_projection_golden": {
+            "description": "Golden outputs of the reference CoT projection for the example STATE events.",
+            "paths": _existing(
+                [
+                    "conformance/cot-golden/golden.jsonl",
+                ],
+                root,
+            ),
+        },
         "encoding_projection_specs": {
             "description": "Compact CBOR and protobuf projection specifications and codec evidence.",
             "paths": [
@@ -291,6 +300,7 @@ def artifact_groups(root: Path = ROOT, *, include_tool_source: bool = True) -> d
                 "tools/validate_precision_policy.py",
                 "tools/validate_bad_events.py",
                 "tools/validate_adapter_conformance.py",
+                "tools/validate_cot_golden.py",
                 "tools/validate_future_roadmap.py",
                 "tools/filter_risk.py",
             ],

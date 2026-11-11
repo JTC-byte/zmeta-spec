@@ -182,6 +182,10 @@ unchanged by the other profile's existence, and a test freezes its bytes.
 enclave on 2026-09-29, recorded here so a deployment can select the validated
 shape by name instead of rebuilding it.
 
+What the projection gives for every example STATE event under both
+profiles, the CoT XML or a refusal, is a conformance artifact:
+`conformance/cot-golden/golden.jsonl` (its README says how it is checked).
+
 What passed, and how much that proves: one deployment, one partner's guard,
 one day (n=1). The deployment reported that the partner saw its tracks on the
 partner's federation hub on 2026-09-24 under an earlier shape the deployment
