@@ -78,6 +78,22 @@ so the kernel gate reads three more release-pin lines, on the registry,
 until the next cut. Two governed reason codes for looked-up results stay
 booked until a real result exists to serve as each one's fixture.
 
+The branch `exp/contract-json-duplicate-2026-11` (2026-11-10) adds one
+paragraph to contract 3.5 on the maintainer's selection of that day: a JSON
+text in which one object repeats a member name, at any depth, is not a
+valid encoded event. The reference decoders already refused it; the
+sentence binds every implementation. Four more reference tools refuse such
+a text, the contract anchor moves, and the gateway's startup
+`contract_hash` moves with the contract, so every consumer's pinned hash
+stays its tag's until it re-pins to the cut that carries this. The same
+branch re-anchors the contract line citations in
+`tools/validation_guidance.yaml`, most of which had sat above their text
+since the contract sentences of 2026-11-02, and adds two tests: one reads
+where every citation begins and ends, the other fails on a contract line
+number written as prose. A contract edit that adds or removes lines has to
+move those citations in the same change. The tests are tripwires for a
+shift that was not made; they do not read what the cited lines say.
+
 Open, in order of proximity:
 
 1. **The consumers' re-pin to v1.1.27**, once at this tag in the order the
@@ -122,13 +138,24 @@ Open, in order of proximity:
    hazards 1 and 3 left this item on 2026-11-02 (doctrine F7-01): the
    reference decoders refuse a duplicate JSON key and an unknown, mistyped or
    repeated protobuf field under `DECODE_AMBIGUOUS`, on the post-lock route.
-   From that decision the maintainer selected, on 2026-11-10, the contract
-   sentence stating the JSON duplicate-key rule (class (a); the JSON
-   documents are silent on duplicates) together with the move of four
-   reference tools to the refusing reader (`tools/check_compat.py`,
-   `tools/validate_examples.py`, `tools/validate_bad_events.py` and
-   `tools/validate_conformance.py`); both ride their own branch and are
-   not in the tree yet. Selected the same day, for branches after the
+   From that decision the contract sentence stating the JSON duplicate-key
+   rule landed on 2026-11-10 (contract 3.5), on the maintainer's selection
+   of that day, together with the move of four reference tools to the
+   refusing reader (`tools/check_compat.py`, `tools/validate_examples.py`,
+   `tools/validate_bad_events.py` and `tools/validate_conformance.py`).
+   Other readers of event or fixture JSON still keep the last value and
+   wait for his word. Eight are tools: `tools/compat_normalize.py`,
+   `tools/filter_risk.py` and `tools/measure_packet_size.py` read events;
+   `tools/check_adapter.py`, `tools/validate_adapter_conformance.py`,
+   `tools/validate_encoding_negative.py` (its fixture file),
+   `tools/validate_precision_policy.py` and `tools/validate_projection.py`
+   read fixtures. The gateway's self-test reads its shipped example file
+   the same way, and so do three development harnesses
+   (`tools/sim/throughput.py`, `tools/sim/two_node.py`,
+   `tools/test_workflow_end_to_end.py`). Also waiting: one sentence in
+   `spec/protobuf-encoding.md` that a member repeated inside `payload_json`
+   falls under contract 3.5.
+   Selected the same day, for branches after the
    next cut: duplicate map keys on the CBOR and compact lanes, which this
    repository's `zmeta_cbor` (the reference CBOR path) and the cbor2 fallback
    both resolve last-wins (a change to `zmeta_cbor` here, a later branch);

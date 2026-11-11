@@ -1426,8 +1426,8 @@ def _looks_like_event(obj):
 
 
 def _json_loads(text):
-    # Contract 3.4; doctrine F7-01: a duplicate key in one object is refused, never
-    # resolved to the last value (DECODE_AMBIGUOUS at the decode stage).
+    # Contract 3.5; doctrine F7-01: a JSON text that repeats a member name is not a
+    # valid encoded event. Refused, never read last-wins (DECODE_AMBIGUOUS).
     return json.loads(text, object_pairs_hook=pairs_refusing_duplicates)
 
 

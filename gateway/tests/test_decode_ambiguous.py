@@ -376,5 +376,258 @@ class ThirdPassTest(unittest.TestCase):
             tool.gateway.process_message = original
 
 
+class ContractSentenceTest(unittest.TestCase):
+    """2026-11-10, on the maintainer's selection: contract 3.5 states the JSON
+    duplicate-key rule, and four more reference tools read JSON through the
+    refusing reader. Written before the change; the six refusal tests were
+    seen failing, and the control passed throughout. The tests for the
+    must-fail file of the conformance tool, for a repeat below the top level
+    and for a document with a clean sibling were added after the change, and
+    so were the checks of the category, of the single FAIL line and of the
+    paragraph's place; each fails against a mutant of what it checks."""
+
+    SENTENCES = (
+        "A JSON text in which one object repeats a member name, at any depth, does not "
+        "decode to one canonical event and is not a valid encoded event.",
+        "A decoder that keeps one of the repeated values chooses a reading the text does not state.",
+    )
+
+    def _section_3_5(self):
+        lines = (ROOT / "spec" / "semantics-contract.md").read_text(encoding="utf-8").splitlines()
+        start = next(i for i, line in enumerate(lines) if line.startswith("### 3.5 "))
+        end = next(i for i in range(start + 1, len(lines)) if lines[i].startswith("#"))
+        return " ".join(" ".join(lines[start:end]).split())
+
+    def _first_line(self, relative):
+        return next(line for line in (ROOT / relative).read_text(encoding="utf-8").splitlines() if line.strip())
+
+    def _repeated(self, line, key, wrong):
+        """`line` with one top-level member repeated: a wrong value first, the
+        shipped value last, so a reader that keeps the last value reads the
+        shipped text."""
+        shipped = json.loads(line)
+        self.assertIn(key, shipped)
+        self.assertNotEqual(wrong, shipped[key])
+        return "{" + json.dumps(key) + ": " + json.dumps(wrong) + ", " + line.strip()[1:]
+
+    def _repeated_at_depth(self, line):
+        """`line` with the innermost `event_id` repeated, a wrong value first."""
+        self.assertIn('"event_id"', line)
+        repeated = line.replace('"event_id"', '"event_id": "00000000-0000-7000-8000-000000000000", "event_id"', 1)
+        self.assertEqual(json.loads(line), json.loads(repeated))
+        self.assertFalse(repeated.lstrip().startswith('{"event_id"'))
+        return repeated
+
+    def _clean_event_line(self):
+        # A shipped Profile L example that the tools accept as it stands.
+        return self._first_line("examples/zmeta-profile-L-examples.jsonl")
+
+    def _repeating_event_line(self):
+        return self._repeated(self._clean_event_line(), "zmeta_version", "9.9")
+
+    def _tool_run(self, tool, *argv):
+        import subprocess
+
+        return subprocess.run(
+            [sys.executable, str(ROOT / "tools" / tool), *argv], capture_output=True, text=True, cwd=str(ROOT)
+        )
+
+    def _validate_examples_file(self, path):
+        import contextlib
+        import io
+
+        spec_t = importlib.util.spec_from_file_location(
+            "zmeta_tool_validate_examples_da", ROOT / "tools" / "validate_examples.py"
+        )
+        tool = importlib.util.module_from_spec(spec_t)
+        spec_t.loader.exec_module(tool)
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            result = tool.validate_file(path, "L", SCHEMA_VALIDATOR, POLICY, POLICY.get("violation_severities", {}), False)
+        return result, out.getvalue()
+
+    def test_the_contract_states_the_rule_the_reference_decoder_applies(self):
+        # The two cannot drift apart silently: the contract carries the
+        # sentences, and the reference decoder refuses a repeat at depth two.
+        section = self._section_3_5()
+        for sentence in self.SENTENCES:
+            self.assertIn(sentence, section)
+        # between the validity paragraph and the paragraph on encoding versions
+        self.assertIn(
+            "are not semantic. " + " ".join(self.SENTENCES) + " Encoding versions, such as", section
+        )
+        text = json.dumps(_event()).replace('"lat": 34.0', '"lat": 34.0, "lat": 35.0')
+        self.assertEqual(["DECODE_AMBIGUOUS"], _codes(_run(text.encode("utf-8"), "json")))
+
+    def test_check_compat_refuses_a_line_that_repeats_a_member(self):
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "repeat.jsonl"
+            path.write_text(self._repeating_event_line() + "\n", encoding="utf-8")
+            proc = self._tool_run("check_compat.py", "--json", "--profile", "L", str(path))
+        self.assertNotIn("Traceback", proc.stderr + proc.stdout)
+        self.assertEqual(1, proc.returncode, proc.stdout[:400])
+        issues = json.loads(proc.stdout)["issues"]
+        self.assertEqual(["decode"], [issue["category"] for issue in issues])
+        self.assertIn("DECODE_AMBIGUOUS", issues[0]["message"])
+        self.assertIn("duplicate key", issues[0]["message"])
+
+    def test_check_compat_refuses_a_whole_document_for_one_repeat(self):
+        # A .json document is one JSON text. With a clean item beside the
+        # repeating one, the document is still refused whole, at line 1.
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "siblings.json"
+            path.write_text(
+                "[\n" + self._clean_event_line() + ",\n" + self._repeating_event_line() + "\n]\n", encoding="utf-8"
+            )
+            proc = self._tool_run("check_compat.py", "--json", "--profile", "L", str(path))
+        self.assertNotIn("Traceback", proc.stderr + proc.stdout)
+        self.assertEqual(1, proc.returncode, proc.stdout[:400])
+        report = json.loads(proc.stdout)
+        self.assertEqual(0, report["events"])
+        self.assertEqual([("decode", 1)], [(issue["category"], issue["line"]) for issue in report["issues"]])
+
+    def test_each_tool_refuses_a_repeat_below_the_top_level(self):
+        # The contract says "at any depth". The repeated member sits inside
+        # the inner `event` object: depth two in an event line, three in a fixture.
+        import tempfile
+
+        event_line = self._repeated_at_depth(self._clean_event_line())
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "depth.jsonl"
+            path.write_text(event_line + "\n", encoding="utf-8")
+            with self.subTest(tool="check_compat"):
+                proc = self._tool_run("check_compat.py", "--json", "--profile", "L", str(path))
+                self.assertEqual(1, proc.returncode, proc.stdout[:400])
+                self.assertEqual(["decode"], [issue["category"] for issue in json.loads(proc.stdout)["issues"]])
+            with self.subTest(tool="validate_examples"):
+                result, printed = self._validate_examples_file(path)
+                self.assertEqual({"total": 1, "passed": 0, "failed": 1, "warnings": 0}, result, printed)
+                self.assertIn("FAIL DECODE_AMBIGUOUS", printed)
+            with self.subTest(tool="validate_bad_events"):
+                fixture = Path(tmp) / "bad-depth.jsonl"
+                fixture.write_text(
+                    self._repeated_at_depth(self._first_line("conformance/bad-events/must-fail.jsonl")) + "\n",
+                    encoding="utf-8",
+                )
+                proc = self._tool_run("validate_bad_events.py", "--must-fail", str(fixture))
+                self.assertNotIn("Traceback", proc.stderr + proc.stdout)
+                self.assertEqual(1, proc.returncode, proc.stdout[:400])
+                self.assertIn("DECODE_AMBIGUOUS", proc.stdout)
+            with self.subTest(tool="validate_conformance"):
+                fixture = Path(tmp) / "pass-depth.jsonl"
+                fixture.write_text(
+                    self._repeated_at_depth(self._first_line("conformance/must-pass.jsonl")) + "\n", encoding="utf-8"
+                )
+                proc = self._tool_run("validate_conformance.py", "--pass-file", str(fixture))
+                self.assertNotIn("Traceback", proc.stderr + proc.stdout)
+                self.assertEqual(1, proc.returncode, proc.stdout[:400])
+                self.assertIn("DECODE_AMBIGUOUS", proc.stdout)
+
+    def test_check_compat_refuses_a_json_document_that_repeats_a_member(self):
+        # A .json file takes the tool's whole-document path, which parsed the
+        # text and wrote each item out again before the per-item read.
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "repeat.json"
+            path.write_text("[\n" + self._repeating_event_line() + "\n]\n", encoding="utf-8")
+            proc = self._tool_run("check_compat.py", "--json", "--profile", "L", str(path))
+        self.assertNotIn("Traceback", proc.stderr + proc.stdout)
+        self.assertEqual(1, proc.returncode, proc.stdout[:400])
+        messages = [issue["message"] for issue in json.loads(proc.stdout)["issues"]]
+        self.assertTrue(any("DECODE_AMBIGUOUS" in m and "duplicate key" in m for m in messages), messages)
+
+    def test_validate_examples_refuses_a_line_that_repeats_a_member(self):
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "repeat.jsonl"
+            path.write_text(self._repeating_event_line() + "\n", encoding="utf-8")
+            result, printed = self._validate_examples_file(path)
+        self.assertEqual({"total": 1, "passed": 0, "failed": 1, "warnings": 0}, result, printed)
+        self.assertIn("FAIL DECODE_AMBIGUOUS", printed)
+
+    def test_validate_bad_events_refuses_a_fixture_line_that_repeats_a_member(self):
+        import tempfile
+
+        line = self._repeated(self._first_line("conformance/bad-events/must-fail.jsonl"), "expect_code", "NOT_A_CODE")
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "repeat.jsonl"
+            path.write_text(line + "\n", encoding="utf-8")
+            proc = self._tool_run("validate_bad_events.py", "--must-fail", str(path))
+        self.assertNotIn("Traceback", proc.stderr + proc.stdout)
+        self.assertEqual(1, proc.returncode, proc.stdout[:400])
+        self.assertIn("DECODE_AMBIGUOUS", proc.stdout)
+        self.assertIn("duplicate key", proc.stdout)
+        self.assertEqual(1, sum(1 for line in proc.stdout.splitlines() if line.startswith("FAIL ")), proc.stdout)
+        self.assertNotIn("contains no fixtures", proc.stdout)
+
+    def test_validate_conformance_refuses_a_fixture_line_that_repeats_a_member(self):
+        import tempfile
+
+        line = self._repeated(self._first_line("conformance/must-pass.jsonl"), "profile", "Z")
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "repeat.jsonl"
+            path.write_text(line + "\n", encoding="utf-8")
+            proc = self._tool_run("validate_conformance.py", "--pass-file", str(path))
+        self.assertNotIn("Traceback", proc.stderr + proc.stdout)
+        self.assertEqual(1, proc.returncode, proc.stdout[:400])
+        self.assertIn("DECODE_AMBIGUOUS", proc.stdout)
+        self.assertIn("duplicate key", proc.stdout)
+        # the refused file counts once, and is not also reported as empty
+        self.assertEqual(1, sum(1 for line in proc.stdout.splitlines() if line.startswith("FAIL ")), proc.stdout)
+        self.assertNotIn("contains no fixtures", proc.stdout)
+
+    def test_validate_conformance_refuses_a_must_fail_line_that_repeats_a_member(self):
+        import tempfile
+
+        line = self._repeated(self._first_line("conformance/must-fail.jsonl"), "expect_code", "NOT_A_CODE")
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "repeat.jsonl"
+            path.write_text(line + "\n", encoding="utf-8")
+            proc = self._tool_run("validate_conformance.py", "--fail-file", str(path))
+        self.assertNotIn("Traceback", proc.stderr + proc.stdout)
+        self.assertEqual(1, proc.returncode, proc.stdout[:400])
+        self.assertIn("DECODE_AMBIGUOUS", proc.stdout)
+        self.assertIn("duplicate key", proc.stdout)
+        self.assertEqual(1, sum(1 for line in proc.stdout.splitlines() if line.startswith("FAIL ")), proc.stdout)
+        self.assertNotIn("contains no fixtures", proc.stdout)
+
+    def test_the_four_tools_accept_the_same_texts_without_the_repeat(self):
+        # The controls: each input above, without its repeated member, is
+        # accepted, so each refusal belongs to the repeat and to nothing else.
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as tmp:
+            clean = Path(tmp) / "clean.jsonl"
+            clean.write_text(self._clean_event_line() + "\n", encoding="utf-8")
+            proc = self._tool_run("check_compat.py", "--json", "--profile", "L", str(clean))
+            self.assertEqual(0, proc.returncode, proc.stdout[:400])
+            self.assertEqual([], json.loads(proc.stdout)["issues"])
+
+            document = Path(tmp) / "clean.json"
+            document.write_text("[\n" + self._clean_event_line() + "\n]\n", encoding="utf-8")
+            self.assertEqual(0, self._tool_run("check_compat.py", "--json", "--profile", "L", str(document)).returncode)
+
+            result, printed = self._validate_examples_file(clean)
+            self.assertEqual({"total": 1, "passed": 1, "failed": 0, "warnings": 0}, result, printed)
+
+            bad = Path(tmp) / "bad.jsonl"
+            bad.write_text(self._first_line("conformance/bad-events/must-fail.jsonl") + "\n", encoding="utf-8")
+            self.assertEqual(0, self._tool_run("validate_bad_events.py", "--must-fail", str(bad)).returncode)
+
+            good = Path(tmp) / "pass.jsonl"
+            good.write_text(self._first_line("conformance/must-pass.jsonl") + "\n", encoding="utf-8")
+            self.assertEqual(0, self._tool_run("validate_conformance.py", "--pass-file", str(good)).returncode)
+
+            must_fail = Path(tmp) / "fail.jsonl"
+            must_fail.write_text(self._first_line("conformance/must-fail.jsonl") + "\n", encoding="utf-8")
+            self.assertEqual(0, self._tool_run("validate_conformance.py", "--fail-file", str(must_fail)).returncode)
+
+
 if __name__ == "__main__":
     unittest.main()

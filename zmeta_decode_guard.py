@@ -1,4 +1,4 @@
-"""Decode guards shared by the reference decoders (contract 3.4; doctrine F7-01).
+"""Decode guards shared by the reference decoders (contract 3.5 and 3.4; doctrine F7-01).
 
 A decode that chose between two values for one name, or dropped a member it
 could not type, produces an event the producer never sent. Forwarding it would

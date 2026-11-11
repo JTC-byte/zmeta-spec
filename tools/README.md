@@ -114,6 +114,16 @@ subtype vocabulary mismatches, v1.1-only vocabulary used without
 misses, profile violations, and CoT projection blockers as separate categories.
 Use it before strict validation when integrating older producers.
 
+A JSON text in which one object repeats a member name is not a valid encoded
+event (contract 3.5). `check_compat.py` reports such a text under the category
+`decode` as `DECODE_AMBIGUOUS` and does not read it to its last value. A
+`.json` document is one JSON text, so one repeated member anywhere in it
+refuses the whole document, reported at line 1; a `.jsonl` file is refused
+line by line.
+`validate.py` and `validate_examples.py` fail the line the same way, and
+`validate_bad_events.py` and `validate_conformance.py` refuse a fixture file
+that carries such a line.
+
 ### Filter Accepted-Risk Streams
 
 ```

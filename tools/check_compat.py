@@ -2,11 +2,15 @@ import argparse
 import importlib.util
 import json
 import re
+import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+from zmeta_decode_guard import DecodeAmbiguousError, pairs_refusing_duplicates  # noqa: E402
 VALIDATORS_PATH = ROOT / "gateway" / "src" / "validators.py"
 spec = importlib.util.spec_from_file_location("zmeta_validators", VALIDATORS_PATH)
 validators = importlib.util.module_from_spec(spec)
@@ -175,8 +179,13 @@ def iter_items(path):
     with open(path, "r", encoding="utf-8") as handle:
         raw = handle.read()
     try:
-        value = json.loads(raw)
-    except json.JSONDecodeError:
+        # A repeated member name is refused, never resolved to the last value
+        # (contract 3.5). Parsing here and writing each item out again would
+        # hide the repeat from the per-item read. The document is one JSON
+        # text, so one repeat anywhere in it refuses the whole document.
+        value = json.loads(raw, object_pairs_hook=pairs_refusing_duplicates)
+    except (json.JSONDecodeError, DecodeAmbiguousError):
+        # the per-item read reports the reason against the whole text
         yield 1, raw
         return
     if isinstance(value, list):
@@ -582,7 +591,20 @@ def main():
 
     for line, raw in iter_items(args.file):
         try:
-            instance = json.loads(raw)
+            instance = json.loads(raw, object_pairs_hook=pairs_refusing_duplicates)
+        except DecodeAmbiguousError as exc:
+            # Contract 3.5: a JSON text that repeats a member name is not a valid
+            # encoded event. The gateway reports it as DECODE_AMBIGUOUS.
+            add_issue(
+                issues,
+                "decode",
+                "fail",
+                line,
+                "UNKNOWN",
+                "$",
+                f"DECODE_AMBIGUOUS: {exc}",
+            )
+            continue
         except json.JSONDecodeError as exc:
             add_issue(
                 issues,

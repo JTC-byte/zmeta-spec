@@ -2,13 +2,115 @@
 
 ## Current Resume Note
 
-- Last updated: 2026-11-10 (the records wave of two registry entries, the
+- Last updated: 2026-11-10 (the JSON duplicate-key sentence in contract 3.5,
+  four tools and the re-anchored guidance citations; the records wave of two
+  registry entries, the
   enrichment note and three terminal doctrine statuses; the TAK Protocol
   Version 1 egress adapter before its first contact; the signing tripwire
   re-affirmed not fired; the
   pre-cut dry run; the TAK Protocol Version 1 egress adapter; DECODE_AMBIGUOUS,
   three commits, the third on 2026-11-03; two contract sentences;
   carried-list records pass; heading_deg defined; records pass after 7.6)
+- **2026-11-10 (contract 3.5: the JSON duplicate-key sentence, four tools,
+  and the guidance file's citations).** On the maintainer's selection of
+  2026-11-10 ("Sentence and tools now"), who was shown the paragraph in the
+  question. Branch `exp/contract-json-duplicate-2026-11`, two commits. The
+  second: contract 3.5 gains the paragraph as he was shown it, between the
+  validity paragraph and the paragraph on encoding versions (four lines).
+  The reference decoders already refused such a text (doctrine F7-01); the
+  contract now says it is not a valid encoded event, which binds every
+  implementation. `tools/check_compat.py` (its line path and its
+  whole-document path), `tools/validate_examples.py`,
+  `tools/validate_bad_events.py` and `tools/validate_conformance.py` read
+  JSON through `pairs_refusing_duplicates` and report or refuse a repeated
+  member without a traceback. The two fixture tools still read a file as it
+  comes, so what they print before a refused line is unchanged, and a
+  malformed fixture line still ends in a traceback, as it did. A `.json`
+  document is refused whole for one repeat, reported at line 1. One
+  conformance fixture is added for a repeat at depth
+  (`conformance/encoding-negative/gateway-must-fail.jsonl`, ten fixtures;
+  the suite reads 55); the same event without the repeat passes the gateway
+  with no diagnostic. The anchor in `gateway/tests/test_v1_lock_baseline.py`
+  moves to the new contract hash with a dated comment. The guidance entry
+  for `DECODE_AMBIGUOUS`, the tools README, and comments in
+  `gateway/src/gateway.py` and `zmeta_decode_guard.py` name 3.5; neither code
+  file's line count changes, because thirty-six lines of
+  `tools/validation_guidance.yaml` cite the gateway by line. The first
+  commit repairs something the shift exposed. `tools/validation_guidance.yaml`
+  cites the contract by line, and the contract sentences of 2026-11-02 (a
+  clause in 4.3, a bullet in 4.5.1, a command rule in 7.8) were added without
+  moving the citations below them, so 196 of the 219 references written in
+  citation form had named lines 1, 7 or 10 above their text since then,
+  eight of them a blank line. Each is mapped by the diff of the contract it
+  was written against (the contract of d0ee31f for 218, of b5eec25 for one)
+  to the lines that hold its text today. Three measures agree on those 219:
+  no reference's lines were changed or split; a new test that reads the
+  edges of every reference failed on the file as it stood, with 70 off
+  their text, and passes; of twelve quoted phrases beside a citation, two
+  were in the cited lines before and eleven are after. The repair missed
+  eight more contract line numbers, in six places, that stood in prose
+  ("for the rule, 1206-1207 and 1867-1884", "at line 939"). The tool and the
+  test read only the citation form, and the independent reviewer found
+  them: six had drifted with the others and two had been wrong longer. They
+  are set to the lines the sentences are about, rewritten in citation form
+  (228 references now, with the one new citation), and a second test fails
+  on a contract line number written as prose; it failed on the eight. The
+  new paragraph moves 206 of the first 219 by four lines; a checker compares
+  each with the old contract's text and fails on the unshifted file. Both
+  tests are tripwires: they read where a reference begins and ends and how
+  it is written, not what the cited lines say. Verification: six refusal
+  tests and a control were written first; on the unchanged tree the six
+  failed (the compatibility tool reported the repeating text with no issue
+  and exit 0) and the control passed. Added after the change, each held by a
+  mutant: the must-fail file of the conformance tool (the tool as it stood
+  reads the repeat and exits 0), a repeat below the top level in each tool,
+  a document with a clean sibling, the issue category, the single FAIL line
+  of a refused fixture file, and the paragraph's place. Nineteen mutants
+  were each run against the four test files and each failed them: twelve of
+  the tools, three of the contract's paragraph, one of the anchor, two of
+  the citations, and one that puts the gateway's JSON reader back to
+  last-wins, which the new fixture and the older tests catch. The
+  independent reviewer, a different model on a sealed copy with one planted
+  error (the tools README naming the wrong category), found that error and
+  made eleven other findings. Applied: the eight prose line numbers and the
+  second citation test; the records' count of what the repair covered; the
+  list of readers that still keep the last value, which was incomplete; the
+  whole-document refusal said in the README and held by a test; the fixture
+  tools reading as they come again; the test gaps above; the
+  `payload_json` case in the guidance entry and the doctrine note; the
+  versioning statement and the depth fixture; the wording of the count of
+  gateway citations. Booked: a row for this rule in
+  `docs/zmeta_contract_to_stack_crosswalk.md`, which has not followed the
+  contract since 2026-08. A factual pass over the records, by a second
+  model on a copy with its own planted error, found that error and one
+  imprecise count of comments, corrected. It lists what it could not check
+  from the tree: the maintainer's selection, the mutant run, the history of
+  which test failed when, and the reviewer's findings.
+  Gates before the commit: the encoding-negative suite, 55; the kernel gate,
+  whose 43 FAIL lines are develop's 41 release-pin lines and two more on the
+  two conformance tools, with eight lines reading new values; the example
+  and roadmap validators, the bad-event corpus and the conformance pack;
+  the thirteen test files that hold the change or the records, 142 passed;
+  `git diff --check`. The nineteen mutants, the twelve gate legs, the
+  conformance sub-checks, both live harnesses and the full battery run under
+  the heavy-run lock, the mutants before the commit and the rest on it, and
+  the merge message carries their result.
+  Not in this branch, booked for the maintainer's word. Other readers of
+  event or fixture JSON still keep the last value: eight tools under
+  `tools/`, three that read events (`compat_normalize.py`, `filter_risk.py`,
+  `measure_packet_size.py`) and five that read fixtures (`check_adapter.py`,
+  `validate_adapter_conformance.py`, `validate_encoding_negative.py` for its
+  fixture file, `validate_precision_policy.py`, `validate_projection.py`);
+  the gateway's self-test reader of `examples/encoding-roundtrip.jsonl`
+  (`_load_jsonl`); and three development harnesses (`tools/sim/throughput.py`,
+  `tools/sim/two_node.py`, `tools/test_workflow_end_to_end.py`). The question
+  put to him named four tools as the ones that read last-wins; that list was
+  not complete, and he is told so. Also booked: one sentence in
+  `spec/protobuf-encoding.md` that a member repeated inside `payload_json`
+  falls under contract 3.5; duplicate map keys on the CBOR and compact lanes;
+  a clean FAIL line for a malformed fixture line; a check that holds each
+  citation to the words quoted beside it; and the guidance file's line
+  citations into other files, which nothing reads.
 - **2026-11-10 (records wave: two registry entries, the enrichment note,
   three terminal doctrine statuses).** On the maintainer's selections of
   2026-11-10 in this repository's session. Branch

@@ -2,6 +2,72 @@
 
 ## [Unreleased]
 
+- 2026-11-10 — **Contract 3.5 states the JSON duplicate-key rule; four more
+  reference tools refuse such a text; the guidance file's contract citations
+  are re-anchored** (`spec/semantics-contract.md` is Class B, a clarification
+  under contract 2.1 and 2.6; the tools follow it). On the maintainer's
+  selection of 2026-11-10, who was shown the paragraph before choosing it.
+  Section 3.5 gains one paragraph: "A JSON text in which one object repeats a
+  member name, at any depth, does not decode to one canonical event and is not
+  a valid encoded event. A decoder that keeps one of the repeated values
+  chooses a reading the text does not state." The reference decoders have
+  refused such a text since 2026-11-02 (doctrine F7-01, `DECODE_AMBIGUOUS`).
+  The sentence widens the rule's reach. It binds every implementation, so a
+  consumer whose own JSON parser keeps the last value is non-conforming on
+  such a text from this change on, and that includes a member repeated
+  inside a protobuf message's `payload_json`, which is a JSON text. Under
+  `spec/versioning.md` a patch must not invalidate an existing valid payload.
+  The sentence does not: a text that repeats a member name never decoded to
+  one canonical event, which the validity paragraph of 3.5 already required.
+  It tightens conformance around that paragraph, which contract 2.1 permits a
+  patch to do, and it rides the next v1.1.x cut. It names no diagnostic code
+  and says nothing about CBOR; duplicate map keys on the CBOR and compact
+  lanes stay booked. Four reference tools that read JSON to its last value
+  now refuse a repeated member. `tools/check_compat.py` reports it as
+  `DECODE_AMBIGUOUS` under a new category, `decode`; a `.jsonl` file is
+  refused line by line, and a `.json` document, being one JSON text, is
+  refused whole for one repeat. `tools/validate_examples.py` fails the line.
+  `tools/validate_bad_events.py` and `tools/validate_conformance.py` refuse a
+  fixture file that carries such a line. Before this change
+  `check_compat.py`, the tool producers are told to run on their own events,
+  reported such a text as compatible. Other readers still keep the last
+  value and are booked: eight tools under `tools/` (three of them read
+  events: `compat_normalize.py`, `filter_risk.py`, `measure_packet_size.py`),
+  the gateway's self-test reader of its shipped example file, and three
+  development harnesses. One conformance fixture is added,
+  `gateway-json-duplicate-key-at-depth-refused`, for a member repeated inside
+  `payload.geo` (the encoding-negative suite reads 55). The contract anchor in
+  `gateway/tests/test_v1_lock_baseline.py` moves with a dated comment, and
+  the gateway's startup `contract_hash` moves with the contract. The guidance
+  entry for `DECODE_AMBIGUOUS`, the tools README, and comments in the
+  gateway, its decode guard and the four tools name 3.5. Separately, in its
+  own commit: 196 of the 219 contract line references
+  that `tools/validation_guidance.yaml` writes in citation form had named
+  lines 1, 7 or 10 above their text since three contract sentences were
+  added on 2026-11-02 without moving them. Each is re-anchored by the diff of
+  the contract it was written against, and a new test reads the edges of
+  every such reference; it failed on the file as it stood, with 70
+  references off their text. Eight more contract line numbers stood in prose
+  ("and 1047-1051", "at line 939"), where neither the tool nor that test
+  could see them; an independent review found them. They are corrected and
+  rewritten in citation form, and a second test fails if a contract line
+  number is written as prose again. The new paragraph then moves 206
+  references by four lines, each checked to name the same text. Both tests
+  are tripwires for a contract edit that does not move the citations; they
+  read where a reference begins and ends, not what it says. Tests: ten
+  added to `gateway/tests/test_decode_ambiguous.py` and four to
+  `gateway/tests/test_validation_guidance.py`. Six refusal tests and a
+  control were written first and the six failed on the unchanged tree; the
+  rest were added after the change, and nineteen mutants were each run
+  against the four test files that hold it and each failed them. The
+  independent reviewer read the change against its sources, found the error
+  planted for it, and made eleven other findings; ten are applied and one,
+  a row in a dated crosswalk document, is booked. A separate factual pass
+  over these records found the error planted for it and one imprecise count
+  of comments, corrected.
+  The contract, two of the tools and the fixture file are manifest-listed,
+  so the kernel gate reads two more release-pin lines and eight of its lines
+  read new values until the next cut regenerates the manifest.
 - 2026-11-10 — **Registry: `OSINT` rejected and `COLLECT_EXTERNAL_RECORDS`
   reserved; an advisory note for results looked up in outside sources; three
   doctrine entries reach a terminal status** (`spec/extension-registry.yaml`
