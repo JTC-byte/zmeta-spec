@@ -62,6 +62,22 @@ adapter against a TAK Server and one client, a real sender exercises the
 `DECODE_AMBIGUOUS` refusal, and one consumer runs a `develop` gateway for a
 day.
 
+The branch `wave/records-lookup-held-firm-2026-11` (2026-11-10) is a records
+wave on the maintainer's selections of 2026-11-10. The registry gains two
+entries and holds 70: `OSINT`, rejected as an observation modality or event
+kind, and `COLLECT_EXTERNAL_RECORDS`, reserved as a possible command task
+type and marked risk-relevant. The advisory note
+`docs/zmeta_enrichment_results_note.md` gives the pattern both entries point
+to: a receipt observation and an association inference for a result looked
+up in an outside source, with existing vocabulary only. The doctrine log
+gains F9-01 (OPEN) and three terminal statuses: F8-01 and F8-02 HELD-FIRM,
+and SIM1-01 HELD-FIRM after the TAK plane answered that no CoT consumer
+there reads confidence by machine. The release checklist's container step
+names its command and what verified means. The registry is manifest-listed,
+so the kernel gate reads three more release-pin lines, on the registry,
+until the next cut. Two governed reason codes for looked-up results stay
+booked until a real result exists to serve as each one's fixture.
+
 Open, in order of proximity:
 
 1. **The consumers' re-pin to v1.1.27**, once at this tag in the order the
@@ -106,9 +122,14 @@ Open, in order of proximity:
    hazards 1 and 3 left this item on 2026-11-02 (doctrine F7-01): the
    reference decoders refuse a duplicate JSON key and an unknown, mistyped or
    repeated protobuf field under `DECODE_AMBIGUOUS`, on the post-lock route.
-   Still open from that decision, for his word: a contract sentence stating
-   the JSON duplicate-key rule (class (a); the JSON documents are silent on
-   duplicates); duplicate map keys on the CBOR and compact lanes, which this
+   From that decision the maintainer selected, on 2026-11-10, the contract
+   sentence stating the JSON duplicate-key rule (class (a); the JSON
+   documents are silent on duplicates) together with the move of four
+   reference tools to the refusing reader (`tools/check_compat.py`,
+   `tools/validate_examples.py`, `tools/validate_bad_events.py` and
+   `tools/validate_conformance.py`); both ride their own branch and are
+   not in the tree yet. Selected the same day, for branches after the
+   next cut: duplicate map keys on the CBOR and compact lanes, which this
    repository's `zmeta_cbor` (the reference CBOR path) and the cbor2 fallback
    both resolve last-wins (a change to `zmeta_cbor` here, a later branch);
    trailing CBOR bytes on the cbor2 fallback only (`zmeta_cbor` refuses them).
@@ -140,9 +161,11 @@ Open, in order of proximity:
 5. **Forward edits from the 2026-09-21 share-readiness scan** (private
    session record), each the maintainer's election, unchanged.
 6. **Local hygiene:** `refs/backup/*` holds the pre-rewrite tips; delete
-   them once satisfied. The merged branch ref `exp/last-seen-ts-7-6` is
-   kept, as prior practice keeps merged refs, unless the maintainer says
-   otherwise.
+   them once satisfied. On 2026-11-10 the maintainer selected the deletion
+   of the merged local branch refs, and 31 were deleted that day in the
+   working clone, `exp/last-seen-ts-7-6` among them; each was merged into
+   `develop`, and the remote's branches were not touched. Merged refs made
+   after that day are kept until he says otherwise.
 7. Items 5 through 10 of the 2026-10-12 state below (guidance gaps (a)
    through (af), the two held gateway defects, the CoT `how` default, the
    `event_id` recorded twice) carry unchanged.
@@ -983,9 +1006,10 @@ after the rulings:
    the tooling, never a compliance surface; cut as a release when verified.
 6. **Registry surface-coherence item, booked post-lock.** The registry
    prose's six-surface validity rule, the three-surface `experimental`
-   definition, and the per-entry status fields disagree: all 68 entries
-   carry `adapter_gateway_status: none` and 67 of 68 carry
-   `encoding_status: none` (counts refreshed 2026-10-01 after
+   definition, and the per-entry status fields disagree: all 70 entries
+   carry `adapter_gateway_status: none` and 69 of 70 carry
+   `encoding_status: none` (counts refreshed 2026-11-10 after `OSINT` and
+   `COLLECT_EXTERNAL_RECORDS`, and before that on 2026-10-01 after
    SEARCH_PATTERN; the substance is unchanged), including `adopted`
    entries, so read strictly
    even adopted vocabulary fails the prose rule. Either the rule

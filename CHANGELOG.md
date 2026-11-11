@@ -2,6 +2,53 @@
 
 ## [Unreleased]
 
+- 2026-11-10 — **Registry: `OSINT` rejected and `COLLECT_EXTERNAL_RECORDS`
+  reserved; an advisory note for results looked up in outside sources; three
+  doctrine entries reach a terminal status** (`spec/extension-registry.yaml`
+  is Class B; the documents are Class A). On the maintainer's selections of
+  2026-11-10, after rulings of 2026-11-08 on one deployment's design for
+  looking up an observed identifier in outside sources. The registry holds
+  70 entries. `OSINT` is rejected as an observation modality or event kind:
+  what a lookup yields is a claim, which the contract already places as an
+  INFERENCE_EVENT with a receipt observation behind it.
+  `COLLECT_EXTERNAL_RECORDS` is reserved as a possible COMMAND_EVENT task
+  type and marked risk-relevant. It is not valid task vocabulary, and a
+  lookup requested from an operator interface is not this task. Neither name
+  validates in either schema. `docs/zmeta_enrichment_results_note.md`
+  (advisory) gives the pattern with existing vocabulary only: a receipt, an
+  OBSERVATION_EVENT of modality NETWORK that records the retrieval and
+  points to the stored record, and a claim, an INFERENCE_EVENT with
+  `inference_type` ASSOCIATION whose lineage names the receipt. Two governed
+  reason codes for such results stay booked until a real result can serve as
+  each one's fixture. Doctrine log: F9-01 is recorded OPEN (a summary over
+  several results is fusion-shaped without a track). F8-01 and F8-02 are
+  HELD-FIRM: the typed-field rule and the millisecond floor of the TAK
+  Protocol adapter stand, and the SAPIENT egress's rounded report-identifier
+  time is recorded as the second occurrence of F8-02, unchanged. SIM1-01 is
+  HELD-FIRM: confidence reaches CoT as `<remarks>` text and a machine
+  consumer reads the ZMeta event, after the TAK plane answered that no CoT
+  consumer there reads confidence by machine. The SIM1-01 note corrects a
+  statement from a session record of 2026-11-03 before it reached a tracked
+  file: the CoT projection does write `confidence=` into `<remarks>` for the
+  run that record described. The release checklist's container step names
+  its command and what verified means. Tests: five added to
+  `gateway/tests/test_extension_registry.py`. The two entry tests were
+  written first and failed until the entries existed. The test that holds
+  the ontology reference's count sentence to the registry failed once the
+  entries existed and until the sentence read 70. A second test holds the
+  same paragraph's count of the names the leak probe runs on, now 20 of the
+  47 reserved and proposed entries; an independent review found that count
+  stale, and the test failed on it until the sentence was corrected. The
+  fifth tests the two sentence readers. The validator refused the new
+  entries under the old `last_updated` stamp, and the release-context list
+  test failed until the note was listed. The independent reviewer read the
+  change against its sources, found the error planted for it, and made ten
+  other findings; nine are applied and one, an Archive sweep, is left for
+  the next sweep. A separate factual pass over these records found the
+  error planted for it and no other wrong statement.
+  The registry is manifest-listed, so the kernel gate reads three more
+  release-pin lines, on the registry, until the next cut regenerates the
+  manifest. No schema, policy or contract file changes.
 - 2026-11-10 — **TAK Protocol Version 1 egress adapter, before its first
   contact with a server or client: `how` required, the published sender rule
   for typed children, the mesh announcement, and a sender's steps**

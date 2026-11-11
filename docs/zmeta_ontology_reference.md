@@ -626,18 +626,19 @@ formal v1.1.0 vocabulary, `experimental` entries remain provisional
 
 **The status ladder (ENFORCED shape).** Seven statuses: `reserved`,
 `proposed`, `experimental`, `adopted`, `deprecated`, `rejected`,
-`superseded`. Today's 68 entries split 35 reserved, 19 experimental, 11
-proposed, 2 adopted, 1 rejected. The two adopted entries are
+`superseded`. Today's 70 entries split 36 reserved, 19 experimental, 11
+proposed, 2 adopted, 2 rejected. The two adopted entries are
 `ERROR_ELLIPSE_M` and `GEO_DIMENSIONALITY`, both on branch 1.1.0. The
 registry validator enforces surface sufficiency per status, refuses
 reserved or proposed entries that claim implemented schema status, and
 builds synthetic events from reserved names to prove they do not validate
 against either branch schema (`REGISTRY_RESERVED_SCHEMA_LEAK`). That leak
-check covers the categories that map onto schema enums, 18 of the 46
-reserved and proposed entries; names living in open extension space are
-guarded by governance rather than by the leak check. `SEARCH_PATTERN` is
-one: it is filed under `command_task_type`, so the probe runs on its name,
-but its vocabulary is an extension key the probe cannot see.
+check runs on the names that map onto a schema enum by category, by name
+or by allowed event type, 20 of the 47 reserved and proposed entries;
+names living in open extension space are guarded by governance rather than
+by the leak check. `SEARCH_PATTERN` is counted among the 20 and shows the
+limit: it is filed under `command_task_type`, so the probe runs on its
+name, but its vocabulary is an extension key the probe cannot see.
 
 **Promotion has an evidence bar (NORMATIVE, human-adjudicated).** Moving
 reserved or proposed vocabulary into a branch requires at least two

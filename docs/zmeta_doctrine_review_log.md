@@ -1507,13 +1507,13 @@ were defects with a known fix and not tensions between gates.
 
 | # | Tension | Gates in play | Status |
 |---|---|---|---|
-| SIM1-01 | `confidence` reaches CoT only as free text, with no structured element | 4, 5 | OPEN |
+| SIM1-01 | `confidence` reaches CoT only as free text, with no structured element | 4, 5 | **HELD-FIRM 2026-11-10** |
 | SIM1-02 | A counter that can only see what arrived is read as a loss counter | 3 | OPEN (observation) |
 | SIM1-03 | The rehearsal corpus exercises a path the real input does not | 5, 7 | OPEN (observation) |
 | SIM1-04 | Operational tooling accumulating inside a data standard | 1, 7 | OPEN (maintainer, criterion set) |
 | SIM1-05 | A v1.0 deployment cannot carry uncertainty the v1.1.0 branch already can | 2, 3 | **CLOSED 2026-08-09** |
 
-### SIM1-01 — `confidence` reaches CoT only as free text · OPEN
+### SIM1-01 — `confidence` reaches CoT only as free text · **HELD-FIRM 2026-11-10 (`<remarks>` stays the whole answer on CoT; a machine consumer reads the ZMeta event)**
 
 `adapters/egress/cot/zmeta_to_cot.py` composes `confidence=<value>` into
 `<remarks>` and emits no structured `<detail>` child carrying it. Captured off
@@ -1549,6 +1549,45 @@ mode discipline 10 exists to prevent.
 confidence by machine, or is the remarks string what a human reads while
 machine consumers take the ZMeta stream? "Nobody parses it" closes this and
 `<remarks>` stays the whole answer.
+
+**Note added 2026-11-10 (the original entry above is left as written):** two
+more places have met this tension. On 2026-11-03 a captured run of 809 STATE
+events from one fusion producer was projected through this repository's CoT
+adapter in a scratch run. Each of the 809 carries a top-level `confidence`,
+and the projection writes it into `<remarks>` as `confidence=<value>` and
+into no structured child. The session record of that day said the projection
+wrote no `<remarks>` for those events. A re-run on 2026-11-10 showed that
+statement to be wrong, and it is corrected here, before it reached any
+tracked record. The maintainer's selection of 2026-11-03, which booked this
+note for the TAK plane's re-pin, was made on that statement. On 2026-11-09
+the TAK Protocol Version 1 egress adapter (`adapters/egress/tak_protocol/`)
+was merged. It is a wire step over the CoT projection and carries
+`<remarks>` in `xmlDetail`, so confidence reaches a TAK Protocol consumer as
+the same free text and through no typed field; the adapter README calls the
+CoT projection's losses "the CoT adapter's register, unchanged by this
+encoding". With the stock path and the second stack that the entry counted,
+the tension has now been met in four places, and the lifecycle below
+requires a terminal status at the third occurrence.
+
+**Decision (2026-11-10):** taken by the maintainer in the repository's
+session on the evidence put to him first: this entry, the two places above
+(the first of them as the session record then described it), and the TAK
+plane's answers to the settling question, read at the plane's main line on
+2026-11-10. No CoT consumer in the plane reads confidence by machine. Its
+egress writes confidence only as text in `<remarks>`, and its one machine
+read is an offline shape check that matches that text. The plane's live
+unit runs the `cds` profile, and under its strict and `cds` profiles its
+guard keeps only `contact`, `track`, `remarks` and `precisionlocation` under
+`<detail>` and removes any other child without refusing the event, so a new
+structured child would not reach a client there. `<remarks>` stays the whole
+answer on CoT, and a machine consumer reads the ZMeta event (design gate 4).
+The correction in the note above was made after his selection. It removes
+the one place where confidence was said to reach CoT nowhere, which had
+been the stronger case for a structured child. This repository's session
+therefore reads the decision as standing on the corrected facts. It put
+the correction to him on the same day, and the decision stands unless he
+says otherwise. The entry re-opens only on new evidence, which a consumer
+that must read confidence by machine from CoT would be.
 
 ### SIM1-02 — A counter that can only see what arrived is read as a loss counter · OPEN
 
@@ -3798,7 +3837,10 @@ the documents already permit (protocol step 1) and the entries are OPEN for
 the separate adjudication pass (step 4); they are recorded because the same
 pressure will return with every binary wire form the egress set grows into.
 
-### F8-01 — The typed `PrecisionLocation` message cannot carry the ellipse the CoT projection writes · **OPEN 2026-11-09 (the build sends the element whole in `xmlDetail`; adjudication at the next pass)**
+Both entries were adjudicated on 2026-11-10 and are HELD-FIRM. The paragraph
+above stands as it was written on 2026-11-09.
+
+### F8-01 — The typed `PrecisionLocation` message cannot carry the ellipse the CoT projection writes · **HELD-FIRM 2026-11-10 (the element travels whole in `xmlDetail`; no typed election)**
 
 **Observed:** TAK Protocol Version 1 types six detail children. Its
 `PrecisionLocation` message has two fields, `geopointsrc` and `altsrc`. The
@@ -3852,7 +3894,18 @@ optional, so a typed child with any other item left out travels whole in
 `xmlDetail`. The tension this entry records, a typed field that cannot
 carry the ellipse, is unchanged, and so is the entry's status.
 
-### F8-02 — Millisecond times on a wire for a projection that writes microseconds · **OPEN 2026-11-09 (the build floors, never rounds; adjudication at the next pass)**
+**Decision (2026-11-10):** taken by the maintainer in the repository's
+session on the evidence put to him first (this entry and the adapter
+README's statement of the cost). The note above was written with the
+adapter change, before this decision was recorded. The build's reading
+stands: a typed child goes to its typed field only when the typed message
+carries the element whole, and otherwise the element travels whole in
+`xmlDetail`. No election key is added. The entry re-opens only on new
+evidence, which a consumer that needs the typed field would be. The pattern
+stays on watch for MISB ST 0601 and ASTERIX, which have no `xmlDetail` to
+fall back on; there the answer is the loss register.
+
+### F8-02 — Millisecond times on a wire for a projection that writes microseconds · **HELD-FIRM 2026-11-10 (the validity end floors, never rounds; the guide rule is written with the next coarser-time wire)**
 
 **Observed:** the protobuf times are unsigned milliseconds since the epoch;
 the CoT projection writes `time`, `start` and `stale` to the microsecond.
@@ -3873,6 +3926,72 @@ the suite (the time test). A time before 1970 has no unsigned representation
 and refuses rather than wraps. The question for the pass is only whether the
 rule is stated once for every wire form with coarser time (ASTERIX's 1/128 s
 next), so each adapter applies it and says so.
+
+**Decision (2026-11-10):** taken by the maintainer in the repository's
+session on the evidence put to him first (this entry, the time test and its
+rounding mutant, and the second occurrence below). The floor stands in the
+TAK Protocol adapter. Contract 4.2 lets a projection lower `valid_for_ms`
+and requires a new event for an increase in TTL, so the end of a validity
+never moves later. The guide rule is written with the next wire form that
+carries a validity in coarser time, and is scoped to that requirement. The
+entry re-opens only on new evidence, which a wire form on which the floor
+itself misstates a validity would be.
+
+**Second occurrence, recorded 2026-11-10:** the SAPIENT egress writes the
+event's own time into the timestamp part of its report identifier in
+milliseconds and rounds it
+(`adapters/egress/sapient/zmeta_state_to_sapient_detection.py`). That
+carrier is an event time and not a validity, so the validity rule of
+contract 4.2 is not broken and the adapter is unchanged. The same section
+lets a projection reduce numeric precision and names no direction for the
+reduction, so the two adapters differ on an event time and neither breaks
+it.
+
+## Cycle F9 — 2026-11-10 (rulings of 2026-11-08 on a consumer's design for looking up an observed identifier in outside sources)
+
+One tension met on 2026-11-08 while ruling on a consumer's design for looking
+up an observed identifier in information sources outside its own sensors.
+Nothing was built in this repository. The same rulings led to two registry
+entries on 2026-11-10 (`OSINT`, rejected, and `COLLECT_EXTERNAL_RECORDS`,
+reserved) and to the advisory note `docs/zmeta_enrichment_results_note.md`,
+each on the maintainer's selection of that day. The entry is OPEN for the
+separate adjudication pass (step 4) and is recorded so that the next
+deployment to meet the same pressure is counted.
+
+### F9-01 — A summary over several lookup results is fusion-shaped without a track · **OPEN 2026-11-10 (ruled to an INFERENCE_EVENT that cites observations; adjudication at the next pass)**
+
+**Observed:** a lookup yields one INFERENCE_EVENT with `inference_type`
+ASSOCIATION per source per query. The design then wants one summary claim
+about the entity, composed from several of those results. FUSION_EVENT is
+bound to a track: its payload carries a required `track_id` and `members`
+(contract 7.6). An INFERENCE_EVENT "MUST reference upstream observations
+through lineage" (contract 7.5), and the reference `policy/lineage.yaml`
+admits OBSERVATION_EVENT as the only parent type of an INFERENCE_EVENT, so a
+summary cannot name the results it was composed from as lineage parents.
+
+**The tension:** the summary combines several derived claims, which is what
+fusion does, and it concerns an entity that has no track. Design gate 3 (no
+laundering) wants the summary's dependence on the per-source results to stay
+explicit and filterable. Design gate 1 (alphabet, not dictionary) and the
+promotion bar argue against a new event kind, a new subtype or a wider
+lineage policy on one deployment's design.
+
+**The ruling's reading, for adjudication:** the documents permit the summary
+as an INFERENCE_EVENT whose `lineage.based_on` cites observations. The
+result events it was composed from cannot ride in `payload.based_on`: the
+lineage check reads that member and, in reject mode, refuses any identifier
+that is not in envelope lineage (`policy/lineage.yaml`,
+`payload_based_on_subset_mode: reject`), and envelope lineage for an
+INFERENCE_EVENT admits observations only. Their identifiers can ride in
+another payload-scoped provenance member (contract 9.2), which must not
+override envelope lineage and which no lineage check reads. The cost is
+that the path from the summary to the per-source inferences is then visible
+only in that member. The question for the pass is whether an inference may
+cite inferences as parents, or whether a combination without a track needs
+a form of its own. The recommendation is that no vocabulary and no lineage
+policy moves until a second deployment needs the summary as an event. The
+pattern to watch is an analytics producer that composes other producers'
+inferences.
 
 ## Archive
 
