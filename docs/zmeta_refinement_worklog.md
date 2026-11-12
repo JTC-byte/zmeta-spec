@@ -2,7 +2,8 @@
 
 ## Current Resume Note
 
-- Last updated: 2026-11-12 (three more manifest passages; the develop-green
+- Last updated: 2026-11-12 (Clause 1's follow-up; three more manifest
+  passages; the develop-green
   wording; the gateway README's
   run notes; contract 7.8:
   projections keep `valid_from_ts`;
@@ -25,6 +26,22 @@
   pre-cut dry run; the TAK Protocol Version 1 egress adapter; DECODE_AMBIGUOUS,
   three commits, the third on 2026-11-03; two contract sentences;
   carried-list records pass; heading_deg defined; records pass after 7.6)
+- **2026-11-12 (Clause 1's follow-up).** The team account's seeded read of
+  Clause 1's final text (Z3,
+  `local/team_pieces_2026-11-12/c1_final_review.md`, claude-fable-5-2, READY
+  WITH CORRECTIONS, its plant found) gave two SHOULD FIX findings, applied
+  here under the maintainer's selection of 2026-11-11 that opened Clause 1.
+  The `EVENT_DUPLICATE` remediation in `tools/validation_guidance.yaml` now
+  carries 4.5.1's "on the accepted event". The 2026-11-11 entry for contract
+  4.2 below records a seeded review and a commit (a270f80) that are both of
+  2026-11-12; its resume line has read 2026-11-12 since that day's first
+  records commit. Its seven NITs change nothing. Branch
+  `wave/clause1-followup-2026-11`. A script checks that the remediation
+  carries 4.5.1's phrase as the contract has it; one mutant, the old
+  remediation restored, failed it. No agent ran: the change is the read's own
+  correction. The mutant runs under the heavy-run lock before the commit; the
+  twelve gate legs, the conformance sub-checks, both live harnesses and the
+  full battery run on it.
 - **2026-11-12 (three more manifest passages).** The maintainer selected
   "Amend all four" on 2026-11-12, after the four texts were quoted to him:
   governance :161-162 and :344, AGENTS.md :105-106, and "experimental or wave
