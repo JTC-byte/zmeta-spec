@@ -98,6 +98,25 @@ promise.
 - Never create tags, push branches, upload releases, generate signatures, or
   rewrite published checksums unless explicitly asked (see `AGENTS.md` release
   limits).
+- **GitHub usage (maintainer direction, 2026-11-11).** Work is saved by a
+  local commit, never by a push; the governance Branching section already
+  leaves pushing to a human. While the maintainer's hold of 2026-11-11
+  stands, nothing is pushed, and a push needs his word on a written case, a
+  major release or a major bug fix, that names the workflow, how long its
+  last run took, and how many runs the push starts. Every check that can run
+  on the workstation runs there first: the kernel gates, the battery, the
+  mutants and the final validation. GitHub Actions confirms what the
+  workstation has already shown. When pushing resumes, records-only commits
+  go out in at most one push a day. A failed run is re-run once for an
+  infrastructure fault; a code failure gets a fix first. A run whose commit
+  is no longer its branch's head, because a newer push replaced it, is
+  cancelled at once (the maintainer's standing word of 2026-11-11);
+  cancelling a head's own run, or any other run, takes his word per run. An
+  open pull request is brought up to date only when it conflicts or its
+  checks went stale for a real reason. This repository's CI is one job of
+  about two minutes, and on `develop` between cuts it reads red by design on
+  the release manifest's pins (`docs/zmeta_change_governance.md`, Branching),
+  so a red `develop` run is no reason to re-run it.
 - **Windows tooling hygiene.** Two failure modes bit during the v1.1.13
   cycle: never round-trip repo text through Windows PowerShell
   `Get-Content`/`Set-Content`, which silently mojibakes UTF-8 (edit prose with

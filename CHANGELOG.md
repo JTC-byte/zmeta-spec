@@ -2,6 +2,20 @@
 
 ## [Unreleased]
 
+- 2026-11-11 — **CLAUDE.md states the GitHub usage habits** (`CLAUDE.md`,
+  Docs/advisory). The maintainer approved the bullet as drafted on
+  2026-11-11. It sits under "How we work here", after the release-limits
+  bullet. Work is saved by a local commit. While his hold of 2026-11-11
+  stands, nothing is pushed, and a push needs his word on a written case, a
+  major release or a major bug fix, that names the workflow, its last run's
+  duration and the runs it starts. Checks run on the workstation first. Once
+  pushing resumes, records-only commits go out in at most one push a day. A
+  failed run is re-run once for an infrastructure fault; a run that a newer
+  push replaced is cancelled at once on his standing word, and any other
+  cancel takes his word per run. The repository's CI is one job of about two
+  minutes, and on `develop` between cuts it reads red by design on the
+  release manifest's pins. No governed file changes.
+
 - 2026-11-11 — **Contract 7.7 names `last_seen_ts` among the prohibited STATE
   payload fields, and the policy refuses it at any depth**
   (`spec/semantics-contract.md` and `policy/semantics.yaml`, Class B, a

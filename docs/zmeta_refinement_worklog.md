@@ -2,7 +2,8 @@
 
 ## Current Resume Note
 
-- Last updated: 2026-11-11 (`last_seen_ts` named in contract 7.7 and
+- Last updated: 2026-11-11 (the GitHub usage habits in CLAUDE.md;
+  `last_seen_ts` named in contract 7.7 and
   refused on a STATE; golden CoT outputs as a conformance artifact;
   the twelve remaining JSON readers refuse a
   repeated member; records: doctrine cycle F10, the SIM1-01
@@ -17,6 +18,27 @@
   pre-cut dry run; the TAK Protocol Version 1 egress adapter; DECODE_AMBIGUOUS,
   three commits, the third on 2026-11-03; two contract sentences;
   carried-list records pass; heading_deg defined; records pass after 7.6)
+- **2026-11-11 (CLAUDE.md: GitHub usage).** The maintainer approved the
+  drafted bullet ("Yes, as drafted"), on his direction of the same evening to
+  write down how the repositories use GitHub. Branch
+  `wave/github-usage-2026-11`. CLAUDE.md gains one bullet under "How we work
+  here", after the release-limits bullet; AGENTS.md, which holds the release
+  limits, is unchanged. No document conflicted: the governance Branching
+  section already reads "An agent creates and commits on local branches and
+  stops." Measured for the bullet, read-only: the CI's one job took 1.5 to 1.8
+  minutes green at the v1.1.27 cut, and on develop it stops at the kernel gate
+  on the release manifest's pins (46 lines on 0bfa733). The public text names
+  no budget, account or estate path. The battery single-source test, which
+  reads the commands CLAUDE.md repeats, still fails on a broken copy of either
+  of the two checked (two mutants). A seeded factual pass by a second model,
+  on a copy with its own planted error, found that error and nothing else
+  wrong. It noted one tension the bullet reads into: the Branching section
+  says "`develop` is expected to be green but is not published", and also that
+  a branch which changes a manifest-listed artifact reads red on the manifest
+  pins until the cut regenerates them, which develop has done since v1.1.27.
+  Settling the first sentence is the maintainer's. The mutants run under the
+  heavy-run lock before the commit; the twelve gate legs, the conformance
+  sub-checks, both live harnesses and the full battery run on it.
 - **2026-11-11 (contract 7.7: `last_seen_ts` on a STATE).** The maintainer
   selected it on 2026-11-11 ("Yes, add it") after seeing the bullet before and
   after and the counts. Branch `exp/state-last-seen-ts-2026-11`. Contract
