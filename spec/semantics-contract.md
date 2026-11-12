@@ -1235,6 +1235,12 @@ Command rules:
 - A command's validity window begins at `payload.valid_from_ts` when present,
   otherwise at `event.ts`, and ends `payload.valid_for_ms` after that start;
   the "validity anchor" of Section 5.1 is that start.
+- A same-event projection of a command (Section 4.2) MUST NOT omit or alter
+  a `payload.valid_from_ts` the source wrote. The permissions of Sections
+  4.2, 4.7, 8.4, 10.4 and 18.2 to remove optional fields or reduce
+  precision do not reach this member: without it the window would begin at
+  `event.ts` instead. A conversion into a native command channel (Section
+  15) is not such a projection.
 
 ### 7.9 SYSTEM_EVENT
 

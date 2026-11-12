@@ -2,7 +2,8 @@
 
 ## Current Resume Note
 
-- Last updated: 2026-11-12 (the 4.3 clause classified a 2.1 patch;
+- Last updated: 2026-11-12 (contract 7.8: projections keep `valid_from_ts`;
+  the 4.3 clause classified a 2.1 patch;
   contract 4.2 points to 4.5.1; `payload_json`
   under contract 3.5 in the
   protobuf encoding document; the GitHub usage habits in CLAUDE.md;
@@ -21,6 +22,29 @@
   pre-cut dry run; the TAK Protocol Version 1 egress adapter; DECODE_AMBIGUOUS,
   three commits, the third on 2026-11-03; two contract sentences;
   carried-list records pass; heading_deg defined; records pass after 7.6)
+- **2026-11-12 (contract 7.8: projections keep `valid_from_ts`).** The
+  maintainer selected "A 2.1 patch" on 2026-11-12, after the bullet, the
+  catalog entry at v1.1.27 and on develop, the released vector, and 7.8, 4.2,
+  4.7, 10.4, 2.1 and spec/versioning.md were quoted to him. Branch
+  `wave/clause3-valid-from-ts-2026-11`. Contract 7.8 gains one bullet after
+  its last command rule: "A same-event projection of a command (Section 4.2)
+  MUST NOT omit or alter a `payload.valid_from_ts` the source wrote." The two
+  must-fail projection vectors were written first. On develop's catalog, which
+  has held the member `never_mutable` since 2026-11-02, both already fail with
+  their codes, so their negative control is the catalog entry restored to
+  v1.1.27's, under which both vectors stop failing. The guidance file's
+  contract citations after :1237 moved by six with the shift tool (221
+  citation groups; 85 references moved, 153 unchanged, none grown). The
+  ontology reference's fixture count reads 25 must-fail. Five mutants each
+  fail the anchor test, the guidance citation test or the projection suite
+  test: the anchor left at the previous hash, the contract as develop held it,
+  the guidance as develop held it, the catalog entry as v1.1.27 held it, and
+  the omission vector expecting PROJECTION_FIELD_CHANGED. A seeded review
+  found the error planted for it; the wording of these records on the SAPIENT
+  egress and on the vectors' negative control follows its findings. The
+  mutants run under the heavy-run lock before the commit; the twelve gate
+  legs, the conformance sub-checks, both live harnesses and the full battery
+  run on it.
 - **2026-11-12 (the 4.3 clause of 2026-11-02 is a 2.1 patch).** The maintainer
   selected "Yes, it covers it" on 2026-11-12, after 4.3, 5.1, 7.8 and 2.1 were
   quoted to him: his contract 2.1 concurrence of 2026-11-02 covers the clause

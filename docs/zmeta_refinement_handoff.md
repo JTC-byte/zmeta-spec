@@ -191,6 +191,15 @@ version for the next cut. Gap (x) records the answer. Whether 4.2, 4.7 and
 10.4 should except `valid_from_ts` still waits for his word. No contract
 byte moves.
 
+The branch `wave/clause3-valid-from-ts-2026-11` (2026-11-12) adds to
+contract 7.8 one bullet: a same-event projection of a command keeps the
+`payload.valid_from_ts` the source wrote, and the omission and precision
+permissions of 4.2, 4.7, 8.4, 10.4 and 18.2 do not reach it. It is a 2.1
+patch on the maintainer's selection of that day, and gap (x) records the
+answer. Two must-fail projection vectors pin it (projection conformance
+reads 39). The contract hash moves again. Whether `valid_from_ts` may
+precede `event.ts` stays open.
+
 Open, in order of proximity:
 
 1. **The consumers' re-pin to v1.1.27**, once at this tag in the order the
@@ -499,7 +508,8 @@ Open, in order of proximity:
    does, on the maintainer's selection of that day, so the clause is a 2.1
    patch); whether 4.2, 4.7 and 10.4, which permit omitting optional
    members, should except `valid_from_ts` as the projection catalog now
-   does); (y)
+   does (answered 2026-11-12: a bullet in 7.8 excepts it, a 2.1 patch on the
+   maintainer's selection of that day)); (y)
    whether a copy with trimmed lineage keeps its `event_id`. Contract 4.2
    lets a profile export stay "the same event" when it only makes listed
    changes, among them "Omit optional fields for bandwidth", and says

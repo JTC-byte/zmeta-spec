@@ -483,7 +483,7 @@ precision, or hide that a projection is degraded.
 **The projection catalog (ENFORCED).** 
 `conformance/profile_projection_field_catalog.yaml` holds 89 field rules
 consumed by `tools/validate_projection.py`, with source-and-projected
-fixture pairs (14 must-pass, 23 must-fail) and 28 stable failure codes.
+fixture pairs (14 must-pass, 25 must-fail) and 28 stable failure codes.
 Risk-adjudication and external-promotion blocks must survive projection
 exactly; the compact promotion handles survive at every profile while
 high-detail fields tier by profile. Two taxonomy notes for honesty: the
