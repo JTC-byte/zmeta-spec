@@ -2,7 +2,8 @@
 
 ## Current Resume Note
 
-- Last updated: 2026-11-12 (contract 7.8: projections keep `valid_from_ts`;
+- Last updated: 2026-11-12 (the gateway README's run notes; contract 7.8:
+  projections keep `valid_from_ts`;
   the 4.3 clause classified a 2.1 patch;
   contract 4.2 points to 4.5.1; `payload_json`
   under contract 3.5 in the
@@ -22,6 +23,23 @@
   pre-cut dry run; the TAK Protocol Version 1 egress adapter; DECODE_AMBIGUOUS,
   three commits, the third on 2026-11-03; two contract sentences;
   carried-list records pass; heading_deg defined; records pass after 7.6)
+- **2026-11-12 (the gateway README's run notes).** The maintainer selected
+  "README notes" on 2026-11-12, after the two notes were quoted to him with
+  two corrections measured against the code: the profile may come from the
+  config file, and the helper defaults to profile H and passes fewer flags
+  than the first draft listed. Branch `wave/gateway-readme-run-notes-2026-11`.
+  `gateway/README.md` "Run locally" gains the two notes. The other route, the
+  helper passing on every flag it does not know, stays available as its own
+  branch. A script checked each claim of the two notes against
+  `gateway/src/gateway.py` and `tools/run_gateway.py`: the quoted refusal,
+  both sources of the profile, the default lane, every flag the helper
+  defines, its default profile, and each kind of flag the notes send to the
+  gateway itself. Five mutants of the notes each failed it on the check named
+  for them. A seeded factual pass found the error planted for it; of its three
+  minor notes, the handoff's count of the notes is corrected, and the other
+  two leave the notes as the maintainer selected them. The mutants run under
+  the heavy-run lock before the commit; the twelve gate legs, the conformance
+  sub-checks, both live harnesses and the full battery run on it.
 - **2026-11-12 (contract 7.8: projections keep `valid_from_ts`).** The
   maintainer selected "A 2.1 patch" on 2026-11-12, after the bullet, the
   catalog entry at v1.1.27 and on develop, the released vector, and 7.8, 4.2,

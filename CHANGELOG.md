@@ -2,6 +2,17 @@
 
 ## [Unreleased]
 
+- 2026-11-12 — **The gateway README names the three traps of the producers'
+  field leg** (`gateway/README.md`). The maintainer selected the two notes on
+  2026-11-12. "Run locally" now says that a profile is required, from
+  `--profile` or the config file's `profile`, and quotes the gateway's
+  refusal; that the default lane is the locked v1.0 schema, and how a
+  gateway for v1.1.0 producers selects the 1.1.0 schema; and which flags
+  `tools/run_gateway.py` passes on (`--profile H` when neither `--profile`
+  nor `--config` is given) and which need `gateway/src/gateway.py` itself.
+  The producers lost three short runs to these on 2026-11-11. Documentation
+  only; no code change.
+
 - 2026-11-12 — **Contract 7.8: a same-event projection of a command keeps
   `payload.valid_from_ts`** (`spec/semantics-contract.md`, Class B, a
   contract 2.1 patch). The maintainer selected the classification on

@@ -137,7 +137,8 @@ Its protobuf half used this repository's encoder, so the refusal is to be
 run once more against the first fielded protobuf sender. Three notes from
 that leg wait for a README pass: `tools/run_gateway.py` passes only some
 of the gateway's flags, `--profile` is required, and the default lane is
-the v1.0 schema. The other two legs have not run.
+the v1.0 schema (written into `gateway/README.md` on 2026-11-12). The
+other two legs have not run.
 
 The branch `exp/json-readers-refuse-2026-11` (2026-11-11) moves the twelve
 remaining readers of event and fixture JSON to the refusing reader of
@@ -199,6 +200,13 @@ patch on the maintainer's selection of that day, and gap (x) records the
 answer. Two must-fail projection vectors pin it (projection conformance
 reads 39). The contract hash moves again. Whether `valid_from_ts` may
 precede `event.ts` stays open.
+
+The branch `wave/gateway-readme-run-notes-2026-11` (2026-11-12) adds two
+notes to `gateway/README.md` "Run locally" that cover the three traps of
+the producers' field leg, on the maintainer's selection of that day: a
+profile is required (from `--profile` or the config file), the default lane
+is the v1.0 schema, and the helper passes only the flags it names. The
+helper change that would pass every flag stays available as its own branch.
 
 Open, in order of proximity:
 

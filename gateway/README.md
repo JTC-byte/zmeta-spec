@@ -12,11 +12,24 @@ python gateway/src/gateway.py --profile=H
 
 Listens on UDP `0.0.0.0:5555` and forwards to `127.0.0.1:5556`.
 
+A profile is required, from `--profile` or the config file's `profile`;
+without one the gateway stops with "profile is required and must be one of
+L, M, H". The default lane is the locked v1.0 schema; a gateway for v1.1.0
+producers adds `--schema-path schema/zmeta-event-1.1.0.schema.json`
+(Schema lanes, below).
+
 Optional helper:
 
 ```
 python tools/run_gateway.py --profile H
 ```
+
+The helper passes on `--config`, `--schema-path`, `--profile` (H when
+neither `--profile` nor `--config` is given), `--emit-cot`,
+`--strict-validation`, the metrics, rate-limit and hash flags, and
+`--self-test`. For the listen, forward and CoT addresses, the policy
+directory, the encodings, the identity flags and the stamping and
+stripping switches, run `gateway/src/gateway.py` itself.
 
 Self-test (schema + policy + examples + encoding):
 
