@@ -1632,8 +1632,8 @@ guidance:
       :475-478, :482-484, :987-988, :1467). Preserving the original `event_id`
       is sanctioned only for a profile export that adds no semantics, or for a
       reduction of `confidence` or `valid_for_ms` applied at admission under a
-      declared degrade or quarantine mode whose policy-scoped record names the
-      mode and carries the values it replaced
+      declared degrade or quarantine mode, when the policy-scoped record on
+      the accepted event names the mode and carries the values it replaced
       (spec/semantics-contract.md:460-473, :599-604); even such a projection
       trips this check on a node that already recorded the original.
     citations:

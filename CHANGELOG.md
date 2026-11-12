@@ -2,6 +2,15 @@
 
 ## [Unreleased]
 
+- 2026-11-12 — **The guidance for `EVENT_DUPLICATE` states the 4.5.1
+  condition whole** (`tools/validation_guidance.yaml`). Its remediation
+  sanctioned keeping the `event_id` for a reduction under a declared mode
+  "whose policy-scoped record names the mode", which dropped "on the accepted
+  event" and tied the record to the mode. It now reads "when the
+  policy-scoped record on the accepted event names the mode and carries the
+  values it replaced", as contract 4.5.1 does. A finding of the team
+  account's read of Clause 1's final text; no rule, contract or code change.
+
 - 2026-11-12 — **Three more process passages say the release manifest waits
   for the cut** (`docs/zmeta_change_governance.md`, `AGENTS.md`, agent and
   process guidance). The maintainer selected the four texts on 2026-11-12,
