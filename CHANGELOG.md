@@ -2,6 +2,20 @@
 
 ## [Unreleased]
 
+- 2026-11-11 — **The protobuf encoding document states that `payload_json`
+  falls under contract 3.5** (`spec/protobuf-encoding.md`). The maintainer
+  selected it on 2026-11-11 after seeing the bullet before and after. The
+  bullet that carries the payload as canonical UTF-8 JSON bytes in
+  `payload_json` adds that those bytes are a JSON text under contract section
+  3.5, and that one which repeats a member name in one object, at any depth,
+  is not a valid encoded event. The reference decoder has refused such bytes
+  since 2026-11-02 (`zmeta_proto.py`, tested in
+  `gateway/tests/test_decode_ambiguous.py`), and doctrine F7-01's note of
+  2026-11-10 reads the contract sentence as reaching them; the document now
+  says so where a protobuf implementer reads. No contract, schema, policy or
+  code changes. The document gains two lines, so the guidance file's one
+  citation into it below that bullet moves by two.
+
 - 2026-11-11 — **CLAUDE.md states the GitHub usage habits** (`CLAUDE.md`,
   Docs/advisory). The maintainer approved the bullet as drafted on
   2026-11-11. It sits under "How we work here", after the release-limits

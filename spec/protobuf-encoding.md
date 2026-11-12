@@ -50,7 +50,9 @@ Rules:
 - `event.ts` remains the authoritative event time.
 - `confidence` is encoded only when present.
 - `profile` is encoded only when present.
-- Payload is carried as canonical UTF-8 JSON bytes in `payload_json`.
+- Payload is carried as canonical UTF-8 JSON bytes in `payload_json`. Those
+  bytes are a JSON text under contract section 3.5: one that repeats a
+  member name in one object, at any depth, is not a valid encoded event.
 - Consumers MUST validate the decoded JSON event using the normal schema and
   policy pack before applying state, dedupe, command handling, or fusion logic.
 
