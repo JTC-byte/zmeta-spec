@@ -34,6 +34,7 @@ CONTRACT_LIST = [
     "t_start",
     "t_end",
     "observed_at",
+    "last_seen_ts",
     "data_ref",
     "data_refs",
 ]
@@ -78,6 +79,15 @@ def test_observed_at_is_named_in_both():
     policy = yaml.safe_load(POLICY.read_text(encoding="utf-8"))
     assert "observed_at" in contract_names(text)
     assert "observed_at" in policy_names(policy)
+
+
+def test_last_seen_ts_is_named_in_both():
+    # Contract 7.6 defines last_seen_ts as the event.ts of an observation, so it
+    # is an observation timestamp, which 7.7 bars from a STATE payload.
+    text = CONTRACT.read_text(encoding="utf-8")
+    policy = yaml.safe_load(POLICY.read_text(encoding="utf-8"))
+    assert "last_seen_ts" in contract_names(text)
+    assert "last_seen_ts" in policy_names(policy)
 
 
 def test_a_name_missing_from_the_policy_is_reported():

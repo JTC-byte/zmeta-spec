@@ -33,6 +33,7 @@ semantics:
       - t_start
       - t_end
       - observed_at
+      - last_seen_ts
       - data_ref
       - data_refs
   command_event:

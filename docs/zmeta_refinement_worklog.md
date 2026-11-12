@@ -2,7 +2,8 @@
 
 ## Current Resume Note
 
-- Last updated: 2026-11-11 (golden CoT outputs as a conformance artifact;
+- Last updated: 2026-11-11 (`last_seen_ts` named in contract 7.7 and
+  refused on a STATE; golden CoT outputs as a conformance artifact;
   the twelve remaining JSON readers refuse a
   repeated member; records: doctrine cycle F10, the SIM1-01
   confirmation and an acoustic evidence item; `observed_at` named in
@@ -16,6 +17,57 @@
   pre-cut dry run; the TAK Protocol Version 1 egress adapter; DECODE_AMBIGUOUS,
   three commits, the third on 2026-11-03; two contract sentences;
   carried-list records pass; heading_deg defined; records pass after 7.6)
+- **2026-11-11 (contract 7.7: `last_seen_ts` on a STATE).** The maintainer
+  selected it on 2026-11-11 ("Yes, add it") after seeing the bullet before and
+  after and the counts. Branch `exp/state-last-seen-ts-2026-11`. Contract
+  7.7's list and `policy/semantics.yaml`
+  `state_event.payload_must_not_contain` each gain `last_seen_ts`, after
+  `observed_at`. It is the third of the four items the `observed_at` branch of
+  2026-11-10 booked; the other three stay booked. Contract 7.6 defines the
+  member as the `event.ts` of the latest contributing observation, so 7.7's
+  category sentence already forbade it on a STATE; it stays a required
+  FUSION_EVENT member. Counted before the selection and again on the branch,
+  counts only: none of 5,295 STATE events in a downstream consumer's window
+  carries it at any depth, while all 2,156 FUSION events there carry it at the
+  payload top level; none of 809 STATE events in a producer's recorded run
+  carries it; no STATE in the eight example and vector files that named the
+  member before this branch carries it. A planted control was found by each
+  count. Measured on the branch with the tree's own bad-event evaluator: a
+  STATE that carries the member is refused as `STATE_HAS_RAW_FEATURES` at the
+  top level, under `provenance`, nested under `extensions`, as `Last_Seen_TS`
+  and with surrounding spaces; `lastSeenTs` passes, as before; on develop none
+  of these is refused. Tests first: the pin test's eleven-name list, a test
+  that names the member in both lists, and the fixture
+  `state-last-seen-ts-fusion-member-collapse` failed before the contract and
+  policy edit (five failures in two files) and pass after it. The export of
+  `policy/semantics.yaml` is regenerated (`export/policy/semantics.json` and
+  its index hash). The policy file gains one line, so the guidance file's
+  citations into it move: 50 references moved and two ranges grew to hold the
+  new line, and the four policy-citation tests pass. The
+  `STATE_HAS_RAW_FEATURES` guidance names the field, says it belongs on the
+  fusion parent, and drops `last_seen_ts` from its sentence on other
+  spellings. `adapters/AUTHORING.md`, `docs/zmeta_ontology_reference.md`,
+  `schema/README.md` and `docs/zmeta_vocabulary_crosswalk.md` name it with the
+  others. The v1.0 lock anchor moves with its record. Unchanged: both schemas,
+  for the reasons recorded on 2026-11-10; the two code copies of the nine
+  names, booked. A seeded review by an independent reviewer, on a copy with
+  its own planted error, found that error and nine findings, all applied. The
+  main one: the lines added to `adapters/AUTHORING.md` and `schema/README.md`
+  had moved the guidance file's citations into them by one line (seven
+  references, and one range named in a citation's note), which no test reads,
+  so both paragraphs are rewrapped to their old length and a script compares
+  every cited range with develop's. The others: the records' wording and
+  wrapping, two clauses on the other booked items, the fixture's event id back
+  in its series, and a test comment that now says only what the test asserts.
+  A separate factual pass by a second model, on a copy with its own planted
+  error, found that error and nothing else wrong; it re-derived the corpus
+  count, the pin list, both hashes, the schemas' names, the citation counts
+  and every cited line of the guidance entry. A fact checker of these records
+  (21 checks; three planted-error controls each fail on the check they target)
+  caught one error in their first draft, a count of moved citations that
+  included the two grown ranges. The nine mutants and the fact checker run
+  under the heavy-run lock before the commit; the twelve gate legs, the
+  conformance sub-checks, both live harnesses and the full battery run on it.
 - **2026-11-11 (golden CoT outputs, A8).** The maintainer selected it on
   2026-11-10 ("Add the fixtures"). Branch `wave/cot-golden-2026-11`. Each case
   is built by a script in the session's records from the eight STATE_EVENT
