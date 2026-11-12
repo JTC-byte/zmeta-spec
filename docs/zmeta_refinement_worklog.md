@@ -2,7 +2,8 @@
 
 ## Current Resume Note
 
-- Last updated: 2026-11-11 (`payload_json` under contract 3.5 in the
+- Last updated: 2026-11-11 (contract 4.2 points to 4.5.1; `payload_json`
+  under contract 3.5 in the
   protobuf encoding document; the GitHub usage habits in CLAUDE.md;
   `last_seen_ts` named in contract 7.7 and
   refused on a STATE; golden CoT outputs as a conformance artifact;
@@ -19,6 +20,29 @@
   pre-cut dry run; the TAK Protocol Version 1 egress adapter; DECODE_AMBIGUOUS,
   three commits, the third on 2026-11-03; two contract sentences;
   carried-list records pass; heading_deg defined; records pass after 7.6)
+- **2026-11-11 (contract 4.2 points to 4.5.1).** The maintainer selected it on
+  2026-11-11 ("Yes, add it") after seeing the lines before and after; the
+  clause text had passed a seeded refuter earlier that day. Branch
+  `wave/contract-4-2-clause-2026-11`. Contract 4.2 gains three lines after
+  "Such projections preserve the original `event_id`.": "Section 4.5.1 makes a
+  reduction of `confidence` or `valid_for_ms` applied at admission under a
+  declared degrade or quarantine mode such a projection, on the condition
+  stated there." Taken alone, 4.2 could be read as making such a cap a
+  replacement; the two sections now read alike (doctrine F4-04, which gains
+  two dated lines; its validator check and configuration lint stay booked).
+  The guidance file's contract citations after :470 moved by three with the
+  shift tool (220 citation groups; 217 references moved, 19 unchanged, none
+  grown); its two citations of 4.2's list, :460-470, became :460-473 by hand,
+  and the `EVENT_DUPLICATE` remediation, whose sentence 4.5.1 had already made
+  incomplete, names the admission case with :599-604. Four mutants each fail
+  the anchor test or the guidance citation test: the anchor left at the
+  previous hash, the contract as develop held it, the guidance as develop held
+  it, and the clause's second line dropped. A seeded review found the error
+  planted for it; the wording of these records on 4.2 taken alone, the
+  handoff's naming of the two open questions and the second dated line on
+  F4-04 follow its findings. The mutants run under the heavy-run lock before
+  the commit; the twelve gate legs, the conformance sub-checks, both live
+  harnesses and the full battery run on it.
 - **2026-11-11 (`payload_json` under contract 3.5).** The maintainer selected
   it on 2026-11-11 ("Yes, add it") after seeing the bullet before and after.
   Branch `wave/payload-json-sentence-2026-11`. `spec/protobuf-encoding.md`'s

@@ -2,6 +2,22 @@
 
 ## [Unreleased]
 
+- 2026-11-11 — **Contract 4.2 points to the 4.5.1 bullet on admission caps**
+  (`spec/semantics-contract.md`, Class B, a clarification under contract
+  2.1). The maintainer selected it on 2026-11-11 after seeing the lines before
+  and after. Taken alone, 4.2 could be read as making a reduction of
+  `confidence` or `valid_for_ms` applied at admission a replacement that needs
+  a new event, while 4.5.1 calls such a reduction under a declared degrade or
+  quarantine mode "a projection of the same event under Section 4.2", provided
+  the policy-scoped record names the mode and carries the values it replaced
+  (doctrine F4-04). Three lines after "Such projections preserve the original
+  `event_id`." now say so in 4.2; no rule changes. The guidance entry for
+  `EVENT_DUPLICATE` names the admission case beside the profile export. The
+  contract gains three lines, so the guidance file's contract citations below
+  them move by three. The contract hash moves, and with it the gateway's
+  startup `contract_hash`; the v1.0 lock anchor moves with its record. No
+  schema, policy or code changes.
+
 - 2026-11-11 — **The protobuf encoding document states that `payload_json`
   falls under contract 3.5** (`spec/protobuf-encoding.md`). The maintainer
   selected it on 2026-11-11 after seeing the bullet before and after. The

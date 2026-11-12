@@ -3650,6 +3650,22 @@ that carries the claimed values (its lane, at its re-pin). The
 lock-baseline contract anchor moves with a dated note; no schema or policy
 byte changes.
 
+Dated 2026-11-11: the clause in 4.2 pointing to this bullet landed on the
+maintainer's selection of that day (branch
+`wave/contract-4-2-clause-2026-11`), as three lines after "Such projections
+preserve the original `event_id`.": a clarification under 2.1 that changes
+no rule. The validator check and the configuration lint above stay booked.
+
+Dated 2026-11-12: the seeded review of that branch noted a tension the
+clause inherits. The list in 4.2 of what a projection of the same event
+may add holds "Add non-semantic export metadata, such as `profile`." and
+the gateway's receipt and publish stamps, while 4.5.1 requires "the
+policy-scoped record on the accepted event" and says that external
+promotion metadata "is not same-event profile projection metadata". The
+clause in 4.2 reaches that record only through "on the condition stated
+there"; it adds no requirement of its own. No change is asked here; the
+tension is logged so that the pattern on 4.2's list stays visible.
+
 ## Cycle F5 — 2026-10-23 (fielded evidence: a consumer's federation path read on 2026-10-19)
 
 One tension, found while reading what a consumer's federation path would

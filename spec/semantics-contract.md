@@ -468,6 +468,9 @@ only:
   degradation.
 
 Such projections preserve the original `event_id`.
+Section 4.5.1 makes a reduction of `confidence` or `valid_for_ms` applied at
+admission under a declared degrade or quarantine mode such a projection, on
+the condition stated there.
 
 Any semantic payload change, reinterpretation, correction, replacement of
 source-authored fields, increase in confidence, increase in TTL, increase in

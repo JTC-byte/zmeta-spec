@@ -176,6 +176,14 @@ day. It is the sentence item 3 of the list below had booked as waiting;
 the CBOR and compact duplicate-key branches stay selected for after
 the next cut.
 
+The branch `wave/contract-4-2-clause-2026-11` (2026-11-11) adds to contract
+4.2 three lines pointing to the 4.5.1 bullet on admission caps, on the
+maintainer's selection of that day: a 2.1 clarification (doctrine F4-04).
+Two other questions on the contract's text, both open in gap (x) below,
+wait for his word: whether the 2.1 concurrence of 2026-11-02 covers the 4.3
+clause, and whether 4.2, 4.7 and 10.4 should except `valid_from_ts`. The
+contract hash moves again.
+
 Open, in order of proximity:
 
 1. **The consumers' re-pin to v1.1.27**, once at this tag in the order the
