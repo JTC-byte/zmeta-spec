@@ -1180,7 +1180,7 @@ State rules:
   observation modalities, observation timestamps, or raw artifact references.
 - Prohibited state payload fields include `features`, `raw_features`,
   `modality`, `measurement`, `measurements`, `t_start`, `t_end`, `observed_at`,
-  `data_ref`, and `data_refs`.
+  `last_seen_ts`, `data_ref`, and `data_refs`.
 - Traceability is provided through `lineage.based_on`, not raw data pointers in
   state payloads.
 - `extensions` MAY carry UI or rendering metadata, but MUST NOT reinterpret

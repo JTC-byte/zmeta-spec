@@ -157,6 +157,18 @@ checked by `tools/validate_cot_golden.py` and required by the
 the CoT projection's output for one, now fails a test until the corpus
 is rebuilt and the change recorded.
 
+The branch `exp/state-last-seen-ts-2026-11` (2026-11-11) names
+`last_seen_ts` in contract 7.7's list of prohibited state payload fields
+and in the policy list, on the maintainer's selection of that day. It is
+the third of the four items the `observed_at` branch booked; the other
+three stay booked. No STATE in the fielded samples read carries the
+member, so, unlike `observed_at`, it sets no order for the cut. It stays a
+required FUSION_EVENT member. The contract hash and the policy hash move
+again. The fourth booked item, a check that refuses a map key that is not
+text, now covers eleven names. A third top-level copy of the nine names,
+in `adapters/projector/track/test_track_projector.py`, joins the first
+booked item.
+
 Open, in order of proximity:
 
 1. **The consumers' re-pin to v1.1.27**, once at this tag in the order the

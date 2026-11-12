@@ -2,6 +2,42 @@
 
 ## [Unreleased]
 
+- 2026-11-11 — **Contract 7.7 names `last_seen_ts` among the prohibited STATE
+  payload fields, and the policy refuses it at any depth**
+  (`spec/semantics-contract.md` and `policy/semantics.yaml`, Class B, a
+  clarification under contract 2.1). The maintainer selected it on 2026-11-11
+  after seeing the bullet before and after and the counts below. Contract 7.6
+  defines `last_seen_ts` as "the `event.ts` of the latest contributing
+  observation the fused estimate rests on", so it is an observation timestamp,
+  which section 7.7 already forbids in a STATE_EVENT payload. The list of
+  names did not hold it, so the reference check passed a STATE that carried
+  it; the entry of 2026-11-10 below booked it as a candidate. The contract's
+  list and `policy/semantics.yaml` `state_event.payload_must_not_contain` each
+  gain the name, after `observed_at`. The existing check searches the whole
+  payload, `extensions` included, and reports `STATE_HAS_RAW_FEATURES` (fail)
+  with the path. Refused: `last_seen_ts` as a text key on a STATE at the top
+  level, under `provenance`, nested under `extensions`, in another letter case
+  and with surrounding spaces. Not refused, as before: other spellings such as
+  `lastSeenTs`. The member stays required on a FUSION_EVENT, where 7.6 defines
+  it, and no policy list names it there. A STATE that carries it was already
+  outside 7.7, so no payload that complied with the contract becomes invalid
+  (`spec/versioning.md`, Backward Compatibility Expectations). No STATE in the
+  fielded samples read carries it (none of 5,295 in a downstream consumer's
+  window, none of 809 in a producer's recorded run), and no STATE in the
+  shipped examples or the other conformance vectors does, so no existing
+  verdict changes and the change sets no order for the cut. No code is minted,
+  no schema changes, and no vocabulary grows; the schemas keep their nine
+  schema-false names. One fixture is added,
+  `state-last-seen-ts-fusion-member-collapse` (the bad-event corpus reads 38).
+  The pin test's list holds eleven names, and a test names this one in both
+  lists. The policy file gains one line, so the guidance file's citations into
+  it move with it (50 references moved and two ranges grown to hold the new
+  line), and the `STATE_HAS_RAW_FEATURES` entry names the field and says it
+  belongs on the fusion parent. The contract hash and the policy hash move,
+  and with them the gateway's startup `contract_hash`; the v1.0 lock anchor
+  moves with its record. The two code copies of the nine names that read the
+  payload's top level only stay booked, as on 2026-11-10.
+
 - 2026-11-11 — **Golden CoT outputs for every example STATE event, as a
   conformance artifact** (`conformance/cot-golden/`, Class B). The maintainer
   selected it on 2026-11-10 ("Add the fixtures").

@@ -155,8 +155,8 @@ same pack first if you want a known-good diff.
 7. **Envelope confidence rules** (contract 7.1): `confidence` is required for
    INFERENCE/FUSION/STATE and prohibited for OBSERVATION/COMMAND/SYSTEM.
 8. **STATE carries no raw artifacts** (contract 7.7): no `features`,
-   `raw_features`, `modality`, `measurement(s)`, `t_start`/`t_end`,
-   `observed_at`, `data_ref(s)`, enforced recursively. **COMMAND carries no
+   `raw_features`, `modality`, `measurement(s)`, `t_start`/`t_end`, `observed_at`,
+   `last_seen_ts`, `data_ref(s)`, enforced recursively. **COMMAND carries no
    altitude** (contract 7.8), requires `requires_deconfliction: true`, a TTL
    (`valid_for_ms`), and an idempotent `task_id`.
 9. **Units and geodesy** (contract 6): WGS-84, meters HAE, degrees true

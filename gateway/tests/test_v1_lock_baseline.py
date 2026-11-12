@@ -85,7 +85,15 @@ ROOT = Path(__file__).resolve().parents[2]
 # the policy's in the same change, as a patch that tightens conformance around
 # already-defined semantics (section 2.1). No other contract text and no schema
 # byte changed.
-CONTRACT_SHA256 = "cdb2247dc8ce2dfa7d908638214de715fa1f3d353557429381869226d4b03fd8"
+# Contract anchor moved 2026-11-11 on the maintainer's selection of that day:
+# the same section 7.7 list gains `last_seen_ts`. Section 7.6 defines it as the
+# `event.ts` of the latest contributing observation, so it is an observation
+# timestamp, which 7.7 already forbade in a STATE_EVENT payload as a category;
+# the list did not name it, so the reference check passed a STATE that carried
+# it. It stays a required FUSION_EVENT member. The name joins the contract's
+# list and the policy's in the same change, under section 2.1 as before. No
+# other contract text and no schema byte changed.
+CONTRACT_SHA256 = "7626abc6fdf6ade14829bace7f715ad158fb34adaf75821ffb5de0b404d2384c"
 # The v1.0 reason-code enum stays locked (adjudication of 2026-08-09): the code
 # DECODE_AMBIGUOUS of 2026-11-02 (doctrine F7-01) lives in the 1.1.0 enum only and
 # rides the v1.0 wire as SCHEMA_INVALID with the minted code in

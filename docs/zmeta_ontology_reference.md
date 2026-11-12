@@ -296,9 +296,10 @@ and a nested one fails the recursive policy walk:
   `members`, or `estimated_state`.
 - State payloads must not carry `features`, `raw_features`, `modality`,
   `measurement`, `measurements`, `t_start`, `t_end`, `observed_at`,
-  `data_ref`, or `data_refs`. The policy check refuses all ten at any depth.
-  Nine of them, every name but `observed_at`, are also schema-false at the
-  payload top level and inside `extensions`.
+  `last_seen_ts`, `data_ref`, or `data_refs`. The policy check refuses all
+  eleven at any depth. Nine of them, every name but `observed_at` and
+  `last_seen_ts`, are also schema-false at the payload top level and inside
+  `extensions`.
 - Command payloads must not carry altitude under any of eight contract-named
   keys; the schema prohibits them at the payload top level, inside
   `geometry`, and inside `extensions`, `target_geo` is structurally 2-D, and
