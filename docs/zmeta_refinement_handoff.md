@@ -184,6 +184,13 @@ wait for his word: whether the 2.1 concurrence of 2026-11-02 covers the 4.3
 clause, and whether 4.2, 4.7 and 10.4 should except `valid_from_ts`. The
 contract hash moves again.
 
+The branch `wave/clause2-classification-2026-11` (2026-11-12) records the
+maintainer's selection of that day: his 2.1 concurrence of 2026-11-02
+covers the 4.3 clause, so the clause is a 2.1 patch and sets no minor
+version for the next cut. Gap (x) records the answer. Whether 4.2, 4.7 and
+10.4 should except `valid_from_ts` still waits for his word. No contract
+byte moves.
+
 Open, in order of proximity:
 
 1. **The consumers' re-pin to v1.1.27**, once at this tag in the order the
@@ -488,9 +495,11 @@ Open, in order of proximity:
    at issue (a start before `event.ts` whose end precedes it). Open on the
    text, for the maintainer: whether `valid_from_ts` may precede `event.ts`;
    whether the 2.1 concurrence of 2026-11-02 covers the 4.3 clause (it picks
-   one of the two readings 5.1 already offered); whether 4.2, 4.7 and 10.4,
-   which permit omitting optional members, should except `valid_from_ts`
-   as the projection catalog now does); (y)
+   one of the two readings 5.1 already offered; answered 2026-11-12: it
+   does, on the maintainer's selection of that day, so the clause is a 2.1
+   patch); whether 4.2, 4.7 and 10.4, which permit omitting optional
+   members, should except `valid_from_ts` as the projection catalog now
+   does); (y)
    whether a copy with trimmed lineage keeps its `event_id`. Contract 4.2
    lets a profile export stay "the same event" when it only makes listed
    changes, among them "Omit optional fields for bandwidth", and says
