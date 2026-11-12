@@ -2,6 +2,19 @@
 
 ## [Unreleased]
 
+- 2026-11-12 — **The 4.3 clause of 2026-11-02 is a contract 2.1 patch.** The
+  maintainer selected it on 2026-11-12: his 2.1 concurrence of 2026-11-02,
+  given for the 4.5.1 bullet on admission caps and the last command rule of
+  7.8, also covers the clause 4.3 gained that day, "or, for a command with
+  `valid_from_ts`, its issue time". The case put to him: once 7.8 starts a
+  command's validity window at `valid_from_ts`, the "validity time" of 4.3
+  contradicts 7.8 whenever the two times differ, and the clause fixes that
+  contradiction by taking "issue time", one of the two readings 5.1 gives
+  ("the command issue time or validity anchor"). The 2026-11-02 entry below
+  stays as written. Records only: no contract, schema, policy or code
+  change, and the contract anchor stays. The clause sets no minor version
+  for the next cut.
+
 - 2026-11-11 — **Contract 4.2 points to the 4.5.1 bullet on admission caps**
   (`spec/semantics-contract.md`, Class B, a clarification under contract
   2.1). The maintainer selected it on 2026-11-11 after seeing the lines before

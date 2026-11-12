@@ -2,7 +2,8 @@
 
 ## Current Resume Note
 
-- Last updated: 2026-11-11 (contract 4.2 points to 4.5.1; `payload_json`
+- Last updated: 2026-11-12 (the 4.3 clause classified a 2.1 patch;
+  contract 4.2 points to 4.5.1; `payload_json`
   under contract 3.5 in the
   protobuf encoding document; the GitHub usage habits in CLAUDE.md;
   `last_seen_ts` named in contract 7.7 and
@@ -20,6 +21,20 @@
   pre-cut dry run; the TAK Protocol Version 1 egress adapter; DECODE_AMBIGUOUS,
   three commits, the third on 2026-11-03; two contract sentences;
   carried-list records pass; heading_deg defined; records pass after 7.6)
+- **2026-11-12 (the 4.3 clause of 2026-11-02 is a 2.1 patch).** The maintainer
+  selected "Yes, it covers it" on 2026-11-12, after 4.3, 5.1, 7.8 and 2.1 were
+  quoted to him: his contract 2.1 concurrence of 2026-11-02 covers the clause
+  4.3 gained that day, "or, for a command with `valid_from_ts`, its issue
+  time", as well as the 4.5.1 bullet and the 7.8 rule it named. Branch
+  `wave/clause2-classification-2026-11`. Records only: a dated CHANGELOG entry
+  (the 2026-11-02 entry stays as written), the question closed in the
+  handoff's gap (x), and this entry. No contract, schema, policy or code byte
+  changes, and the contract anchor stays. Two mutants each fail the changelog
+  currency test: the resume note left at 2026-11-11, and the CHANGELOG entry
+  dated 2026-11-11. A seeded factual pass found the error planted for it and
+  no other error. The mutants run under the heavy-run lock before the commit;
+  the twelve gate legs, the conformance sub-checks, both live harnesses and
+  the full battery run on it.
 - **2026-11-11 (contract 4.2 points to 4.5.1).** The maintainer selected it on
   2026-11-11 ("Yes, add it") after seeing the lines before and after; the
   clause text had passed a seeded refuter earlier that day. Branch
