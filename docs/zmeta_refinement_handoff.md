@@ -208,6 +208,12 @@ profile is required (from `--profile` or the config file), the default lane
 is the v1.0 schema, and the helper passes only the flags it names. The
 helper change that would pass every flag stays available as its own branch.
 
+The branch `wave/governance-develop-green-2026-11` (2026-11-12) amends the
+governance Branching section on the maintainer's selection of that day:
+`develop` is expected to be green apart from the release manifest's pins,
+which stay stale between cuts, and the paragraph on stale manifests says
+that `develop` reads those pins red after a merge.
+
 Open, in order of proximity:
 
 1. **The consumers' re-pin to v1.1.27**, once at this tag in the order the

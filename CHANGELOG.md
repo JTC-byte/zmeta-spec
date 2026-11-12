@@ -2,6 +2,18 @@
 
 ## [Unreleased]
 
+- 2026-11-12 — **The governance Branching section says that `develop` reads
+  the release manifest's pins red between cuts**
+  (`docs/zmeta_change_governance.md`, agent and process guidance). The
+  maintainer selected the wording on 2026-11-12. The section said both that
+  "`develop` is expected to be green" and that a branch changing a
+  manifest-listed artifact leaves the manifest stale on purpose, so after
+  such a merge `develop` read red on the pins until the next cut. `develop`
+  is now expected to be green apart from those pins, and the paragraph on
+  stale manifests says that `develop` reads the same pins red after the
+  merge. CLAUDE.md's "GitHub usage" bullet already read it that way. No code,
+  gate or test changes.
+
 - 2026-11-12 — **The gateway README names the three traps of the producers'
   field leg** (`gateway/README.md`). The maintainer selected the two notes on
   2026-11-12. "Run locally" now says that a profile is required, from
