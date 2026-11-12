@@ -2,7 +2,8 @@
 
 ## Current Resume Note
 
-- Last updated: 2026-11-12 (the gateway README's run notes; contract 7.8:
+- Last updated: 2026-11-12 (the develop-green wording; the gateway README's
+  run notes; contract 7.8:
   projections keep `valid_from_ts`;
   the 4.3 clause classified a 2.1 patch;
   contract 4.2 points to 4.5.1; `payload_json`
@@ -23,6 +24,22 @@
   pre-cut dry run; the TAK Protocol Version 1 egress adapter; DECODE_AMBIGUOUS,
   three commits, the third on 2026-11-03; two contract sentences;
   carried-list records pass; heading_deg defined; records pass after 7.6)
+- **2026-11-12 (the develop-green wording in the governance text).** The
+  maintainer selected "Amend the text" on 2026-11-12, after both sentences of
+  the Branching section, the measured state of `develop` (the kernel gate 53
+  lines and the battery 13 failures, all release-manifest pins) and the other
+  options (a pin-tolerant gate, a manifest regenerated at each merge, no
+  change) were put to him. Branch `wave/governance-develop-green-2026-11`.
+  `docs/zmeta_change_governance.md` :286 and :307 change; the document is
+  manifest-listed, so its own pin joins the stale ones until the cut. A script
+  checked both amended sentences and the state they describe: every
+  kernel-gate failure on `develop` a release-manifest pin, every battery
+  failure in the two release test files. Two mutants of the text each failed
+  it on the check named for them. A seeded factual pass found the error
+  planted for it; its one note, a line range that named an unchanged line, is
+  corrected. The mutants run under the heavy-run lock before the commit; the
+  twelve gate legs, the conformance sub-checks, both live harnesses and the
+  full battery run on it.
 - **2026-11-12 (the gateway README's run notes).** The maintainer selected
   "README notes" on 2026-11-12, after the two notes were quoted to him with
   two corrections measured against the code: the profile may come from the

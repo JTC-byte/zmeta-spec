@@ -283,7 +283,9 @@ Three kinds of branch, with one direction of flow between them.
   release cut from `develop`.
 - `develop` is the integration line. Experimental branches merge into it for
   integration testing against the full gate battery, and a release cut is
-  taken from it. `develop` is expected to be green but is not published.
+  taken from it. `develop` is expected to be green apart from the release
+  manifest's pins, which stay stale between cuts (below), and is not
+  published.
 - One branch per experiment or wave, named `exp/<name>` for experimental
   vocabulary and tooling (a versioned-branch candidate, a new modality, a
   diagnostics change under trial) and `wave/<name>` for a governed wave
@@ -304,7 +306,8 @@ Release manifest, checksums, and claims are regenerated at the cut on
 changes a manifest-listed artifact leaves the manifest stale on purpose and
 says so in its commit body, so the gate reads red on that branch for the
 manifest pins alone. That is the expected state of an unreleased branch,
-not a defect.
+not a defect. After the merge, `develop` reads the same pins red until
+the next cut regenerates the manifest.
 
 Pushing any branch, creating tags, and publishing remain human actions
 (AGENTS.md release limits). An agent creates and commits on local branches
