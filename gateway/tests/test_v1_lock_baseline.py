@@ -93,7 +93,17 @@ ROOT = Path(__file__).resolve().parents[2]
 # it. It stays a required FUSION_EVENT member. The name joins the contract's
 # list and the policy's in the same change, under section 2.1 as before. No
 # other contract text and no schema byte changed.
-CONTRACT_SHA256 = "7626abc6fdf6ade14829bace7f715ad158fb34adaf75821ffb5de0b404d2384c"
+# Contract anchor moved 2026-11-11 (the second move of the day) on the
+# maintainer's selection of that day: section 4.2 gains three lines after
+# "Such projections preserve the original `event_id`.", pointing to the
+# section 4.5.1 bullet that makes a reduction of `confidence` or
+# `valid_for_ms` applied at admission under a declared degrade or quarantine
+# mode a projection of the same event, on the condition stated there. Taken
+# alone, 4.2 could be read as making such a cap a replacement that needs a
+# new event; the two sections now read alike (doctrine F4-04). A
+# clarification under section 2.1 that changes no rule. No other contract
+# text and no schema byte changed.
+CONTRACT_SHA256 = "a95603c5f55c6c7a71c44365fe2a009173e8aad80ba63cd3f7f78fd07ac02e57"
 # The v1.0 reason-code enum stays locked (adjudication of 2026-08-09): the code
 # DECODE_AMBIGUOUS of 2026-11-02 (doctrine F7-01) lives in the 1.1.0 enum only and
 # rides the v1.0 wire as SCHEMA_INVALID with the minted code in
