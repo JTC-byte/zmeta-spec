@@ -103,7 +103,16 @@ ROOT = Path(__file__).resolve().parents[2]
 # new event; the two sections now read alike (doctrine F4-04). A
 # clarification under section 2.1 that changes no rule. No other contract
 # text and no schema byte changed.
-CONTRACT_SHA256 = "a95603c5f55c6c7a71c44365fe2a009173e8aad80ba63cd3f7f78fd07ac02e57"
+# Contract anchor moved 2026-11-12 on the maintainer's selection of that day
+# (a contract 2.1 patch): section 7.8 gains one bullet after its last command
+# rule. A same-event projection of a command MUST NOT omit or alter a
+# `payload.valid_from_ts` the source wrote; the permissions of sections 4.2,
+# 4.7, 8.4, 10.4 and 18.2 to remove optional fields or reduce precision do not
+# reach this member, and a conversion into a native command channel (section
+# 15) is not such a projection. The projection catalog has held the member
+# never_mutable since 2026-11-02; the bullet states that rule in the contract.
+# No other contract text and no schema byte changed.
+CONTRACT_SHA256 = "3edd1bc5c054a09f0dff8ebbc084fef92d5713c99b1d29e2f7d218f02640c0f5"
 # The v1.0 reason-code enum stays locked (adjudication of 2026-08-09): the code
 # DECODE_AMBIGUOUS of 2026-11-02 (doctrine F7-01) lives in the 1.1.0 enum only and
 # rides the v1.0 wire as SCHEMA_INVALID with the minted code in

@@ -2,6 +2,32 @@
 
 ## [Unreleased]
 
+- 2026-11-12 — **Contract 7.8: a same-event projection of a command keeps
+  `payload.valid_from_ts`** (`spec/semantics-contract.md`, Class B, a
+  contract 2.1 patch). The maintainer selected the classification on
+  2026-11-12 after seeing the bullet and the texts it rests on. Section 7.8
+  gains one bullet after its last command rule: a same-event projection of a
+  command MUST NOT omit or alter a `payload.valid_from_ts` the source wrote;
+  the permissions of Sections 4.2, 4.7, 8.4, 10.4 and 18.2 to remove
+  optional fields or reduce precision do not reach this member, since
+  without it the window would begin at `event.ts`; a conversion into a
+  native command channel (Section 15) is not such a projection. The
+  projection catalog has held the member `never_mutable` since 2026-11-02;
+  at v1.1.27 it was `optional_removable`, and that release's must-pass
+  vector `command-event-l-projection-pass` dropped it, so a projection that
+  drops or alters it, which the v1.1.27 suite accepted, fails the suite from
+  the next release. The MAVLink egress drops it; the SAPIENT egress carries
+  no such field but computes `task_end_time` from it and refuses a task whose
+  start is later than `event.ts`. Both feed native command channels (Section
+  15), which the bullet places outside same-event projection. Two must-fail
+  projection vectors pin the rule: `command-valid-from-ts-omission-fail`
+  (`PROJECTION_UNDECLARED_OPTIONAL_OMISSION`) and
+  `command-valid-from-ts-change-fail` (`PROJECTION_FIELD_CHANGED`);
+  projection conformance reads 39. The contract gains six lines, so the
+  guidance file's contract citations below them move by six. The contract
+  hash moves, and with it the gateway's startup `contract_hash`; the v1.0
+  lock anchor moves with its record. No schema, policy or code changes.
+
 - 2026-11-12 — **The 4.3 clause of 2026-11-02 is a contract 2.1 patch.** The
   maintainer selected it on 2026-11-12: his 2.1 concurrence of 2026-11-02,
   given for the 4.5.1 bullet on admission caps and the last command rule of
