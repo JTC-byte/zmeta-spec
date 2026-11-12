@@ -214,6 +214,14 @@ governance Branching section on the maintainer's selection of that day:
 which stay stale between cuts, and the paragraph on stale manifests says
 that `develop` reads those pins red after a merge.
 
+The branch `wave/governance-manifest-passages-2026-11` (2026-11-12) brings
+three more passages into line with the Branching section, on the
+maintainer's selection of that day: the governance Class B list, its step 6,
+and the AGENTS.md list now say the manifest is regenerated at the next cut,
+and the stale-manifest paragraph names wave branches. A code follow-up the
+same read suggested (the gate running every sub-check, the package tests on
+a manifest built from the tree) is not selected.
+
 Open, in order of proximity:
 
 1. **The consumers' re-pin to v1.1.27**, once at this tag in the order the

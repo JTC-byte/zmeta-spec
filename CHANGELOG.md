@@ -2,6 +2,17 @@
 
 ## [Unreleased]
 
+- 2026-11-12 — **Three more process passages say the release manifest waits
+  for the cut** (`docs/zmeta_change_governance.md`, `AGENTS.md`, agent and
+  process guidance). The maintainer selected the four texts on 2026-11-12,
+  after a read on his team account found passages that still told an author
+  to regenerate the manifest with the change. The Class B list and step 6 of
+  the implementation steps in the governance document, and the AGENTS.md
+  list of files to consider, now say that the manifest and claim hashes are
+  regenerated at the next cut and that the commit body says the pins are
+  stale until then; the stale-manifest paragraph names wave branches beside
+  experimental ones. No code, gate or test changes.
+
 - 2026-11-12 — **The governance Branching section says that `develop` reads
   the release manifest's pins red between cuts**
   (`docs/zmeta_change_governance.md`, agent and process guidance). The

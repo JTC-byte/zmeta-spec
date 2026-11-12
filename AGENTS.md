@@ -103,7 +103,8 @@ surfaces in the same change. At minimum consider:
 - `docs/zmeta_refinement_handoff.md`
 - relevant `spec/`, `policy/`, `conformance/`, `release/`, or `tools/` docs
 - `release/zmeta-release-manifest.yaml` and example claim hashes when governed
-  manifest artifacts changed
+  manifest artifacts changed: regenerated at the next cut; until then the
+  commit body says the pins are stale
 
 Downstream application integrations that only consume a pinned ZMeta release do
 not need to update upstream worklogs, changelogs, or release manifests. Update

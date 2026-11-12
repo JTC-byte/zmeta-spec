@@ -2,7 +2,8 @@
 
 ## Current Resume Note
 
-- Last updated: 2026-11-12 (the develop-green wording; the gateway README's
+- Last updated: 2026-11-12 (three more manifest passages; the develop-green
+  wording; the gateway README's
   run notes; contract 7.8:
   projections keep `valid_from_ts`;
   the 4.3 clause classified a 2.1 patch;
@@ -24,6 +25,21 @@
   pre-cut dry run; the TAK Protocol Version 1 egress adapter; DECODE_AMBIGUOUS,
   three commits, the third on 2026-11-03; two contract sentences;
   carried-list records pass; heading_deg defined; records pass after 7.6)
+- **2026-11-12 (three more manifest passages).** The maintainer selected
+  "Amend all four" on 2026-11-12, after the four texts were quoted to him:
+  governance :161-162 and :344, AGENTS.md :105-106, and "experimental or wave
+  branch" at governance :305. They come from the team account's read of the
+  develop-green question (Z4,
+  `local/team_pieces_2026-11-12/governance_green_options.md`). Branch
+  `wave/governance-manifest-passages-2026-11`. Both files are manifest-listed,
+  so their pins join the stale ones until the cut. A script checks each of the
+  four approved texts byte for byte and that its old text is gone; four
+  mutants, each restoring one old text, failed it on that amendment alone. No
+  factual-pass agent ran: the texts are the approved drafts, checked by
+  script, on the maintainer's direction of 2026-11-12 to keep usage lean. The
+  mutants run under the heavy-run lock before the commit; the twelve gate
+  legs, the conformance sub-checks, both live harnesses and the full battery
+  run on it.
 - **2026-11-12 (the develop-green wording in the governance text).** The
   maintainer selected "Amend the text" on 2026-11-12, after both sentences of
   the Branching section, the measured state of `develop` (the kernel gate 53

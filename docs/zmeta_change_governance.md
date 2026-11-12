@@ -158,8 +158,9 @@ Requirements:
 
 - update docs explaining the changed rule;
 - update conformance fixtures and focused tests;
-- regenerate `release/zmeta-release-manifest.yaml` when any manifest-listed
-  artifact changes;
+- regenerate `release/zmeta-release-manifest.yaml` at the next cut when any
+  manifest-listed artifact changes, and until then say in the commit body
+  that its pins are stale (Branching, below);
 - update example claim hashes when the release manifest builder requires it;
 - update `CHANGELOG.md`, worklog, and handoff;
 - run full kernel conformance and relevant focused tests.
@@ -302,12 +303,12 @@ integration is reverting the merge on `develop`; the live line is never the
 place a rollback is discovered to be needed.
 
 Release manifest, checksums, and claims are regenerated at the cut on
-`develop` and travel into `main` with it; an experimental branch that
-changes a manifest-listed artifact leaves the manifest stale on purpose and
-says so in its commit body, so the gate reads red on that branch for the
-manifest pins alone. That is the expected state of an unreleased branch,
-not a defect. After the merge, `develop` reads the same pins red until
-the next cut regenerates the manifest.
+`develop` and travel into `main` with it; an experimental or wave branch
+that changes a manifest-listed artifact leaves the manifest stale on
+purpose and says so in its commit body, so the gate reads red on that
+branch for the manifest pins alone. That is the expected state of an
+unreleased branch, not a defect. After the merge, `develop` reads the same
+pins red until the next cut regenerates the manifest.
 
 Pushing any branch, creating tags, and publishing remain human actions
 (AGENTS.md release limits). An agent creates and commits on local branches
@@ -341,7 +342,8 @@ the existing changes or ask before changing overlapping files.
 3. Add or update machine-checkable fixtures.
 4. Add or update tests.
 5. Update docs and changelog.
-6. Regenerate release manifest and claim hashes if governed artifacts changed.
+6. If governed artifacts changed, leave the release manifest and claim hashes
+   stale, say so in the commit body, and regenerate them at the next cut.
 7. Run validation.
 8. Update worklog and handoff with exact commands and results.
 
