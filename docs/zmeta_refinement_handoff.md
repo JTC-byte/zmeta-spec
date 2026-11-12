@@ -169,6 +169,13 @@ text, now covers eleven names. A third top-level copy of the nine names,
 in `adapters/projector/track/test_track_projector.py`, joins the first
 booked item.
 
+The branch `wave/payload-json-sentence-2026-11` (2026-11-11) adds to
+`spec/protobuf-encoding.md` the sentence that the bytes of `payload_json`
+are a JSON text under contract 3.5, on the maintainer's selection of that
+day. It is the sentence item 3 of the list below had booked as waiting;
+the CBOR and compact duplicate-key branches stay selected for after
+the next cut.
+
 Open, in order of proximity:
 
 1. **The consumers' re-pin to v1.1.27**, once at this tag in the order the
@@ -223,9 +230,9 @@ Open, in order of proximity:
    the refusing reader on 2026-11-11 on his selection of 2026-11-10
    ("Yes, before the cut"; branch `exp/json-readers-refuse-2026-11`).
    Reads of schema files and of the gateway's config file stay as they
-   were. Also waiting: one sentence in
-   `spec/protobuf-encoding.md` that a member repeated inside `payload_json`
-   falls under contract 3.5.
+   were. The sentence in `spec/protobuf-encoding.md` that a member repeated
+   inside `payload_json` falls under contract 3.5 landed on 2026-11-11 on
+   his selection of that day (branch `wave/payload-json-sentence-2026-11`).
    Selected the same day, for branches after the
    next cut: duplicate map keys on the CBOR and compact lanes, which this
    repository's `zmeta_cbor` (the reference CBOR path) and the cbor2 fallback

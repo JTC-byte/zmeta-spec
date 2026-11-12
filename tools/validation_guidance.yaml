@@ -798,7 +798,7 @@ guidance:
       - "gateway/src/gateway.py:2640-2656"
       - "zmeta_proto.py:410-463"
       - "zmeta_decode_guard.py:1-45"
-      - "spec/protobuf-encoding.md:112-129"
+      - "spec/protobuf-encoding.md:114-131"
   - code: INVALID_TIME_FORMAT
     remediation: >-
       INVALID_TIME_FORMAT means a canonical timestamp is not a UTC RFC 3339

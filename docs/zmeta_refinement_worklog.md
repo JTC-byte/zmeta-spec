@@ -2,7 +2,8 @@
 
 ## Current Resume Note
 
-- Last updated: 2026-11-11 (the GitHub usage habits in CLAUDE.md;
+- Last updated: 2026-11-11 (`payload_json` under contract 3.5 in the
+  protobuf encoding document; the GitHub usage habits in CLAUDE.md;
   `last_seen_ts` named in contract 7.7 and
   refused on a STATE; golden CoT outputs as a conformance artifact;
   the twelve remaining JSON readers refuse a
@@ -18,6 +19,28 @@
   pre-cut dry run; the TAK Protocol Version 1 egress adapter; DECODE_AMBIGUOUS,
   three commits, the third on 2026-11-03; two contract sentences;
   carried-list records pass; heading_deg defined; records pass after 7.6)
+- **2026-11-11 (`payload_json` under contract 3.5).** The maintainer selected
+  it on 2026-11-11 ("Yes, add it") after seeing the bullet before and after.
+  Branch `wave/payload-json-sentence-2026-11`. `spec/protobuf-encoding.md`'s
+  bullet on `payload_json` adds that its bytes are a JSON text under contract
+  section 3.5, and that one which repeats a member name in one object, at any
+  depth, is not a valid encoded event. It is the sentence the handoff booked
+  with the contract 3.5 change of 2026-11-10. The reference decoder already
+  refuses such bytes: `zmeta_proto.py` reads the payload with the refusing
+  hook except in the forensic skip mode, which the gateway never asks for. The
+  document is manifest-listed and gains two lines; the guidance file's
+  citation `spec/protobuf-encoding.md:112-129` (the `DECODE_AMBIGUOUS` entry)
+  moves to `:114-131`. A mutant that lets `zmeta_proto.py` read `payload_json`
+  last-wins fails the decoder's existing test
+  (`test_duplicate_key_in_the_protobuf_payload_json_is_refused`). A seeded
+  review by an independent reviewer, on a copy with its own planted error,
+  found that error and one omission, applied here: open item 3 of the handoff
+  still listed the sentence as waiting. It also noted that the document's
+  sentence on the forensic skip mode does not say a repeated payload member is
+  read to its last value there; that clause is left for a later pass. The
+  mutant runs under the heavy-run lock before the commit; the twelve gate
+  legs, the conformance sub-checks, both live harnesses and the full battery
+  run on it.
 - **2026-11-11 (CLAUDE.md: GitHub usage).** The maintainer approved the
   drafted bullet ("Yes, as drafted"), on his direction of the same evening to
   write down how the repositories use GitHub. Branch
