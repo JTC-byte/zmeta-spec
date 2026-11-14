@@ -28,11 +28,13 @@ jobs:
           python-version: "3.11"
 
       - name: Install dependencies
+        id: install
         run: |
           python -m pip install --upgrade pip
           python -m pip install -r gateway/requirements.txt -r requirements-dev.txt
 
       - name: Lint schemas
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: |
           python - <<'PY'
           import json
@@ -45,20 +47,24 @@ jobs:
           PY
 
       - name: Validate examples
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: |
           python tools/validate_examples.py --strict --require-all
 
       - name: Validate future-branch roadmap
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: |
           python tools/validate_future_roadmap.py
 
       - name: Check migration compatibility
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: |
           for file in examples/*.jsonl; do
             python tools/check_compat.py --target v1.1.27 --strict "$file"
           done
 
       - name: Validate v1.1 examples
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: |
           python - <<'PY'
           import json
@@ -81,23 +87,28 @@ jobs:
           PY
 
       - name: Conformance pack
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: |
           python tools/validate_conformance.py --strict
 
       - name: Kernel protection conformance
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: |
           python tools/validate_conformance.py --kernel-gate
 
       - name: Contract hash
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: |
           python tools/compute_contract_hash.py
 
       - name: Packet size summary
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: |
           # 236: the documented reference bearer budget (see Makefile measure-packets).
           python tools/measure_packet_size.py --file examples/zmeta-profile-L-examples.jsonl --encodings compact,proto --max-bytes 236 --max-bytes-encoding compact --summary-only --validate
 
       - name: Release package smoke
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: |
           python release/build_mvp_packages.py --version vci
           for bundle in zmeta-edge zmeta-gateway; do
@@ -111,8 +122,10 @@ jobs:
           done
 
       - name: Gateway self-test
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: |
           python gateway/src/gateway.py --profile H --self-test
 
       - name: Run tests
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: python -m pytest -q gateway/tests adapters

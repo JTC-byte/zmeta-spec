@@ -216,6 +216,20 @@ python tools/validate_conformance.py --kernel-gate
 The optional flags validate governed support surfaces without changing default
 strict validation. Use the full command above before publishing a release.
 
+Every stage the command is asked for runs, in order: the must-pass and
+must-fail fixtures, then each sub-check. A failing stage does not stop the
+stages after it. When any stage fails, the last line begins
+`conformance stages:` and names every stage that ran, each `ok` or
+`FAIL (exit N)`, and the command exits with the first failing stage's code. A
+stage that raises still ends the run, with its traceback and status 1, before
+that line is printed. A passing run ends with `conformance ok pass=N fail=M`,
+as before. Between cuts,
+`--kernel-gate` on `develop` or on a branch reads `release_manifest` and
+`release_package` as failing, for the stale manifest's pins
+(`docs/zmeta_change_governance.md`, Branching), and every other stage should
+read `ok`. Until 2026-11-14 the command stopped at its first failing stage, so
+on such a tree the stages after the manifest pins did not run.
+
 Additional focused conformance validators:
 
 ```

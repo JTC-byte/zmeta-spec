@@ -2,7 +2,8 @@
 
 ## Current Resume Note
 
-- Last updated: 2026-11-14 (AIS records with no message type;
+- Last updated: 2026-11-14 (the gate runs every stage; AIS records with no
+  message type;
   Clause 1's follow-up; three more manifest
   passages; the develop-green
   wording; the gateway README's
@@ -27,6 +28,45 @@
   pre-cut dry run; the TAK Protocol Version 1 egress adapter; DECODE_AMBIGUOUS,
   three commits, the third on 2026-11-03; two contract sentences;
   carried-list records pass; heading_deg defined; records pass after 7.6)
+- **2026-11-14 (the gate runs every stage; Z4 Option E).** On the
+  maintainer's selection of 2026-11-14 (his click "Yes, build E" at 16:04:28
+  EST in this repository's session), Option E of the team account's read of
+  2026-11-12 (Z4) is built. `tools/validate_conformance.py` runs every stage
+  it is asked for and exits with the first failing stage's code, the code its
+  early exit gave; when a stage fails it prints a `conformance stages:` line
+  naming every stage. Between cuts `--kernel-gate` now reads
+  `release_manifest` and `release_package` as its only failing stages, so
+  "red for the manifest pins alone" is read from the gate's output instead of
+  inferred. The release-package tests build their packages from a manifest of
+  the tree: eight tests whose negative controls died in the builder before
+  their assertions between cuts now run, and the five tests about the
+  committed manifest itself stay red until the cut. Every CI validation step
+  after the install, the kernel gate among them, runs when an earlier one
+  fails, unless the run was cancelled or the install failed; the run stays
+  red. Branch `wave/gate-every-stage-2026-11`. The gate
+  tool is manifest-listed. Its pin was already stale on develop (4bb6e41,
+  2026-11-10) and stays stale until the next cut, so the gate's
+  `release_manifest` stage keeps its 57 lines, three of them with a new hash;
+  the `release_package` stage, which never ran before, reports the same stale
+  pins. Seven new tests in a new file
+  (`gateway/tests/test_kernel_gate_runs_every_stage.py`); on develop's gate
+  four of the first five failed, the fifth being the success-path control. On
+  develop the eight package tests failed in the builder before their
+  assertions; now they pass, and the battery's red falls from thirteen tests
+  to the five about the committed manifest. Fifteen mutants: eleven on the
+  gate against the new tests, and four on the release-package validator
+  against the eight repaired tests, which on develop could not be told apart.
+  A seeded review (one reviewer, opus at high effort, read only, on a copy
+  with one planted error, which it found) returned READY WITH CORRECTIONS;
+  its corrections are applied: the core stage's exit stays 1 for any number of
+  failing fixtures (recording the count would let 256 failures exit 0 on
+  Linux), the end of the run is tested on its own, the exit-status claim is
+  narrowed for a stage that raises, the package tests' manifest carries the
+  committed release identity, and every CI validation step after the
+  install, not only those after the gate, runs when an earlier one fails.
+  The mutants ran under the heavy-run lock before the commit, and the twelve
+  gate legs, the conformance sub-checks, both live harnesses and the full
+  battery run on the commit; the merge record gives their results.
 - **2026-11-14 (AIS records with no message type).** On the maintainer's
   selection of 2026-11-14, the AIS ingress adapter reads a position record
   whose message type is absent, on two statements the record makes itself: a

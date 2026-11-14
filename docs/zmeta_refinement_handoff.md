@@ -235,6 +235,15 @@ apply to it. zisr-producers' local replay can pass the class and drop its
 declared inferred type once it runs on a tree with the change. A consumer
 that pins a tag has the change from the next cut.
 
+The branch `wave/gate-every-stage-2026-11` (2026-11-14) builds the code
+follow-up that the 2026-11-12 paragraph above records as not selected, on the
+maintainer's selection of 2026-11-14: `tools/validate_conformance.py` runs
+every stage and names them all when one fails; the release-package tests
+build from a manifest of the tree that carries the committed manifest's
+release identity; every CI validation step runs when an earlier one fails. Between cuts the expected red is now the gate's
+`release_manifest` and `release_package` stages and five tests that read the
+committed manifest. The gate tool's own pin is stale until the next cut.
+
 Open, in order of proximity:
 
 1. **The consumers' re-pin to v1.1.27**, once at this tag in the order the
