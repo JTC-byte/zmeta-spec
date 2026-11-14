@@ -2,6 +2,27 @@
 
 ## [Unreleased]
 
+- 2026-11-14 — **The conformance gate runs every stage it is asked for and
+  names them all when one fails** (`tools/validate_conformance.py`,
+  `gateway/tests/test_release_package.py`, `.github/workflows/ci.yml`). The
+  maintainer selected the change on 2026-11-14. The gate exited at its first
+  failing stage, so between cuts `--kernel-gate` stopped at the stale release
+  manifest's pins and the sub-checks after them never ran. Each stage now
+  records its result; when any failed, a final `conformance stages:` line
+  names every stage with `ok` or `FAIL (exit N)`, and the exit status is the
+  first failing stage's, as before; a stage that raises still ends the run.
+  A passing run's output is unchanged. The
+  release-package tests build their packages from a manifest of the tree, so
+  their negative controls run between cuts instead of failing in the builder
+  before their assertions; the tests about the committed manifest itself stay
+  red until the cut; their manifest carries the committed manifest's release
+  identity, so at a cut it equals the committed one. Every CI validation step
+  after the install, the kernel gate among them, runs even when an earlier one
+  failed, unless the run was cancelled or the install failed; the run stays
+  red. No rule changes. The gate tool is listed in the release
+  manifest; its pin has been stale on `develop` since 2026-11-10 and stays so
+  until the next cut.
+
 - 2026-11-14 — **The AIS ingress adapter reads a position record that
   carries no message type** (`adapters/ingress/ais/`, adapter 1.1.0). The
   maintainer selected the change on 2026-11-14. A record source that keeps a
