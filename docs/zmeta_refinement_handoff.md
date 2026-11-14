@@ -226,6 +226,15 @@ The branch `wave/clause1-followup-2026-11` (2026-11-12) applies two findings
 of the team account's read of Clause 1: the `EVENT_DUPLICATE` guidance
 carries 4.5.1's condition whole, and the worklog dates Clause 1's review.
 
+The branch `exp/ais-typeless-records-2026-11` (2026-11-14) lets the AIS
+adapter read a position record that carries no message type, on the
+maintainer's selection of that day: the record must declare a shipborne
+transceiver class (A or B) and carry a usable position; its event carries
+`ais_transceiver_class` and no `ais_message_type`; message 27's sentinels
+apply to it. zisr-producers' local replay can pass the class and drop its
+declared inferred type once it runs on a tree with the change. A consumer
+that pins a tag has the change from the next cut.
+
 Open, in order of proximity:
 
 1. **The consumers' re-pin to v1.1.27**, once at this tag in the order the
