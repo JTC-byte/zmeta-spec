@@ -25,6 +25,66 @@ dimensions but no position, so they produce no event on their own. A decoder
 that merges static fields into a position report is welcome to; the merged
 fields are carried natively.
 
+A record source that publishes decoded position reports with the message
+type removed and the transceiver class kept can pass each record with
+`transceiver_class` (`"A"` or `"B"`) in place of `type`. That one field is
+not part of AIS-catcher's output. The next section says how such a record is
+read.
+
+## Records with no message type
+
+Some record sources keep a decoded position report's content and the
+transmitting transceiver's class (Class A or Class B) but drop the AIS
+message type. Such a record does not say which position report it was, and
+inferring a type from the class (1 for Class A, 18 for Class B) would make
+an inference look read. The adapter infers no type. It reads a record whose
+`type` is absent, the key missing or `None`, only on two statements the
+record makes itself:
+
+- **A shipborne transceiver class.** `transceiver_class` is `"A"` or `"B"`,
+  folded for whitespace and case. A position alone does not show a vessel's
+  report: base stations (message 4), aids to navigation (21) and SAR
+  aircraft (9) report positions too, and the adapter consumes none of them.
+- **A usable position.** Static and voyage data (5, 24) come from the
+  same transceivers and carry none.
+
+The two statements rule out what the record itself can rule out, and no
+more. A Class A station's UTC and date response (message 11) also carries a
+position, and a record source could attach a last-known position to a static
+record, which would show a stale position with a fresh time. The rest rests
+on the record source's word that it publishes position reports, so pass
+records this way only from such a source.
+
+The event omits `ais_message_type` and carries `ais_transceiver_class`, so
+it says which of the two statements the source made: a type, or a class.
+Everything else is built as for a typed message: the declared 2-D geo, the
+`1.1.0` stamp, `protocol: "AIS"`, and the field bounds and sentinels.
+
+**The position's resolution is unknown.** The record does not say which
+report it was, so it does not say whether its position has message 27's
+coarser resolution: a tenth of a minute of arc, against a ten-thousandth in
+the other position reports. On a typed message, `ais_message_type: 27` is
+what tells a consumer that. On this record, `ais_transceiver_class` in place
+of `ais_message_type` tells it the type, and with it the resolution, is
+unknown. Contract 4.9 asks that geospatial uncertainty be explicit where it
+is relevant downstream, and this is where the event makes it so.
+
+A message that carries a `type` is translated exactly as before, and
+`transceiver_class` is not read on it. A `type` that is present but is not
+an integer still refuses the message, and so does an integer type outside
+the position reports, whether or not a class is declared.
+
+**Message 27's sentinels apply.** With no type, the record may be a message
+27, so message 27's not-available encodings apply to it as well as every
+other type's (`adapters/AUTHORING.md`: read the table of each message type
+the code path accepts). A speed of exactly 63 kt is dropped, although a
+Class A or Class B report of another type would mean a real 63 kt by it: the
+adapter loses that reading rather than show a vessel making a speed it never
+reported. Message 27's
+course sentinel, 511, is outside every type's course range and is dropped
+either way. A speed above 62 kt cannot come out of message 27's field, so it
+is read with the general bound.
+
 ## The altitude problem, which was the whole story under v1.0
 
 Canonical `payload.geo` under the locked v1.0 kernel requires `lat`, `lon` and
@@ -100,16 +160,17 @@ rather than carried:
 |---|---|---|
 | `lat` / `lon` | 91.0 / 181.0 | no position at all |
 | `speed` | 102.3 | omitted |
-| `speed` (message 27) | 63 | omitted |
+| `speed` (message 27, or no message type) | 63 | omitted |
 | `course` | 360.0 | omitted |
-| `course` (message 27) | 511 | omitted |
+| `course` (message 27, or no message type) | 511 | omitted |
 | `heading` | 511 | omitted |
 | `second` | 60 to 63 | `ais_second_status`, never a second-of-minute |
 
 Carrying them would put a stopped vessel at the north pole on a due-north
 heading. Message 27 packs speed and course into smaller fields with their own
-not-available encodings, and 63 kt is a real speed in a Class A report, so
-those two are checked only for message 27.
+not-available encodings, and 63 kt is a real speed in other reports, so
+those two are checked only for message 27 and for a record with no message
+type, which may be a message 27.
 
 Beyond the sentinels, the fields bound what a real report can say: speed 0 to
 102.2 kt, course 0 to 359.9 degrees, heading 0 to 359. A decoded value outside
@@ -136,7 +197,8 @@ v1.0 event.
 | Key | Source |
 |---|---|
 | `ais_mmsi` | the subject; a message without one is refused |
-| `ais_message_type` | AIS message type |
+| `ais_message_type` | AIS message type; absent on a record with no message type |
+| `ais_transceiver_class` | the declared transceiver class, `A` or `B`, carried only on a record with no message type |
 | `ais_lat_deg` / `ais_lon_deg` | the broadcast position, carried natively on both branches regardless of what canonical geo says |
 | `ais_sog_kt` / `ais_cog_deg_true` / `ais_heading_deg_true` | motion, sentinels removed |
 | `ais_nav_status_code` | declared navigation status, as a code |
@@ -155,7 +217,10 @@ code, and navigation status is a declared enum. None becomes a ZMeta
 classification or identity here. An `OBSERVATION_EVENT` carrying identity or
 classification is an authority-boundary violation the kernel refuses, and these
 are the vessel's own claims for an inference stage to adjudicate, not facts the
-receiver established.
+receiver established. On a record with no message type, `ais_transceiver_class`
+is the record source's statement of the transmitting equipment's category,
+not a classification of the vessel, and nothing is inferred from it: neither
+a message type nor a kind of vessel.
 
 ## Modality is `NETWORK`, and it is a judgement
 
@@ -171,10 +236,13 @@ RF; that is a later refinement, not something to fake here.
 | Input | Result |
 |---|---|
 | Not a position report type | no event |
+| A message type that is present but is not an integer | no event, with or without a declared class |
+| No message type and no shipborne transceiver class | no event; a position alone does not show a vessel's report |
+| No message type and no usable position | no event; nothing shows the record is a position report |
 | No MMSI, or an unusable one | no event; there is no subject |
 | No usable reception time | no event |
 | A present but impossible `rxtime` or `timestamp` | no event; a corrupt time channel is a decoder fault, not a reason to borrow another clock |
-| Position sentinels | event without a position; the emitter was still decoded |
+| Position sentinels on a typed message | event without a position; the emitter was still decoded |
 | Non-finite number in any field | that field dropped |
 | A speed or course the field cannot encode | that field dropped |
 

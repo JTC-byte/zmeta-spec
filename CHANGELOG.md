@@ -2,6 +2,26 @@
 
 ## [Unreleased]
 
+- 2026-11-14 — **The AIS ingress adapter reads a position record that
+  carries no message type** (`adapters/ingress/ais/`, adapter 1.1.0). The
+  maintainer selected the change on 2026-11-14. A record source that keeps a
+  decoded position report's content and the transmitting transceiver's class
+  but drops the AIS message type could not pass: the adapter refused a
+  message without an integer `type`, and the only way through was to infer a
+  type from the class, which makes an inference look read. A record whose
+  `type` is absent now becomes an event when it declares `transceiver_class`
+  `"A"` or `"B"` (folded for whitespace and case) and carries a usable
+  position. Its event omits `ais_message_type` and carries
+  `ais_transceiver_class`; no type is inferred. Message 27's not-available
+  encodings apply to such a record as well as every other type's, so a speed
+  of exactly 63 kt is dropped. The adapter relies on the record source's word
+  that its records are position reports, and the README says that such a
+  record's position has an unknown resolution, since it may be message 27's
+  coarser grid. A message that carries a type is translated as
+  before, and a type that is present but not an integer, or an integer
+  outside the position reports, still refuses the message. No schema,
+  policy, contract, registry or conformance change.
+
 - 2026-11-12 — **The guidance for `EVENT_DUPLICATE` states the 4.5.1
   condition whole** (`tools/validation_guidance.yaml`). Its remediation
   sanctioned keeping the `event_id` for a reduction under a declared mode

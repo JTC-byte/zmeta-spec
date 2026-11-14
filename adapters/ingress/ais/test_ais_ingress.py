@@ -155,7 +155,9 @@ class TestNotAvailableSentinels:
         assert "ais_cog_deg_true" not in features
 
     def test_63_knots_in_a_class_a_report_is_a_real_speed(self):
-        """The message 27 speed sentinel is scoped to message 27."""
+        """The message 27 speed sentinel is scoped to message 27 and to a
+        record with no message type. On a typed Class A report, 63 kt is a real
+        speed."""
         assert translate(type=1, speed=63.0)["payload"]["features"]["ais_sog_kt"] == 63.0
 
     def test_a_message_27_speed_above_its_own_field_is_dropped(self):
@@ -440,3 +442,179 @@ class TestTrackProjectionConsequence:
         assert projector.observe(event) == []
         assert projector.stats["refused_no_geo"] == 1
         assert projector.stats["refused_no_identity"] == 0
+
+
+_ABSENT = object()
+
+
+def typeless(**over):
+    """A position record with no message type that declares its transceiver
+    class: the shape a record source produces when it publishes decoded
+    position reports with the type removed and the class kept. An override
+    of `_ABSENT` removes the key."""
+    out = dict(CLASS_A)
+    del out["type"]
+    out["transceiver_class"] = "A"
+    for key, value in over.items():
+        if value is _ABSENT:
+            out.pop(key, None)
+        else:
+            out[key] = value
+    return out
+
+
+def translate_typeless(**over):
+    return translate_message(typeless(**over), **BASE)
+
+
+class TestRecordsWithNoMessageType:
+    """A record that carries no message type is accepted only on two
+    statements the source made itself: a shipborne transceiver class, A or B,
+    and a usable position. The event says which statement it rests on: it
+    carries `ais_transceiver_class` and no `ais_message_type`, because no
+    type was read and none is inferred. A message that does carry a type is
+    translated exactly as before, and the class is not read on it.
+    """
+
+    def test_a_typeless_record_with_a_class_and_a_position_becomes_an_event(self):
+        """The control. Every refusal in this class is meaningless without it."""
+        event = translate_typeless()
+        assert event is not None
+        assert event["event"]["event_type"] == "OBSERVATION_EVENT"
+        assert event["event"]["event_subtype"] == "NETWORK"
+        features = event["payload"]["features"]
+        assert "ais_message_type" not in features
+        assert features["ais_transceiver_class"] == "A"
+        assert features["ais_mmsi"] == 366123456
+        assert features["protocol"] == "AIS"
+        assert event["zmeta_version"] == "1.1.0"
+        assert event["payload"]["geo"] == {
+            "lat": 33.7405,
+            "lon": -118.2712,
+            "dimensionality": "2D",
+        }
+        assert event["payload"]["quality"]["geo_status"] == "VERTICAL_UNAVAILABLE"
+
+    def test_a_type_key_holding_none_is_the_absent_case(self):
+        event = translate_typeless(type=None)
+        assert event is not None
+        assert "ais_message_type" not in event["payload"]["features"]
+        assert event["payload"]["features"]["ais_transceiver_class"] == "A"
+
+    @pytest.mark.parametrize("declared, token", [("A", "A"), ("B", "B"), (" a ", "A"), ("b", "B"), ("\tB\n", "B")])
+    def test_the_class_is_folded_for_whitespace_and_case(self, declared, token):
+        """The fold the shared timing helper applies to its vocabularies: a
+        token that reads the same to a person is the same token."""
+        event = translate_typeless(transceiver_class=declared)
+        assert event["payload"]["features"]["ais_transceiver_class"] == token
+
+    def test_a_typeless_record_that_declares_no_class_is_refused(self):
+        """A position alone does not show a vessel's report: base stations,
+        aids to navigation and SAR aircraft report positions too, and this
+        adapter consumes none of them."""
+        assert translate_typeless(transceiver_class=_ABSENT) is None
+
+    @pytest.mark.parametrize("bad", ["", " ", "C", "AB", "A B", "SO", 1, True, None, ["A"], {"class": "A"}])
+    def test_a_typeless_record_with_an_unusable_class_is_refused(self, bad):
+        assert translate_typeless(transceiver_class=bad) is None
+
+    @pytest.mark.parametrize("lat, lon", [(_ABSENT, _ABSENT), (91.0, 181.0), (95.0, 10.0), (10.0, 190.0), (None, None)])
+    def test_a_typeless_record_with_no_usable_position_is_refused(self, lat, lon):
+        """With no type to read, the position is the only evidence that the
+        record is a position report: static and voyage data come from the
+        same transceivers and carry none."""
+        assert translate_typeless(lat=lat, lon=lon) is None
+
+    @pytest.mark.parametrize("bad", ["1", "18", True, False, 1.0, 18.0, [1]])
+    def test_a_type_that_is_present_but_not_an_integer_still_refuses(self, bad):
+        """A present but impossible type is a decoder fault. A declared class
+        does not rescue it, the same rule the adapter applies to a present
+        but impossible time channel."""
+        assert translate_typeless(type=bad) is None
+
+    @pytest.mark.parametrize("mtype", [4, 5, 9, 21, 24])
+    def test_a_type_outside_the_position_reports_still_refuses_with_a_class(self, mtype):
+        assert translate_typeless(type=mtype) is None
+
+    @pytest.mark.parametrize("mtype", [1, 18, 27])
+    def test_a_typed_message_is_unchanged_when_it_also_carries_a_class(self, mtype):
+        """The class is read only when the type is absent, so a typed
+        message's output does not depend on it."""
+        with_class = translate(type=mtype, transceiver_class="B")
+        without = translate(type=mtype)
+        assert "ais_transceiver_class" not in with_class["payload"]["features"]
+        assert with_class["payload"]["features"]["ais_message_type"] == mtype
+        for event in (with_class, without):
+            del event["event"]["event_id"]
+        assert with_class == without
+
+    def test_the_general_sentinels_hold_on_a_typeless_record(self):
+        features = translate_typeless(speed=102.3, course=360.0, heading=511)["payload"]["features"]
+        assert "ais_sog_kt" not in features
+        assert "ais_cog_deg_true" not in features
+        assert "ais_heading_deg_true" not in features
+
+    @pytest.mark.parametrize("declared", ["A", "B"])
+    def test_message_27s_sentinels_hold_on_a_typeless_record(self, declared):
+        """With no type, the record may be a message 27, whatever its class,
+        so its not-available encodings apply as well (adapters/AUTHORING.md:
+        read the table for each message type the code path accepts). 63 kt
+        is dropped although a Class A or Class B report of another type would
+        mean it; a real 63 kt is lost, and no vessel is shown making a speed
+        it never reported. The speed half tests the sentinel. The course half
+        holds on every path, since 511 is outside the course bound."""
+        features = translate_typeless(transceiver_class=declared, speed=63.0, course=511.0)["payload"]["features"]
+        assert "ais_sog_kt" not in features
+        assert "ais_cog_deg_true" not in features
+
+    @pytest.mark.parametrize("speed", [62.0, 63.5, 70.0, 102.2])
+    def test_other_speeds_on_a_typeless_record_are_carried(self, speed):
+        """Only the exact message 27 sentinel is dropped. A speed above 62 kt
+        cannot come out of message 27's field, so it is read with the general
+        bound."""
+        assert translate_typeless(speed=speed)["payload"]["features"]["ais_sog_kt"] == speed
+
+    @pytest.mark.parametrize("bad", [0, -1, "366123456", _ABSENT])
+    def test_a_typeless_record_still_needs_a_usable_mmsi(self, bad):
+        assert translate_typeless(mmsi=bad) is None
+
+    def test_a_typeless_record_still_needs_a_reception_time(self):
+        """No `rxtime`, no `timestamp` and no caller clock: no time to date the
+        event, so no event, as for a typed message."""
+        assert translate_message(typeless(rxtime=_ABSENT), platform_id="ais-node-01") is None
+
+    def test_a_typeless_event_validates_against_the_schema_its_stamp_names(self):
+        event = translate_typeless()
+        assert event["zmeta_version"] == "1.1.0"
+        errors = sorted(VALIDATOR_1_1_0.iter_errors(event), key=lambda e: list(e.path))
+        assert not errors, f"schema-invalid: {errors[0].message}"
+
+    def test_a_typeless_event_yields_a_two_dimensional_track(self):
+        from adapters.projector.track.track_projector import TrackProjector
+
+        projector = TrackProjector(platform_id="ais-node-01", confidence=0.9)
+        event = translate_typeless(transceiver_class="B")
+        assert projector.identity_of(event) == "mmsi-366123456"
+        fusion, state = projector.observe(event)
+        assert fusion["event"]["event_type"] == "FUSION_EVENT"
+        assert state["payload"]["geo"] == {
+            "lat": 33.7405,
+            "lon": -118.2712,
+            "dimensionality": "2D",
+        }
+        assert projector.stats["projected_2d"] == 1
+
+    def test_a_mixed_stream_keeps_the_typed_and_the_declared_records(self):
+        messages = [
+            msg(),
+            typeless(mmsi=338111222, transceiver_class="B"),
+            typeless(mmsi=338111333, transceiver_class=_ABSENT),
+            typeless(mmsi=338111444, lat=91.0, lon=181.0),
+            msg(type=5, mmsi=338111555),
+        ]
+        events = translate_stream(messages, **BASE)
+        assert [e["payload"]["features"]["ais_mmsi"] for e in events] == [366123456, 338111222]
+        assert events[0]["payload"]["features"]["ais_message_type"] == 1
+        assert "ais_transceiver_class" not in events[0]["payload"]["features"]
+        assert events[1]["payload"]["features"]["ais_transceiver_class"] == "B"
+        assert "ais_message_type" not in events[1]["payload"]["features"]

@@ -2,7 +2,8 @@
 
 ## Current Resume Note
 
-- Last updated: 2026-11-12 (Clause 1's follow-up; three more manifest
+- Last updated: 2026-11-14 (AIS records with no message type;
+  Clause 1's follow-up; three more manifest
   passages; the develop-green
   wording; the gateway README's
   run notes; contract 7.8:
@@ -26,6 +27,40 @@
   pre-cut dry run; the TAK Protocol Version 1 egress adapter; DECODE_AMBIGUOUS,
   three commits, the third on 2026-11-03; two contract sentences;
   carried-list records pass; heading_deg defined; records pass after 7.6)
+- **2026-11-14 (AIS records with no message type).** On the maintainer's
+  selection of 2026-11-14, the AIS ingress adapter reads a position record
+  whose message type is absent, on two statements the record makes itself: a
+  declared shipborne transceiver class (A or B) and a usable position. It
+  infers no type. The selection is his click "All as recommended" at 14:31:34
+  EST on the parent session's roll-up of that day (item 14), relayed by the
+  parent he named in this repository's session at 15:14:10 EST. The need came
+  from zisr-producers' local replay of a record source that drops the type
+  and keeps the class: its converter inferred 1 or 18 from the class and
+  said so, and this repository's ruling of 2026-11-12 refused the inference
+  and named the adapter change as the fix. The event omits `ais_message_type`
+  and carries `ais_transceiver_class`. Message 27's not-available encodings
+  apply to such a record (`adapters/AUTHORING.md`), so an exact 63 kt is
+  dropped; the design brief of the same day had carried it as a declared
+  limit, and the AUTHORING rule decided the other way. A typed message is
+  translated as before and the class is not read on it. Branch
+  `exp/ais-typeless-records-2026-11`, adapter 1.1.0. The two statements
+  rule out what the record can rule out and no more (a Class A UTC and date
+  response, message 11, also carries a position), so the README says the
+  rest rests on the record source's word, and that such a record's position
+  has an unknown resolution, since it may be message 27's coarser grid.
+  Fifty-four new test cases in one class: the first forty-eight were written
+  before the change and sixteen of them failed on the unchanged adapter; six
+  came from the review. A seeded review (one reviewer, opus at high effort,
+  read only, on a copy with one planted error, which it found) returned READY
+  WITH CORRECTIONS; its corrections are applied: the older message 27
+  sentences, a refusal row, a Class B case at 63 kt, the MMSI and time cases,
+  the record source's word, the resolution, and the class in "What is never
+  inferred". The mutants ran under the heavy-run lock before the commit, and
+  the twelve gate legs, the conformance sub-checks, both live harnesses and
+  the full battery run on the commit; the merge record gives their results.
+  The new code sits after `_quality`, so the lines the doctrine review log
+  cites (`ais_to_zmeta.py:165-203`) keep their numbers. No schema, policy,
+  contract, registry, conformance or manifest-listed file changes.
 - **2026-11-12 (Clause 1's follow-up).** The team account's seeded read of
   Clause 1's final text (Z3,
   `local/team_pieces_2026-11-12/c1_final_review.md`, claude-fable-5-2, READY
