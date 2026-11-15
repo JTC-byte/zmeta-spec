@@ -880,6 +880,89 @@ def test_every_manifest_group_is_classified_as_governed_or_not():
         assert path in governed, f"{path} is still classified ungoverned"
 
 
+# The test above reads the COMMITTED manifest, which changes only at a cut, so
+# a group added to the manifest builder between cuts stays unseen until the
+# cut rebuilds the manifest. `cot_projection_golden` (added 2026-11-11) was
+# the first such group; the pre-cut range review of 2026-11-14 found it in
+# neither set. The test below reads the groups the builder defines from the
+# tree, in memory, so a new group fails in its own commit. It writes nothing
+# and pins no hash, so it stays green between cuts.
+
+import build_release_manifest as manifest_builder  # noqa: E402
+
+
+def _classification_defects(
+    group_names: set[str], governed: frozenset[str], ungoverned: frozenset[str]
+) -> tuple[list[str], list[str]]:
+    """The group names in neither set, and the group names in both."""
+    neither = sorted(group_names - governed - ungoverned)
+    both = sorted(group_names & governed & ungoverned)
+    return neither, both
+
+
+def _builder_groups() -> dict:
+    return manifest_builder.build_manifest_data()["artifact_groups"]
+
+
+def test_every_group_the_manifest_builder_defines_is_classified_exactly_once():
+    groups = _builder_groups()
+    names = set(groups)
+    assert len(names) >= 20, f"the builder defined only {len(names)} groups; check would be vacuous"
+    neither, both = _classification_defects(names, facts.GOVERNED_GROUPS, facts.UNGOVERNED_GROUPS)
+    assert neither == [], (
+        f"the manifest builder defines groups classified as neither governed nor "
+        f"ungoverned: {neither}. Add each to GOVERNED_GROUPS or UNGOVERNED_GROUPS "
+        f"in tools/release_focus_facts.py with a reason."
+    )
+    assert both == [], f"groups classified as both governed and ungoverned: {both}"
+    assert facts.GOVERNED_GROUPS.isdisjoint(facts.UNGOVERNED_GROUPS), (
+        f"GOVERNED_GROUPS and UNGOVERNED_GROUPS overlap: "
+        f"{sorted(facts.GOVERNED_GROUPS & facts.UNGOVERNED_GROUPS)}"
+    )
+
+    # the governance sentence's path set resolves from the built groups, and
+    # the golden CoT corpus is in it: it is a required fixture of
+    # ZMETA-COT-PROJECTION, so a change to it is a governed change
+    governed = facts.governed_paths({"artifact_groups": groups})
+    assert "conformance/cot-golden/golden.jsonl" in governed, (
+        "the golden CoT corpus is not a governed path"
+    )
+
+
+def test_the_builder_group_classification_check_fires():
+    """Control: the detector reports a new group, and a group in both sets."""
+    names = set(_builder_groups())
+    # measured relative to the tree's own result, so the control holds
+    # whether or not the tree is classified correctly
+    neither_now, both_now = _classification_defects(
+        names, facts.GOVERNED_GROUPS, facts.UNGOVERNED_GROUPS
+    )
+    neither, both = _classification_defects(
+        names | {"a_group_added_without_a_classification"},
+        facts.GOVERNED_GROUPS,
+        facts.UNGOVERNED_GROUPS,
+    )
+    assert neither == sorted(set(neither_now) | {"a_group_added_without_a_classification"})
+    assert both == both_now
+
+    doubled = sorted(facts.GOVERNED_GROUPS)[0]
+    neither, both = _classification_defects(
+        names, facts.GOVERNED_GROUPS, facts.UNGOVERNED_GROUPS | {doubled}
+    )
+    assert neither == neither_now
+    assert both == sorted(set(both_now) | {doubled})
+
+    # the tool's own guard raises on the same unclassified group
+    doctored = {"artifact_groups": dict(_builder_groups())}
+    doctored["artifact_groups"]["a_group_added_without_a_classification"] = {"paths": ["README.md"]}
+    try:
+        facts.governed_paths(doctored)
+    except ValueError as exc:
+        assert "a_group_added_without_a_classification" in str(exc)
+    else:
+        raise AssertionError("governed_paths accepted an unclassified group")
+
+
 def test_baseline_names_the_immediately_previous_published_release():
     """A stale baseline makes every comparison quietly wrong.
 

@@ -67,6 +67,8 @@ GOVERNED_GROUPS = frozenset({
     "core_conformance",
     "bad_event_corpus",
     "adapter_conformance",
+    "cot_projection_golden",  # a required fixture of ZMETA-COT-PROJECTION, like
+                              # the adapter harness corpus beside it
     "encoding_negative",
     "profile_projection",
     "profile_precision",
