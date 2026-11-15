@@ -2,7 +2,9 @@
 
 ## Current Resume Note
 
-- Last updated: 2026-11-14 (the gate runs every stage; AIS records with no
+- Last updated: 2026-11-14 (the release facts' seeded-review follow-up;
+  the release facts classify the golden CoT
+  corpus; the gate runs every stage; AIS records with no
   message type;
   Clause 1's follow-up; three more manifest
   passages; the develop-green
@@ -28,6 +30,76 @@
   pre-cut dry run; the TAK Protocol Version 1 egress adapter; DECODE_AMBIGUOUS,
   three commits, the third on 2026-11-03; two contract sentences;
   carried-list records pass; heading_deg defined; records pass after 7.6)
+- **2026-11-14 (the release facts' seeded-review follow-up).** A seeded
+  review of the branch `wave/precut-release-facts-2026-11` (an error planted
+  in a copy, found; `local/precut_fixes_2026-11-14/p1/review/review_report.md`,
+  claude-opus-5-5, READY WITH CORRECTIONS) gave two SHOULD FIX findings and
+  four NITs, read here against the branch's own tree under the maintainer's
+  selection of 2026-11-10 that opened the golden CoT outputs. The first
+  SHOULD FIX is the planted error; the branch's comment in
+  `tools/release_focus_facts.py` names `ZMETA-COT-PROJECTION`. The second is
+  applied: the entry below and the CHANGELOG said that every check between
+  cuts reads the committed manifest, while
+  `gateway/tests/test_release_manifest.py` and
+  `gateway/tests/test_release_package.py` build a manifest from the tree;
+  both now say that every check that classified the groups read the
+  committed manifest until this change. Three NITs are applied. The
+  classification assertions of the exactly-once test now live in a helper,
+  `_check_builder_classification`, and a second control runs it on small
+  doctored sets, so a deleted assertion fails the test file; the CHANGELOG
+  entry now says that the test checks that the golden corpus is a governed
+  path; the handoff names the five tests that fail at the cut as the
+  release-currency tests that classify the committed manifest's groups,
+  apart from the five tests of the paragraph before it, which are about the
+  committed manifest itself. One NIT is not applied: the vacuity floor of 20 groups claims only that
+  the check is not vacuous, and the golden-path assertion is the one that
+  fails when the groups are read from the committed manifest instead of the
+  builder. Tests first: with a helper that asserted nothing, the new control
+  failed ("no assertion fired"); with the helper, the test file passed, 32
+  tests. The body of the branch's first commit keeps the sentence the second
+  SHOULD FIX corrects, because local history is not rewritten. The mutants
+  and the full validation run on the commit under the heavy-run lock, and
+  the merge record gives their results.
+- **2026-11-14 (the release facts classify the golden CoT corpus).** A
+  correction from the pre-cut range review of 2026-11-14, under the
+  maintainer's selection of 2026-11-10 that opened the golden CoT outputs
+  (A8). The manifest builder has defined the group `cot_projection_golden`
+  since 2026-11-11, and `tools/release_focus_facts.py` classified it as
+  neither governed nor ungoverned. Until this change, every check that
+  classified the groups read the committed manifest, which does not carry
+  the group, so the gap could show only at the cut: after the manifest is
+  rebuilt, `governed_paths` raises,
+  the README's release-focus sentence cannot be generated, and five
+  release-currency tests fail (the review counted four; its verification
+  added `test_a_deleted_governed_artifact_is_visible`). The group is now in
+  `GOVERNED_GROUPS`, with its reason beside it: the corpus is a required
+  fixture of `ZMETA-COT-PROJECTION` (`conformance/conformance_classes.yaml`),
+  beside the adapter harness corpus, which is governed, and none of the
+  reasons the file gives for an ungoverned group (process, release
+  mechanics, tooling source, claims, a derived export, future-only) fits it.
+  The existing classification test reads the committed manifest, which
+  changes only at a cut, so a new group stays unseen for a release. A new
+  test in `gateway/tests/test_release_currency.py` builds the manifest's
+  groups from the tree in memory (`build_manifest_data()`, which writes
+  nothing) and fails when a group is in neither set or in both, and checks
+  that the golden corpus is a governed path; a control shows that the check
+  reports an added group and a group placed in both sets, and that
+  `governed_paths` raises on the added group. Tests first: before the
+  classification the new test failed, naming `cot_projection_golden`, and
+  the control passed; after it the test file passed, 31 tests. Branch
+  `wave/precut-release-facts-2026-11`. Neither changed file is listed in the
+  release manifest, so no pin moves, and the print-only run of
+  `tools/release_focus_facts.py` is unchanged. Two items are left to the cut
+  commit, because the gate and `gateway/tests/test_release_manifest.py` read
+  the committed manifest and an earlier change would add a red line that is
+  not a hash mismatch: `cot_projection_golden` in `REQUIRED_GROUPS` of
+  `tools/validate_release_manifest.py`, with a decision on a top-level hash
+  field, as 9b4ba26 did for `bad_event_corpus` and `adapter_conformance`; and
+  the five groups `spec/release-hash-policy.md` does not list
+  (`cot_projection_golden`, `bad_event_corpus`, `adapter_conformance`,
+  `future_branch_roadmap` and `policy_json_export`). The handoff books both.
+  The mutants and the full validation run on the commit under the heavy-run
+  lock, and the merge record gives their results.
 - **2026-11-14 (the gate runs every stage; Z4 Option E).** On the
   maintainer's selection of 2026-11-14 (his click "Yes, build E" at 16:04:28
   EST in this repository's session), Option E of the team account's read of

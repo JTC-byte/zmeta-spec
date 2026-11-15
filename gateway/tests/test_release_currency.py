@@ -880,6 +880,129 @@ def test_every_manifest_group_is_classified_as_governed_or_not():
         assert path in governed, f"{path} is still classified ungoverned"
 
 
+# The test above reads the COMMITTED manifest, which changes only at a cut, so
+# a group added to the manifest builder between cuts stays unseen until the
+# cut rebuilds the manifest. `cot_projection_golden` (added 2026-11-11) was
+# the first such group; the pre-cut range review of 2026-11-14 found it in
+# neither set. The test below reads the groups the builder defines from the
+# tree, in memory, so a new group fails in its own commit. It writes nothing
+# and pins no hash, so it stays green between cuts.
+
+import build_release_manifest as manifest_builder  # noqa: E402
+
+
+def _classification_defects(
+    group_names: set[str], governed: frozenset[str], ungoverned: frozenset[str]
+) -> tuple[list[str], list[str]]:
+    """The group names in neither set, and the group names in both."""
+    neither = sorted(group_names - governed - ungoverned)
+    both = sorted(group_names & governed & ungoverned)
+    return neither, both
+
+
+def _builder_groups() -> dict:
+    return manifest_builder.build_manifest_data()["artifact_groups"]
+
+
+def _check_builder_classification(
+    group_names: set[str], governed: frozenset[str], ungoverned: frozenset[str]
+) -> None:
+    """Fail when a group is in neither set or in both, or when the sets overlap."""
+    neither, both = _classification_defects(group_names, governed, ungoverned)
+    assert neither == [], (
+        f"the manifest builder defines groups classified as neither governed nor "
+        f"ungoverned: {neither}. Add each to GOVERNED_GROUPS or UNGOVERNED_GROUPS "
+        f"in tools/release_focus_facts.py with a reason."
+    )
+    assert both == [], f"groups classified as both governed and ungoverned: {both}"
+    assert governed.isdisjoint(ungoverned), (
+        f"GOVERNED_GROUPS and UNGOVERNED_GROUPS overlap: {sorted(governed & ungoverned)}"
+    )
+
+
+def test_every_group_the_manifest_builder_defines_is_classified_exactly_once():
+    groups = _builder_groups()
+    names = set(groups)
+    assert len(names) >= 20, f"the builder defined only {len(names)} groups; check would be vacuous"
+    _check_builder_classification(names, facts.GOVERNED_GROUPS, facts.UNGOVERNED_GROUPS)
+
+    # the governance sentence's path set resolves from the built groups, and
+    # the golden CoT corpus is in it: it is a required fixture of
+    # ZMETA-COT-PROJECTION, so a change to it is a governed change
+    governed = facts.governed_paths({"artifact_groups": groups})
+    assert "conformance/cot-golden/golden.jsonl" in governed, (
+        "the golden CoT corpus is not a governed path"
+    )
+
+
+def test_the_builder_group_classification_check_fires():
+    """Control: the detector reports a new group, and a group in both sets."""
+    names = set(_builder_groups())
+    # measured relative to the tree's own result, so the control holds
+    # whether or not the tree is classified correctly
+    neither_now, both_now = _classification_defects(
+        names, facts.GOVERNED_GROUPS, facts.UNGOVERNED_GROUPS
+    )
+    neither, both = _classification_defects(
+        names | {"a_group_added_without_a_classification"},
+        facts.GOVERNED_GROUPS,
+        facts.UNGOVERNED_GROUPS,
+    )
+    assert neither == sorted(set(neither_now) | {"a_group_added_without_a_classification"})
+    assert both == both_now
+
+    doubled = sorted(facts.GOVERNED_GROUPS)[0]
+    neither, both = _classification_defects(
+        names, facts.GOVERNED_GROUPS, facts.UNGOVERNED_GROUPS | {doubled}
+    )
+    assert neither == neither_now
+    assert both == sorted(set(both_now) | {doubled})
+
+    # the tool's own guard raises on the same unclassified group
+    doctored = {"artifact_groups": dict(_builder_groups())}
+    doctored["artifact_groups"]["a_group_added_without_a_classification"] = {"paths": ["README.md"]}
+    try:
+        facts.governed_paths(doctored)
+    except ValueError as exc:
+        assert "a_group_added_without_a_classification" in str(exc)
+    else:
+        raise AssertionError("governed_paths accepted an unclassified group")
+
+
+def test_each_builder_classification_assertion_fails_on_its_own_defect():
+    """Control: each assertion of the exactly-once test fails on its defect.
+
+    The control above exercises the detector, not the test's assertions, so a
+    deleted assertion would leave the file green on a classified tree. The
+    assertions live in _check_builder_classification, and this control runs
+    it on small doctored sets that do not depend on the tree.
+    """
+    names = {"a_governed_group", "an_ungoverned_group"}
+    governed = frozenset({"a_governed_group"})
+    ungoverned = frozenset({"an_ungoverned_group"})
+    _check_builder_classification(names, governed, ungoverned)
+
+    cases = [
+        # a group in neither set
+        (names | {"a_group_added_without_a_classification"}, governed, ungoverned,
+         "neither governed nor ungoverned"),
+        # a group the builder defines, in both sets
+        (names, governed, ungoverned | {"a_governed_group"},
+         "both governed and ungoverned"),
+        # the two sets overlap on a name the builder does not define
+        (names, governed | {"a_name_the_builder_does_not_define"},
+         ungoverned | {"a_name_the_builder_does_not_define"},
+         "GOVERNED_GROUPS and UNGOVERNED_GROUPS overlap"),
+    ]
+    for case_names, case_governed, case_ungoverned, expected in cases:
+        try:
+            _check_builder_classification(case_names, case_governed, case_ungoverned)
+        except AssertionError as exc:
+            assert expected in str(exc), f"wrong assertion fired for {expected!r}: {exc}"
+        else:
+            raise AssertionError(f"no assertion fired for {expected!r}")
+
+
 def test_baseline_names_the_immediately_previous_published_release():
     """A stale baseline makes every comparison quietly wrong.
 

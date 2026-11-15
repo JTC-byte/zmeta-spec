@@ -2,6 +2,33 @@
 
 ## [Unreleased]
 
+- 2026-11-14 — **The release facts classify the golden CoT corpus as
+  governed** (`tools/release_focus_facts.py`,
+  `gateway/tests/test_release_currency.py`). The correction is from the
+  pre-cut range review of 2026-11-14, under the maintainer's selection of
+  2026-11-10 that opened the golden CoT outputs. The manifest group
+  `cot_projection_golden`, which the manifest builder has defined since
+  2026-11-11, was in neither `GOVERNED_GROUPS` nor `UNGOVERNED_GROUPS`. Until
+  this change, every check that classified the groups read the committed
+  manifest, which does not carry the group, so nothing was red; once the next
+  cut rebuilt the manifest, the
+  release-facts step would have raised, the README's release-focus sentence
+  could not have been generated, and five release-currency tests would have
+  failed. The group is now governed: its corpus is a required fixture of
+  `ZMETA-COT-PROJECTION`, beside the adapter harness corpus, which is
+  governed, and none of the stated reasons for an ungoverned group fits it.
+  A new test builds the manifest's groups from the tree in memory, fails
+  when the builder defines a group that is in neither set or in both, and
+  checks that the golden corpus is a governed path. Two controls show that
+  the check reports an added group and a group placed in both sets, and that
+  each of the test's classification assertions fails on its own defect. No
+  rule changes. Neither changed file is listed in the release
+  manifest, so no pin moves. Two items belong to the cut commit and are not
+  made here: an entry for the group in `REQUIRED_GROUPS` of
+  `tools/validate_release_manifest.py`, with a decision on a top-level hash
+  field, and the five groups that `spec/release-hash-policy.md` does not
+  list.
+
 - 2026-11-14 — **The conformance gate runs every stage it is asked for and
   names them all when one fails** (`tools/validate_conformance.py`,
   `gateway/tests/test_release_package.py`, `.github/workflows/ci.yml`). The
