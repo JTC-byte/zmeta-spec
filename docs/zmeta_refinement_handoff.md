@@ -442,6 +442,24 @@ policy rule differs. A gateway started with a required policy or contract
 hash from the earlier tree exits at startup. Open for the maintainer:
 whether a file that states no rule belongs in the hashed directory.
 
+The branch `wave/guidance-citations-2026-11` (2026-11-14) is a candidate
+repair for the maintainer's word, from the pre-cut range review of
+2026-11-14, and is not merged. It moves the 251 line references in
+`tools/validation_guidance.yaml` that commits after v1.1.27 left off their
+text, each to the one place where the text it named now stands, and adds
+two tests that read the registry citations and six named citations. It is
+the repair the 2026-11-10 paragraph above books for the validator, schema
+and gateway citations, and it also covers the registry citations, which
+that booking does not name. 35 references are left as they are and wait
+for a reading by hand: 20 whose text now stands at more than one place, 12
+whose text the range changed (a range that gained a line inside it, such as
+the 1.1.0 schema's `reason_code` enum, among them), and 3 that named blank
+lines already at v1.1.27. A citation that was off its text at v1.1.27, such
+as the `NON_FINITE_VALUE` entry's schema line, is moved with the text it
+named then and still needs its own correction. The gateway's line-count
+test still holds `gateway/src/gateway.py` at 3389 lines; a branch that
+changes that file's length moves its citations in the same change.
+
 Open, in order of proximity:
 
 1. **The consumers' re-pin to v1.1.27**, once at this tag in the order the

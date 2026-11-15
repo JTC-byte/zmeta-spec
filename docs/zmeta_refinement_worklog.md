@@ -2,7 +2,9 @@
 
 ## Current Resume Note
 
-- Last updated: 2026-11-14 (a correction on the runtime policy hash;
+- Last updated: 2026-11-14 (a candidate re-anchoring of the guidance
+  citations the range since v1.1.27 displaced;
+  a correction on the runtime policy hash;
   the ASTERIX CAT062 egress adapter;
   the gateway documents' seeded-review follow-up;
   the gateway documents: protected strip paths,
@@ -42,6 +44,47 @@
   pre-cut dry run; the TAK Protocol Version 1 egress adapter; DECODE_AMBIGUOUS,
   three commits, the third on 2026-11-03; two contract sentences;
   carried-list records pass; heading_deg defined; records pass after 7.6)
+- **2026-11-14 (the guidance citations the range displaced; a candidate).**
+  The pre-cut range review of 2026-11-14 found that the commits after v1.1.27
+  added lines to files that `tools/validation_guidance.yaml` cites by line
+  and moved none of the citations below them. This branch is a candidate
+  repair, built for the maintainer's word; it is not merged, and the 2026-11-10
+  booking in the handoff (the validator, schema and gateway citations) stays
+  his to open. Branch `wave/guidance-citations-2026-11`, from develop. A
+  script outside the tree re-anchored each line reference into a file the
+  range changed: it took the cited lines' text at v1.1.27, or at the commit
+  that wrote the citation when it was written after v1.1.27, searched for
+  that text as one block in the file now, and rewrote the numbers only where
+  the block stands at exactly one place. It refused a block that was blank,
+  that the range had changed, or that stands at more than one place, and
+  left those citations as they were. Numbers written as prose after a
+  citation ("at :3626", "and 3752-3759") were listed by hand with the file
+  each one names and handled the same way. A second reading of the written
+  file checked that every rewritten reference names the same non-blank text
+  at both ends, that every other reference kept its numbers, and that only
+  digits changed. Of 936 line references, 147 cite files the range left
+  alone, 503 still named their text (the contract and policy citations among
+  them, re-anchored on 2026-11-10), 251 are moved and 35 are left. Git's own
+  line mapping from the same revisions agrees with every one of the 251.
+  The 35 left: 20 whose text stands at more than one place (18 of them
+  single lines such as `checks.extend(` or a `code = "..."` assignment the
+  validator repeats in each of its branches), 12 whose
+  text the range changed (among them the 1.1.0 schema's `reason_code` enum,
+  which gained `DECODE_AMBIGUOUS` inside the cited range), and 3 that named
+  blank lines in `gateway/src/gateway.py` already at v1.1.27. A citation
+  that was off its text at v1.1.27 is moved with the text it named then:
+  the `NON_FINITE_VALUE` entry's single schema line still names
+  `LINEAGE_FUSION_MEMBERS_NOT_IN_BASED_ON`. Two tests are new in
+  `gateway/tests/test_validation_guidance.py`, each written before the
+  change: one reads every citation into `policy/violation-codes.yaml` and
+  requires it to begin on a code and to name the entry's code or codes the
+  entry names (on the unrepaired file it reported 31 of 56), with a control
+  on a synthetic registry; one reads six citations the review checked at
+  both ends (all six failed on the unrepaired file). The file's 20 tests
+  pass. `gateway/src/gateway.py` keeps its 3389 lines. No rule, validator or
+  verdict changes; the guidance file is advisory and not manifest-listed.
+  The mutants and the full validation run on the commit under the heavy-run
+  lock; the merge record gives their results.
 - **2026-11-14 (a correction: the gateway documents change moved the runtime
   policy hash).** The gateway documents branch of the same day recorded that
   no rule and no release pin changes. Both statements hold, and one fact was

@@ -496,3 +496,149 @@ def test_the_bare_number_reader_tells_policy_numbers_from_another_files():
         ]
     )
     assert found == ["141", ":121"]
+
+
+def _registry_line_references():
+    """Every line reference into policy/violation-codes.yaml, with the entry that makes it.
+
+    Each is (first, last, entry code, the entry's whole text, guidance line).
+    """
+    import re
+
+    cite = re.compile(r"policy/violation-codes\.yaml:(\d+(?:-\d+)?(?:,\s*:?\d+(?:-\d+)?)*)")
+    ref = re.compile(r"(\d+)(?:-(\d+))?")
+    text = GUIDANCE_PATH.read_text(encoding="utf-8")
+    entries = {entry["code"]: " ".join(_strings_of(entry)) for entry in _guidance_entries()}
+    starts = [(m.start(), m.group(1)) for m in re.finditer(r"^  - code: *(\S+)", text, re.M)]
+    out = []
+    for match in cite.finditer(text):
+        owner = [code for start, code in starts if start < match.start()]
+        if not owner:
+            continue
+        guidance_line = text.count("\n", 0, match.start()) + 1
+        for r in ref.finditer(match.group(1)):
+            first = int(r.group(1))
+            last = int(r.group(2)) if r.group(2) else first
+            out.append((first, last, owner[-1], entries[owner[-1]], guidance_line))
+    return out
+
+
+def _strings_of(node):
+    if isinstance(node, str):
+        yield node
+    elif isinstance(node, dict):
+        for value in node.values():
+            yield from _strings_of(value)
+    elif isinstance(node, list):
+        for value in node:
+            yield from _strings_of(value)
+
+
+def _registry_misplaced(references, registry_lines):
+    """References into the code registry that no longer sit on a code the entry is about.
+
+    A reference begins on a `- code:` line, or on a comment above one, and the
+    lines it names hold at least one code. One of those codes is the entry's
+    own, or every one of them is a code the entry's text names. A registry
+    edit that inserts lines above the citations moves them onto a severity
+    line or onto another code, which is how 34 of the 56 sat after the
+    DECODE_AMBIGUOUS code was added on 2026-11-02.
+    """
+    import re
+
+    bad = []
+    for first, last, code, entry_text, where in references:
+        if first < 1 or first > last or last > len(registry_lines):
+            bad.append((first, last, where, "outside the registry"))
+            continue
+        head = registry_lines[first - 1].strip()
+        if not (head.startswith("- code:") or head.startswith("#")):
+            bad.append((first, last, where, "begins off a code"))
+            continue
+        named = re.findall(r"^\s*- code: *(\S+)", "\n".join(registry_lines[first - 1:last]), re.M)
+        if not named:
+            bad.append((first, last, where, "holds no code"))
+        elif code not in named and not all(re.search(rf"\b{n}\b", entry_text) for n in named):
+            bad.append((first, last, where, "names a code the entry is not about"))
+    return bad
+
+
+def test_registry_citations_name_the_entrys_code():
+    # From the pre-cut range review of 2026-11-14: the two lines the
+    # DECODE_AMBIGUOUS code added to the registry on 2026-11-02 moved every
+    # citation below them two lines off its code. Nothing read them.
+    registry_lines = CODES_PATH.read_text(encoding="utf-8").splitlines()
+    references = _registry_line_references()
+    assert len(references) >= 50, "the guidance file's registry citations are no longer found"
+    assert _registry_misplaced(references, registry_lines) == []
+
+
+def test_the_registry_citation_reader_reports_a_reference_moved_off_its_code():
+    registry = [
+        "violation_codes:",
+        "  - code: FIRST_CODE",
+        "    severity: fail",
+        "  # a note on the second code",
+        "  - code: SECOND_CODE",
+        "    severity: warn",
+    ]
+    placed = [
+        (2, 3, "FIRST_CODE", "about FIRST_CODE", 1),
+        (4, 6, "SECOND_CODE", "about SECOND_CODE", 2),
+        (5, 6, "OTHER_CODE", "OTHER_CODE reaches the producer as SECOND_CODE", 3),
+    ]
+    assert _registry_misplaced(placed, registry) == []
+    moved = _registry_misplaced(
+        [
+            (3, 4, "FIRST_CODE", "about FIRST_CODE", 4),
+            (5, 6, "FIRST_CODE", "about FIRST_CODE", 5),
+            (1, 1, "FIRST_CODE", "about FIRST_CODE", 6),
+            (6, 7, "SECOND_CODE", "about SECOND_CODE", 7),
+            (4, 4, "SECOND_CODE", "about SECOND_CODE", 8),
+        ],
+        registry,
+    )
+    assert [(first, last, why) for first, last, _where, why in moved] == [
+        (3, 4, "begins off a code"),
+        (5, 6, "names a code the entry is not about"),
+        (1, 1, "begins off a code"),
+        (6, 7, "outside the registry"),
+        (4, 4, "holds no code"),
+    ]
+
+
+# Citations the pre-cut range review of 2026-11-14 read at both ends: each was
+# on its text at v1.1.27 and off it after the range. Each row is the entry's
+# code, the cited file, which of the entry's references into that file, and
+# text its first cited line holds.
+NAMED_CITATIONS = [
+    ("SCHEMA_INVALID", "gateway/src/validators.py", 0, "def validate_schema("),
+    ("INVALID_TIME_FORMAT", "policy/violation-codes.yaml", 0, "- code: INVALID_TIME_FORMAT"),
+    ("COMMAND_TASK_TYPE_INVALID", "spec/field-dictionary.md", 0, "`RETURN_TO_BASE`"),
+    ("LINK_STATUS_INVALID_REASON_CODE", "adapters/ingress/mavlink/mavlink_to_zmeta_template.py", 0,
+     'carried_reason = msg.get("reason_code")'),
+    ("PRODUCER_NOT_ALLOWED", "gateway/src/validators.py", 0, "def validate_producer_authority("),
+    ("PRODUCER_NOT_ALLOWED", "gateway/src/validators.py", 2, "def _matches_pattern("),
+]
+
+
+def _first_cited_lines(code, path):
+    import re
+
+    cite = re.compile(re.escape(path) + r":(\d+(?:-\d+)?(?:,\s*:?\d+(?:-\d+)?)*)")
+    entry = next(entry for entry in _guidance_entries() if entry["code"] == code)
+    found = []
+    for text in _strings_of(entry):
+        for match in cite.finditer(" ".join(text.split())):
+            found.extend(int(r.group(1)) for r in re.finditer(r"(\d+)(?:-\d+)?", match.group(1)))
+    return found
+
+
+@pytest.mark.parametrize("code,path,which,expected", NAMED_CITATIONS)
+def test_named_citations_sit_on_their_text(code, path, which, expected):
+    lines = (ROOT / path).read_text(encoding="utf-8").splitlines()
+    firsts = _first_cited_lines(code, path)
+    assert len(firsts) > which, f"{code} no longer cites {path}"
+    assert expected in lines[firsts[which] - 1], (
+        f"{code} cites {path}:{firsts[which]}, which reads {lines[firsts[which] - 1]!r}"
+    )
