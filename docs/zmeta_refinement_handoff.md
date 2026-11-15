@@ -249,7 +249,10 @@ manifest group `cot_projection_golden` as governed in
 `tools/release_focus_facts.py`, a correction from the pre-cut range review
 of 2026-11-14 under the maintainer's selection of 2026-11-10 that opened the
 golden CoT outputs. Without it the release-facts step of the next cut raises
-once the manifest is rebuilt, and five release-currency tests fail with it.
+once the manifest is rebuilt, and the five release-currency tests that
+classify the committed manifest's groups fail with it. That set is apart from
+the five tests of the paragraph above, which are about the committed manifest
+itself.
 A new test reads the groups the manifest builder defines from the tree, so a
 new group fails in its own commit instead of at the cut. Two items belong to
 the cut commit and are not made on the branch, because the gate and
@@ -261,6 +264,15 @@ field, as 9b4ba26 did for `bad_event_corpus` and `adapter_conformance`; (2)
 the five groups that `spec/release-hash-policy.md` does not list:
 `cot_projection_golden`, `bad_event_corpus`, `adapter_conformance`,
 `future_branch_roadmap` and `policy_json_export`.
+
+A follow-up commit on the same branch (2026-11-14) applies a seeded review
+of it: the CHANGELOG and worklog now say that the checks that classified the
+groups read the committed manifest until the change, since the
+release-manifest and release-package tests build a manifest from the tree;
+the exactly-once test's classification assertions moved into a helper that a
+second control runs on doctored sets; the CHANGELOG entry names the
+golden-path assertion.
+The vacuity floor of 20 groups stays as it is. No rule or pin changes.
 
 Open, in order of proximity:
 
