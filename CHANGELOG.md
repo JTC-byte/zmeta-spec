@@ -17,19 +17,28 @@
   its own item with the re-pin order: no validating consumer re-pins to
   that cut until the fielded producer runs an image without the field,
   since a gateway on the cut's policy refuses every STATE from the present
-  image as `STATE_HAS_RAW_FEATURES`. The cut stays the maintainer's word.
+  image as `STATE_HAS_RAW_FEATURES`. The records state the cut's condition
+  as the two acts in their order, so the condition is met, and deployment
+  governs only the re-pin order. The cut stays the maintainer's word.
   S6: the handoff's current-state block ended by giving the v1.1.27
   publication as the next session's work; it now says the publication was
   completed on 2026-10-27. N2: the 2026-11-02 entry on admission caps said
   a factor below 1 is recorded as declined on each of three paths; only the
   promotion path writes `reduction_declined`, and the timing-freshness
   degradation and the timing-loss failure mode return with no record, so
-  the sentence now says which path records it. The handoff also gains a
-  paragraph on the review: its verdict, the findings the four branches of
-  2026-11-14 close and the seven that wait for the maintainer's word. Two
-  worklog entries and one handoff paragraph of 2026-11-14 are reworded to
-  the form the other records use, with no fact changed. No code, rule or
-  pin changes.
+  the sentence now says which path records it; it also scopes the decline
+  to a factor above 0, since a factor of 0 or less is replaced by a
+  default on the promotion and timing-freshness paths. The handoff also
+  gains a paragraph on the review: its verdict, the findings three
+  branches of 2026-11-14 close, the fourth branch that is to follow for S5
+  and N1, and the seven findings that wait for the maintainer's word. Item
+  6 of the handoff names the unmerged local branch `pr/8-review`, and the
+  review paragraph records that the two detached worktrees the review
+  found were throwaway trees and are removed (N7). Two worklog entries and
+  one handoff paragraph of 2026-11-14 are reworded to the form the other
+  records use; the rewording removes the times, a click's text, the relay's
+  path and another repository's name, and alters no fact of the changes
+  they record. No code, rule or pin changes.
 
 - 2026-11-14 — **Two tests hold the gate's red to the release pins and the
   typeless AIS event to the reference validator**
@@ -729,12 +738,14 @@
   2026-11-02. The v1.0 lock-baseline contract anchor moves with a dated
   note; no schema or policy byte changes. The reference gateway's
   `risk_adjudication` record carries the values a cap or reduction changed
-  (promotion and both timing paths; a factor below 1 is declined on each;
-  the promotion path records the declined factor under
+  (promotion and both timing paths; a factor above 0 and below 1 is
+  declined on each; the promotion path records the declined factor under
   `reduction_declined`, and the two timing paths, the timing-freshness
   degradation at admission and the timing-loss failure mode on an outgoing
-  STATE, decline it with no record on the event, corrected from the pre-cut
-  range review of 2026-11-14); the gateway's strip guard protects
+  STATE, decline it with no record on the event; a factor of 0 or less is
+  replaced by a default on the promotion and timing-freshness paths and
+  declined on the timing-loss path; corrected from the pre-cut range
+  review of 2026-11-14); the gateway's strip guard protects
   `payload.valid_from_ts`; the SAPIENT
   command egress computes `task_end_time` from the window's start and
   refuses a window that opens after `event.ts`, which its end-only bound

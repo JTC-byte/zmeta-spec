@@ -310,18 +310,20 @@ of the test instead of a rule. No rule or pin changes.
 The pre-cut range review of 2026-11-14 read the range from v1.1.27 to
 `develop` at a84c329 as one surface, in the form of the v1.1.20 and
 v1.1.21 pre-cut registers, and found it NOT READY for the next cut: two
-must-fix findings, six should-fix and eight nits, none of them a defect in
-the standard's text. A second reader confirmed both must-fix findings; it
-counted five failing tests for M1 where the review counted four, and found
-that the two acts M2 names had both happened. Four stacked branches of the same day take its
+must-fix findings, six should-fix and eight nits. The review says of the
+two must-fix findings that neither is a defect in the standard's text. A
+second reader confirmed both must-fix findings; it counted five failing
+tests for M1 where the review counted four, and found that the two acts M2
+names had both happened. Three stacked branches of the same day take its
 findings: `wave/precut-release-facts-2026-11` closes M1;
 `wave/precut-tests-2026-11` closes S4 and N4; `wave/precut-records-2026-11`
-closes M2 as a record (item 8 below), S6 and N2;
-`wave/precut-gateway-docs-2026-11` takes S5 and N1, and its own paragraph
-records what it closes. Seven findings wait for the maintainer's word: S1
-(the MAVLink egress projects a command whose validity window has not
-opened), S2 (the `auto` input lane reports a truncated compact or CBOR
-datagram as `DECODE_AMBIGUOUS`, to be decided before the third field leg),
+closes M2 as a record (item 8 below), S6 and N2. A fourth branch,
+`wave/precut-gateway-docs-2026-11`, is to follow for S5 and N1, and its
+own paragraph is to record what it closes. Seven findings wait for the
+maintainer's word: S1 (the MAVLink egress projects a command whose
+validity window has not opened), S2 (the `auto` input lane reports a
+truncated compact or CBOR datagram as `DECODE_AMBIGUOUS`; the review
+advises deciding it before the third field leg, which reads that code),
 S3 (246 displaced line citations in `tools/validation_guidance.yaml`), N3
 (a class scoped to version 1.0 whose required corpus holds two 1.1.0
 cases), N5 (two stale lines in `RELEASE_CHECKLIST.md`), N6 (a MAVLink
@@ -346,8 +348,23 @@ as the next session's work. For N2 it corrects the CHANGELOG entry of
 factor (`reduction_declined`), and the two timing paths decline it with no
 record on the event. It also rewords two worklog entries and one paragraph
 of this block, all of 2026-11-14, that named another repository, a clock
-time or the session structure, to the form the other records use; no fact
-changes. No code, rule or pin changes.
+time or the session structure, to the form the other records use; the
+rewording removes that detail and alters no fact of the change each one
+records. No code, rule or pin changes.
+
+A follow-up commit on the same branch (2026-11-14) applies a seeded review
+of the records branch: the review paragraph above says "not a defect in
+the standard's text" of the two must-fix findings only, as the review
+does, and gives the gateway documents' branch as a fourth branch to
+follow, since it is not yet made; item 8 says that the records state its
+condition as the two acts in their order, that both are made, so the
+condition is met, and that deployment governs only the re-pin order, and
+the closing sentence of this block names that order; S2's timing is given
+as the review's advice; the CHANGELOG sentence on a declined factor is
+scoped to a factor above 0 and below 1, and this branch's CHANGELOG entry
+names item 6's `pr/8-review` and N7; the reworded entries no longer say
+that no fact changes, and the AIS entry no longer repeats its date. No
+code, rule or pin changes.
 
 Open, in order of proximity:
 
@@ -463,7 +480,11 @@ Open, in order of proximity:
    the cut's policy refuses every STATE from the present image as
    `STATE_HAS_RAW_FEATURES`. The live evidence is the third field leg's
    count of that refusal, zero on the producer's STATE once it runs an
-   image without the field. The cut itself stays the maintainer's word.
+   image without the field. The records state the cut's condition as the
+   two acts in their order; both are made, each merged into its lane's
+   integration branch, so the condition is met. Deployment is not part
+   of the condition and governs only this re-pin order. The cut itself
+   stays the maintainer's word.
    This item is from the pre-cut range review of 2026-11-14 (its M2), which
    found no tracked record that either act had happened. It is appended
    rather than placed by proximity so that the item numbers the worklog
@@ -473,8 +494,8 @@ The v1.1.27 publication was completed on 2026-10-27: the tag, the
 signatures, the push and the seventeen-asset release, verified as
 published (the worklog entry "v1.1.27 published" of that day). Next
 session: the re-pins as each consumer's session reports, and the next cut
-on the maintainer's word, after the two remaining field legs and with item
-8's condition met.
+on the maintainer's word, after the two remaining field legs, with item 8's
+re-pin order in force.
 
 ## Previous state (2026-10-12): THIRTEEN MERGES ON DEVELOP SINCE v1.1.26 PLUS THIS RECORDS WAVE, NOT RELEASED; TWO GATEWAY FIXES HELD ON BRANCHES
 

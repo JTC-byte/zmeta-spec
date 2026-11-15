@@ -2,7 +2,8 @@
 
 ## Current Resume Note
 
-- Last updated: 2026-11-14 (the pre-cut records: the `observed_at`
+- Last updated: 2026-11-14 (the pre-cut records' seeded-review follow-up;
+  the pre-cut records: the `observed_at`
   refusal's cut condition, the handoff's current state, the declined-factor
   sentence; the tests branch's seeded-review follow-up;
   the gate's red held to the release pins and the
@@ -35,6 +36,47 @@
   pre-cut dry run; the TAK Protocol Version 1 egress adapter; DECODE_AMBIGUOUS,
   three commits, the third on 2026-11-03; two contract sentences;
   carried-list records pass; heading_deg defined; records pass after 7.6)
+- **2026-11-14 (the pre-cut records' seeded-review follow-up).** A seeded
+  review of the branch `wave/precut-records-2026-11` (an error planted in a
+  copy, found; `local/precut_fixes_2026-11-14/p3/review/review_report.md`,
+  claude-opus-5-5) gave one BLOCKER, three SHOULD FIX findings and six
+  NITs, read here against the branch's own tree. The BLOCKER is the planted
+  error; the handoff's closing sentence gives the seventeen-asset release,
+  as the entry "v1.1.27 published" records. The three SHOULD FIX findings
+  are applied. The handoff's review paragraph gave
+  `wave/precut-gateway-docs-2026-11` as a branch that takes S5 and N1 and
+  has its own paragraph; neither the branch nor the paragraph exists yet,
+  so the paragraph, the entry below and the CHANGELOG now give it as a
+  fourth branch to follow. The same paragraph said that none of the
+  findings is a defect in the standard's text; the review says so of the
+  two must-fix findings only, so the clause now covers that pair. Item 8
+  gave the facts and not whether its condition is met, and the block's
+  closing sentence implied that it was not. Item 8 now says that the
+  records state the condition as the two acts in their order, that both
+  are made, each merged into its lane's integration branch, so the
+  condition is met, and that deployment is not part of it and governs only
+  the re-pin order; the closing sentence names the re-pin order instead of
+  the condition. Five of the six NITs are applied. The AIS entry below no
+  longer repeats its date and says that the selection reached this
+  repository's session through a relay he named. The reworded entries no
+  longer say that no fact changes, since the rewording removed detail; the
+  entry below says what was removed and notes the tension with CLAUDE.md's
+  rule that process records are never restyled. Two edited spans of the
+  worklog and one of the handoff are rewrapped. The CHANGELOG sentence on a
+  declined factor said "a factor below 1"; a factor of 0 or less is
+  replaced by a default on the promotion path (`_positive_float` in
+  `gateway/src/validators.py`) and on the timing-freshness path, and is
+  declined on the timing-loss path, so the sentence now scopes the decline
+  to a factor above 0 and below 1 and says what happens at 0 or less. S2's
+  timing in the handoff is given as the review's advice. The CHANGELOG
+  entry of this branch now names item 6's `pr/8-review` and the removal of
+  the two detached worktrees the review found (N7). The NIT not applied
+  names a worktree outside the hygiene record: it is the working tree of
+  another unit in progress, not a leftover. No test reads the corrected
+  statements. No code, rule or pin changes, and no changed file is listed
+  in the release manifest. The mutants and the full validation run on the
+  commit under the heavy-run lock, and the merge record gives their
+  results.
 - **2026-11-14 (the pre-cut records: the `observed_at` refusal's cut
   condition, the handoff's current state, the declined-factor sentence).**
   Three corrections from the pre-cut range review of 2026-11-14 (its M2, S6
@@ -75,19 +117,25 @@
   no `risk_adjudication`, and with 2.0 it halves the confidence and adds
   one. The sentence now names the path that records the decline and the
   two that do not. The handoff gains a paragraph on the review: its
-  verdict, the findings the four branches of 2026-11-14 close, the seven
-  that wait for the maintainer's word (S1, S2, S3, N3, N5, N6, N8), and
-  that the full register lands with the cut-prep commit. Item 6 names the
-  unmerged local branch `pr/8-review` (N7). The rewording: the entries
-  below on the gate running every stage and on the AIS records with no
+  verdict, the findings three branches of 2026-11-14 close and the two a
+  fourth branch is to take, the seven that wait for the maintainer's word
+  (S1, S2, S3, N3, N5, N6, N8), and that the full register lands with the
+  cut-prep commit. Item 6 names the unmerged local branch `pr/8-review`
+  (N7). The rewording: the entries below on the gate running every stage
+  and on the AIS records with no
   message type, and the handoff's paragraph on the AIS branch, named
   another repository, clock times, a click's text and the session
   structure, which the records at v1.1.27 do not; they now give the date
-  and "in this repository's session", and no fact changes. The bodies of
-  the unpushed commits of 2026-11-14 carry the same detail, and rewording
-  them rewrites local history, so that stays the maintainer's question
-  (N8). No test reads the corrected statements. No code, rule or pin
-  changes, and no changed file is listed in the release manifest. The
+  and "in this repository's session". The rewording removes the times, the
+  click's text, the relay's path and the other repository's name, and
+  alters no fact of the change either entry records. CLAUDE.md keeps
+  process records from being restyled; this rewording removes content
+  from unpushed entries of the same day and leaves their voice as written.
+  The bodies of the unpushed commits of 2026-11-14 carry the same detail,
+  and rewording them rewrites local history, so that stays the
+  maintainer's question (N8). No test reads the corrected statements. No
+  code, rule or pin changes, and no changed file is listed in the release
+  manifest. The
   mutants and the full validation run on the commit under the heavy-run
   lock, and the merge record gives their results.
 - **2026-11-14 (the tests branch's seeded-review follow-up).** A seeded
@@ -254,8 +302,9 @@
 - **2026-11-14 (the gate runs every stage; Z4 Option E).** On the
   maintainer's selection of 2026-11-14 in this repository's session, Option E
   of the team account's read of 2026-11-12 (Z4) is built.
-  `tools/validate_conformance.py` runs every stage it is asked for and exits with the first failing stage's code, the code its
-  early exit gave; when a stage fails it prints a `conformance stages:` line
+  `tools/validate_conformance.py` runs every stage it is asked for and exits
+  with the first failing stage's code, the code its early exit gave; when a
+  stage fails it prints a `conformance stages:` line
   naming every stage. Between cuts `--kernel-gate` now reads
   `release_manifest` and `release_package` as its only failing stages, so
   "red for the manifest pins alone" is read from the gate's output instead of
@@ -293,11 +342,11 @@
   selection of 2026-11-14, the AIS ingress adapter reads a position record
   whose message type is absent, on two statements the record makes itself: a
   declared shipborne transceiver class (A or B) and a usable position. It
-  infers no type. The selection was made on 2026-11-14 and relayed to this
-  repository's session the same day. The need came from the producers' local
-  replay of a record source that drops the type
-  and keeps the class: its converter inferred 1 or 18 from the class and
-  said so, and this repository's ruling of 2026-11-12 refused the inference
+  infers no type. The selection reached this repository's session through a
+  relay he named. The need came from the producers' local replay of a record
+  source that drops the type and keeps the class: its converter inferred 1
+  or 18 from the class and said so, and this repository's ruling of
+  2026-11-12 refused the inference
   and named the adapter change as the fix. The event omits `ais_message_type`
   and carries `ais_transceiver_class`. Message 27's not-available encodings
   apply to such a record (`adapters/AUTHORING.md`), so an exact 63 kt is
