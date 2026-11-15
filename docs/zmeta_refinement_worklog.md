@@ -2,7 +2,10 @@
 
 ## Current Resume Note
 
-- Last updated: 2026-11-14 (the tests branch's seeded-review follow-up;
+- Last updated: 2026-11-14 (the pre-cut records' seeded-review follow-up;
+  the pre-cut records: the `observed_at`
+  refusal's cut condition, the handoff's current state, the declined-factor
+  sentence; the tests branch's seeded-review follow-up;
   the gate's red held to the release pins and the
   typeless AIS event at the reference validator;
   the release facts' seeded-review follow-up;
@@ -33,6 +36,108 @@
   pre-cut dry run; the TAK Protocol Version 1 egress adapter; DECODE_AMBIGUOUS,
   three commits, the third on 2026-11-03; two contract sentences;
   carried-list records pass; heading_deg defined; records pass after 7.6)
+- **2026-11-14 (the pre-cut records' seeded-review follow-up).** A seeded
+  review of the branch `wave/precut-records-2026-11` (an error planted in a
+  copy, found; `local/precut_fixes_2026-11-14/p3/review/review_report.md`,
+  claude-opus-5-5) gave one BLOCKER, three SHOULD FIX findings and six
+  NITs, read here against the branch's own tree. The BLOCKER is the planted
+  error; the handoff's closing sentence gives the seventeen-asset release,
+  as the entry "v1.1.27 published" records. The three SHOULD FIX findings
+  are applied. The handoff's review paragraph gave
+  `wave/precut-gateway-docs-2026-11` as a branch that takes S5 and N1 and
+  has its own paragraph; neither the branch nor the paragraph exists yet,
+  so the paragraph, the entry below and the CHANGELOG now give it as a
+  fourth branch to follow. The same paragraph said that none of the
+  findings is a defect in the standard's text; the review says so of the
+  two must-fix findings only, so the clause now covers that pair. Item 8
+  gave the facts and not whether its condition is met, and the block's
+  closing sentence implied that it was not. Item 8 now says that the
+  records state the condition as the two acts in their order, that both
+  are made, each merged into its lane's integration branch, so the
+  condition is met, and that deployment is not part of it and governs only
+  the re-pin order; the closing sentence names the re-pin order instead of
+  the condition. Five of the six NITs are applied. The AIS entry below no
+  longer repeats its date and says that the selection reached this
+  repository's session through a relay he named. The reworded entries no
+  longer say that no fact changes, since the rewording removed detail; the
+  entry below says what was removed and notes the tension with CLAUDE.md's
+  rule that process records are never restyled. Two edited spans of the
+  worklog and one of the handoff are rewrapped. The CHANGELOG sentence on a
+  declined factor said "a factor below 1"; a factor of 0 or less is
+  replaced by a default on the promotion path (`_positive_float` in
+  `gateway/src/validators.py`) and on the timing-freshness path, and is
+  declined on the timing-loss path, so the sentence now scopes the decline
+  to a factor above 0 and below 1 and says what happens at 0 or less. S2's
+  timing in the handoff is given as the review's advice. The CHANGELOG
+  entry of this branch now names item 6's `pr/8-review` and the removal of
+  the two detached worktrees the review found (N7). The NIT not applied
+  names a worktree outside the hygiene record: it is the working tree of
+  another unit in progress, not a leftover. No test reads the corrected
+  statements. No code, rule or pin changes, and no changed file is listed
+  in the release manifest. The mutants and the full validation run on the
+  commit under the heavy-run lock, and the merge record gives their
+  results.
+- **2026-11-14 (the pre-cut records: the `observed_at` refusal's cut
+  condition, the handoff's current state, the declined-factor sentence).**
+  Three corrections from the pre-cut range review of 2026-11-14 (its M2, S6
+  and N2) and a rewording of this session's own records of the day, on the
+  branch `wave/precut-records-2026-11`, based on `wave/precut-tests-2026-11`.
+  Records only. M2, under the maintainer's selection of 2026-11-10 that
+  opened the `observed_at` refusal: the CHANGELOG, the handoff and this
+  worklog said that the cut carrying the refusal follows two acts in the
+  other lanes, the consumer's dating fix and then the producer's removal of
+  the field, and no tracked record said that either had happened. Both acts
+  were made on 2026-11-11, the consumer's fix first and the producer's
+  removal some hours later, each merged into its own lane's integration
+  branch; this repository's session read both lanes' histories read-only
+  for the dates, the order and the merges. Neither act is yet on its lane's
+  deployed line: the consumer's fix is not promoted, and the fielded
+  producer's image predates the removal, measured by that lane on
+  2026-11-14, so every STATE that image emits carries the field. The
+  handoff's Open list gains item 8, the condition with the re-pin order: no
+  validating consumer re-pins to that cut until the fielded producer runs
+  an image without the field. The third field leg's count of
+  `STATE_HAS_RAW_FEATURES` on the producer's STATE, zero once it runs such
+  an image, is the live evidence. The cut stays the maintainer's word. The
+  item is appended after item 7 instead of placed by proximity, because
+  entries of this worklog and of the CHANGELOG cite the handoff's items 2,
+  3 and 4 by number. S6: the last sentence of the handoff's current-state
+  block gave the publication record, the signatures, the push and the
+  release of v1.1.27 as the next session's work; the entry "v1.1.27
+  published" below records all of them on 2026-10-27, and the sentence now
+  says so. N2: the CHANGELOG entry of 2026-11-02 on admission caps said
+  that a factor below 1 is declined on the promotion path and on both
+  timing paths "and recorded as declined". Read at the review's lines,
+  `apply_external_promotion_policy_action` in `gateway/src/validators.py`
+  writes `reduction_declined` into its record; the timing-freshness
+  degradation in the same file and `_apply_failure_mode_degradation` in
+  `gateway/src/gateway.py` return before any record is written. Measured in
+  memory on this branch, with nothing written: the timing-freshness
+  degradation with a factor of 0.5 leaves the confidence at 0.8 and adds
+  no `risk_adjudication`, and with 2.0 it halves the confidence and adds
+  one. The sentence now names the path that records the decline and the
+  two that do not. The handoff gains a paragraph on the review: its
+  verdict, the findings three branches of 2026-11-14 close and the two a
+  fourth branch is to take, the seven that wait for the maintainer's word
+  (S1, S2, S3, N3, N5, N6, N8), and that the full register lands with the
+  cut-prep commit. Item 6 names the unmerged local branch `pr/8-review`
+  (N7). The rewording: the entries below on the gate running every stage
+  and on the AIS records with no
+  message type, and the handoff's paragraph on the AIS branch, named
+  another repository, clock times, a click's text and the session
+  structure, which the records at v1.1.27 do not; they now give the date
+  and "in this repository's session". The rewording removes the times, the
+  click's text, the relay's path and the other repository's name, and
+  alters no fact of the change either entry records. CLAUDE.md keeps
+  process records from being restyled; this rewording removes content
+  from unpushed entries of the same day and leaves their voice as written.
+  The bodies of the unpushed commits of 2026-11-14 carry the same detail,
+  and rewording them rewrites local history, so that stays the
+  maintainer's question (N8). No test reads the corrected statements. No
+  code, rule or pin changes, and no changed file is listed in the release
+  manifest. The
+  mutants and the full validation run on the commit under the heavy-run
+  lock, and the merge record gives their results.
 - **2026-11-14 (the tests branch's seeded-review follow-up).** A seeded
   review of the branch `wave/precut-tests-2026-11` (an error planted in a
   copy, found; `local/precut_fixes_2026-11-14/p2/review/review_report.md`,
@@ -195,11 +300,11 @@
   The mutants and the full validation run on the commit under the heavy-run
   lock, and the merge record gives their results.
 - **2026-11-14 (the gate runs every stage; Z4 Option E).** On the
-  maintainer's selection of 2026-11-14 (his click "Yes, build E" at 16:04:28
-  EST in this repository's session), Option E of the team account's read of
-  2026-11-12 (Z4) is built. `tools/validate_conformance.py` runs every stage
-  it is asked for and exits with the first failing stage's code, the code its
-  early exit gave; when a stage fails it prints a `conformance stages:` line
+  maintainer's selection of 2026-11-14 in this repository's session, Option E
+  of the team account's read of 2026-11-12 (Z4) is built.
+  `tools/validate_conformance.py` runs every stage it is asked for and exits
+  with the first failing stage's code, the code its early exit gave; when a
+  stage fails it prints a `conformance stages:` line
   naming every stage. Between cuts `--kernel-gate` now reads
   `release_manifest` and `release_package` as its only failing stages, so
   "red for the manifest pins alone" is read from the gate's output instead of
@@ -237,12 +342,11 @@
   selection of 2026-11-14, the AIS ingress adapter reads a position record
   whose message type is absent, on two statements the record makes itself: a
   declared shipborne transceiver class (A or B) and a usable position. It
-  infers no type. The selection is his click "All as recommended" at 14:31:34
-  EST on the parent session's roll-up of that day (item 14), relayed by the
-  parent he named in this repository's session at 15:14:10 EST. The need came
-  from zisr-producers' local replay of a record source that drops the type
-  and keeps the class: its converter inferred 1 or 18 from the class and
-  said so, and this repository's ruling of 2026-11-12 refused the inference
+  infers no type. The selection reached this repository's session through a
+  relay he named. The need came from the producers' local replay of a record
+  source that drops the type and keeps the class: its converter inferred 1
+  or 18 from the class and said so, and this repository's ruling of
+  2026-11-12 refused the inference
   and named the adapter change as the fix. The event omits `ais_message_type`
   and carries `ais_transceiver_class`. Message 27's not-available encodings
   apply to such a record (`adapters/AUTHORING.md`), so an exact 63 kt is

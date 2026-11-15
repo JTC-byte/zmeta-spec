@@ -231,7 +231,7 @@ adapter read a position record that carries no message type, on the
 maintainer's selection of that day: the record must declare a shipborne
 transceiver class (A or B) and carry a usable position; its event carries
 `ais_transceiver_class` and no `ais_message_type`; message 27's sentinels
-apply to it. zisr-producers' local replay can pass the class and drop its
+apply to it. The producers' local replay can pass the class and drop its
 declared inferred type once it runs on a tree with the change. A consumer
 that pins a tag has the change from the next cut.
 
@@ -306,6 +306,65 @@ profile L and as a duplicate the second time, compare the helper's eight
 policy checks with the tool's calls and check that the schema is the one the
 stamp's lane names; the paragraph above calls the rename case a consequence
 of the test instead of a rule. No rule or pin changes.
+
+The pre-cut range review of 2026-11-14 read the range from v1.1.27 to
+`develop` at a84c329 as one surface, in the form of the v1.1.20 and
+v1.1.21 pre-cut registers, and found it NOT READY for the next cut: two
+must-fix findings, six should-fix and eight nits. The review says of the
+two must-fix findings that neither is a defect in the standard's text. A
+second reader confirmed both must-fix findings; it counted five failing
+tests for M1 where the review counted four, and found that the two acts M2
+names had both happened. Three stacked branches of the same day take its
+findings: `wave/precut-release-facts-2026-11` closes M1;
+`wave/precut-tests-2026-11` closes S4 and N4; `wave/precut-records-2026-11`
+closes M2 as a record (item 8 below), S6 and N2. A fourth branch,
+`wave/precut-gateway-docs-2026-11`, is to follow for S5 and N1, and its
+own paragraph is to record what it closes. Seven findings wait for the
+maintainer's word: S1 (the MAVLink egress projects a command whose
+validity window has not opened), S2 (the `auto` input lane reports a
+truncated compact or CBOR datagram as `DECODE_AMBIGUOUS`; the review
+advises deciding it before the third field leg, which reads that code),
+S3 (246 displaced line citations in `tools/validation_guidance.yaml`), N3
+(a class scoped to version 1.0 whose required corpus holds two 1.1.0
+cases), N5 (two stale lines in `RELEASE_CHECKLIST.md`), N6 (a MAVLink
+quality key named for an unknown heading frame) and N8 (the detail in the
+bodies of the unpushed commits of 2026-11-14, which only a rewrite of local
+history changes). Of N7, the two detached worktrees were throwaway trees
+and are removed, and `pr/8-review` is in item 6 below. The full register of
+the findings and their dispositions lands with the cut-prep commit, as at
+earlier cuts.
+
+The branch `wave/precut-records-2026-11` (2026-11-14), based on
+`wave/precut-tests-2026-11`, is a records branch from the pre-cut range
+review of 2026-11-14. For M2, under the maintainer's selection of
+2026-11-10 that opened the `observed_at` refusal, it adds item 8 to the
+list below and a dated worklog entry: the two acts the refusal's cut
+follows were made on 2026-11-11 in the stated order, neither is yet on its
+lane's deployed line, and no validating consumer re-pins to that cut until
+the fielded producer runs an image without the field. For S6 it corrects
+the last sentence of this block, which still gave the v1.1.27 publication
+as the next session's work. For N2 it corrects the CHANGELOG entry of
+2026-11-02 on admission caps: only the promotion path records a declined
+factor (`reduction_declined`), and the two timing paths decline it with no
+record on the event. It also rewords two worklog entries and one paragraph
+of this block, all of 2026-11-14, that named another repository, a clock
+time or the session structure, to the form the other records use; the
+rewording removes that detail and alters no fact of the change each one
+records. No code, rule or pin changes.
+
+A follow-up commit on the same branch (2026-11-14) applies a seeded review
+of the records branch: the review paragraph above says "not a defect in
+the standard's text" of the two must-fix findings only, as the review
+does, and gives the gateway documents' branch as a fourth branch to
+follow, since it is not yet made; item 8 says that the records state its
+condition as the two acts in their order, that both are made, so the
+condition is met, and that deployment governs only the re-pin order, and
+the closing sentence of this block names that order; S2's timing is given
+as the review's advice; the CHANGELOG sentence on a declined factor is
+scoped to a factor above 0 and below 1, and this branch's CHANGELOG entry
+names item 6's `pr/8-review` and N7; the reworded entries no longer say
+that no fact changes, and the AIS entry no longer repeats its date. No
+code, rule or pin changes.
 
 Open, in order of proximity:
 
@@ -401,13 +460,42 @@ Open, in order of proximity:
    of the merged local branch refs, and 31 were deleted that day in the
    working clone, `exp/last-seen-ts-7-6` among them; each was merged into
    `develop`, and the remote's branches were not touched. Merged refs made
-   after that day are kept until he says otherwise.
+   after that day are kept until he says otherwise. The local branch
+   `pr/8-review` (2026-08-11) is unmerged and is his to keep or delete
+   (finding N7 of the pre-cut range review of 2026-11-14).
 7. Items 5 through 10 of the 2026-10-12 state below (guidance gaps (a)
    through (af), the two held gateway defects, the CoT `how` default, the
    `event_id` recorded twice) carry unchanged.
+8. **The next cut's condition for the `observed_at` refusal, and the re-pin
+   order it sets.** The cut that carries the refusal of a STATE whose
+   payload holds `observed_at` (the branch `exp/state-observed-at-2026-11`
+   above) follows two acts in the other lanes, in this order: the
+   consumer's dating fix, then the producer's removal of the field. Both
+   acts were made on 2026-11-11, in that order, each merged into its own
+   lane's integration branch. Neither is yet on its lane's deployed line:
+   the consumer's fix is not promoted, and the fielded producer's image
+   predates the removal, measured by that lane on 2026-11-14. The re-pin
+   order at that cut: no validating consumer re-pins to it until the
+   fielded producer runs an image without the field, because a gateway on
+   the cut's policy refuses every STATE from the present image as
+   `STATE_HAS_RAW_FEATURES`. The live evidence is the third field leg's
+   count of that refusal, zero on the producer's STATE once it runs an
+   image without the field. The records state the cut's condition as the
+   two acts in their order; both are made, each merged into its lane's
+   integration branch, so the condition is met. Deployment is not part
+   of the condition and governs only this re-pin order. The cut itself
+   stays the maintainer's word.
+   This item is from the pre-cut range review of 2026-11-14 (its M2), which
+   found no tracked record that either act had happened. It is appended
+   rather than placed by proximity so that the item numbers the worklog
+   and the CHANGELOG cite stay as they are.
 
-Next session: the publication record after the tag, the signatures, the
-push and the release; then the re-pins as each consumer's session reports.
+The v1.1.27 publication was completed on 2026-10-27: the tag, the
+signatures, the push and the seventeen-asset release, verified as
+published (the worklog entry "v1.1.27 published" of that day). Next
+session: the re-pins as each consumer's session reports, and the next cut
+on the maintainer's word, after the two remaining field legs, with item 8's
+re-pin order in force.
 
 ## Previous state (2026-10-12): THIRTEEN MERGES ON DEVELOP SINCE v1.1.26 PLUS THIS RECORDS WAVE, NOT RELEASED; TWO GATEWAY FIXES HELD ON BRANCHES
 
