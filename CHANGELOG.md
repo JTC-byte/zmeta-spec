@@ -11,17 +11,19 @@
   pre-cut range review of 2026-11-14 (its S5 and N1), under the
   maintainer's decisions of 2026-11-02 that the changed text documents
   (doctrine F4-04, doctrine F7-01 and the validity-window rule of contract
-  7.8). S5: three behaviours of 2026-11-02 were stated only in the code,
-  the tests and the process records. `configs/README.md` said that two path
+  7.8). S5: three behaviors of 2026-11-02 were missing from the documents
+  a deployer or consumer reads, though `spec/protobuf-encoding.md` and the
+  tools' documents already stated the decode refusal. `configs/README.md`
+  said that two path
   prefixes are protected from `strip_optional_fields`; it now names the
   three and gives `payload.valid_from_ts` its reason, the start of a
   command's validity window, and says that a config a v1.1.27 gateway
   accepted now stops the gateway at startup. `gateway/README.md` gains an
   Admission records section: under contract 4.5.1 a capped or reduced value
-  keeps the `event_id` because the record carries the value it replaced, as
-  `effects.confidence_claimed` and `effects.valid_for_ms_claimed`, and the
-  external-promotion degrade path names a declined factor under
-  `effects.reduction_declined`; the producer's own figure for a member is
+  keeps the `event_id` because the record carries the values it replaced,
+  as `effects.confidence_claimed`, `effects.valid_for_ms_claimed` or both,
+  and the external-promotion degrade path maps each declined factor to its
+  value under `effects.reduction_declined`; the producer's own figure for a member is
   the claimed value in the first record that carries it. It also gains a
   Decode refusals section: what `DECODE_AMBIGUOUS` refuses, that on the
   v1.0 wire the diagnostic's `reason_code` is `SCHEMA_INVALID` with
@@ -29,7 +31,8 @@
   the CBOR and compact lanes are not refused, and how the `auto` lane
   behaves as it is: a damaged compact or CBOR datagram, or plain text, can
   read `DECODE_AMBIGUOUS` with a diagnostic naming a protobuf field, which
-  is an open pre-cut decision. `policy/README.md` names the three members
+  is open as finding S2 of the review. `policy/README.md` names the three
+  members
   where it describes the soft-acceptance record. N1: the strip guard told a
   config that strips `payload.valid_from_ts` that the path carries
   accepted-risk labels or promotion evidence. `PROTECTED_STRIP_PATH_REASONS`
@@ -43,13 +46,30 @@
   test asserts and no citation into it in `tools/validation_guidance.yaml`
   moves. New tests read the protected prefixes, the member names and the
   v1.0 wire fallback from the code and the policy and fail when a document
-  stops naming them; three of them check that the auto lane's behaviour the
+  stops naming them; three of them check that the auto lane's behavior the
   README states holds for the code as it is. Thirteen of the seventeen new
   tests failed on the unchanged tree; the four that passed there read the
-  member names from the code and the auto lane's present behaviour. No rule
-  changes. No changed file is listed
-  in the release manifest, so no pin moves. `spec/field-dictionary.md` is
-  not changed.
+  member names from the code and the auto lane's present behavior. A
+  seeded review of the branch, from the pre-cut range review of
+  2026-11-14, gave five should-fix findings and nine nits in the branch's
+  own text, all applied. The decode refusal's `SCHEMA_INVALID` sentence
+  names the four dedicated lanes. Duplicate map keys on the CBOR and
+  compact lanes are given as selected on 2026-11-11 for a branch after the
+  next cut. The two timing paths decline a factor above 0 and below 1, and
+  a `confidence_reduction_factor` of 0 or less is read as the default 2.0
+  on the promotion and timing-freshness paths and declined on the
+  `timing_loss` path. `reduction_declined` is given as a mapping from each
+  declined factor's name to its value. The `auto` lane's order says that a
+  datagram that opens with `{` or `[` and is not JSON is read as CBOR and
+  the compact mapping only. The open `auto`-lane decision is named as
+  finding S2. The strip guard's refusal states the rule before the prefix
+  and its reason, within the same four lines of `gateway.py`. Fourteen
+  tests are added and three strengthened: they read the admission members
+  from the records the code writes, and hold the declined-factor range,
+  each `auto`-lane case the README names and the refusal's composed text
+  to the code. No rule changes. No changed file is listed in the release
+  manifest, so no pin moves. S5 also names `spec/field-dictionary.md`;
+  this branch leaves it unchanged, so that part of S5 stays open.
 
 - 2026-11-14 — **Records: the next cut's condition for the `observed_at`
   refusal, the handoff's current state and the declined-factor sentence**

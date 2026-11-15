@@ -318,8 +318,9 @@ names had both happened. Three stacked branches of the same day take its
 findings: `wave/precut-release-facts-2026-11` closes M1;
 `wave/precut-tests-2026-11` closes S4 and N4; `wave/precut-records-2026-11`
 closes M2 as a record (item 8 below), S6 and N2. A fourth branch,
-`wave/precut-gateway-docs-2026-11`, closes S5 and N1, as its own
-paragraph below records. Seven findings wait for the
+`wave/precut-gateway-docs-2026-11`, closes N1 and S5 except S5's part in
+`spec/field-dictionary.md`, as its own paragraph below records. Seven
+findings wait for the
 maintainer's word: S1 (the MAVLink egress projects a command whose
 validity window has not opened), S2 (the `auto` input lane reports a
 truncated compact or CBOR datagram as `DECODE_AMBIGUOUS`; the review
@@ -378,9 +379,10 @@ that the producer's figure for a member is the claimed value in the first
 record that carries it (contract 4.5.1, doctrine F4-04); and Decode
 refusals, which states what `DECODE_AMBIGUOUS` refuses, its v1.0 wire form
 (`SCHEMA_INVALID` with `metrics.diagnostic_code`), and the `auto` lane's
-behaviour as it is, given as an open pre-cut decision because S2 waits for
-the maintainer's word. `policy/README.md` names the three members.
-`spec/field-dictionary.md` is not changed. In `gateway/src/gateway.py` the
+behavior as it is, named as open under finding S2, which waits for the
+maintainer's word. `policy/README.md` names the three members. S5 also
+names `spec/field-dictionary.md`; this branch leaves it unchanged, so that
+part of S5 stays open. In `gateway/src/gateway.py` the
 strip guard gives each protected prefix its own reason
 (`PROTECTED_STRIP_PATH_REASONS`), and the comment on the decode-failure
 branch now says that the `auto` lane can report a damaged datagram as
@@ -391,6 +393,29 @@ tests read the prefixes, the member names and the wire fallback from the
 code and the policy, and three of them hold the README's account of the
 `auto` lane to the code, so the decision on S2 changes those tests and the
 section together. No rule or pin changes.
+
+A follow-up commit on the same branch (2026-11-14) applies a seeded review
+of the gateway documents' branch, from the pre-cut range review of
+2026-11-14. In `gateway/README.md` the sentence that any other decode
+failure reads `SCHEMA_INVALID` names the four dedicated lanes; duplicate
+map keys on the CBOR and compact lanes are given as selected on
+2026-11-11 for a branch after the next cut, as item 3 below records; the
+two timing paths decline a factor above 0 and below 1, and a
+`confidence_reduction_factor` of 0 or less is read as 2.0 on the
+promotion and timing-freshness paths and declined on the `timing_loss`
+path; `reduction_declined` is a mapping from each declined factor's name
+to its value; a datagram that opens with `{` or `[` and is not JSON is
+read as CBOR and the compact mapping only; the open `auto`-lane decision
+is named as finding S2 of the review. `policy/README.md` says that a
+record carries either claimed value or both. The strip guard's refusal
+states the rule before the prefix and its reason, and the decode-failure
+comment names S2, each within its present lines, so `gateway.py` stays at
+3389 lines. The CHANGELOG entry no longer says that the decode refusal
+was stated only in the code and the process records, since
+`spec/protobuf-encoding.md` and the tools' documents stated it. New tests
+read the admission members from the records the code writes and hold the
+declined-factor range, each `auto`-lane case the README names and the
+refusal's composed text to the code. No rule or pin changes.
 
 Open, in order of proximity:
 

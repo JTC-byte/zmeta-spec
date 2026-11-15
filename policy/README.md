@@ -99,9 +99,9 @@ Notes:
   reference, allowed/prohibited uses, and applied effects when data is still
   forwarded. The reference gateway writes that record as one entry of
   `payload.extensions.risk_adjudication`. When a degrade or quarantine mode
-  caps or reduces a value, the record's `effects` carries the value it
-  replaced as `confidence_claimed` or `valid_for_ms_claimed`, which keeps the
-  event's `event_id` under contract 4.5.1, and the external-promotion degrade
+  caps or reduces a value, the record's `effects` carries the values it
+  replaced as `confidence_claimed`, `valid_for_ms_claimed` or both, which keeps
+  the event's `event_id` under contract 4.5.1, and the external-promotion degrade
   mode names a reduction factor it declined under `reduction_declined`. The
   producer's own figure is the claimed value in the first record that
   carries the member (`gateway/README.md`, Admission records).

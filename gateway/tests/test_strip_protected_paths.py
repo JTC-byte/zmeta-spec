@@ -132,6 +132,17 @@ class ProtectedStripPathReasonTest(unittest.TestCase):
         self.assertNotIn("promotion", message)
         self.assertNotIn("validity window", message)
 
+    def test_the_refusal_states_the_rule_then_the_prefix_and_its_reason(self):
+        # from the seeded review of 2026-11-14: "and must not be silently
+        # stripped" followed the reason's relative clause, so it read as if
+        # the window must not be stripped; the rule now comes first
+        for prefix, reason in gateway.PROTECTED_STRIP_PATH_REASONS.items():
+            self.assertEqual(
+                f"strip_optional_fields entry '{prefix}' is protected and must not be "
+                f"silently stripped: '{prefix}' {reason}",
+                _refusal(prefix),
+            )
+
     def test_the_promotion_refusal_names_the_evidence_alone(self):
         message = _refusal("payload.extensions.external_promotion.evidence")
         self.assertIn("'payload.extensions.external_promotion'", message)

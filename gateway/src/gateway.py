@@ -1272,10 +1272,10 @@ def _reject_protected_strip_paths(fields):
             prefix_parts = prefix.split(".")
             if parts[: len(prefix_parts)] == prefix_parts:
                 raise ValueError(
-                    f"strip_optional_fields entry '{path}' is protected: "
+                    f"strip_optional_fields entry '{path}' is protected and "
+                    "must not be silently stripped: "
                     f"'{prefix}' "
-                    f"{PROTECTED_STRIP_PATH_REASONS[prefix]} and must not be "
-                    "silently stripped"
+                    f"{PROTECTED_STRIP_PATH_REASONS[prefix]}"
                 )
 
 
@@ -2640,7 +2640,7 @@ def process_message(
         # DECODE_AMBIGUOUS when the decoder refused what it would have had to
         # repair (doctrine F7-01), else SCHEMA_INVALID. The auto lane reads as
         # protobuf what its CBOR or compact decode refused, so a damaged datagram
-        # or stray text can also read DECODE_AMBIGUOUS (an open pre-cut decision).
+        # or stray text can also read DECODE_AMBIGUOUS (open: pre-cut review S2).
         decode_code = "DECODE_AMBIGUOUS" if is_decode_ambiguous(exc) else "SCHEMA_INVALID"
         if metrics:
             metrics.record_violation(decode_code, details=decode_error)

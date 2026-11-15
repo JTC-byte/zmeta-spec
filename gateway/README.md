@@ -159,10 +159,11 @@ emits a `SCHEMA_VIOLATION` diagnostic. Three cases are refused:
 - a protobuf field that appears twice where the schema allows one;
   `lineage.based_on` is the one repeated field.
 
-Any other datagram that fails to decode is refused as `SCHEMA_INVALID`.
-Duplicate map keys on the `cbor` and `compact` lanes are not refused: those
-lanes read the last value, and the refusal is booked for the maintainer's
-word.
+On the `json`, `cbor`, `compact` and `proto` lanes, any other datagram that
+fails to decode is refused as `SCHEMA_INVALID`; the `auto` lane is described
+below. Duplicate map keys on the `cbor` and `compact` lanes are not refused:
+those lanes read the last value. Their refusal waits for a branch after
+the next cut, on the maintainer's selection of 2026-11-11.
 
 On the v1.0 wire the diagnostic's `metrics.reason_code` is `SCHEMA_INVALID`,
 because every diagnostic the gateway mints is stamped `zmeta_version: "1.0"`
@@ -173,9 +174,13 @@ refusal under `DECODE_AMBIGUOUS`, and the code is in the 1.1.0 schema's
 reason-code enum. A consumer that counts refusals reads
 `metrics.diagnostic_code` before `metrics.reason_code`.
 
-The `auto` lane reads JSON first when a datagram opens with `{` or `[`, then
-tries CBOR and the compact mapping, then protobuf, and last JSON. A datagram
-whose CBOR or compact decode fails is therefore read as protobuf, and when
+The `auto` lane reads a datagram that opens with `{` or `[` as JSON. A
+datagram that opens with `{` or `[` and does not parse as JSON is read as
+CBOR and the compact mapping only, and reads `SCHEMA_INVALID` when that
+decode fails. The lane tries any other datagram as CBOR and the compact
+mapping, then protobuf, and last JSON. A datagram that does not open with
+`{` or `[` and whose CBOR or compact decode fails is therefore read as
+protobuf, and when
 its leading bytes parse as the key of a field the schema does not define, the
 `auto` lane reports the protobuf decoder's refusal as `DECODE_AMBIGUOUS`,
 with a diagnostic that names a protobuf field. A compact datagram cut short
@@ -185,8 +190,10 @@ truncated compact datagram reads `SCHEMA_INVALID` on the `compact` lane.
 Which code a damaged datagram reads on the `auto` lane depends on its leading
 bytes: a compact event with five top-level members reads `DECODE_AMBIGUOUS`
 at most cut points, and one with seven reads `SCHEMA_INVALID`. This is the
-behaviour of the `auto` lane as it is, and an open pre-cut decision. Until it
-is decided, a `DECODE_AMBIGUOUS` count from an `auto` lane can include link
+behavior of the `auto` lane as it is. Whether it changes is an open
+decision, finding S2 of the pre-cut range review of 2026-11-14
+(`docs/zmeta_refinement_handoff.md`). Until it is decided, a
+`DECODE_AMBIGUOUS` count from an `auto` lane can include link
 loss and stray input as well as ambiguous producer output. A deployment that
 knows its producers' encoding can set that lane instead of `auto`.
 
@@ -296,9 +303,10 @@ the step replaced (contract 4.5.1, 2026-11-02). The record is one entry of
   present when the step changed it.
 - `effects.valid_for_ms_claimed`: the event's `payload.valid_for_ms` before
   the step, present when the step changed it.
-- `effects.reduction_declined`: on the external-promotion degrade path, the
-  reduction factors the gateway declined, by name
-  (`confidence_reduction_factor`, `valid_for_ms_reduction_factor`). A factor
+- `effects.reduction_declined`: on the external-promotion degrade path, a
+  mapping from the name of each reduction factor the gateway declined
+  (`confidence_reduction_factor`, `valid_for_ms_reduction_factor`) to its
+  value. A factor is a divisor of the value it reduces. A factor
   above 0 and below 1 would raise the value, and contract 4.2 makes an
   increase a new event, so the reducer leaves the value as it is and the
   record names the factor here instead of among the applied effects.
@@ -310,7 +318,11 @@ the external-promotion degrade and quarantine modes
 admission (`policy/timing-freshness.yaml`) and the `timing_loss` failure
 mode on an outgoing STATE. The two timing paths reduce `confidence` only, so
 their records carry `confidence_claimed` alone, and they decline a factor
-below 1 with no record on the event.
+above 0 and below 1 with no record on the event. A
+`confidence_reduction_factor` of 0 or less is read as the default 2.0 on the
+promotion and timing-freshness paths and declined on the `timing_loss` path;
+on the promotion path a `valid_for_ms_reduction_factor` of 0 or less is read
+as the confidence factor.
 
 The records chain: each record carries the value its own step replaced. The
 producer's own figure for a member is therefore the claimed value in the

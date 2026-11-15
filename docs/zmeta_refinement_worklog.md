@@ -2,7 +2,8 @@
 
 ## Current Resume Note
 
-- Last updated: 2026-11-14 (the gateway documents: protected strip paths,
+- Last updated: 2026-11-14 (the gateway documents' seeded-review follow-up;
+  the gateway documents: protected strip paths,
   the admission record's members, the decode refusal, and the strip
   guard's reasons;
   the pre-cut records' seeded-review follow-up;
@@ -39,6 +40,63 @@
   pre-cut dry run; the TAK Protocol Version 1 egress adapter; DECODE_AMBIGUOUS,
   three commits, the third on 2026-11-03; two contract sentences;
   carried-list records pass; heading_deg defined; records pass after 7.6)
+- **2026-11-14 (the gateway documents' seeded-review follow-up).** A
+  seeded review of the branch `wave/precut-gateway-docs-2026-11` (an error
+  planted in a copy, found) gave one BLOCKER, five SHOULD FIX findings and
+  nine NITs, read here against the branch's own tree, from the pre-cut
+  range review of 2026-11-14. The BLOCKER is the planted error; the
+  branch's `gateway/README.md` already says that a factor above 0 and
+  below 1 would raise the value. The five SHOULD FIX findings are applied.
+  The Decode refusals section said, with no exception, that any other
+  datagram that fails to decode reads `SCHEMA_INVALID`; the sentence now
+  names the `json`, `cbor`, `compact` and `proto` lanes. It said that the
+  refusal of duplicate map keys on the CBOR and compact lanes is booked for
+  the maintainer's word; the handoff's item 3 records it as selected on
+  2026-11-11 for a branch after the next cut, and the section now says so.
+  The CHANGELOG entry and the new test file's docstring said that the
+  three behaviors were stated only in the code, the tests and the process
+  records; `spec/protobuf-encoding.md` and the tools' documents stated the
+  decode refusal, so both now say the three READMEs lacked them. The
+  wire-form test matched `SCHEMA_INVALID` anywhere in the section; it now
+  reads the sentence that gives the wire form. The Admission records
+  section said that the two timing paths decline a factor below 1 with no
+  record; measured on this branch, the timing-freshness path reads a
+  `confidence_reduction_factor` of 0 or less as 2.0 and reduces with a
+  record, as the promotion path does, and the `timing_loss` path declines
+  it, so the section now gives the range above 0 and below 1 and the case
+  of 0 or less; the promotion path reads a `valid_for_ms_reduction_factor`
+  of 0 or less as the confidence factor. The nine NITs are applied. The
+  admission members are read from the records the promotion path writes,
+  not from the source text, and the two timing paths are checked to write
+  `confidence_claimed` alone. Four tests hold the README's remaining
+  `auto`-lane cases to the code (one trailing byte, a truncated CBOR
+  datagram, a seven-member event cut short, a datagram that opens with `{`
+  and is not JSON), and one holds the README to name each case. The strip
+  guard's refusal put "and must not be silently stripped" after the
+  reason's relative clause, so it read as if the validity window must not
+  be stripped; the refusal now states the rule before the prefix and its
+  reason, in the same four lines. The README and the decode-failure
+  comment named the `auto` lane's state as an open pre-cut decision, which
+  is false once a cut ships first; they now name finding S2 of the
+  review, the comment within its four lines. The README uses "behavior",
+  as the rest of the file does. `policy/README.md` says that a record
+  carries `confidence_claimed`, `valid_for_ms_claimed` or both.
+  `reduction_declined` is given as a mapping from each declined factor's
+  name to its value. The `auto` lane's order says that a datagram that
+  opens with `{` or `[` and is not JSON is read as CBOR and the compact
+  mapping only, as `_decode_message` does. The records said that the
+  branch closes S5 and that `spec/field-dictionary.md` is not changed;
+  they now say that the field dictionary, which S5 also names, is left
+  unchanged, so that part of S5 stays open. Tests first: fourteen new and
+  three strengthened in the two test files; seven of the new and one of
+  the strengthened failed on the unchanged tree, and the other seven new
+  tests read the code's present behavior and passed there.
+  `gateway/src/gateway.py` stays at 3389 lines, every hunk of the branch
+  keeps its start line and its line count, and the citation
+  `gateway/src/gateway.py:2640-2656` still names the decode-failure
+  branch. No rule or pin changes, and no changed file is listed in the
+  release manifest. The mutants and the full validation run on the commit
+  under the heavy-run lock, and the merge record gives their results.
 - **2026-11-14 (the gateway documents: protected strip paths, the admission
   record's members, the decode refusal, and the strip guard's reasons).**
   Two corrections from the pre-cut range review of 2026-11-14 (its S5 and
@@ -71,10 +129,11 @@
   examples in `examples/zmeta-examples-1.0.jsonl` cut at every length, the
   five-member OBSERVATION reads `DECODE_AMBIGUOUS` at 451 of 456 cut points
   and the three seven-member events read `SCHEMA_INVALID` at every one. The
-  section calls the `auto` lane's behaviour an open pre-cut decision, which
-  is S2 and waits for the maintainer's word. `policy/README.md` names the
-  three members where it describes the soft-acceptance record.
-  `spec/field-dictionary.md` is not changed. N1: the strip guard gave one
+  section names the `auto` lane's behavior as open under finding S2, which
+  waits for the maintainer's word. `policy/README.md` names the
+  three members where it describes the soft-acceptance record. S5 also
+  names `spec/field-dictionary.md`; this branch leaves it unchanged, so
+  that part of S5 stays open. N1: the strip guard gave one
   reason for every protected prefix; the dictionary
   `PROTECTED_STRIP_PATH_REASONS` now gives each its own, the refusal
   states it, and `PROTECTED_STRIP_PATH_PREFIXES` is read from the
