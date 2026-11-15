@@ -176,12 +176,11 @@
   condition is met, and that deployment is not part of it and governs only
   the re-pin order; the closing sentence names the re-pin order instead of
   the condition. Five of the six NITs are applied. The AIS entry below no
-  longer repeats its date and says that the selection reached this
-  repository's session through a relay he named. The reworded entries no
-  longer say that no fact changes, since the rewording removed detail; the
-  entry below says what was removed and notes the tension with CLAUDE.md's
-  rule that process records are never restyled. Two edited spans of the
-  worklog and one of the handoff are rewrapped. The CHANGELOG sentence on a
+  longer repeats its date. The reworded entries no longer say that no fact
+  changes, since the rewording removed detail; the entry below says what
+  was removed and notes the tension with CLAUDE.md's rule that process
+  records are never restyled. Two edited spans of the worklog and one of
+  the handoff are rewrapped. The CHANGELOG sentence on a
   declined factor said "a factor below 1"; a factor of 0 or less is
   replaced by a default on the promotion path (`_positive_float` in
   `gateway/src/validators.py`) and on the timing-freshness path, and is
@@ -241,13 +240,11 @@
   (S1, S2, S3, N3, N5, N6, N8), and that the full register lands with the
   cut-prep commit. Item 6 names the unmerged local branch `pr/8-review`
   (N7). The rewording: the entries below on the gate running every stage
-  and on the AIS records with no
-  message type, and the handoff's paragraph on the AIS branch, named
-  another repository, clock times, a click's text and the session
-  structure, which the records at v1.1.27 do not; they now give the date
-  and "in this repository's session". The rewording removes the times, the
-  click's text, the relay's path and the other repository's name, and
-  alters no fact of the change either entry records. CLAUDE.md keeps
+  and on the AIS records with no message type, and the handoff's paragraph
+  on the AIS branch, carried clock times and names that the records at
+  v1.1.27 do not; they now give the date and "in this repository's
+  session". The rewording alters no fact of the change either entry
+  records. CLAUDE.md keeps
   process records from being restyled; this rewording removes content
   from unpushed entries of the same day and leaves their voice as written.
   The bodies of the unpushed commits of 2026-11-14 carry the same detail,
@@ -461,8 +458,7 @@
   selection of 2026-11-14, the AIS ingress adapter reads a position record
   whose message type is absent, on two statements the record makes itself: a
   declared shipborne transceiver class (A or B) and a usable position. It
-  infers no type. The selection reached this repository's session through a
-  relay he named. The need came from the producers' local replay of a record
+  infers no type. The need came from the producers' local replay of a record
   source that drops the type and keeps the class: its converter inferred 1
   or 18 from the class and said so, and this repository's ruling of
   2026-11-12 refused the inference

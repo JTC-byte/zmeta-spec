@@ -105,9 +105,9 @@
   review paragraph records that the two detached worktrees the review
   found were throwaway trees and are removed (N7). Two worklog entries and
   one handoff paragraph of 2026-11-14 are reworded to the form the other
-  records use; the rewording removes the times, a click's text, the relay's
-  path and another repository's name, and alters no fact of the changes
-  they record. No code, rule or pin changes.
+  records use; the rewording removes clock times and names that the other
+  records do not carry, and alters no fact of the changes they record. No
+  code, rule or pin changes.
 
 - 2026-11-14 — **Two tests hold the gate's red to the release pins and the
   typeless AIS event to the reference validator**

@@ -348,8 +348,8 @@ as the next session's work. For N2 it corrects the CHANGELOG entry of
 2026-11-02 on admission caps: only the promotion path records a declined
 factor (`reduction_declined`), and the two timing paths decline it with no
 record on the event. It also rewords two worklog entries and one paragraph
-of this block, all of 2026-11-14, that named another repository, a clock
-time or the session structure, to the form the other records use; the
+of this block, all of 2026-11-14, that carried clock times and names the
+other records do not carry, to the form the other records use; the
 rewording removes that detail and alters no fact of the change each one
 records. No code, rule or pin changes.
 
