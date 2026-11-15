@@ -91,8 +91,13 @@
   from the records the code writes, and hold the declined-factor range,
   each `auto`-lane case the README names and the refusal's composed text
   to the code. No rule changes. No changed file is listed in the release
-  manifest, so no pin moves. S5 also names `spec/field-dictionary.md`;
-  this branch leaves it unchanged, so that part of S5 stays open.
+  manifest, so no pin moves. The gateway's runtime policy hash covers every
+  file under `policy/`, so the edit to `policy/README.md` changes that hash
+  and each contract hash built from it, though no policy rule differs; a
+  gateway started with a required policy or contract hash from the tree
+  before this change exits at startup on this one. S5 also names
+  `spec/field-dictionary.md`; this branch leaves it unchanged, so that part
+  of S5 stays open.
 
 - 2026-11-14 — **Records: the next cut's condition for the `observed_at`
   refusal, the handoff's current state and the declined-factor sentence**
