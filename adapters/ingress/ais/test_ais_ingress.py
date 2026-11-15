@@ -6,7 +6,10 @@ encodings of "not reported" that, carried as values, would place a stopped
 vessel at the north pole on a due-north heading.
 """
 
+import importlib.util
+import inspect
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -618,3 +621,176 @@ class TestRecordsWithNoMessageType:
         assert "ais_transceiver_class" not in events[0]["payload"]["features"]
         assert events[1]["payload"]["features"]["ais_transceiver_class"] == "B"
         assert "ais_message_type" not in events[1]["payload"]["features"]
+
+
+# The reference validator and policy, loaded the way the MAVLink and SAPIENT
+# ingress suites load them (adapters/ingress/mavlink/test_mavlink_ingress.py).
+_VALIDATORS_PATH = ROOT / "gateway" / "src" / "validators.py"
+_validators_spec = importlib.util.spec_from_file_location("zmeta_validators", _VALIDATORS_PATH)
+gateway_validators = importlib.util.module_from_spec(_validators_spec)
+_validators_spec.loader.exec_module(gateway_validators)
+GATEWAY_POLICY = gateway_validators.load_policy(ROOT / "policy")
+_UNION_SCHEMA = gateway_validators.load_schema(SCHEMA_DIR / "zmeta-event.schema.json")
+_LANE_SCHEMAS = {
+    "1.0": gateway_validators.load_schema(SCHEMA_DIR / "zmeta-event-1.0.schema.json"),
+    "1.1.0": gateway_validators.load_schema(SCHEMA_DIR / "zmeta-event-1.1.0.schema.json"),
+}
+
+
+def reference_violations(event, profile, state=None):
+    """Every violation the reference schema-and-policy validation reports for
+    one event at one profile, as (severity, code) pairs, in the order
+    `tools/validate.py` runs its checks: the schema of the lane the event's
+    stamp names, then, when the schema passes, the role, profile, timing,
+    semantics, lineage, producer-authority, routing and deduplication
+    checks. Every schema violation is a failure, as the tool counts it. The
+    validation state is `state` when one is given and a fresh one otherwise;
+    an event with no failure is recorded in it, as the tool records it. An
+    empty list is a pass with no warning."""
+    severity_map = GATEWAY_POLICY.get("violation_severities", {})
+    version = event.get("zmeta_version")
+    schema = _LANE_SCHEMAS.get(version) if isinstance(version, str) else None
+    _ok, violations = gateway_validators.validate_schema(event, schema or _UNION_SCHEMA, severity_map)
+    found = [("fail", v["code"]) for v in violations]
+    if found:
+        return found
+    policy = GATEWAY_POLICY
+    if state is None:
+        state = gateway_validators.ValidationState()
+    checks = [
+        gateway_validators.validate_role(event, {"roles": policy["roles"], "deny": policy["deny"]}, severity_map),
+        gateway_validators.validate_profile(event, profile, policy["profiles"], severity_map),
+        gateway_validators.validate_timing_quality(
+            event,
+            policy["semantics"],
+            state=state,
+            severity_map=severity_map,
+            timing_freshness_policy=policy.get("timing_freshness", {}),
+            profile=profile,
+        ),
+        gateway_validators.validate_semantics(event, policy["semantics"], severity_map),
+        gateway_validators.validate_lineage(
+            event, policy.get("lineage", {}), state=state, profile=profile, severity_map=severity_map
+        ),
+        gateway_validators.validate_producer_authority(event, policy.get("producer_authority", {}), severity_map),
+        gateway_validators.validate_routing(event, policy["routing"], severity_map),
+        gateway_validators.validate_deduplication(event, state=state, severity_map=severity_map),
+    ]
+    for _ok, violations in checks:
+        found.extend(("warn" if v.get("severity") == "warn" else "fail", v["code"]) for v in violations)
+    if not any(severity == "fail" for severity, _ in found):
+        state.record(event)
+    return found
+
+
+class TestTypelessEventAtTheReferenceValidator:
+    """The schema test above checks the 1.1.0 schema only, and the adapter
+    harness corpus holds the typed shapes only. These hold the typeless event
+    to the reference schema-and-policy validation at profiles H and M, so a
+    change to how the observation deny-list matches key names that refused
+    `ais_transceiver_class` at the gateway fails here, in the adapter's own
+    tests. Two controls show that the same validation refuses the class
+    under a name the policy reserves for identity: `class_name`, which the
+    1.1.0 schema refuses, and `Entity_Class`, a case-varied copy of
+    `entity_class` that the schema passes and the policy's normalised
+    deny-list refuses. Further controls hold the helper itself: the event is
+    refused at profile L and as a duplicate the second time with one state;
+    the helper's eight policy checks are the calls of `tools/validate.py`;
+    the schema is the one the stamp's lane names; and every schema violation
+    is a failure. The role, timing, lineage, producer-authority and routing
+    checks have no behavioural control here, since the typeless event gives
+    none of them a refusal to show; the comparison with the tool's calls is
+    what holds them."""
+
+    @staticmethod
+    def _renamed(new_key):
+        event = translate_typeless()
+        features = event["payload"]["features"]
+        features[new_key] = features.pop("ais_transceiver_class")
+        return event
+
+    @pytest.mark.parametrize("profile", ["H", "M"])
+    def test_a_typeless_event_passes_the_reference_validation(self, profile):
+        event = translate_typeless()
+        assert "ais_transceiver_class" in event["payload"]["features"]
+        assert reference_violations(event, profile) == []
+
+    @pytest.mark.parametrize("profile", ["H", "M"])
+    def test_the_class_renamed_class_name_is_refused(self, profile):
+        found = reference_violations(self._renamed("class_name"), profile)
+        assert found, "the validation passed an observation carrying class_name"
+        assert {code for _, code in found} == {"SCHEMA_INVALID"}, found
+        assert all(severity == "fail" for severity, _ in found), found
+
+    @pytest.mark.parametrize("profile", ["H", "M"])
+    def test_the_class_renamed_entity_class_is_refused_as_identity(self, profile):
+        assert reference_violations(self._renamed("Entity_Class"), profile) == [
+            ("fail", "OBSERVATION_HAS_IDENTITY")
+        ]
+
+    def test_the_typeless_event_is_refused_at_profile_l(self):
+        """The control of the profile check: profile L does not allow an
+        observation, so the same event that passes at H and M is refused there,
+        as `tools/validate.py --profile L` refuses it."""
+        assert reference_violations(translate_typeless(), "L") == [
+            ("fail", "EVENT_TYPE_NOT_ALLOWED_FOR_PROFILE")
+        ]
+
+    def test_the_same_event_twice_is_refused_as_a_duplicate(self):
+        """The control of the deduplication check: with one validation state,
+        as `tools/validate.py` keeps one across a file, the second copy of the
+        event is refused."""
+        event = translate_typeless()
+        state = gateway_validators.ValidationState()
+        assert reference_violations(event, "H", state=state) == []
+        assert reference_violations(event, "H", state=state) == [("fail", "EVENT_DUPLICATE")]
+
+    def test_the_helper_runs_the_checks_of_tools_validate(self):
+        """The helper's eight policy checks are the calls of `tools/validate.py`,
+        in its order and with its arguments, so a check left out of the helper,
+        or given other arguments, fails here. The two texts are compared with
+        whitespace and trailing commas removed and the tool's names mapped to
+        the helper's."""
+        tool = (ROOT / "tools" / "validate.py").read_text(encoding="utf-8")
+        helper = inspect.getsource(reference_violations)
+
+        def checks_list(text):
+            body = re.search(r"checks = \[(.*?)\n\s*\]\n", text, re.DOTALL).group(1)
+            body = re.sub(r"\s+", "", body)
+            return body.replace(",)", ")").rstrip(",")
+
+        expected = checks_list(tool)
+        expected = re.sub(r"\bvalidators\.", "gateway_validators.", expected)
+        expected = re.sub(r"\binstance\b", "event", expected).replace("args.profile", "profile")
+        found = checks_list(helper)
+        assert len(re.findall(r"gateway_validators\.validate_\w+\(", found)) == 8, found
+        assert found == expected
+
+    def test_the_helper_uses_the_schema_of_the_lane_its_stamp_names(self, monkeypatch):
+        """The schema check uses the lane schema the stamp names and the union
+        schema only for a stamp no lane has, as `tools/validate.py` does."""
+        used = []
+        real = gateway_validators.validate_schema
+
+        def recording(event, schema, severity_map):
+            used.append(schema)
+            return real(event, schema, severity_map)
+
+        monkeypatch.setattr(gateway_validators, "validate_schema", recording)
+        event = translate_typeless()
+        reference_violations(event, "H")
+        event["zmeta_version"] = "9.9"
+        reference_violations(event, "H")
+        assert used[0] is _LANE_SCHEMAS["1.1.0"]
+        assert used[1] is _UNION_SCHEMA
+
+    def test_every_schema_violation_is_a_failure(self, monkeypatch):
+        """`tools/validate.py` prints every schema violation as FAIL and counts
+        it failed, whatever its severity, so the helper reports each as a
+        failure."""
+        monkeypatch.setattr(
+            gateway_validators,
+            "validate_schema",
+            lambda event, schema, severity_map: (False, [{"code": "SCHEMA_INVALID", "severity": "warn"}]),
+        )
+        assert reference_violations(translate_typeless(), "H") == [("fail", "SCHEMA_INVALID")]
