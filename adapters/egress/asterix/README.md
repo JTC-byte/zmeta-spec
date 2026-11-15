@@ -199,9 +199,14 @@ a mapping, or a `sync_state` outside the schema's three tokens). The adapter
 reads no `est_error_ms`: a timing threshold is deployment policy, and reaches
 this adapter through the risk gate.
 
-`allow_degraded_timing=True` exports such an event. Only the boolean `True`
-allows it; any other value that is not a boolean refuses the call, so the
-string `"false"` never reads as true. With the allowance on, the record's time
+`allow_degraded_timing=True` exports an event whose timing is in holdover,
+unsynchronized or absent. A malformed `timing_quality` is refused whatever
+the allowance says: input the adapter cannot read fails closed, as everywhere
+else in it. Only the boolean `True` allows; any other value that is not a
+boolean refuses the call, so the string `"false"` never reads as true. The
+one allowance also exports events that state `UNSYNCED` or `HOLDOVER`, so a
+caller that only means to vouch for a node whose timing status it holds
+cannot say so yet. With the allowance on, the record's time
 of track information reads as an ordinary time, with no notice that the
 source clock was unsynchronized, in holdover or undeclared. The deployment
 that sets it is the party telling its receivers so, for example in the
@@ -226,7 +231,7 @@ events then need no allowance.
 | `CAT062_RISK_UNREADABLE` | extensions, records or use labels in a shape the gate cannot read |
 | `CAT062_TIMING_HOLDOVER`, `CAT062_TIMING_UNSYNCED` | `timing_quality.sync_state` is that token, and degraded timing is not allowed |
 | `CAT062_TIMING_ABSENT` | no `timing_quality`, and degraded timing is not allowed |
-| `CAT062_TIMING_MALFORMED` | a `timing_quality` that is not a mapping, or a `sync_state` outside the schema's three tokens, and degraded timing is not allowed |
+| `CAT062_TIMING_MALFORMED` | a `timing_quality` that is not a mapping, or a `sync_state` outside the schema's three tokens, whatever the allowance says |
 | `CAT062_TIME_UNPARSEABLE` | `event.ts` missing, or not an instant with an offset |
 | `CAT062_TRACK_UNMAPPED` | `track_id` missing, or not in the caller's map |
 | `CAT062_TRACK_NUMBER_INVALID` | the mapped number is not an integer from 0 to 65,535 |
@@ -254,7 +259,7 @@ never equal to the event (contract 4.5.1).
 | source identity | the source block has no item; I062/010 names the sender the deployment declares |
 | confidence | no item; CNF is the deployment's statement and is not derived from it |
 | lineage | `lineage.based_on` and `transform` have no item |
-| timing quality | `payload.timing_quality` has no item, and a locked claim does not export either. An event whose timing is not locked is refused unless degraded timing is allowed; with the allowance, the record reads like one from a disciplined clock |
+| timing quality | `payload.timing_quality` has no item, and a locked claim does not export either. An event whose timing is in holdover, unsynchronized or absent is refused unless degraded timing is allowed, and a malformed `timing_quality` is refused whatever the allowance says; with the allowance, the record reads like one from a disciplined clock |
 | validity | `payload.valid_for_ms` has no item. The encoder has no clock and encodes a state whose validity has ended like any other, so the sending deployment must stop sending a track when its validity ends; the receiver ages a track by I062/070 under its own rules |
 | class | no item: I062/300 is a fixed table of airport vehicle types, and I062/380's emitter category is derived from the aircraft |
 | source summary, provenance, quality, extensions | no item; a declared 2-D position shows only as the absence of I062/130 |

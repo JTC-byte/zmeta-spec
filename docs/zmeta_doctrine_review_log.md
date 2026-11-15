@@ -4217,7 +4217,8 @@ clock.
 than exactly `LOCKED`, or no `timing_quality`) is refused, each case with its
 own reason, unless the caller passes `allow_degraded_timing=True`, a name
 taken from the adapter harness, whose allowance there covers `UNSYNCED`
-only. The allowance is the deployment's
+only. A malformed `timing_quality` is refused whatever the allowance says,
+from the seeded review of 2026-11-14. The allowance is the deployment's
 choice, made in the open (contract 3.3), and it never opens the risk gate.
 The adapter reads no `est_error_ms`, since a timing threshold is a tunable
 rule of deployment policy (contract 3.3). The question for the pass is

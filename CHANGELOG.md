@@ -17,9 +17,10 @@
   until a later branch writes the track status's first extent. An event that
   carries any risk record other than an `IGNORED` decision without a use
   restriction on the export use is refused, since no CAT062 item can carry a
-  self-label. An event whose timing is not locked is refused unless the
-  caller passes `allow_degraded_timing=True`; with it, the record carries the
-  time with no notice of the clock's state. Every refusal has a reason a
+  self-label. An event whose timing is in holdover, unsynchronized or
+  absent is refused unless the caller passes `allow_degraded_timing=True`;
+  with it, the record carries the time with no notice of the clock's state.
+  A malformed `timing_quality` is refused whatever the allowance says. Every refusal has a reason a
   caller can count, and the README's loss register names what the record
   does not carry. No schema, policy, contract, registry or conformance
   change.

@@ -55,7 +55,9 @@
   an ignore decision without a use restriction on the export use refuses the
   event, and so does timing that is not locked, unless the caller passes
   `allow_degraded_timing=True` (ZMeta's ruling on timing quality of the same
-  day; doctrine log F11-02 and F11-03). A longitude that quantizes to +180
+  day; doctrine log F11-02 and F11-03); a malformed `timing_quality` is
+  refused whatever the allowance says, from the seeded review of the same
+  day. A longitude that quantizes to +180
   is written as -180; a velocity or an
   altitude beyond its item refuses the event; `valid_for_ms` is a registered
   loss (doctrine log F11-01). Branch `exp/asterix-cat062-egress-2026-11`,

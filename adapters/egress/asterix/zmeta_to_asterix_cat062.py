@@ -171,10 +171,12 @@ ASTERIX_EGRESS_LOSS_NOTES = {
     "timing_quality": (
         "payload.timing_quality has no item, and a locked claim does not "
         "export either: CAT062 ed. 1.21 has no item for the quality of the "
-        "time source (I062/070, §5.2.5). An event whose timing is not locked "
-        "is refused unless the caller allows degraded timing; with the "
-        "allowance, I062/070 reads as an ordinary time, with no notice that "
-        "the source clock was unsynchronized, in holdover or undeclared."
+        "time source (I062/070, §5.2.5). An event whose timing is in "
+        "holdover, unsynchronized or absent is refused unless the caller "
+        "allows degraded timing, and a malformed timing_quality is refused "
+        "whatever the allowance says; with the allowance, I062/070 reads as "
+        "an ordinary time, with no notice that the source clock was "
+        "unsynchronized, in holdover or undeclared."
     ),
     "valid_for_ms": (
         "payload.valid_for_ms has no item. The encoder has no clock and "
@@ -588,11 +590,13 @@ def zmeta_state_to_asterix_cat062(
             "COALITION_EXPORT", semantics contract 3.3 vocabulary), as in the
             SAPIENT egress adapter.
         allow_degraded_timing: only the boolean True exports an event whose
-            timing is not locked (see `_timing_refusal`); any other value
-            that is not a boolean refuses the call. With it, the record's
-            time reads as an ordinary time, with no notice of the clock's
-            state, and the deployment that sets it is the party telling its
-            receivers so. It never opens the risk gate.
+            timing is in holdover, unsynchronized or absent (see
+            `_timing_refusal`); any other value that is not a boolean
+            refuses the call. A malformed timing_quality is refused whatever
+            it says. With it, the record's time reads as an ordinary time,
+            with no notice of the clock's state, and the deployment that
+            sets it is the party telling its receivers so. It never opens
+            the risk gate.
         refusal: an optional dict; a refusal writes its reason under "reason".
 
     Returns:
@@ -603,7 +607,8 @@ def zmeta_state_to_asterix_cat062(
         1_SIGMA and the latitude is not a pole. None, with the reason, for an
         event that is not a track state, a configuration or argument the
         adapter cannot run, a risk record the gate refuses, timing that is not
-        locked (unless allowed), an `event.ts` that is not an instant, an
+        locked (a malformed timing_quality always; holdover, unsynchronized or
+        absent timing unless allowed), an `event.ts` that is not an instant, an
         unmapped track or a number outside 0 to 65,535, a missing
         or impossible position, an incoherent or impossible altitude, an
         impossible course or speed, a 1_SIGMA ellipse with impossible members,
@@ -634,10 +639,11 @@ def zmeta_state_to_asterix_cat062(
     reason = _risk_refusal(payload, export_use.strip().upper())
     if reason is not None:
         return _note_refusal(refusal, reason)
-    if not allow_degraded_timing:
-        reason = _timing_refusal(payload)
-        if reason is not None:
-            return _note_refusal(refusal, reason)
+    reason = _timing_refusal(payload)
+    if reason is not None and (reason == REFUSAL_TIMING_MALFORMED or not allow_degraded_timing):
+        # A malformed timing_quality never exports: unreadable input fails
+        # closed. The allowance opens HOLDOVER, UNSYNCED and an absent one only.
+        return _note_refusal(refusal, reason)
 
     time_count = _time_count(header.get("ts"))
     if time_count is None:

@@ -738,9 +738,23 @@ def test_p10_timing_that_is_not_locked_is_refused_unless_allowed(timing, reason)
     event = make_event(timing_quality=timing)
     refused(event, reason)
     refused(event, reason, allow_degraded_timing=False)
+    if reason == "CAT062_TIMING_MALFORMED":
+        # Unreadable timing fails closed: the allowance never opens it.
+        refused(event, reason, allow_degraded_timing=True)
+        return
     record, got = encode(event, allow_degraded_timing=True)
     # With the allowance the record is the locked event's, byte for byte: it carries no notice of the clock.
     assert got is None and record == MINIMUM_RECORD
+
+
+def test_p10_malformed_timing_never_exports():
+    # From the seeded review of 2026-11-14: the allowance opens HOLDOVER, UNSYNCED and an absent
+    # timing_quality only; a non-mapping and an unknown token are refused whatever it says.
+    for timing in ("LOCKED", ["LOCKED"], None, dict(LOCKED, sync_state="FREEWHEEL")):
+        refused(make_event(timing_quality=timing), "CAT062_TIMING_MALFORMED", allow_degraded_timing=True)
+    for timing in (dict(LOCKED, sync_state="HOLDOVER"), UNSYNCED, DELETE):
+        record, reason = encode(make_event(timing_quality=timing), allow_degraded_timing=True)
+        assert reason is None and record == MINIMUM_RECORD
 
 
 def test_p10_locked_timing_exports_without_the_allowance():
