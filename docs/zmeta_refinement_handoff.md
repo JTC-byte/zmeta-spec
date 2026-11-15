@@ -434,6 +434,14 @@ an adapter for ADS-B observations as target reports, a later branch;
 I062/080's first extent, which would let a simulated track be marked; and the
 doctrine log's F11 entries. Not manifest-listed.
 
+The branch `wave/precut-hash-note-2026-11` (2026-11-14) is a records
+correction. The gateway documents branch edited `policy/README.md`, and the
+gateway's runtime policy hash covers every file under `policy/`, so that
+hash and each lane's contract hash differ from the tree before it, though no
+policy rule differs. A gateway started with a required policy or contract
+hash from the earlier tree exits at startup. Open for the maintainer:
+whether a file that states no rule belongs in the hashed directory.
+
 Open, in order of proximity:
 
 1. **The consumers' re-pin to v1.1.27**, once at this tag in the order the

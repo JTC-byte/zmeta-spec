@@ -2,7 +2,8 @@
 
 ## Current Resume Note
 
-- Last updated: 2026-11-14 (the ASTERIX CAT062 egress adapter;
+- Last updated: 2026-11-14 (a correction on the runtime policy hash;
+  the ASTERIX CAT062 egress adapter;
   the gateway documents' seeded-review follow-up;
   the gateway documents: protected strip paths,
   the admission record's members, the decode refusal, and the strip
@@ -41,6 +42,22 @@
   pre-cut dry run; the TAK Protocol Version 1 egress adapter; DECODE_AMBIGUOUS,
   three commits, the third on 2026-11-03; two contract sentences;
   carried-list records pass; heading_deg defined; records pass after 7.6)
+- **2026-11-14 (a correction: the gateway documents change moved the runtime
+  policy hash).** The gateway documents branch of the same day recorded that
+  no rule and no release pin changes. Both statements hold, and one fact was
+  missing: `gateway.compute_contract_hash` hashes every file under `policy/`
+  (`_hash_dir`), so the branch's edit to `policy/README.md` changed the
+  runtime policy hash and the contract hash of each schema lane. Measured
+  with `tools/compute_contract_hash.py` on the tree before that branch and
+  on this one: the schema and semantics hashes are equal, and the policy and
+  contract hashes differ. No policy rule, schema or contract text differs.
+  A gateway started with `require_policy_hash` or `require_contract_hash`
+  from the earlier tree exits at startup on this one. The CHANGELOG entry of
+  that branch now says so. Open for the maintainer: whether a file that
+  states no rule belongs in the hashed directory. Records only: no code,
+  rule or pin changes, and no file under `policy/` is touched, so the hashes
+  stay as measured. The full validation runs on the commit under the
+  heavy-run lock, and the merge record gives its results.
 - **2026-11-14 (the ASTERIX CAT062 egress adapter).** On the maintainer's
   selection of 2026-11-14, the egress recce's third recommendation is built
   for system tracks: `adapters/egress/asterix/` encodes one
