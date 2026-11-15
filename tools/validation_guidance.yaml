@@ -43,8 +43,8 @@ guidance:
       - "gateway/src/validators.py:3021-3033"
       - "gateway/src/gateway.py:2388-2409"
       - "gateway/src/gateway.py:2423-2446"
-      - "gateway/src/gateway.py:1727"
-      - "gateway/src/gateway.py:2795"
+      - "gateway/src/gateway.py:1752"
+      - "gateway/src/gateway.py:2825"
       - "gateway/src/gateway.py:2245-2262"
       - "schema/zmeta-event.schema.json:5-17"
       - "schema/zmeta-event-1.0.schema.json:13-16"
@@ -1038,8 +1038,8 @@ guidance:
     citations:
       - "gateway/src/validators.py:3351-3353 (validate_semantics binds payload = event[\"payload\"], so the checked paths are payload.system_type and payload.metrics)"
       - "gateway/src/validators.py:3661-3665 (emit region is gated on event_type == \"SYSTEM_EVENT\" and payload system_type == \"SCHEMA_VIOLATION\")"
-      - "gateway/src/validators.py:3669-3676 (metrics is not a dict: missing = required_fields or [\"reason_code\", \"original_event_id\"]; `if \"reason_code\" in missing` emits SCHEMA_VIOLATION_MISSING_REASON_CODE at 3608, with the else fallback at 3612)"
-      - "gateway/src/validators.py:3685-3692 (metrics is a dict: missing = fields of required_fields absent from metrics; `if \"reason_code\" in missing` emits SCHEMA_VIOLATION_MISSING_REASON_CODE at 3624, else fallback at 3628)"
+      - "gateway/src/validators.py:3669-3676 (metrics is not a dict: missing = required_fields or [\"reason_code\", \"original_event_id\"]; `if \"reason_code\" in missing` emits SCHEMA_VIOLATION_MISSING_REASON_CODE at 3672, with the else fallback at 3676)"
+      - "gateway/src/validators.py:3685-3692 (metrics is a dict: missing = fields of required_fields absent from metrics; `if \"reason_code\" in missing` emits SCHEMA_VIOLATION_MISSING_REASON_CODE at 3688, else fallback at 3692)"
       - "gateway/src/validators.py:3701-3714 (adjacent branch: a present reason_code outside schema_violation_allowed_reason_codes emits SCHEMA_VIOLATION_INVALID_REASON_CODE, a different code)"
       - "policy/semantics.yaml:78-80 (system_event.schema_violation_required_metrics_fields: reason_code, original_event_id)"
       - "policy/semantics.yaml:81-143 (system_event.schema_violation_allowed_reason_codes, the full 62-value governed vocabulary, from its key to its last value)"
@@ -1069,7 +1069,7 @@ guidance:
       - "schema/zmeta-event-1.0.schema.json:1561-1564 and :1627 (same requirement and same string/minLength 1 shape in the locked v1.0 schema)"
       - "policy/semantics.yaml:77-80 (system_event.schema_violation_required_metrics_fields: reason_code, original_event_id)"
       - "policy/violation-codes.yaml:72-73 (code SCHEMA_VIOLATION_MISSING_ORIGINAL_EVENT_ID, severity: fail; the file carries only code and severity, no message or hint field)"
-      - "gateway/src/validators.py:3664-3698 (live emit site is :3626, where metrics is a dict and a required field is missing; `if \"reason_code\" in missing` takes precedence and `elif \"original_event_id\" in missing` selects this code. The :3610 branch for a non-dict metrics is unreachable under the shipped policy for the same precedence reason)"
+      - "gateway/src/validators.py:3664-3698 (live emit site is :3690, where metrics is a dict and a required field is missing; `if \"reason_code\" in missing` takes precedence and `elif \"original_event_id\" in missing` selects this code. The :3674 branch for a non-dict metrics is unreachable under the shipped policy for the same precedence reason)"
       - "gateway/src/gateway.py:2253, 2255, 2293 (`original_event.get(\"event_id\") or \"UNKNOWN\"`) with gateway/src/gateway.py:1477-1478 naming it the documented UNKNOWN correlation sentinel"
   - code: SCHEMA_VIOLATION_INVALID_REASON_CODE
     remediation: >-
@@ -1099,7 +1099,7 @@ guidance:
       - "schema/zmeta-event-1.0.schema.json:1569-1625"
       - "spec/semantics-contract.md:1356-1357"
       - "spec/semantics-contract.md:121-122"
-      - "gateway/src/gateway.py:1727"
+      - "gateway/src/gateway.py:1752"
   - code: TASK_ACK_MISSING_TASK_ID
     remediation: >-
       A TASK_ACK (SYSTEM_EVENT with system_type/event_subtype TASK_ACK) must
@@ -1138,7 +1138,7 @@ guidance:
       policy sets the first key to task_id and original_event_id alone
       (policy/semantics.yaml:161-163), matching the normative contract
       (spec/semantics-contract.md:1266-1268) and the schema
-      (schema/zmeta-event-1.1.0.schema.json:1954), so this code has no live
+      (schema/zmeta-event-1.1.0.schema.json:1955), so this code has no live
       trigger under the repo's own policy and appears only where a deployment
       added a further required field name under either key. Populate
       payload.metrics with non-empty string values for task_id and
@@ -1163,9 +1163,9 @@ guidance:
     citations:
       - "policy/violation-codes.yaml:80-81 (code: TASK_ACK_MISSING_ORIGINAL_EVENT_ID, severity: fail)"
       - "gateway/src/validators.py:3661 (the enclosing `if event_type == \"SYSTEM_EVENT\":` guard)"
-      - "gateway/src/validators.py:3781-3831 (TASK_ACK branch; :3752 `missing = [field for field in required_fields if field not in metrics]`, :3754-3757 task_id-first then original_event_id code selection)"
-      - "gateway/src/validators.py:3741 (emit site, metrics-not-a-dict branch)"
-      - "gateway/src/validators.py:3757 (emit site, metrics-is-a-dict branch, the reachable one under default policy)"
+      - "gateway/src/validators.py:3781-3831 (TASK_ACK branch; :3816 `missing = [field for field in required_fields if field not in metrics]`, :3818-3821 task_id-first then original_event_id code selection)"
+      - "gateway/src/validators.py:3805 (emit site, metrics-not-a-dict branch)"
+      - "gateway/src/validators.py:3821 (emit site, metrics-is-a-dict branch, the reachable one under default policy)"
       - "policy/semantics.yaml:161-163 (task_ack_required_metrics_fields: task_id, original_event_id)"
       - "schema/zmeta-event-1.0.schema.json:1668-1682 (TASK_ACK metrics object requires task_id and original_event_id, both string minLength 1)"
       - "spec/semantics-contract.md:1262-1268 (#### TASK_ACK, \"TASK_ACK provides an auditable lifecycle for COMMAND_EVENTs\", Required metrics: task_id, original_event_id)"
@@ -1231,7 +1231,7 @@ guidance:
       producer-specific or invented reason code does not have a sanctioned
       path onto this field.
     citations:
-      - "gateway/src/validators.py:3847-3858 (emit site: inside validate_semantics, event_type == \"SYSTEM_EVENT\" gate at :3661, TASK_ACK branch opens at :3781, reason_code read from payload.metrics at :3769; TASK_ACK_INVALID_REASON_CODE returned at :3853 when reason_code is a non-empty string not present in system_policy['task_ack_allowed_reason_codes'])"
+      - "gateway/src/validators.py:3847-3858 (emit site: inside validate_semantics, event_type == \"SYSTEM_EVENT\" gate at :3661, TASK_ACK branch opens at :3781, reason_code read from payload.metrics at :3833; TASK_ACK_INVALID_REASON_CODE returned at :3853 when reason_code is a non-empty string not present in system_policy['task_ack_allowed_reason_codes'])"
       - "policy/semantics.yaml:180-192 (task_ack_allowed_reason_codes: the 12-entry policy list the validator enforces; code registered in the semantics violation list at policy/semantics.yaml:123)"
       - "spec/semantics-contract.md:1288-1300 (normative 'Allowed TASK_ACK reason codes' list, identical 12 entries; reason_code-required states at spec/semantics-contract.md:1281-1286)"
       - "schema/zmeta-event-1.1.0.schema.json:1959-1976 (payload.metrics.reason_code enum under the system_type == TASK_ACK if/then, identical 12 entries)"
@@ -1326,7 +1326,7 @@ guidance:
     citations:
       - "schema/zmeta-event-1.1.0.schema.json:1740"
       - "schema/zmeta-event-1.1.0.schema.json:2001-2024"
-      - "schema/zmeta-event-1.1.0.schema.json:2016 (metrics.sensor_id required under the SENSOR_STATUS arm)"
+      - "schema/zmeta-event-1.1.0.schema.json:2017 (metrics.sensor_id required under the SENSOR_STATUS arm)"
       - "schema/zmeta-event-1.1.0.schema.json:2025-2037"
       - "schema/zmeta-event-1.1.0.schema.json:1909"
       - "schema/README.md:212-214"
@@ -1426,9 +1426,9 @@ guidance:
       - "gateway/src/validators.py:3086-3097"
       - "gateway/src/gateway.py:1712-1721"
       - "gateway/src/gateway.py:2471"
-      - "gateway/src/gateway.py:2937"
+      - "gateway/src/gateway.py:2967"
       - "gateway/src/gateway.py:2994-2998"
-      - "gateway/src/gateway.py:2983"
+      - "gateway/src/gateway.py:3013"
       - "gateway/src/gateway.py:1908-1909"
       - "schema/zmeta-event-1.1.0.schema.json:24-30"
       - "schema/zmeta-event-1.0.schema.json:23-30"
@@ -1668,7 +1668,7 @@ guidance:
       - "schema/zmeta-event-1.1.0.schema.json:1502-1512 (CommandPayload requires `task_id`, type string, minLength 1)"
       - "gateway/src/validators.py:3317-3327 (validate_deduplication: COMMAND_EVENT whose payload.task_id is already in state.command_task_ids yields the TASK_DUPLICATE violation \"COMMAND_EVENT task_id has already been applied\")"
       - "gateway/src/validators.py:49,90 (state.command_task_ids is an unbounded set populated from every COMMAND_EVENT payload.task_id; no TTL on this path)"
-      - "gateway/src/gateway.py:2692-2709 (COMMAND_EVENT handling: on a dedupe-cache hit, records the TASK_DUPLICATE violation and returns build_duplicate_ack instead of forwarding)"
+      - "gateway/src/gateway.py:2722-2739 (COMMAND_EVENT handling: on a dedupe-cache hit, records the TASK_DUPLICATE violation and returns build_duplicate_ack instead of forwarding)"
       - "gateway/src/gateway.py:2327-2356 (build_duplicate_ack emits SYSTEM_EVENT/TASK_ACK with payload.state=DUPLICATE_IGNORED and metrics.reason_code=TASK_DUPLICATE)"
       - "gateway/src/gateway.py:244-251 (TaskDedupeCache.check_and_set returns True when task_id is cached and unexpired)"
       - "gateway/src/gateway.py:1109-1117 (ttl_ms_from_payload: gateway dedupe window from payload.valid_for_ms, default 60000ms, capped at 300000ms)"
@@ -1748,7 +1748,7 @@ guidance:
       - "gateway/src/validators.py:4125-4140 (a COMMAND_EVENT with no cited parents returns clean; only require_evidence turns absence into LINEAGE_MISMATCH)"
       - "gateway/src/validators.py:32 (DEFAULT_COMMAND_EVIDENCE_INDEX_MAX_ENTRIES = 4096)"
       - "gateway/src/validators.py:149-156 (index write plus oldest-first eviction once the cap is exceeded)"
-      - "gateway/src/gateway.py:2712 (`timing_state.record(instance)` runs after the event's checks and after every fail-path early return, so a parent resolves only for commands that follow it through the gateway)"
+      - "gateway/src/gateway.py:2742 (`timing_state.record(instance)` runs after the event's checks and after every fail-path early return, so a parent resolves only for commands that follow it through the gateway)"
       - "policy/command-evidence.yaml:46-56 (unresolved_parent_mode: warn; 'never seen upstream, or evicted (see evidence_index_max_entries). The honest disposition is UNRESOLVED, never a silent pass.')"
       - "policy/command-evidence.yaml:66-72 (motivating_parent_event_types: INFERENCE_EVENT, FUSION_EVENT, STATE_EVENT)"
       - "policy/command-evidence.yaml:81-87 (evidence_index_max_entries: 4096, oldest entries evicted first, an evicted parent resolves as UNRESOLVED)"

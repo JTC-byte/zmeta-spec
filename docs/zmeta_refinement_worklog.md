@@ -58,33 +58,47 @@
   the block stands at exactly one place. It refused a block that was blank,
   that the range had changed, or that stands at more than one place, and
   left those citations as they were. Numbers written as prose after a
-  citation ("at :3626", "and 3752-3759") were listed by hand with the file
-  each one names and handled the same way. A second reading of the written
-  file checked that every rewritten reference names the same non-blank text
-  at both ends, that every other reference kept its numbers, and that only
-  digits changed. Of 936 line references, 147 cite files the range left
-  alone, 503 still named their text (the contract and policy citations among
-  them, re-anchored on 2026-11-10), 251 are moved and 35 are left. Git's own
-  line mapping from the same revisions agrees with every one of the 251.
-  The 35 left: 20 whose text stands at more than one place (18 of them
-  single lines such as `checks.extend(` or a `code = "..."` assignment the
-  validator repeats in each of its branches), 12 whose
-  text the range changed (among them the 1.1.0 schema's `reason_code` enum,
-  which gained `DECODE_AMBIGUOUS` inside the cited range), and 3 that named
-  blank lines in `gateway/src/gateway.py` already at v1.1.27. A citation
-  that was off its text at v1.1.27 is moved with the text it named then:
-  the `NON_FINITE_VALUE` entry's single schema line still names
-  `LINEAGE_FUSION_MEMBERS_NOT_IN_BASED_ON`. Two tests are new in
+  citation (at v1.1.27, for example "is :3626" and "and 3752-3759") were
+  listed by hand with the file each one names and handled the same way. A
+  second reading of the written file checked that every rewritten reference
+  names the same non-blank text at both ends, that every other reference
+  kept its numbers, and that only digits changed. Of 936 line references,
+  147 cite files the range left alone, 503 still named their text (the
+  contract and policy citations among them, re-anchored on 2026-11-10), and
+  the first pass moved 251 and left 35. Git's own line mapping from the same
+  revisions agrees with every one of the 251. From the seeded review of
+  2026-11-14, a second pass took the 20 of the 35 whose text stands at more
+  than one place (18 of them single lines such as `checks.extend(` or a
+  `code = "..."` assignment the validator repeats in each of its branches)
+  and moved each one only where git's mapping from v1.1.27 lands on one of
+  those places and the text there is the same; all 20 met that rule, so 271
+  are moved. The notes that gave a moved lead range beside unmoved inner
+  numbers (guidance lines 1041, 1042, 1072, 1166 and 1234) now give both in
+  the new numbering. 15 are left: 12 whose text the range changed (among
+  them the 1.1.0 schema's `reason_code` enum, which gained
+  `DECODE_AMBIGUOUS` inside the cited range), and 3 that named blank lines
+  in `gateway/src/gateway.py` already at v1.1.27. A citation that was off
+  its text at v1.1.27 is moved with the text it named then: the
+  `NON_FINITE_VALUE` entry's single schema line still names
+  `LINEAGE_FUSION_MEMBERS_NOT_IN_BASED_ON`. The tests are in
   `gateway/tests/test_validation_guidance.py`, each written before the
-  change: one reads every citation into `policy/violation-codes.yaml` and
-  requires it to begin on a code and to name the entry's code or codes the
-  entry names (on the unrepaired file it reported 31 of 56), with a control
-  on a synthetic registry; one reads six citations the review checked at
-  both ends (all six failed on the unrepaired file). The file's 20 tests
-  pass. `gateway/src/gateway.py` keeps its 3389 lines. No rule, validator or
-  verdict changes; the guidance file is advisory and not manifest-listed.
-  The mutants and the full validation run on the commit under the heavy-run
-  lock; the merge record gives their results.
+  change it guards and seen failing. The registry test requires every
+  citation into `policy/violation-codes.yaml` to begin on a code's line and
+  end on the last line of a code's block, a citation that holds the entry's
+  code to name exactly that block, and every entry to cite its own block;
+  four references that stand as part of a block are listed by name. Its
+  first form reported 31 of the 56 registry references on the unrepaired
+  file, and it let through a whole shift onto a neighbouring code the entry
+  names and an end-only change; the present form reports all 33 the range
+  displaced and both of those changes, with a control on a synthetic
+  registry and one on a doctored copy of the guidance text. Twelve named
+  citations are read at their first line, six of them added for the second
+  pass (all six failed on the file before it). No general test reads the
+  citations into the validator, the gateway, the schemas or the tools. The
+  file's 27 tests pass. `gateway/src/gateway.py` keeps its 3389 lines. No
+  rule, validator or verdict changes; the guidance file is advisory and not
+  manifest-listed. The mutants and the full validation have not yet run on
+  the branch, which is a candidate and is not merged.
 - **2026-11-14 (a correction: the gateway documents change moved the runtime
   policy hash).** The gateway documents branch of the same day recorded that
   no rule and no release pin changes. Both statements hold, and one fact was

@@ -2,31 +2,43 @@
 
 ## [Unreleased]
 
-- 2026-11-14 — **The guidance file's line citations that the range since
-  v1.1.27 displaced name their text again** (`tools/validation_guidance.yaml`,
+- 2026-11-14 — **Most of the guidance file's line citations that the range
+  since v1.1.27 displaced name their text again; 12 displaced references
+  wait for a reading by hand** (`tools/validation_guidance.yaml`,
   `gateway/tests/test_validation_guidance.py`). A candidate repair for the
   maintainer's word, from the pre-cut range review of 2026-11-14; it is not
   merged. Commits after v1.1.27 added lines to twelve files the guidance file
   cites by line and moved none of the citations below them: a validator
   citation landed 64 lines above its code, and the `INVALID_TIME_FORMAT`
-  entry cited the registry lines of `DECODE_AMBIGUOUS`. 251 line references
-  are moved, 238 written as citations and 13 as numbers in the prose after a
-  citation: 153 into `gateway/src/validators.py`, 33 into
-  `policy/violation-codes.yaml`, 26 into `gateway/src/gateway.py`, 21 into
+  entry cited the registry lines of `DECODE_AMBIGUOUS`. 271 line references
+  are moved, 249 written as citations and 22 as numbers in the prose after a
+  citation: 164 into `gateway/src/validators.py`, 33 into
+  `policy/violation-codes.yaml`, 33 into `gateway/src/gateway.py`, 23 into
   `schema/zmeta-event-1.1.0.schema.json`, 7 into
   `gateway/tests/test_reason_codes.py`, 4 into `spec/field-dictionary.md`, 2
   into the MAVLink ingress template, and one each into the MAVLink ingress
   README, `conformance/README.md`, `schema/README.md`,
   `gateway/tests/test_timing_freshness.py` and `tools/validate.py`. Each moved
-  reference names, line for line, the same non-blank text it named at v1.1.27
-  (or, for a citation written since, at the commit that wrote it), and that
-  text stands at exactly one place in the file now. 35 references are left as
-  they are: 20 whose text stands at more than one place, 12 whose text the
-  range changed, and 3 that named blank lines already at v1.1.27. Two new
-  tests read the registry citations and six named citations; on the
-  unrepaired file the first reported 31 of the 56 registry references and
-  every named one failed. No rule, validator or verdict changes; the file is
-  advisory and is not listed in the release manifest.
+  reference names, line for line, the same non-blank text it named at
+  v1.1.27. 251 of them moved where that text stands at exactly one place in
+  the file now. The other 20 name text that stands at more than one place;
+  from the seeded review of 2026-11-14, each moved only where git's own line
+  mapping from v1.1.27 lands on one of those places and the text there is
+  the same. 15 references are left as they are. The range displaced 12 of
+  them: 5 now begin off their text, 5 begin on it and end short of a block
+  that gained lines inside the cited range (the 1.1.0 schema's `reason_code`
+  enum among them), and 2 name text the range changed in place. Each needs a
+  judgment about what the citation meant, which a mechanical rewrite cannot
+  make. The other 3 named blank lines already at v1.1.27. The registry test
+  now requires every citation into `policy/violation-codes.yaml` to name the
+  whole block of a code its entry is about, and every entry to cite its own
+  code's block; four references that stand as part of a block are listed by
+  name. On the unrepaired file the test's first form reported 31 of the 56
+  registry references, and its present form reports all 33 that the range
+  displaced. Twelve named citations are read at their first line. No test
+  reads the other citations into the validator, the gateway, the schemas or
+  the tools. No rule, validator or verdict changes; the file is advisory and
+  is not listed in the release manifest.
 
 - 2026-11-14 — **An ASTERIX CAT062 egress adapter encodes a track state as a
   system track record** (`adapters/egress/asterix/`, adapter 1.0.0,

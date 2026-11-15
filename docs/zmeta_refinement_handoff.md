@@ -444,21 +444,41 @@ whether a file that states no rule belongs in the hashed directory.
 
 The branch `wave/guidance-citations-2026-11` (2026-11-14) is a candidate
 repair for the maintainer's word, from the pre-cut range review of
-2026-11-14, and is not merged. It moves the 251 line references in
+2026-11-14, and is not merged. It moves 271 of the line references in
 `tools/validation_guidance.yaml` that commits after v1.1.27 left off their
-text, each to the one place where the text it named now stands, and adds
-two tests that read the registry citations and six named citations. It is
-the repair the 2026-11-10 paragraph above books for the validator, schema
-and gateway citations, and it also covers the registry citations, which
-that booking does not name. 35 references are left as they are and wait
-for a reading by hand: 20 whose text now stands at more than one place, 12
-whose text the range changed (a range that gained a line inside it, such as
-the 1.1.0 schema's `reason_code` enum, among them), and 3 that named blank
-lines already at v1.1.27. A citation that was off its text at v1.1.27, such
-as the `NON_FINITE_VALUE` entry's schema line, is moved with the text it
-named then and still needs its own correction. The gateway's line-count
-test still holds `gateway/src/gateway.py` at 3389 lines; a branch that
-changes that file's length moves its citations in the same change.
+text, each to the place where the text it named at v1.1.27 now stands: 251
+where that text stands at one place, and 20 where it stands at more than
+one and git's own line mapping from v1.1.27 lands on one of them (from the
+seeded review of 2026-11-14). It adds a registry test that requires every
+citation into `policy/violation-codes.yaml` to name the whole block of a
+code its entry is about, and twelve named citations read at their first
+line. It is the repair the 2026-11-10 paragraph above books for the
+validator, schema and gateway citations, and it also covers the registry
+citations, which that booking does not name. The mutants and the full
+validation have not yet run on it. The gateway's line-count test still
+holds `gateway/src/gateway.py` at 3389 lines; a branch that changes that
+file's length moves its citations in the same change.
+
+Open from that branch, for a reading by hand, none of it moved:
+
+- 12 references the range displaced whose cited text it changed, so that
+  moving one is a judgment about what the citation meant. 5 now begin off
+  their text (guidance lines 52 twice, 754, 1556 and 1559), 5 begin on it
+  and end short of a block that gained lines inside the cited range (1037,
+  1049 twice, 1098 and 1361), and 2 name text the range changed in place
+  (797 and 800).
+- 3 references that named blank lines already at v1.1.27 (guidance lines
+  167 and 1410, `gateway/src/gateway.py:1696`, and 1073,
+  `gateway/src/gateway.py:1477-1478`).
+- 5 references that were off their text before the range: on guidance line
+  167, `tools/validate.py:160` and `gateway/src/gateway.py:2471`; on line
+  499, the 1.1.0 schema's `:1878`; on line 1310, the 1.1.0 schema's
+  `1815-1824`; and the `NON_FINITE_VALUE` entry's schema line, which moved
+  with the text it named then and still names
+  `LINEAGE_FUSION_MEMBERS_NOT_IN_BASED_ON`.
+- No general test reads the citations into `gateway/src/validators.py`,
+  `gateway/src/gateway.py`, the schemas, the tools or the adapters; twelve
+  named rows read a first line each.
 
 Open, in order of proximity:
 

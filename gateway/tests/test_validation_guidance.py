@@ -8,6 +8,32 @@ become a compliance surface. These tests pin the three properties that keep
 that true. The coverage test also forces every future minted code to arrive
 with its hint, because a bare code is the defect this system exists to
 remove.
+
+The line citations. The guidance file cites other files by line, and an
+edit that adds lines to a cited file moves the text out from under its
+citations. Three readers hold three families. The contract citations and
+the policy citations sit on their text. Every citation into the code
+registry names the whole block of a code its entry is about, and each entry
+cites its own code's block; four references that stand as part of a block
+or begin on a comment are listed in REGISTRY_PARTIAL_CITATIONS and pinned
+to their exact ranges. Against the registry rule, every whole-range shift
+of any distance inside the registry and every end-only change of one to
+three lines is reported except one class: a second reference in an entry
+moved onto the entry's own block, or onto the block of a code the entry's
+text names (the one such shift found is COMMAND_TASK_TYPE_INVALID's
+EVENT_SUBTYPE_MISMATCH reference moved onto its own code).
+
+No general rule reads the citations into gateway/src/validators.py,
+gateway/src/gateway.py, the schemas, the tools or the adapters. Twelve
+named rows read the first cited line of a chosen few, and only a substring
+of it; a row whose text stands at more than one place in its file passes
+when the citation moves to another copy, and a change to the end of a
+range is invisible to every row. Any other shift of those citations,
+including a whole function's citation moved by a few lines, passes these
+tests. The seeded review of 2026-11-14 measured this on the first six
+rows: of 219 mutants that shift a validators.py or gateway.py citation by
+two lines, three were caught. The six rows added since read six more
+citations and leave the class as it was.
 """
 
 import json
@@ -498,28 +524,37 @@ def test_the_bare_number_reader_tells_policy_numbers_from_another_files():
     assert found == ["141", ":121"]
 
 
-def _registry_line_references():
+def _registry_line_references(text=None):
     """Every line reference into policy/violation-codes.yaml, with the entry that makes it.
 
     Each is (first, last, entry code, the entry's whole text, guidance line).
+    The entry is a `- code:` entry of the guidance list or a `- id:` entry of
+    the structural rules; for an `- id:` entry the code is None. With text,
+    the references are read from that text instead of the guidance file.
     """
     import re
 
     cite = re.compile(r"policy/violation-codes\.yaml:(\d+(?:-\d+)?(?:,\s*:?\d+(?:-\d+)?)*)")
     ref = re.compile(r"(\d+)(?:-(\d+))?")
-    text = GUIDANCE_PATH.read_text(encoding="utf-8")
-    entries = {entry["code"]: " ".join(_strings_of(entry)) for entry in _guidance_entries()}
-    starts = [(m.start(), m.group(1)) for m in re.finditer(r"^  - code: *(\S+)", text, re.M)]
+    if text is None:
+        text = GUIDANCE_PATH.read_text(encoding="utf-8")
+    data = yaml.safe_load(text)
+    entries = {}
+    for section in ("guidance", "structural_rules"):
+        for entry in data.get(section) or []:
+            entries[entry.get("code") or entry.get("id")] = " ".join(_strings_of(entry))
+    starts = [(m.start(), m.group(1), m.group(2)) for m in re.finditer(r"^  - (code|id): *(\S+)", text, re.M)]
     out = []
     for match in cite.finditer(text):
-        owner = [code for start, code in starts if start < match.start()]
+        owner = [(kind, key) for start, kind, key in starts if start < match.start()]
         if not owner:
             continue
+        kind, key = owner[-1]
         guidance_line = text.count("\n", 0, match.start()) + 1
         for r in ref.finditer(match.group(1)):
             first = int(r.group(1))
             last = int(r.group(2)) if r.group(2) else first
-            out.append((first, last, owner[-1], entries[owner[-1]], guidance_line))
+            out.append((first, last, key if kind == "code" else None, entries[key], guidance_line))
     return out
 
 
@@ -534,43 +569,112 @@ def _strings_of(node):
             yield from _strings_of(value)
 
 
-def _registry_misplaced(references, registry_lines):
-    """References into the code registry that no longer sit on a code the entry is about.
+def _registry_blocks(registry_lines):
+    """Each code's block in the registry: code -> (its `- code:` line, the block's last line).
 
-    A reference begins on a `- code:` line, or on a comment above one, and the
-    lines it names hold at least one code. One of those codes is the entry's
-    own, or every one of them is a code the entry's text names. A registry
-    edit that inserts lines above the citations moves them onto a severity
-    line or onto another code, which is how 34 of the 56 sat after the
-    DECODE_AMBIGUOUS code was added on 2026-11-02.
+    A block is the `- code:` line and the lines under it indented deeper,
+    up to the next code, comment or blank line.
     """
     import re
 
+    blocks = {}
+    current = None
+    for number, line in enumerate(registry_lines, 1):
+        match = re.match(r"^(\s*)- code: *(\S+)", line)
+        if match:
+            current = (match.group(2), len(match.group(1)))
+            blocks[current[0]] = [number, number]
+        elif (
+            current
+            and line.strip()
+            and not line.lstrip().startswith("#")
+            and len(line) - len(line.lstrip()) > current[1]
+        ):
+            blocks[current[0]][1] = number
+        else:
+            current = None
+    return {code: tuple(span) for code, span in blocks.items()}
+
+
+# Registry references that, as they stand, name part of a block or begin on
+# the comment above a code. Each is (entry code, first, last), pinned to its
+# exact range: once it moves, the rule reads it like any other, and once it
+# is put right it must leave this list.
+REGISTRY_PARTIAL_CITATIONS = {
+    ("INFERENCE_HAS_FUSION_STATE", 28, 28): "the code line only, without its severity line",
+    ("RF_WINDOW_PAIRING_INVALID", 56, 56): "the code line only, without its severity line",
+    ("RF_WINDOW_MIDPOINT_INVALID", 114, 114): "RF_WINDOW_MIDPOINT_MISMATCH's code line only",
+    ("NON_FINITE_VALUE", 122, 129): "begins on the comment above the code",
+}
+
+
+def _registry_misplaced(references, registry_lines, partial=()):
+    """References into the code registry that do not name a whole block the entry is about.
+
+    The rule, from the seeded review of 2026-11-14. A reference begins on a
+    `- code:` line and ends on the last line of a code's block. A reference
+    that holds the entry's own code names exactly that code's block, and an
+    entry whose code is in the registry cites that block. A reference that
+    does not hold the entry's code holds only codes the entry's text names.
+    `partial` lists (entry code, first, last) references that are taken as
+    they stand; each one must still be found.
+
+    The rule replaces a weaker reader that read only a reference's first line
+    and whether one of its codes was the entry's. On the guidance file before
+    the re-anchoring, 33 of the 56 registry references sat below the two
+    lines DECODE_AMBIGUOUS added on 2026-11-02 and stood two lines high; the
+    weaker reader reported 31 of those 33, and this rule reports all 33.
+    """
+    import re
+
+    blocks = _registry_blocks(registry_lines)
+    ends = {last for _first, last in blocks.values()}
     bad = []
+    first_reference = {}
+    cites_own = set()
+    found_partial = set()
     for first, last, code, entry_text, where in references:
+        if code is not None:
+            first_reference.setdefault(code, where)
+        if (code, first, last) in partial:
+            found_partial.add((code, first, last))
+            if code in blocks and first <= blocks[code][0] <= last:
+                cites_own.add(code)
+            continue
         if first < 1 or first > last or last > len(registry_lines):
             bad.append((first, last, where, "outside the registry"))
             continue
-        head = registry_lines[first - 1].strip()
-        if not (head.startswith("- code:") or head.startswith("#")):
+        if not registry_lines[first - 1].lstrip().startswith("- code:"):
             bad.append((first, last, where, "begins off a code"))
             continue
+        if last not in ends:
+            bad.append((first, last, where, "ends inside a code's block"))
+            continue
         named = re.findall(r"^\s*- code: *(\S+)", "\n".join(registry_lines[first - 1:last]), re.M)
-        if not named:
-            bad.append((first, last, where, "holds no code"))
-        elif code not in named and not all(re.search(rf"\b{n}\b", entry_text) for n in named):
+        if code in named:
+            if (first, last) == blocks[code]:
+                cites_own.add(code)
+            else:
+                bad.append((first, last, where, "holds the entry's code with other codes"))
+        elif not all(re.search(rf"\b{n}\b", entry_text) for n in named):
             bad.append((first, last, where, "names a code the entry is not about"))
+    for code, where in first_reference.items():
+        if code in blocks and code not in cites_own:
+            bad.append((None, None, where, "the entry does not cite its own code's block"))
+    for code, first, last in sorted(set(partial) - found_partial):
+        bad.append((first, last, None, "a listed partial reference is no longer found"))
     return bad
 
 
 def test_registry_citations_name_the_entrys_code():
     # From the pre-cut range review of 2026-11-14: the two lines the
     # DECODE_AMBIGUOUS code added to the registry on 2026-11-02 moved every
-    # citation below them two lines off its code. Nothing read them.
+    # citation below them two lines off its code. Nothing read them. The
+    # whole-block rule is from the seeded review of 2026-11-14.
     registry_lines = CODES_PATH.read_text(encoding="utf-8").splitlines()
     references = _registry_line_references()
     assert len(references) >= 50, "the guidance file's registry citations are no longer found"
-    assert _registry_misplaced(references, registry_lines) == []
+    assert _registry_misplaced(references, registry_lines, REGISTRY_PARTIAL_CITATIONS) == []
 
 
 def test_the_registry_citation_reader_reports_a_reference_moved_off_its_code():
@@ -581,30 +685,69 @@ def test_the_registry_citation_reader_reports_a_reference_moved_off_its_code():
         "  # a note on the second code",
         "  - code: SECOND_CODE",
         "    severity: warn",
+        "  - code: THIRD_CODE",
+        "    severity: fail",
     ]
     placed = [
         (2, 3, "FIRST_CODE", "about FIRST_CODE", 1),
-        (4, 6, "SECOND_CODE", "about SECOND_CODE", 2),
-        (5, 6, "OTHER_CODE", "OTHER_CODE reaches the producer as SECOND_CODE", 3),
+        (5, 6, "SECOND_CODE", "about SECOND_CODE", 2),
+        (4, 6, "SECOND_CODE", "about SECOND_CODE", 3),
+        (5, 6, "OTHER_CODE", "OTHER_CODE reaches the producer as SECOND_CODE", 4),
+        (7, 8, "THIRD_CODE", "THIRD_CODE follows FIRST_CODE", 5),
+        (2, 3, "THIRD_CODE", "THIRD_CODE follows FIRST_CODE", 6),
     ]
-    assert _registry_misplaced(placed, registry) == []
-    moved = _registry_misplaced(
-        [
-            (3, 4, "FIRST_CODE", "about FIRST_CODE", 4),
-            (5, 6, "FIRST_CODE", "about FIRST_CODE", 5),
-            (1, 1, "FIRST_CODE", "about FIRST_CODE", 6),
-            (6, 7, "SECOND_CODE", "about SECOND_CODE", 7),
-            (4, 4, "SECOND_CODE", "about SECOND_CODE", 8),
-        ],
-        registry,
-    )
-    assert [(first, last, why) for first, last, _where, why in moved] == [
-        (3, 4, "begins off a code"),
-        (5, 6, "names a code the entry is not about"),
-        (1, 1, "begins off a code"),
-        (6, 7, "outside the registry"),
-        (4, 4, "holds no code"),
+    assert _registry_misplaced(placed, registry, {("SECOND_CODE", 4, 6)}) == []
+    own = "the entry does not cite its own code's block"
+    cases = [
+        ([(3, 4, "FIRST_CODE", "about FIRST_CODE", 1)], set(), ["begins off a code", own]),
+        ([(5, 6, "FIRST_CODE", "FIRST_CODE reaches the producer as SECOND_CODE", 1)], set(), [own]),
+        ([(2, 2, "FIRST_CODE", "about FIRST_CODE", 1)], set(), ["ends inside a code's block", own]),
+        (
+            [(2, 6, "FIRST_CODE", "FIRST_CODE and SECOND_CODE", 1)],
+            set(),
+            ["holds the entry's code with other codes", own],
+        ),
+        (
+            [(2, 3, "FIRST_CODE", "about FIRST_CODE", 1), (5, 6, "FIRST_CODE", "about FIRST_CODE", 2)],
+            set(),
+            ["names a code the entry is not about"],
+        ),
+        ([(7, 9, "FIRST_CODE", "about FIRST_CODE", 1)], set(), ["outside the registry", own]),
+        (
+            [(2, 3, "FIRST_CODE", "about FIRST_CODE", 1)],
+            {("FIRST_CODE", 2, 2)},
+            ["a listed partial reference is no longer found"],
+        ),
     ]
+    for references, partial, expected in cases:
+        found = _registry_misplaced(references, registry, partial)
+        assert [why for _first, _last, _where, why in found] == expected, references
+
+
+def test_the_registry_rule_reports_a_doctored_guidance_file():
+    # The two classes of change the first form of the reader let through,
+    # made on a copy of the guidance file's text: a whole shift onto a
+    # neighbouring code that the entry's text names, and an end-only change.
+    text = GUIDANCE_PATH.read_text(encoding="utf-8")
+    registry_lines = CODES_PATH.read_text(encoding="utf-8").splitlines()
+    own = "the entry does not cite its own code's block"
+    doctored = [
+        (
+            '"policy/violation-codes.yaml:72-73 (code SCHEMA_VIOLATION_MISSING_ORIGINAL_EVENT_ID',
+            '"policy/violation-codes.yaml:70-71 (code SCHEMA_VIOLATION_MISSING_ORIGINAL_EVENT_ID',
+            [own],
+        ),
+        (
+            '      - "policy/violation-codes.yaml:4-5"\n',
+            '      - "policy/violation-codes.yaml:4-4"\n',
+            ["ends inside a code's block", own],
+        ),
+    ]
+    for old, new, expected in doctored:
+        assert text.count(old) == 1, old
+        references = _registry_line_references(text.replace(old, new))
+        found = _registry_misplaced(references, registry_lines, REGISTRY_PARTIAL_CITATIONS)
+        assert [why for _first, _last, _where, why in found] == expected, new
 
 
 # Citations the pre-cut range review of 2026-11-14 read at both ends: each was
@@ -619,6 +762,18 @@ NAMED_CITATIONS = [
      'carried_reason = msg.get("reason_code")'),
     ("PRODUCER_NOT_ALLOWED", "gateway/src/validators.py", 0, "def validate_producer_authority("),
     ("PRODUCER_NOT_ALLOWED", "gateway/src/validators.py", 2, "def _matches_pattern("),
+    # From the seeded review of 2026-11-14: citations whose text stands at
+    # more than one place now, moved where git's own line mapping from
+    # v1.1.27 lands on one of those places. Each first line repeats in its
+    # file, so a row here does not tell one copy from another.
+    ("SCHEMA_INVALID", "gateway/src/gateway.py", 2, "checks.extend("),
+    ("SCHEMA_INVALID", "gateway/src/gateway.py", 3, "fails, warns = _split_violations(violations)"),
+    ("TASK_ACK_MISSING_ORIGINAL_EVENT_ID", "gateway/src/validators.py", 2,
+     'code = "TASK_ACK_MISSING_ORIGINAL_EVENT_ID"'),
+    ("TASK_ACK_MISSING_ORIGINAL_EVENT_ID", "gateway/src/validators.py", 3,
+     'code = "TASK_ACK_MISSING_ORIGINAL_EVENT_ID"'),
+    ("PROFILE_MISMATCH", "gateway/src/gateway.py", 6, "contract_hashes=contract_hashes,"),
+    ("COMMAND_EVIDENCE_UNRESOLVED", "gateway/src/gateway.py", 0, "if timing_state is not None:"),
 ]
 
 
