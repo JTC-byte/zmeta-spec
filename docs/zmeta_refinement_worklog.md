@@ -2,7 +2,11 @@
 
 ## Current Resume Note
 
-- Last updated: 2026-11-14 (the pre-cut records' seeded-review follow-up;
+- Last updated: 2026-11-14 (the gateway documents' seeded-review follow-up;
+  the gateway documents: protected strip paths,
+  the admission record's members, the decode refusal, and the strip
+  guard's reasons;
+  the pre-cut records' seeded-review follow-up;
   the pre-cut records: the `observed_at`
   refusal's cut condition, the handoff's current state, the declined-factor
   sentence; the tests branch's seeded-review follow-up;
@@ -36,6 +40,121 @@
   pre-cut dry run; the TAK Protocol Version 1 egress adapter; DECODE_AMBIGUOUS,
   three commits, the third on 2026-11-03; two contract sentences;
   carried-list records pass; heading_deg defined; records pass after 7.6)
+- **2026-11-14 (the gateway documents' seeded-review follow-up).** A
+  seeded review of the branch `wave/precut-gateway-docs-2026-11` (an error
+  planted in a copy, found) gave one BLOCKER, five SHOULD FIX findings and
+  nine NITs, read here against the branch's own tree, from the pre-cut
+  range review of 2026-11-14. The BLOCKER is the planted error; the
+  branch's `gateway/README.md` already says that a factor above 0 and
+  below 1 would raise the value. The five SHOULD FIX findings are applied.
+  The Decode refusals section said, with no exception, that any other
+  datagram that fails to decode reads `SCHEMA_INVALID`; the sentence now
+  names the `json`, `cbor`, `compact` and `proto` lanes. It said that the
+  refusal of duplicate map keys on the CBOR and compact lanes is booked for
+  the maintainer's word; the handoff's item 3 records it as selected on
+  2026-11-11 for a branch after the next cut, and the section now says so.
+  The CHANGELOG entry and the new test file's docstring said that the
+  three behaviors were stated only in the code, the tests and the process
+  records; `spec/protobuf-encoding.md` and the tools' documents stated the
+  decode refusal, so both now say the three READMEs lacked them. The
+  wire-form test matched `SCHEMA_INVALID` anywhere in the section; it now
+  reads the sentence that gives the wire form. The Admission records
+  section said that the two timing paths decline a factor below 1 with no
+  record; measured on this branch, the timing-freshness path reads a
+  `confidence_reduction_factor` of 0 or less as 2.0 and reduces with a
+  record, as the promotion path does, and the `timing_loss` path declines
+  it, so the section now gives the range above 0 and below 1 and the case
+  of 0 or less; the promotion path reads a `valid_for_ms_reduction_factor`
+  of 0 or less as the confidence factor. The nine NITs are applied. The
+  admission members are read from the records the promotion path writes,
+  not from the source text, and the two timing paths are checked to write
+  `confidence_claimed` alone. Four tests hold the README's remaining
+  `auto`-lane cases to the code (one trailing byte, a truncated CBOR
+  datagram, a seven-member event cut short, a datagram that opens with `{`
+  and is not JSON), and one holds the README to name each case. The strip
+  guard's refusal put "and must not be silently stripped" after the
+  reason's relative clause, so it read as if the validity window must not
+  be stripped; the refusal now states the rule before the prefix and its
+  reason, in the same four lines. The README and the decode-failure
+  comment named the `auto` lane's state as an open pre-cut decision, which
+  is false once a cut ships first; they now name finding S2 of the
+  review, the comment within its four lines. The README uses "behavior",
+  as the rest of the file does. `policy/README.md` says that a record
+  carries `confidence_claimed`, `valid_for_ms_claimed` or both.
+  `reduction_declined` is given as a mapping from each declined factor's
+  name to its value. The `auto` lane's order says that a datagram that
+  opens with `{` or `[` and is not JSON is read as CBOR and the compact
+  mapping only, as `_decode_message` does. The records said that the
+  branch closes S5 and that `spec/field-dictionary.md` is not changed;
+  they now say that the field dictionary, which S5 also names, is left
+  unchanged, so that part of S5 stays open. Tests first: fourteen new and
+  three strengthened in the two test files; seven of the new and one of
+  the strengthened failed on the unchanged tree, and the other seven new
+  tests read the code's present behavior and passed there.
+  `gateway/src/gateway.py` stays at 3389 lines, every hunk of the branch
+  keeps its start line and its line count, and the citation
+  `gateway/src/gateway.py:2640-2656` still names the decode-failure
+  branch. No rule or pin changes, and no changed file is listed in the
+  release manifest. The mutants and the full validation run on the commit
+  under the heavy-run lock, and the merge record gives their results.
+- **2026-11-14 (the gateway documents: protected strip paths, the admission
+  record's members, the decode refusal, and the strip guard's reasons).**
+  Two corrections from the pre-cut range review of 2026-11-14 (its S5 and
+  N1), on the branch `wave/precut-gateway-docs-2026-11`, based on
+  `wave/precut-records-2026-11`, under the maintainer's decisions of
+  2026-11-02 that the changed text documents (doctrine F4-04, doctrine
+  F7-01 and contract 7.8's validity window). S5: `configs/README.md` said
+  that two strip path prefixes are protected; `gateway/src/gateway.py` has
+  protected three since 2026-11-02, and the README now names them and gives
+  `payload.valid_from_ts` its reason. `gateway/README.md` gains an
+  Admission records section, read from `_claimed_values`,
+  `_replaced_values`, `apply_external_promotion_policy_action` and
+  `apply_timing_freshness_degradation` in
+  `gateway/src/validators.py` and `_apply_failure_mode_degradation` in
+  `gateway/src/gateway.py`: the members `effects.confidence_claimed`,
+  `effects.valid_for_ms_claimed` and `effects.reduction_declined`, the four
+  paths that write them, and the rule from doctrine F4-04 that the
+  producer's figure for a member is the claimed value in the first record
+  that carries it. It also gains a Decode refusals section: the three cases
+  `DECODE_AMBIGUOUS` refuses, its v1.0 wire form (`reason_code`
+  `SCHEMA_INVALID`, the code in `metrics.diagnostic_code`, by
+  `schema_violation_v1_0_wire_fallback` in `policy/semantics.yaml`), the
+  CBOR and compact lanes' duplicate map keys, which are not refused
+  (measured in memory on this branch: a CBOR map with one key twice decodes
+  to the last value), and the `auto` lane as it is, measured in memory on
+  this branch with nothing written: a compact datagram cut by one
+  byte or carrying one trailing byte, a CBOR datagram cut by one byte and
+  the text `hello world` read `DECODE_AMBIGUOUS`, the same cut compact
+  datagram reads `SCHEMA_INVALID` on the `compact` lane, and of the four
+  examples in `examples/zmeta-examples-1.0.jsonl` cut at every length, the
+  five-member OBSERVATION reads `DECODE_AMBIGUOUS` at 451 of 456 cut points
+  and the three seven-member events read `SCHEMA_INVALID` at every one. The
+  section names the `auto` lane's behavior as open under finding S2, which
+  waits for the maintainer's word. `policy/README.md` names the
+  three members where it describes the soft-acceptance record. S5 also
+  names `spec/field-dictionary.md`; this branch leaves it unchanged, so
+  that part of S5 stays open. N1: the strip guard gave one
+  reason for every protected prefix; the dictionary
+  `PROTECTED_STRIP_PATH_REASONS` now gives each its own, the refusal
+  states it, and `PROTECTED_STRIP_PATH_PREFIXES` is read from the
+  dictionary. The comment on the decode-failure branch of
+  `process_message` now says that the `auto` lane can report a damaged
+  datagram as `DECODE_AMBIGUOUS`. `gateway.py` is pinned at 3389 lines by
+  `gateway/tests/test_decode_ambiguous_readers.py`, because
+  `tools/validation_guidance.yaml` cites it by line; every hunk of the
+  change keeps its start line and its line count, and the citation
+  `gateway/src/gateway.py:2640-2656` still names the decode-failure branch,
+  its first four lines now the rewritten comment. Tests first: four in
+  `gateway/tests/test_strip_protected_paths.py` and thirteen in the new
+  `gateway/tests/test_gateway_behaviour_docs.py`, which read the protected
+  prefixes, the member names and the wire fallback from the code and the
+  policy; thirteen of the seventeen failed on the unchanged tree, and the
+  four that passed
+  read the member names and the auto lane's present behaviour. When S2 is
+  decided, the three auto-lane tests and the README section change
+  together. No rule or pin changes, and no changed file is listed in the
+  release manifest. The mutants and the full validation run on the commit
+  under the heavy-run lock, and the merge record gives their results.
 - **2026-11-14 (the pre-cut records' seeded-review follow-up).** A seeded
   review of the branch `wave/precut-records-2026-11` (an error planted in a
   copy, found; `local/precut_fixes_2026-11-14/p3/review/review_report.md`,
@@ -57,12 +176,11 @@
   condition is met, and that deployment is not part of it and governs only
   the re-pin order; the closing sentence names the re-pin order instead of
   the condition. Five of the six NITs are applied. The AIS entry below no
-  longer repeats its date and says that the selection reached this
-  repository's session through a relay he named. The reworded entries no
-  longer say that no fact changes, since the rewording removed detail; the
-  entry below says what was removed and notes the tension with CLAUDE.md's
-  rule that process records are never restyled. Two edited spans of the
-  worklog and one of the handoff are rewrapped. The CHANGELOG sentence on a
+  longer repeats its date. The reworded entries no longer say that no fact
+  changes, since the rewording removed detail; the entry below says what
+  was removed and notes the tension with CLAUDE.md's rule that process
+  records are never restyled. Two edited spans of the worklog and one of
+  the handoff are rewrapped. The CHANGELOG sentence on a
   declined factor said "a factor below 1"; a factor of 0 or less is
   replaced by a default on the promotion path (`_positive_float` in
   `gateway/src/validators.py`) and on the timing-freshness path, and is
@@ -122,13 +240,11 @@
   (S1, S2, S3, N3, N5, N6, N8), and that the full register lands with the
   cut-prep commit. Item 6 names the unmerged local branch `pr/8-review`
   (N7). The rewording: the entries below on the gate running every stage
-  and on the AIS records with no
-  message type, and the handoff's paragraph on the AIS branch, named
-  another repository, clock times, a click's text and the session
-  structure, which the records at v1.1.27 do not; they now give the date
-  and "in this repository's session". The rewording removes the times, the
-  click's text, the relay's path and the other repository's name, and
-  alters no fact of the change either entry records. CLAUDE.md keeps
+  and on the AIS records with no message type, and the handoff's paragraph
+  on the AIS branch, carried clock times and names that the records at
+  v1.1.27 do not; they now give the date and "in this repository's
+  session". The rewording alters no fact of the change either entry
+  records. CLAUDE.md keeps
   process records from being restyled; this rewording removes content
   from unpushed entries of the same day and leaves their voice as written.
   The bodies of the unpushed commits of 2026-11-14 carry the same detail,
@@ -342,8 +458,7 @@
   selection of 2026-11-14, the AIS ingress adapter reads a position record
   whose message type is absent, on two statements the record makes itself: a
   declared shipborne transceiver class (A or B) and a usable position. It
-  infers no type. The selection reached this repository's session through a
-  relay he named. The need came from the producers' local replay of a record
+  infers no type. The need came from the producers' local replay of a record
   source that drops the type and keeps the class: its converter inferred 1
   or 18 from the class and said so, and this repository's ruling of
   2026-11-12 refused the inference

@@ -65,14 +65,23 @@ Notes:
     accepted events so operators can filter by explicit policy decision rather
     than infer risk from missing data.
   - `strip_optional_fields` and `strip_optional_fields_profiles` remove optional fields
-    for bandwidth efficiency. Two path prefixes are protected and rejected at
-    config load: `payload.extensions.risk_adjudication` and
-    `payload.extensions.external_promotion` (including anything nested under
-    them). Accepted-risk labels and promotion evidence exist so downstream
-    consumers can filter by explicit policy decision; stripping them would
-    silently launder degraded or externally-promoted data into clean-looking
-    data, which `docs/zmeta_change_governance.md` forbids (no silent stripping
-    of accepted-risk labels, use limits, or external-promotion evidence).
+    for bandwidth efficiency. Three path prefixes are protected and rejected at
+    config load, each with anything nested under it, and the refusal names the
+    prefix and its own reason:
+    - `payload.extensions.risk_adjudication` and
+      `payload.extensions.external_promotion`. Accepted-risk labels and
+      promotion evidence exist so downstream consumers can filter by explicit
+      policy decision; stripping them would silently launder degraded or
+      externally-promoted data into clean-looking data, which
+      `docs/zmeta_change_governance.md` forbids (no silent stripping of
+      accepted-risk labels, use limits, or external-promotion evidence).
+    - `payload.valid_from_ts`. It starts a command's validity window (contract
+      7.8, 2026-11-02): the window begins at `valid_from_ts` when present and
+      at `event.ts` otherwise, so a projection under the same `event_id` that
+      drops it moves the window's start to the issue time. The profile
+      projection catalog preserves it for the same reason. A v1.1.27 gateway
+      accepted a config that strips it; that config now stops the gateway at
+      startup.
   - `strict_validation` treats warnings as failures (no forward).
   - `emit_metrics` and `metrics_interval_sec` control periodic gateway metrics logs.
   - `rate_limit_per_sec` drops packets above the configured receive rate.
