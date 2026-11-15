@@ -4160,6 +4160,90 @@ watch for the next wire form: where the target standard defines a lossless
 fallback, an adapter uses it. The note under F8-01 records which of that
 entry's sentences this changed.
 
+## Cycle F11 — 2026-11-14 (a display format with no validity item)
+
+Three entries from building the ASTERIX CAT062 egress adapter
+(`adapters/egress/asterix/`), on the maintainer's selection of 2026-11-14:
+two tensions and one finding about the sibling egress adapters. The build
+implemented what the documents permit and what ZMeta ruled for it the same
+day (protocol step 1), and the entries are OPEN for the separate
+adjudication pass (step 4).
+
+### F11-01 — A display format with no item for `valid_for_ms` · **OPEN 2026-11-14 (a registered loss; adjudication at the next pass)**
+
+**Observed:** CAT062 edition 1.21 carries the time of the track state vector
+(I062/070) and the ages of the updates behind it (I062/290, I062/295), and no
+item for how long the state stays valid. A receiver ages a track by I062/070
+under its own rules. `payload.valid_for_ms` therefore has no carrier in the
+adapter's record.
+
+**The tension:** contract 14 lists `payload.valid_for_ms` among what
+CoT/TAK, JREAP-style tactical track JSON, dashboards and "other display
+formats must preserve", as freshness and stale behaviour. A CAT062 record is
+such a format and cannot preserve it. The SAPIENT egress meets the same gap,
+since its DetectionReport has no TTL or stale field, and registers the loss.
+
+**The build's reading, for adjudication:** the documents guide rather than
+decide. Contract 14's sentence on omission names confidence and lineage
+("the original ZMeta event remains authoritative"), not validity. The
+adapter registers the loss, as the SAPIENT adapter does, and takes no clock
+argument, so the encoder stays a pure function; its README says that the
+sending deployment must stop sending a track when its validity ends, since
+the encoder has no clock, and that the receiver ages a track by I062/070
+under its own rules. The question for the pass is
+whether contract 14's "must preserve" admits a named loss for a format with
+no validity item, or whether such a format needs a sender rule stated in the
+contract.
+
+### F11-02 — A mandatory UTC time on a wire with no carrier for timing quality · **OPEN 2026-11-14 (ruled for this adapter: refused unless the caller allows; adjudication at the next pass)**
+
+**Observed:** CAT062 edition 1.21 has no item for the quality of the time
+source, and its I062/070 is mandatory and states the time of the track as
+UTC (§5.2.5). Every event of the two corpora the build ran carries
+`timing_quality.sync_state` `UNSYNCED`: 809 STATE events of a downstream
+producer's recorded run, and 1,680 STATE events projected from live ADS-B
+observations.
+
+**The tension:** contract 4.9 says "ZMeta never implies certainty by
+omission", and names timing uncertainty among what "must be explicit when
+they are relevant to downstream use"; design gate 3 forbids making degraded
+data look clean. Contract 14 accepts a projection that omits what its format
+cannot carry, and design gate 4 calls projections out lossy. Exported as it
+is, a record from an unsynchronized clock reads like one from a disciplined
+clock.
+
+**The ruling's reading, for adjudication:** ZMeta ruled for this adapter on
+2026-11-14 that an event whose timing is not locked (a `sync_state` other
+than exactly `LOCKED`, or no `timing_quality`) is refused, each case with its
+own reason, unless the caller passes `allow_degraded_timing=True`, a name
+taken from the adapter harness, whose allowance there covers `UNSYNCED`
+only. The allowance is the deployment's
+choice, made in the open (contract 3.3), and it never opens the risk gate.
+The adapter reads no `est_error_ms`, since a timing threshold is a tunable
+rule of deployment policy (contract 3.3). The question for the pass is
+whether the allowance stays, or the rule tightens to a refusal with none.
+
+### F11-03 — The egress adapters treat timing quality four ways · **OPEN 2026-11-14 (findings; no change on this branch)**
+
+**Observed:** the JREAP projection drops `payload.timing_quality` and names
+the loss in its register. The TAK Protocol Version 1 README names timing
+quality absent among the CoT projection's losses. The CoT projection itself
+drops it with no mention in its README or its module. None of the three
+gates on it. The SAPIENT egress labels a state whose `sync_state` is not
+`LOCKED` with a `zmeta.timing_quality` self-label, and exports an event that
+carries no per-event `timing_quality` with no label. The ASTERIX CAT062
+adapter refuses both unless the caller allows them (F11-02).
+
+**The tension:** one unsynchronized STATE leaves the reference projections
+gated, labelled, registered as lost, or dropped with no word, by projection.
+Contract 5.3 says a consumer with no current timing status "SHOULD treat
+timing quality as unknown or stale", which the SAPIENT behaviour for an event
+with no per-event `timing_quality` does not do at the egress.
+
+**For the pass:** whether the sibling projections should state their timing
+behaviour in one place, and whether the CoT projection's README should
+register the loss as the JREAP and SAPIENT registers do.
+
 ## Archive
 
 Terminal tension entries and retired rules, one line each. Full bodies live in

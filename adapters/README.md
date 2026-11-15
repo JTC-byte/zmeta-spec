@@ -6,7 +6,7 @@ They are intentionally minimal and may be lossy.
 - Ingress adapters: `adapters/ingress/`
 - Mapping packs: `adapters/mapping-packs/`
 - Egress projections: `adapters/egress/` (CoT and its TAK Protocol Version 1
-  wire form, MissionIntent, JREAP, KLV, SAPIENT)
+  wire form, MissionIntent, JREAP, KLV, SAPIENT, ASTERIX CAT062)
 - Projectors: `adapters/projector/` (ZMeta in, ZMeta out)
 
 Building a new adapter? Start with the step-by-step authoring guide:
@@ -47,6 +47,25 @@ or command safety.
 | [ADS-B](ingress/adsb/) | `dump1090` / `readsb` `aircraft.json` (RTL-SDR, any decoder `adsbcot` supports) | OBSERVATION_EVENT (NETWORK) | Reference |
 | [AIS](ingress/ais/) | Decoded AIS position reports (AIS-catcher JSON, same RTL-SDR dongle), or a position record that declares its transceiver class in place of a message type | OBSERVATION_EVENT (NETWORK) | Reference |
 | [Example-vendor](ingress/example-vendor/) | `example-vendor-pack` RF JSON | OBSERVATION_EVENT (RF) | Worked exercise |
+
+## Egress Projections
+
+ZMeta out to another format. Each projection is lossy and one-directional in
+authority, and its README names what it drops.
+
+| Projection | Input | Output | Status |
+|---|---|---|---|
+| [CoT](egress/cot/) | STATE_EVENT | CoT v2.0 XML | Conformance class `ZMETA-COT-PROJECTION` |
+| [TAK Protocol Version 1](egress/tak_protocol/) | STATE_EVENT through the CoT projection, or CoT XML | TAK protobuf messages, mesh or stream framed | Reference |
+| [MissionIntent](egress/mavlink/) | COMMAND_EVENT | A MissionIntent dict for the deconfliction node | Reference |
+| [JREAP](egress/jreap/) | STATE_EVENT / TRACK_STATE | A minimal tactical track dict (not a Link 16 encoder) | Reference |
+| [KLV](egress/klv/) | OBSERVATION_EVENT | A KLV-style tag dict (not a MISB binary encoder) | Template |
+| [SAPIENT](egress/sapient/) | STATE_EVENT / TRACK_STATE; COMMAND_EVENT | SapientMessage DetectionReport and Task dicts | Reference |
+| [ASTERIX CAT062](egress/asterix/) | STATE_EVENT / TRACK_STATE | CAT062 edition 1.21 system track records and data blocks | Reference |
+
+The CoT projection's README states no status label. Its output is what the
+`ZMETA-COT-PROJECTION` conformance class covers (contract section 22), with
+golden outputs in `conformance/cot-golden/`.
 
 ## Projectors
 
