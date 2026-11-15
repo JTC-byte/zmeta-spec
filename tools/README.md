@@ -232,8 +232,9 @@ the pins: when the gate is red, it fails unless the failing stages are within
 `release_manifest` and `release_package` and every line that begins `FAIL `
 is a hash mismatch of a failing one of them. A branch that renames or removes
 a manifest-listed file turns that test red until the cut, because the gate
-reports the listed file missing. Until 2026-11-14 the command stopped at its first failing stage, so
-on such a tree the stages after the manifest pins did not run.
+reports the listed file missing. Until 2026-11-14 the command stopped at its
+first failing stage, so on such a tree the stages after the manifest pins did
+not run.
 
 Additional focused conformance validators:
 

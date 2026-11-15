@@ -68,13 +68,17 @@ _MISMATCH = rf"expected {_HASH}, got {_HASH}"
 # validates the same manifest first and reports each of its issues as
 # RELEASE_PACKAGE_MANIFEST_INVALID with the manifest's message
 # (tools/validate_release_package.py, _load_valid_manifest).
+# RELEASE_MANIFEST_SELF_HASH_MISMATCH is not accepted. The manifest's own hash
+# covers the manifest's content only (tools/build_release_manifest.py,
+# canonical_manifest_bytes), so a stale pin does not move it; it moves when the
+# committed manifest is edited by hand or the builder's canonical form changes,
+# and either is more than a stale pin.
 PIN_LINE_PATTERNS = {
     "release_manifest": [
         re.compile(rf"FAIL RELEASE_MANIFEST_ARTIFACT_HASH_MISMATCH item=\S+: {_MISMATCH}"),
         re.compile(rf"FAIL RELEASE_MANIFEST_GROUP_HASH_MISMATCH item=\w+: {_MISMATCH}"),
         re.compile(rf"FAIL RELEASE_MANIFEST_TOP_LEVEL_HASH_MISMATCH item=\w+: \w+_hash {_MISMATCH}"),
         re.compile(rf"FAIL RELEASE_MANIFEST_BUNDLE_HASH_MISMATCH: {_MISMATCH}"),
-        re.compile(rf"FAIL RELEASE_MANIFEST_SELF_HASH_MISMATCH: {_MISMATCH}"),
     ],
     "release_package": [
         re.compile(rf"FAIL RELEASE_PACKAGE_MANIFEST_INVALID(?: item=\S+)?: (?:\w+_hash )?{_MISMATCH}"),
@@ -247,12 +251,12 @@ def test_the_kernel_gate_reads_out_every_stage():
     begins "FAIL " is a hash mismatch of a failing one of them
     (_red_beyond_the_pins). A listed artifact reported missing, a missing
     group or field, a template defect, or any third failing stage turns this
-    test red. A branch that renames or removes a manifest-listed file
-    therefore turns this test red until the cut regenerates the manifest, by
-    design: the gate reports the file missing, which is not a hash mismatch.
-    Before 2026-11-14 the test passed when any further stage failed, and a
-    defect inside the two red stages was one more line among the hash
-    mismatches."""
+    test red. A consequence follows: a branch that renames or removes a
+    manifest-listed file turns this test red until the cut regenerates the
+    manifest, because the gate reports the file missing, which is not a hash
+    mismatch. Until this change the test passed when any further stage
+    failed, and a defect inside the two red stages was one more line among
+    the hash mismatches."""
     result = _run("--kernel-gate")
     out = result.stdout
     summaries = _summary_lines(out)
@@ -279,7 +283,6 @@ _PIN_LINES = [
     f"FAIL RELEASE_MANIFEST_TOP_LEVEL_HASH_MISMATCH item=bad_event_corpus: "
     f"bad_event_corpus_hash expected {_H1}, got {_H2}",
     f"FAIL RELEASE_MANIFEST_BUNDLE_HASH_MISMATCH: expected {_H1}, got {_H2}",
-    f"FAIL RELEASE_MANIFEST_SELF_HASH_MISMATCH: expected {_H1}, got {_H2}",
     f"FAIL RELEASE_PACKAGE_MANIFEST_INVALID item=AGENTS.md: expected {_H1}, got {_H2}",
     f"FAIL RELEASE_PACKAGE_MANIFEST_INVALID item=bad_event_corpus: "
     f"bad_event_corpus_hash expected {_H1}, got {_H2}",
@@ -306,6 +309,15 @@ NON_HASH_LINES = [
     f"FAIL RELEASE_PACKAGE_MANIFEST_INVALID: expected None, got {_H2}",
     # a line of the core stage
     "FAIL pass line=1 profile=H code=SCHEMA_INVALID",
+    # the manifest's own hash, which a stale pin does not move
+    f"FAIL RELEASE_MANIFEST_SELF_HASH_MISMATCH: expected {_H1}, got {_H2}",
+    # a valid mismatch body with text after it
+    f"FAIL RELEASE_MANIFEST_ARTIFACT_HASH_MISMATCH item=AGENTS.md: expected {_H1}, got {_H2} and more",
+    # a hash shorter than SHA-256
+    f"FAIL RELEASE_MANIFEST_ARTIFACT_HASH_MISMATCH item=AGENTS.md: expected sha256:{'a' * 12}, got {_H2}",
+    # another message before a valid mismatch body
+    f"FAIL RELEASE_PACKAGE_MANIFEST_INVALID item=AGENTS.md: listed artifact not found: AGENTS.md, "
+    f"expected {_H1}, got {_H2}",
 ]
 
 

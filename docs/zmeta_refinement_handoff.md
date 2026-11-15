@@ -281,16 +281,31 @@ opened Option E of the gate change, T5 of
 `gateway/tests/test_kernel_gate_runs_every_stage.py` now fails on a red gate
 unless the failing stages are within `release_manifest` and `release_package`
 and every line beginning `FAIL ` is a hash mismatch of a failing one of them;
-a small classifier carries the judgement, with unit controls. The rule this
-sets for every branch until the cut: a branch that renames or removes a
-manifest-listed file turns T5 red, because the gate reports the listed file
-missing, and the red lasts until the cut regenerates the manifest. That is by
-design, and `tools/README.md` says so. Under the maintainer's selection of
+a small classifier carries the judgement, with unit controls. A consequence
+of the test follows for every branch until the cut: a branch that renames or
+removes a manifest-listed file turns T5 red, because the gate reports the
+listed file missing, and the red lasts until the cut regenerates the
+manifest. `tools/README.md` states the consequence. The governance Branching
+section speaks of the manifest pins only and does not name this case; it is
+not changed on this branch, and whether it should name the case is not
+decided here. Under the maintainer's selection of
 2026-11-14 that opened the AIS records with no message type, a test class in
 `adapters/ingress/ais/test_ais_ingress.py` runs the typeless event through
 the reference schema-and-policy validation at profiles H and M, with controls
 for the class key renamed `class_name` and `Entity_Class`. No rule or pin
 changes.
+
+A follow-up commit on the same branch (2026-11-14) applies a seeded review
+of it: the classifier no longer accepts a mismatch of the manifest's own
+hash, which a stale pin does not move, and T6b gains that line, a mismatch
+body with text after it, a short hash and a package line with another
+message before the body; the AIS test helper counts every schema violation
+as a failure, takes an optional validation state and records a passing event
+in it, as `tools/validate.py` does; new controls refuse the typeless event at
+profile L and as a duplicate the second time, compare the helper's eight
+policy checks with the tool's calls and check that the schema is the one the
+stamp's lane names; the paragraph above calls the rename case a consequence
+of the test instead of a rule. No rule or pin changes.
 
 Open, in order of proximity:
 

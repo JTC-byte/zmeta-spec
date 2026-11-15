@@ -2,7 +2,8 @@
 
 ## Current Resume Note
 
-- Last updated: 2026-11-14 (the gate's red held to the release pins and the
+- Last updated: 2026-11-14 (the tests branch's seeded-review follow-up;
+  the gate's red held to the release pins and the
   typeless AIS event at the reference validator;
   the release facts' seeded-review follow-up;
   the release facts classify the golden CoT
@@ -32,6 +33,49 @@
   pre-cut dry run; the TAK Protocol Version 1 egress adapter; DECODE_AMBIGUOUS,
   three commits, the third on 2026-11-03; two contract sentences;
   carried-list records pass; heading_deg defined; records pass after 7.6)
+- **2026-11-14 (the tests branch's seeded-review follow-up).** A seeded
+  review of the branch `wave/precut-tests-2026-11` (an error planted in a
+  copy, found; `local/precut_fixes_2026-11-14/p2/review/review_report.md`,
+  claude-opus-5-5) gave one BLOCKER, two SHOULD FIX findings and five NITs,
+  read here against the branch's own tree under the maintainer's selections
+  of 2026-11-14 that opened Option E of the gate change and the AIS records
+  with no message type. The BLOCKER is the planted error; the branch's
+  CHANGELOG entry gives `SCHEMA_INVALID` for the class key renamed
+  `class_name`. The first SHOULD FIX is applied: the helper's eight policy
+  checks had a failing control for the semantics check alone. New controls
+  refuse the typeless event at profile L
+  (`EVENT_TYPE_NOT_ALLOWED_FOR_PROFILE`) and, with one validation state, the
+  same event the second time (`EVENT_DUPLICATE`); the helper takes an
+  optional state and records an event with no failure in it, as
+  `tools/validate.py` does. A third control compares the helper's list of
+  checks with the tool's, with whitespace and trailing commas removed and the
+  tool's names mapped, so a check left out or given other arguments fails; a
+  fourth checks that the schema is the lane's for a known stamp and the union
+  schema for an unknown one. The role, timing, lineage, producer-authority
+  and routing checks have no behavioural control, since the typeless event
+  gives none of them a refusal to show; the class docstring says so. The
+  second SHOULD FIX is applied: the handoff called the rename case a rule for
+  every branch and then said no rule changes; it now calls it a consequence
+  of the test, says that the governance Branching section does not name the
+  case, and leaves open whether it should. T5's docstring and the CHANGELOG
+  no longer call the rename case "by design". All five NITs are applied. The
+  classifier no longer accepts `RELEASE_MANIFEST_SELF_HASH_MISMATCH`: the
+  manifest's own hash covers the manifest's content only, so a stale pin does
+  not move it, and the line is now rejected. T6b gains a mismatch body with
+  text after it, a short hash and a package line with another message before
+  the body, for the regex mutants that survived. T5's docstring says "Until
+  this change" for the test's earlier judgement, since the test was created
+  on 2026-11-14. The helper counts every schema violation as a failure, as
+  the tool does. `tools/README.md` is rewrapped. Tests first: with the helper
+  unchanged, the duplicate control failed (`reference_violations()` had no
+  `state` argument) and the severity control failed (`warn` for a schema
+  violation); with the self pattern in place, its T6b case failed. After the
+  change the AIS file passed, 138 tests, and the gate file, 30. The new
+  source-comparison and lane-schema controls passed on the present helper;
+  the branch's mutants are the controls that must see them fail. No rule
+  changes, and no changed file is listed in the release manifest, so no pin
+  moves. The mutants and the full validation run on the commit under the
+  heavy-run lock, and the merge record gives their results.
 - **2026-11-14 (the gate's red held to the release pins and the typeless AIS
   event at the reference validator).** Two corrections from the pre-cut range
   review of 2026-11-14 (its S4 and N4), on the branch

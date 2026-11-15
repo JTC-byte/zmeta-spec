@@ -16,13 +16,17 @@
   that begins `FAIL ` is a hash mismatch of a failing one of them, in the
   codes and line shapes of `tools/validate_release_manifest.py` and of
   `tools/validate_release_package.py`, which reports the manifest's issues
-  as `RELEASE_PACKAGE_MANIFEST_INVALID`. The judgement is a small classifier
-  with unit controls: a line that is not a hash mismatch, a listed artifact
-  reported missing and a third failing stage are each rejected, and the
-  stale-pin shapes measured on `develop` are accepted. A branch that renames
-  or removes a manifest-listed file turns the test red until the cut, by
-  design, because the gate reports the file missing. `tools/README.md` now
-  states that the test holds the red to the pins. The second is under the
+  as `RELEASE_PACKAGE_MANIFEST_INVALID`. A mismatch of the manifest's own
+  hash is not accepted, since a stale pin does not move it. The judgement is
+  a small classifier with unit controls: a line that is not a hash mismatch,
+  a mismatch of the manifest's own hash, a mismatch body with text before or
+  after it or a short hash, a listed artifact reported missing and a third
+  failing stage are each rejected, and the stale-pin shapes measured on
+  `develop` are accepted. As a consequence of the test, a branch that
+  renames or removes a manifest-listed file turns it red until the cut,
+  because the gate reports the file missing; the governance Branching
+  section is unchanged. `tools/README.md` now states that the test holds the
+  red to the pins. The second is under the
   maintainer's selection of 2026-11-14 that opened the AIS records with no
   message type. The adapter's tests checked the typeless event against the
   1.1.0 schema only. A new test class runs it through the reference
@@ -30,6 +34,10 @@
   and the event passes at profiles H and M with no warning. Two controls
   show that the same validation refuses the class key renamed `class_name`
   (`SCHEMA_INVALID`) and renamed `Entity_Class` (`OBSERVATION_HAS_IDENTITY`).
+  Further controls show that it refuses the event at profile L and the same
+  event a second time with one validation state, that the test's eight
+  policy checks are the calls of `tools/validate.py`, and that its schema is
+  the one the stamp's lane names.
   No rule changes. No changed file is listed in the release manifest, so no
   pin moves.
 
