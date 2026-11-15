@@ -2,7 +2,8 @@
 
 ## Current Resume Note
 
-- Last updated: 2026-11-14 (the gateway documents' seeded-review follow-up;
+- Last updated: 2026-11-14 (the ASTERIX CAT062 egress adapter;
+  the gateway documents' seeded-review follow-up;
   the gateway documents: protected strip paths,
   the admission record's members, the decode refusal, and the strip
   guard's reasons;
@@ -40,6 +41,37 @@
   pre-cut dry run; the TAK Protocol Version 1 egress adapter; DECODE_AMBIGUOUS,
   three commits, the third on 2026-11-03; two contract sentences;
   carried-list records pass; heading_deg defined; records pass after 7.6)
+- **2026-11-14 (the ASTERIX CAT062 egress adapter).** On the maintainer's
+  selection of 2026-11-14, the egress recce's third recommendation is built
+  for system tracks: `adapters/egress/asterix/` encodes one
+  `STATE_EVENT`/`TRACK_STATE` as one CAT062 edition 1.21 record, and
+  `cat062_data_block` wraps records in a data block. Every item of the
+  edition's UAP was read from the edition and mapped before any code, and
+  ZMeta ruled the map's open points first. The track status is its first
+  octet alone: MON and CNF are declared by the deployment, MRH is 1, SRC is
+  000, and `simulated` true is refused, since marking it needs the first
+  extent. The accuracy is APW alone, the north and east standard deviations
+  of a `1_SIGMA` ellipse in degrees, rounded up. Any risk record other than
+  an ignore decision without a use restriction on the export use refuses the
+  event, and so does timing that is not locked, unless the caller passes
+  `allow_degraded_timing=True` (ZMeta's ruling on timing quality of the same
+  day; doctrine log F11-02 and F11-03); a malformed `timing_quality` is
+  refused whatever the allowance says, from the seeded review of the same
+  day. A longitude that quantizes to +180
+  is written as -180; a velocity or an
+  altitude beyond its item refuses the event; `valid_for_ms` is a registered
+  loss (doctrine log F11-01). Branch `exp/asterix-cat062-egress-2026-11`,
+  adapter 1.0.0, Class C. 222 test cases in one new file, each group written
+  before its code and seen failing; two known-answer records computed by
+  hand from the edition; a cross-check against libasterix 0.37.0 in a
+  separate process when `ASTERIX_SITE` names it; forty-two mutants run under
+  the heavy-run lock before the commit; the twelve gate legs, the conformance
+  sub-checks, both live harnesses and the full battery run on it. A seeded
+  review (one reviewer, opus at high effort, read only, on a copy with one
+  planted error, which it found) returned READY WITH CORRECTIONS, and its
+  corrections are applied; a follow-up by the same reviewer on the timing
+  gate and the fixes returned READY. No schema, policy, contract, registry,
+  conformance or manifest-listed file changes.
 - **2026-11-14 (the gateway documents' seeded-review follow-up).** A
   seeded review of the branch `wave/precut-gateway-docs-2026-11` (an error
   planted in a copy, found) gave one BLOCKER, five SHOULD FIX findings and

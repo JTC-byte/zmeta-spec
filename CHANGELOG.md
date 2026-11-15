@@ -2,6 +2,29 @@
 
 ## [Unreleased]
 
+- 2026-11-14 — **An ASTERIX CAT062 egress adapter encodes a track state as a
+  system track record** (`adapters/egress/asterix/`, adapter 1.0.0,
+  Reference). Built on the maintainer's selection of 2026-11-14. One
+  `STATE_EVENT`/`TRACK_STATE` becomes one CAT062 edition 1.21 record, and
+  `cat062_data_block` wraps records in a data block; the adapter opens no
+  connection and adds no dependency. The record carries the sender's
+  SAC/SIC, the state's time floored to 1/128 s, the WGS-84 position, the
+  track number from a caller-owned map and the first octet of the track
+  status; the velocity when the state carries both course and speed; the
+  geometric altitude when the geo is 3-D; and the WGS-84 accuracy (APW) when
+  the ellipse is `1_SIGMA`. The deployment declares SAC/SIC, monosensor,
+  tentative and simulated, with no default, and `simulated` true is refused
+  until a later branch writes the track status's first extent. An event that
+  carries any risk record other than an `IGNORED` decision without a use
+  restriction on the export use is refused, since no CAT062 item can carry a
+  self-label. An event whose timing is in holdover, unsynchronized or
+  absent is refused unless the caller passes `allow_degraded_timing=True`;
+  with it, the record carries the time with no notice of the clock's state.
+  A malformed `timing_quality` is refused whatever the allowance says. Every refusal has a reason a
+  caller can count, and the README's loss register names what the record
+  does not carry. No schema, policy, contract, registry or conformance
+  change.
+
 - 2026-11-14 — **The gateway documents name the protected strip paths, the
   admission record's members and the decode refusal, and the strip guard
   gives each protected path its own reason** (`configs/README.md`,

@@ -417,6 +417,23 @@ read the admission members from the records the code writes and hold the
 declined-factor range, each `auto`-lane case the README names and the
 refusal's composed text to the code. No rule or pin changes.
 
+The branch `exp/asterix-cat062-egress-2026-11` (2026-11-14) adds the
+ASTERIX CAT062 edition 1.21 egress adapter (`adapters/egress/asterix/`,
+Class C, Reference) on the maintainer's selection of that day: one
+`STATE_EVENT`/`TRACK_STATE` to one system track record, a data block
+builder, and no new dependency. Its README records each item's source,
+every refusal and the loss register. An event whose timing is in holdover,
+unsynchronized or absent is refused unless the caller passes
+`allow_degraded_timing=True`, and a malformed `timing_quality` is refused
+whatever the allowance says. Open before the next cut: the allowance split in
+two, a statement of the feed's timing status for events that carry none
+(contract 5.3) and an allowance for stated `HOLDOVER` and `UNSYNCED`, and
+moved into the declarations beside SAC and SIC (from the seeded review of
+2026-11-14, accepted by ZMeta and not built on the branch). Open behind it:
+an adapter for ADS-B observations as target reports, a later branch;
+I062/080's first extent, which would let a simulated track be marked; and the
+doctrine log's F11 entries. Not manifest-listed.
+
 Open, in order of proximity:
 
 1. **The consumers' re-pin to v1.1.27**, once at this tag in the order the
