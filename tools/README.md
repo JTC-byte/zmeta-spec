@@ -226,8 +226,13 @@ that line is printed. A passing run ends with `conformance ok pass=N fail=M`,
 as before. Between cuts,
 `--kernel-gate` on `develop` or on a branch reads `release_manifest` and
 `release_package` as failing, for the stale manifest's pins
-(`docs/zmeta_change_governance.md`, Branching), and every other stage should
-read `ok`. Until 2026-11-14 the command stopped at its first failing stage, so
+(`docs/zmeta_change_governance.md`, Branching), and every other stage reads
+`ok`. `gateway/tests/test_kernel_gate_runs_every_stage.py` holds the red to
+the pins: when the gate is red, it fails unless the failing stages are within
+`release_manifest` and `release_package` and every line that begins `FAIL `
+is a hash mismatch of a failing one of them. A branch that renames or removes
+a manifest-listed file turns that test red until the cut, because the gate
+reports the listed file missing. Until 2026-11-14 the command stopped at its first failing stage, so
 on such a tree the stages after the manifest pins did not run.
 
 Additional focused conformance validators:

@@ -2,7 +2,9 @@
 
 ## Current Resume Note
 
-- Last updated: 2026-11-14 (the release facts' seeded-review follow-up;
+- Last updated: 2026-11-14 (the gate's red held to the release pins and the
+  typeless AIS event at the reference validator;
+  the release facts' seeded-review follow-up;
   the release facts classify the golden CoT
   corpus; the gate runs every stage; AIS records with no
   message type;
@@ -30,6 +32,54 @@
   pre-cut dry run; the TAK Protocol Version 1 egress adapter; DECODE_AMBIGUOUS,
   three commits, the third on 2026-11-03; two contract sentences;
   carried-list records pass; heading_deg defined; records pass after 7.6)
+- **2026-11-14 (the gate's red held to the release pins and the typeless AIS
+  event at the reference validator).** Two corrections from the pre-cut range
+  review of 2026-11-14 (its S4 and N4), on the branch
+  `wave/precut-tests-2026-11`, based on `wave/precut-release-facts-2026-11`.
+  S4, under the maintainer's selection of 2026-11-14 that opened Option E of
+  the gate change: T5 of `gateway/tests/test_kernel_gate_runs_every_stage.py`
+  asserted that a red gate names every stage and that one is not `ok`, so it
+  passed when a third stage failed, and a defect inside the two release
+  stages that is not a pin was one more line among the hash mismatches. On a
+  red gate T5 now calls `_red_beyond_the_pins`, which reports a failing stage
+  outside `release_manifest` and `release_package`, a line beginning `FAIL `
+  that is not a hash mismatch of a failing one of them, and a failing
+  release stage that printed no hash mismatch. The accepted lines are the
+  five hash-mismatch codes of `tools/validate_release_manifest.py` (artifact,
+  group, top-level, bundle, self) with both values `sha256:` hashes, and the
+  package stage's `RELEASE_PACKAGE_MANIFEST_INVALID` lines with the same
+  messages, since `tools/validate_release_package.py` validates the manifest
+  first and re-reports its issues under that code. The gate's output on this
+  branch, measured once (exit 1; `release_manifest` and `release_package`
+  red, every other stage `ok`; 114 `FAIL` lines: 57 manifest lines, by code
+  30 artifact, 16 group, 10 top-level and 1 bundle, and 57 package lines),
+  classifies as the pins alone. Unit controls (T6 to T6e) accept the
+  stale-pin shapes and reject a line that is not a hash mismatch (a template
+  defect, a missing group or field, an invalid hash algorithm, a hash code
+  whose expected value is not a hash, a core-stage line), a listed artifact
+  reported missing in both stages' forms, each third stage failing, a pin
+  line from a release stage that does not fail, and a failing release stage
+  with no line. T5's docstring says that a branch that renames or removes a
+  manifest-listed file turns the test red until the cut, by design.
+  `tools/README.md` replaces "should read `ok`" with what the test holds.
+  N4, under the maintainer's selection of 2026-11-14 that opened the AIS
+  records with no message type: the policy-level pass of the typeless event
+  rested on a session's own run, and the adapter's test checked the 1.1.0
+  schema only. A new class in `adapters/ingress/ais/test_ais_ingress.py`
+  loads the reference validators and policy the way the MAVLink and SAPIENT
+  suites do and runs the schema check and the eight policy checks in the
+  order of `tools/validate.py`; the typeless event passes at profiles H and
+  M with no warning, the class key renamed `class_name` is refused as
+  `SCHEMA_INVALID` and renamed `Entity_Class` as `OBSERVATION_HAS_IDENTITY`.
+  `tools/validate.py --strict` on the same three events gave the same
+  verdicts at both profiles. Tests first: with the classifier reduced to
+  T5's old judgement, 18 of the gate file's 26 tests failed and T5 and T6
+  passed; with the classifier, 26 passed. With the helper reduced to the
+  schema check, the two `Entity_Class` controls failed and the other four
+  new tests passed; with the policy checks, the AIS file passed, 133 tests.
+  No rule changes, and no changed file is listed in the release manifest, so
+  no pin moves. The mutants and the full validation run on the commit under
+  the heavy-run lock, and the merge record gives their results.
 - **2026-11-14 (the release facts' seeded-review follow-up).** A seeded
   review of the branch `wave/precut-release-facts-2026-11` (an error planted
   in a copy, found; `local/precut_fixes_2026-11-14/p1/review/review_report.md`,

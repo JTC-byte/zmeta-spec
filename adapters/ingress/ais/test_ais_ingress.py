@@ -6,6 +6,7 @@ encodings of "not reported" that, carried as values, would place a stopped
 vessel at the north pole on a due-north heading.
 """
 
+import importlib.util
 import json
 import sys
 from pathlib import Path
@@ -618,3 +619,97 @@ class TestRecordsWithNoMessageType:
         assert "ais_transceiver_class" not in events[0]["payload"]["features"]
         assert events[1]["payload"]["features"]["ais_transceiver_class"] == "B"
         assert "ais_message_type" not in events[1]["payload"]["features"]
+
+
+# The reference validator and policy, loaded the way the MAVLink and SAPIENT
+# ingress suites load them (adapters/ingress/mavlink/test_mavlink_ingress.py).
+_VALIDATORS_PATH = ROOT / "gateway" / "src" / "validators.py"
+_validators_spec = importlib.util.spec_from_file_location("zmeta_validators", _VALIDATORS_PATH)
+gateway_validators = importlib.util.module_from_spec(_validators_spec)
+_validators_spec.loader.exec_module(gateway_validators)
+GATEWAY_POLICY = gateway_validators.load_policy(ROOT / "policy")
+_UNION_SCHEMA = gateway_validators.load_schema(SCHEMA_DIR / "zmeta-event.schema.json")
+_LANE_SCHEMAS = {
+    "1.0": gateway_validators.load_schema(SCHEMA_DIR / "zmeta-event-1.0.schema.json"),
+    "1.1.0": gateway_validators.load_schema(SCHEMA_DIR / "zmeta-event-1.1.0.schema.json"),
+}
+
+
+def reference_violations(event, profile):
+    """Every violation the reference schema-and-policy validation reports for
+    one event at one profile, as (severity, code) pairs, in the order
+    `tools/validate.py` runs its checks: the schema of the lane the event's
+    stamp names, then, when the schema passes, the role, profile, timing,
+    semantics, lineage, producer-authority, routing and deduplication
+    checks, with a fresh validation state. An empty list is a pass with no
+    warning."""
+    severity_map = GATEWAY_POLICY.get("violation_severities", {})
+    version = event.get("zmeta_version")
+    schema = _LANE_SCHEMAS.get(version) if isinstance(version, str) else None
+    _ok, violations = gateway_validators.validate_schema(event, schema or _UNION_SCHEMA, severity_map)
+    found = [("warn" if v.get("severity") == "warn" else "fail", v["code"]) for v in violations]
+    if found:
+        return found
+    policy = GATEWAY_POLICY
+    state = gateway_validators.ValidationState()
+    checks = [
+        gateway_validators.validate_role(event, {"roles": policy["roles"], "deny": policy["deny"]}, severity_map),
+        gateway_validators.validate_profile(event, profile, policy["profiles"], severity_map),
+        gateway_validators.validate_timing_quality(
+            event,
+            policy["semantics"],
+            state=state,
+            severity_map=severity_map,
+            timing_freshness_policy=policy.get("timing_freshness", {}),
+            profile=profile,
+        ),
+        gateway_validators.validate_semantics(event, policy["semantics"], severity_map),
+        gateway_validators.validate_lineage(
+            event, policy.get("lineage", {}), state=state, profile=profile, severity_map=severity_map
+        ),
+        gateway_validators.validate_producer_authority(event, policy.get("producer_authority", {}), severity_map),
+        gateway_validators.validate_routing(event, policy["routing"], severity_map),
+        gateway_validators.validate_deduplication(event, state=state, severity_map=severity_map),
+    ]
+    for _ok, violations in checks:
+        found.extend(("warn" if v.get("severity") == "warn" else "fail", v["code"]) for v in violations)
+    return found
+
+
+class TestTypelessEventAtTheReferenceValidator:
+    """The schema test above checks the 1.1.0 schema only, and the adapter
+    harness corpus holds the typed shapes only. These hold the typeless event
+    to the reference schema-and-policy validation at profiles H and M, so a
+    change to how the observation deny-list matches key names that refused
+    `ais_transceiver_class` at the gateway fails here, in the adapter's own
+    tests. The two controls show that the same validation refuses the class
+    under a name the policy reserves for identity: `class_name`, which the
+    1.1.0 schema refuses, and `Entity_Class`, a case-varied copy of
+    `entity_class` that the schema passes and the policy's normalised
+    deny-list refuses."""
+
+    @staticmethod
+    def _renamed(new_key):
+        event = translate_typeless()
+        features = event["payload"]["features"]
+        features[new_key] = features.pop("ais_transceiver_class")
+        return event
+
+    @pytest.mark.parametrize("profile", ["H", "M"])
+    def test_a_typeless_event_passes_the_reference_validation(self, profile):
+        event = translate_typeless()
+        assert "ais_transceiver_class" in event["payload"]["features"]
+        assert reference_violations(event, profile) == []
+
+    @pytest.mark.parametrize("profile", ["H", "M"])
+    def test_the_class_renamed_class_name_is_refused(self, profile):
+        found = reference_violations(self._renamed("class_name"), profile)
+        assert found, "the validation passed an observation carrying class_name"
+        assert {code for _, code in found} == {"SCHEMA_INVALID"}, found
+        assert all(severity == "fail" for severity, _ in found), found
+
+    @pytest.mark.parametrize("profile", ["H", "M"])
+    def test_the_class_renamed_entity_class_is_refused_as_identity(self, profile):
+        assert reference_violations(self._renamed("Entity_Class"), profile) == [
+            ("fail", "OBSERVATION_HAS_IDENTITY")
+        ]

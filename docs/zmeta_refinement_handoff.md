@@ -274,6 +274,24 @@ second control runs on doctored sets; the CHANGELOG entry names the
 golden-path assertion.
 The vacuity floor of 20 groups stays as it is. No rule or pin changes.
 
+The branch `wave/precut-tests-2026-11` (2026-11-14), based on
+`wave/precut-release-facts-2026-11`, adds two tests from the pre-cut range
+review of 2026-11-14. Under the maintainer's selection of 2026-11-14 that
+opened Option E of the gate change, T5 of
+`gateway/tests/test_kernel_gate_runs_every_stage.py` now fails on a red gate
+unless the failing stages are within `release_manifest` and `release_package`
+and every line beginning `FAIL ` is a hash mismatch of a failing one of them;
+a small classifier carries the judgement, with unit controls. The rule this
+sets for every branch until the cut: a branch that renames or removes a
+manifest-listed file turns T5 red, because the gate reports the listed file
+missing, and the red lasts until the cut regenerates the manifest. That is by
+design, and `tools/README.md` says so. Under the maintainer's selection of
+2026-11-14 that opened the AIS records with no message type, a test class in
+`adapters/ingress/ais/test_ais_ingress.py` runs the typeless event through
+the reference schema-and-policy validation at profiles H and M, with controls
+for the class key renamed `class_name` and `Entity_Class`. No rule or pin
+changes.
+
 Open, in order of proximity:
 
 1. **The consumers' re-pin to v1.1.27**, once at this tag in the order the
