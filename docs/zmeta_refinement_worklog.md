@@ -2,7 +2,10 @@
 
 ## Current Resume Note
 
-- Last updated: 2026-11-14 (the pre-cut records' seeded-review follow-up;
+- Last updated: 2026-11-14 (the gateway documents: protected strip paths,
+  the admission record's members, the decode refusal, and the strip
+  guard's reasons;
+  the pre-cut records' seeded-review follow-up;
   the pre-cut records: the `observed_at`
   refusal's cut condition, the handoff's current state, the declined-factor
   sentence; the tests branch's seeded-review follow-up;
@@ -36,6 +39,63 @@
   pre-cut dry run; the TAK Protocol Version 1 egress adapter; DECODE_AMBIGUOUS,
   three commits, the third on 2026-11-03; two contract sentences;
   carried-list records pass; heading_deg defined; records pass after 7.6)
+- **2026-11-14 (the gateway documents: protected strip paths, the admission
+  record's members, the decode refusal, and the strip guard's reasons).**
+  Two corrections from the pre-cut range review of 2026-11-14 (its S5 and
+  N1), on the branch `wave/precut-gateway-docs-2026-11`, based on
+  `wave/precut-records-2026-11`, under the maintainer's decisions of
+  2026-11-02 that the changed text documents (doctrine F4-04, doctrine
+  F7-01 and contract 7.8's validity window). S5: `configs/README.md` said
+  that two strip path prefixes are protected; `gateway/src/gateway.py` has
+  protected three since 2026-11-02, and the README now names them and gives
+  `payload.valid_from_ts` its reason. `gateway/README.md` gains an
+  Admission records section, read from `_claimed_values`,
+  `_replaced_values`, `apply_external_promotion_policy_action` and
+  `apply_timing_freshness_degradation` in
+  `gateway/src/validators.py` and `_apply_failure_mode_degradation` in
+  `gateway/src/gateway.py`: the members `effects.confidence_claimed`,
+  `effects.valid_for_ms_claimed` and `effects.reduction_declined`, the four
+  paths that write them, and the rule from doctrine F4-04 that the
+  producer's figure for a member is the claimed value in the first record
+  that carries it. It also gains a Decode refusals section: the three cases
+  `DECODE_AMBIGUOUS` refuses, its v1.0 wire form (`reason_code`
+  `SCHEMA_INVALID`, the code in `metrics.diagnostic_code`, by
+  `schema_violation_v1_0_wire_fallback` in `policy/semantics.yaml`), the
+  CBOR and compact lanes' duplicate map keys, which are not refused
+  (measured in memory on this branch: a CBOR map with one key twice decodes
+  to the last value), and the `auto` lane as it is, measured in memory on
+  this branch with nothing written: a compact datagram cut by one
+  byte or carrying one trailing byte, a CBOR datagram cut by one byte and
+  the text `hello world` read `DECODE_AMBIGUOUS`, the same cut compact
+  datagram reads `SCHEMA_INVALID` on the `compact` lane, and of the four
+  examples in `examples/zmeta-examples-1.0.jsonl` cut at every length, the
+  five-member OBSERVATION reads `DECODE_AMBIGUOUS` at 451 of 456 cut points
+  and the three seven-member events read `SCHEMA_INVALID` at every one. The
+  section calls the `auto` lane's behaviour an open pre-cut decision, which
+  is S2 and waits for the maintainer's word. `policy/README.md` names the
+  three members where it describes the soft-acceptance record.
+  `spec/field-dictionary.md` is not changed. N1: the strip guard gave one
+  reason for every protected prefix; the dictionary
+  `PROTECTED_STRIP_PATH_REASONS` now gives each its own, the refusal
+  states it, and `PROTECTED_STRIP_PATH_PREFIXES` is read from the
+  dictionary. The comment on the decode-failure branch of
+  `process_message` now says that the `auto` lane can report a damaged
+  datagram as `DECODE_AMBIGUOUS`. `gateway.py` is pinned at 3389 lines by
+  `gateway/tests/test_decode_ambiguous_readers.py`, because
+  `tools/validation_guidance.yaml` cites it by line; every hunk of the
+  change keeps its start line and its line count, and the citation
+  `gateway/src/gateway.py:2640-2656` still names the decode-failure branch,
+  its first four lines now the rewritten comment. Tests first: four in
+  `gateway/tests/test_strip_protected_paths.py` and thirteen in the new
+  `gateway/tests/test_gateway_behaviour_docs.py`, which read the protected
+  prefixes, the member names and the wire fallback from the code and the
+  policy; thirteen of the seventeen failed on the unchanged tree, and the
+  four that passed
+  read the member names and the auto lane's present behaviour. When S2 is
+  decided, the three auto-lane tests and the README section change
+  together. No rule or pin changes, and no changed file is listed in the
+  release manifest. The mutants and the full validation run on the commit
+  under the heavy-run lock, and the merge record gives their results.
 - **2026-11-14 (the pre-cut records' seeded-review follow-up).** A seeded
   review of the branch `wave/precut-records-2026-11` (an error planted in a
   copy, found; `local/precut_fixes_2026-11-14/p3/review/review_report.md`,

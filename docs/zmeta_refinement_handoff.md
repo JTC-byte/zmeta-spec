@@ -318,8 +318,8 @@ names had both happened. Three stacked branches of the same day take its
 findings: `wave/precut-release-facts-2026-11` closes M1;
 `wave/precut-tests-2026-11` closes S4 and N4; `wave/precut-records-2026-11`
 closes M2 as a record (item 8 below), S6 and N2. A fourth branch,
-`wave/precut-gateway-docs-2026-11`, is to follow for S5 and N1, and its
-own paragraph is to record what it closes. Seven findings wait for the
+`wave/precut-gateway-docs-2026-11`, closes S5 and N1, as its own
+paragraph below records. Seven findings wait for the
 maintainer's word: S1 (the MAVLink egress projects a command whose
 validity window has not opened), S2 (the `auto` input lane reports a
 truncated compact or CBOR datagram as `DECODE_AMBIGUOUS`; the review
@@ -365,6 +365,32 @@ scoped to a factor above 0 and below 1, and this branch's CHANGELOG entry
 names item 6's `pr/8-review` and N7; the reworded entries no longer say
 that no fact changes, and the AIS entry no longer repeats its date. No
 code, rule or pin changes.
+
+The branch `wave/precut-gateway-docs-2026-11` (2026-11-14), based on
+`wave/precut-records-2026-11`, closes S5 and N1 of the pre-cut range review
+of 2026-11-14, under the maintainer's decisions of 2026-11-02 that the
+changed text documents. `configs/README.md` names the three protected strip
+prefixes and gives `payload.valid_from_ts` its reason, the start of a
+command's validity window (contract 7.8). `gateway/README.md` gains two
+sections: Admission records, which names `effects.confidence_claimed`,
+`effects.valid_for_ms_claimed` and `effects.reduction_declined` and states
+that the producer's figure for a member is the claimed value in the first
+record that carries it (contract 4.5.1, doctrine F4-04); and Decode
+refusals, which states what `DECODE_AMBIGUOUS` refuses, its v1.0 wire form
+(`SCHEMA_INVALID` with `metrics.diagnostic_code`), and the `auto` lane's
+behaviour as it is, given as an open pre-cut decision because S2 waits for
+the maintainer's word. `policy/README.md` names the three members.
+`spec/field-dictionary.md` is not changed. In `gateway/src/gateway.py` the
+strip guard gives each protected prefix its own reason
+(`PROTECTED_STRIP_PATH_REASONS`), and the comment on the decode-failure
+branch now says that the `auto` lane can report a damaged datagram as
+`DECODE_AMBIGUOUS`. Each edited block keeps its line count, so the file
+stays at the 3389 lines its pin test asserts and no citation into it moves;
+the citation `gateway/src/gateway.py:2640-2656` names the same branch. New
+tests read the prefixes, the member names and the wire fallback from the
+code and the policy, and three of them hold the README's account of the
+`auto` lane to the code, so the decision on S2 changes those tests and the
+section together. No rule or pin changes.
 
 Open, in order of proximity:
 

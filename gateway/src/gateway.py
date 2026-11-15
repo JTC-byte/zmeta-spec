@@ -78,19 +78,19 @@ DEFAULT_STRIP_OPTIONAL_FIELDS = [
     "payload.data_refs",
 ]
 DEFAULT_STRIP_OPTIONAL_FIELDS_PROFILES = ["L", "M", "H"]
-# Paths that strip_optional_fields must never remove, in whole or in part.
-# Accepted-risk labels and external-promotion evidence exist so downstream
-# consumers can filter by explicit policy decision; silently deleting them
-# turns degraded/externally-promoted data back into clean-looking data
-# (laundering). docs/zmeta_change_governance.md forbids silently stripping
-# accepted-risk labels, use limits, or external-promotion evidence.
-PROTECTED_STRIP_PATH_PREFIXES = [
-    "payload.extensions.risk_adjudication",
-    "payload.extensions.external_promotion",
-    # contract 7.8 (2026-11-02): the start of a command's validity window;
-    # stripping it from a same-event_id projection moves the window
-    "payload.valid_from_ts",
-]
+# Paths that strip_optional_fields must never remove, in whole or in part,
+# each with the reason its refusal at config load gives. Silently deleting a
+# risk label or promotion evidence launders degraded or externally promoted
+# data, which docs/zmeta_change_governance.md forbids.
+PROTECTED_STRIP_PATH_REASONS = {
+    "payload.extensions.risk_adjudication": "carries accepted-risk labels "
+        "(docs/zmeta_change_governance.md no-laundering rule)",
+    "payload.extensions.external_promotion": "carries external-promotion "
+        "evidence (docs/zmeta_change_governance.md no-laundering rule)",
+    "payload.valid_from_ts": "starts a command's validity window, which moves "
+        "when a same-event_id projection drops it (contract 7.8, 2026-11-02)",
+}
+PROTECTED_STRIP_PATH_PREFIXES = list(PROTECTED_STRIP_PATH_REASONS)
 DEFAULT_METRICS_INTERVAL_SEC = 30
 DEFAULT_RATE_LIMIT_PER_SEC = 0
 DEFAULT_RATE_LIMIT_PRODUCER_PER_SEC = 0
@@ -1261,11 +1261,11 @@ def _normalize_field_list(value, fallback):
 
 
 def _reject_protected_strip_paths(fields):
-    # Fail fast at config load: stripping an accepted-risk label or
-    # external-promotion evidence path (or anything nested under one) would
-    # silently launder degraded data (docs/zmeta_change_governance.md
-    # no-silent-strip rule). Comparison is segment-wise so a protected prefix
-    # matches itself and its children, but not lookalike sibling names.
+    # Fail fast at config load: stripping a protected path (or anything nested
+    # under one) would launder degraded data or move a command's validity
+    # window; PROTECTED_STRIP_PATH_REASONS gives each prefix its own reason.
+    # Comparison is segment-wise so a protected prefix matches itself and its
+    # children, but not lookalike sibling names.
     for path in fields:
         parts = [part for part in str(path).split(".") if part]
         for prefix in PROTECTED_STRIP_PATH_PREFIXES:
@@ -1273,9 +1273,9 @@ def _reject_protected_strip_paths(fields):
             if parts[: len(prefix_parts)] == prefix_parts:
                 raise ValueError(
                     f"strip_optional_fields entry '{path}' is protected: "
-                    f"'{prefix}' carries accepted-risk labels or promotion "
-                    "evidence and must not be silently stripped "
-                    "(docs/zmeta_change_governance.md no-laundering rule)"
+                    f"'{prefix}' "
+                    f"{PROTECTED_STRIP_PATH_REASONS[prefix]} and must not be "
+                    "silently stripped"
                 )
 
 
@@ -2637,10 +2637,10 @@ def process_message(
         # diagnostic event, since a decode exception's str() can itself echo
         # the offending wire value.
         decode_error = str(exc)
-        # A decode the gateway would have had to repair (a duplicate JSON key, a
-        # protobuf field the schema does not define or types otherwise) is refused
-        # under DECODE_AMBIGUOUS (doctrine F7-01); every other decode failure
-        # stays SCHEMA_INVALID.
+        # DECODE_AMBIGUOUS when the decoder refused what it would have had to
+        # repair (doctrine F7-01), else SCHEMA_INVALID. The auto lane reads as
+        # protobuf what its CBOR or compact decode refused, so a damaged datagram
+        # or stray text can also read DECODE_AMBIGUOUS (an open pre-cut decision).
         decode_code = "DECODE_AMBIGUOUS" if is_decode_ambiguous(exc) else "SCHEMA_INVALID"
         if metrics:
             metrics.record_violation(decode_code, details=decode_error)

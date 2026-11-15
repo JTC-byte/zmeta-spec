@@ -6,7 +6,9 @@ strip_optional_fields must never remove accepted-risk labels
 launder degraded or externally-promoted data into clean-looking data
 (docs/zmeta_change_governance.md no-silent-strip rule). A config that lists
 a protected path (or anything nested under one) must be rejected at load,
-not silently honored at runtime.
+not silently honored at runtime. The command start, payload.valid_from_ts,
+is protected for its own reason: it starts a command's validity window
+(contract 7.8), and the refusal says so.
 """
 
 import importlib.util
@@ -89,6 +91,54 @@ class ProtectedStripPathConfigTest(unittest.TestCase):
             ["payload.extensions.risk_adjudication_notes"],
             settings["strip_optional_fields"],
         )
+
+
+def _refusal(path):
+    with mock.patch("sys.argv", ["gateway.py", "--profile", "H"]):
+        args = gateway.parse_args()
+    try:
+        gateway.build_settings(ROOT, args, {"strip_optional_fields": [path]})
+    except ValueError as exc:
+        return str(exc)
+    raise AssertionError(f"a config that strips {path!r} was accepted")
+
+
+class ProtectedStripPathReasonTest(unittest.TestCase):
+    """Each protected prefix is refused with its own reason (pre-cut range review of 2026-11-14, N1).
+
+    The guard gave one reason for every prefix, so a config that stripped the
+    command start was told the path carries accepted-risk labels or promotion
+    evidence. The reason for that prefix is the validity window (contract 7.8).
+    """
+
+    def test_every_protected_prefix_has_a_reason_of_its_own(self):
+        reasons = gateway.PROTECTED_STRIP_PATH_REASONS
+        self.assertEqual(list(gateway.PROTECTED_STRIP_PATH_PREFIXES), list(reasons))
+        self.assertGreaterEqual(len(reasons), 3)
+        self.assertEqual(len(reasons), len(set(reasons.values())))
+
+    def test_the_command_start_refusal_names_the_validity_window(self):
+        message = _refusal("payload.valid_from_ts")
+        self.assertIn("'payload.valid_from_ts'", message)
+        self.assertIn("validity window", message)
+        self.assertIn("contract 7.8", message)
+        self.assertNotIn("accepted-risk", message)
+        self.assertNotIn("promotion", message)
+
+    def test_the_risk_label_refusal_names_the_labels_alone(self):
+        message = _refusal("payload.extensions.risk_adjudication")
+        self.assertIn("accepted-risk labels", message)
+        self.assertIn("no-laundering rule", message)
+        self.assertNotIn("promotion", message)
+        self.assertNotIn("validity window", message)
+
+    def test_the_promotion_refusal_names_the_evidence_alone(self):
+        message = _refusal("payload.extensions.external_promotion.evidence")
+        self.assertIn("'payload.extensions.external_promotion'", message)
+        self.assertIn("external-promotion evidence", message)
+        self.assertIn("no-laundering rule", message)
+        self.assertNotIn("accepted-risk", message)
+        self.assertNotIn("validity window", message)
 
 
 class StripOptionalFieldsRuntimeTest(unittest.TestCase):
