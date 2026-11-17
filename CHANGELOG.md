@@ -2,6 +2,63 @@
 
 ## [Unreleased]
 
+- 2026-11-16 — **The `auto` input lane reports `DECODE_AMBIGUOUS` only for a
+  whole protobuf message carrying fields 2, 3 and 4** (`gateway/src/gateway.py`,
+  `zmeta_proto.py`, `spec/protobuf-encoding.md`, `gateway/README.md`,
+  `tools/validation_guidance.yaml`,
+  `conformance/encoding-negative/gateway-must-fail.jsonl`,
+  `docs/zmeta_doctrine_review_log.md`,
+  `gateway/tests/test_auto_lane_ambiguity.py`,
+  `gateway/tests/test_gateway_behaviour_docs.py`). Finding S2 of the pre-cut
+  range review of 2026-11-14, on the maintainer's selection of 2026-11-16.
+  The `auto` lane tries CBOR and the compact mapping, then protobuf, then
+  JSON. Since 2026-11-02 it re-raised every protobuf refusal under
+  `DECODE_AMBIGUOUS`, a code that means a decode the gateway would have had
+  to repair. The protobuf decoder refuses at the first field it cannot
+  place, so a compact or CBOR datagram cut short in transit, a compact
+  datagram with one trailing byte and plain text read `DECODE_AMBIGUOUS`
+  with a diagnostic naming a protobuf field: 4,244 compact and 15,111 CBOR
+  cut points of the shipped examples, and 1,934 of 5,000 seeded random
+  datagrams. A count of the code then mixed link loss and stray input with
+  ambiguous producer output. Now, after the strict decode refuses a
+  datagram as ambiguous, the lane re-raises the refusal only when the new
+  `zmeta_proto.carries_event_members` finds the datagram to be one whole
+  protobuf message, every key valid and every field complete to its last
+  byte, whose top-level field numbers include 2, 3 and 4 (`event`,
+  `source`, `payload`), whatever their wire types. The test decodes
+  nothing and runs only after a strict refusal, so clean traffic pays
+  nothing and the gateway still never asks for the forensic skip mode. Any
+  other datagram falls through to the UTF-8/JSON attempt as at v1.1.27 and
+  reads `SCHEMA_INVALID`. A complete event with a stray, mistyped or
+  repeated field, and a duplicate key inside `payload_json`, stay
+  `DECODE_AMBIGUOUS` on both lanes. A message the strict decoder refuses as
+  ambiguous that is also cut short or malformed at its top level after the
+  refused field, or lacks field 2, 3 or 4, reads `SCHEMA_INVALID` on the
+  `auto` lane while the `proto` lane, which is unchanged, reads
+  `DECODE_AMBIGUOUS`; tests hold that difference on both lanes for six such
+  messages, among them the three edge cases the maintainer accepted.
+  `spec/protobuf-encoding.md` gains a paragraph after its decoder bounds
+  that states the `auto` lane's rule; its lines 114 to 131 are unchanged.
+  Change class C (a gateway decode behaviour and a codec function), with a
+  class B conformance fixture: `gateway-must-fail.jsonl` gains
+  `gateway-auto-truncated-compact-schema-invalid` (a cut five-member compact
+  datagram on `auto`, gateway code `SCHEMA_INVALID`). Compatibility: a
+  consumer that counts `metrics.diagnostic_code` on an `auto` lane sees
+  fewer `DECODE_AMBIGUOUS`, and the gateway's own violation counts move the
+  same way; no `reason_code` on the v1.0 wire changes; a refused datagram's
+  error text becomes the UTF-8/JSON attempt's, as at v1.1.27, so a cut
+  compact datagram reads a UTF-8 error on `auto` and "unexpected end of
+  data" on `compact` (carrying the CBOR attempt's text instead, option
+  (c3), is booked open). No runtime hash moves (contract, policy,
+  semantics, schema). The release manifest's `encoding_negative_suite_hash`
+  and `encoding_projection_specs_hash` move at the next cut. Both rewrites
+  in `gateway/src/gateway.py` keep their line counts, so the file stays at
+  the 3389 lines its pin test asserts and no citation into it moves; the
+  new function follows the last line of `zmeta_proto.py`. This entry
+  supersedes the statements in the entry of 2026-11-14 that a damaged
+  compact or CBOR datagram, or plain text, can read `DECODE_AMBIGUOUS` on the
+  `auto` lane, and that the decode-failure comment says so.
+
 - 2026-11-14 — **An ASTERIX CAT062 egress adapter encodes a track state as a
   system track record** (`adapters/egress/asterix/`, adapter 1.0.0,
   Reference). Built on the maintainer's selection of 2026-11-14. One

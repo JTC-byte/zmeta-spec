@@ -130,6 +130,14 @@ and the gateway never does. Malformed bytes (an unsupported wire type, a
 truncated field, an over-long varint) are reported as malformed, field by field,
 before the ambiguity check reaches them.
 
+On the `auto` input lane the gateway reports such a refusal under
+`DECODE_AMBIGUOUS` only when the datagram is one whole protobuf message, every
+key valid and every field complete to its last byte, whose top-level field
+numbers include 2, 3 and 4 (`event`, `source`, `payload`), whatever their wire
+types. A refused message that is cut short or malformed after the refused field,
+or lacks one of the three, reads `SCHEMA_INVALID` on that lane and
+`DECODE_AMBIGUOUS` on the `proto` lane.
+
 ## Tooling
 
 Measure size:

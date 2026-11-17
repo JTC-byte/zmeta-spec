@@ -1468,9 +1468,9 @@ def _decode_message(message, input_encoding):
             try:
                 return zmeta_proto.loads(message)
             except Exception as exc:
-                if is_decode_ambiguous(exc):
-                    # a protobuf message the decoder refused as ambiguous is not
-                    # JSON in disguise; report the refusal, never a UTF-8 error
+                if is_decode_ambiguous(exc) and zmeta_proto.carries_event_members(message):
+                    # whole protobuf bytes carrying fields 2, 3 and 4 that the decoder
+                    # refused as ambiguous are not JSON in disguise; report the refusal
                     raise
         text = message.decode("utf-8")
         return _json_loads(text)
@@ -2638,9 +2638,9 @@ def process_message(
         # the offending wire value.
         decode_error = str(exc)
         # DECODE_AMBIGUOUS when the decoder refused what it would have had to
-        # repair (doctrine F7-01), else SCHEMA_INVALID. The auto lane reads as
-        # protobuf what its CBOR or compact decode refused, so a damaged datagram
-        # or stray text can also read DECODE_AMBIGUOUS (open: pre-cut review S2).
+        # repair (doctrine F7-01), else SCHEMA_INVALID. On the auto lane the
+        # protobuf refusal counts only for a whole protobuf message carrying
+        # fields 2, 3 and 4 (_decode_message); other bytes read SCHEMA_INVALID.
         decode_code = "DECODE_AMBIGUOUS" if is_decode_ambiguous(exc) else "SCHEMA_INVALID"
         if metrics:
             metrics.record_violation(decode_code, details=decode_error)

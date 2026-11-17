@@ -319,18 +319,17 @@ findings: `wave/precut-release-facts-2026-11` closes M1;
 `wave/precut-tests-2026-11` closes S4 and N4; `wave/precut-records-2026-11`
 closes M2 as a record (item 8 below), S6 and N2. A fourth branch,
 `wave/precut-gateway-docs-2026-11`, closes N1 and S5 except S5's part in
-`spec/field-dictionary.md`, as its own paragraph below records. Seven
+`spec/field-dictionary.md`, as its own paragraph below records. Six
 findings wait for the
 maintainer's word: S1 (the MAVLink egress projects a command whose
-validity window has not opened), S2 (the `auto` input lane reports a
-truncated compact or CBOR datagram as `DECODE_AMBIGUOUS`; the review
-advises deciding it before the third field leg, which reads that code),
+validity window has not opened),
 S3 (246 displaced line citations in `tools/validation_guidance.yaml`), N3
 (a class scoped to version 1.0 whose required corpus holds two 1.1.0
 cases), N5 (two stale lines in `RELEASE_CHECKLIST.md`), N6 (a MAVLink
 quality key named for an unknown heading frame) and N8 (the detail in the
 bodies of the unpushed commits of 2026-11-14, which only a rewrite of local
-history changes). Of N7, the two detached worktrees were throwaway trees
+history changes). S2 is closed by the maintainer's selection of 2026-11-16.
+Of N7, the two detached worktrees were throwaway trees
 and are removed, and `pr/8-review` is in item 6 below. The full register of
 the findings and their dispositions lands with the cut-prep commit, as at
 earlier cuts.
@@ -441,6 +440,44 @@ hash and each lane's contract hash differ from the tree before it, though no
 policy rule differs. A gateway started with a required policy or contract
 hash from the earlier tree exits at startup. Open for the maintainer:
 whether a file that states no rule belongs in the hashed directory.
+
+The branch `wave/auto-lane-ambiguity-2026-11` (2026-11-16) closes finding
+S2 of the pre-cut range review of 2026-11-14 on the maintainer's selection
+of 2026-11-16, option (a) of the S2 evidence, with the structural test of
+the build ruling's amendment. After the strict protobuf decode refuses a
+datagram as ambiguous, the `auto` input lane re-raises the refusal only
+when the new `zmeta_proto.carries_event_members` finds the datagram to be
+one whole protobuf message whose top-level field numbers include 2, 3 and
+4, whatever their wire types; any other datagram falls through to the
+UTF-8/JSON attempt as at v1.1.27 and reads `SCHEMA_INVALID`. A compact or
+CBOR datagram cut short, a compact datagram with one trailing byte and
+plain text no longer read `DECODE_AMBIGUOUS` on that lane, so link loss no
+longer raises the count the third field leg reads. A complete event with a
+stray, mistyped or repeated field stays `DECODE_AMBIGUOUS` on both lanes.
+The held class, a refused message that is also cut short or malformed at
+its top level after the refused field or lacks field 2, 3 or 4, reads
+`SCHEMA_INVALID` on `auto` and `DECODE_AMBIGUOUS` on `proto`; tests hold
+six members on both lanes, the three edge cases put to the maintainer
+among them. The test decodes nothing, so the gateway still never asks for
+the forensic skip mode. `gateway/src/gateway.py` keeps its 3389 lines and
+its pin, and no citation into it, into `zmeta_proto.py` or into
+`spec/protobuf-encoding.md` moves. One fixture in
+`conformance/encoding-negative/gateway-must-fail.jsonl` holds a cut compact
+datagram on `auto` to `SCHEMA_INVALID`. No contract, schema or policy file
+changes, and no runtime hash moves.
+
+Open from that branch:
+
+- `spec/protobuf-encoding.md` gains one paragraph after line 131 that
+  states the `auto` lane's rule. Its merge waits for the maintainer's word,
+  because doctrine F7-01 records the rule the specification states among
+  his words. If he declines it, the paragraph is dropped, and the
+  specification's sentence that the gateway reports the refusal under
+  `DECODE_AMBIGUOUS` (its decoder bounds) is booked here as not universal
+  on the `auto` lane.
+- Option (c3), not selected and not built: on `auto`, a cut compact
+  datagram reads the UTF-8 attempt's error text, not the CBOR attempt's
+  "unexpected end of data", which the `compact` lane reports.
 
 Open, in order of proximity:
 

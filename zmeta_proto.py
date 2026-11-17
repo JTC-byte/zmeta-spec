@@ -528,3 +528,32 @@ def _assert_json_depth(payload: bytes, max_json_depth: int) -> None:
                 raise ValueError("protobuf payload JSON exceeds max_json_depth")
         elif byte in (0x7D, 0x5D):  # } ]
             depth = max(0, depth - 1)
+
+
+def carries_event_members(data: bytes) -> bool:
+    """True when ``data`` is one whole protobuf message whose top-level field
+    numbers include 2, 3 and 4 (``event``, ``source`` and ``payload``), whatever
+    their wire types.
+
+    Every key must be valid and every field complete to the message's last
+    byte, within the default bounds of ``loads``. Nothing is decoded: each field
+    is skipped by its wire type, not read. The gateway's ``auto`` lane asks this
+    only after ``loads`` refused the same bytes as ambiguous, so that bytes of
+    another encoding that happen to parse as a protobuf key read SCHEMA_INVALID
+    there rather than DECODE_AMBIGUOUS (pre-cut review S2, the maintainer's
+    selection of 2026-11-16).
+    """
+    data = _coerce_bytes(data)
+    if len(data) > DEFAULT_MAX_MESSAGE_BYTES:
+        return False
+    fields = set()
+    index = 0
+    try:
+        while index < len(data):
+            field, wire_type, index = _read_key(data, index)
+            _validate_field_number(field)
+            index = _skip_field(data, index, wire_type, DEFAULT_MAX_FIELD_BYTES)
+            fields.add(field)
+    except ValueError:
+        return False
+    return {2, 3, 4} <= fields
