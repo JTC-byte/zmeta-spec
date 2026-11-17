@@ -2,6 +2,20 @@
 
 ## [Unreleased]
 
+- 2026-11-17 — **Records: six lines name a read by its date or subject,
+  the policy README says the policy hash covers it, and the relation
+  check's timing** (`CHANGELOG.md`, `docs/zmeta_refinement_handoff.md`,
+  `docs/zmeta_refinement_worklog.md`, `policy/README.md`). On the
+  maintainer's selections of 2026-11-16. Six lines written on 2026-11-12
+  and 2026-11-14 named the account a read was made on; each now names the
+  read by its date or its subject. `policy/README.md` gains one sentence:
+  the gateway's runtime policy hash covers every file under `policy/`,
+  this README included, so an edit to it changes the policy hash and every
+  contract hash with no rule changed. This commit is such an edit. The
+  handoff's item on the `last_seen_ts` relation check says that its branch
+  opens after the v1.1.28 cut. No schema, policy rule, contract, code or
+  manifest-listed file changes.
+
 - 2026-11-17 — **Records: the bounded event index's seeded-review
   follow-up** (`docs/zmeta_refinement_handoff.md`,
   `docs/zmeta_refinement_worklog.md`, `CHANGELOG.md`). A seeded review of
@@ -427,13 +441,13 @@
   "whose policy-scoped record names the mode", which dropped "on the accepted
   event" and tied the record to the mode. It now reads "when the
   policy-scoped record on the accepted event names the mode and carries the
-  values it replaced", as contract 4.5.1 does. A finding of the team
-  account's read of Clause 1's final text; no rule, contract or code change.
+  values it replaced", as contract 4.5.1 does. A finding of a read of
+  Clause 1's final text; no rule, contract or code change.
 
 - 2026-11-12 — **Three more process passages say the release manifest waits
   for the cut** (`docs/zmeta_change_governance.md`, `AGENTS.md`, agent and
   process guidance). The maintainer selected the four texts on 2026-11-12,
-  after a read on his team account found passages that still told an author
+  after a read found passages that still told an author
   to regenerate the manifest with the change. The Class B list and step 6 of
   the implementation steps in the governance document, and the AGENTS.md
   list of files to consider, now say that the manifest and claim hashes are

@@ -2,7 +2,9 @@
 
 ## Current Resume Note
 
-- Last updated: 2026-11-17 (the bounded event index's seeded-review
+- Last updated: 2026-11-17 (records: six lines name a read by its date
+  or subject, the policy README's hash sentence, the relation check's
+  timing; the bounded event index's seeded-review
   follow-up; 2026-11-16: the bounded event index brought up to
   develop for its merge, its line citations moved; the `auto` input lane
   reports a protobuf
@@ -53,6 +55,26 @@
   three commits, the third on 2026-11-03; two contract sentences;
   carried-list records pass; heading_deg defined; records pass after 7.6;
   2026-10-02: the reference gateway keeps a bounded event index)
+- **2026-11-17 (records: six lines name a read by its date or subject;
+  the policy README's hash sentence; the relation check's timing).** On
+  the maintainer's selections of 2026-11-16. Six tracked lines written
+  since the last push named the account a read was made on: two in the
+  CHANGELOG's entries of 2026-11-12 (Clause 1's follow-up and the
+  governance passages), the handoff's paragraph on Clause 1's follow-up,
+  and this worklog's entries of 2026-11-14 (Option E) and 2026-11-12
+  (Clause 1's follow-up and the governance passages). Each now reads "a
+  read of", "a seeded read of" or "a read found". The record of
+  2026-11-16 counted five; its search read one line at a time, and the
+  sixth is split over two CHANGELOG lines. A search across line breaks of
+  every file changed since the last push finds these six and no other.
+  `policy/README.md` gains one sentence: the gateway's runtime policy hash
+  covers every file under `policy/`, this README included
+  (`gateway/src/gateway.py`, `_hash_dir`), so this commit changes
+  develop's policy hash and every contract hash built from it with no rule
+  changed; every release has its own hashes, and no consumer pins develop.
+  The handoff's open item 2 says that the `last_seen_ts` relation-check
+  branch opens after the v1.1.28 cut. No schema, policy rule, contract,
+  code or manifest-listed file changes.
 - **2026-11-17 (the bounded event index's seeded-review follow-up).** A
   seeded review of the merge and its follow-up commit, by a fresh reader on
   a copy with one sealed plant (a moved TASK_ACK_DUPLICATE citation set two
@@ -763,7 +785,7 @@
   lock, and the merge record gives their results.
 - **2026-11-14 (the gate runs every stage; Z4 Option E).** On the
   maintainer's selection of 2026-11-14 in this repository's session, Option E
-  of the team account's read of 2026-11-12 (Z4) is built.
+  of a read of 2026-11-12 (Z4) is built.
   `tools/validate_conformance.py` runs every stage it is asked for and exits
   with the first failing stage's code, the code its early exit gave; when a
   stage fails it prints a `conformance stages:` line
@@ -832,7 +854,7 @@
   The new code sits after `_quality`, so the lines the doctrine review log
   cites (`ais_to_zmeta.py:165-203`) keep their numbers. No schema, policy,
   contract, registry, conformance or manifest-listed file changes.
-- **2026-11-12 (Clause 1's follow-up).** The team account's seeded read of
+- **2026-11-12 (Clause 1's follow-up).** A seeded read of
   Clause 1's final text (Z3,
   `local/team_pieces_2026-11-12/c1_final_review.md`, claude-fable-5-2, READY
   WITH CORRECTIONS, its plant found) gave two SHOULD FIX findings, applied
@@ -851,7 +873,7 @@
 - **2026-11-12 (three more manifest passages).** The maintainer selected
   "Amend all four" on 2026-11-12, after the four texts were quoted to him:
   governance :161-162 and :344, AGENTS.md :105-106, and "experimental or wave
-  branch" at governance :305. They come from the team account's read of the
+  branch" at governance :305. They come from a read of the
   develop-green question (Z4,
   `local/team_pieces_2026-11-12/governance_green_options.md`). Branch
   `wave/governance-manifest-passages-2026-11`. Both files are manifest-listed,
