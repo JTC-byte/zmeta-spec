@@ -319,10 +319,9 @@ findings: `wave/precut-release-facts-2026-11` closes M1;
 `wave/precut-tests-2026-11` closes S4 and N4; `wave/precut-records-2026-11`
 closes M2 as a record (item 8 below), S6 and N2. A fourth branch,
 `wave/precut-gateway-docs-2026-11`, closes N1 and S5 except S5's part in
-`spec/field-dictionary.md`, as its own paragraph below records. Seven
+`spec/field-dictionary.md`, as its own paragraph below records. Six
 findings wait for the
-maintainer's word: S1 (the MAVLink egress projects a command whose
-validity window has not opened), S2 (the `auto` input lane reports a
+maintainer's word: S2 (the `auto` input lane reports a
 truncated compact or CBOR datagram as `DECODE_AMBIGUOUS`; the review
 advises deciding it before the third field leg, which reads that code),
 S3 (246 displaced line citations in `tools/validation_guidance.yaml`), N3
@@ -330,7 +329,12 @@ S3 (246 displaced line citations in `tools/validation_guidance.yaml`), N3
 cases), N5 (two stale lines in `RELEASE_CHECKLIST.md`), N6 (a MAVLink
 quality key named for an unknown heading frame) and N8 (the detail in the
 bodies of the unpushed commits of 2026-11-14, which only a rewrite of local
-history changes). Of N7, the two detached worktrees were throwaway trees
+history changes). S1 (the MAVLink egress projected a command whose
+validity window had not opened) was decided on 2026-11-16 on the
+maintainer's selection: the egress now refuses such a command. The
+behaviours its evidence also measured, the gateway's task dedupe horizon
+and a window already closed at issue, stay open in gap (x) below. Of N7,
+the two detached worktrees were throwaway trees
 and are removed, and `pr/8-review` is in item 6 below. The full register of
 the findings and their dispositions lands with the cut-prep commit, as at
 earlier cuts.
@@ -441,6 +445,17 @@ hash and each lane's contract hash differ from the tree before it, though no
 policy rule differs. A gateway started with a required policy or contract
 hash from the earlier tree exits at startup. Open for the maintainer:
 whether a file that states no rule belongs in the hashed directory.
+
+The branch `wave/mavlink-window-refusal-2026-11` (2026-11-16) builds the
+maintainer's selection of 2026-11-16 on finding S1, its option (A), in
+Class C. The MAVLink egress returns None for a command whose
+`valid_from_ts` is later than its `event.ts`, compared strictly as the
+SAPIENT egress compares them, for a `valid_from_ts` it cannot read, and
+for a `valid_from_ts` beside an `event.ts` that is absent or cannot be
+read. A command without `valid_from_ts`, or with a null one, goes out as
+before. The reader is a copy of the SAPIENT egress's, and the tests hold
+the two copies to the same code and the two egresses to the same refusals
+on the window cases. What stays open is in gap (x). Not manifest-listed.
 
 Open, in order of proximity:
 
@@ -766,13 +781,27 @@ Open, in order of proximity:
    projection catalog preserves `valid_from_ts`; 4.3 names a command's
    `event.ts` its issue time when `valid_from_ts` is present; the reference
    gateway's strip guard protects `payload.valid_from_ts`. Measured by the
-   rule and still open: the reference gateway's task dedupe holds a
-   `task_id` from receipt for min(`valid_for_ms`, 300 s), shorter than a
-   window that opens later (the subject of the held branch
-   `exp/command-dedupe-validity`); the MAVLink mission intent carries
-   `valid_for_ms` and neither anchor, so a receiver can only start the
-   duration at receipt; the SAPIENT egress projects a window already closed
-   at issue (a start before `event.ts` whose end precedes it). Open on the
+   rule: the MAVLink mission intent carries `valid_for_ms` and neither
+   anchor, so a receiver can only start the duration at receipt (decided
+   2026-11-16 on the maintainer's selection: the MAVLink egress refuses a
+   command whose window opens after `event.ts`, by the SAPIENT egress's
+   strict comparison, and one whose `valid_from_ts`, or whose `event.ts`
+   beside a `valid_from_ts`, it cannot read; a window that has opened by
+   `event.ts` still goes out with `valid_for_ms` and no anchor). Still
+   open: the reference gateway's task dedupe holds a `task_id` from receipt
+   for min(`valid_for_ms`, 300 s), shorter than a window that opens later
+   (the subject of the held branch `exp/command-dedupe-validity`, which
+   waits for the maintainer's word); both reference command egresses send a
+   window already closed at issue (a start before `event.ts` whose end
+   precedes it); the MAVLink intent for a window that opened before
+   `event.ts` ends, at a receiver that starts it at receipt, at least the
+   time from `valid_from_ts` to `event.ts` after the window's end, of which
+   the closed window is the extreme case. For the next cut: whether this
+   change in a reference adapter's output makes the cut a patch or a minor
+   (gap (g)); and whether class `ZMETA-COMMAND-GOVERNANCE` lists the
+   SAPIENT command egress as a required surface, since two tests in the
+   MAVLink egress's test file now import it (a change that moves the
+   manifest pin of `conformance/conformance_classes.yaml`). Open on the
    text, for the maintainer: whether `valid_from_ts` may precede `event.ts`;
    whether the 2.1 concurrence of 2026-11-02 covers the 4.3 clause (it picks
    one of the two readings 5.1 already offered; answered 2026-11-12: it

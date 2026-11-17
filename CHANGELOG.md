@@ -2,6 +2,64 @@
 
 ## [Unreleased]
 
+- 2026-11-16 — **The MAVLink egress refuses a command whose validity window
+  opens after its issue time**
+  (`adapters/egress/mavlink/zmeta_command_to_mission_intent.py`,
+  `adapters/egress/mavlink/README.md`,
+  `adapters/egress/mavlink/test_mavlink_intent.py`, and a comment in
+  `adapters/egress/sapient/zmeta_command_to_sapient_task.py`). Class C, on
+  the maintainer's selection of 2026-11-16 (finding S1 of the pre-cut range
+  review of 2026-11-14, its option (A)). Contract 7.8 starts a command's
+  validity window at `payload.valid_from_ts` when present, otherwise at
+  `event.ts`. The MissionIntent carries `valid_for_ms` and no anchor, so a
+  receiver can only start the duration at receipt; for a GOTO whose window
+  opens ten minutes after issue, a receiver that gets the intent at issue
+  starts about ten minutes before the window opens. The egress now returns
+  None for a command whose `valid_from_ts` is later than its `event.ts`,
+  with the strict comparison of the SAPIENT egress, so a start 1 ms after
+  issue is refused and a start equal to it goes out. It also returns None
+  for a `valid_from_ts` it cannot read (not a time, a number or another
+  value that is not a string, out of range, or with no UTC offset) and for
+  a `valid_from_ts` beside an `event.ts` that is absent or cannot be read.
+  It reads both times with a copy of the SAPIENT egress's reader, since the
+  adapters do not import each other, and reads no clock. A null
+  `valid_from_ts` is read as absent, as the SAPIENT egress reads it; the
+  v1.0 and v1.1.0 schemas refuse a null, so only a caller wired past the
+  gateway sends one. The check runs after every other guard, so a command
+  that raised before still raises. A command without `valid_from_ts` goes
+  out as before, and a window that has opened by `event.ts` still goes out
+  with `valid_for_ms` and no anchor. On a command without `valid_from_ts`
+  whose `event.ts` is absent or cannot be read, the two egresses differ by
+  design: the SAPIENT egress refuses it, and the MAVLink egress sends it as
+  before. Compatibility: a consumer of the MissionIntent no longer receives
+  a command whose window opens after its issue time, nor one that carries a
+  `valid_from_ts` whose start or issue time cannot be read. The two shipped
+  valid fixtures with a future start (`examples/encoding-roundtrip.jsonl:2`,
+  `conformance/must-pass.jsonl:10`) have no reference egress path, since the
+  SAPIENT egress refuses them too. A deployer who wants delayed tasking
+  holds the command and sends it at its start, issued then: the egress
+  compares `valid_from_ts` with `event.ts` and reads no clock, so a command
+  issued earlier and relayed unchanged at its start is still refused.
+  Tests: thirty-one named cases on the rule; a parity test that holds the
+  MAVLink and SAPIENT egresses to the same refusals on cases A to H that
+  carry an `event.ts`; a test that holds the two readers to the same code,
+  comments aside, so a change to one copy fails until the other follows;
+  and a test that a later start beside an altitude still raises. The
+  nineteen refusal cases, the parity test and the reader test failed on the
+  unchanged tree; the twelve cases that go out as before and the altitude
+  test passed there by construction. The SAPIENT egress's reader gains a
+  comment that names its copy; its code is unchanged. A seeded review of
+  the branch gave two should-fix findings and nine nits in the branch's own
+  text, all applied. The two tests that import the SAPIENT egress make the
+  `ZMETA-COMMAND-GOVERNANCE` test command need it, though the class does not
+  list it; listing it moves a manifest pin, so it is booked for the cut.
+  Unchanged: a window that closed before issue, which both egresses still
+  send; the gateway's task dedupe horizon; the SAPIENT egress's behaviour;
+  the MissionIntent's keys. Whether a change in a reference adapter's
+  output makes the next cut a patch or a minor (handoff gap (g)) is a
+  question for the cut. No schema, policy, contract, registry, conformance
+  or release-manifest file changes, so no hash or pin moves.
+
 - 2026-11-14 — **An ASTERIX CAT062 egress adapter encodes a track state as a
   system track record** (`adapters/egress/asterix/`, adapter 1.0.0,
   Reference). Built on the maintainer's selection of 2026-11-14. One
