@@ -28,8 +28,9 @@ thirteen merges and was stale by the cut; it stands as written.
 
 Held, not merged: `exp/command-dedupe-validity` (ca3d35d; item 7 of the
 2026-10-12 list below), a command-path gateway change and the maintainer's
-merge. It conflicts with `develop` in the doctrine log and the worklog, to
-be resolved by hand at the merge; its CHANGELOG entry then belongs under
+merge. It conflicted with `develop` in the doctrine log and the worklog
+when measured on 2026-10-28, to be resolved by hand at the merge; its
+CHANGELOG entry then belongs under
 `[Unreleased]`, not inside the released `[1.1.27]` section where a clean
 merge would put it.
 
@@ -46,7 +47,9 @@ guidance references name `ValidationState` code it rewrote and are left
 as they were, for a reading by hand (guidance lines 996, 997 and 998
 under `LINEAGE_PARENT_UNRESOLVED`, 1632 and 1650 under `EVENT_DUPLICATE`,
 and the first number on line 1679 under `TASK_DUPLICATE`, whose second
-number moved); the `LINEAGE_PARENT_UNRESOLVED` remediation does not name
+number moved); that line's note calls `command_task_ids` an unbounded
+set, which holds only for a state built without the cap, as the offline
+tools build it; the `LINEAGE_PARENT_UNRESOLVED` remediation does not name
 a parent that has left the index among the causes it gives; and whether
 the index's default of 65536 entries stands as the shipped default is the
 maintainer's.
@@ -411,7 +414,8 @@ strip guard gives each protected prefix its own reason
 branch now says that the `auto` lane can report a damaged datagram as
 `DECODE_AMBIGUOUS`. Each edited block keeps its line count, so the file
 stays at the 3389 lines its pin test asserts and no citation into it moves;
-the citation `gateway/src/gateway.py:2669-2685` names the same branch. New
+the citation `gateway/src/gateway.py:2669-2685`, moved there with its text
+by the bounded event index's merge of 2026-11-16, names the same branch. New
 tests read the prefixes, the member names and the wire fallback from the
 code and the policy, and three of them hold the README's account of the
 `auto` lane to the code, so the decision on S2 changes those tests and the
@@ -509,6 +513,14 @@ Open from that branch, for a reading by hand, none of it moved:
   `1815-1824`; and the `NON_FINITE_VALUE` entry's schema line, which moved
   with the text it named then and still names
   `LINEAGE_FUSION_MEMBERS_NOT_IN_BASED_ON`.
+- A sixth reference of that kind, found by the seeded review of the bounded
+  event index's merge: the `COMMAND_EVIDENCE_UNRESOLVED` entry's gateway
+  citation on guidance line 1760 names the first
+  `if timing_state is not None:` in `gateway/src/gateway.py`, while its note
+  is about the later `timing_state.record(instance)`; at the tag v1.1.27 it
+  named the same first line (2712, against the record call at 2964 and
+  2965). The named row that reads it checks only the text
+  `if timing_state is not None:`, which both places hold.
 - No general test reads the citations into `gateway/src/validators.py`,
   `gateway/src/gateway.py`, the schemas, the tools or the adapters; twelve
   named rows read a first line each.
@@ -666,8 +678,10 @@ Open, in order of proximity:
    `pr/8-review` (2026-08-11) is unmerged and is his to keep or delete
    (finding N7 of the pre-cut range review of 2026-11-14).
 7. Items 5 through 10 of the 2026-10-12 state below (guidance gaps (a)
-   through (af), the two held gateway defects, the CoT `how` default, the
-   `event_id` recorded twice) carry unchanged.
+   through (af), the two gateway defects held then, the CoT `how` default,
+   the `event_id` recorded twice) carry, item 8 as updated there: its fix,
+   the bounded event index, is merged on the maintainer's selection of
+   2026-11-16, and item 7's fix is still held.
 8. **The next cut's condition for the `observed_at` refusal, and the re-pin
    order it sets.** The cut that carries the refusal of a STATE whose
    payload holds `observed_at` (the branch `exp/state-observed-at-2026-11`
@@ -1069,7 +1083,10 @@ Open, in order of proximity:
    whether held ids survive a restart; and whether the gateway refuses a
    command that has already expired.
 8. **Reference defect, brought forward for the maintainer (gateway memory).**
-   Bounding `ValidationState.events` has been an open register candidate
+   This paragraph states the defect as it stood on 2026-10-12; the branch
+   that fixes it, described below, is merged on the maintainer's selection
+   of 2026-11-16. Bounding `ValidationState.events` has been an open
+   register candidate
    since the v1.1.18 pre-cut review of 2026-07-27
    (`docs/r1_11_cold_reread_findings.md`), deferred as a scoped wave
    because it is behavior-visible. It is restated here with measurements. The

@@ -2,6 +2,22 @@
 
 ## [Unreleased]
 
+- 2026-11-17 — **Records: the bounded event index's seeded-review
+  follow-up** (`docs/zmeta_refinement_handoff.md`,
+  `docs/zmeta_refinement_worklog.md`, `CHANGELOG.md`). A seeded review of
+  the merge of `exp/gateway-state-bound` with develop found its sealed
+  plant, two should-fix findings and five nits. The handoff's current-state
+  item 7 no longer says that items 5 to 10 of the 2026-10-12 state carry
+  unchanged: item 8's fix, the bounded event index, is merged, and item 7's
+  fix, the command dedupe, is still held. One sentence frames item 8's
+  first paragraph as the defect as it stood on 2026-10-12. The dedupe
+  branch's conflicts are dated to their measurement of 2026-10-28. The open
+  list gains the `TASK_DUPLICATE` note on guidance line 1679, which calls
+  `command_task_ids` an unbounded set, true only for a state built without
+  the cap, and the citation repair's list of references off their text
+  before its range gains a sixth, the `COMMAND_EVIDENCE_UNRESOLVED` entry's
+  gateway citation. No code, rule, guidance text or pin changes.
+
 - 2026-11-16 — **The `auto` input lane reports a protobuf refusal as
   `DECODE_AMBIGUOUS` only for a whole protobuf message carrying fields 2, 3
   and 4** (`gateway/src/gateway.py`,
@@ -1097,8 +1113,9 @@
   per-source timing stores and the size of a command-evidence entry are
   not bounded by this change. 62 tests in
   `gateway/tests/test_event_index_bound.py`; eight send events through the
-  real `main()` receive loop. Held on its branch from 2026-10-02 and merged
-  on the maintainer's selection of 2026-11-16. The merge moves the line
+  real `main()` receive loop. The change was held on its branch from
+  2026-10-02 and is merged on the maintainer's selection of 2026-11-16. The
+  merge moves the line
   citations into `gateway/src/gateway.py` and `gateway/src/validators.py`
   in `tools/validation_guidance.yaml` and the handoff to where the text
   each named now stands, and the gateway's line-count pin from 3389 to 3424

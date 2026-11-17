@@ -2,7 +2,8 @@
 
 ## Current Resume Note
 
-- Last updated: 2026-11-16 (the bounded event index brought up to
+- Last updated: 2026-11-17 (the bounded event index's seeded-review
+  follow-up; 2026-11-16: the bounded event index brought up to
   develop for its merge, its line citations moved; the `auto` input lane
   reports a protobuf
   refusal as `DECODE_AMBIGUOUS` only for a whole protobuf message carrying
@@ -52,6 +53,36 @@
   three commits, the third on 2026-11-03; two contract sentences;
   carried-list records pass; heading_deg defined; records pass after 7.6;
   2026-10-02: the reference gateway keeps a bounded event index)
+- **2026-11-17 (the bounded event index's seeded-review follow-up).** A
+  seeded review of the merge and its follow-up commit, by a fresh reader on
+  a copy with one sealed plant (a moved TASK_ACK_DUPLICATE citation set two
+  lines off), found the plant and gave two should-fix findings and five
+  nits. Applied in a third commit: the handoff's current-state item 7 no
+  longer says that items 5 to 10 of the 2026-10-12 state carry unchanged,
+  and names the merged fix and the one still held; one sentence frames item
+  8's first paragraph as the defect as it stood on 2026-10-12, which stays
+  as written; the gateway documents paragraph says that its citation was
+  moved there by this merge; the dedupe branch's conflicts are dated to
+  their measurement of 2026-10-28; the CHANGELOG sentence gains its
+  subject. The open list gains the TASK_DUPLICATE note on guidance line
+  1679, which calls `command_task_ids` an unbounded set, true only for a
+  state built without the cap. The citation repair's list of references
+  off their text before its range gains a sixth that the reader found:
+  `COMMAND_EVIDENCE_UNRESOLVED`'s gateway citation, which names the first
+  `if timing_state is not None:` while its note is about the record call
+  after the checks, as it did at v1.1.27. Not applied: the two guidance
+  texts the bound makes incomplete (that note and the
+  `LINEAGE_PARENT_UNRESOLVED` remediation's causes) stay open for a
+  reading with the guidance file's own review, and the second commit's message,
+  which says that every displaced reference moves and then names six left,
+  stays as committed. The CHANGELOG gains a dated records entry for this
+  follow-up; the CHANGELOG test failed on this entry's date until it did.
+  On the commit's tree the line check again reads all 251 references and
+  finds the 245 that are not the six on their text, its three controls
+  report their plants, and the branch's own tests (62), the guidance tests
+  (33), the reader tests (18), the CHANGELOG test (8) and the records test
+  (7) pass. The full validation runs on the final commit under the lock,
+  and the merge record gives its results.
 - **2026-11-16 (the bounded event index, `exp/gateway-state-bound`, brought
   up to develop for its merge).** On the maintainer's selection of
   2026-11-16, option (A) of his question on the two gateway fixes held
