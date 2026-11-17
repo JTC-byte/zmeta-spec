@@ -636,7 +636,7 @@ guidance:
       - "schema/zmeta-event-1.1.0.schema.json:944-947 (geo_status enum and its description: UNAVAILABLE means no canonical geo at all)"
       - "schema/zmeta-event-1.1.0.schema.json:199-227 (A1-02 coherence arm 3: geo_status UNAVAILABLE forbids payload.geo and payload.estimated_state.geo)"
       - "schema/zmeta-event-1.1.0.schema.json:1460-1466 (TrackStatePayload required: track_id, geo, valid_for_ms; geo is mandatory on TRACK_STATE)"
-      - "adapters/ingress/mavlink/README.md:134-147 (worked refusal rule: refuses to fabricate a position on the gps_fix_type < 2 null-island signature, and states that because the v1.0 schema requires payload.geo on TRACK_STATE a state without a complete usable position must not be emitted)"
+      - "adapters/ingress/mavlink/README.md:139-152 (worked refusal rule: refuses to fabricate a position on the gps_fix_type < 2 null-island signature, and states that because the v1.0 schema requires payload.geo on TRACK_STATE a state without a complete usable position must not be emitted)"
       - "adapters/ingress/adsb/adsb_to_zmeta.py:279-283 (worked observation-side path: a real detection with no position emits quality.geo_status UNAVAILABLE and no geo)"
       - "adapters/AUTHORING.md:172-183 (canonical geo is all-or-nothing under the locked kernel, no (0,0,0) sentinels)"
       - "gateway/tests/test_geo_zero_fill_warn.py:99-131 (behavioral confirmation: warns at warn severity with the event still accepted, path payload.geo and payload.claim.geo, zero alt_m irrelevant, single zero axis does not warn)"
@@ -1317,7 +1317,7 @@ guidance:
       - "spec/semantics-contract.md:1302-1333 (LINK_STATUS: required metrics, allowed states, metrics.reason_code required for DEGRADED and DOWN, and the twelve allowed reason codes)"
       - "schema/zmeta-event-1.0.schema.json:1495-1512 (metrics.reason_code enum, the same twelve values)"
       - "schema/zmeta-event-1.1.0.schema.json:1815-1824 (metrics.reason_code enum, the same twelve values)"
-      - "adapters/ingress/mavlink/mavlink_to_zmeta_template.py:1048-1064 and :1175-1184 (reference adapter refuses an out-of-vocabulary carried reason_code rather than substituting a value)"
+      - "adapters/ingress/mavlink/mavlink_to_zmeta_template.py:1058-1074 and :1185-1194 (reference adapter refuses an out-of-vocabulary carried reason_code rather than substituting a value)"
   - code: SENSOR_STATUS_STATE_MISMATCH
     remediation: >-
       Under schema/zmeta-event-1.1.0.schema.json a SENSOR_STATUS event reports

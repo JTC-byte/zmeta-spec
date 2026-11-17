@@ -53,7 +53,7 @@ SAPIENT ingress).
 | MAVLink input concept | Incorrect mapping to avoid | Correct ZMeta treatment | Notes |
 |---|---|---|---|
 | Global position / GPS fix | `payload.features.position` or raw GPS fields | `STATE_EVENT` `payload.geo` after state projection; GPS quality goes to `payload.quality` or status metadata | Do not expose native GPS packet fields as state features. |
-| Heading | `payload.features.heading` | `STATE_EVENT` `payload.heading_deg` as the course over ground from `GLOBAL_POSITION_INT` `vx`/`vy`; `hdg` goes to `payload.quality.mavlink_hdg_frame_unknown_deg` | Contract 6.4 defines `heading_deg` as the course over ground, never the body heading; the course is asserted only at or above `min_course_speed_mps` (default 1.0 m/s) and omitted (never defaulted to 0) below it or without both velocity components. `hdg` is a body angle and stays in `quality`; unknown `hdg` (`UINT16_MAX`) is omitted. |
+| Heading | `payload.features.heading` | `STATE_EVENT` `payload.heading_deg` as the course over ground from `GLOBAL_POSITION_INT` `vx`/`vy`; `hdg` goes to `payload.quality.mavlink_hdg_frame_unknown_deg`, or to `payload.quality.mavlink_hdg_true_north_deg` when the deployment asserts `heading_frame="TRUE_NORTH"` | Contract 6.4 defines `heading_deg` as the course over ground, never the body heading; the course is asserted only at or above `min_course_speed_mps` (default 1.0 m/s) and omitted (never defaulted to 0) below it or without both velocity components. `hdg` is a body angle and stays in `quality`; unknown `hdg` (`UINT16_MAX`) is omitted. |
 | Ground speed | `payload.features.speed` | `STATE_EVENT` `payload.speed_mps` | Computed from velocity components as state, not raw telemetry. |
 | GPS fix type / satellite count | `payload.features.gps_fix_type`, `payload.features.satellites_visible` | `payload.quality.gps_fix_type`, `payload.quality.satellites_visible`, and conservative top-level `confidence` | Quality metadata describes state reliability; it is not an observation feature block. |
 | Attitude roll/pitch/yaw | `payload.features.*` | `payload.quality.roll_deg`, `payload.quality.pitch_deg`, `payload.quality.yaw_deg` when retained | These are platform-state quality/context fields, not raw observation features. |
@@ -90,6 +90,11 @@ state.update(decode_gps_raw_int({"fix_type": 3, "satellites_visible": 12}))
 # STATE_EVENT lineage is mandatory (contract 4.8): name the parent ZMeta event
 # id(s); without real lineage translate_platform_state returns None.
 state["based_on"] = ["019c2b5c-c053-70e1-b6aa-340000000001"]
+# The reflection check's verdict arrives with the telemetry; this line stands
+# in for the bridge that ran the check. The template never asserts it, and
+# without it translate_platform_state returns None (contract 4.5.1). The
+# reference producer-authority policy accepts only CHECKED_NOT_REFLECTION.
+state["loop_status"] = "CHECKED_NOT_REFLECTION"
 
 event = translate_platform_state(
     state,
@@ -99,7 +104,7 @@ event = translate_platform_state(
 )
 # This vehicle moves due north at 5 m/s with its nose at 135 degrees:
 # event["payload"]["heading_deg"] is 0.0, the course over ground;
-# event["payload"]["quality"]["mavlink_hdg_frame_unknown_deg"] is 135.0, the
+# event["payload"]["quality"]["mavlink_hdg_true_north_deg"] is 135.0, the
 # body angle, with quality.mavlink_hdg_frame "TRUE_NORTH" and
 # quality.mavlink_hdg_source "AHRS_TRUE" recorded beside it as given.
 ```
@@ -189,7 +194,8 @@ event = translate_platform_state(
     outside 0–360, commonly `655.35`, which is the `hdg = UINT16_MAX` sentinel
     divided by 100, is dropped from both destinations rather than clamped, since the
     canonical `payload.heading_deg` is schema-bounded but the non-canonical
-    `quality.mavlink_hdg_frame_unknown_deg` is not. Nothing is clamped: a clamp
+    `quality.mavlink_hdg_frame_unknown_deg` and
+    `quality.mavlink_hdg_true_north_deg` are not. Nothing is clamped: a clamp
     would invent a measurement at the top of the scale;
   - `translate_link_status()` requires caller-supplied `latency_ms`,
     `packet_loss_pct` and `throughput_bps` (the three measurements the v1.0
@@ -297,29 +303,45 @@ separately:
   in centidegrees: a body angle, with no declared true-vs-magnetic reference.
   It is never the course (a vehicle crabbing in wind, or hovering while
   turning, points one way and moves another), so it never becomes
-  `payload.heading_deg`. A known `hdg` is preserved as
-  `payload.quality.mavlink_hdg_frame_unknown_deg` so consumers can audit the
-  native value; an unknown heading (`hdg = UINT16_MAX`) is omitted rather than
-  fabricated as `0.0`. Mapping it into the canonical field because the names
-  resemble each other is the error `adapters/AUTHORING.md` names ("never map
-  by name similarity").
+  `payload.heading_deg`. A known `hdg` is preserved under one of two keys so
+  consumers can audit the native value:
+  `payload.quality.mavlink_hdg_frame_unknown_deg` when no frame is asserted,
+  and `payload.quality.mavlink_hdg_true_north_deg` when the deployment
+  asserts one (below). An unknown heading (`hdg = UINT16_MAX`) is omitted
+  rather than fabricated as `0.0`. Mapping it into the canonical field
+  because the names resemble each other is the error `adapters/AUTHORING.md`
+  names ("never map by name similarity").
 - `ATTITUDE.yaw` (retained as `payload.quality.yaw_deg`) is the same body
   angle from the attitude message; it is platform-state context, not a heading.
 
 Deployments may still pass `heading_frame="TRUE_NORTH"` (and a
 `heading_source` label) to `translate_platform_state()` when upstream
-configuration guarantees the frame of `hdg`. The assertion now labels the
-retained body angle only: it is recorded as `quality.mavlink_hdg_frame` and
-`quality.mavlink_hdg_source` beside `mavlink_hdg_frame_unknown_deg` (a
-historical key name, kept so its consumers keep reading it; with a frame
-asserted the frame is the neighbouring key's value), and it promotes nothing
-into `payload.heading_deg`. Before adapter version 1.3.0 the same assertion
-emitted `hdg` as the canonical heading, and the earliest versions emitted it
-unconditionally; a consumer tells the behaviours apart by the lineage
-transform (`promote:mavlink-telemetry@` any version before 1.3.0 a body
-angle, `@1.3.0` a course). The version applies to every transform this
-template writes, the SYSTEM_EVENT `translate:` strings included, whose
-behaviour did not change.
+configuration guarantees the frame of `hdg`. The assertion labels the
+retained body angle only and promotes nothing into `payload.heading_deg`.
+A known `hdg` is written under exactly one key:
+`quality.mavlink_hdg_true_north_deg` when the frame is asserted, always with
+`quality.mavlink_hdg_frame` set to `"TRUE_NORTH"` beside it, and
+`quality.mavlink_hdg_frame_unknown_deg` only when no frame is asserted. The
+key under an asserted frame names that frame, as contract 6.4 asks of a raw
+sensor-native angle; a frame value other than `TRUE_NORTH`, if one is ever
+admitted, gets its own key. The number is the same body angle under either
+key, so a consumer that wants the angle whatever its frame reads both keys.
+The frame is the deployment's assertion, which this adapter does not
+verify: it checks the token and nothing about the vehicle. A
+`heading_source` label is recorded, as `quality.mavlink_hdg_source`, only
+beside an asserted frame; with no frame asserted it is dropped.
+
+Before adapter version 1.3.0 the same assertion emitted `hdg` as the
+canonical heading, and the earliest versions emitted it unconditionally; a
+consumer tells the behaviours apart by the lineage transform
+(`promote:mavlink-telemetry@` any version before 1.3.0 a body angle,
+`@1.3.0` and later a course). Adapter version 1.3.0 was never released; on
+develop it wrote the retained `hdg` as
+`quality.mavlink_hdg_frame_unknown_deg` also when a frame was asserted.
+From 1.3.1 an asserted frame writes it under
+`quality.mavlink_hdg_true_north_deg`. The version applies to every
+transform this template writes, the SYSTEM_EVENT `translate:` strings
+included, whose behaviour did not change.
 
 ## Source
 

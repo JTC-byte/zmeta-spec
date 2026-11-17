@@ -157,20 +157,31 @@ def _state_event(**overrides):
 def test_mavlink_known_heading_without_frame_omits_canonical_heading():
     # GLOBAL_POSITION_INT.hdg is a body angle (yaw), and contract 6.4 defines
     # payload.heading_deg as the course over ground, so the adapter never emits
-    # hdg as the canonical heading; the value stays in quality.
-    event = _state_event(heading_deg=90.0)
+    # hdg as the canonical heading; the value stays in quality. With no frame
+    # asserted it travels under the key that says the frame is unknown, and
+    # alone: no true-north key, no frame key, and no source label, also when
+    # the caller passed one.
+    for kwargs in ({}, {"heading_source": "AHRS_TRUE"}):
+        event = _state_event(heading_deg=90.0, **kwargs)
 
-    assert "heading_deg" not in event["payload"]
-    assert event["payload"]["quality"]["mavlink_hdg_frame_unknown_deg"] == 90.0
-    assert "heading_source" not in event["payload"]["quality"]
-    VALIDATOR.validate(event)
+        assert "heading_deg" not in event["payload"]
+        quality = event["payload"]["quality"]
+        assert quality["mavlink_hdg_frame_unknown_deg"] == 90.0
+        assert "mavlink_hdg_true_north_deg" not in quality
+        assert "mavlink_hdg_frame" not in quality
+        assert "mavlink_hdg_source" not in quality
+        assert "heading_source" not in quality
+        VALIDATOR.validate(event)
 
 
 def test_mavlink_true_north_frame_labels_hdg_and_never_promotes_it():
     # Contract 6.4 defines payload.heading_deg as the course over ground. hdg
     # is a body angle (yaw), so a frame assertion cannot make it a course: the
-    # value stays in quality, the assertion is recorded beside it, and no
-    # canonical heading is emitted without a ground velocity.
+    # value stays in quality, under the key that names the asserted frame
+    # (contract 6.4: a raw sensor-native angle carries its frame in its own
+    # named field), with the assertion recorded beside it. The key that says
+    # the frame is unknown is not written, and no canonical heading is emitted
+    # without a ground velocity.
     event = _state_event(
         heading_deg=90.0,
         heading_frame="TRUE_NORTH",
@@ -178,10 +189,12 @@ def test_mavlink_true_north_frame_labels_hdg_and_never_promotes_it():
     )
 
     assert "heading_deg" not in event["payload"]
-    assert "heading_source" not in event["payload"]["quality"]
-    assert event["payload"]["quality"]["mavlink_hdg_frame_unknown_deg"] == 90.0
-    assert event["payload"]["quality"]["mavlink_hdg_frame"] == "TRUE_NORTH"
-    assert event["payload"]["quality"]["mavlink_hdg_source"] == "AHRS_TRUE"
+    quality = event["payload"]["quality"]
+    assert "heading_source" not in quality
+    assert quality["mavlink_hdg_true_north_deg"] == 90.0
+    assert "mavlink_hdg_frame_unknown_deg" not in quality
+    assert quality["mavlink_hdg_frame"] == "TRUE_NORTH"
+    assert quality["mavlink_hdg_source"] == "AHRS_TRUE"
     VALIDATOR.validate(event)
 
 
@@ -235,8 +248,11 @@ def test_mavlink_course_needs_both_velocity_components():
 
 
 def test_mavlink_readme_example_emits_the_course_not_the_nose():
-    # The README example: hdg 13500 (nose at 135 degrees) while moving due
-    # north at 5 m/s. The course is 0.0; the body angle stays in quality.
+    # The README's call: hdg 13500 (nose at 135 degrees) while moving due
+    # north at 5 m/s, the state built by the two decoders, the lineage and the
+    # reflection verdict the telemetry carries, and the frame and source label
+    # the deployment asserts. The course is 0.0; the body angle stays in
+    # quality under the true-north key, with the assertion beside it.
     decoded = decode_global_position_int(
         {"lat": 434900000, "lon": -1120400000, "alt": 1500000, "hdg": 13500, "vx": 500, "vy": 0, "vz": 0}
     )
@@ -244,10 +260,55 @@ def test_mavlink_readme_example_emits_the_course_not_the_nose():
     assert decoded["course_deg"] == pytest.approx(0.0)
     assert decoded["speed_mps"] == pytest.approx(5.0)
 
-    event = _state_event(heading_deg=135.0, vx=5.0, vy=0.0)
+    state = {}
+    state.update(decoded)
+    state.update(decode_gps_raw_int({"fix_type": 3, "satellites_visible": 12}))
+    state["based_on"] = [_PARENT_EVENT_ID]
+    state["loop_status"] = "CHECKED_NOT_REFLECTION"
+    event = translate_platform_state(
+        state,
+        platform_id="uav-01",
+        heading_frame="TRUE_NORTH",
+        heading_source="AHRS_TRUE",
+    )
     assert event["payload"]["heading_deg"] == pytest.approx(0.0)
-    assert event["payload"]["quality"]["mavlink_hdg_frame_unknown_deg"] == 135.0
+    quality = event["payload"]["quality"]
+    assert quality["mavlink_hdg_true_north_deg"] == 135.0
+    assert quality["mavlink_hdg_frame"] == "TRUE_NORTH"
+    assert quality["mavlink_hdg_source"] == "AHRS_TRUE"
+    assert "mavlink_hdg_frame_unknown_deg" not in quality
     VALIDATOR.validate(event)
+
+
+def _readme_usage_block():
+    readme = (ROOT / "adapters" / "ingress" / "mavlink" / "README.md").read_text(encoding="utf-8")
+    usage = readme.split("\n## Usage\n", 1)[1].split("\n## ", 1)[0]
+    return usage.split("```python\n", 1)[1].split("\n```", 1)[0]
+
+
+def test_mavlink_readme_usage_example_emits_as_printed():
+    # The README's usage example, run as printed. It once set no loop_status
+    # and so returned None, while the comment under it described an event: the
+    # template refuses a promotion whose reflection verdict did not arrive with
+    # the telemetry (contract 4.5.1). The comment's claims are checked against
+    # what the printed code returns, and the event must pass producer authority.
+    block = _readme_usage_block()
+    namespace = {}
+    exec(compile(block, "adapters/ingress/mavlink/README.md (Usage)", "exec"), namespace)
+    event = namespace["event"]
+    assert event is not None, "the README's usage example returns None as printed"
+    assert event["payload"]["heading_deg"] == pytest.approx(0.0)
+    quality = event["payload"]["quality"]
+    assert quality["mavlink_hdg_true_north_deg"] == 135.0
+    assert quality["mavlink_hdg_frame"] == "TRUE_NORTH"
+    assert quality["mavlink_hdg_source"] == "AHRS_TRUE"
+    assert "mavlink_hdg_frame_unknown_deg" not in quality
+    assert "mavlink_hdg_true_north_deg" in block, "the example's comment names another key"
+    VALIDATOR.validate(event)
+    ok, violations = validators.validate_producer_authority(
+        event, POLICY["producer_authority"], POLICY["violation_severities"]
+    )
+    assert ok, violations
 
 
 def test_mavlink_course_is_not_asserted_from_an_infinite_velocity():
@@ -277,11 +338,21 @@ def test_mavlink_invalid_heading_frame_rejected():
 def test_mavlink_unknown_heading_omitted_not_fabricated():
     # decode_global_position_int yields heading_deg=None for hdg=UINT16_MAX;
     # the translator must omit heading_deg, never emit None or a 0.0 default.
-    event = _state_event(heading_deg=None)
+    # With no value there is nothing to label, so a frame and a source label
+    # the caller asserted are not written either.
+    for kwargs in ({}, {"heading_frame": "TRUE_NORTH", "heading_source": "AHRS_TRUE"}):
+        event = _state_event(heading_deg=None, **kwargs)
 
-    assert "heading_deg" not in event["payload"]
-    assert "mavlink_hdg_frame_unknown_deg" not in event["payload"]["quality"]
-    VALIDATOR.validate(event)
+        assert "heading_deg" not in event["payload"]
+        quality = event["payload"]["quality"]
+        for key in (
+            "mavlink_hdg_frame_unknown_deg",
+            "mavlink_hdg_true_north_deg",
+            "mavlink_hdg_frame",
+            "mavlink_hdg_source",
+        ):
+            assert key not in quality, (kwargs, key)
+        VALIDATOR.validate(event)
 
 
 def test_mavlink_absent_heading_omitted_not_defaulted_to_zero():
@@ -1565,7 +1636,8 @@ def test_mavlink_unknown_heading_sentinel_never_reaches_either_destination():
     # of the same sentinel family. GLOBAL_POSITION_INT.hdg = UINT16_MAX
     # divided by 100 by a bridge is 655.35 deg. On the canonical path the
     # schema's 0-360 bound catches it; quality.mavlink_hdg_frame_unknown_deg
-    # has no such bound, so it landed there schema-clean.
+    # and quality.mavlink_hdg_true_north_deg have no such bound, so it landed
+    # there schema-clean.
     # Wrong-typed headings take the same route, and take it without raising:
     # the guard compares, so a string heading must drop, not crash the adapter.
     for sentinel in (655.35, 720.0, -1.0, "090", True):
@@ -1573,29 +1645,53 @@ def test_mavlink_unknown_heading_sentinel_never_reaches_either_destination():
         assert "mavlink_hdg_frame_unknown_deg" not in uncertain["payload"]["quality"]
         VALIDATOR.validate(uncertain)
 
-        canonical = _state_event(heading_deg=sentinel, heading_frame="TRUE_NORTH")
+        canonical = _state_event(
+            heading_deg=sentinel, heading_frame="TRUE_NORTH", heading_source="AHRS_TRUE"
+        )
         assert "heading_deg" not in canonical["payload"]
-        assert "heading_source" not in canonical["payload"]["quality"]
+        quality = canonical["payload"]["quality"]
+        assert "heading_source" not in quality
+        # Under an asserted frame the sentinel reaches neither value key, and
+        # the frame and source labels have no value to stand beside.
+        for key in (
+            "mavlink_hdg_true_north_deg",
+            "mavlink_hdg_frame_unknown_deg",
+            "mavlink_hdg_frame",
+            "mavlink_hdg_source",
+        ):
+            assert key not in quality, (sentinel, key)
         VALIDATOR.validate(canonical)
 
     # A non-finite heading is left for the kernel's value-honesty gate, which
     # refuses it loudly with a reason code. Swallowing it here would cost the
-    # operator the signal as well as the value.
+    # operator the signal as well as the value. Under an asserted frame the
+    # value travels under the true-north key, and the gate still sees it.
     nan_heading = _state_event(heading_deg=float("nan"))
     assert math.isnan(
         nan_heading["payload"]["quality"]["mavlink_hdg_frame_unknown_deg"]
     )
-    ok, violations = validators.validate_semantics(
-        nan_heading, POLICY["semantics"], POLICY.get("violation_severities")
-    )
-    assert ok is False and violations, "the kernel gate must still see the NaN"
+    nan_framed = _state_event(heading_deg=float("nan"), heading_frame="TRUE_NORTH")
+    assert math.isnan(nan_framed["payload"]["quality"]["mavlink_hdg_true_north_deg"])
+    for poisoned in (nan_heading, nan_framed):
+        ok, violations = validators.validate_semantics(
+            poisoned, POLICY["semantics"], POLICY.get("violation_severities")
+        )
+        assert ok is False and violations, "the kernel gate must still see the NaN"
 
-    # A real heading, at both ends of the legal range, still travels.
+    # A real heading, at both ends of the legal range, still travels: under the
+    # key that says the frame is unknown when no frame is asserted, and under
+    # the true-north key when one is.
     for reported in (0.0, 90.0, 359.9, 360.0):
         assert (
             _state_event(heading_deg=reported)["payload"]["quality"][
                 "mavlink_hdg_frame_unknown_deg"
             ]
+            == reported
+        )
+        assert (
+            _state_event(heading_deg=reported, heading_frame="TRUE_NORTH")["payload"][
+                "quality"
+            ]["mavlink_hdg_true_north_deg"]
             == reported
         )
 

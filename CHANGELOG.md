@@ -2,6 +2,33 @@
 
 ## [Unreleased]
 
+- 2026-11-17 — **The MAVLink ingress keeps a heading under an asserted
+  frame in a key that names the frame**
+  (`adapters/ingress/mavlink/mavlink_to_zmeta_template.py`,
+  `adapters/ingress/mavlink/README.md`,
+  `adapters/ingress/mavlink/test_mavlink_ingress.py`,
+  `tools/validation_guidance.yaml`, Class C). On the maintainer's
+  selection of 2026-11-16 (pre-cut finding N6). When the caller asserts
+  `heading_frame="TRUE_NORTH"`, `translate_platform_state()` writes the
+  retained `hdg` as `payload.quality.mavlink_hdg_true_north_deg`, with
+  `quality.mavlink_hdg_frame: "TRUE_NORTH"` and, when given,
+  `quality.mavlink_hdg_source` beside it.
+  `quality.mavlink_hdg_frame_unknown_deg` is written only when no frame is
+  asserted; until this change it was also written under an asserted frame,
+  where its name contradicted the frame key beside it. The value is the
+  same body angle under either key, and neither key becomes
+  `payload.heading_deg`. No release carried the old pairing: adapter
+  version 1.3.0, which wrote it on develop from 2026-11-02, was never
+  released. `ADAPTER_VERSION` moves to 1.3.1, and from 1.3.1 an asserted
+  frame writes the new key, so the lineage transform tells events
+  develop's 1.3.0 made with an asserted frame from later ones. The README
+  example now sets the `loop_status` the template requires and returns the
+  event its comment describes; as printed before, it returned `None`. A
+  new test runs the example as printed. Two line citations in
+  `tools/validation_guidance.yaml` move with the lines added above them.
+  The adapter harness fixture, which asserts no frame, is unchanged. No
+  schema, policy, contract or manifest-listed file changes.
+
 - 2026-11-17 — **Records after the messages-only rewrite of the unpushed
   history** (`docs/zmeta_refinement_handoff.md`,
   `docs/zmeta_refinement_worklog.md`,
