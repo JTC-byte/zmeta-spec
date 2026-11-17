@@ -31,6 +31,11 @@ try:
 except ImportError:  # pragma: no cover - optional dependency
     zmeta_compact = None
 
+# The decode guard is required, not optional: without it the JSON lanes would
+# keep the last of two duplicate keys silently (doctrine F7-01), so a missing
+# module fails the gateway at import, never open.
+from zmeta_decode_guard import DecodeAmbiguousError, is_decode_ambiguous, pairs_refusing_duplicates
+
 try:
     import zmeta_proto
 except ImportError:  # pragma: no cover - optional dependency
@@ -75,16 +80,19 @@ DEFAULT_STRIP_OPTIONAL_FIELDS = [
     "payload.data_refs",
 ]
 DEFAULT_STRIP_OPTIONAL_FIELDS_PROFILES = ["L", "M", "H"]
-# Paths that strip_optional_fields must never remove, in whole or in part.
-# Accepted-risk labels and external-promotion evidence exist so downstream
-# consumers can filter by explicit policy decision; silently deleting them
-# turns degraded/externally-promoted data back into clean-looking data
-# (laundering). docs/zmeta_change_governance.md forbids silently stripping
-# accepted-risk labels, use limits, or external-promotion evidence.
-PROTECTED_STRIP_PATH_PREFIXES = [
-    "payload.extensions.risk_adjudication",
-    "payload.extensions.external_promotion",
-]
+# Paths that strip_optional_fields must never remove, in whole or in part,
+# each with the reason its refusal at config load gives. Silently deleting a
+# risk label or promotion evidence launders degraded or externally promoted
+# data, which docs/zmeta_change_governance.md forbids.
+PROTECTED_STRIP_PATH_REASONS = {
+    "payload.extensions.risk_adjudication": "carries accepted-risk labels "
+        "(docs/zmeta_change_governance.md no-laundering rule)",
+    "payload.extensions.external_promotion": "carries external-promotion "
+        "evidence (docs/zmeta_change_governance.md no-laundering rule)",
+    "payload.valid_from_ts": "starts a command's validity window, which moves "
+        "when a same-event_id projection drops it (contract 7.8, 2026-11-02)",
+}
+PROTECTED_STRIP_PATH_PREFIXES = list(PROTECTED_STRIP_PATH_REASONS)
 DEFAULT_METRICS_INTERVAL_SEC = 30
 DEFAULT_RATE_LIMIT_PER_SEC = 0
 DEFAULT_RATE_LIMIT_PRODUCER_PER_SEC = 0
@@ -1195,12 +1203,12 @@ def _plain_integer_flag(text):
 
 
 def _load_jsonl(path: Path):
-    lines = path.read_text(encoding="utf-8").splitlines()
+    lines = [raw.strip() for raw in path.read_text(encoding="utf-8").splitlines() if raw.strip()]
     for line in lines:
-        line = line.strip()
-        if not line:
-            continue
-        yield json.loads(line)
+        try:  # contract 3.5: a repeated member name is refused, never read to its last value
+            yield json.loads(line, object_pairs_hook=pairs_refusing_duplicates)
+        except DecodeAmbiguousError as exc:
+            raise SystemExit(f"self-test failed: DECODE_AMBIGUOUS in {path.name}: {exc}") from exc
 
 
 def run_self_test(root: Path, settings: dict):
@@ -1271,21 +1279,21 @@ def _normalize_field_list(value, fallback):
 
 
 def _reject_protected_strip_paths(fields):
-    # Fail fast at config load: stripping an accepted-risk label or
-    # external-promotion evidence path (or anything nested under one) would
-    # silently launder degraded data (docs/zmeta_change_governance.md
-    # no-silent-strip rule). Comparison is segment-wise so a protected prefix
-    # matches itself and its children, but not lookalike sibling names.
+    # Fail fast at config load: stripping a protected path (or anything nested
+    # under one) would launder degraded data or move a command's validity
+    # window; PROTECTED_STRIP_PATH_REASONS gives each prefix its own reason.
+    # Comparison is segment-wise so a protected prefix matches itself and its
+    # children, but not lookalike sibling names.
     for path in fields:
         parts = [part for part in str(path).split(".") if part]
         for prefix in PROTECTED_STRIP_PATH_PREFIXES:
             prefix_parts = prefix.split(".")
             if parts[: len(prefix_parts)] == prefix_parts:
                 raise ValueError(
-                    f"strip_optional_fields entry '{path}' is protected: "
-                    f"'{prefix}' carries accepted-risk labels or promotion "
-                    "evidence and must not be silently stripped "
-                    "(docs/zmeta_change_governance.md no-laundering rule)"
+                    f"strip_optional_fields entry '{path}' is protected and "
+                    "must not be silently stripped: "
+                    f"'{prefix}' "
+                    f"{PROTECTED_STRIP_PATH_REASONS[prefix]}"
                 )
 
 
@@ -1435,10 +1443,16 @@ def _looks_like_event(obj):
     return isinstance(obj, dict) and {"event", "source", "payload"}.issubset(obj)
 
 
+def _json_loads(text):
+    # Contract 3.5; doctrine F7-01: a JSON text that repeats a member name is not a
+    # valid encoded event. Refused, never read last-wins (DECODE_AMBIGUOUS).
+    return json.loads(text, object_pairs_hook=pairs_refusing_duplicates)
+
+
 def _decode_message(message, input_encoding):
     if input_encoding == "json":
         text = message.decode("utf-8")
-        return json.loads(text)
+        return _json_loads(text)
     if input_encoding == "cbor":
         return _decode_cbor_envelope(message)
     if input_encoding == "compact":
@@ -1453,7 +1467,7 @@ def _decode_message(message, input_encoding):
         if prefix in (b"{", b"["):
             try:
                 text = message.decode("utf-8")
-                return json.loads(text)
+                return _json_loads(text)
             except (UnicodeDecodeError, json.JSONDecodeError):
                 decoded = _decode_cbor(message)
                 if zmeta_compact is not None and zmeta_compact.is_compact(decoded):
@@ -1471,10 +1485,13 @@ def _decode_message(message, input_encoding):
         if zmeta_proto is not None:
             try:
                 return zmeta_proto.loads(message)
-            except Exception:
-                pass
+            except Exception as exc:
+                if is_decode_ambiguous(exc) and zmeta_proto.carries_event_members(message):
+                    # whole protobuf bytes carrying fields 2, 3 and 4 that the decoder
+                    # refused as ambiguous are not JSON in disguise; report the refusal
+                    raise
         text = message.decode("utf-8")
-        return json.loads(text)
+        return _json_loads(text)
     raise ValueError(f"unsupported input encoding: {input_encoding}")
 
 
@@ -1657,15 +1674,23 @@ def _apply_failure_mode_degradation(
         # one (R1-11 residual against A-01).
         return False
 
+    if factor < 1:
+        # a reduction that would raise the value is declined (contract 4.2)
+        return False
+    before = confidence
     event["confidence"] = max(0.0, min(1.0, confidence / factor))
     limits = _timing_use_limits(timing_freshness_policy, "degrade")
+    effects = {"confidence_reduction_factor": factor}
+    if event["confidence"] != before:
+        # contract 4.5.1: the record carries the value the reduction replaced
+        effects["confidence_claimed"] = before
     record = {
         "risk_dimension": "timing",
         "reason_code": "TIMING_STATUS_UNSYNCED",
         "policy_mode": "degrade",
         "policy_decision": "DEGRADED_ACCEPT",
         "policy_ref": "gateway.failure_modes.timing_loss",
-        "effects": {"confidence_reduction_factor": factor},
+        "effects": effects,
     }
     allowed_uses = _config_list_values(limits.get("allowed_uses"))
     prohibited_uses = _config_list_values(limits.get("prohibited_uses"))
@@ -2641,11 +2666,16 @@ def process_message(
         # diagnostic event, since a decode exception's str() can itself echo
         # the offending wire value.
         decode_error = str(exc)
+        # DECODE_AMBIGUOUS when the decoder refused what it would have had to
+        # repair (doctrine F7-01), else SCHEMA_INVALID. On the auto lane the
+        # protobuf refusal counts only for a whole protobuf message carrying
+        # fields 2, 3 and 4 (_decode_message); other bytes read SCHEMA_INVALID.
+        decode_code = "DECODE_AMBIGUOUS" if is_decode_ambiguous(exc) else "SCHEMA_INVALID"
         if metrics:
-            metrics.record_violation("SCHEMA_INVALID", details=decode_error)
+            metrics.record_violation(decode_code, details=decode_error)
         return [
             build_violation_event(
-                "SCHEMA_INVALID",
+                decode_code,
                 details={"error": _bounded_diagnostic_error(decode_error)},
                 contract_hashes=contract_hashes,
                 stamp_contract_hash=stamp_contract_hash,

@@ -155,9 +155,9 @@ same pack first if you want a known-good diff.
 7. **Envelope confidence rules** (contract 7.1): `confidence` is required for
    INFERENCE/FUSION/STATE and prohibited for OBSERVATION/COMMAND/SYSTEM.
 8. **STATE carries no raw artifacts** (contract 7.7): no `features`,
-   `raw_features`, `modality`, `measurement(s)`, `t_start`/`t_end`,
-   `data_ref(s)`, enforced recursively. **COMMAND carries no altitude**
-   (contract 7.8), requires `requires_deconfliction: true`, a TTL
+   `raw_features`, `modality`, `measurement(s)`, `t_start`/`t_end`, `observed_at`,
+   `last_seen_ts`, `data_ref(s)`, enforced recursively. **COMMAND carries no
+   altitude** (contract 7.8), requires `requires_deconfliction: true`, a TTL
    (`valid_for_ms`), and an idempotent `task_id`.
 9. **Units and geodesy** (contract 6): WGS-84, meters HAE, degrees true
    north, m/s, UTC RFC3339 `Z` timestamps. The HAE rule has an ingest-side
@@ -462,9 +462,11 @@ and that turns on one question:
 
 - **Yes** (ADS-B ICAO24, AIS MMSI, or any per-emitter key your source
   carries): the projector works. The stock identity paths are
-  `features.adsb_icao24` and `features.ais_mmsi`; a deployment adds its
-  own via the projector's `identity_paths` parameter. Before you widen
-  it, read the warning below.
+  `("icao24", ("payload", "features", "adsb_icao24"))` and
+  `("mmsi", ("payload", "features", "ais_mmsi"))`; a deployment passes its
+  own through the projector's `identity_paths` parameter as `(label,
+  tuple-of-keys)` entries, which replace the stock pair unless the stock
+  entries are included. Before you widen it, read the warning below.
 - **No** (an anonymous RF emitter, an energy detection, a
   bearing-only contact): **there is no track path today.** This is a
   recorded, deliberate limit (doctrine log B1-01 and the projector

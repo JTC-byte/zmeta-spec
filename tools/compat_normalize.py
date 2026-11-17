@@ -3,11 +3,16 @@ import json
 import sys
 from pathlib import Path
 
-from compat_normalizer import (
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from compat_normalizer import (  # noqa: E402
     CompatibilityNormalizationError,
     CompatibilityOptions,
     normalize_event,
 )
+from zmeta_decode_guard import DecodeAmbiguousError, pairs_refusing_duplicates  # noqa: E402
 
 
 def parse_args():
@@ -42,19 +47,34 @@ def parse_args():
 
 
 def _read_items(path: Path):
+    """Read the input as the gateway reads it.
+
+    A member name repeated in one object is refused, never resolved to its
+    last value (contract 3.5). Returns `(is_jsonl, items, refused)`. A
+    `.jsonl` file is refused line by line; a `.json` document is one JSON
+    text, so one repeat anywhere in it refuses the whole document, reported
+    at line 1.
+    """
+    refused = []
     if path.suffix.lower() == ".jsonl":
         items = []
         for line_no, line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
             line = line.strip()
             if not line:
                 continue
-            items.append((line_no, json.loads(line)))
-        return True, items
+            try:
+                items.append((line_no, json.loads(line, object_pairs_hook=pairs_refusing_duplicates)))
+            except DecodeAmbiguousError as exc:
+                refused.append({"line": line_no, "code": "DECODE_AMBIGUOUS", "message": str(exc)})
+        return True, items, refused
 
-    data = json.loads(path.read_text(encoding="utf-8"))
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"), object_pairs_hook=pairs_refusing_duplicates)
+    except DecodeAmbiguousError as exc:
+        return False, [], [{"line": 1, "code": "DECODE_AMBIGUOUS", "message": str(exc)}]
     if isinstance(data, list):
-        return False, list(enumerate(data, start=1))
-    return False, [(1, data)]
+        return False, list(enumerate(data, start=1)), refused
+    return False, [(1, data)], refused
 
 
 def _write_output(path: str | None, is_jsonl: bool, normalized_items):
@@ -90,9 +110,9 @@ def main():
     )
 
     input_path = Path(args.input)
-    is_jsonl, items = _read_items(input_path)
+    is_jsonl, items, refused = _read_items(input_path)
     normalized_items = []
-    report = {"input": str(input_path), "changes": [], "rejected": []}
+    report = {"input": str(input_path), "changes": [], "rejected": list(refused)}
 
     for line_no, event in items:
         try:
@@ -104,6 +124,7 @@ def main():
         for change in changes:
             report["changes"].append({"line": line_no, **change})
 
+    report["rejected"].sort(key=lambda item: item["line"])
     _write_report(args.report, report)
     if report["rejected"]:
         return 1

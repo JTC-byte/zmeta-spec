@@ -1,10 +1,14 @@
 import argparse
 import importlib.util
 import json
+import sys
 from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+from zmeta_decode_guard import DecodeAmbiguousError, pairs_refusing_duplicates  # noqa: E402
 VALIDATORS_PATH = ROOT / "gateway" / "src" / "validators.py"
 spec = importlib.util.spec_from_file_location("zmeta_validators", VALIDATORS_PATH)
 validators = importlib.util.module_from_spec(spec)
@@ -105,13 +109,77 @@ KERNEL_GATE_CHECKS = (
 )
 
 
+class _Stages:
+    """The result of every stage the gate was asked for, read at the end.
+
+    Each stage records its exit code instead of exiting, so a failing stage
+    does not hide the stages after it. Until 2026-11-14 the gate exited at its
+    first failing stage; on an unreleased branch the release manifest is stale
+    on purpose, so `--kernel-gate` stopped at the manifest pins and the stages
+    after them never ran. The run exits with the first failing stage's code,
+    the code the early exit gave, so the exit status is unchanged for every
+    input in which no stage raises after an earlier stage failed. A stage that
+    raises still ends the run, with its traceback and status 1, before the
+    summary line.
+    """
+
+    def __init__(self):
+        self.results = []
+
+    def record(self, name, result):
+        if isinstance(result, bool) or not isinstance(result, int):
+            result = 1 if result else 0
+        self.results.append((name, result))
+
+    def exit_code(self):
+        for _, code in self.results:
+            if code:
+                return code
+        return 0
+
+    def summary(self):
+        parts = [
+            f"{name} ok" if not code else f"{name} FAIL (exit {code})"
+            for name, code in self.results
+        ]
+        return "conformance stages: " + ", ".join(parts)
+
+
+def _finish(stages, pass_total, fail_total):
+    """Print the summary and exit with the first failing stage's code, or print the ok line."""
+    code = stages.exit_code()
+    if code:
+        print(stages.summary())
+        raise SystemExit(code)
+    print(f"conformance ok pass={pass_total} fail={fail_total}")
+
+
 def _iter_jsonl(path):
     lines = Path(path).read_text(encoding="utf-8").splitlines()
     for line_no, line in enumerate(lines, start=1):
         line = line.strip()
         if not line:
             continue
-        yield line_no, json.loads(line)
+        try:
+            item = json.loads(line, object_pairs_hook=pairs_refusing_duplicates)
+        except DecodeAmbiguousError as exc:
+            # A fixture line that repeats a member name admits two readings and
+            # is refused, never read last-wins (contract 3.5).
+            raise DecodeAmbiguousError(f"{path} line {line_no}: {exc}") from exc
+        yield line_no, item
+
+
+def _fixtures_or_refusal(path, refused):
+    """Yield the fixtures of `path` as they are read.
+
+    A line that repeats a member name ends the reading: the refusal is printed
+    and noted in `refused`, and the caller counts one failure for the file.
+    """
+    try:
+        yield from _iter_jsonl(path)
+    except DecodeAmbiguousError as exc:
+        print(f"FAIL DECODE_AMBIGUOUS {exc}")
+        refused.append(str(exc))
 
 
 def _run_checks(event, profile, policy, validator, strict, state=None):
@@ -167,12 +235,14 @@ def main():
     validator = validators.load_schema(schema_path)
     policy = validators.load_policy(policy_dir)
 
+    stages = _Stages()
     failures = 0
     pass_total = 0
     fail_total = 0
 
     pass_state = validators.ValidationState()
-    for line_no, item in _iter_jsonl(args.pass_file):
+    pass_refused = []
+    for line_no, item in _fixtures_or_refusal(args.pass_file, pass_refused):
         pass_total += 1
         profile = item.get("profile", "H")
         event = item.get("event")
@@ -189,11 +259,14 @@ def main():
         else:
             pass_state.record(event)
 
-    if pass_total == 0:
+    if pass_refused:
+        failures += 1
+    elif pass_total == 0:
         failures += 1
         print(f"FAIL pass file {args.pass_file} contains no fixtures - an empty file proves nothing")
 
-    for line_no, item in _iter_jsonl(args.fail_file):
+    fail_refused = []
+    for line_no, item in _fixtures_or_refusal(args.fail_file, fail_refused):
         fail_total += 1
         profile = item.get("profile", "H")
         event = item.get("event")
@@ -215,12 +288,13 @@ def main():
                 f"FAIL fail line={line_no} profile={profile} expected={expected} got={code_str}"
             )
 
-    if fail_total == 0:
+    if fail_refused:
+        failures += 1
+    elif fail_total == 0:
         failures += 1
         print(f"FAIL fail file {args.fail_file} contains no fixtures - an empty file proves nothing")
 
-    if failures:
-        raise SystemExit(1)
+    stages.record("must_pass_must_fail", 1 if failures else 0)
 
     if args.profile_projection:
         projection_path = ROOT / "tools" / "validate_projection.py"
@@ -235,8 +309,7 @@ def main():
             must_fail_path=ROOT / "conformance" / "profile-projection" / "must-fail.jsonl",
             quiet=True,
         )
-        if result:
-            raise SystemExit(result)
+        stages.record("profile_projection", result)
 
     if args.extension_registry:
         registry_path = ROOT / "tools" / "validate_extension_registry.py"
@@ -250,8 +323,7 @@ def main():
             schema_v1_path=ROOT / "schema" / "zmeta-event-1.0.schema.json",
             schema_v1_1_path=ROOT / "schema" / "zmeta-event-1.1.0.schema.json",
         )
-        if result:
-            raise SystemExit(result)
+        stages.record("extension_registry", result)
 
     if args.conformance_classes:
         classes_path = ROOT / "tools" / "validate_conformance_classes.py"
@@ -268,8 +340,7 @@ def main():
             ],
             extension_registry_path=ROOT / "spec" / "extension-registry.yaml",
         )
-        if result:
-            raise SystemExit(result)
+        stages.record("conformance_classes", result)
 
     if args.encoding_negative:
         encoding_negative_path = ROOT / "tools" / "validate_encoding_negative.py"
@@ -285,8 +356,7 @@ def main():
             context_path=ROOT / "conformance" / "encoding-negative" / "context.jsonl",
             quiet=True,
         )
-        if result:
-            raise SystemExit(result)
+        stages.record("encoding_negative", result)
 
     if args.precision_policy:
         precision_policy_path = ROOT / "tools" / "validate_precision_policy.py"
@@ -301,8 +371,7 @@ def main():
             must_fail_path=ROOT / "conformance" / "profile-precision" / "must-fail.jsonl",
             quiet=True,
         )
-        if result:
-            raise SystemExit(result)
+        stages.record("precision_policy", result)
 
     if args.release_manifest:
         release_manifest_path = ROOT / "tools" / "validate_release_manifest.py"
@@ -315,8 +384,7 @@ def main():
             ROOT / "release" / "zmeta-release-manifest.yaml",
             quiet=True,
         )
-        if result:
-            raise SystemExit(result)
+        stages.record("release_manifest", result)
 
     if args.release_package:
         release_package_path = ROOT / "tools" / "validate_release_package.py"
@@ -330,8 +398,7 @@ def main():
             templates_only=True,
             quiet=True,
         )
-        if result:
-            raise SystemExit(result)
+        stages.record("release_package", result)
 
     if args.bad_events:
         bad_events_path = ROOT / "tools" / "validate_bad_events.py"
@@ -344,8 +411,7 @@ def main():
             must_fail_path=ROOT / "conformance" / "bad-events" / "must-fail.jsonl",
             quiet=True,
         )
-        if result:
-            raise SystemExit(result)
+        stages.record("bad_events", result)
 
     if args.adapter_harness:
         adapter_harness_path = ROOT / "tools" / "validate_adapter_conformance.py"
@@ -358,10 +424,9 @@ def main():
             fixtures_path=ROOT / "conformance" / "adapter-harness" / "must-pass.jsonl",
             quiet=True,
         )
-        if result:
-            raise SystemExit(result)
+        stages.record("adapter_harness", result)
 
-    print(f"conformance ok pass={pass_total} fail={fail_total}")
+    _finish(stages, pass_total, fail_total)
 
 
 if __name__ == "__main__":

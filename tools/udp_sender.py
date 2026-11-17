@@ -28,6 +28,8 @@ try:
 except ImportError:  # pragma: no cover - optional dependency
     zmeta_proto = None
 
+from zmeta_decode_guard import DecodeAmbiguousError, pairs_refusing_duplicates  # noqa: E402
+
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Simple UDP sender")
@@ -57,9 +59,13 @@ def encode_payload(raw, encoding):
         return raw.encode("utf-8")
 
     try:
-        obj = json.loads(raw)
+        # read the line as the gateway reads it (doctrine F7-01): a duplicate key is
+        # refused here rather than resolved last-wins and re-encoded clean
+        obj = json.loads(raw, object_pairs_hook=pairs_refusing_duplicates)
     except json.JSONDecodeError as exc:
         raise SystemExit(f"invalid JSON for {encoding.upper()} encoding: {exc}") from exc
+    except DecodeAmbiguousError as exc:
+        raise SystemExit(f"send refused for {encoding.upper()} encoding: {exc}") from exc
 
     if encoding == "compact":
         if zmeta_compact is None:

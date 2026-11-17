@@ -1,4 +1,4 @@
-# ZMeta Specification (v1.0 Locked, current release v1.1.26)
+# ZMeta Specification (v1.0 Locked, current release v1.1.27)
 
 ZMeta is a free, open, transport-agnostic semantic standard for resilient ISR.
 It defines one honest event model that heterogeneous sensors, analytics,
@@ -214,66 +214,93 @@ nodes.
 
 ## Current Release
 
-- Current release: `v1.1.26`
-- Release notes and assets: <https://github.com/JTC-byte/zmeta-spec/releases/tag/v1.1.26>
-- Release focus: the reference CoT egress adapter's `cds` profile, the shape
-  one partner's cross-domain guard passed into a higher enclave on
-  2026-09-29, selectable by name; with it, three changes a downstream
-  ecosystem's research pass asked for (a track's class becomes its CoT type
-  only when it parses as one; the gateway's diagnostic identity is a
-  setting; the gateway's outgoing self-check keeps its own diagnostics
-  legible on the 1.1.0 lane) and the integration line's held content: two
-  experimental 1.1.0 acoustic markers and a linear-pressure level form
-  minted from a live hydrophone, the validation guidance system with the
-  F1 field-evidence adjudications, the ontology reference, the branching
-  rule and the open-specification notice set. The locked v1.0 schema and
-  the semantic contract file are byte-identical to v1.1.25 and the policy
-  pack is unchanged. Governed artifacts changed in this release, relative
-  to zmeta-v1.1.25: schema/zmeta-event-1.1.0.schema.json,
-  spec/extension-registry.yaml. The registry's Markdown, the field
-  dictionary, the future-branch roadmap and the advisory schema README
-  changed with them.
+- Current release: `v1.1.27`
+- Release notes and assets: <https://github.com/JTC-byte/zmeta-spec/releases/tag/v1.1.27>
+- Release focus: the semantic contract defines `last_seen_ts` on a
+  FUSION_EVENT (section 7.6: the `event.ts` of the latest contributing
+  observation the fused estimate rests on, never later than the fusion's
+  own `event.ts`), a field the contract listed and no text defined,
+  adopted as a contract 2.1 patch on the maintainer's concurrence of
+  2026-10-27, with four shipped FUSION examples and one must-pass
+  conformance vector corrected to that relation; and the section 22 class
+  table names the conformance manifest's gateway class. The reference CoT
+  egress is hardened on four counts: the `cds` profile's `stale` never
+  exceeds the event's own validity claim, the standard profile refuses
+  values XML cannot carry honestly, a configured `how` must have the shape
+  of a how token, and an impossible position or an over-long name is
+  refused rather than projected. The reference gateway's shipped edge
+  configs enable only the failure modes the gateway reads. A strict
+  command posture ships as two opt-in policy variants under
+  `configs/policy-variants/` with `tools/assemble_policy_dir.py`; the
+  reference `policy/` directory is unchanged. Two registry waves record
+  upstream asks (`DIALECT_LABEL` and `SEARCH_PATTERN` proposed, a
+  candidate ninth evidence state on `RAW_DATA_ABSENT_STATUS`) beside an
+  event-signing design note, and no vocabulary becomes valid. The October
+  records waves book the doctrine tensions and guidance gaps for the
+  maintainer. Both schemas are byte-identical to v1.1.26. Governed
+  artifacts changed in this release, relative to zmeta-v1.1.26:
+  configs/policy-variants/command-evidence.strict.yaml,
+  configs/policy-variants/routing.command-origin.yaml,
+  conformance/must-pass.jsonl, spec/extension-registry.yaml,
+  spec/semantics-contract.md. The future-branch roadmap, the four
+  examples and the conformance example claims changed with them.
 - Normative contract: v1.0 locked semantic contract, canonical version-discriminated
   JSON schema, v1.0 JSON schema, and policy pack.
 - Experimental extension: `schema/zmeta-event-1.1.0.schema.json` is provided for proposed
   compatibility testing only; v1.1.0-only fields are not part of the locked v1.0 contract.
 
-## v1.1.26 Integration Notes
+## v1.1.27 Integration Notes
 
-- **The v1.0 wire does not change.** The locked v1.0 schema and the
-  semantic contract file are byte-identical to v1.1.25, the policy pack is
-  unchanged, and no existing event that validated before fails now.
-- **A CoT egress profile for a cross-domain guard.** `cot_config["profile"]`
-  is `standard` by default, the adapter's own output unchanged; `cds` is the
-  shape one partner's guard passed on 2026-09-29 (n=1): four detail
-  children, `how` asserted by the deployment, one remarks line with no
-  links, a stale ceiling. The gateway refuses to start on a `cds` config
-  without a `how` token. The adapter README's "Profiles" section states
-  what is and is not claimed.
-- **A label in `payload.class` no longer becomes a CoT type.** The CoT
-  egress uses the class as the type only when it parses as a CoT atom
-  type; any other class goes out as `a-u-G` with the label quoted in
-  `remarks`. A producer that stored a label there reaches TAK differently
-  than before, and honestly.
-- **Consumers on the 1.1.0 lane see legible diagnostics.** The gateway's
-  own diagnostics are v1.0 events on every lane, and its self-check now
-  validates them against the schema their declared version selects, so a
-  1.1.0-lane consumer receives 1.1.0 producer events beside v1.0
-  diagnostics and selects each event's schema by `zmeta_version`, as the
-  dispatching schema does. Before this release every such diagnostic
-  reached the wire content-free.
-- **The gateway's identity is a setting.** `gateway_producer` and
-  `gateway_node_role` default to the historical values; a configured
-  identity is checked against the loaded policy at startup.
-- **The 1.1.0 acoustic lane grows, experimentally.** `features.level_reference`,
-  `timing_quality.est_error_basis` and the `pressure_pa` /
-  `pressure_statistic` level form are experimental 1.1.0 vocabulary with
-  the promotion bar stated as not met; the locked v1.0 lane rejects the new
-  keys by its own closure.
+- **The v1.0 wire does not change.** Both schemas are byte-identical to
+  v1.1.26 and the reference `policy/` directory is unchanged, so no
+  existing event that validated before fails now. The semantic contract
+  file changes for the first time since v1.1.20 (the 7.6 definition and
+  the section 22 class table row), so the manifest's
+  `semantic_contract_hash` and the reference gateway's startup
+  `contract_hash` move with this release: a deployment that sets
+  `require_contract_hash` recomputes it when it re-pins, and a conformance
+  claim written against v1.1.26 keeps that tag's hash until it re-pins.
+  The policy bundle hash moves because the two policy variants are
+  manifest-listed, not because any reference policy file changed.
+- **`last_seen_ts` on a FUSION_EVENT has a definition.** A producer that
+  fills it with anything but its latest contributing observation's
+  `event.ts` is out of conformance with 7.6 as now written; the reference
+  track projector already emits it so for observations arriving in
+  `event.ts` order. No validator reads the relation yet; that check, with
+  its own failing control, is booked follow-up work.
+- **The `cds` CoT output changes for a track near the end of its claim.**
+  `stale` is the earlier of `ts` + `valid_for_ms` and the projection time
+  plus the window, so any track whose remaining validity at projection is
+  shorter than the window goes out with an earlier `stale` than at v1.1.26; a lapsed claim is refused, or sent
+  with its past `stale` when the deployment sets `lapsed_validity` to
+  `send_stale`. The gateway counts the profile's two refusals as
+  `VALIDITY_LAPSED` and `AFFILIATION_ASSERTED`. A consumer that re-pins
+  confirms the shape with the far side first.
+- **The CoT projection refuses what it used to pass through, under both
+  profiles.** A
+  position outside the schema's bounds, a callsign or uid longer than
+  `max_name_chars` (default 256), a control character or lone surrogate in
+  an identity attribute, a non-numeric point value, and a configured
+  `how` that is not shaped like a CoT how token, which is a configuration
+  error that stops the gateway at startup, as a non-numeric or negative
+  accuracy default now is; a forbidden character in an identity attribute,
+  a non-numeric point value and a malformed `how` were already refused
+  under `cds` since v1.1.26. Output for well-formed input is unchanged,
+  byte for byte, under the standard profile; under `cds` the one change to
+  well-formed output is the stale cap above.
+- **The shipped edge configs change.** `configs/edge-config.json` and the
+  profile-L lean config carry only the failure modes the gateway reads,
+  and the gateway warns at startup for any other. A deployment that
+  copied either config and relied on command queueing or instability
+  holds did not have them before either.
+- **A strict command posture is opt-in.** `tools/assemble_policy_dir.py`
+  builds a deployment policy directory from the reference plus the
+  selected variants and prints the hashes to pin; nothing changes for a
+  deployment that keeps the reference `policy/`.
 - **This release ships signed.** Detached signatures accompany the release
   assets, made with the Incept.IO ZMeta release signing key
   (`A3B150AF2A0E1CA413C4B7F112BE81F54654B96E`). Verify against
-  `SHA256SUMS_v1.1.26.txt` and its signature.
+  `SHA256SUMS_v1.1.27.txt` and its signature.
 
 ## Repository Structure
 - `spec/` Core specification and normative text.
@@ -356,7 +383,7 @@ python tools/run_gateway.py --profile H
 python tools/udp_receiver.py
 python tools/udp_sender.py --file examples/zmeta-command-examples.jsonl
 python tools/replay.py --file examples/zmeta-command-examples.jsonl --delay-ms 200
-python tools/check_compat.py legacy-events.jsonl --target v1.1.26
+python tools/check_compat.py legacy-events.jsonl --target v1.1.27
 python tools/validate.py --file examples/zmeta-command-examples.jsonl --profile L
 python tools/check_adapter.py --events my-adapter-output.jsonl --fixtures my-fixtures.jsonl
 python tools/validate_conformance.py --strict
@@ -404,10 +431,10 @@ Deployment helpers:
 - Config templates: `configs/edge-config.json`, `configs/gateway-config.json`
 - Docker Compose: `deploy/edge/docker-compose.yml`, `deploy/gateway/docker-compose.yml`
 - Bundle builders:
-    - `python release/build_mvp_packages.py --version v1.1.26` produces `zmeta-edge-v1.1.26.zip` and `zmeta-gateway-v1.1.26.zip`
-    - `python release/build_release_bundle.py --version 1.1.26` produces `zmeta-v1.1.26-dist.zip`
-    - `python tools/build_release_package.py --manifest release/zmeta-release-manifest.yaml --output-dir release/package-v1.1.26 --release-id zmeta-v1.1.26 --release-state formal_release --no-signatures --release-notes release/RELEASE_NOTES_v1.1.26.md` builds formal package metadata without creating signatures. `--release-notes` is mandatory for `formal_release`: omit it and the unpopulated notes template is copied verbatim, which `tools/validate_release_package.py` refuses with `RELEASE_PACKAGE_NOTES_PLACEHOLDER`.
-    - `python release/sign_release_artifacts.py --version v1.1.26 --write-checksums --sign --target all` signs release assets with detached PGP signatures when an approved signing key is available.
+    - `python release/build_mvp_packages.py --version v1.1.27` produces `zmeta-edge-v1.1.27.zip` and `zmeta-gateway-v1.1.27.zip`
+    - `python release/build_release_bundle.py --version 1.1.27` produces `zmeta-v1.1.27-dist.zip`
+    - `python tools/build_release_package.py --manifest release/zmeta-release-manifest.yaml --output-dir release/package-v1.1.27 --release-id zmeta-v1.1.27 --release-state formal_release --no-signatures --release-notes release/RELEASE_NOTES_v1.1.27.md` builds formal package metadata without creating signatures. `--release-notes` is mandatory for `formal_release`: omit it and the unpopulated notes template is copied verbatim, which `tools/validate_release_package.py` refuses with `RELEASE_PACKAGE_NOTES_PLACEHOLDER`.
+    - `python release/sign_release_artifacts.py --version v1.1.27 --write-checksums --sign --target all` signs release assets with detached PGP signatures when an approved signing key is available.
 
 ## Deployment Checklist (Compact)
 

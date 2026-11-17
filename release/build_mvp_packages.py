@@ -123,6 +123,7 @@ COMMON_PATHS = [
     "zmeta_cbor.py",
     "zmeta_compact.py",
     "zmeta_proto.py",
+    "zmeta_decode_guard.py",
     # PC-09: the declared process_governance group ships with every bundle.
     # These are the documents that keep a downstream implementation from
     # becoming a private dialect by accident -- AGENTS.md most of all. Listed

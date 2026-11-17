@@ -43,14 +43,26 @@ def release_tmp_dir():
 
 
 def _build_temp_package(tmp_path):
+    """Build a package from a manifest of the tree as it stands; return both.
+
+    Built from the committed manifest, every caller died in the builder between
+    cuts ("release manifest validation failed") before it reached its
+    assertion, so each test below, negative and positive controls alike, proved
+    nothing until the next cut regenerated the manifest (Z4 Option E,
+    2026-11-14). The tests about the
+    committed manifest itself (`test_release_package_templates_validate`,
+    `test_release_package_conformance_flag_succeeds`, and three in
+    test_release_manifest.py) still read it, and stay red between cuts.
+    """
+    manifest_path = _current_manifest(tmp_path)
     output_dir = tmp_path / "package"
     builder.build_package(
-        manifest_path=ROOT / "release" / "zmeta-release-manifest.yaml",
+        manifest_path=manifest_path,
         output_dir=output_dir,
         no_signatures=True,
         allow_dirty=True,
     )
-    return output_dir
+    return manifest_path, output_dir
 
 
 def _refresh_checksums(package_dir):
@@ -87,7 +99,7 @@ def test_release_package_templates_validate():
 
 def test_release_package_builder_dry_run_succeeds(release_tmp_dir):
     result = builder.build_package(
-        manifest_path=ROOT / "release" / "zmeta-release-manifest.yaml",
+        manifest_path=_current_manifest(release_tmp_dir),
         output_dir=release_tmp_dir / "package",
         no_signatures=True,
         dry_run=True,
@@ -98,10 +110,10 @@ def test_release_package_builder_dry_run_succeeds(release_tmp_dir):
 
 
 def test_release_package_output_validates(release_tmp_dir):
-    package_dir = _build_temp_package(release_tmp_dir)
+    manifest_path, package_dir = _build_temp_package(release_tmp_dir)
 
     issues = validator.validate_release_package(
-        manifest_path=ROOT / "release" / "zmeta-release-manifest.yaml",
+        manifest_path=manifest_path,
         package_dir=package_dir,
     )
 
@@ -130,11 +142,11 @@ def test_no_secret_scanner_rejects_secret_like_filename(release_tmp_dir):
 
 
 def test_checksum_mismatch_fails(release_tmp_dir):
-    package_dir = _build_temp_package(release_tmp_dir)
+    manifest_path, package_dir = _build_temp_package(release_tmp_dir)
     (package_dir / "RELEASE_NOTES.md").write_text("tampered\n", encoding="utf-8")
 
     issues = validator.validate_release_package(
-        manifest_path=ROOT / "release" / "zmeta-release-manifest.yaml",
+        manifest_path=manifest_path,
         package_dir=package_dir,
     )
 
@@ -142,7 +154,7 @@ def test_checksum_mismatch_fails(release_tmp_dir):
 
 
 def test_attestation_hash_mismatch_fails(release_tmp_dir):
-    package_dir = _build_temp_package(release_tmp_dir)
+    manifest_path, package_dir = _build_temp_package(release_tmp_dir)
     attestation_path = package_dir / "ATTESTATION.yaml"
     data = yaml.safe_load(attestation_path.read_text(encoding="utf-8"))
     data["semantic_contract_hash"] = "sha256:" + "0" * 64
@@ -150,7 +162,7 @@ def test_attestation_hash_mismatch_fails(release_tmp_dir):
     _refresh_checksums(package_dir)
 
     issues = validator.validate_release_package(
-        manifest_path=ROOT / "release" / "zmeta-release-manifest.yaml",
+        manifest_path=manifest_path,
         package_dir=package_dir,
     )
 
@@ -163,7 +175,7 @@ def test_formal_release_shipping_the_notes_template_fails(release_tmp_dir):
     # Notes Template" with placeholder provenance and a closing "This template
     # is an example" - beside metadata declaring release_state: formal_release.
     # Nothing read the file's content, so four releases shipped that way.
-    package_dir = _build_temp_package(release_tmp_dir)
+    manifest_path, package_dir = _build_temp_package(release_tmp_dir)
     metadata_path = package_dir / "zmeta-release-package.yaml"
     metadata = yaml.safe_load(metadata_path.read_text(encoding="utf-8"))
     metadata["release_state"] = "formal_release"
@@ -171,7 +183,7 @@ def test_formal_release_shipping_the_notes_template_fails(release_tmp_dir):
     _refresh_checksums(package_dir)
 
     issues = validator.validate_release_package(
-        manifest_path=ROOT / "release" / "zmeta-release-manifest.yaml",
+        manifest_path=manifest_path,
         package_dir=package_dir,
     )
 
@@ -181,7 +193,7 @@ def test_formal_release_shipping_the_notes_template_fails(release_tmp_dir):
 def test_formal_release_with_real_notes_passes(release_tmp_dir):
     # The other direction: real notes in a formal package must be accepted,
     # and a release_candidate may legitimately still carry the template.
-    package_dir = _build_temp_package(release_tmp_dir)
+    manifest_path, package_dir = _build_temp_package(release_tmp_dir)
     metadata_path = package_dir / "zmeta-release-package.yaml"
     metadata = yaml.safe_load(metadata_path.read_text(encoding="utf-8"))
     metadata["release_state"] = "formal_release"
@@ -192,7 +204,7 @@ def test_formal_release_with_real_notes_passes(release_tmp_dir):
     _refresh_checksums(package_dir)
 
     issues = validator.validate_release_package(
-        manifest_path=ROOT / "release" / "zmeta-release-manifest.yaml",
+        manifest_path=manifest_path,
         package_dir=package_dir,
     )
 
@@ -204,7 +216,7 @@ def test_builder_release_notes_option_ships_real_notes(release_tmp_dir):
     real_notes.write_text("# ZMeta v1.1.16\n\nReal notes.\n", encoding="utf-8")
     output_dir = release_tmp_dir / "package-real"
     builder.build_package(
-        manifest_path=ROOT / "release" / "zmeta-release-manifest.yaml",
+        manifest_path=_current_manifest(release_tmp_dir),
         output_dir=output_dir,
         release_notes=real_notes,
         no_signatures=True,
@@ -217,11 +229,11 @@ def test_builder_release_notes_option_ships_real_notes(release_tmp_dir):
 
 
 def test_missing_package_artifact_fails(release_tmp_dir):
-    package_dir = _build_temp_package(release_tmp_dir)
+    manifest_path, package_dir = _build_temp_package(release_tmp_dir)
     (package_dir / "RELEASE_NOTES.md").unlink()
 
     issues = validator.validate_release_package(
-        manifest_path=ROOT / "release" / "zmeta-release-manifest.yaml",
+        manifest_path=manifest_path,
         package_dir=package_dir,
     )
 
@@ -236,7 +248,20 @@ def _current_manifest(tmp_path):
     builder refuses to run against it. These integrity checks must stay
     executable in that window - a pin that cannot run is not a pin.
     """
-    data = manifest_builder.build_manifest_data()
+    # The committed manifest's release identity, so that at a cut this manifest
+    # equals the committed one and the tests run on the formal identity.
+    committed = yaml.safe_load(
+        (ROOT / "release" / "zmeta-release-manifest.yaml").read_text(encoding="utf-8")
+    )
+    data = manifest_builder.build_manifest_data(
+        release_id=committed["release_id"],
+        release_name=committed["release_name"],
+        release_status=committed["release_status"],
+        release_date=str(committed["release_date"]),
+        git_commit=committed.get("git_commit"),
+        branch=committed.get("branch"),
+        known_open_issues=list(committed.get("known_open_issues") or []),
+    )
     path = tmp_path / "current-manifest.yaml"
     path.write_text(
         yaml.safe_dump(data, sort_keys=False, allow_unicode=False, width=1000),

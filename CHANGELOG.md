@@ -2,6 +2,1074 @@
 
 ## [Unreleased]
 
+- 2026-11-16 — **The `auto` input lane reports a protobuf refusal as
+  `DECODE_AMBIGUOUS` only for a whole protobuf message carrying fields 2, 3
+  and 4** (`gateway/src/gateway.py`,
+  `zmeta_proto.py`, `spec/protobuf-encoding.md`, `gateway/README.md`,
+  `tools/validation_guidance.yaml`,
+  `conformance/encoding-negative/gateway-must-fail.jsonl`,
+  `docs/zmeta_doctrine_review_log.md`,
+  `gateway/tests/test_auto_lane_ambiguity.py`,
+  `gateway/tests/test_gateway_behaviour_docs.py`). Finding S2 of the pre-cut
+  range review of 2026-11-14, on the maintainer's selection of 2026-11-16.
+  The `auto` lane tries CBOR and the compact mapping, then protobuf, then
+  JSON. Since 2026-11-02 it re-raised every ambiguous protobuf refusal under
+  `DECODE_AMBIGUOUS`, a code that means a decode the gateway would have had
+  to repair. The protobuf decoder refuses at the first field it cannot
+  place, so a compact or CBOR datagram cut short in transit, a compact
+  datagram with one trailing byte and plain text read `DECODE_AMBIGUOUS`
+  with a diagnostic naming a protobuf field: 4,244 compact and 15,111 CBOR
+  cut points of the shipped examples, and 1,934 of 5,000 seeded random
+  datagrams. A count of the code then mixed link loss and stray input with
+  ambiguous producer output. Now, after the strict decode refuses a
+  datagram as ambiguous, the lane re-raises the refusal only when the new
+  `zmeta_proto.carries_event_members` finds the datagram to be one whole
+  protobuf message, every key valid and every field complete to its last
+  byte, whose top-level field numbers include 2, 3 and 4 (`event`,
+  `source`, `payload`), whatever their wire types. The test decodes
+  nothing and runs only after a strict refusal, so clean traffic pays
+  nothing and the gateway still never asks for the forensic skip mode. Any
+  other datagram falls through to the UTF-8/JSON attempt as at v1.1.27 and
+  reads `SCHEMA_INVALID`. A complete event with a stray, mistyped or
+  repeated field, and a duplicate key inside `payload_json`, stay
+  `DECODE_AMBIGUOUS` on both lanes. A message the strict decoder refuses as
+  ambiguous that is also cut short or malformed at its top level after the
+  refused field, or lacks field 2, 3 or 4, reads `SCHEMA_INVALID` on the
+  `auto` lane while the `proto` lane, which is unchanged, reads
+  `DECODE_AMBIGUOUS`; tests hold that difference on both lanes for seven such
+  messages, among them the three edge cases the maintainer accepted: a
+  stray field with no `payload`, a stray field alone, and a stray field
+  followed by a one-byte cut.
+  `spec/protobuf-encoding.md` gains a paragraph after its decoder bounds
+  that states the `auto` lane's rule; its lines 114 to 131 are unchanged.
+  Change class C (a gateway decode behaviour and a codec function), with a
+  class B conformance fixture: `gateway-must-fail.jsonl` gains
+  `gateway-auto-truncated-compact-schema-invalid` (a cut five-member compact
+  datagram on `auto`, gateway code `SCHEMA_INVALID`). Compatibility: a
+  consumer that counts `metrics.diagnostic_code` on an `auto` lane sees
+  fewer `DECODE_AMBIGUOUS`, and the gateway's own violation counts move the
+  same way; no `reason_code` on the v1.0 wire changes; a refused datagram's
+  error text becomes the UTF-8/JSON attempt's, as at v1.1.27, so a cut
+  compact datagram reads a UTF-8 error on `auto` and "unexpected end of
+  data" on `compact` (carrying the CBOR attempt's text instead, option
+  (c3), is booked open). No runtime hash moves (contract, policy,
+  semantics, schema). The release manifest's `encoding_negative_suite_hash`
+  and `encoding_projection_specs_hash` move at the next cut. Both rewrites
+  in `gateway/src/gateway.py` keep their line counts, so the file stays at
+  the 3389 lines its pin test asserts and no citation into it moves; the
+  new function follows the last line of `zmeta_proto.py`. This entry
+  supersedes the statements in the entry of 2026-11-14 that a damaged
+  compact or CBOR datagram, or plain text, can read `DECODE_AMBIGUOUS` on the
+  `auto` lane, and that the decode-failure comment says so.
+
+- 2026-11-16 — **The MAVLink egress refuses a command whose validity window
+  opens after its issue time**
+  (`adapters/egress/mavlink/zmeta_command_to_mission_intent.py`,
+  `adapters/egress/mavlink/README.md`,
+  `adapters/egress/mavlink/test_mavlink_intent.py`, and a comment in
+  `adapters/egress/sapient/zmeta_command_to_sapient_task.py`). Class C, on
+  the maintainer's selection of 2026-11-16 (finding S1 of the pre-cut range
+  review of 2026-11-14, its option (A)). Contract 7.8 starts a command's
+  validity window at `payload.valid_from_ts` when present, otherwise at
+  `event.ts`. The MissionIntent carries `valid_for_ms` and no anchor, so a
+  receiver can only start the duration at receipt; for a GOTO whose window
+  opens ten minutes after issue, a receiver that gets the intent at issue
+  starts about ten minutes before the window opens. The egress now returns
+  None for a command whose `valid_from_ts` is later than its `event.ts`,
+  with the strict comparison of the SAPIENT egress, so a start 1 ms after
+  issue is refused and a start equal to it goes out. It also returns None
+  for a `valid_from_ts` it cannot read (not a time, a number or another
+  value that is not a string, out of range, or with no UTC offset) and for
+  a `valid_from_ts` beside an `event.ts` that is absent or cannot be read.
+  It reads both times with a copy of the SAPIENT egress's reader, since the
+  adapters do not import each other, and reads no clock. A null
+  `valid_from_ts` is read as absent, as the SAPIENT egress reads it; the
+  v1.0 and v1.1.0 schemas refuse a null, so only a caller wired past the
+  gateway sends one. The check runs after every other guard, so a command
+  that raised before still raises. A command without `valid_from_ts` goes
+  out as before, and a window that has opened by `event.ts` still goes out
+  with `valid_for_ms` and no anchor. On a command without `valid_from_ts`
+  whose `event.ts` is absent or cannot be read, the two egresses differ by
+  design: the SAPIENT egress refuses it, and the MAVLink egress sends it as
+  before. Compatibility: a consumer of the MissionIntent no longer receives
+  a command whose window opens after its issue time, nor one that carries a
+  `valid_from_ts` whose start or issue time cannot be read. The two shipped
+  valid fixtures with a future start (`examples/encoding-roundtrip.jsonl:2`,
+  `conformance/must-pass.jsonl:10`) have no reference egress path, since the
+  SAPIENT egress refuses them too. A deployer who wants delayed tasking
+  holds the command and sends it at its start, issued then: the egress
+  compares `valid_from_ts` with `event.ts` and reads no clock, so a command
+  issued earlier and relayed unchanged at its start is still refused.
+  Tests: thirty-one named cases on the rule; a parity test that holds the
+  MAVLink and SAPIENT egresses to the same refusals on cases A to H that
+  carry an `event.ts`; a test that holds the two readers to the same code,
+  comments aside, so a change to one copy fails until the other follows;
+  and a test that a later start beside an altitude still raises. The
+  nineteen refusal cases, the parity test and the reader test failed on the
+  unchanged tree; the twelve cases that go out as before and the altitude
+  test passed there by construction. The SAPIENT egress's reader gains a
+  comment that names its copy; its code is unchanged. A seeded review of
+  the branch gave two should-fix findings and nine nits in the branch's own
+  text, all applied. The two tests that import the SAPIENT egress make the
+  `ZMETA-COMMAND-GOVERNANCE` test command need it, though the class does not
+  list it; listing it moves a manifest pin, so it is booked for the cut.
+  Unchanged: a window that closed before issue, which both egresses still
+  send; the gateway's task dedupe horizon; the SAPIENT egress's behaviour;
+  the MissionIntent's keys. Whether a change in a reference adapter's
+  output makes the next cut a patch or a minor (handoff gap (g)) is a
+  question for the cut. No schema, policy, contract, registry, conformance
+  or release-manifest file changes, so no hash or pin moves.
+
+- 2026-11-14 — **Most of the guidance file's line citations that the range
+  since v1.1.27 displaced name their text again; 12 displaced references
+  wait for a reading by hand** (`tools/validation_guidance.yaml`,
+  `gateway/tests/test_validation_guidance.py`). The repair of finding S3 of
+  the pre-cut range review of 2026-11-14, merged on the maintainer's
+  selection of 2026-11-16. Commits after v1.1.27 added lines to twelve
+  files the guidance file
+  cites by line and moved none of the citations below them: a validator
+  citation landed 64 lines above its code, and the `INVALID_TIME_FORMAT`
+  entry cited the registry lines of `DECODE_AMBIGUOUS`. 271 line references
+  are moved, 249 written as citations and 22 as numbers in the prose after a
+  citation: 164 into `gateway/src/validators.py`, 33 into
+  `policy/violation-codes.yaml`, 33 into `gateway/src/gateway.py`, 23 into
+  `schema/zmeta-event-1.1.0.schema.json`, 7 into
+  `gateway/tests/test_reason_codes.py`, 4 into `spec/field-dictionary.md`, 2
+  into the MAVLink ingress template, and one each into the MAVLink ingress
+  README, `conformance/README.md`, `schema/README.md`,
+  `gateway/tests/test_timing_freshness.py` and `tools/validate.py`. Each moved
+  reference names, line for line, the same non-blank text it named at
+  v1.1.27. 251 of them moved where that text stands at exactly one place in
+  the file now. The other 20 name text that stands at more than one place;
+  from the seeded review of 2026-11-14, each moved only where git's own line
+  mapping from v1.1.27 lands on one of those places and the text there is
+  the same. 15 references are left as they are. The range displaced 12 of
+  them: 5 now begin off their text, 5 begin on it and end short of a block
+  that gained lines inside the cited range (the 1.1.0 schema's `reason_code`
+  enum among them), and 2 name text the range changed in place. Each needs a
+  judgment about what the citation meant, which a mechanical rewrite cannot
+  make. The other 3 named blank lines already at v1.1.27. The registry test
+  now requires every citation into `policy/violation-codes.yaml` to name the
+  whole block of a code its entry is about, and an entry that cites the
+  registry to cite its own code's block; an entry that makes no line
+  reference into the registry is outside the rule. Four references that
+  stand as part of a block or begin on a comment are listed by name, each
+  pinned to the text of the registry line it begins on, and the test
+  reports one whose line no longer holds that text. On the unrepaired file
+  the test's first form reported 31 of the 56 registry references, and its
+  present form reports all 33 that the range displaced. Twelve named
+  citations are read at their first line. No test reads the other citations
+  into the validator, the gateway, the schemas or the tools. No rule,
+  validator or verdict changes; the file is advisory and is not listed in
+  the release manifest.
+
+- 2026-11-14 — **An ASTERIX CAT062 egress adapter encodes a track state as a
+  system track record** (`adapters/egress/asterix/`, adapter 1.0.0,
+  Reference). Built on the maintainer's selection of 2026-11-14. One
+  `STATE_EVENT`/`TRACK_STATE` becomes one CAT062 edition 1.21 record, and
+  `cat062_data_block` wraps records in a data block; the adapter opens no
+  connection and adds no dependency. The record carries the sender's
+  SAC/SIC, the state's time floored to 1/128 s, the WGS-84 position, the
+  track number from a caller-owned map and the first octet of the track
+  status; the velocity when the state carries both course and speed; the
+  geometric altitude when the geo is 3-D; and the WGS-84 accuracy (APW) when
+  the ellipse is `1_SIGMA`. The deployment declares SAC/SIC, monosensor,
+  tentative and simulated, with no default, and `simulated` true is refused
+  until a later branch writes the track status's first extent. An event that
+  carries any risk record other than an `IGNORED` decision without a use
+  restriction on the export use is refused, since no CAT062 item can carry a
+  self-label. An event whose timing is in holdover, unsynchronized or
+  absent is refused unless the caller passes `allow_degraded_timing=True`;
+  with it, the record carries the time with no notice of the clock's state.
+  A malformed `timing_quality` is refused whatever the allowance says. Every refusal has a reason a
+  caller can count, and the README's loss register names what the record
+  does not carry. No schema, policy, contract, registry or conformance
+  change.
+
+- 2026-11-14 — **The gateway documents name the protected strip paths, the
+  admission record's members and the decode refusal, and the strip guard
+  gives each protected path its own reason** (`configs/README.md`,
+  `gateway/README.md`, `policy/README.md`, `gateway/src/gateway.py`,
+  `gateway/tests/test_strip_protected_paths.py`,
+  `gateway/tests/test_gateway_behaviour_docs.py`). Corrections from the
+  pre-cut range review of 2026-11-14 (its S5 and N1), under the
+  maintainer's decisions of 2026-11-02 that the changed text documents
+  (doctrine F4-04, doctrine F7-01 and the validity-window rule of contract
+  7.8). S5: three behaviors of 2026-11-02 were missing from the documents
+  a deployer or consumer reads, though `spec/protobuf-encoding.md` and the
+  tools' documents already stated the decode refusal. `configs/README.md`
+  said that two path
+  prefixes are protected from `strip_optional_fields`; it now names the
+  three and gives `payload.valid_from_ts` its reason, the start of a
+  command's validity window, and says that a config a v1.1.27 gateway
+  accepted now stops the gateway at startup. `gateway/README.md` gains an
+  Admission records section: under contract 4.5.1 a capped or reduced value
+  keeps the `event_id` because the record carries the values it replaced,
+  as `effects.confidence_claimed`, `effects.valid_for_ms_claimed` or both,
+  and the external-promotion degrade path maps each declined factor to its
+  value under `effects.reduction_declined`; the producer's own figure for a member is
+  the claimed value in the first record that carries it. It also gains a
+  Decode refusals section: what `DECODE_AMBIGUOUS` refuses, that on the
+  v1.0 wire the diagnostic's `reason_code` is `SCHEMA_INVALID` with
+  `metrics.diagnostic_code` carrying the code, that duplicate map keys on
+  the CBOR and compact lanes are not refused, and how the `auto` lane
+  behaves as it is: a damaged compact or CBOR datagram, or plain text, can
+  read `DECODE_AMBIGUOUS` with a diagnostic naming a protobuf field, which
+  is open as finding S2 of the review. `policy/README.md` names the three
+  members
+  where it describes the soft-acceptance record. N1: the strip guard told a
+  config that strips `payload.valid_from_ts` that the path carries
+  accepted-risk labels or promotion evidence. `PROTECTED_STRIP_PATH_REASONS`
+  now gives each prefix its own reason, and the refusal states it;
+  `PROTECTED_STRIP_PATH_PREFIXES` is read from it, so the list and the
+  reasons cannot differ. The comment on the decode-failure branch of
+  `process_message` said that every decode failure other than an ambiguous
+  one stays `SCHEMA_INVALID`; it now says that the `auto` lane can report a
+  damaged datagram as `DECODE_AMBIGUOUS`. Every edit to `gateway.py` keeps
+  its block at its line count, so the file stays at the 3389 lines its pin
+  test asserts and no citation into it in `tools/validation_guidance.yaml`
+  moves. New tests read the protected prefixes, the member names and the
+  v1.0 wire fallback from the code and the policy and fail when a document
+  stops naming them; three of them check that the auto lane's behavior the
+  README states holds for the code as it is. Thirteen of the seventeen new
+  tests failed on the unchanged tree; the four that passed there read the
+  member names from the code and the auto lane's present behavior. A
+  seeded review of the branch, from the pre-cut range review of
+  2026-11-14, gave five should-fix findings and nine nits in the branch's
+  own text, all applied. The decode refusal's `SCHEMA_INVALID` sentence
+  names the four dedicated lanes. Duplicate map keys on the CBOR and
+  compact lanes are given as selected on 2026-11-11 for a branch after the
+  next cut. The two timing paths decline a factor above 0 and below 1, and
+  a `confidence_reduction_factor` of 0 or less is read as the default 2.0
+  on the promotion and timing-freshness paths and declined on the
+  `timing_loss` path. `reduction_declined` is given as a mapping from each
+  declined factor's name to its value. The `auto` lane's order says that a
+  datagram that opens with `{` or `[` and is not JSON is read as CBOR and
+  the compact mapping only. The open `auto`-lane decision is named as
+  finding S2. The strip guard's refusal states the rule before the prefix
+  and its reason, within the same four lines of `gateway.py`. Fourteen
+  tests are added and three strengthened: they read the admission members
+  from the records the code writes, and hold the declined-factor range,
+  each `auto`-lane case the README names and the refusal's composed text
+  to the code. No rule changes. No changed file is listed in the release
+  manifest, so no pin moves. The gateway's runtime policy hash covers every
+  file under `policy/`, so the edit to `policy/README.md` changes that hash
+  and each contract hash built from it, though no policy rule differs; a
+  gateway started with a required policy or contract hash from the tree
+  before this change exits at startup on this one. S5 also names
+  `spec/field-dictionary.md`; this branch leaves it unchanged, so that part
+  of S5 stays open.
+
+- 2026-11-14 — **Records: the next cut's condition for the `observed_at`
+  refusal, the handoff's current state and the declined-factor sentence**
+  (`docs/zmeta_refinement_handoff.md`, `docs/zmeta_refinement_worklog.md`,
+  `CHANGELOG.md`). Three corrections from the pre-cut range review of
+  2026-11-14 (its M2, S6 and N2). M2, under the maintainer's selection of
+  2026-11-10 that opened the `observed_at` refusal: the cut that carries
+  the refusal follows the consumer's dating fix and then the producer's
+  removal of the field, and no tracked record said that either had
+  happened. Both were made on 2026-11-11, in that order, each merged into
+  its own lane's integration branch; neither is yet on its lane's deployed
+  line, and the fielded producer's image predates the removal, measured by
+  that lane on 2026-11-14. The handoff's Open list gains the condition as
+  its own item with the re-pin order: no validating consumer re-pins to
+  that cut until the fielded producer runs an image without the field,
+  since a gateway on the cut's policy refuses every STATE from the present
+  image as `STATE_HAS_RAW_FEATURES`. The records state the cut's condition
+  as the two acts in their order, so the condition is met, and deployment
+  governs only the re-pin order. The cut stays the maintainer's word.
+  S6: the handoff's current-state block ended by giving the v1.1.27
+  publication as the next session's work; it now says the publication was
+  completed on 2026-10-27. N2: the 2026-11-02 entry on admission caps said
+  a factor below 1 is recorded as declined on each of three paths; only the
+  promotion path writes `reduction_declined`, and the timing-freshness
+  degradation and the timing-loss failure mode return with no record, so
+  the sentence now says which path records it; it also scopes the decline
+  to a factor above 0, since a factor of 0 or less is replaced by a
+  default on the promotion and timing-freshness paths. The handoff also
+  gains a paragraph on the review: its verdict, the findings three
+  branches of 2026-11-14 close, the fourth branch that is to follow for S5
+  and N1, and the seven findings that wait for the maintainer's word. Item
+  6 of the handoff names the unmerged local branch `pr/8-review`, and the
+  review paragraph records that the two detached worktrees the review
+  found were throwaway trees and are removed (N7). Two worklog entries and
+  one handoff paragraph of 2026-11-14 are reworded to the form the other
+  records use; the rewording removes clock times and names that the other
+  records do not carry, and alters no fact of the changes they record. No
+  code, rule or pin changes.
+
+- 2026-11-14 — **Two tests hold the gate's red to the release pins and the
+  typeless AIS event to the reference validator**
+  (`gateway/tests/test_kernel_gate_runs_every_stage.py`,
+  `adapters/ingress/ais/test_ais_ingress.py`, `tools/README.md`). Both
+  corrections are from the pre-cut range review of 2026-11-14. The first is
+  under the maintainer's selection of 2026-11-14 that opened Option E of the
+  gate change. The gate test passed when any stage was red, so a third
+  failing stage, or a line inside the two release stages that is not a hash
+  mismatch, left it green while the gate stayed red as it is by design
+  between cuts. When the gate is red, the test now fails unless the failing
+  stages are within `release_manifest` and `release_package` and every line
+  that begins `FAIL ` is a hash mismatch of a failing one of them, in the
+  codes and line shapes of `tools/validate_release_manifest.py` and of
+  `tools/validate_release_package.py`, which reports the manifest's issues
+  as `RELEASE_PACKAGE_MANIFEST_INVALID`. A mismatch of the manifest's own
+  hash is not accepted, since a stale pin does not move it. The judgement is
+  a small classifier with unit controls: a line that is not a hash mismatch,
+  a mismatch of the manifest's own hash, a mismatch body with text before or
+  after it or a short hash, a listed artifact reported missing and a third
+  failing stage are each rejected, and the stale-pin shapes measured on
+  `develop` are accepted. As a consequence of the test, a branch that
+  renames or removes a manifest-listed file turns it red until the cut,
+  because the gate reports the file missing; the governance Branching
+  section is unchanged. `tools/README.md` now states that the test holds the
+  red to the pins. The second is under the
+  maintainer's selection of 2026-11-14 that opened the AIS records with no
+  message type. The adapter's tests checked the typeless event against the
+  1.1.0 schema only. A new test class runs it through the reference
+  schema-and-policy validation, in the order `tools/validate.py` runs it,
+  and the event passes at profiles H and M with no warning. Two controls
+  show that the same validation refuses the class key renamed `class_name`
+  (`SCHEMA_INVALID`) and renamed `Entity_Class` (`OBSERVATION_HAS_IDENTITY`).
+  Further controls show that it refuses the event at profile L and the same
+  event a second time with one validation state, that the test's eight
+  policy checks are the calls of `tools/validate.py`, and that its schema is
+  the one the stamp's lane names.
+  No rule changes. No changed file is listed in the release manifest, so no
+  pin moves.
+
+- 2026-11-14 — **The release facts classify the golden CoT corpus as
+  governed** (`tools/release_focus_facts.py`,
+  `gateway/tests/test_release_currency.py`). The correction is from the
+  pre-cut range review of 2026-11-14, under the maintainer's selection of
+  2026-11-10 that opened the golden CoT outputs. The manifest group
+  `cot_projection_golden`, which the manifest builder has defined since
+  2026-11-11, was in neither `GOVERNED_GROUPS` nor `UNGOVERNED_GROUPS`. Until
+  this change, every check that classified the groups read the committed
+  manifest, which does not carry the group, so nothing was red; once the next
+  cut rebuilt the manifest, the
+  release-facts step would have raised, the README's release-focus sentence
+  could not have been generated, and five release-currency tests would have
+  failed. The group is now governed: its corpus is a required fixture of
+  `ZMETA-COT-PROJECTION`, beside the adapter harness corpus, which is
+  governed, and none of the stated reasons for an ungoverned group fits it.
+  A new test builds the manifest's groups from the tree in memory, fails
+  when the builder defines a group that is in neither set or in both, and
+  checks that the golden corpus is a governed path. Two controls show that
+  the check reports an added group and a group placed in both sets, and that
+  each of the test's classification assertions fails on its own defect. No
+  rule changes. Neither changed file is listed in the release
+  manifest, so no pin moves. Two items belong to the cut commit and are not
+  made here: an entry for the group in `REQUIRED_GROUPS` of
+  `tools/validate_release_manifest.py`, with a decision on a top-level hash
+  field, and the five groups that `spec/release-hash-policy.md` does not
+  list.
+
+- 2026-11-14 — **The conformance gate runs every stage it is asked for and
+  names them all when one fails** (`tools/validate_conformance.py`,
+  `gateway/tests/test_release_package.py`, `.github/workflows/ci.yml`). The
+  maintainer selected the change on 2026-11-14. The gate exited at its first
+  failing stage, so between cuts `--kernel-gate` stopped at the stale release
+  manifest's pins and the sub-checks after them never ran. Each stage now
+  records its result; when any failed, a final `conformance stages:` line
+  names every stage with `ok` or `FAIL (exit N)`, and the exit status is the
+  first failing stage's, as before; a stage that raises still ends the run.
+  A passing run's output is unchanged. The
+  release-package tests build their packages from a manifest of the tree, so
+  their negative controls run between cuts instead of failing in the builder
+  before their assertions; the tests about the committed manifest itself stay
+  red until the cut; their manifest carries the committed manifest's release
+  identity, so at a cut it equals the committed one. Every CI validation step
+  after the install, the kernel gate among them, runs even when an earlier one
+  failed, unless the run was cancelled or the install failed; the run stays
+  red. No rule changes. The gate tool is listed in the release
+  manifest; its pin has been stale on `develop` since 2026-11-10 and stays so
+  until the next cut.
+
+- 2026-11-14 — **The AIS ingress adapter reads a position record that
+  carries no message type** (`adapters/ingress/ais/`, adapter 1.1.0). The
+  maintainer selected the change on 2026-11-14. A record source that keeps a
+  decoded position report's content and the transmitting transceiver's class
+  but drops the AIS message type could not pass: the adapter refused a
+  message without an integer `type`, and the only way through was to infer a
+  type from the class, which makes an inference look read. A record whose
+  `type` is absent now becomes an event when it declares `transceiver_class`
+  `"A"` or `"B"` (folded for whitespace and case) and carries a usable
+  position. Its event omits `ais_message_type` and carries
+  `ais_transceiver_class`; no type is inferred. Message 27's not-available
+  encodings apply to such a record as well as every other type's, so a speed
+  of exactly 63 kt is dropped. The adapter relies on the record source's word
+  that its records are position reports, and the README says that such a
+  record's position has an unknown resolution, since it may be message 27's
+  coarser grid. A message that carries a type is translated as
+  before, and a type that is present but not an integer, or an integer
+  outside the position reports, still refuses the message. No schema,
+  policy, contract, registry or conformance change.
+
+- 2026-11-12 — **The guidance for `EVENT_DUPLICATE` states the 4.5.1
+  condition whole** (`tools/validation_guidance.yaml`). Its remediation
+  sanctioned keeping the `event_id` for a reduction under a declared mode
+  "whose policy-scoped record names the mode", which dropped "on the accepted
+  event" and tied the record to the mode. It now reads "when the
+  policy-scoped record on the accepted event names the mode and carries the
+  values it replaced", as contract 4.5.1 does. A finding of the team
+  account's read of Clause 1's final text; no rule, contract or code change.
+
+- 2026-11-12 — **Three more process passages say the release manifest waits
+  for the cut** (`docs/zmeta_change_governance.md`, `AGENTS.md`, agent and
+  process guidance). The maintainer selected the four texts on 2026-11-12,
+  after a read on his team account found passages that still told an author
+  to regenerate the manifest with the change. The Class B list and step 6 of
+  the implementation steps in the governance document, and the AGENTS.md
+  list of files to consider, now say that the manifest and claim hashes are
+  regenerated at the next cut and that the commit body says the pins are
+  stale until then; the stale-manifest paragraph names wave branches beside
+  experimental ones. No code, gate or test changes.
+
+- 2026-11-12 — **The governance Branching section says that `develop` reads
+  the release manifest's pins red between cuts**
+  (`docs/zmeta_change_governance.md`, agent and process guidance). The
+  maintainer selected the wording on 2026-11-12. The section said both that
+  "`develop` is expected to be green" and that a branch changing a
+  manifest-listed artifact leaves the manifest stale on purpose, so after
+  such a merge `develop` read red on the pins until the next cut. `develop`
+  is now expected to be green apart from those pins, and the paragraph on
+  stale manifests says that `develop` reads the same pins red after the
+  merge. CLAUDE.md's "GitHub usage" bullet already read it that way. No code,
+  gate or test changes.
+
+- 2026-11-12 — **The gateway README names the three traps of the producers'
+  field leg** (`gateway/README.md`). The maintainer selected the two notes on
+  2026-11-12. "Run locally" now says that a profile is required, from
+  `--profile` or the config file's `profile`, and quotes the gateway's
+  refusal; that the default lane is the locked v1.0 schema, and how a
+  gateway for v1.1.0 producers selects the 1.1.0 schema; and which flags
+  `tools/run_gateway.py` passes on (`--profile H` when neither `--profile`
+  nor `--config` is given) and which need `gateway/src/gateway.py` itself.
+  The producers lost three short runs to these on 2026-11-11. Documentation
+  only; no code change.
+
+- 2026-11-12 — **Contract 7.8: a same-event projection of a command keeps
+  `payload.valid_from_ts`** (`spec/semantics-contract.md`, Class B, a
+  contract 2.1 patch). The maintainer selected the classification on
+  2026-11-12 after seeing the bullet and the texts it rests on. Section 7.8
+  gains one bullet after its last command rule: a same-event projection of a
+  command MUST NOT omit or alter a `payload.valid_from_ts` the source wrote;
+  the permissions of Sections 4.2, 4.7, 8.4, 10.4 and 18.2 to remove
+  optional fields or reduce precision do not reach this member, since
+  without it the window would begin at `event.ts`; a conversion into a
+  native command channel (Section 15) is not such a projection. The
+  projection catalog has held the member `never_mutable` since 2026-11-02;
+  at v1.1.27 it was `optional_removable`, and that release's must-pass
+  vector `command-event-l-projection-pass` dropped it, so a projection that
+  drops or alters it, which the v1.1.27 suite accepted, fails the suite from
+  the next release. The MAVLink egress drops it; the SAPIENT egress carries
+  no such field but computes `task_end_time` from it and refuses a task whose
+  start is later than `event.ts`. Both feed native command channels (Section
+  15), which the bullet places outside same-event projection. Two must-fail
+  projection vectors pin the rule: `command-valid-from-ts-omission-fail`
+  (`PROJECTION_UNDECLARED_OPTIONAL_OMISSION`) and
+  `command-valid-from-ts-change-fail` (`PROJECTION_FIELD_CHANGED`);
+  projection conformance reads 39. The contract gains six lines, so the
+  guidance file's contract citations below them move by six. The contract
+  hash moves, and with it the gateway's startup `contract_hash`; the v1.0
+  lock anchor moves with its record. No schema, policy or code changes.
+
+- 2026-11-12 — **The 4.3 clause of 2026-11-02 is a contract 2.1 patch.** The
+  maintainer selected it on 2026-11-12: his 2.1 concurrence of 2026-11-02,
+  given for the 4.5.1 bullet on admission caps and the last command rule of
+  7.8, also covers the clause 4.3 gained that day, "or, for a command with
+  `valid_from_ts`, its issue time". The case put to him: once 7.8 starts a
+  command's validity window at `valid_from_ts`, the "validity time" of 4.3
+  contradicts 7.8 whenever the two times differ, and the clause fixes that
+  contradiction by taking "issue time", one of the two readings 5.1 gives
+  ("the command issue time or validity anchor"). The 2026-11-02 entry below
+  stays as written. Records only: no contract, schema, policy or code
+  change, and the contract anchor stays. The clause sets no minor version
+  for the next cut.
+
+- 2026-11-11 — **Contract 4.2 points to the 4.5.1 bullet on admission caps**
+  (`spec/semantics-contract.md`, Class B, a clarification under contract
+  2.1). The maintainer selected it on 2026-11-11 after seeing the lines before
+  and after. Taken alone, 4.2 could be read as making a reduction of
+  `confidence` or `valid_for_ms` applied at admission a replacement that needs
+  a new event, while 4.5.1 calls such a reduction under a declared degrade or
+  quarantine mode "a projection of the same event under Section 4.2", provided
+  the policy-scoped record names the mode and carries the values it replaced
+  (doctrine F4-04). Three lines after "Such projections preserve the original
+  `event_id`." now say so in 4.2; no rule changes. The guidance entry for
+  `EVENT_DUPLICATE` names the admission case beside the profile export. The
+  contract gains three lines, so the guidance file's contract citations below
+  them move by three. The contract hash moves, and with it the gateway's
+  startup `contract_hash`; the v1.0 lock anchor moves with its record. No
+  schema, policy or code changes.
+
+- 2026-11-11 — **The protobuf encoding document states that `payload_json`
+  falls under contract 3.5** (`spec/protobuf-encoding.md`). The maintainer
+  selected it on 2026-11-11 after seeing the bullet before and after. The
+  bullet that carries the payload as canonical UTF-8 JSON bytes in
+  `payload_json` adds that those bytes are a JSON text under contract section
+  3.5, and that one which repeats a member name in one object, at any depth,
+  is not a valid encoded event. The reference decoder has refused such bytes
+  since 2026-11-02 (`zmeta_proto.py`, tested in
+  `gateway/tests/test_decode_ambiguous.py`), and doctrine F7-01's note of
+  2026-11-10 reads the contract sentence as reaching them; the document now
+  says so where a protobuf implementer reads. No contract, schema, policy or
+  code changes. The document gains two lines, so the guidance file's one
+  citation into it below that bullet moves by two.
+
+- 2026-11-11 — **CLAUDE.md states the GitHub usage habits** (`CLAUDE.md`,
+  Docs/advisory). The maintainer approved the bullet as drafted on
+  2026-11-11. It sits under "How we work here", after the release-limits
+  bullet. Work is saved by a local commit. While his hold of 2026-11-11
+  stands, nothing is pushed, and a push needs his word on a written case, a
+  major release or a major bug fix, that names the workflow, its last run's
+  duration and the runs it starts. Checks run on the workstation first. Once
+  pushing resumes, records-only commits go out in at most one push a day. A
+  failed run is re-run once for an infrastructure fault; a run that a newer
+  push replaced is cancelled at once on his standing word, and any other
+  cancel takes his word per run. The repository's CI is one job of about two
+  minutes, and on `develop` between cuts it reads red by design on the
+  release manifest's pins. No governed file changes.
+
+- 2026-11-11 — **Contract 7.7 names `last_seen_ts` among the prohibited STATE
+  payload fields, and the policy refuses it at any depth**
+  (`spec/semantics-contract.md` and `policy/semantics.yaml`, Class B, a
+  clarification under contract 2.1). The maintainer selected it on 2026-11-11
+  after seeing the bullet before and after and the counts below. Contract 7.6
+  defines `last_seen_ts` as "the `event.ts` of the latest contributing
+  observation the fused estimate rests on", so it is an observation timestamp,
+  which section 7.7 already forbids in a STATE_EVENT payload. The list of
+  names did not hold it, so the reference check passed a STATE that carried
+  it; the entry of 2026-11-10 below booked it as a candidate. The contract's
+  list and `policy/semantics.yaml` `state_event.payload_must_not_contain` each
+  gain the name, after `observed_at`. The existing check searches the whole
+  payload, `extensions` included, and reports `STATE_HAS_RAW_FEATURES` (fail)
+  with the path. Refused: `last_seen_ts` as a text key on a STATE at the top
+  level, under `provenance`, nested under `extensions`, in another letter case
+  and with surrounding spaces. Not refused, as before: other spellings such as
+  `lastSeenTs`. The member stays required on a FUSION_EVENT, where 7.6 defines
+  it, and no policy list names it there. A STATE that carries it was already
+  outside 7.7, so no payload that complied with the contract becomes invalid
+  (`spec/versioning.md`, Backward Compatibility Expectations). No STATE in the
+  fielded samples read carries it (none of 5,295 in a downstream consumer's
+  window, none of 809 in a producer's recorded run), and no STATE in the
+  shipped examples or the other conformance vectors does, so no existing
+  verdict changes and the change sets no order for the cut. No code is minted,
+  no schema changes, and no vocabulary grows; the schemas keep their nine
+  schema-false names. One fixture is added,
+  `state-last-seen-ts-fusion-member-collapse` (the bad-event corpus reads 38).
+  The pin test's list holds eleven names, and a test names this one in both
+  lists. The policy file gains one line, so the guidance file's citations into
+  it move with it (50 references moved and two ranges grown to hold the new
+  line), and the `STATE_HAS_RAW_FEATURES` entry names the field and says it
+  belongs on the fusion parent. The contract hash and the policy hash move,
+  and with them the gateway's startup `contract_hash`; the v1.0 lock anchor
+  moves with its record. The two code copies of the nine names that read the
+  payload's top level only stay booked, as on 2026-11-10.
+
+- 2026-11-11 — **Golden CoT outputs for every example STATE event, as a
+  conformance artifact** (`conformance/cot-golden/`, Class B). The maintainer
+  selected it on 2026-11-10 ("Add the fixtures").
+  `conformance/cot-golden/golden.jsonl` holds sixteen cases: each of the eight
+  STATE_EVENT lines in `examples/` under the `standard` and the `cds` profile
+  of the reference CoT projection, at a fixed projection instant, with the CoT
+  XML it writes or the reason it refuses. One case is a refusal: the
+  round-trip example asserts an affiliation, which the `cds` profile refuses
+  as `AFFILIATION_ASSERTED`. `tools/validate_cot_golden.py` projects each case
+  again and compares the result byte for byte, and reads the corpus through
+  the refusing reader of contract 3.5. The `ZMETA-COT-PROJECTION` class names
+  the corpus among its required fixtures and the tool among its required
+  commands, and the example claim of the reference gateway lists the command.
+  The TAK Protocol bytes are not part of the artifact. The release-manifest
+  builder pins the corpus and the tool from the next cut. The corpus is not a
+  kernel-gate sub-check; the class's required command and the test battery run
+  it. The new test file `gateway/tests/test_cot_golden.py` was written first;
+  it holds the corpus to the examples, number types included, so a changed
+  example fails it until the corpus is rebuilt. Eleven mutants each fail it.
+  An independent reviewer read the change against its sources, found the error
+  planted for it, and made eight other findings; seven are applied, and one, a
+  kernel-gate sub-check for the corpus, is left out on purpose. A separate
+  factual pass over these records found the error planted for it and nothing
+  else wrong. The class manifest, the example claim and the release-manifest
+  builder are manifest-listed, so the kernel gate reads two more release-pin
+  lines and six of its lines read new values until the next cut.
+- 2026-11-11 — **The remaining reference readers of event and fixture JSON
+  refuse a repeated member name** (reference tools and the gateway's self-test
+  reader, Class C; the contract is unchanged). The maintainer selected this on
+  2026-11-10 ("Yes, before the cut"). Contract 3.5 says a JSON text in which
+  one object repeats a member name is not a valid encoded event. The gateway
+  and four tools refused such a text from 2026-11-10, and twelve other readers
+  still kept the last value. They now read through
+  `zmeta_decode_guard.pairs_refusing_duplicates`. Three tools read events:
+  `tools/compat_normalize.py` lists a refused line under `rejected` with the
+  code `DECODE_AMBIGUOUS`, writes no output, and refuses a `.json` document
+  whole; `tools/filter_risk.py` stops with the file and line and exits 1, as
+  it does for a line that is not JSON; `tools/measure_packet_size.py` refuses
+  the measurement with the file and line. Five read fixtures:
+  `tools/check_adapter.py` reports the line in its fixture lint, and
+  `tools/validate_adapter_conformance.py`,
+  `tools/validate_encoding_negative.py` (its fixture and context files),
+  `tools/validate_precision_policy.py` and `tools/validate_projection.py`
+  print `FAIL DECODE_AMBIGUOUS` with the file and line and fail the run, also
+  when the conformance tool runs them in process. The gateway's self-test
+  stops with a named failure on a repeat in its shipped example file
+  (`_load_jsonl` in `gateway/src/gateway.py`, which keeps its line count; the
+  decoder of the traffic the gateway receives is not touched). Three
+  development harnesses refuse it too: `tools/sim/two_node.py` checks every
+  corpus line, and `tools/sim/throughput.py` the lines it reads up to its
+  template event; each reports a line that repeats a member as `VERDICT:
+  INVALID` and exits 2 before any node starts, `two_node.py` counts a received
+  datagram that repeats one as `ambiguous`, and
+  `tools/test_workflow_end_to_end.py` stops on a forwarded one. Of the 21
+  `json.loads` calls without the refusing hook in these twelve readers' files,
+  fifteen read events or fixtures and change. Six stay as they were, none of
+  them a read of an event or a fixture: four reads of schema files, the
+  gateway's read of its config file, and one deep copy of an object a harness
+  built itself. A clean input reads and exits as before. The new test file
+  `gateway/tests/test_decode_ambiguous_readers.py` tries each reader with a
+  repeat at the top level, with one below it, and with the same text without
+  the repeat; its refusal tests were written first and failed on the unchanged
+  tree. Twenty-one mutants each fail it. An independent reviewer read the
+  change against its sources, found the error planted for it, and made six
+  other findings; all six are applied. A separate factual pass over these
+  records found the error planted for it and two real points, applied: the
+  mutant count's list, and how much of a corpus `sim/throughput.py` reads.
+  Five of the tools are manifest-listed, so the kernel gate reads four more
+  release-pin lines and three of its lines read new values until the next cut.
+- 2026-11-11 — **Records: doctrine cycle F10, the maintainer's confirmation
+  under SIM1-01, and one evidence item for the acoustic level carriers**
+  (`docs/zmeta_doctrine_review_log.md` and `spec/future-branch-roadmap.yaml`;
+  records only, each on a selection the maintainer made on 2026-11-10). The
+  doctrine log gains cycle F10, four tensions met on 2026-11-10. Three are
+  OPEN for the adjudication pass. F10-01: a downstream camera processor places
+  a track at its sensor's own site when it has no position for the object, and
+  only a private payload key says so. F10-02: `payload.quality` on a STATE is
+  an open key, so a `geo_status` token outside the vocabulary passes there.
+  F10-03: the purpose sentence of the 2D geo form describes an exact
+  horizontal fix, while fielded producers use the form, lawfully, for an
+  estimate with an ellipse. F10-04 is CHANGED: the TAK Protocol egress adapter
+  follows the protocol's published fallback rule and keeps an element whole in
+  `xmlDetail` where it used to refuse the event, as merged on 2026-11-10.
+  SIM1-01 gains a dated note: the maintainer confirmed on 2026-11-10 that
+  HELD-FIRM stands on the corrected facts. The roadmap candidate
+  `acoustic-level-carriers` gains a second evidence item: the ACOUSTIC
+  observations of one outside producer, a sensor simulator, declare a level
+  reference under a token the 1.1.0 vocabulary does not hold (`DB_RE_1UPA`,
+  where the registered token is `SPL_RE_1UPA`), so a validator at v1.1.26 or
+  later refuses them. The item is evidence only. Whether it counts toward the
+  candidate's first tripwire is the maintainer's adjudication, which has not
+  been made; nothing is promoted and the vocabulary does not widen. No schema,
+  policy, contract, validator or adapter byte changes. The roadmap file is
+  manifest-listed and had already changed since the last cut, so the kernel
+  gate reads the same 46 release-pin lines, three of them with new values. An
+  independent reviewer read the change against its sources, found the error
+  planted for it, and made fifteen other findings; fourteen are applied, and
+  one, a stale line on the remaining JSON readers in the handoff, is left to
+  the branch that moves those readers. A separate factual pass over these
+  records found the error planted for it and nothing else wrong.
+- 2026-11-10 — **Contract 7.7 names `observed_at` among the prohibited STATE
+  payload fields, and the policy refuses it at any depth**
+  (`spec/semantics-contract.md` and `policy/semantics.yaml`, Class B, a
+  clarification under contract 2.1). The maintainer selected it on 2026-11-10
+  after seeing the bullet before and after. Section 7.7 already says a
+  STATE_EVENT payload "MUST NOT contain raw sensor features, raw measurements,
+  observation modalities, observation timestamps, or raw artifact references".
+  Its list of field names says "include" and did not hold `observed_at`, a
+  name a fielded producer's STATE carries under `payload.provenance`, so the
+  reference check, which enforces the list, passed it. The contract's list and
+  `policy/semantics.yaml` `state_event.payload_must_not_contain` each gain the
+  name, after `t_end`. The existing check searches the whole payload,
+  `extensions` included, and reports `STATE_HAS_RAW_FEATURES` (fail) with the
+  path. No code is minted, no schema changes, and no vocabulary grows. A STATE
+  that carries an observation timestamp was already outside 7.7, so no payload
+  that complied with the contract becomes invalid (`spec/versioning.md`,
+  Backward Compatibility Expectations). Refused: `observed_at` as a text key
+  on a STATE at any depth, in any letter case, with surrounding spaces. A map
+  key that is a byte string passes the check for all ten names, as it did
+  before this change; a check for it is booked. Not refused: another spelling
+  of an observation timestamp, `last_seen_ts` among them, which contract 7.6
+  defines as the `event.ts` of an observation. The category sentence still
+  forbids those and nothing checks them; `last_seen_ts` is booked as a
+  candidate for the list, for the maintainer. `observed_at` on an OBSERVATION,
+  INFERENCE or FUSION event is not refused, as before, and no shipped example
+  or vector changes verdict. A gateway on this policy refuses that producer's
+  STATE for as long as it carries the field, so the cut that carries this
+  follows the consumer's dating fix and the producer's removal of the field,
+  in that order. The schemas keep their nine schema-false names. The v1.0
+  schema is byte-locked (`V1_0_SCHEMA_SHA256`), a schema refuses a name only
+  at the paths it lists, and naming the member in the 1.1.0 schema alone would
+  split the two version schemas, so the policy's any-depth check enforces the
+  rule for both versions. Two code copies of the nine names that read the
+  payload's top level only (`tools/validate_projection.py`,
+  `adapters/egress/cot/zmeta_to_cot.py`) are unchanged and booked. Called
+  directly, the CoT adapter projects a STATE that carries `observed_at` and
+  refuses one that carries a top-level `t_end`; the gateway runs the policy
+  check before egress. One fixture is added,
+  `state-observed-at-nested-collapse` (the bad-event corpus reads 37), and a
+  new test file, `gateway/tests/test_state_prohibited_fields_pin.py`, fails
+  when the contract names a field the policy does not enforce; the policy may
+  hold more. Both were written first: on the unchanged tree the fixture was
+  not refused and the file's test for the name failed. The contract anchor
+  moves with a dated comment; the contract's line count does not change. The
+  policy file gains one line, so 50 of the guidance file's 61 line references
+  into it move by one and two grow by it, each checked against the old file.
+  The branch's first commit had put those references back on their text, on
+  the maintainer's selection of the same day: two commits of 2026-11-02 added
+  five lines to the policy file and moved none of them, so 32 of 60 named
+  other text. Four tests in `gateway/tests/test_validation_guidance.py` now
+  read them. The guidance entry for `STATE_HAS_RAW_FEATURES`, the adapter
+  authoring guide's rule 8, the ontology reference and the vocabulary
+  crosswalk name the tenth field, and `schema/README.md` says the policy
+  refuses it where the schemas do not list it. The policy JSON export is
+  regenerated. An independent reviewer read the change against its sources,
+  found the error planted for it, and made thirteen other findings: the
+  branch's first commit answers three, nine are applied, and one, the prefix
+  of the branch's name, needs no change. A separate factual pass over these
+  records found the error planted for it and nothing else wrong. The gateway's
+  startup `contract_hash` moves again. The contract, the policy file, its
+  export and the fixture file are manifest-listed, so the kernel gate reads
+  three more release-pin lines and ten of its lines read new values until the
+  next cut regenerates the manifest.
+- 2026-11-10 — **Contract 3.5 states the JSON duplicate-key rule; four more
+  reference tools refuse such a text; the guidance file's contract citations
+  are re-anchored** (`spec/semantics-contract.md` is Class B, a clarification
+  under contract 2.1 and 2.6; the tools follow it). On the maintainer's
+  selection of 2026-11-10, who was shown the paragraph before choosing it.
+  Section 3.5 gains one paragraph: "A JSON text in which one object repeats a
+  member name, at any depth, does not decode to one canonical event and is not
+  a valid encoded event. A decoder that keeps one of the repeated values
+  chooses a reading the text does not state." The reference decoders have
+  refused such a text since 2026-11-02 (doctrine F7-01, `DECODE_AMBIGUOUS`).
+  The sentence widens the rule's reach. It binds every implementation, so a
+  consumer whose own JSON parser keeps the last value is non-conforming on
+  such a text from this change on, and that includes a member repeated
+  inside a protobuf message's `payload_json`, which is a JSON text. Under
+  `spec/versioning.md` a patch must not invalidate an existing valid payload.
+  The sentence does not: a text that repeats a member name never decoded to
+  one canonical event, which the validity paragraph of 3.5 already required.
+  It tightens conformance around that paragraph, which contract 2.1 permits a
+  patch to do, and it rides the next v1.1.x cut. It names no diagnostic code
+  and says nothing about CBOR; duplicate map keys on the CBOR and compact
+  lanes stay booked. Four reference tools that read JSON to its last value
+  now refuse a repeated member. `tools/check_compat.py` reports it as
+  `DECODE_AMBIGUOUS` under a new category, `decode`; a `.jsonl` file is
+  refused line by line, and a `.json` document, being one JSON text, is
+  refused whole for one repeat. `tools/validate_examples.py` fails the line.
+  `tools/validate_bad_events.py` and `tools/validate_conformance.py` refuse a
+  fixture file that carries such a line. Before this change
+  `check_compat.py`, the tool producers are told to run on their own events,
+  reported such a text as compatible. Other readers still keep the last
+  value and are booked: eight tools under `tools/` (three of them read
+  events: `compat_normalize.py`, `filter_risk.py`, `measure_packet_size.py`),
+  the gateway's self-test reader of its shipped example file, and three
+  development harnesses. One conformance fixture is added,
+  `gateway-json-duplicate-key-at-depth-refused`, for a member repeated inside
+  `payload.geo` (the encoding-negative suite reads 55). The contract anchor in
+  `gateway/tests/test_v1_lock_baseline.py` moves with a dated comment, and
+  the gateway's startup `contract_hash` moves with the contract. The guidance
+  entry for `DECODE_AMBIGUOUS`, the tools README, and comments in the
+  gateway, its decode guard and the four tools name 3.5. Separately, in its
+  own commit: 196 of the 219 contract line references
+  that `tools/validation_guidance.yaml` writes in citation form had named
+  lines 1, 7 or 10 above their text since three contract sentences were
+  added on 2026-11-02 without moving them. Each is re-anchored by the diff of
+  the contract it was written against, and a new test reads the edges of
+  every such reference; it failed on the file as it stood, with 70
+  references off their text. Eight more contract line numbers stood in prose
+  ("and 1047-1051", "at line 939"), where neither the tool nor that test
+  could see them; an independent review found them. They are corrected and
+  rewritten in citation form, and a second test fails if a contract line
+  number is written as prose again. The new paragraph then moves 206
+  references by four lines, each checked to name the same text. Both tests
+  are tripwires for a contract edit that does not move the citations; they
+  read where a reference begins and ends, not what it says. Tests: ten
+  added to `gateway/tests/test_decode_ambiguous.py` and four to
+  `gateway/tests/test_validation_guidance.py`. Six refusal tests and a
+  control were written first and the six failed on the unchanged tree; the
+  rest were added after the change, and nineteen mutants were each run
+  against the four test files that hold it and each failed them. The
+  independent reviewer read the change against its sources, found the error
+  planted for it, and made eleven other findings; ten are applied and one,
+  a row in a dated crosswalk document, is booked. A separate factual pass
+  over these records found the error planted for it and one imprecise count
+  of comments, corrected.
+  The contract, two of the tools and the fixture file are manifest-listed,
+  so the kernel gate reads two more release-pin lines and eight of its lines
+  read new values until the next cut regenerates the manifest.
+- 2026-11-10 — **Registry: `OSINT` rejected and `COLLECT_EXTERNAL_RECORDS`
+  reserved; an advisory note for results looked up in outside sources; three
+  doctrine entries reach a terminal status** (`spec/extension-registry.yaml`
+  is Class B; the documents are Class A). On the maintainer's selections of
+  2026-11-10, after rulings of 2026-11-08 on one deployment's design for
+  looking up an observed identifier in outside sources. The registry holds
+  70 entries. `OSINT` is rejected as an observation modality or event kind:
+  what a lookup yields is a claim, which the contract already places as an
+  INFERENCE_EVENT with a receipt observation behind it.
+  `COLLECT_EXTERNAL_RECORDS` is reserved as a possible COMMAND_EVENT task
+  type and marked risk-relevant. It is not valid task vocabulary, and a
+  lookup requested from an operator interface is not this task. Neither name
+  validates in either schema. `docs/zmeta_enrichment_results_note.md`
+  (advisory) gives the pattern with existing vocabulary only: a receipt, an
+  OBSERVATION_EVENT of modality NETWORK that records the retrieval and
+  points to the stored record, and a claim, an INFERENCE_EVENT with
+  `inference_type` ASSOCIATION whose lineage names the receipt. Two governed
+  reason codes for such results stay booked until a real result can serve as
+  each one's fixture. Doctrine log: F9-01 is recorded OPEN (a summary over
+  several results is fusion-shaped without a track). F8-01 and F8-02 are
+  HELD-FIRM: the typed-field rule and the millisecond floor of the TAK
+  Protocol adapter stand, and the SAPIENT egress's rounded report-identifier
+  time is recorded as the second occurrence of F8-02, unchanged. SIM1-01 is
+  HELD-FIRM: confidence reaches CoT as `<remarks>` text and a machine
+  consumer reads the ZMeta event, after the TAK plane answered that no CoT
+  consumer there reads confidence by machine. The SIM1-01 note corrects a
+  statement from a session record of 2026-11-03 before it reached a tracked
+  file: the CoT projection does write `confidence=` into `<remarks>` for the
+  run that record described. The release checklist's container step names
+  its command and what verified means. Tests: five added to
+  `gateway/tests/test_extension_registry.py`. The two entry tests were
+  written first and failed until the entries existed. The test that holds
+  the ontology reference's count sentence to the registry failed once the
+  entries existed and until the sentence read 70. A second test holds the
+  same paragraph's count of the names the leak probe runs on, now 20 of the
+  47 reserved and proposed entries; an independent review found that count
+  stale, and the test failed on it until the sentence was corrected. The
+  fifth tests the two sentence readers. The validator refused the new
+  entries under the old `last_updated` stamp, and the release-context list
+  test failed until the note was listed. The independent reviewer read the
+  change against its sources, found the error planted for it, and made ten
+  other findings; nine are applied and one, an Archive sweep, is left for
+  the next sweep. A separate factual pass over these records found the
+  error planted for it and no other wrong statement.
+  The registry is manifest-listed, so the kernel gate reads three more
+  release-pin lines, on the registry, until the next cut regenerates the
+  manifest. No schema, policy or contract file changes.
+- 2026-11-10 — **TAK Protocol Version 1 egress adapter, before its first
+  contact with a server or client: `how` required, the published sender rule
+  for typed children, the mesh announcement, and a sender's steps**
+  (`adapters/egress/tak_protocol/`, Class C, Reference; the adapter has not
+  been released). An independent review read the adapter against the `.proto`
+  files and the protocol text published in the ATAK-CIV repository. The bytes
+  of a track from the CoT projection matched the published schema. Four
+  things change. (1) `how` is required, as the published `CotEvent` requires
+  it: an event whose projection has no `how` is refused, and a caller's
+  `refusal` dict reads `TAK_PROTOCOL_HOW_REQUIRED` when the missing `how` is
+  the one thing refused. The CoT projection writes `how` only when
+  `cot_config` sets it, so a deployment sets it. (2) A typed
+  detail child goes to its typed field only when every item of the published
+  message is present, except the contact's `endpoint`, the one item the
+  published messages note as optional. Before, a string item could be left
+  out. (3) Two elements of one typed kind both travel in `xmlDetail` with
+  neither typed, and a typed element whose numeric attribute is not a number
+  travels in `xmlDetail` as it was written; the event is sent. Both cases
+  refused the event before, and where only one of two elements qualified the
+  adapter typed that one, which a receiver that follows the published rule
+  ignores. This replaces the last two refusals listed in the entry of
+  2026-11-09 below. (4) `tak_control_message` writes the standalone
+  `TakControl` announcement that the published mesh rules ask a sender to
+  broadcast, always with a minimum version of 1, and the reader refuses a
+  stream length beyond 2^63 - 1, the published range. The README gains "What a sender does": on mesh, one frame
+  per datagram, the announcement at least once every 60 seconds, and the
+  version that all known contacts support; on a stream, XML first and a
+  negotiation of three XML events before any frame. It no longer calls
+  `takControl` a stream's negotiation. Neither (2) nor (3) can occur with the
+  CoT projection's own output; they apply to CoT XML from another source.
+  Tests were written first, in two rounds: seven new or changed tests failed
+  against the module as it stood, and after an independent reviewer's
+  findings two more failed against the first change. Fifty-eight pass now,
+  and sixty when `takproto` is present, its byte comparison for the known
+  events unchanged. Fifteen mutants were each run against the suite and each
+  failed it: thirteen of the change, and two of the required-attribute
+  checks beside it. The reviewer read the change against the published text,
+  found the error planted for it, and its seven other findings are applied.
+  A separate factual pass over these records found the error planted for it
+  and one statement that no test pinned (a missing or empty `type` or `uid`
+  is refused), which now has a test.
+  No manifest-listed artifact changes. Built on the maintainer's selection of
+  2026-11-10. No TAK Server or client was driven.
+- 2026-11-09 — **TAK Protocol Version 1 egress adapter**
+  (`adapters/egress/tak_protocol/`, Class C, Reference). A wire step over the
+  CoT egress projection: `zmeta_to_tak_protocol` runs `zmeta_to_cot` under
+  either profile and encodes the XML as a protobuf `TakMessage`, framed for
+  mesh (`bf 01 bf`) or stream (`bf` plus a varint length), with no protobuf
+  dependency; `cot_xml_to_tak_message` encodes CoT 2.0 XML from any source;
+  `read_tak_message` reads the bytes back and refuses an unknown field, a
+  wrong wire type, a repeated field or a bad frame by the decoders' rule of
+  2026-11-02. The typed detail children (`contact`, `__group`,
+  `precisionlocation`, `status`, `takv`, `track`) go to their typed fields
+  only when the typed message carries the element whole; otherwise the
+  element travels whole in `xmlDetail`, so the CoT projection's
+  `precisionlocation` keeps its ellipse attributes, which the typed message
+  has no field for; a numeric field left out of a typed element (`track`
+  without `speed`) also sends the element to `xmlDetail`, since an absent
+  number would read back as 0. Times are floored to the millisecond, so
+  `stale` is never later than the event's claim. The adapter refuses, rather
+  than drops, an attribute or child the schema cannot carry, a comment, a
+  document type declaration or a processing instruction anywhere in the
+  document, text inside `detail`, an empty optional attribute, a version
+  other than 2.0, a time before 1970, a typed numeric attribute that is not a
+  number, and two elements of one typed kind that both qualify for the typed
+  field. Tests (fifty-two, plus two that cross-check against the `takproto`
+  package when `TAK_PROTO_SITE` names it) were written first and failed at
+  collection; two known-answer tests hold hand-computed bytes, one setting
+  every typed field; three encoder mutants each failed the suite and a
+  fourth, which moved the typed messages' field numbers and passed the first
+  known answer, is caught by the second; the mesh bytes for the known events
+  and the stream bytes for the first are identical to `takproto`'s. No manifest-listed artifact
+  changes; the conformance class manifest is unchanged (the adapter is not a
+  required surface of `ZMETA-COT-PROJECTION`); `adapters/README.md`, a
+  required surface of `ZMETA-ADAPTER`, gains one line, and the governed-doc
+  tests that read it pass. Built on the maintainer's selection of 2026-11-09,
+  taking the egress recce's first recommendation of 2026-11-03; a seeded
+  refuter's twenty findings applied in the branch's second commit; no TAK
+  Server or client was driven.
+- 2026-11-02 — **The reference decoders refuse what they would have had to
+  repair: `DECODE_AMBIGUOUS`.** A JSON object carrying one key twice decoded
+  to the last value, and a protobuf message carrying a field number the schema
+  does not define at that level, or a known field with a wire type the
+  schema does not use for it, decoded to a message missing the member;
+  either forwarded the gateway's choice as the producer's content (contract
+  3.4; the compact mapping's value model; the rebuild ruling's hazards 1 and
+  3, decided by the maintainer on 2026-11-02, doctrine F7-01). The gateway's
+  JSON lanes refuse a duplicate key (`object_pairs_hook`), `zmeta_proto.loads`
+  refuses an unknown, mistyped or repeated non-repeatable field at every
+  message level (`lineage.based_on` stays repeatable; a forensic caller may
+  pass `unknown_fields="skip"` by name and then reads last-wins throughout;
+  the gateway never does), the protobuf payload's JSON is held to the same
+  rule, and `convert_encoding`, `tools/validate.py` and `tools/explain.py`
+  read JSON the same way (`validate.py` reports the refusal as a FAIL line
+  under the code); malformed bytes are still reported as malformed, field by
+  field. The refusal is the new governed diagnostic code `DECODE_AMBIGUOUS`
+  (fail) on the post-lock route of 2026-08-09: registered in
+  `policy/violation-codes.yaml` and `policy/semantics.yaml` (the allowlist
+  and the v1.0 wire fallback to SCHEMA_INVALID, the minted code riding
+  `metrics.diagnostic_code`), in the 1.1.0 schema's reason-code enum only
+  (the locked v1.0 enum does not grow; its anchors returned to 1d2d8416 in
+  the branch's second commit), with its
+  guidance entry, a decoder-bounds paragraph in `spec/protobuf-encoding.md`
+  (the rule and its chosen cost to forward compatibility) and the policy JSON
+  export regenerated; the shared guard `zmeta_decode_guard.py` is required at
+  import and ships in the release and conformance lists. The rule binds the
+  reference decoders; a consumer that parses the bytes itself is its own
+  decoder. Booked for the maintainer's word: a contract sentence for the JSON
+  rule; duplicate map keys on the CBOR and compact lanes (last-wins in this
+  repository's `zmeta_cbor` and in the cbor2 fallback); trailing CBOR bytes
+  on the cbor2 fallback (`zmeta_cbor` already refuses them). Eleven tests
+  were written first and nine failed on the unchanged code; three
+  encoding-negative fixtures (an unknown protobuf field, a mistyped known
+  field, a duplicate JSON key on the gateway) failed with the decoders
+  stashed and pass with them; a second pass added the repeated-field,
+  auto-lane, skip-mode and malformed-JSON cases and the gateway fixture now
+  names the gateway's own code. `validate_encoding_negative.py` gains a
+  `json` lane, an `expect_gateway_code` check, and stops counting a forwarded
+  event as a rejection when the fixture never decoded (a vacuous pass the new
+  gateway fixture exposed). The governed code count moves to 62 (9 warn, 53
+  fail); the SYSTEM_EVENT payload vocabulary of the 1.1.0 schema widens by
+  one diagnostic code; no event type changed; the protobuf encoding's decoder
+  bounds gain the refusal rule. A second seeded refutation of the whole
+  branch (sixteen findings, applied in a third commit on 2026-11-03) ordered
+  the decoder to read a repeated field's bytes before refusing the repeat, so
+  malformed bytes and a wrong wire type report first as the specification
+  says, and to name the wire type; made `tools/explain.py` report a duplicate
+  key instead of raising; made `tools/replay.py` and `tools/udp_sender.py`
+  refuse to re-encode a duplicate-key line into a binary lane (the JSON lane
+  sends the bytes verbatim; the gateway is the decoder there); added a
+  repeated-field fixture (54 encoding-negative fixtures); and made the fixture
+  tool report a gateway exception against `expect_gateway_code`. Native
+  vendor input read by `adapters/ingress/` is outside the rule; corpus readers
+  are not datagram paths.
+
+- 2026-11-02 — **Two contract sentences on the maintainer's decisions:
+  admission caps are projections that carry the replaced values; a command's
+  validity window starts at `valid_from_ts`, else `event.ts`.** Section 4.5.1
+  gains a bullet (doctrine F4-04 DECIDED): a reduction of `confidence` or
+  `valid_for_ms` at admission under a declared degrade or quarantine mode
+  is a projection of the same event under 4.2 and keeps its `event_id`,
+  provided the policy-scoped record names the mode and carries the values
+  it replaced; a reduction whose record lacks either is a replacement.
+  Section 7.8 gains a last command rule: the validity window begins at
+  `payload.valid_from_ts` when present, otherwise at `event.ts`, and ends
+  `payload.valid_for_ms` after that start, the "validity anchor" of 5.1;
+  the field dictionary says the same (handoff gap (x) closed; whether
+  `valid_from_ts` may precede `event.ts` stays open). Section 4.3 names a
+  command's `event.ts` its issue time when `valid_from_ts` is present. Both
+  sentences are contract 2.1 patches, the maintainer concurring on
+  2026-11-02. The v1.0 lock-baseline contract anchor moves with a dated
+  note; no schema or policy byte changes. The reference gateway's
+  `risk_adjudication` record carries the values a cap or reduction changed
+  (promotion and both timing paths; a factor above 0 and below 1 is
+  declined on each; the promotion path records the declined factor under
+  `reduction_declined`, and the two timing paths, the timing-freshness
+  degradation at admission and the timing-loss failure mode on an outgoing
+  STATE, decline it with no record on the event; a factor of 0 or less is
+  replaced by a default on the promotion and timing-freshness paths and
+  declined on the timing-loss path; corrected from the pre-cut range
+  review of 2026-11-14); the gateway's strip guard protects
+  `payload.valid_from_ts`; the SAPIENT
+  command egress computes `task_end_time` from the window's start and
+  refuses a window that opens after `event.ts`, which its end-only bound
+  cannot carry; the profile projection catalog preserves `valid_from_ts`
+  (its vector corrected, seen failing first). A validator check for a record
+  lacking the mode or the replaced values is booked (registry route).
+
+- 2026-11-02 — **Records pass on the maintainer's carried-list decisions.**
+  Four delegated decisions of 2026-10-01 are ratified (doctrine U1-02, F3-03,
+  F3-04, F3-05 move to DECIDED; the handoff's stale "OPEN" for U1-02 is
+  corrected; the one deployment whose `cds` keeps its window is recorded
+  as the maintainer's held choice). C1-07 is decided: binary64, float64 on
+  the wire, the determinism clause a MUST at adoption, digits beyond
+  binary64 not content, a labelled received-bytes digest fires no tripwire;
+  the text change rides the `canonical-byte-form` branch. The signing
+  tripwire is recorded as not yet, with what would make it arguable. The KLV
+  row names the evidence that moves it. Records and advisory text only; no
+  schema, policy or validator byte changes.
+
+- 2026-11-02 — **`heading_deg` defined as the course over ground; the MAVLink
+  template fills it from the ground velocity.** Contract 7.6 lists
+  `estimated_state.heading_deg` and 7.7 `payload.heading_deg`, 6.4 gave
+  headings their frame and range, and no text said which angle, motion or
+  body, the member is; the reference projector and the CoT and SAPIENT
+  egress adapters carried a course (JREAP drops the member) while the
+  MAVLink template emitted the autopilot's yaw under an asserted frame, so
+  two compliant implementations could read one event differently. Section
+  6.4 gains one paragraph: `heading_deg` on a `TrackStatePayload` and in a
+  `FusionPayload.estimated_state` is the course over ground, not the
+  direction the body points, and a producer with only a body heading omits
+  it and MAY carry the body value in a named payload-scoped field such as
+  `quality.yaw_deg`; the field dictionary's STATE line says the same. A
+  contract 2.1 patch on the maintainer's reading, accepted on the record on
+  2026-11-02: the member's frame and range were already defined and the
+  sentence narrows which true-north angle it is, as the `last_seen_ts`
+  definition of 2026-10-27 tightened a listed member. The v1.0 lock-baseline
+  contract anchor moves with a dated note; no schema, policy or validator byte
+  changes. The MAVLink ingress template (adapter version 1.3.0) derives the
+  course from `GLOBAL_POSITION_INT` `vx`/`vy` (north-positive, east-positive;
+  `atan2(vy, vx)` from true north clockwise) at or above a minimum ground
+  speed (`MIN_COURSE_SPEED_MPS`, 1.0 m/s, a deployment keyword), with
+  `quality.heading_source` `MAVLINK_GLOBAL_POSITION_INT_GROUND_COURSE`; `hdg`
+  is a body angle and stays in `quality.mavlink_hdg_frame_unknown_deg`, with
+  an asserted frame recorded beside it and promoting nothing; a non-finite
+  velocity component asserts no course. Ten MAVLink tests failed on the
+  unchanged template first (four axis cases pin the convention), then 81
+  passed; the README is rewritten for the rule. The version applies to
+  every transform the template writes, the SYSTEM_EVENT `translate:` strings
+  included, whose behaviour did not change. The 150 contract citations in
+  `tools/validation_guidance.yaml` past the 6.4 insertion, and eleven
+  continuation references, were re-anchored by the seven inserted lines
+  (every one verified to name the same text as before).
+
+- 2026-11-02 — **Records pass after the 7.6 `last_seen_ts` definition.** Two
+  inline test fixtures that carried the old relation
+  (`gateway/tests/test_lineage_semantics.py`, `tools/test_workflow_end_to_end.py`)
+  now give the member observation's `event.ts`, as the sentence requires. The
+  92 contract citations in `tools/validation_guidance.yaml` that pointed past
+  the 7.6 insertion, and seven continuation line references on six of its
+  lines, were re-anchored by the two inserted lines (every one verified to
+  name the same text as before). The 2026-10-27 entry's booking
+  sentence names where the relation check goes. One evidence bullet added to
+  the roadmap candidate `raw-data-absent-evidence-status` for the
+  demonstration's photograph path (same organization; no promotion asked). No
+  schema, policy or validator byte changes.
+
 - 2026-10-02 — **The reference gateway keeps a bounded index of recent
   events in place of every event it accepts.** The gateway's validation
   state kept each accepted event whole, with its id, for as long as the
@@ -30,6 +1098,90 @@
   not bounded by this change. 62 tests in
   `gateway/tests/test_event_index_bound.py`; eight send events through the
   real `main()` receive loop.
+
+## [1.1.27] - 2026-10-27
+
+- 2026-10-27 — **Contract 7.6 defines `last_seen_ts`.** The Fusion rules
+  gain one bullet: "`last_seen_ts`: the `event.ts` of the latest contributing
+  observation the fused estimate rests on; it is never later than the fusion's
+  own `event.ts`." The field was listed in 7.6 and defined nowhere; the
+  sentence writes down what the reference track projector emits for
+  observations arriving in `event.ts` order; with a late-arriving observation
+  the projector stamps the just-processed observation's time, a behaviour the
+  planned relation check must rule on. The addition is a contract 2.1 patch (a
+  first definition that tightens conformance, accepted by the maintainer on
+  the record, 2026-10-27). Four shipped FUSION examples disagreed with the
+  sentence and are corrected to their member observation's `event.ts`
+  (profile-M, examples-1.0, profile-H, eo-chain), and one must-pass
+  conformance vector carried the same shape (its `last_seen_ts` equalled its
+  INFERENCE member's time) and is corrected the same way; the correlation
+  example and the v1.1 example already agreed. The v1.0 lock-baseline contract
+  anchor moves with a dated note; no schema, policy or validator byte changes.
+  No check reads the relation yet; that check, with its own failing control,
+  is its own branch (handoff item 2 (a)); the two inline test fixtures that
+  carried the old relation, the guidance file's contract citations past the
+  insertion point and this sentence were corrected in the records pass of
+  2026-11-02.
+
+- 2026-10-23 — **The CoT projection refuses an impossible position and an
+  unbounded name.** A caller that translates a dialect itself and feeds the
+  result straight to `zmeta_to_cot` never meets the validator; at v1.1.25 and
+  v1.1.26 a position outside the schema's bounds (a maritime "position not
+  available" sentinel of 91/181 among them) left as well-formed CoT at an
+  impossible place, and a callsign or uid of any length left as given. A
+  `lat` beyond ±90 or a `lon` beyond ±180 now refuses the event, and a
+  callsign or uid longer than the new `max_name_chars` setting (default 256,
+  a deployment default, not a limit any CoT document states) refuses it
+  rather than cuts it; the bound applies to what is written, in code points,
+  the derived callsign included, and the position comparison is exact, so a
+  Decimal or numeric text a hair past the bound is refused too. The third
+  gap the same read found, a character XML 1.0 forbids in an identity
+  attribute, was already closed on `develop` by the 2026-10-01 hardening,
+  and refused under `cds` since
+  v1.1.26; it stays open at v1.1.25 and on the standard path at v1.1.26 until
+  the next cut. Fourteen new tests: twelve fail on `develop` d1a503d, where
+  the guards do not exist, with only the name constant defined there, and
+  the two boundary cases pass as the positive control;
+  every example `STATE_EVENT` projects byte for byte as before under both
+  profiles. Adapter code only; no semantics change. On the maintainer's go
+  of 2026-10-19.
+- 2026-10-12 — **Records: four tensions booked, guidance gap (af), two
+  documentation corrections.** Doctrine entries F4-01 to F4-04 record, for
+  the maintainer, a deterministic detection's class between measured fact
+  and inference, cooperative broadcasts received by relay against the
+  routing table, the crosswalk and contract 24.4 (guidance gap (z)), a
+  shipped adapter stamping send time against contract 5.1, and in-place
+  promotion caps against sections 4.2 and 3.4; the handoff books guidance
+  gap (af), carries the merge of 2026-10-11 in its state lines and adds a
+  dated correction to its `translate:` sentence. The
+  track projector README and `adapters/AUTHORING.md` now say that
+  `identity_paths` takes `(label, tuple-of-keys)` entries and replaces the
+  stock ADS-B and AIS pair, as the code does. No semantics change.
+- 2026-10-07 — **Semantic contract: the section 22 class table names the
+  conformance manifest's class.** The row that read `ZMETA-GATEWAY` now
+  reads `ZMETA-GATEWAY-REFERENCE`, the class id `conformance/conformance_classes.yaml`
+  defines and `tools/validate_conformance_classes.py` accepts; a claim
+  written from the old table name was refused as
+  CONFORMANCE_CLAIM_CLASS_UNKNOWN (booked 2026-08-23, ontology reference
+  section 14, tension 1). No semantics change. On the maintainer's go of
+  2026-10-07. This is the first edit to `spec/semantics-contract.md` since
+  v1.1.20, so the release manifest's `semantic_contract_hash` (the
+  semantic_contract group hash) changes at the next cut; until then the
+  kernel gate's release-manifest mismatch lines on `develop` grow from six
+  to nine (the contract file, the group and the top-level hash), and every
+  consumer's pinned `contract_hash` stays that of its pinned tag. The
+  reference gateway's startup `contract_hash` moves with this edit too. The lock-baseline anchor
+  on the contract text moved with the edit under the same go, with a
+  dated note beside it.
+- 2026-10-07 — **Records: one more guidance gap booked and one crosswalk row
+  corrected.** No behavior change. The handoff books gap (ae): FUSION_EVENT
+  has no governed validity window, `valid_for_ms` being defined on
+  TRACK_STATE and on commands only, so a producer's window on a FUSION_EVENT
+  validates with no definition and, on the reading given to the consumer,
+  goes under a namespaced vendor key until a second independent
+  implementation needs a governed one. The advisory crosswalk's
+  `geofence_alert` row no longer says an inference derives from track state,
+  which the lineage policy does not admit as a parent of an inference.
 - 2026-10-02 — **Records: a reference-gateway behavior is brought forward
   for the maintainer.** No behavior change. The running gateway drops a
   repeated non-command `event_id` for 300 s and keeps commands out of that

@@ -15,6 +15,8 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+from zmeta_decode_guard import DecodeAmbiguousError, pairs_refusing_duplicates  # noqa: E402
+
 VALIDATORS_PATH = ROOT / "gateway" / "src" / "validators.py"
 validators_spec = importlib.util.spec_from_file_location("zmeta_validators", VALIDATORS_PATH)
 validators = importlib.util.module_from_spec(validators_spec)
@@ -127,7 +129,26 @@ def iter_jsonl(path: Path | str):
         line = line.strip()
         if not line:
             continue
-        yield line_no, json.loads(line)
+        try:
+            fixture = json.loads(line, object_pairs_hook=pairs_refusing_duplicates)
+        except DecodeAmbiguousError as exc:
+            # A fixture line that repeats a member name admits two readings and
+            # is refused, never read last-wins (contract 3.5).
+            raise DecodeAmbiguousError(f"{fixture_path} line {line_no}: {exc}") from exc
+        yield line_no, fixture
+
+
+def _fixtures_or_refusal(path, refused):
+    """Yield the fixtures of `path` as they are read.
+
+    A line that repeats a member name ends the reading: the refusal is printed
+    and noted in `refused`, and the caller fails the run.
+    """
+    try:
+        yield from iter_jsonl(path)
+    except DecodeAmbiguousError as exc:
+        print(f"FAIL DECODE_AMBIGUOUS {exc}")
+        refused.append(str(exc))
 
 
 def _result(stage: str, code: str, message: str, *, details: dict[str, Any] | None = None) -> dict[str, Any]:
@@ -192,6 +213,8 @@ def _map_compact_decode_error(exc: BaseException) -> dict[str, Any]:
 
 def _map_proto_decode_error(exc: BaseException) -> dict[str, Any]:
     message = str(exc)
+    if getattr(exc, "decode_ambiguous", False):
+        return _result("decode", "ENCODE_NEGATIVE_DECODE_AMBIGUOUS", message)
     if isinstance(exc, UnicodeDecodeError):
         return _result("decode", "ENCODE_NEGATIVE_INVALID_UTF8", message)
     if "unsupported protobuf wire type" in message:
@@ -210,6 +233,10 @@ def _map_proto_decode_error(exc: BaseException) -> dict[str, Any]:
 def decode_bytes(data: bytes, encoding: str, fixture: dict[str, Any]) -> tuple[dict[str, Any] | None, dict[str, Any] | None]:
     limits = _decode_limits(fixture)
     try:
+        if encoding == "json":
+            from zmeta_decode_guard import pairs_refusing_duplicates
+
+            return json.loads(data.decode("utf-8"), object_pairs_hook=pairs_refusing_duplicates), None
         if encoding == "compact":
             return zmeta_compact.loads(data, **limits), None
         if encoding in {"proto", "protobuf"}:
@@ -226,6 +253,9 @@ def decode_bytes(data: bytes, encoding: str, fixture: dict[str, Any]) -> tuple[d
         if encoding == "auto":
             return convert_encoding.decode_event(data, "auto"), None
     except Exception as exc:
+        if encoding == "json":
+            code = "ENCODE_NEGATIVE_DECODE_AMBIGUOUS" if getattr(exc, "decode_ambiguous", False) else "ENCODE_NEGATIVE_MALFORMED_JSON"
+            return None, _result("decode", code, str(exc))
         if encoding == "compact":
             return None, _map_compact_decode_error(exc)
         if encoding in {"proto", "protobuf"}:
@@ -577,6 +607,12 @@ def _gateway_rejected(outputs: list[dict[str, Any]], original_event: dict[str, A
     first_type = _event_type(first)
     if first_type == "SYSTEM_EVENT":
         return True
+    if original_event is None:
+        # The fixture never decoded here, so the gateway's refusal can only be a
+        # SYSTEM_EVENT diagnostic; any other output means it decoded and forwarded
+        # what this tool refused (the comparison below would otherwise read a
+        # STATE_EVENT against None as a rejection, a vacuous pass).
+        return False
     if original_id and _event_id(first) == original_id:
         return False
     return first_type != _event_type(original_event)
@@ -617,6 +653,13 @@ def _evaluate_gateway_fixture(
                 strict_validation=True,
             )
         except Exception as exc:
+            if fixture.get("expect_gateway_code"):
+                # the fixture names the gateway's own code; a crash emitted none
+                return _result(
+                    "gateway_cli",
+                    "ENCODE_NEGATIVE_GATEWAY_CODE_MISMATCH",
+                    f"gateway raised instead of refusing under {fixture['expect_gateway_code']}: {exc}",
+                )
             return _result("gateway_cli", semantic_issue["code"], f"gateway rejected invalid input with exception: {exc}")
         if not _gateway_rejected(outputs, decoded):
             return _result(
@@ -625,6 +668,23 @@ def _evaluate_gateway_fixture(
                 "gateway accepted invalid decoded input",
                 details={"event_id": _event_id(decoded), "outputs": outputs},
             )
+        expected_gateway_code = fixture.get("expect_gateway_code")
+        if expected_gateway_code:
+            # the fixture names the gateway's own code; the minted code rides
+            # metrics.diagnostic_code on the v1.0 wire, else reason_code
+            emitted = [
+                (out.get("payload", {}).get("metrics", {}).get("diagnostic_code")
+                 or out.get("payload", {}).get("metrics", {}).get("reason_code"))
+                for out in outputs
+                if _event_type(out) == "SYSTEM_EVENT"
+            ]
+            if expected_gateway_code not in emitted:
+                return _result(
+                    "gateway_cli",
+                    "ENCODE_NEGATIVE_GATEWAY_CODE_MISMATCH",
+                    f"gateway refused under {emitted}, not {expected_gateway_code}",
+                    details={"outputs": outputs},
+                )
         return _result("gateway_cli", semantic_issue["code"], f"gateway rejected invalid input: {semantic_issue['message']}", details=semantic_issue.get("details", {}))
 
     if path == "convert_validate":
@@ -721,13 +781,20 @@ def run(
 
     schema_validator = validators.load_schema(ROOT / "schema" / "zmeta-event.schema.json")
     policy = validators.load_policy(ROOT / "policy")
-    contexts = load_contexts(resolved_context_path)
+    try:
+        contexts = load_contexts(resolved_context_path)
+    except DecodeAmbiguousError as exc:
+        print(f"FAIL DECODE_AMBIGUOUS {exc}")
+        print("encoding negative failed: the context file is refused")
+        return 1
 
     failures = 0
     passed = 0
+    refused = []
     for path in paths:
         file_total = 0
-        for line_no, fixture in iter_jsonl(path):
+        refused_before = len(refused)
+        for line_no, fixture in _fixtures_or_refusal(path, refused):
             file_total += 1
             label = _case_label(fixture, line_no)
             expected_stage = fixture.get("expected_stage")
@@ -744,7 +811,9 @@ def run(
                 passed += 1
                 if not quiet:
                     print(f"PASS name={label} expected={expected_stage}/{expected_code}")
-        if file_total == 0:
+        if len(refused) > refused_before:
+            failures += 1
+        elif file_total == 0:
             failures += 1
             print(f"FAIL {path} contains no fixtures - an empty file proves nothing")
 

@@ -13,6 +13,8 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+from zmeta_decode_guard import DecodeAmbiguousError, pairs_refusing_duplicates  # noqa: E402
+
 VALIDATORS_PATH = ROOT / "gateway" / "src" / "validators.py"
 validators_spec = importlib.util.spec_from_file_location("zmeta_validators", VALIDATORS_PATH)
 validators = importlib.util.module_from_spec(validators_spec)
@@ -42,7 +44,26 @@ def iter_jsonl(path: Path | str):
         line = line.strip()
         if not line:
             continue
-        yield line_no, json.loads(line)
+        try:
+            fixture = json.loads(line, object_pairs_hook=pairs_refusing_duplicates)
+        except DecodeAmbiguousError as exc:
+            # A fixture line that repeats a member name admits two readings and
+            # is refused, never read last-wins (contract 3.5).
+            raise DecodeAmbiguousError(f"{fixture_path} line {line_no}: {exc}") from exc
+        yield line_no, fixture
+
+
+def _fixtures_or_refusal(path, refused):
+    """Yield the fixtures of `path` as they are read.
+
+    A line that repeats a member name ends the reading: the refusal is printed
+    and noted in `refused`, and the caller fails the run.
+    """
+    try:
+        yield from iter_jsonl(path)
+    except DecodeAmbiguousError as exc:
+        print(f"FAIL DECODE_AMBIGUOUS {exc}")
+        refused.append(str(exc))
 
 
 def _issue(code: str, message: str, *, path: str | None = None, details: dict[str, Any] | None = None):
@@ -370,7 +391,8 @@ def run(*, fixtures_path: Path | str | None = None, quiet: bool = False) -> int:
 
     failures = 0
     passed = 0
-    for line_no, fixture in iter_jsonl(path):
+    refused = []
+    for line_no, fixture in _fixtures_or_refusal(path, refused):
         label = str(fixture.get("name") or f"line-{line_no}")
         lint_errors = sorted(fixture_lint.iter_errors(fixture), key=lambda e: list(e.absolute_path))
         if lint_errors:
@@ -394,6 +416,9 @@ def run(*, fixtures_path: Path | str | None = None, quiet: bool = False) -> int:
             if not quiet:
                 print(f"PASS name={label}")
 
+    if refused:
+        print(f"adapter conformance failed total={passed} failures={failures + len(refused)}")
+        return 1
     if passed + failures == 0:
         print(f"FAIL {path} contains no fixtures - an empty file proves nothing")
         return 1

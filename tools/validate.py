@@ -6,6 +6,9 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+from zmeta_decode_guard import DecodeAmbiguousError, pairs_refusing_duplicates  # noqa: E402
 VALIDATORS_PATH = ROOT / "gateway" / "src" / "validators.py"
 spec = importlib.util.spec_from_file_location("zmeta_validators", VALIDATORS_PATH)
 validators = importlib.util.module_from_spec(spec)
@@ -36,7 +39,8 @@ def iter_jsonl(path):
 
 def load_json(path):
     with open(path, "r", encoding="utf-8") as handle:
-        return json.load(handle)
+        # a duplicate key is refused, as the gateway refuses it (doctrine F7-01)
+        return json.load(handle, object_pairs_hook=pairs_refusing_duplicates)
 
 
 LANE_SCHEMAS = {
@@ -141,11 +145,14 @@ def main():
     else:
         try:
             obj = load_json(path)
-        except json.JSONDecodeError as exc:
+        except (json.JSONDecodeError, DecodeAmbiguousError) as exc:
+            # a duplicate key is the gateway's DECODE_AMBIGUOUS (doctrine F7-01);
+            # unparseable JSON stays SCHEMA_INVALID
+            code = "DECODE_AMBIGUOUS" if isinstance(exc, DecodeAmbiguousError) else "SCHEMA_INVALID"
             total = 1
             failed = 1
-            print(f"FAIL SCHEMA_INVALID event_id=UNKNOWN error={exc}")
-            emit_guidance("SCHEMA_INVALID")
+            print(f"FAIL {code} event_id=UNKNOWN error={exc}")
+            emit_guidance(code)
             print(f"total={total} passed={passed} failed={failed} warnings={warnings}")
             raise SystemExit(1)
         if isinstance(obj, list):
@@ -156,7 +163,12 @@ def main():
     for line_no, raw in items:
         total += 1
         try:
-            instance = json.loads(raw)
+            instance = json.loads(raw, object_pairs_hook=pairs_refusing_duplicates)
+        except DecodeAmbiguousError as exc:
+            failed += 1
+            print(f"FAIL DECODE_AMBIGUOUS event_id=UNKNOWN line={line_no} error={exc}")
+            emit_guidance("DECODE_AMBIGUOUS")
+            continue
         except json.JSONDecodeError:
             warnings += 1
             print(f"WARN SCHEMA_INVALID event_id=UNKNOWN line={line_no}")

@@ -198,6 +198,33 @@ def _real_2d_state_event():
 # --- command egress: happy paths -------------------------------------------
 
 
+def test_task_end_time_starts_at_valid_from_ts_when_present():
+    # Contract 7.8 (2026-11-02): the validity window begins at valid_from_ts
+    # when present, otherwise at event.ts, and ends valid_for_ms after that
+    # start. A command whose window began at 11:58, issued at 12:00 and valid
+    # ten minutes, ends at 12:08.
+    message = _task(_command_event(valid_from_ts="2026-07-17T11:58:00Z"))
+
+    assert message["timestamp"] == "2026-07-17T12:00:00Z"
+    assert message["task"]["task_end_time"] == "2026-07-17T12:08:00Z"
+
+
+def test_future_start_is_refused_because_sapient_carries_no_start_bound():
+    # SAPIENT's Task carries an end bound only and CONTROL_START runs from
+    # receipt. A window that opens after event.ts cannot be projected without
+    # starting the node before the window; the egress refuses it (None).
+    assert _task(_command_event(valid_from_ts="2026-07-17T12:05:00Z")) is None
+    # A start equal to event.ts is the plain case and projects.
+    same = _task(_command_event(valid_from_ts="2026-07-17T12:00:00Z"))
+    assert same["task"]["task_end_time"] == "2026-07-17T12:10:00Z"
+
+
+def test_malformed_valid_from_ts_refuses_not_raises():
+    # A start the egress cannot read is a window it cannot compute. The
+    # documented None contract applies; no bound is computed from event.ts.
+    assert _task(_command_event(valid_from_ts="noon")) is None
+
+
 def test_goto_maps_move_to():
     message = _task(_command_event())
 
