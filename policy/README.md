@@ -2,6 +2,11 @@
 
 Policy-as-config rules used by the reference gateway for enforcement.
 
+The gateway's runtime policy hash covers every file in this directory,
+this README included (`gateway/src/gateway.py`, `_hash_dir`), so an edit
+to this README changes the policy hash and every contract hash built from
+it, with no rule changed.
+
 Files:
 - `roles.yaml` allowed event types per node_role
 - `profiles.yaml` allowed event types per profile

@@ -242,7 +242,7 @@ same read suggested (the gate running every sub-check, the package tests on
 a manifest built from the tree) is not selected.
 
 The branch `wave/clause1-followup-2026-11` (2026-11-12) applies two findings
-of the team account's read of Clause 1: the `EVENT_DUPLICATE` guidance
+of a read of Clause 1: the `EVENT_DUPLICATE` guidance
 carries 4.5.1's condition whole, and the worklog dates Clause 1's review.
 
 The branch `exp/ais-typeless-records-2026-11` (2026-11-14) lets the AIS
@@ -600,7 +600,8 @@ Open, in order of proximity:
    `local/evidence_relation_check_last_seen_ts_2026-10-28.md`; on
    2026-11-02 the maintainer selected the sentence as written (never later
    AND the latest member's time), so the projector change rides that
-   branch. Done in the records pass of 2026-11-02: (b) the two inline
+   branch, which opens after the v1.1.28 cut on the maintainer's selection
+   of 2026-11-16. Done in the records pass of 2026-11-02: (b) the two inline
    test fixtures that carried the old relation
    (`gateway/tests/test_lineage_semantics.py`,
    `tools/test_workflow_end_to_end.py`) now give the member observation's
