@@ -117,6 +117,7 @@ The config file keys are:
 - `emit_metrics` and `metrics_interval_sec` (periodic gateway metrics logs)
 - `rate_limit_per_sec` (drop packets above receive rate)
 - `rate_limit_producer_per_sec` (drop per-producer above receive rate)
+- `event_index_max_entries` (how many recently accepted events stay resolvable as lineage parents; default 65536, maximum 1048576; see Event index below)
 - `metrics_log_path`, `metrics_log_max_bytes`, `metrics_log_backups` (JSONL metrics logs)
 - `warn_datagram_bytes` (warn when an outgoing datagram exceeds this size; 0 disables)
 - `ts_plausibility_horizon_ms` (warn when `event.ts` sits outside a window around now; 0 disables; see Event timestamp plausibility below)
@@ -329,6 +330,77 @@ carries it.
 
 When `strict_validation` is enabled, warnings are treated as failures and the original
 event is not forwarded.
+
+### Event index
+
+The gateway remembers the `event_type` and `event_subtype` of the events it
+accepted most recently, so that the lineage check can resolve a parent an
+incoming event cites in `lineage.based_on`. An event is indexed when it passes
+the inbound checks, before the outgoing checks, encoding and send, so an event
+that is then refused or dropped on the way out is in the index too.
+`event_index_max_entries` sets how many the index remembers: an integer from 1
+to 1048576, default 65536, also settable as `--event-index-max-entries`. When
+the index is full, the oldest entry is dropped. A value outside that range, or
+one that is not an integer (a string, a float, a boolean, null), stops the
+gateway at startup, and a bad value in the config file does so even when the
+flag overrides it. The flag takes plain digits only. Nothing is coerced, and
+no value removes the bound. The gateway prints the size it is running with at
+startup.
+
+A parent that has left the index is reported the same way as a parent this
+gateway never saw: `LINEAGE_PARENT_UNRESOLVED`, under
+`policy/lineage.yaml` `unresolved_parent_mode`. In the shipped policy that is
+ignored at profile L and a warning at profiles M and H, and with
+`strict_validation` enabled the warning refuses the citing event. The
+diagnostic does not say which of the two causes applies. Size the index for
+the oldest parent a producer cites: at 40 events a second the default covers
+about 27 minutes of traffic.
+
+The bound has a cost. While a parent is in the index, the lineage check also
+refuses a citing event whose parent is of a type the policy does not allow
+(`LINEAGE_PARENT_TYPE_INVALID`). Once that parent has left the index the check
+cannot tell it from a parent it never saw, so the citing event is passed
+without a diagnostic at profile L and with a warning at M and H (under
+`strict_validation` that warning still refuses it). A producer can push a
+parent out by sending as many events as the index holds, and ordinary traffic
+does the same with no intent: at the default size and 40 events a second, in
+about 27 minutes. The same was already true of any parent accepted before a
+restart. A deployment that
+needs the refusal to hold sets `unresolved_parent_mode` to `reject` for its
+profile in its own policy pack, which refuses every event that cites a parent
+the index does not hold. `policy/command-evidence.yaml` describes the same
+trade for the command-evidence index.
+
+The index holds no event, and the size of an entry does not depend on what a
+producer wrote: an id longer than 64 characters is kept as a 16-byte digest.
+The same number bounds two sets kept beside the index, the task ids of
+commands and the keys of task acknowledgements. The gateway does not read
+them (its own duplicate handling uses separate time-bounded caches);
+`validate_deduplication` does, for a caller that runs it on a bounded state.
+
+Measured with a 781-byte shipped example event, the validation state held
+about 16 MB when the default index first filled and between 16 and 19 MB over
+the next 330,000 events, with a peak of 23 MB. At the maximum size it held
+230 MB when first full and between 230 and 278 MB afterwards. Its peak was
+339 MB in one run of 3.4 million events and 295 MB in a shorter independent
+run. The size moves within those ranges because the tables behind the index
+are rebuilt from time to time. A gateway without the bound held about 4.9 KB
+for each such event it had accepted, for as long as it ran.
+
+Three stores are outside this bound, and each can hold text as long as a
+producer writes it. The latest TIME_STATUS of each source is kept per source
+and is not evicted: that store grows with the number of distinct sources, and
+each entry is a copy of the metrics the source sent. A set of source keys
+kept beside it grows the same way. The command-evidence check has its own
+index; `policy/command-evidence.yaml` `evidence_index_max_entries` caps how
+many entries it has and not how large an entry is. An entry holds the risk
+labels a producer wrote, and it gains labels when its `event_id` is recorded
+again.
+
+The index is in memory. A restart empties it, and a parent accepted before the
+restart is reported unresolved afterwards. A program that calls
+`process_message` itself builds its own `ValidationState`, and that state is
+unbounded unless the program passes `event_index_max_entries` to it.
 
 ### Event timestamp plausibility
 

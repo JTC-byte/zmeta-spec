@@ -1,6 +1,6 @@
 # ZMeta Refinement Handoff Notes
 
-## CURRENT STATE (2026-10-27): v1.1.27 CUT FROM DEVELOP; TWO GATEWAY FIXES HELD ON BRANCHES
+## CURRENT STATE (2026-10-27): v1.1.27 CUT FROM DEVELOP; ONE GATEWAY FIX HELD ON A BRANCH
 
 `develop` is cut as v1.1.27 on 2026-10-27 on the maintainer's direction
 given in this repository's session, after the merge of
@@ -27,13 +27,32 @@ as the manifest classifies it:
 thirteen merges and was stale by the cut; it stands as written.
 
 Held, not merged: `exp/command-dedupe-validity` (ca3d35d; item 7 of the
-2026-10-12 list below) and `exp/gateway-state-bound` (ca077f7; item 8),
-each a command-path or behavior-visible gateway change and the maintainer's
-merge. Both now conflict with `develop` in the doctrine log and the worklog
-(the state-bound branch also in the CHANGELOG), to be resolved by hand at
-the merge; each branch's CHANGELOG entry then belongs under
+2026-10-12 list below), a command-path gateway change and the maintainer's
+merge. It conflicted with `develop` in the doctrine log and the worklog
+when measured on 2026-10-28, to be resolved by hand at the merge; its
+CHANGELOG entry then belongs under
 `[Unreleased]`, not inside the released `[1.1.27]` section where a clean
 merge would put it.
+
+The branch `exp/gateway-state-bound` (2026-10-02; item 8 of the 2026-10-12
+list below), the bounded event index, is merged on the maintainer's
+selection of 2026-11-16, with develop merged into it first. Its records
+conflicts kept both sides, and its CHANGELOG entry stands last under
+`[Unreleased]`. The branch adds lines to `gateway/src/gateway.py` and
+`gateway/src/validators.py`, so the same change moves 244 line references
+in `tools/validation_guidance.yaml` and this file to where the text each
+named at develop's tip now stands, and the gateway's line-count pin from
+3389 to 3424 lines. Not manifest-listed. Open from that branch: six
+guidance references name `ValidationState` code it rewrote and are left
+as they were, for a reading by hand (guidance lines 996, 997 and 998
+under `LINEAGE_PARENT_UNRESOLVED`, 1632 and 1650 under `EVENT_DUPLICATE`,
+and the first number on line 1679 under `TASK_DUPLICATE`, whose second
+number moved); that line's note calls `command_task_ids` an unbounded
+set, which holds only for a state built without the cap, as the offline
+tools build it; the `LINEAGE_PARENT_UNRESOLVED` remediation does not name
+a parent that has left the index among the causes it gives; and whether
+the index's default of 65536 entries stands as the shipped default is the
+maintainer's.
 
 The branch `exp/tak-protocol-egress-2026-11` (2026-11-09) adds the TAK
 Protocol Version 1 egress adapter (`adapters/egress/tak_protocol/`, Class C,
@@ -395,7 +414,8 @@ strip guard gives each protected prefix its own reason
 branch now says that the `auto` lane can report a damaged datagram as
 `DECODE_AMBIGUOUS`. Each edited block keeps its line count, so the file
 stays at the 3389 lines its pin test asserts and no citation into it moves;
-the citation `gateway/src/gateway.py:2640-2656` names the same branch. New
+the citation `gateway/src/gateway.py:2669-2685`, moved there with its text
+by the bounded event index's merge of 2026-11-16, names the same branch. New
 tests read the prefixes, the member names and the wire fallback from the
 code and the policy, and three of them hold the README's account of the
 `auto` lane to the code, so the decision on S2 changes those tests and the
@@ -469,9 +489,12 @@ citations, and it also covers the registry citations, which that booking
 does not name. The mutants and the full validation ran on it on
 2026-11-16, before the seeded review of that day added one test row, and
 found only the red that develop has between cuts, on the release
-manifest's pins. The gateway's line-count test still holds
-`gateway/src/gateway.py` at 3389 lines; a branch that changes that file's
-length moves its citations in the same change.
+manifest's pins. The gateway's line-count test holds
+`gateway/src/gateway.py` at 3424 lines since the bounded event index's
+merge (3389 before); a branch that changes that file's length moves its
+citations in the same change, as that merge did. The
+`gateway/src/gateway.py` numbers quoted in the list below are the ones
+that merge gave, each naming the text it named before.
 
 Open from that branch, for a reading by hand, none of it moved:
 
@@ -482,14 +505,22 @@ Open from that branch, for a reading by hand, none of it moved:
   1058 twice, 1107 and 1370), and 2 name text the range changed in place
   (804 and 809).
 - 3 references that named blank lines already at v1.1.27 (guidance lines
-  167 and 1419, `gateway/src/gateway.py:1696`, and 1082,
-  `gateway/src/gateway.py:1477-1478`).
+  167 and 1419, `gateway/src/gateway.py:1714`, and 1082,
+  `gateway/src/gateway.py:1495-1496`).
 - 5 references that were off their text before the range: on guidance line
-  167, `tools/validate.py:160` and `gateway/src/gateway.py:2471`; on line
+  167, `tools/validate.py:160` and `gateway/src/gateway.py:2500`; on line
   499, the 1.1.0 schema's `:1878`; on line 1319, the 1.1.0 schema's
   `1815-1824`; and the `NON_FINITE_VALUE` entry's schema line, which moved
   with the text it named then and still names
   `LINEAGE_FUSION_MEMBERS_NOT_IN_BASED_ON`.
+- A sixth reference of that kind, found by the seeded review of the bounded
+  event index's merge: the `COMMAND_EVIDENCE_UNRESOLVED` entry's gateway
+  citation on guidance line 1760 names the first
+  `if timing_state is not None:` in `gateway/src/gateway.py`, while its note
+  is about the later `timing_state.record(instance)`; at the tag v1.1.27 it
+  named the same first line (2712, against the record call at 2964 and
+  2965). The named row that reads it checks only the text
+  `if timing_state is not None:`, which both places hold.
 - No general test reads the citations into `gateway/src/validators.py`,
   `gateway/src/gateway.py`, the schemas, the tools or the adapters; twelve
   named rows read a first line each.
@@ -647,8 +678,10 @@ Open, in order of proximity:
    `pr/8-review` (2026-08-11) is unmerged and is his to keep or delete
    (finding N7 of the pre-cut range review of 2026-11-14).
 7. Items 5 through 10 of the 2026-10-12 state below (guidance gaps (a)
-   through (af), the two held gateway defects, the CoT `how` default, the
-   `event_id` recorded twice) carry unchanged.
+   through (af), the two gateway defects held then, the CoT `how` default,
+   the `event_id` recorded twice) carry, item 8 as updated there: its fix,
+   the bounded event index, is merged on the maintainer's selection of
+   2026-11-16, and item 7's fix is still held.
 8. **The next cut's condition for the `observed_at` refusal, and the re-pin
    order it sets.** The cut that carries the refusal of a STATE whose
    payload holds `observed_at` (the branch `exp/state-observed-at-2026-11`
@@ -1050,7 +1083,10 @@ Open, in order of proximity:
    whether held ids survive a restart; and whether the gateway refuses a
    command that has already expired.
 8. **Reference defect, brought forward for the maintainer (gateway memory).**
-   Bounding `ValidationState.events` has been an open register candidate
+   This paragraph states the defect as it stood on 2026-10-12; the branch
+   that fixes it, described below, is merged on the maintainer's selection
+   of 2026-11-16. Bounding `ValidationState.events` has been an open
+   register candidate
    since the v1.1.18 pre-cut review of 2026-07-27
    (`docs/r1_11_cold_reread_findings.md`), deferred as a scoped wave
    because it is behavior-visible. It is restated here with measurements. The
@@ -1079,6 +1115,23 @@ Open, in order of proximity:
    grow with the number of distinct sources and are a smaller form of the
    same question. Until it is fixed, a gateway that runs for days needs a
    restart, and the README does not say so.
+
+   **Built on `exp/gateway-state-bound`, 2026-10-02, held for the
+   maintainer, and merged on his selection of 2026-11-16.** The gateway
+   keeps the `event_type` and `event_subtype` of the most recently accepted
+   events, sized by the setting
+   `event_index_max_entries` (default 65536). The id sets are bounded by
+   the same number in place of being left unfilled, so that a caller of
+   `validate_deduplication` on a bounded state still gets an answer for
+   recent ids, and a long id is kept as a digest. The offline tools are
+   unchanged. The bound has two costs. A parent of the wrong type is
+   refused only while it is in the index. A correct event whose parent has
+   aged out draws a warning at profiles M and H, and a refusal under
+   `strict_validation`. The gateway README describes the index, those
+   costs, its limits and the restart behavior. Still open after this
+   branch: the per-source timing stores and the size of a command-evidence
+   entry, a program other than the gateway that builds its own
+   `ValidationState`, and the twelve questions in doctrine G1-01.
 9. **CoT `how` and the base-event schema (doctrine H1-05, evidence
    received 2026-10-01).** The CoT base-event schema declares `how`
    required, and the standard profile omits it unless the config asserts a

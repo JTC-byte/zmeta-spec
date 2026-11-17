@@ -3465,6 +3465,104 @@ member restored). Whether an unread failure mode should instead stop the
 gateway at startup, as a mistyped `cot` block does since v1.1.26, is left to
 the maintainer.
 
+## Cycle G1 — 2026-10-02 (the reference gateway's memory)
+
+A candidate left open by the pre-cut review of 2026-07-27: the gateway's
+validation state keeps every forwarded event for as long as the process
+runs. It was deferred then because bounding it is behavior-visible. It was
+measured on 2026-10-01 and built on a branch on 2026-10-02.
+
+### G1-01 — A memory bound changes which lineage parents resolve · **OPEN (built on `exp/gateway-state-bound`; the merge and twelve questions are the maintainer's)**
+
+**Observed:** the lineage check resolves a parent by looking it up among
+the events this gateway has accepted. With no bound, every parent the
+process ever accepted resolves, and the process grows without limit: 488
+MB after 100,000 copies of a 781-byte example event. With a bound, the
+state stays between 16 and 19 MB at 65,536 entries, with a peak of 23 MB
+while its tables are rebuilt, and a parent older than the index no longer
+resolves.
+
+**The tension:** design gate 3 on both sides, and the bound loses one
+refusal. The lineage check says two things about a parent it finds: it
+resolves, or its type is not allowed, which is a refusal. About a parent it
+does not find it can only say unresolved, which the shipped policy ignores
+at profile L and warns on at M and H. A bound therefore turns one refusal
+into a pass, except under `strict_validation` at M and H, where the
+unresolved warning refuses the event. An event citing a parent of the wrong
+type is refused while that parent is in the index, and once the parent has
+left it is forwarded, with a warning at M and H and with nothing at L. A
+producer can force that by sending as many events as the index holds, and
+ordinary traffic does it with no intent: about 27 minutes at the default
+size and 40 events a second. The first draft of this entry said the bound
+"launders nothing"; an independent review showed the sequence, and the
+sentence was wrong. The same refusal could already be avoided by a cheaper
+route that the bound does not change: an event that reuses a forwarded
+command's `event_id` replaces the type the store holds for that id
+(handoff, current gaps, item 10). That lowers the weight of what the bound
+gives up and does not remove it. Against the loss: the refusal never held
+for a parent sent before a restart or through another gateway, the
+command-evidence index made the same trade on 2026-07-27 and says so in its
+policy file, and the unbounded store bought the refusal at a cost no
+deployment was told about, a gateway that has to be restarted, at which
+point every parent is forgotten at once. A correct producer whose parent
+has aged out also looks the same as one citing an id that never existed,
+and under `strict_validation` at profiles M and H its event is refused.
+
+**Built, pending the maintainer's review:** a bounded index of `event_type`
+and `event_subtype`, oldest dropped first; an id longer than 64 characters
+kept as a 16-byte digest, so the bound is on bytes as well as entries; the
+size is a gateway setting with a default of 65,536, a ceiling of 1,048,576,
+and no value that removes the bound; a dropped parent is
+`LINEAGE_PARENT_UNRESOLVED` under the existing policy mode; the offline
+tools keep the unbounded state. No policy file, schema or reason code
+changed. Two tests pin the lost refusal so that it cannot be forgotten.
+
+**Questions that go with the merge:**
+
+1. Is 65,536 the right default? At 40 events a second it covers about 27
+   minutes. A slow track whose STATE_EVENT cites the previous one after a
+   longer gap draws the warning.
+2. Is the lost refusal acceptable as built? `policy/lineage.yaml` could
+   carry the note `policy/command-evidence.yaml` carries, recommending
+   `reject` for an unresolved parent where the type check has to hold. That
+   is a policy-file change and was not made here.
+3. Should the diagnostic tell a parent that left the index from one never
+   seen? A second store of dropped ids would be the growth this change
+   removes. Two options need no growing store: event ids are UUIDv7, so a
+   cited id's embedded time could be compared with the oldest entry (that
+   time is the producer's claim, and the diagnostic would have to say so);
+   or a fixed-size filter of dropped ids, which can answer wrongly at a
+   known rate.
+4. Is a setting the right home? The command-evidence index is sized in the
+   policy pack, where the value is hash-pinned and travels with the
+   contract hash. This one is sized in the gateway config, as an operating
+   limit of one process.
+5. Should a gateway be able to run without the bound? As built it cannot.
+6. Should `ValidationState()` be bounded unless a caller opts out? As
+   built only the reference gateway's `main()` passes the cap. A program
+   that imports `process_message` and builds its own state is unbounded
+   until it passes one.
+7. Should the two index sizes be tied? At the shipped defaults a command
+   citing a parent 5,000 events old is resolved by the lineage check and
+   unresolved by the command-evidence check, whose index holds 4,096. With
+   the event index set below 4,096 the reverse happens. The second
+   reviewer ran both.
+8. Should the gateway fill the two task-id sets at all? It never reads
+   them. They are bounded and digested here so that a caller of
+   `validate_deduplication` on a bounded state still gets an answer.
+9. Should the per-source timing stores be bounded, and by what rule? A
+   quiet source's last TIME_STATUS has to outlive the events around it, so
+   the event index's rule does not fit. `timing_sources` is written and
+   never read.
+10. Should the metrics report how full the index is and how many entries
+    it has dropped? An operator could then tell parents that aged out from
+    ids that never existed without any change to the diagnostic.
+11. Under `strict_validation` the bound refuses correct events that the
+    unbounded store forwarded. Is that acceptable at the default size, or
+    should a strict deployment get a larger default or a startup note?
+12. Should a refused size say whether it came from the flag or the config
+    file, and should the config wizard and the launcher offer the setting?
+
 ## Cycle F4 — 2026-10-12 (fielded evidence: a downstream COP's boundary pass and a partner's tactical-network stream)
 
 Four tensions booked at the records pass of 2026-10-12 from the answers

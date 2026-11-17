@@ -2,6 +2,22 @@
 
 ## [Unreleased]
 
+- 2026-11-17 — **Records: the bounded event index's seeded-review
+  follow-up** (`docs/zmeta_refinement_handoff.md`,
+  `docs/zmeta_refinement_worklog.md`, `CHANGELOG.md`). A seeded review of
+  the merge of `exp/gateway-state-bound` with develop found its sealed
+  plant, two should-fix findings and five nits. The handoff's current-state
+  item 7 no longer says that items 5 to 10 of the 2026-10-12 state carry
+  unchanged: item 8's fix, the bounded event index, is merged, and item 7's
+  fix, the command dedupe, is still held. One sentence frames item 8's
+  first paragraph as the defect as it stood on 2026-10-12. The dedupe
+  branch's conflicts are dated to their measurement of 2026-10-28. The open
+  list gains the `TASK_DUPLICATE` note on guidance line 1679, which calls
+  `command_task_ids` an unbounded set, true only for a state built without
+  the cap, and the citation repair's list of references off their text
+  before its range gains a sixth, the `COMMAND_EVIDENCE_UNRESOLVED` entry's
+  gateway citation. No code, rule, guidance text or pin changes.
+
 - 2026-11-16 — **The `auto` input lane reports a protobuf refusal as
   `DECODE_AMBIGUOUS` only for a whole protobuf message carrying fields 2, 3
   and 4** (`gateway/src/gateway.py`,
@@ -1069,6 +1085,42 @@
   the roadmap candidate `raw-data-absent-evidence-status` for the
   demonstration's photograph path (same organization; no promotion asked). No
   schema, policy or validator byte changes.
+
+- 2026-10-02 — **The reference gateway keeps a bounded index of recent
+  events in place of every event it accepts.** The gateway's validation
+  state kept each accepted event whole, with its id, for as long as the
+  process ran: about 4.9 KB for each 781-byte example event as measured,
+  with no limit. The lineage check reads that store for one thing, a
+  parent's `event_type`. The gateway now keeps the `event_type` and
+  `event_subtype` of the most recently accepted events, oldest dropped
+  first, sized by a new setting, `event_index_max_entries` (default 65536,
+  maximum 1048576, flag `--event-index-max-entries`). **Behavior change:**
+  a lineage parent older than the index is reported
+  `LINEAGE_PARENT_UNRESOLVED` under the existing policy mode, the same
+  answer as a parent the gateway never saw. In the shipped policy that is
+  ignored at profile L and a warning at profiles M and H, and under
+  `strict_validation` the warning refuses the citing event. **A refusal
+  that no longer holds past the index:** a parent of a type the policy does
+  not allow is refused while it is in the index and reported unresolved
+  once it has left, and a producer can push it out by sending as many
+  events as the index holds. A value that is not an integer from 1 to the
+  maximum stops the gateway at startup, the flag takes plain digits only,
+  and no value removes the bound. An id longer than 64 characters is kept
+  as a 16-byte digest, so an entry's size does not depend on what a
+  producer wrote. The offline tools are unchanged: a `ValidationState`
+  built without the cap keeps the whole of the file it validates, and so
+  does any other program that builds one without passing the cap. The
+  per-source timing stores and the size of a command-evidence entry are
+  not bounded by this change. 62 tests in
+  `gateway/tests/test_event_index_bound.py`; eight send events through the
+  real `main()` receive loop. The change was held on its branch from
+  2026-10-02 and is merged on the maintainer's selection of 2026-11-16. The
+  merge moves the line
+  citations into `gateway/src/gateway.py` and `gateway/src/validators.py`
+  in `tools/validation_guidance.yaml` and the handoff to where the text
+  each named now stands, and the gateway's line-count pin from 3389 to 3424
+  lines. Six guidance references name `ValidationState` code this change
+  rewrote and are left as they were, for a reading by hand.
 
 ## [1.1.27] - 2026-10-27
 

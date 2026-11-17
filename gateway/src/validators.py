@@ -1,5 +1,7 @@
+import hashlib
 import json
 import math
+import sys
 from collections import OrderedDict, deque
 from collections.abc import Mapping, Sequence
 from collections.abc import Set as AbstractSet
@@ -22,14 +24,150 @@ from referencing.jsonschema import DRAFT202012
 # silent pass (policy/command-evidence.yaml#evidence_index_max_entries).
 #
 # Scope of the bound, stated honestly (pre-cut review): this caps THIS
-# index only. `ValidationState.events` in the same object is a plain dict
-# that retains full events and is not pruned, so a long-lived gateway
-# process is not bounded overall by this constant — capping the evidence
-# summary is a targeted limit on the new surface, not a memory guarantee
-# for the whole validation state. Bounding `events` is a separate,
-# behavior-visible change (dedupe and lineage resolution read it) and is
-# recorded as a register candidate rather than smuggled in here.
+# index only. `ValidationState.events` and the three id sets beside it have
+# their own cap, `event_index_max_entries` below, which a caller has to ask
+# for: a ValidationState built without it keeps every recorded event whole.
 DEFAULT_COMMAND_EVIDENCE_INDEX_MAX_ENTRIES = 4096
+
+# Bound on the event index a long-running caller asks a ValidationState to
+# keep (event_id -> event_type and event_subtype, which is all the lineage
+# check reads), and on the id sets validate_deduplication reads. Oldest
+# entries are dropped first.
+#
+# What a dropped parent costs. The lineage check can say two things about a
+# parent it finds: it resolves, or its type is not allowed
+# (LINEAGE_PARENT_TYPE_INVALID, a refusal). About a parent it does not find
+# it can say only LINEAGE_PARENT_UNRESOLVED, under
+# policy/lineage.yaml#unresolved_parent_mode: ignored at profile L and a
+# warning at M and H in the shipped pack. So a parent of the wrong type
+# that has left the index is no longer refused, and a producer can push it
+# out by sending as many events as the index holds. That was already true
+# of a parent this process never saw, and of every parent after a restart.
+#
+# The bound is on entries and on the size of each entry: a key longer than
+# _BOUNDED_KEY_MAX_CHARS is kept as a 16-byte digest, because the schemas
+# put no maximum length on task_id.
+#
+# The reference gateway passes its `event_index_max_entries` setting. The
+# offline tools pass nothing and keep the whole of the one file they
+# validate, as before. Any other program that builds a ValidationState for
+# process_message is unbounded unless it passes the cap too.
+#
+# What the bound does not cover: `latest_timing` and `timing_sources` grow
+# with the number of distinct sources and are not evicted, because a quiet
+# source's last TIME_STATUS has to outlive the events around it. Each
+# `latest_timing` entry is a copy of the metrics a producer sent and each
+# `timing_sources` key is as long as a producer wrote it. The
+# command-evidence index above caps how many entries it has, not how large
+# an entry is.
+#
+# A bounded state's stores are not the unbounded ones' types. `events` maps
+# a key to an (event_type, event_subtype) pair, read through get_event. The
+# id stores answer `in`, `len` and iteration, and are not sets.
+DEFAULT_EVENT_INDEX_MAX_ENTRIES = 65536
+MAX_EVENT_INDEX_MAX_ENTRIES = 1024 * 1024
+_BOUNDED_KEY_MAX_CHARS = 64
+
+
+def normalize_event_index_max_entries(value):
+    """Return `value` when it is a usable event-index cap, else raise ValueError.
+
+    A usable cap is an int, not a bool, from 1 to MAX_EVENT_INDEX_MAX_ENTRIES.
+    Nothing is coerced: a cap read as a smaller or larger number than the
+    operator wrote would change which lineage parents resolve.
+    """
+    if type(value) is not int or value < 1 or value > MAX_EVENT_INDEX_MAX_ENTRIES:
+        raise ValueError(
+            "event_index_max_entries must be an integer from 1 to "
+            f"{MAX_EVENT_INDEX_MAX_ENTRIES}"
+        )
+    return value
+
+
+def _bounded_key(key):
+    """The form a key takes in a bounded store.
+
+    A string of up to _BOUNDED_KEY_MAX_CHARS characters is kept as it is. A
+    longer one is kept as a 16-byte digest, so an entry's size does not
+    depend on what a producer wrote. The length is counted in characters,
+    and a lone surrogate, which JSON can carry, is digested like any other
+    character. A tuple is bounded part by part. Anything else is kept as it
+    is.
+
+    For the keys the validators record, which are strings out of a decoded
+    event, a digest is `bytes` and a short key is `str`, so the two forms
+    cannot be mistaken for each other. A caller that records `bytes` keys
+    of its own is outside that statement: a 16-byte key equal to a digest
+    would match the long string the digest stands for.
+    """
+    if isinstance(key, str):
+        if len(key) <= _BOUNDED_KEY_MAX_CHARS:
+            return key
+        return hashlib.blake2b(key.encode("utf-8", "surrogatepass"), digest_size=16).digest()
+    if isinstance(key, tuple):
+        return tuple(_bounded_key(part) for part in key)
+    return key
+
+
+class _RecentKeys:
+    """The most recently added keys, at most `max_entries`, oldest dropped first.
+
+    Stands in for a set where a ValidationState is bounded. Adding a key that
+    is already held makes it the newest. Asking whether a key is held changes
+    nothing.
+    """
+
+    def __init__(self, max_entries):
+        self._max_entries = max_entries
+        self._keys = OrderedDict()
+
+    def add(self, key):
+        key = _bounded_key(key)
+        self._keys[key] = None
+        self._keys.move_to_end(key)
+        while len(self._keys) > self._max_entries:
+            self._keys.popitem(last=False)
+
+    def __contains__(self, key):
+        return _bounded_key(key) in self._keys
+
+    def __len__(self):
+        return len(self._keys)
+
+    def __iter__(self):
+        return iter(self._keys)
+
+    def __repr__(self):
+        return f"_RecentKeys({list(self._keys)!r})"
+
+
+class _IndexedIds:
+    """`event_ids` for a bounded ValidationState: the keys of its event index.
+
+    The index already holds every recent event_id, so a second copy of them
+    would be a third of the state's size for nothing.
+    """
+
+    def __init__(self, index):
+        self._index = index
+
+    def __contains__(self, key):
+        return _bounded_key(key) in self._index
+
+    def __len__(self):
+        return len(self._index)
+
+    def __iter__(self):
+        return iter(self._index)
+
+    def __repr__(self):
+        return f"_IndexedIds({list(self._index)!r})"
+
+
+def _interned(value):
+    # Event types and subtypes repeat across every event; one shared string
+    # each keeps a bounded index entry small.
+    return sys.intern(value) if type(value) is str else value
 
 # Internal marker (never policy or event vocabulary) recorded when a
 # parent's risk_adjudication is present but not the documented list shape,
@@ -41,13 +179,25 @@ _UNADJUDICABLE_RISK_SHAPE = "UNADJUDICABLE_RISK_SHAPE"
 
 
 class ValidationState:
-    def __init__(self, command_evidence_max_entries=None):
+    def __init__(self, command_evidence_max_entries=None, event_index_max_entries=None):
         self.timing_sources = set()
         self.latest_timing = {}
-        self.events = {}
-        self.event_ids = set()
-        self.command_task_ids = set()
-        self.task_ack_keys = set()
+        if event_index_max_entries is None:
+            # Unbounded: every recorded event is kept whole. Right for a tool
+            # that validates one file and exits, wrong for a process that
+            # runs for days.
+            self.event_index_max_entries = None
+            self.events = {}
+            self.event_ids = set()
+            self.command_task_ids = set()
+            self.task_ack_keys = set()
+        else:
+            cap = normalize_event_index_max_entries(event_index_max_entries)
+            self.event_index_max_entries = cap
+            self.events = OrderedDict()
+            self.event_ids = _IndexedIds(self.events)
+            self.command_task_ids = _RecentKeys(cap)
+            self.task_ack_keys = _RecentKeys(cap)
         try:
             cap = int(command_evidence_max_entries)
         except (TypeError, ValueError):
@@ -77,12 +227,25 @@ class ValidationState:
         system_type = payload.get("system_type") if isinstance(payload, dict) else None
         event_id = event_block.get("event_id")
         if event_id:
-            self.event_ids.add(event_id)
-            self.events[event_id] = {
-                "event_type": event_type,
-                "event_subtype": event_block.get("event_subtype"),
-                "event": event,
-            }
+            if self.event_index_max_entries is None:
+                self.event_ids.add(event_id)
+                self.events[event_id] = {
+                    "event_type": event_type,
+                    "event_subtype": event_block.get("event_subtype"),
+                    "event": event,
+                }
+            else:
+                # Bounded: keep what the lineage check reads and no reference
+                # to the event. The newest record of an id decides its type,
+                # as in the unbounded store. `event_ids` reads this index.
+                index_key = _bounded_key(event_id)
+                self.events[index_key] = (
+                    _interned(event_type),
+                    _interned(event_block.get("event_subtype")),
+                )
+                self.events.move_to_end(index_key)
+                while len(self.events) > self.event_index_max_entries:
+                    self.events.popitem(last=False)
             self._record_command_evidence(event_id, event_type, payload)
         if event_type == "COMMAND_EVENT" and isinstance(payload, dict):
             task_id = payload.get("task_id")
@@ -96,7 +259,12 @@ class ValidationState:
                     self.task_ack_keys.add(key)
 
     def get_event(self, event_id):
-        return self.events.get(event_id)
+        if self.event_index_max_entries is None:
+            return self.events.get(event_id)
+        entry = self.events.get(_bounded_key(event_id))
+        if entry is None:
+            return None
+        return {"event_type": entry[0], "event_subtype": entry[1]}
 
     def _record_command_evidence(self, event_id, event_type, payload):
         """Record the bounded summary the command-evidence check reads.

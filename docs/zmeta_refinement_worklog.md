@@ -2,7 +2,10 @@
 
 ## Current Resume Note
 
-- Last updated: 2026-11-16 (the `auto` input lane reports a protobuf
+- Last updated: 2026-11-17 (the bounded event index's seeded-review
+  follow-up; 2026-11-16: the bounded event index brought up to
+  develop for its merge, its line citations moved; the `auto` input lane
+  reports a protobuf
   refusal as `DECODE_AMBIGUOUS` only for a whole protobuf message carrying
   fields 2, 3 and 4; the MAVLink window refusal's seeded-review
   follow-up; the MAVLink egress refuses a command whose
@@ -48,7 +51,76 @@
   re-affirmed not fired; the
   pre-cut dry run; the TAK Protocol Version 1 egress adapter; DECODE_AMBIGUOUS,
   three commits, the third on 2026-11-03; two contract sentences;
-  carried-list records pass; heading_deg defined; records pass after 7.6)
+  carried-list records pass; heading_deg defined; records pass after 7.6;
+  2026-10-02: the reference gateway keeps a bounded event index)
+- **2026-11-17 (the bounded event index's seeded-review follow-up).** A
+  seeded review of the merge and its follow-up commit, by a fresh reader on
+  a copy with one sealed plant (a moved TASK_ACK_DUPLICATE citation set two
+  lines off), found the plant and gave two should-fix findings and five
+  nits. Applied in a third commit: the handoff's current-state item 7 no
+  longer says that items 5 to 10 of the 2026-10-12 state carry unchanged,
+  and names the merged fix and the one still held; one sentence frames item
+  8's first paragraph as the defect as it stood on 2026-10-12, which stays
+  as written; the gateway documents paragraph says that its citation was
+  moved there by this merge; the dedupe branch's conflicts are dated to
+  their measurement of 2026-10-28; the CHANGELOG sentence gains its
+  subject. The open list gains the TASK_DUPLICATE note on guidance line
+  1679, which calls `command_task_ids` an unbounded set, true only for a
+  state built without the cap. The citation repair's list of references
+  off their text before its range gains a sixth that the reader found:
+  `COMMAND_EVIDENCE_UNRESOLVED`'s gateway citation, which names the first
+  `if timing_state is not None:` while its note is about the record call
+  after the checks, as it did at v1.1.27. Not applied: the two guidance
+  texts the bound makes incomplete (that note and the
+  `LINEAGE_PARENT_UNRESOLVED` remediation's causes) stay open for a
+  reading with the guidance file's own review, and the second commit's message,
+  which says that every displaced reference moves and then names six left,
+  stays as committed. The CHANGELOG gains a dated records entry for this
+  follow-up; the CHANGELOG test failed on this entry's date until it did.
+  On the commit's tree the line check again reads all 251 references and
+  finds the 245 that are not the six on their text, its three controls
+  report their plants, and the branch's own tests (62), the guidance tests
+  (33), the reader tests (18), the CHANGELOG test (8) and the records test
+  (7) pass. The full validation runs on the final commit under the lock,
+  and the merge record gives its results.
+- **2026-11-16 (the bounded event index, `exp/gateway-state-bound`, brought
+  up to develop for its merge).** On the maintainer's selection of
+  2026-11-16, option (A) of his question on the two gateway fixes held
+  since October: both merge, the state bound first. Develop at 45f3d2f is
+  merged into the branch (ca077f7). The records conflicts in the
+  CHANGELOG, the doctrine log and this worklog keep both sides in date
+  order: the branch's CHANGELOG entry stands last under `[Unreleased]`, not
+  inside the released 1.1.27 section; doctrine cycle G1 stands before F4;
+  this worklog's one Last updated line names both sides. The code files
+  merge clean: `gateway/src/gateway.py` goes from 3389 to 3424 lines and
+  `gateway/src/validators.py` from 4606 to 4774. A second commit moves
+  every line reference the merge displaced in the two current-facing files
+  that cite those files by line, `tools/validation_guidance.yaml` and the
+  handoff, to where the text it named at develop's tip now stands, by the
+  method of the guidance-citation repair: 240 in the guidance file (42
+  into `gateway.py` and 198 into `validators.py`, 21 of them numbers
+  written as prose after a citation) and 4 in the handoff. 226 moved where
+  that text stands at one place and 18 where it stands at more than one and
+  git's own line mapping from develop's tip lands on one of them; git's
+  mapping agrees with every move. The references the repair left off their
+  text are carried the same way, so each names what it named before. Six
+  references into `ValidationState` code the branch rewrote (its
+  `__init__`, `record` and `get_event`) are left as they were, for a
+  reading by hand. Process records keep the numbers of their day. The
+  gateway's line-count pin moves to 3424. No manifest-listed file
+  changes. Before the commit, a check of every tracked live citation into
+  the files the unit changes read 251 references and found the 245 that
+  are not the six on the text they named at develop's tip, and each of its
+  three controls reported its plant: a moved citation put back, a moved
+  prose number put back, and an exception dropped from its list. On the
+  commit's tree the branch's own tests (62), the guidance tests (33), the
+  reader tests with the line-count pin (18), the CHANGELOG test and the
+  records test pass. The full validation runs on the final commit under
+  the lock, and the merge record gives its results. Open: the six
+  references; the
+  `LINEAGE_PARENT_UNRESOLVED` remediation does not name a parent that has
+  left the index among its causes; whether the index's default of 65536
+  entries stands as the shipped default, which is the maintainer's.
 - **2026-11-16 (the `auto` input lane reports a protobuf refusal as
   `DECODE_AMBIGUOUS` only for a whole protobuf message carrying fields 2, 3
   and 4).** Finding S2 of the
@@ -2007,6 +2079,68 @@
   `RELEASE_MANIFEST_*` lines; examples 51 of 51; roadmap ok 22;
   `git diff --check` clean. An independent read
   precedes any merge.
+- **2026-10-02 (gateway memory, `exp/gateway-state-bound`; behavior-visible,
+  held for the maintainer's review).** The candidate open since the
+  2026-07-27 pre-cut review, brought forward with measurements on
+  2026-10-01 (handoff, current gaps, item 8), is built on its own branch.
+  `ValidationState` takes `event_index_max_entries`. Without it the state is
+  what it was, and the offline tools build it that way. With it, `events`
+  is an oldest-first bounded index that holds a parent's `event_type` and
+  `event_subtype` and no event, and the id sets `validate_deduplication`
+  reads are bounded by the same number: the two task sets each counted on
+  their own, and `event_ids` read from the index. The gateway passes a new
+  setting of the same name
+  (default 65536, ceiling 1048576, strict parse, startup error on a bad
+  value). The first draft of the tests was run against the unchanged code
+  before any change: 61 failed and 8 passed. The first revision (84909d8)
+  killed 56 of 56 of its author's mutants and was then reviewed
+  independently. The review's verdict was that fixes were needed, and it
+  was right on every point it ran. Nine of its 28 mutants survived. A
+  doctrine sentence was false: the entry said the bound launders nothing,
+  and a parent of the wrong type is refused only while it is in the index.
+  The bound was on entries and not on bytes: the schemas put no maximum
+  length on `task_id`, and two id sets the gateway never reads kept those
+  strings, about 4 GB at the default size with 30 KB ids by the review's
+  measurement of 1,000 events, extrapolated. The two memory
+  figures in the README were taken at different points of a cycle. The
+  flag was parsed by `int`, which coerces. "Nine tests through the real
+  `main()` loop" counted four that send no datagram. The second revision
+  answers each. A key longer than 64 characters is kept as a 16-byte
+  digest. `event_ids` reads the index's own keys in place of a second
+  copy. The flag takes plain digits only, and a bad config value is
+  refused even when the flag overrides it. The lost refusal is stated in
+  the README, the CHANGELOG and doctrine G1-01 and pinned by two tests,
+  one of them through the receive loop. That revision (6cb794a) had 58
+  tests and killed 90 of 90 mutants, the review's nine survivors among
+  them. A second independent review of it found no defect in the code. It
+  ran a differential fuzz of bounded against unbounded state (100,000
+  operations) and a model-based fuzz with eviction (24,000 steps) and
+  found no divergence beyond the stated ones. It found the documents
+  still short in four places: the stores left outside the bound were
+  under-described (a command-evidence entry and a per-source timing entry
+  are each as large as a producer writes them); one peak figure did not
+  reproduce in its shorter run; "one refusal" understated the cost, since
+  a correct event whose parent has aged out is also warned or, under
+  strict validation, refused; and the configs README was wrong for
+  profile L. Three of its 30 mutants survived: the 64 counted in bytes,
+  a strict encoding that would have raised on a lone surrogate in a long
+  id after every check had passed, and the flag's refusal raised as the
+  wrong exception. Each has a test now. As it stands: 62 tests; 12 run
+  `main()`, of which eight send events through the receive loop, three
+  send none, and one stops before a socket opens; 96 of 96 mutants
+  killed, one test process each, both reviews' survivors among them.
+  Measured with a 781-byte shipped example: unbounded, 488 MB after
+  100,000 events; at the default, 15.8 MB when first full and 15.8 to
+  18.7 MB over the next 330,000 events (peak 22.6 MB); at the ceiling,
+  230 MB when first full and 230 to 278 MB afterwards, with a peak of 339
+  MB in the author's run of 3.4 million events and 295 MB in the second
+  reviewer's shorter run. Not done here: `latest_timing` and
+  `timing_sources` still grow with the number of distinct sources; the
+  diagnostic does not tell a dropped parent from one never seen; nothing
+  survives a restart; events go through the receive loop as JSON at
+  profile M only; the config wizard does not offer the setting; the
+  changes made after the second review have not themselves been
+  reviewed. The questions that go with the merge are in doctrine G1-01.
 - **2026-10-02 (records wave `wave/records-gateway-findings-2026-10-02`; no
   behavior change).** An independent review of unmerged gateway work
   reported two behaviors of the gateway that are older than that work.
