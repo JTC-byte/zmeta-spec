@@ -2,9 +2,9 @@
 
 ## Current Resume Note
 
-- Last updated: 2026-11-16 (the `auto` input lane reports
-  `DECODE_AMBIGUOUS` only for a whole protobuf message carrying fields 2, 3
-  and 4); 2026-11-14 (a correction on the runtime policy hash;
+- Last updated: 2026-11-16 (the `auto` input lane reports a protobuf
+  refusal as `DECODE_AMBIGUOUS` only for a whole protobuf message carrying
+  fields 2, 3 and 4); 2026-11-14 (a correction on the runtime policy hash;
   the ASTERIX CAT062 egress adapter;
   the gateway documents' seeded-review follow-up;
   the gateway documents: protected strip paths,
@@ -44,8 +44,9 @@
   pre-cut dry run; the TAK Protocol Version 1 egress adapter; DECODE_AMBIGUOUS,
   three commits, the third on 2026-11-03; two contract sentences;
   carried-list records pass; heading_deg defined; records pass after 7.6)
-- **2026-11-16 (the `auto` input lane reports `DECODE_AMBIGUOUS` only for a
-  whole protobuf message carrying fields 2, 3 and 4).** Finding S2 of the
+- **2026-11-16 (the `auto` input lane reports a protobuf refusal as
+  `DECODE_AMBIGUOUS` only for a whole protobuf message carrying fields 2, 3
+  and 4).** Finding S2 of the
   pre-cut range review of 2026-11-14, closed on the maintainer's selection
   of 2026-11-16, option (a) of the S2 evidence, with the test the build
   ruling's amendment sets. Since 2026-11-02 the `auto` lane re-raised every
@@ -69,8 +70,10 @@
   `DECODE_AMBIGUOUS` on both lanes. The held class, a refused message that
   is also cut short or malformed at its top level after the refused field
   or lacks field 2, 3 or 4, reads `SCHEMA_INVALID` on `auto` and
-  `DECODE_AMBIGUOUS` on `proto`; tests pin six members on both lanes, among
-  them the three edge cases put to the maintainer. The `json`, `cbor`,
+  `DECODE_AMBIGUOUS` on `proto`; tests hold the six members the amendment
+  pins and one more on both lanes, among them the three edge cases put to
+  the maintainer: a stray field with no `payload`, a stray field alone, and
+  a stray field followed by a one-byte cut. The `json`, `cbor`,
   `compact` and `proto` lanes, `zmeta_compact.py`, `zmeta_cbor.py`,
   `zmeta_decode_guard.py`, `is_proto_message` and every file under
   `schema/` and `policy/` are unchanged. `spec/protobuf-encoding.md` gains
@@ -91,14 +94,21 @@
   28 of them failed on the base, every change-direction test among them,
   and the hold-direction tests passed there. The new tests use no
   `subTest`: pytest 9 reports a failing subtest as SUBFAILED under a PASSED
-  test. Before the commit, a check of every tracked line citation into
+  test. A seeded review of the branch is applied in its second commit: new
+  tests hold the field-number check, the exact message bound, the
+  fall-through of a refusal that is not ambiguous and a block malformed
+  inside; the headline statements are scoped to the protobuf refusal; and
+  the README's sentence on the held class says, as the amended ruling
+  gives it, that a message cut short before the refused field reads
+  `SCHEMA_INVALID` on both lanes. With those tests, 30 failed on the base.
+  Before each commit, a check of every tracked line citation into
   `gateway.py`, `zmeta_proto.py` and the specification found that no cited
-  line moved, and its control reported for each file; 17 mutants were
-  killed under the heavy-run lock, each hold-direction test by at least one
-  of them. The full validation runs on the final commit under the lock, and
-  the merge record gives its results. Open: the maintainer's word on the
-  specification paragraph; option (c3), the CBOR attempt's error text on
-  `auto`.
+  line moved, and its control reported for each file; at the last, 22
+  mutants were killed under the heavy-run lock, each hold-direction test by
+  at least one of them. The full validation runs on the final commit under
+  the lock, and the merge record gives its results. Open: the
+  maintainer's word on the specification paragraph; option (c3), the CBOR
+  attempt's error text on `auto`.
 - **2026-11-14 (a correction: the gateway documents change moved the runtime
   policy hash).** The gateway documents branch of the same day recorded that
   no rule and no release pin changes. Both statements hold, and one fact was

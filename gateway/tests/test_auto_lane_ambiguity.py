@@ -1,4 +1,4 @@
-"""The auto lane reports DECODE_AMBIGUOUS only for a whole protobuf message carrying fields 2, 3 and 4.
+"""The auto lane reports a protobuf refusal as DECODE_AMBIGUOUS only for a whole message carrying fields 2, 3 and 4.
 
 Finding S2 of the pre-cut range review of 2026-11-14, and the maintainer's
 selection of 2026-11-16 (option (a)), with the structural test of the build
@@ -260,6 +260,14 @@ class AutoLaneNamedCaseTest(unittest.TestCase):
     def test_held_a_payload_json_duplicate_and_no_source(self):
         self._held("a payload_json duplicate and no source")
 
+    def test_held_a_stray_field_then_an_invalid_key(self):
+        # a member of the class beyond the six pinned ones: malformed at the top
+        # level after the refused field (field number 0), from the seeded review
+        wire = STRAY + b"\x00\x00" + zmeta_proto.dumps(_clean_event())
+        self.assertTrue(_strictly_ambiguous(wire), "the strict decoder must refuse it as ambiguous")
+        self._schema_invalid(wire, "a stray field, then field number 0")
+        self._ambiguous(wire, "a stray field, then field number 0", "proto")
+
     # hold direction: DECODE_AMBIGUOUS on auto and on proto
 
     def test_a_protobuf_event_with_a_stray_field_reads_decode_ambiguous_on_auto_and_proto(self):
@@ -281,6 +289,31 @@ class AutoLaneNamedCaseTest(unittest.TestCase):
         for lane in ("auto", "proto"):
             metrics = self._ambiguous(wire, "payload_json duplicate", lane)
             self.assertIn("duplicate key 'a'", metrics["error"], lane)
+
+    def test_a_stray_field_then_an_event_block_malformed_inside_reads_decode_ambiguous_on_auto_and_proto(self):
+        # the test reads the top level only; a block's inside is the strict decoder's
+        parts = _members(_clean_event())
+        block = zmeta_proto._encode_event_block(_clean_event()["event"])
+        wire = STRAY + _join(parts, f2=zmeta_proto._field_message(2, block + b"\x0f"))
+        for lane in ("auto", "proto"):
+            self._ambiguous(wire, "a stray field, then a malformed event block", lane)
+
+    def test_a_whole_event_whose_payload_is_not_json_falls_through_to_the_json_attempt(self):
+        # a refusal that is not ambiguous is never re-raised on auto: the lane
+        # reports the UTF-8/JSON attempt's own text, as at v1.1.27
+        wire = _join(_members(_clean_event()), f4=zmeta_proto._field_bytes(4, b"not json"))
+        with self.assertRaises(ValueError) as decoder:
+            zmeta_proto.loads(wire)
+        self.assertFalse(gateway.is_decode_ambiguous(decoder.exception))
+        try:
+            gateway._json_loads(wire.decode("utf-8"))
+        except ValueError as fall_through:
+            expected = str(fall_through)
+        else:  # pragma: no cover - the bytes are not JSON
+            self.fail("the protobuf bytes parsed as JSON")
+        self.assertNotEqual(str(decoder.exception), expected)
+        metrics = self._schema_invalid(wire, "a payload that is not JSON")
+        self.assertEqual(expected, metrics["error"])
 
     def test_a_clean_protobuf_event_decodes_on_auto(self):
         outputs = _outputs(zmeta_proto.dumps(_clean_event()), "auto")
@@ -316,6 +349,7 @@ class CarriesEventMembersTest(unittest.TestCase):
 
     def test_false_for_each_held_member_and_for_bytes_that_are_no_whole_message(self):
         compact = gateway._encode_message(_five_member_event(), "compact")
+        parts, whole = _members(_clean_event()), zmeta_proto.dumps(_clean_event())
         cases = dict(_held_members(_clean_event()))
         cases.update({
             "a compact event cut by one byte": compact[:-1],
@@ -323,8 +357,11 @@ class CarriesEventMembersTest(unittest.TestCase):
             "the AIS sentence": AIS,
             "hello world": HELLO,
             "no bytes": b"",
-            "field number 0": b"\x00",
-            "an unsupported wire type after a whole event": zmeta_proto.dumps(_clean_event()) + b"\x0f",
+            # a whole varint field with field number 0, before three whole members:
+            # only the key check refuses it
+            "field number 0, then fields 2, 3 and 4": b"\x00\x00" + parts[2] + parts[3] + parts[4],
+            "a stray field, then field number 0, then a whole event": STRAY + b"\x00\x00" + whole,
+            "an unsupported wire type after a whole event": whole + b"\x0f",
         })
         for name, data in cases.items():
             self.assertIs(False, zmeta_proto.carries_event_members(data), name)
@@ -338,6 +375,13 @@ class CarriesEventMembersTest(unittest.TestCase):
         self.assertGreater(len(over_message), zmeta_proto.DEFAULT_MAX_MESSAGE_BYTES)
         self.assertIs(False, zmeta_proto.carries_event_members(over_message))
         self.assertIs(True, zmeta_proto.carries_event_members(three(300_000, 300_000, 300_000)))
+        # the message bound itself: exactly 1,048,576 bytes is within it, one more is not
+        at_bound = three(349_524, 349_524, 349_516)
+        self.assertEqual(zmeta_proto.DEFAULT_MAX_MESSAGE_BYTES, len(at_bound))
+        self.assertIs(True, zmeta_proto.carries_event_members(at_bound))
+        one_over = three(349_524, 349_524, 349_517)
+        self.assertEqual(zmeta_proto.DEFAULT_MAX_MESSAGE_BYTES + 1, len(one_over))
+        self.assertIs(False, zmeta_proto.carries_event_members(one_over))
         over_field = three(10, 10, zmeta_proto.DEFAULT_MAX_FIELD_BYTES + 1)
         self.assertLess(len(over_field), zmeta_proto.DEFAULT_MAX_MESSAGE_BYTES)
         self.assertIs(False, zmeta_proto.carries_event_members(over_field))

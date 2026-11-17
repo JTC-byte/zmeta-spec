@@ -185,10 +185,12 @@ datagram is one whole protobuf message whose top-level field numbers include
 maintainer's selection of 2026-11-16). Any other datagram no decoder reads is
 refused as `SCHEMA_INVALID`: a compact or CBOR datagram cut short, a compact
 datagram with one trailing byte, plain text such as `hello world`. A protobuf
-message with a stray, mistyped or repeated field that is also cut short, or
+message that the decoder refuses as ambiguous for a stray, mistyped or
+repeated field, and that is also cut short or malformed after that field, or
 lacks one of the three members, reads `SCHEMA_INVALID` on `auto` and
-`DECODE_AMBIGUOUS` on `proto`. A deployment that knows its producers' encoding
-can set that lane instead of `auto`.
+`DECODE_AMBIGUOUS` on `proto`. Cut short before that field, it reads
+`SCHEMA_INVALID` on both lanes. A deployment that knows its producers'
+encoding can set that lane instead of `auto`.
 
 ### COMMAND_EVENT dedupe
 

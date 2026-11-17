@@ -770,9 +770,10 @@ guidance:
       (the member would have been dropped, or the later value kept, silently).
       On the protobuf lane, bytes that are not a ZMeta message but parse as a
       protobuf key report here too, as a field number the schema does not
-      define, rather than as SCHEMA_INVALID. On the auto lane only one whole
-      protobuf message whose top-level field numbers include 2, 3 and 4
-      reports here, whatever their wire types; any other datagram no decoder
+      define, rather than as SCHEMA_INVALID. On the auto lane a protobuf
+      refusal reports here only for one whole protobuf message whose
+      top-level field numbers include 2, 3 and 4, whatever their wire types;
+      any other datagram that the protobuf read refuses and no other decoder
       reads is SCHEMA_INVALID there. That includes a refused message that is
       also cut short or malformed at its top level after the refused field,
       or lacks field 2, 3 or 4, which reports here on the protobuf lane.

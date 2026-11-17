@@ -378,8 +378,8 @@ that the producer's figure for a member is the claimed value in the first
 record that carries it (contract 4.5.1, doctrine F4-04); and Decode
 refusals, which states what `DECODE_AMBIGUOUS` refuses, its v1.0 wire form
 (`SCHEMA_INVALID` with `metrics.diagnostic_code`), and the `auto` lane's
-behavior as it is, named as open under finding S2, which waits for the
-maintainer's word. `policy/README.md` names the three members. S5 also
+behavior as it then was, named as open under finding S2, which then
+waited for the maintainer's word. `policy/README.md` names the three members. S5 also
 names `spec/field-dictionary.md`; this branch leaves it unchanged, so that
 part of S5 stays open. In `gateway/src/gateway.py` the
 strip guard gives each protected prefix its own reason
@@ -457,8 +457,10 @@ stray, mistyped or repeated field stays `DECODE_AMBIGUOUS` on both lanes.
 The held class, a refused message that is also cut short or malformed at
 its top level after the refused field or lacks field 2, 3 or 4, reads
 `SCHEMA_INVALID` on `auto` and `DECODE_AMBIGUOUS` on `proto`; tests hold
-six members on both lanes, the three edge cases put to the maintainer
-among them. The test decodes nothing, so the gateway still never asks for
+seven members on both lanes, among them the three edge cases put to the
+maintainer: a stray field with no `payload`, a stray field alone, and a
+stray field followed by a one-byte cut. The test decodes nothing, so the
+gateway still never asks for
 the forensic skip mode. `gateway/src/gateway.py` keeps its 3389 lines and
 its pin, and no citation into it, into `zmeta_proto.py` or into
 `spec/protobuf-encoding.md` moves. One fixture in

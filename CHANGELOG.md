@@ -2,8 +2,9 @@
 
 ## [Unreleased]
 
-- 2026-11-16 — **The `auto` input lane reports `DECODE_AMBIGUOUS` only for a
-  whole protobuf message carrying fields 2, 3 and 4** (`gateway/src/gateway.py`,
+- 2026-11-16 — **The `auto` input lane reports a protobuf refusal as
+  `DECODE_AMBIGUOUS` only for a whole protobuf message carrying fields 2, 3
+  and 4** (`gateway/src/gateway.py`,
   `zmeta_proto.py`, `spec/protobuf-encoding.md`, `gateway/README.md`,
   `tools/validation_guidance.yaml`,
   `conformance/encoding-negative/gateway-must-fail.jsonl`,
@@ -12,7 +13,7 @@
   `gateway/tests/test_gateway_behaviour_docs.py`). Finding S2 of the pre-cut
   range review of 2026-11-14, on the maintainer's selection of 2026-11-16.
   The `auto` lane tries CBOR and the compact mapping, then protobuf, then
-  JSON. Since 2026-11-02 it re-raised every protobuf refusal under
+  JSON. Since 2026-11-02 it re-raised every ambiguous protobuf refusal under
   `DECODE_AMBIGUOUS`, a code that means a decode the gateway would have had
   to repair. The protobuf decoder refuses at the first field it cannot
   place, so a compact or CBOR datagram cut short in transit, a compact
@@ -35,8 +36,10 @@
   ambiguous that is also cut short or malformed at its top level after the
   refused field, or lacks field 2, 3 or 4, reads `SCHEMA_INVALID` on the
   `auto` lane while the `proto` lane, which is unchanged, reads
-  `DECODE_AMBIGUOUS`; tests hold that difference on both lanes for six such
-  messages, among them the three edge cases the maintainer accepted.
+  `DECODE_AMBIGUOUS`; tests hold that difference on both lanes for seven such
+  messages, among them the three edge cases the maintainer accepted: a
+  stray field with no `payload`, a stray field alone, and a stray field
+  followed by a one-byte cut.
   `spec/protobuf-encoding.md` gains a paragraph after its decoder bounds
   that states the `auto` lane's rule; its lines 114 to 131 are unchanged.
   Change class C (a gateway decode behaviour and a codec function), with a

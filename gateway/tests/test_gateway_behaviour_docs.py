@@ -302,9 +302,11 @@ class GatewayReadmeDecodeRefusalTest(unittest.TestCase):
             "Any other datagram no decoder reads is refused as `SCHEMA_INVALID`: a "
             "compact or CBOR datagram cut short, a compact datagram with one trailing "
             "byte, plain text such as `hello world`.",
-            "A protobuf message with a stray, mistyped or repeated field that is also "
-            "cut short, or lacks one of the three members, reads `SCHEMA_INVALID` on "
+            "A protobuf message that the decoder refuses as ambiguous for a stray, "
+            "mistyped or repeated field, and that is also cut short or malformed after "
+            "that field, or lacks one of the three members, reads `SCHEMA_INVALID` on "
             "`auto` and `DECODE_AMBIGUOUS` on `proto`.",
+            "Cut short before that field, it reads `SCHEMA_INVALID` on both lanes.",
             "A deployment that knows its producers' encoding can set that lane "
             "instead of `auto`.",
             "A datagram that opens with `{` or `[` and does not parse as JSON is "
@@ -313,6 +315,7 @@ class GatewayReadmeDecodeRefusalTest(unittest.TestCase):
         ):
             self.assertIn(case, section)
         self.assertNotIn("one with seven reads", section)
+        self.assertNotIn("field that is also cut short, or lacks", section)
         self.assertNotIn("behaviour", section)
 
 
@@ -346,10 +349,6 @@ class AutoLaneStatementIsTrueTest(unittest.TestCase):
 
     def _truncated_compact(self):
         return gateway._encode_message(self._first_example(), "compact")[:-1]
-
-    def _ambiguous(self, metrics):
-        self.assertEqual("SCHEMA_INVALID", metrics["reason_code"])
-        self.assertEqual("DECODE_AMBIGUOUS", metrics.get("diagnostic_code"))
 
     def _invalid(self, metrics):
         self.assertEqual("SCHEMA_INVALID", metrics["reason_code"])
@@ -409,6 +408,19 @@ class AutoLaneStatementIsTrueTest(unittest.TestCase):
                 self.assertEqual(("SCHEMA_INVALID", "DECODE_AMBIGUOUS"),
                                  (metrics["reason_code"], metrics.get("diagnostic_code")), f"{name} on {lane}")
 
+    def test_a_message_cut_short_before_the_refused_field_reads_schema_invalid_on_both_lanes(self):
+        # the strict decoder reports the truncation first, so neither lane reads an ambiguity
+        whole = zmeta_proto.dumps(self._first_example())
+        cases = {
+            "cut inside the stray field": (whole + self._stray())[:-1],
+            "cut inside the event, before the stray field": (whole + self._stray())[:len(whole) - 2],
+        }
+        for name, message in cases.items():
+            for lane in ("auto", "proto"):
+                metrics = self._diagnostic(message, lane)
+                self.assertEqual(("SCHEMA_INVALID", None),
+                                 (metrics["reason_code"], metrics.get("diagnostic_code")), f"{name} on {lane}")
+
     def test_a_refused_message_cut_short_or_lacking_a_member_reads_schema_invalid_on_auto_only(self):
         event = self._first_example()
         whole = zmeta_proto.dumps(event)
@@ -425,6 +437,33 @@ class AutoLaneStatementIsTrueTest(unittest.TestCase):
             self.assertEqual(("SCHEMA_INVALID", None), (auto["reason_code"], auto.get("diagnostic_code")), name)
             self.assertEqual(("SCHEMA_INVALID", "DECODE_AMBIGUOUS"),
                              (proto["reason_code"], proto.get("diagnostic_code")), name)
+
+
+class ProtobufSpecificationAutoLaneTest(unittest.TestCase):
+    """spec/protobuf-encoding.md states the auto lane's rule after its decoder bounds.
+
+    The paragraph's merge waits for the maintainer's word; if it is dropped,
+    this class goes with it.
+    """
+
+    def test_the_specification_states_the_auto_lane_rule_as_the_code_applies_it(self):
+        text = " ".join((ROOT / "spec" / "protobuf-encoding.md").read_text(encoding="utf-8").split())
+        start = text.find("On the `auto` input lane the gateway reports such a refusal")
+        self.assertGreaterEqual(start, 0, "the specification's auto-lane paragraph is missing")
+        end = text.find("## Tooling", start)
+        paragraph = text[start:end]
+        for sentence in (
+            "On the `auto` input lane the gateway reports such a refusal under `DECODE_AMBIGUOUS` only when the "
+            "datagram is one whole protobuf message, every key valid and every field complete to its last byte, "
+            "whose top-level field numbers include 2, 3 and 4 (`event`, `source`, `payload`), whatever their wire "
+            "types.",
+            "A refused message that is cut short or malformed after the refused field, or lacks one of the three, "
+            "reads `SCHEMA_INVALID` on that lane and `DECODE_AMBIGUOUS` on the `proto` lane.",
+        ):
+            self.assertIn(sentence, paragraph)
+        self.assertNotIn("length-delimited", paragraph)
+        # it follows the decoder bounds' last sentence
+        self.assertLess(text.find("before the ambiguity check reaches them."), start)
 
 
 if __name__ == "__main__":
