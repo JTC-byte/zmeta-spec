@@ -1,3 +1,5 @@
+import pytest
+
 from adapters.egress.mavlink.zmeta_command_to_mission_intent import zmeta_command_to_mission_intent
 
 
@@ -325,3 +327,165 @@ def test_empty_risk_adjudication_list_is_not_a_flag():
     result = zmeta_command_to_mission_intent(event)
     assert result is not None
     assert "risk_adjudication" not in result
+
+
+# Contract 7.8 (2026-11-02): a command's validity window begins at
+# payload.valid_from_ts when present, otherwise at event.ts, and ends
+# valid_for_ms after that start. The MissionIntent carries valid_for_ms and
+# no anchor, so a receiver can only start the duration at receipt, and a
+# window that opens after event.ts would start early. On the maintainer's
+# selection of 2026-11-16 this egress refuses such a command by the SAPIENT
+# egress's rule: the comparison is strict, and a valid_from_ts it cannot
+# read, or one whose event.ts it cannot read, is refused the same way. A
+# command without valid_from_ts reads no time and goes out as before.
+#
+# Every case is a GOTO valid for 600 s; the issue time is
+# 2026-11-14T12:00:00Z unless the case says otherwise. Case letters:
+#   A  the window opens after issue: refused. The offset form is the same
+#      instant written another way, so a comparison of the two texts would
+#      project it; the 1999 case is in the past for any clock, so only the
+#      comparison with event.ts refuses it.
+#   B  no valid_from_ts: the intent as before.
+#   C  the start equals the issue time: the intent (the comparison is
+#      strict). The 2099 case is in the future for any clock.
+#   D  the start is before issue and the window is still open: the intent.
+#   E  the window closed before issue: the intent, unchanged. Whether that
+#      is refused is outside this rule.
+#   F  the start is 1 ms after issue: refused.
+#   G  valid_from_ts cannot be read: refused. "naive-day-before" has no
+#      offset and is a day before issue, so read as host-local time it
+#      opens before issue in every zone and only the offset rule refuses it.
+#      "date-only" ends in Z, as the schema's pattern asks, yet parses with
+#      no offset; read as host-local midnight it opens at or before issue in
+#      every zone.
+#   H  valid_from_ts is present and event.ts is absent or cannot be read:
+#      refused. "naive" and "date-only" are a day or more after the start
+#      for the same reason.
+#   I  no valid_from_ts and no readable event.ts: the intent as before, the
+#      way the README example and the tests above carry no event.ts.
+#   A null valid_from_ts is read as absent, as the SAPIENT egress reads it.
+_ISSUE = "2026-11-14T12:00:00Z"
+_ABSENT = object()
+# A ULID task_id, so the SAPIENT egress's own ULID rule does not refuse
+# first in the parity test below.
+_WINDOW_TASK_ID = "01ARZ3NDEKTSV4RRFFQ69G5FAV"
+# What this module returned for every one of these commands before the rule.
+_WINDOW_INTENT = {
+    "task_id": _WINDOW_TASK_ID,
+    "task_type": "GOTO",
+    "valid_for_ms": 600000,
+    "requires_deconfliction": True,
+    "target_lat": 34.0101,
+    "target_lon": -118.0101,
+}
+_REFUSED_WINDOWS = [
+    ("A", "2026-11-14T12:10:00Z", _ISSUE),
+    ("A-offset", "2026-11-14T07:10:00-05:00", _ISSUE),
+    ("A-1999", "1999-01-01T00:10:00Z", "1999-01-01T00:00:00Z"),
+    ("F", "2026-11-14T12:00:00.001Z", _ISSUE),
+    ("G-text", "not-a-time", _ISSUE),
+    ("G-empty", "", _ISSUE),
+    ("G-number", 1794880770, _ISSUE),
+    ("G-list", ["2026-11-14T12:10:00Z"], _ISSUE),
+    ("G-naive-after", "2026-11-14T12:10:00", _ISSUE),
+    ("G-naive-day-before", "2026-11-13T12:00:00", _ISSUE),
+    ("G-date-only", "2026-11-14Z", _ISSUE),
+    ("G-out-of-range", "0001-01-01T00:00:00+01:00", _ISSUE),
+    ("H-absent", "2026-11-14T11:58:00Z", _ABSENT),
+    ("H-null", "2026-11-14T11:58:00Z", None),
+    ("H-text", "2026-11-14T11:58:00Z", "not-a-time"),
+    ("H-empty", "2026-11-14T11:58:00Z", ""),
+    ("H-number", "2026-11-14T11:58:00Z", 1794880770),
+    ("H-naive", "2026-11-14T11:58:00Z", "2026-11-15T12:00:00"),
+    ("H-date-only", "2026-11-14T11:58:00Z", "2026-11-16Z"),
+]
+_PROJECTED_WINDOWS = [
+    ("B", _ABSENT, _ISSUE),
+    ("C", "2026-11-14T12:00:00Z", _ISSUE),
+    ("C-offset", "2026-11-14T07:00:00-05:00", _ISSUE),
+    ("C-2099", "2099-01-01T00:00:00Z", "2099-01-01T00:00:00Z"),
+    ("D", "2026-11-14T11:58:00Z", _ISSUE),
+    ("E", "2026-11-14T11:00:00Z", _ISSUE),
+    ("I", _ABSENT, _ABSENT),
+    ("I-text-ts", _ABSENT, "not-a-time"),
+    ("I-naive-ts", _ABSENT, "2026-11-14T12:00:00"),
+    ("I-number-ts", _ABSENT, 1794880770),
+    ("null-start", None, _ISSUE),
+    ("null-start-no-ts", None, _ABSENT),
+]
+
+
+def _windowed_goto(valid_from_ts, ts):
+    event = {
+        "zmeta_version": "1.0",
+        "event": {
+            "event_id": "019c2b5c-c047-73ea-8f1a-302fc3049334",
+            "event_type": "COMMAND_EVENT",
+            "event_subtype": "GOTO",
+        },
+        "source": {"platform_id": "comms-node-1", "node_role": "GATEWAY", "producer": "sensorops"},
+        "profile": "L",
+        "payload": {
+            "task_id": _WINDOW_TASK_ID,
+            "task_type": "GOTO",
+            "target_geo": {"lat": 34.0101, "lon": -118.0101},
+            "valid_for_ms": 600000,
+            "requires_deconfliction": True,
+        },
+    }
+    if ts is not _ABSENT:
+        event["event"]["ts"] = ts
+    if valid_from_ts is not _ABSENT:
+        event["payload"]["valid_from_ts"] = valid_from_ts
+    return event
+
+
+@pytest.mark.parametrize(
+    ("valid_from_ts", "ts"),
+    [case[1:] for case in _REFUSED_WINDOWS],
+    ids=[case[0] for case in _REFUSED_WINDOWS],
+)
+def test_a_window_not_open_at_issue_or_not_readable_is_refused(valid_from_ts, ts):
+    assert zmeta_command_to_mission_intent(_windowed_goto(valid_from_ts, ts)) is None
+
+
+@pytest.mark.parametrize(
+    ("valid_from_ts", "ts"),
+    [case[1:] for case in _PROJECTED_WINDOWS],
+    ids=[case[0] for case in _PROJECTED_WINDOWS],
+)
+def test_a_window_open_at_issue_or_no_start_projects_as_before(valid_from_ts, ts):
+    assert zmeta_command_to_mission_intent(_windowed_goto(valid_from_ts, ts)) == _WINDOW_INTENT
+
+
+def test_the_mavlink_and_sapient_egresses_refuse_the_same_windows():
+    # The two reference command egresses refuse exactly the same windows, so
+    # they cannot drift apart on this rule without a test failing. Every case
+    # here carries an event.ts key (unreadable in H). The SAPIENT egress
+    # refuses an event with no readable ts whether or not it carries a
+    # valid_from_ts, so the I cases and the cases with no event.ts stay out.
+    from adapters.egress.sapient.zmeta_command_to_sapient_task import zmeta_command_to_sapient_task
+
+    node_id = "0f2c8b4e-9f1d-4e6a-8a3b-1c5d7e9f0a2b"
+    destination_id = "7a1b3c5d-2e4f-4a6b-8c0d-9e1f3a5b7c9d"
+    cases = [
+        case
+        for case in _REFUSED_WINDOWS + _PROJECTED_WINDOWS
+        if case[2] is not _ABSENT and not case[0].startswith("I")
+    ]
+    mavlink_refused = set()
+    sapient_refused = set()
+    for name, valid_from_ts, ts in cases:
+        if zmeta_command_to_mission_intent(_windowed_goto(valid_from_ts, ts)) is None:
+            mavlink_refused.add(name)
+        task = zmeta_command_to_sapient_task(
+            _windowed_goto(valid_from_ts, ts), node_id=node_id, destination_id=destination_id
+        )
+        if task is None:
+            sapient_refused.add(name)
+    assert mavlink_refused == sapient_refused
+    # The SAPIENT egress refuses exactly the refused cases and projects the
+    # others, so the equality above cannot hold by both refusing everything
+    # or both refusing nothing.
+    assert sapient_refused == {name for name, _, ts in _REFUSED_WINDOWS if ts is not _ABSENT}
+    assert len(cases) - len(sapient_refused) == 7

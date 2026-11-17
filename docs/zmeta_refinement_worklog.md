@@ -2,7 +2,9 @@
 
 ## Current Resume Note
 
-- Last updated: 2026-11-14 (a correction on the runtime policy hash;
+- Last updated: 2026-11-16 (the MAVLink egress refuses a command whose
+  validity window opens after its issue time; 2026-11-14: a correction on
+  the runtime policy hash;
   the ASTERIX CAT062 egress adapter;
   the gateway documents' seeded-review follow-up;
   the gateway documents: protected strip paths,
@@ -42,6 +44,36 @@
   pre-cut dry run; the TAK Protocol Version 1 egress adapter; DECODE_AMBIGUOUS,
   three commits, the third on 2026-11-03; two contract sentences;
   carried-list records pass; heading_deg defined; records pass after 7.6)
+- **2026-11-16 (the MAVLink egress refuses a command whose validity window
+  opens after its issue time).** On the maintainer's selection of
+  2026-11-16, option (A) of finding S1 of the pre-cut range review of
+  2026-11-14. It is the command path (design gate 6) and Class C. The
+  MissionIntent carries `valid_for_ms` and no anchor, so a receiver can
+  only start the duration at receipt, and under contract 7.8 a window that
+  opens after `event.ts` was started early. The egress now returns None for
+  a command whose `payload.valid_from_ts` is later than its `event.ts`,
+  compared strictly as the SAPIENT egress compares them, for a
+  `valid_from_ts` it cannot read, and for a `valid_from_ts` beside an
+  `event.ts` that is absent or cannot be read. A command without
+  `valid_from_ts` goes out as before, and no clock is read. The two times
+  are read with a copy of the SAPIENT egress's `_parse_utc`, and the check
+  runs after every other guard, so a command that raised before still
+  raises. The module's docstring and comment, the README's guard row, the
+  handoff's gap (x) and its note on S1, and the CHANGELOG say so. Tests:
+  thirty-one named cases on a GOTO issued at 12:00:00Z and valid for
+  600 s (starts at 12:10 and at 12:00:00.001 refused, starts at 12:00,
+  11:58 and 11:00 projected, unreadable starts and issue times refused, a
+  command with no start projected whatever its `event.ts`) and a parity
+  test that holds the MAVLink and SAPIENT egresses to the same refusals.
+  The nineteen refusal cases and the parity test failed on 9b07c19; the
+  twelve cases that project as before passed there by construction. Left
+  as it was: a window closed before issue, which both egresses send; the
+  gateway's dedupe horizon (`exp/command-dedupe-validity`); the SAPIENT
+  egress; the intent's keys. Gap (g), whether this change makes the next
+  cut a patch or a minor, is a question for the cut. No hash or release
+  pin moves. The mutants and the full validation run under the heavy-run
+  lock on the branch's last commit, and the merge record gives their
+  results.
 - **2026-11-14 (a correction: the gateway documents change moved the runtime
   policy hash).** The gateway documents branch of the same day recorded that
   no rule and no release pin changes. Both statements hold, and one fact was
