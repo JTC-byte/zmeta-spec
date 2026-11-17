@@ -2,6 +2,26 @@
 
 ## [Unreleased]
 
+- 2026-11-17 — **The `ZMETA-COT-PROJECTION` conformance class's version
+  scope names both branches** (`conformance/conformance_classes.yaml`,
+  `gateway/tests/test_cot_projection_class_scope.py`, Class B). On the
+  maintainer's selection of 2026-11-16: no CoT projection claimant
+  implements ZMeta 1.0 only. The class's `version_scope` changes from
+  `["1.0"]` to `["1.0", "1.1.0-experimental"]`, so it states what its
+  required evidence covers: two cases of `conformance/cot-golden/golden.jsonl`
+  and three of `conformance/adapter-harness/must-pass.jsonl` are 1.1.0
+  events. The class validator's existing check now applies to the class: a
+  claim of it must list `1.1.0-experimental` in `zmeta_versions_supported`.
+  The reference gateway's example claim already lists both. A new test holds
+  the class's scope to the versions its two required fixtures state, and
+  shows that a claim of the class supporting 1.0 alone is refused with
+  `CONFORMANCE_CLAIM_VERSION_SCOPE_INVALID`. `ZMETA-ADAPTER`, which requires
+  the same harness file under a scope of `["1.0"]`, is unchanged, and no
+  class dependency is added; both stay open for the maintainer. The release
+  manifest's pin of `conformance/conformance_classes.yaml` is stale until
+  the next cut regenerates the manifest. No schema, policy, contract or
+  runtime code changes.
+
 - 2026-11-17 — **Records: six lines name a read by its date or subject,
   the policy README says the policy hash covers it, and the relation
   check's timing** (`CHANGELOG.md`, `docs/zmeta_refinement_handoff.md`,

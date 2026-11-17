@@ -389,7 +389,7 @@ class_records:
     class_id: ZMETA-COT-PROJECTION
     display_name: CoT/TAK Projection
     status: implemented
-    version_scope: ["1.0"]
+    version_scope: ["1.0", "1.1.0-experimental"]
     description: CoT/TAK state egress projection plus CoT ingress treatment as external report evidence unless Section 4.5.1 promotion policy authorizes STATE_EVENT output; evidence includes adapter-specific tests, the shared adapter harness, and the golden CoT outputs of conformance/cot-golden.
     required_adapter_surfaces: ["adapters/egress/cot/zmeta_to_cot.py", "adapters/ingress/cot/cot_to_zmeta_template.py", "adapters/egress/cot/test_zmeta_to_cot.py", "adapters/ingress/cot/test_cot_ingress.py"]
     required_conformance_fixtures: ["conformance/adapter-harness/must-pass.jsonl", "conformance/cot-golden/golden.jsonl"]
