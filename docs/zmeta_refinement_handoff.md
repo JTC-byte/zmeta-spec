@@ -453,16 +453,18 @@ seeded review of 2026-11-14). It adds a registry test that requires every
 citation into `policy/violation-codes.yaml` to name the whole block of a
 code its entry is about, and an entry that cites the registry to cite its
 own code's block; an entry that makes no line reference into the registry
-is outside the rule. Four references that stand as part of a block are
-listed with the text of the registry line each begins on, and the test
-reports one whose line no longer holds that text. It also adds twelve
-named citations read at their first line. It is the repair the 2026-11-10
-paragraph above books for the validator, schema and gateway citations, and
-it also covers the registry citations, which that booking does not name.
-The mutants and the full validation have not yet run on it. The gateway's
-line-count test still holds `gateway/src/gateway.py` at 3389 lines; a
-branch that changes that file's length moves its citations in the same
-change.
+is outside the rule. Four references that stand as part of a block or
+begin on a comment are listed with the text of the registry line each
+begins on, and the test reports one whose line no longer holds that text.
+Twelve named citations are read at their first line. It is the repair the
+2026-11-10 paragraph above books for the validator, schema and gateway
+citations, and it also covers the registry citations, which that booking
+does not name. The mutants and the full validation ran on it on
+2026-11-16, before the seeded review of that day added one test row, and
+found only the red that develop has between cuts, on the release
+manifest's pins. The gateway's line-count test still holds
+`gateway/src/gateway.py` at 3389 lines; a branch that changes that file's
+length moves its citations in the same change.
 
 Open from that branch, for a reading by hand, none of it moved:
 

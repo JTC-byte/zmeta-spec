@@ -34,14 +34,15 @@
   whole block of a code its entry is about, and an entry that cites the
   registry to cite its own code's block; an entry that makes no line
   reference into the registry is outside the rule. Four references that
-  stand as part of a block are listed by name, each pinned to the text of
-  the registry line it begins on, and the test reports one whose line no
-  longer holds that text. On the unrepaired file the test's first form
-  reported 31 of the 56 registry references, and its present form reports
-  all 33 that the range displaced. Twelve named citations are read at their
-  first line. No test reads the other citations into the validator, the
-  gateway, the schemas or the tools. No rule, validator or verdict changes;
-  the file is advisory and is not listed in the release manifest.
+  stand as part of a block or begin on a comment are listed by name, each
+  pinned to the text of the registry line it begins on, and the test
+  reports one whose line no longer holds that text. On the unrepaired file
+  the test's first form reported 31 of the 56 registry references, and its
+  present form reports all 33 that the range displaced. Twelve named
+  citations are read at their first line. No test reads the other citations
+  into the validator, the gateway, the schemas or the tools. No rule,
+  validator or verdict changes; the file is advisory and is not listed in
+  the release manifest.
 
 - 2026-11-14 — **An ASTERIX CAT062 egress adapter encodes a track state as a
   system track record** (`adapters/egress/asterix/`, adapter 1.0.0,

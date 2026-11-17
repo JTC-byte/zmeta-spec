@@ -103,38 +103,45 @@
   two defects in them, and the branch now carries the fix. First, the four
   listed partial registry references were pinned to their numbers only, so
   a registry edit could leave one standing on other text with no report.
-  The reading inserted one to three lines at each of the 63 places in the
-  registry that split no code's block, moved every reference the rule reads
-  to follow, as a maintainer would from the test's report, and left the
-  listed ones as written: the single line `114` of
+  The reading inserted one to three lines at each of the 63 places that
+  follow the registry's first line or a code's block, moved every reference
+  the rule reads to follow, as a maintainer would from the test's report,
+  and left the listed ones as written: the single line `114` of
   `RF_WINDOW_MIDPOINT_INVALID`, which is another code's line, went
   unreported after all 168 inserts above it, and the range `122-129` of
   `NON_FINITE_VALUE` after the 60 one-line inserts above it, since its code
   line stayed inside the range. 33 of the 189 inserts left the whole rule
-  passing. Each listed reference is now also pinned to the stripped text of
-  the registry line it begins on. The rule reads its bounds, then that text,
-  then, for a range, whether it ends on the last line of a code's block, and
-  a listed reference that fails any of these is reported and earns its entry
-  no credit for its own block. The same inserts on the fixed rule leave no
-  listed reference unreported, and none leaves the rule passing. Second, the
-  sentence above that the test requires every entry to cite its own block
-  overstates the rule. The rule holds an entry that cites the registry to
-  its own code's block, and nine of the 62 entries make no line reference
-  into the registry, so the rule does not read them:
-  `OBSERVATION_HAS_IDENTITY`, `OBSERVATION_HAS_CLASSIFICATION`,
-  `INFERENCE_HAS_TRACK_ID`, `INVALID_QUALITY_HEADING_SOURCE`,
-  `LINEAGE_PAYLOAD_BASED_ON_NOT_SUBSET`, `TASK_ACK_INVALID_STATE`,
-  `LINK_STATUS_MISSING_REASON_CODE`, `RF_WINDOW_MIDPOINT_MISMATCH` and
-  `COMMAND_EVIDENCE_UNRESOLVED`. The CHANGELOG entry, the handoff paragraph
-  and the test module's docstrings now state the rule as it is enforced, and
-  the handoff books whether the nine should cite their blocks; this branch
-  adds no citation. The reading also counted 223 references into
-  `gateway/src/validators.py` and `gateway/src/gateway.py` where the seeded
-  review counted 219, and the module docstring now gives both. The new
-  tests were written before the change and seen failing on the rule as it
-  stood. The branch was rebased onto develop before the fix. The mutants
-  and the full validation have not yet run on the fix, and the branch is a
-  candidate that is not merged.
+  passing with a stale listed reference in the file. Each listed reference
+  is now also pinned to the stripped text of the registry line it begins
+  on. The rule reads its bounds, then that text, which the line must equal,
+  then, for a range, whether it ends on the last line of a code's block,
+  and a listed reference that fails any of these is reported and earns its
+  entry no credit for its own block. The same inserts on the fixed rule
+  leave no listed reference unreported, and none leaves the rule passing
+  with a stale listed reference in the file. Second, the sentence above
+  that the test requires every entry to cite its own block overstates the
+  rule. The rule holds an entry that cites the registry to its own code's
+  block, and nine of the 62 entries make no line reference into the
+  registry, so the rule does not read them: `OBSERVATION_HAS_IDENTITY`,
+  `OBSERVATION_HAS_CLASSIFICATION`, `INFERENCE_HAS_TRACK_ID`,
+  `INVALID_QUALITY_HEADING_SOURCE`, `LINEAGE_PAYLOAD_BASED_ON_NOT_SUBSET`,
+  `TASK_ACK_INVALID_STATE`, `LINK_STATUS_MISSING_REASON_CODE`,
+  `RF_WINDOW_MIDPOINT_MISMATCH` and `COMMAND_EVIDENCE_UNRESOLVED`. The
+  CHANGELOG entry, the handoff paragraph and the test module's docstrings
+  now state the rule as it is enforced, and the handoff books whether the
+  nine should cite their blocks; this branch adds no citation. The seeded
+  review's figure of 219 counts the citations into
+  `gateway/src/validators.py` and `gateway/src/gateway.py`; they carry 223
+  line references, which the reading counted, and the module docstring now
+  gives both. The new tests were written before the change and seen failing
+  on the rule as it stood. The branch was rebased onto develop before the
+  fix. The mutants and the full validation ran on the fix under the
+  heavy-run lock and found only the red that develop has between cuts, on
+  the release manifest's pins. A seeded review of the fix then showed that
+  no test told the text check from a substring test, which a blank line
+  passes, so one test row now puts a blank line on a listed line; the
+  review's other corrections are to wording. The branch is a candidate and
+  is not merged.
 - **2026-11-14 (a correction: the gateway documents change moved the runtime
   policy hash).** The gateway documents branch of the same day recorded that
   no rule and no release pin changes. Both statements hold, and one fact was

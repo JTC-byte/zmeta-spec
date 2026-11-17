@@ -35,11 +35,12 @@ range is invisible to every row. Any other shift of those citations,
 including a whole function's citation moved by a few lines, passes these
 tests. The seeded review of 2026-11-14 measured this on the first six
 rows: of 219 mutants that shift a validators.py or gateway.py citation by
-two lines, three were caught. Counted again on 2026-11-16, the guidance
-file holds 223 references into those two files; shifted two lines down, or
-two lines up, 3 of them are caught by the first six rows. The six rows
-added since read six more citations and leave the class as it was: all
-twelve catch 9 of the 223.
+two lines, three were caught. Those 219 citations carry 223 line
+references, since three of them hold more than one; measured again on
+2026-11-16, with each reference shifted two lines down, or two lines up, 3
+of the 223 are caught by the first six rows. The six rows added since read
+six more citations and leave the class as it was: all twelve catch 9 of the
+223.
 """
 
 import json
@@ -633,11 +634,11 @@ def _registry_misplaced(references, registry_lines, partial=()):
 
     `partial` maps (entry code, first, last) to the stripped text of the line
     `first`, from a reading of the tests on 2026-11-16. A listed reference is
-    read for its bounds, then for that text, and, when it spans more than one
-    line, for ending on the last line of a code's block. One that fails any
-    of these is reported and earns its entry no credit for its own block;
-    one that passes counts as its entry's own block when it holds that
-    code's line. Each listed reference must still be found.
+    read for its bounds, then for that text, which the line must equal, and,
+    when it spans more than one line, for ending on the last line of a code's
+    block. One that fails any of these is reported and earns its entry no
+    credit for its own block; one that passes counts as its entry's own block
+    when it holds that code's line. Each listed reference must still be found.
 
     The rule replaces a weaker reader that read only a reference's first line
     and whether one of its codes was the entry's. On the guidance file before
@@ -806,6 +807,16 @@ LISTED_PARTIAL_CASES = [
         _LISTED_REGISTRY[:1] + ["  # a line added"] + _LISTED_REGISTRY[1:],
         [
             (3, 4, "FIRST_CODE", "FIRST_CODE reaches the producer as THIRD_CODE", 1),
+            (7, 7, "FIRST_CODE", "FIRST_CODE reaches the producer as THIRD_CODE", 2),
+        ],
+        {("FIRST_CODE", 7, 7): "- code: THIRD_CODE"},
+        ["a listed partial reference is off its text"],
+    ),
+    (
+        "a blank line added above a listed code line leaves it on a blank line",
+        _LISTED_REGISTRY[:6] + [""] + _LISTED_REGISTRY[6:],
+        [
+            (2, 3, "FIRST_CODE", "FIRST_CODE reaches the producer as THIRD_CODE", 1),
             (7, 7, "FIRST_CODE", "FIRST_CODE reaches the producer as THIRD_CODE", 2),
         ],
         {("FIRST_CODE", 7, 7): "- code: THIRD_CODE"},
