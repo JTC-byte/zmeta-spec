@@ -1097,7 +1097,13 @@
   per-source timing stores and the size of a command-evidence entry are
   not bounded by this change. 62 tests in
   `gateway/tests/test_event_index_bound.py`; eight send events through the
-  real `main()` receive loop.
+  real `main()` receive loop. Held on its branch from 2026-10-02 and merged
+  on the maintainer's selection of 2026-11-16. The merge moves the line
+  citations into `gateway/src/gateway.py` and `gateway/src/validators.py`
+  in `tools/validation_guidance.yaml` and the handoff to where the text
+  each named now stands, and the gateway's line-count pin from 3389 to 3424
+  lines. Six guidance references name `ValidationState` code this change
+  rewrote and are left as they were, for a reading by hand.
 
 ## [1.1.27] - 2026-10-27
 

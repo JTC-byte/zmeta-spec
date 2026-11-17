@@ -2,7 +2,9 @@
 
 ## Current Resume Note
 
-- Last updated: 2026-11-16 (the `auto` input lane reports a protobuf
+- Last updated: 2026-11-16 (the bounded event index brought up to
+  develop for its merge, its line citations moved; the `auto` input lane
+  reports a protobuf
   refusal as `DECODE_AMBIGUOUS` only for a whole protobuf message carrying
   fields 2, 3 and 4; the MAVLink window refusal's seeded-review
   follow-up; the MAVLink egress refuses a command whose
@@ -50,6 +52,44 @@
   three commits, the third on 2026-11-03; two contract sentences;
   carried-list records pass; heading_deg defined; records pass after 7.6;
   2026-10-02: the reference gateway keeps a bounded event index)
+- **2026-11-16 (the bounded event index, `exp/gateway-state-bound`, brought
+  up to develop for its merge).** On the maintainer's selection of
+  2026-11-16, option (A) of his question on the two gateway fixes held
+  since October: both merge, the state bound first. Develop at 45f3d2f is
+  merged into the branch (ca077f7). The records conflicts in the
+  CHANGELOG, the doctrine log and this worklog keep both sides in date
+  order: the branch's CHANGELOG entry stands last under `[Unreleased]`, not
+  inside the released 1.1.27 section; doctrine cycle G1 stands before F4;
+  this worklog's one Last updated line names both sides. The code files
+  merge clean: `gateway/src/gateway.py` goes from 3389 to 3424 lines and
+  `gateway/src/validators.py` from 4606 to 4774. A second commit moves
+  every line reference the merge displaced in the two current-facing files
+  that cite those files by line, `tools/validation_guidance.yaml` and the
+  handoff, to where the text it named at develop's tip now stands, by the
+  method of the guidance-citation repair: 240 in the guidance file (42
+  into `gateway.py` and 198 into `validators.py`, 21 of them numbers
+  written as prose after a citation) and 4 in the handoff. 226 moved where
+  that text stands at one place and 18 where it stands at more than one and
+  git's own line mapping from develop's tip lands on one of them; git's
+  mapping agrees with every move. The references the repair left off their
+  text are carried the same way, so each names what it named before. Six
+  references into `ValidationState` code the branch rewrote (its
+  `__init__`, `record` and `get_event`) are left as they were, for a
+  reading by hand. Process records keep the numbers of their day. The
+  gateway's line-count pin moves to 3424. No manifest-listed file
+  changes. Before the commit, a check of every tracked live citation into
+  the files the unit changes read 251 references and found the 245 that
+  are not the six on the text they named at develop's tip, and each of its
+  three controls reported its plant: a moved citation put back, a moved
+  prose number put back, and an exception dropped from its list. On the
+  commit's tree the branch's own tests (62), the guidance tests (33), the
+  reader tests with the line-count pin (18), the CHANGELOG test and the
+  records test pass. The full validation runs on the final commit under
+  the lock, and the merge record gives its results. Open: the six
+  references; the
+  `LINEAGE_PARENT_UNRESOLVED` remediation does not name a parent that has
+  left the index among its causes; whether the index's default of 65536
+  entries stands as the shipped default, which is the maintainer's.
 - **2026-11-16 (the `auto` input lane reports a protobuf refusal as
   `DECODE_AMBIGUOUS` only for a whole protobuf message carrying fields 2, 3
   and 4).** Finding S2 of the
