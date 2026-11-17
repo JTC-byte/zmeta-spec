@@ -451,13 +451,18 @@ where that text stands at one place, and 20 where it stands at more than
 one and git's own line mapping from v1.1.27 lands on one of them (from the
 seeded review of 2026-11-14). It adds a registry test that requires every
 citation into `policy/violation-codes.yaml` to name the whole block of a
-code its entry is about, and twelve named citations read at their first
-line. It is the repair the 2026-11-10 paragraph above books for the
-validator, schema and gateway citations, and it also covers the registry
-citations, which that booking does not name. The mutants and the full
-validation have not yet run on it. The gateway's line-count test still
-holds `gateway/src/gateway.py` at 3389 lines; a branch that changes that
-file's length moves its citations in the same change.
+code its entry is about, and an entry that cites the registry to cite its
+own code's block; an entry that makes no line reference into the registry
+is outside the rule. Four references that stand as part of a block are
+listed with the text of the registry line each begins on, and the test
+reports one whose line no longer holds that text. It also adds twelve
+named citations read at their first line. It is the repair the 2026-11-10
+paragraph above books for the validator, schema and gateway citations, and
+it also covers the registry citations, which that booking does not name.
+The mutants and the full validation have not yet run on it. The gateway's
+line-count test still holds `gateway/src/gateway.py` at 3389 lines; a
+branch that changes that file's length moves its citations in the same
+change.
 
 Open from that branch, for a reading by hand, none of it moved:
 
@@ -479,6 +484,14 @@ Open from that branch, for a reading by hand, none of it moved:
 - No general test reads the citations into `gateway/src/validators.py`,
   `gateway/src/gateway.py`, the schemas, the tools or the adapters; twelve
   named rows read a first line each.
+- Whether the nine entries that make no line reference into
+  `policy/violation-codes.yaml` should cite their code's block:
+  `OBSERVATION_HAS_IDENTITY`, `OBSERVATION_HAS_CLASSIFICATION`,
+  `INFERENCE_HAS_TRACK_ID`, `INVALID_QUALITY_HEADING_SOURCE`,
+  `LINEAGE_PAYLOAD_BASED_ON_NOT_SUBSET`, `TASK_ACK_INVALID_STATE`,
+  `LINK_STATUS_MISSING_REASON_CODE`, `RF_WINDOW_MIDPOINT_MISMATCH` and
+  `COMMAND_EVIDENCE_UNRESOLVED`. The registry test does not read an entry
+  that makes none, and this branch moves citations and adds none.
 
 Open, in order of proximity:
 

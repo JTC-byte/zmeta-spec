@@ -13,14 +13,17 @@ The line citations. The guidance file cites other files by line, and an
 edit that adds lines to a cited file moves the text out from under its
 citations. Three readers hold three families. The contract citations and
 the policy citations sit on their text. Every citation into the code
-registry names the whole block of a code its entry is about, and each entry
-cites its own code's block; four references that stand as part of a block
-or begin on a comment are listed in REGISTRY_PARTIAL_CITATIONS and pinned
-to their exact ranges. Against the registry rule, every whole-range shift
-of any distance inside the registry and every end-only change of one to
-three lines is reported except one class: a second reference in an entry
-moved onto the entry's own block, or onto the block of a code the entry's
-text names (the one such shift found is COMMAND_TASK_TYPE_INVALID's
+registry names the whole block of a code its entry is about, and an entry
+that cites the registry cites its own code's block; an entry that makes no
+line reference into the registry is outside the rule. Four references that
+stand as part of a block or begin on a comment are listed in
+REGISTRY_PARTIAL_CITATIONS, each pinned to its exact range and to the text
+of the line it begins on, and one whose line no longer holds that text is
+reported. Against the registry rule, every whole-range shift of any
+distance inside the registry and every end-only change of one to three
+lines is reported except one class: a second reference in an entry moved
+onto the entry's own block, or onto the block of a code the entry's text
+names (the one such shift found is COMMAND_TASK_TYPE_INVALID's
 EVENT_SUBTYPE_MISMATCH reference moved onto its own code).
 
 No general rule reads the citations into gateway/src/validators.py,
@@ -32,8 +35,11 @@ range is invisible to every row. Any other shift of those citations,
 including a whole function's citation moved by a few lines, passes these
 tests. The seeded review of 2026-11-14 measured this on the first six
 rows: of 219 mutants that shift a validators.py or gateway.py citation by
-two lines, three were caught. The six rows added since read six more
-citations and leave the class as it was.
+two lines, three were caught. Counted again on 2026-11-16, the guidance
+file holds 223 references into those two files; shifted two lines down, or
+two lines up, 3 of them are caught by the first six rows. The six rows
+added since read six more citations and leave the class as it was: all
+twelve catch 9 of the 223.
 """
 
 import json
@@ -598,13 +604,19 @@ def _registry_blocks(registry_lines):
 
 # Registry references that, as they stand, name part of a block or begin on
 # the comment above a code. Each is (entry code, first, last), pinned to its
-# exact range: once it moves, the rule reads it like any other, and once it
-# is put right it must leave this list.
+# exact range and to the stripped text of the line it begins on, with the
+# reason it is partial beside it. Once its numbers change, the rule reads it
+# like any other; once the registry moves its text, the rule reports it; and
+# once it is put right it must leave this list.
 REGISTRY_PARTIAL_CITATIONS = {
-    ("INFERENCE_HAS_FUSION_STATE", 28, 28): "the code line only, without its severity line",
-    ("RF_WINDOW_PAIRING_INVALID", 56, 56): "the code line only, without its severity line",
-    ("RF_WINDOW_MIDPOINT_INVALID", 114, 114): "RF_WINDOW_MIDPOINT_MISMATCH's code line only",
-    ("NON_FINITE_VALUE", 122, 129): "begins on the comment above the code",
+    ("INFERENCE_HAS_FUSION_STATE", 28, 28):  # the code line only, without its severity line
+        "- code: INFERENCE_HAS_FUSION_STATE",
+    ("RF_WINDOW_PAIRING_INVALID", 56, 56):  # the code line only, without its severity line
+        "- code: RF_WINDOW_PAIRING_INVALID",
+    ("RF_WINDOW_MIDPOINT_INVALID", 114, 114):  # RF_WINDOW_MIDPOINT_MISMATCH's code line only
+        "- code: RF_WINDOW_MIDPOINT_MISMATCH",
+    ("NON_FINITE_VALUE", 122, 129):  # begins on the comment above the code
+        "# R1-11-01 Class B batch, maintainer-adjudicated 2026-08-09 at occurrence",
 }
 
 
@@ -614,10 +626,18 @@ def _registry_misplaced(references, registry_lines, partial=()):
     The rule, from the seeded review of 2026-11-14. A reference begins on a
     `- code:` line and ends on the last line of a code's block. A reference
     that holds the entry's own code names exactly that code's block, and an
-    entry whose code is in the registry cites that block. A reference that
-    does not hold the entry's code holds only codes the entry's text names.
-    `partial` lists (entry code, first, last) references that are taken as
-    they stand; each one must still be found.
+    entry that cites the registry cites its own code's block; an entry that
+    makes no line reference into the registry is outside the rule. A
+    reference that does not hold the entry's code holds only codes the
+    entry's text names.
+
+    `partial` maps (entry code, first, last) to the stripped text of the line
+    `first`, from a reading of the tests on 2026-11-16. A listed reference is
+    read for its bounds, then for that text, and, when it spans more than one
+    line, for ending on the last line of a code's block. One that fails any
+    of these is reported and earns its entry no credit for its own block;
+    one that passes counts as its entry's own block when it holds that
+    code's line. Each listed reference must still be found.
 
     The rule replaces a weaker reader that read only a reference's first line
     and whether one of its codes was the entry's. On the guidance file before
@@ -638,7 +658,13 @@ def _registry_misplaced(references, registry_lines, partial=()):
             first_reference.setdefault(code, where)
         if (code, first, last) in partial:
             found_partial.add((code, first, last))
-            if code in blocks and first <= blocks[code][0] <= last:
+            if first < 1 or first > last or last > len(registry_lines):
+                bad.append((first, last, where, "outside the registry"))
+            elif registry_lines[first - 1].strip() != partial[(code, first, last)]:
+                bad.append((first, last, where, "a listed partial reference is off its text"))
+            elif first < last and last not in ends:
+                bad.append((first, last, where, "ends inside a code's block"))
+            elif code in blocks and first <= blocks[code][0] <= last:
                 cites_own.add(code)
             continue
         if first < 1 or first > last or last > len(registry_lines):
@@ -696,7 +722,7 @@ def test_the_registry_citation_reader_reports_a_reference_moved_off_its_code():
         (7, 8, "THIRD_CODE", "THIRD_CODE follows FIRST_CODE", 5),
         (2, 3, "THIRD_CODE", "THIRD_CODE follows FIRST_CODE", 6),
     ]
-    assert _registry_misplaced(placed, registry, {("SECOND_CODE", 4, 6)}) == []
+    assert _registry_misplaced(placed, registry, {("SECOND_CODE", 4, 6): "# a note on the second code"}) == []
     own = "the entry does not cite its own code's block"
     cases = [
         ([(3, 4, "FIRST_CODE", "about FIRST_CODE", 1)], set(), ["begins off a code", own]),
@@ -715,7 +741,7 @@ def test_the_registry_citation_reader_reports_a_reference_moved_off_its_code():
         ([(7, 9, "FIRST_CODE", "about FIRST_CODE", 1)], set(), ["outside the registry", own]),
         (
             [(2, 3, "FIRST_CODE", "about FIRST_CODE", 1)],
-            {("FIRST_CODE", 2, 2)},
+            {("FIRST_CODE", 2, 2): "- code: FIRST_CODE"},
             ["a listed partial reference is no longer found"],
         ),
     ]
@@ -748,6 +774,98 @@ def test_the_registry_rule_reports_a_doctored_guidance_file():
         references = _registry_line_references(text.replace(old, new))
         found = _registry_misplaced(references, registry_lines, REGISTRY_PARTIAL_CITATIONS)
         assert [why for _first, _last, _where, why in found] == expected, new
+
+
+# Listed partial references, from a reading of the tests on 2026-11-16. A
+# listed reference is pinned to the text of the line it begins on, read for
+# its bounds before that text, held to end on the last line of a code's block
+# when it spans more than one line, and given no credit for its entry's own
+# block once it is reported. Each row is a label, a synthetic registry, the
+# references, the listed references with the text each begins on, and the
+# reasons the rule gives.
+_LISTED_REGISTRY = [
+    "violation_codes:",
+    "  - code: FIRST_CODE",
+    "    severity: fail",
+    "  # a note on the second code",
+    "  - code: SECOND_CODE",
+    "    severity: warn",
+    "  - code: THIRD_CODE",
+    "    severity: fail",
+]
+LISTED_PARTIAL_CASES = [
+    (
+        "a line added above the note moves a listed range off its text",
+        _LISTED_REGISTRY[:3] + ["  # a line added"] + _LISTED_REGISTRY[3:],
+        [(4, 6, "SECOND_CODE", "about SECOND_CODE", 1)],
+        {("SECOND_CODE", 4, 6): "# a note on the second code"},
+        ["a listed partial reference is off its text", "the entry does not cite its own code's block"],
+    ),
+    (
+        "a line added above every code moves a listed code line onto other text",
+        _LISTED_REGISTRY[:1] + ["  # a line added"] + _LISTED_REGISTRY[1:],
+        [
+            (3, 4, "FIRST_CODE", "FIRST_CODE reaches the producer as THIRD_CODE", 1),
+            (7, 7, "FIRST_CODE", "FIRST_CODE reaches the producer as THIRD_CODE", 2),
+        ],
+        {("FIRST_CODE", 7, 7): "- code: THIRD_CODE"},
+        ["a listed partial reference is off its text"],
+    ),
+    (
+        "a listed reference past the registry's end is read for its bounds first",
+        _LISTED_REGISTRY,
+        [(2, 3, "FIRST_CODE", "about FIRST_CODE", 1), (9, 9, "FIRST_CODE", "about FIRST_CODE", 2)],
+        {("FIRST_CODE", 9, 9): "- code: FIRST_CODE"},
+        ["outside the registry"],
+    ),
+    (
+        "a listed range of several lines ends inside a code's block",
+        _LISTED_REGISTRY,
+        [(4, 5, "SECOND_CODE", "about SECOND_CODE", 1)],
+        {("SECOND_CODE", 4, 5): "# a note on the second code"},
+        ["ends inside a code's block", "the entry does not cite its own code's block"],
+    ),
+]
+
+
+@pytest.mark.parametrize(
+    "registry,references,partial,expected",
+    [case[1:] for case in LISTED_PARTIAL_CASES],
+    ids=[case[0] for case in LISTED_PARTIAL_CASES],
+)
+def test_the_registry_rule_reads_a_listed_partial_reference_at_its_text(registry, references, partial, expected):
+    found = _registry_misplaced(references, registry, partial)
+    assert [why for _first, _last, _where, why in found] == expected
+
+
+def test_the_registry_rule_reports_a_listed_reference_that_a_registry_edit_moved():
+    # From a reading of the tests on 2026-11-16: the incident of 2026-11-02
+    # was lines added to the registry under fixed citations. A maintainer who
+    # repairs what this rule reports moves the references it reads and leaves
+    # the listed ones as written, so each listed reference below the edit must
+    # still be reported, whatever text the edit left on the line it begins on.
+    text = GUIDANCE_PATH.read_text(encoding="utf-8")
+    registry_lines = CODES_PATH.read_text(encoding="utf-8").splitlines()
+    references = _registry_line_references(text)
+    top = next(n for n, line in enumerate(registry_lines, 1) if line.lstrip().startswith("- code:"))
+    listed = [
+        (first, last, where)
+        for first, last, code, _entry_text, where in references
+        if (code, first, last) in REGISTRY_PARTIAL_CITATIONS and first >= top
+    ]
+    assert listed, "no listed partial reference stands below the registry's first code; this test reads nothing"
+    for added in (["  # a line added above every code"], ["  - code: A_NEW_CODE", "    severity: fail"]):
+        edited = registry_lines[:top - 1] + added + registry_lines[top - 1:]
+        moved = [
+            (first, last, code, entry_text, where)
+            if (code, first, last) in REGISTRY_PARTIAL_CITATIONS or first < top
+            else (first + len(added), last + len(added), code, entry_text, where)
+            for first, last, code, entry_text, where in references
+        ]
+        found = _registry_misplaced(moved, edited, REGISTRY_PARTIAL_CITATIONS)
+        for first, last, where in listed:
+            assert (first, last, where, "a listed partial reference is off its text") in found, (first, last, added)
+        assert [f for f in found if f[0] is not None and (f[0], f[1], f[2]) not in listed] == [], added
 
 
 # Citations the pre-cut range review of 2026-11-14 read at both ends: each was
