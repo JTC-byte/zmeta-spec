@@ -2,7 +2,9 @@
 
 ## Current Resume Note
 
-- Last updated: 2026-11-17 (the CoT projection class's version scope
+- Last updated: 2026-11-17 (records after the messages-only reword:
+  renamed commit ids cited with their new ids, the pre-cut findings'
+  state; the CoT projection class's version scope
   names both branches; records: six lines name a read by its date
   or subject, the policy README's hash sentence, the relation check's
   timing; the bounded event index's seeded-review
@@ -56,6 +58,19 @@
   three commits, the third on 2026-11-03; two contract sentences;
   carried-list records pass; heading_deg defined; records pass after 7.6;
   2026-10-02: the reference gateway keeps a bounded event index)
+- **2026-11-17 (records after the messages-only reword).** The rewrite
+  of the unpushed history's commit messages on 2026-11-17 kept every
+  tree and renamed 43 commits. A search of every tracked file outside
+  `local/` for an id that names one of them finds six citations: the
+  handoff's pre-cut review paragraph (a84c329, now e3eb5ae), two entries
+  of this worklog (45f3d2f, now 282ade4; 9b07c19, now 5c092c9) and three
+  comments in `gateway/tests/test_auto_lane_ambiguity.py` (9b07c19). Each
+  keeps the old id and gains the new one, so a reader of the pushed
+  history can resolve it. The handoff's sentence that N5, N6 and N8 wait
+  for the maintainer's word now says that each was decided on 2026-11-16:
+  N5 goes in the cut's records, N6 is renamed on its own branch, and N8
+  was done by the rewrite. No code, rule, schema, policy or
+  manifest-listed file changes.
 - **2026-11-17 (the CoT projection class's version scope names both
   branches).** On the maintainer's selection of 2026-11-16, option A of
   pre-cut finding N3: no CoT projection claimant implements ZMeta 1.0
@@ -134,7 +149,7 @@
 - **2026-11-16 (the bounded event index, `exp/gateway-state-bound`, brought
   up to develop for its merge).** On the maintainer's selection of
   2026-11-16, option (A) of his question on the two gateway fixes held
-  since October: both merge, the state bound first. Develop at 45f3d2f is
+  since October: both merge, the state bound first. Develop at 45f3d2f (282ade4 since the messages-only reword of 2026-11-17) is
   merged into the branch (ca077f7). The records conflicts in the
   CHANGELOG, the doctrine log and this worklog keep both sides in date
   order: the branch's CHANGELOG entry stands last under `[Unreleased]`, not
@@ -280,7 +295,7 @@
   11:58 and 11:00 projected, unreadable starts and issue times refused, a
   command with no start projected whatever its `event.ts`) and a parity
   test that holds the MAVLink and SAPIENT egresses to the same refusals.
-  The nineteen refusal cases and the parity test failed on 9b07c19; the
+  The nineteen refusal cases and the parity test failed on 9b07c19 (5c092c9 since the messages-only reword of 2026-11-17); the
   twelve cases that project as before passed there by construction. Left
   as it was: a window closed before issue, which both egresses send; the
   gateway's dedupe horizon (`exp/command-dedupe-validity`); the SAPIENT

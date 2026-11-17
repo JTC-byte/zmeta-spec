@@ -327,7 +327,7 @@ stamp's lane names; the paragraph above calls the rename case a consequence
 of the test instead of a rule. No rule or pin changes.
 
 The pre-cut range review of 2026-11-14 read the range from v1.1.27 to
-`develop` at a84c329 as one surface, in the form of the v1.1.20 and
+`develop` at a84c329 (e3eb5ae since the messages-only reword of 2026-11-17) as one surface, in the form of the v1.1.20 and
 v1.1.21 pre-cut registers, and found it NOT READY for the next cut: two
 must-fix findings, six should-fix and eight nits. The review says of the
 two must-fix findings that neither is a defect in the standard's text. A
@@ -339,11 +339,11 @@ findings: `wave/precut-release-facts-2026-11` closes M1;
 closes M2 as a record (item 8 below), S6 and N2. A fourth branch,
 `wave/precut-gateway-docs-2026-11`, closes N1 and S5 except S5's part in
 `spec/field-dictionary.md`, as its own paragraph below records. Three
-findings wait for the
-maintainer's word: N5 (two stale lines in `RELEASE_CHECKLIST.md`), N6 (a
-MAVLink quality key named for an unknown heading frame) and N8 (the detail
-in the bodies of the unpushed commits of 2026-11-14, which only a rewrite
-of local history changes). N3 (a class scoped to version 1.0 whose
+more were decided on the maintainer's selections of 2026-11-16: N5 (two
+stale lines in `RELEASE_CHECKLIST.md`), for the cut's records; N6 (a
+MAVLink quality key named for an unknown heading frame), renamed on its
+own branch; N8 (the unpushed commit bodies of 2026-11-14), reworded on
+2026-11-17 by a messages-only rewrite, trees unchanged. N3 (a class scoped to version 1.0 whose
 required corpus holds two 1.1.0 cases) was decided on 2026-11-16 on the
 maintainer's selection: no CoT projection claimant implements ZMeta 1.0
 only, and on `wave/cot-class-scope-2026-11` the `version_scope` of

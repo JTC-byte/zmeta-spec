@@ -17,7 +17,7 @@ chosen and held here. A complete event whose event, source or payload carries
 a wrong wire type stays DECODE_AMBIGUOUS on both lanes.
 
 Written before the change. Each change-direction test was seen failing on
-9b07c19, and each hold-direction test fails under a named mutant: one of the
+9b07c19 (5c092c9 since the 11-17 reword), and each hold-direction test fails under a named mutant: one of the
 change itself, or, for the controls the change cannot reach (a duplicate JSON
 key, a cut protobuf datagram, clean decodes), one of the code beside it. No
 test uses subTest: pytest 9 reports a failing subtest as SUBFAILED under a
@@ -460,7 +460,7 @@ class AutoLaneSweepTest(unittest.TestCase):
                 counted[encoding + "+1"] += 1
                 if _classify(wire + b"\x00") == "AMB":
                     bad[encoding + "+1"].append(f"{name} {encoding}+00")
-        # the measured corpus: 19,886 compact and 52,146 CBOR cut points at 9b07c19
+        # the measured corpus: 19,886 compact and 52,146 CBOR cut points at 9b07c19 (5c092c9 since the 11-17 reword)
         self.assertGreater(counted["compact"], 15000, counted)
         self.assertGreater(counted["cbor"], 40000, counted)
         self.assertEqual({}, {group: (len(items), items[:3]) for group, items in bad.items()})
@@ -530,7 +530,7 @@ class AutoLaneSweepTest(unittest.TestCase):
         self.assertEqual([], bad[:5], f"{len(bad)} cut points read DECODE_AMBIGUOUS")
 
     def test_no_seeded_random_datagram_reads_decode_ambiguous_on_auto(self):
-        # 1,934 of the 5,000 read DECODE_AMBIGUOUS at 9b07c19
+        # 1,934 of the 5,000 read DECODE_AMBIGUOUS at 9b07c19 (5c092c9 since the 11-17 reword)
         rng = random.Random(20261114)
         counted = collections.Counter(
             _classify(bytes(rng.getrandbits(8) for _ in range(rng.randint(1, 200)))) for _ in range(5000)
