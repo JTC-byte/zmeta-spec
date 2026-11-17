@@ -319,11 +319,9 @@ findings: `wave/precut-release-facts-2026-11` closes M1;
 `wave/precut-tests-2026-11` closes S4 and N4; `wave/precut-records-2026-11`
 closes M2 as a record (item 8 below), S6 and N2. A fourth branch,
 `wave/precut-gateway-docs-2026-11`, closes N1 and S5 except S5's part in
-`spec/field-dictionary.md`, as its own paragraph below records. Five
+`spec/field-dictionary.md`, as its own paragraph below records. Four
 findings wait for the
-maintainer's word: S2 (the `auto` input lane reports a
-truncated compact or CBOR datagram as `DECODE_AMBIGUOUS`; the review
-advises deciding it before the third field leg, which reads that code), N3
+maintainer's word: N3
 (a class scoped to version 1.0 whose required corpus holds two 1.1.0
 cases), N5 (two stale lines in `RELEASE_CHECKLIST.md`), N6 (a MAVLink
 quality key named for an unknown heading frame) and N8 (the detail in the
@@ -336,7 +334,9 @@ and a window already closed at issue, stay open in gap (x) below. S3 (246
 displaced line citations in `tools/validation_guidance.yaml`) was decided
 on 2026-11-16 on the maintainer's selection: the repair branch
 `wave/guidance-citations-2026-11` is merged, and what it left for a
-reading by hand is listed below its paragraph. Of N7,
+reading by hand is listed below its paragraph. S2 is closed by the
+maintainer's selection of 2026-11-16, and its branch is merged with the
+specification paragraph he approved. Of N7,
 the two detached worktrees were throwaway trees
 and are removed, and `pr/8-review` is in item 6 below. The full register of
 the findings and their dispositions lands with the cut-prep commit, as at
@@ -386,8 +386,8 @@ that the producer's figure for a member is the claimed value in the first
 record that carries it (contract 4.5.1, doctrine F4-04); and Decode
 refusals, which states what `DECODE_AMBIGUOUS` refuses, its v1.0 wire form
 (`SCHEMA_INVALID` with `metrics.diagnostic_code`), and the `auto` lane's
-behavior as it is, named as open under finding S2, which waits for the
-maintainer's word. `policy/README.md` names the three members. S5 also
+behavior as it then was, named as open under finding S2, which then
+waited for the maintainer's word. `policy/README.md` names the three members. S5 also
 names `spec/field-dictionary.md`; this branch leaves it unchanged, so that
 part of S5 stays open. In `gateway/src/gateway.py` the
 strip guard gives each protected prefix its own reason
@@ -477,16 +477,16 @@ Open from that branch, for a reading by hand, none of it moved:
 
 - 12 references the range displaced whose cited text it changed, so that
   moving one is a judgment about what the citation meant. 5 now begin off
-  their text (guidance lines 52 twice, 754, 1556 and 1559), 5 begin on it
-  and end short of a block that gained lines inside the cited range (1037,
-  1049 twice, 1098 and 1361), and 2 name text the range changed in place
-  (797 and 800).
+  their text (guidance lines 52 twice, 754, 1565 and 1568), 5 begin on it
+  and end short of a block that gained lines inside the cited range (1046,
+  1058 twice, 1107 and 1370), and 2 name text the range changed in place
+  (804 and 809).
 - 3 references that named blank lines already at v1.1.27 (guidance lines
-  167 and 1410, `gateway/src/gateway.py:1696`, and 1073,
+  167 and 1419, `gateway/src/gateway.py:1696`, and 1082,
   `gateway/src/gateway.py:1477-1478`).
 - 5 references that were off their text before the range: on guidance line
   167, `tools/validate.py:160` and `gateway/src/gateway.py:2471`; on line
-  499, the 1.1.0 schema's `:1878`; on line 1310, the 1.1.0 schema's
+  499, the 1.1.0 schema's `:1878`; on line 1319, the 1.1.0 schema's
   `1815-1824`; and the `NON_FINITE_VALUE` entry's schema line, which moved
   with the text it named then and still names
   `LINEAGE_FUSION_MEMBERS_NOT_IN_BASED_ON`.
@@ -512,6 +512,42 @@ read. A command without `valid_from_ts`, or with a null one, goes out as
 before. The reader is a copy of the SAPIENT egress's, and the tests hold
 the two copies to the same code and the two egresses to the same refusals
 on the window cases. What stays open is in gap (x). Not manifest-listed.
+
+The branch `wave/auto-lane-ambiguity-2026-11` (2026-11-16) closes finding
+S2 of the pre-cut range review of 2026-11-14 on the maintainer's selection
+of 2026-11-16, option (a) of the S2 evidence, with the structural test of
+the build ruling's amendment. After the strict protobuf decode refuses a
+datagram as ambiguous, the `auto` input lane re-raises the refusal only
+when the new `zmeta_proto.carries_event_members` finds the datagram to be
+one whole protobuf message whose top-level field numbers include 2, 3 and
+4, whatever their wire types; any other datagram falls through to the
+UTF-8/JSON attempt as at v1.1.27 and reads `SCHEMA_INVALID`. A compact or
+CBOR datagram cut short, a compact datagram with one trailing byte and
+plain text no longer read `DECODE_AMBIGUOUS` on that lane, so link loss no
+longer raises the count the third field leg reads. A complete event with a
+stray, mistyped or repeated field stays `DECODE_AMBIGUOUS` on both lanes.
+The held class, a refused message that is also cut short or malformed at
+its top level after the refused field or lacks field 2, 3 or 4, reads
+`SCHEMA_INVALID` on `auto` and `DECODE_AMBIGUOUS` on `proto`; tests hold
+seven members on both lanes, among them the three edge cases put to the
+maintainer: a stray field with no `payload`, a stray field alone, and a
+stray field followed by a one-byte cut. The test decodes nothing, so the
+gateway still never asks for
+the forensic skip mode. `gateway/src/gateway.py` keeps its 3389 lines and
+its pin, and no citation into it, into `zmeta_proto.py` or into
+`spec/protobuf-encoding.md` moves. One fixture in
+`conformance/encoding-negative/gateway-must-fail.jsonl` holds a cut compact
+datagram on `auto` to `SCHEMA_INVALID`. No contract, schema or policy file
+changes, and no runtime hash moves. The paragraph it adds to
+`spec/protobuf-encoding.md`, after line 131, states the `auto` lane's
+rule; it was added on the maintainer's word of 2026-11-16, since doctrine
+F7-01 records the rule the specification states among his words.
+
+Open from that branch:
+
+- Option (c3), not selected and not built: on `auto`, a cut compact
+  datagram reads the UTF-8 attempt's error text, not the CBOR attempt's
+  "unexpected end of data", which the `compact` lane reports.
 
 Open, in order of proximity:
 

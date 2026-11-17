@@ -178,24 +178,19 @@ The `auto` lane reads a datagram that opens with `{` or `[` as JSON. A
 datagram that opens with `{` or `[` and does not parse as JSON is read as
 CBOR and the compact mapping only, and reads `SCHEMA_INVALID` when that
 decode fails. The lane tries any other datagram as CBOR and the compact
-mapping, then protobuf, and last JSON. A datagram that does not open with
-`{` or `[` and whose CBOR or compact decode fails is therefore read as
-protobuf, and when
-its leading bytes parse as the key of a field the schema does not define, the
-`auto` lane reports the protobuf decoder's refusal as `DECODE_AMBIGUOUS`,
-with a diagnostic that names a protobuf field. A compact datagram cut short
-in transit, a compact datagram with one trailing byte, a truncated CBOR
-datagram and plain text such as `hello world` read this way. The same
-truncated compact datagram reads `SCHEMA_INVALID` on the `compact` lane.
-Which code a damaged datagram reads on the `auto` lane depends on its leading
-bytes: a compact event with five top-level members reads `DECODE_AMBIGUOUS`
-at most cut points, and one with seven reads `SCHEMA_INVALID`. This is the
-behavior of the `auto` lane as it is. Whether it changes is an open
-decision, finding S2 of the pre-cut range review of 2026-11-14
-(`docs/zmeta_refinement_handoff.md`). Until it is decided, a
-`DECODE_AMBIGUOUS` count from an `auto` lane can include link
-loss and stray input as well as ambiguous producer output. A deployment that
-knows its producers' encoding can set that lane instead of `auto`.
+mapping, then protobuf, and last JSON. When the protobuf read refuses a
+datagram as ambiguous, the `auto` lane reports `DECODE_AMBIGUOUS` only if the
+datagram is one whole protobuf message whose top-level field numbers include
+2, 3 and 4 (`event`, `source`, `payload`), whatever their wire types (the
+maintainer's selection of 2026-11-16). Any other datagram no decoder reads is
+refused as `SCHEMA_INVALID`: a compact or CBOR datagram cut short, a compact
+datagram with one trailing byte, plain text such as `hello world`. A protobuf
+message that the decoder refuses as ambiguous for a stray, mistyped or
+repeated field, and that is also cut short or malformed after that field, or
+lacks one of the three members, reads `SCHEMA_INVALID` on `auto` and
+`DECODE_AMBIGUOUS` on `proto`. Cut short before that field, it reads
+`SCHEMA_INVALID` on both lanes. A deployment that knows its producers'
+encoding can set that lane instead of `auto`.
 
 ### COMMAND_EVENT dedupe
 

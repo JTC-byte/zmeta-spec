@@ -3873,6 +3873,19 @@ fixture JSON to its last value and are booked. Duplicate map keys on the
 CBOR and compact lanes, and trailing CBOR bytes on the cbor2 fallback, stay
 booked as the entry left them.
 
+**Note added 2026-11-16 (the entry above is left as written):** the `auto`
+input lane's refusal follows the maintainer's selection of 2026-11-16 on
+finding S2 of the pre-cut range review of 2026-11-14. After the strict
+protobuf decode refuses a datagram as ambiguous, the `auto` lane reports
+`DECODE_AMBIGUOUS` only when the datagram is one whole protobuf message,
+every key valid and every field complete to its last byte, whose top-level
+field numbers include 2, 3 and 4, whatever their wire types, and any other
+datagram reads `SCHEMA_INVALID`. A message the strict decoder
+refuses as ambiguous that is also cut short or malformed at its top level
+after the refused field, or lacks field 2, 3 or 4, reads `SCHEMA_INVALID` on
+the `auto` lane and `DECODE_AMBIGUOUS` on the `proto` lane. A complete event
+with a stray, mistyped or repeated field reads `DECODE_AMBIGUOUS` on both.
+
 ## Cycle F8 — 2026-11-09 (a wire form whose typed fields hold less than the projection writes)
 
 Two tensions met while building the TAK Protocol Version 1 egress adapter

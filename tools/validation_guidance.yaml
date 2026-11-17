@@ -768,9 +768,16 @@ guidance:
       schema does not define at that message level, or a known field with a
       wire type the schema does not use for it, or a non-repeatable field twice
       (the member would have been dropped, or the later value kept, silently).
-      On the protobuf and auto lanes, bytes that are not a ZMeta message but
-      parse as a protobuf key report here too, as a field number the schema
-      does not define, rather than as SCHEMA_INVALID. Forwarding either would
+      On the protobuf lane, bytes that are not a ZMeta message but parse as a
+      protobuf key report here too, as a field number the schema does not
+      define, rather than as SCHEMA_INVALID. On the auto lane a protobuf
+      refusal reports here only for one whole protobuf message whose
+      top-level field numbers include 2, 3 and 4, whatever their wire types;
+      any other datagram that the protobuf read refuses and no other decoder
+      reads is SCHEMA_INVALID there. That includes a refused message that is
+      also cut short or malformed at its top level after the refused field,
+      or lacks field 2, 3 or 4, which reports here on the protobuf lane.
+      Forwarding either would
       hand every consumer the gateway's choice as the
       producer's content (contract 3.4 and 3.5; the compact mapping's
       value-model clause). On the v1.0 wire the diagnostic's `reason_code` is the
@@ -795,10 +802,12 @@ guidance:
       - "spec/compact-binary-mapping.md:249-253"
       - "spec/compact-binary-mapping.md:258-260"
       - "gateway/src/gateway.py:1428-1431"
+      - "gateway/src/gateway.py:1467-1476"
       - "gateway/src/gateway.py:2640-2656"
       - "zmeta_proto.py:410-463"
+      - "zmeta_proto.py:533-559"
       - "zmeta_decode_guard.py:1-45"
-      - "spec/protobuf-encoding.md:114-131"
+      - "spec/protobuf-encoding.md:114-139"
   - code: INVALID_TIME_FORMAT
     remediation: >-
       INVALID_TIME_FORMAT means a canonical timestamp is not a UTC RFC 3339
