@@ -4,8 +4,10 @@
 
 - Last updated: 2026-11-16 (the MAVLink window refusal's seeded-review
   follow-up; the MAVLink egress refuses a command whose
-  validity window opens after its issue time; 2026-11-14: a correction on
-  the runtime policy hash;
+  validity window opens after its issue time; the guidance citations'
+  repair fixed after a reading of its tests; 2026-11-14: a candidate
+  re-anchoring of the guidance citations the range since v1.1.27
+  displaced; a correction on the runtime policy hash;
   the ASTERIX CAT062 egress adapter;
   the gateway documents' seeded-review follow-up;
   the gateway documents: protected strip paths,
@@ -100,6 +102,104 @@
   pin moves. The mutants and the full validation run under the heavy-run
   lock on the branch's last commit, and the merge record gives their
   results.
+- **2026-11-14 (the guidance citations the range displaced; a candidate).**
+  The pre-cut range review of 2026-11-14 found that the commits after v1.1.27
+  added lines to files that `tools/validation_guidance.yaml` cites by line
+  and moved none of the citations below them. This branch is a candidate
+  repair, built for the maintainer's word; it is not merged, and the 2026-11-10
+  booking in the handoff (the validator, schema and gateway citations) stays
+  his to open. Branch `wave/guidance-citations-2026-11`, from develop. A
+  script outside the tree re-anchored each line reference into a file the
+  range changed: it took the cited lines' text at v1.1.27, or at the commit
+  that wrote the citation when it was written after v1.1.27, searched for
+  that text as one block in the file now, and rewrote the numbers only where
+  the block stands at exactly one place. It refused a block that was blank,
+  that the range had changed, or that stands at more than one place, and
+  left those citations as they were. Numbers written as prose after a
+  citation (at v1.1.27, for example "is :3626" and "and 3752-3759") were
+  listed by hand with the file each one names and handled the same way. A
+  second reading of the written file checked that every rewritten reference
+  names the same non-blank text at both ends, that every other reference
+  kept its numbers, and that only digits changed. Of 936 line references,
+  147 cite files the range left alone, 503 still named their text (the
+  contract and policy citations among them, re-anchored on 2026-11-10), and
+  the first pass moved 251 and left 35. Git's own line mapping from the same
+  revisions agrees with every one of the 251. From the seeded review of
+  2026-11-14, a second pass took the 20 of the 35 whose text stands at more
+  than one place (18 of them single lines such as `checks.extend(` or a
+  `code = "..."` assignment the validator repeats in each of its branches)
+  and moved each one only where git's mapping from v1.1.27 lands on one of
+  those places and the text there is the same; all 20 met that rule, so 271
+  are moved. The notes that gave a moved lead range beside unmoved inner
+  numbers (guidance lines 1041, 1042, 1072, 1166 and 1234) now give both in
+  the new numbering. 15 are left: 12 whose text the range changed (among
+  them the 1.1.0 schema's `reason_code` enum, which gained
+  `DECODE_AMBIGUOUS` inside the cited range), and 3 that named blank lines
+  in `gateway/src/gateway.py` already at v1.1.27. A citation that was off
+  its text at v1.1.27 is moved with the text it named then: the
+  `NON_FINITE_VALUE` entry's single schema line still names
+  `LINEAGE_FUSION_MEMBERS_NOT_IN_BASED_ON`. The tests are in
+  `gateway/tests/test_validation_guidance.py`, each written before the
+  change it guards and seen failing. The registry test requires every
+  citation into `policy/violation-codes.yaml` to begin on a code's line and
+  end on the last line of a code's block, a citation that holds the entry's
+  code to name exactly that block, and every entry to cite its own block;
+  four references that stand as part of a block are listed by name. Its
+  first form reported 31 of the 56 registry references on the unrepaired
+  file, and it let through a whole shift onto a neighbouring code the entry
+  names and an end-only change; the present form reports all 33 the range
+  displaced and both of those changes, with a control on a synthetic
+  registry and one on a doctored copy of the guidance text. Twelve named
+  citations are read at their first line, six of them added for the second
+  pass (all six failed on the file before it). No general test reads the
+  citations into the validator, the gateway, the schemas or the tools. The
+  file's 27 tests pass. `gateway/src/gateway.py` keeps its 3389 lines. No
+  rule, validator or verdict changes; the guidance file is advisory and not
+  manifest-listed. The mutants and the full validation have not yet run on
+  the branch, which is a candidate and is not merged.
+  On 2026-11-16 a line-by-line reading of the branch's test changes found
+  two defects in them, and the branch now carries the fix. First, the four
+  listed partial registry references were pinned to their numbers only, so
+  a registry edit could leave one standing on other text with no report.
+  The reading inserted one to three lines at each of the 63 places that
+  follow the registry's first line or a code's block, moved every reference
+  the rule reads to follow, as a maintainer would from the test's report,
+  and left the listed ones as written: the single line `114` of
+  `RF_WINDOW_MIDPOINT_INVALID`, which is another code's line, went
+  unreported after all 168 inserts above it, and the range `122-129` of
+  `NON_FINITE_VALUE` after the 60 one-line inserts above it, since its code
+  line stayed inside the range. 33 of the 189 inserts left the whole rule
+  passing with a stale listed reference in the file. Each listed reference
+  is now also pinned to the stripped text of the registry line it begins
+  on. The rule reads its bounds, then that text, which the line must equal,
+  then, for a range, whether it ends on the last line of a code's block,
+  and a listed reference that fails any of these is reported and earns its
+  entry no credit for its own block. The same inserts on the fixed rule
+  leave no listed reference unreported, and none leaves the rule passing
+  with a stale listed reference in the file. Second, the sentence above
+  that the test requires every entry to cite its own block overstates the
+  rule. The rule holds an entry that cites the registry to its own code's
+  block, and nine of the 62 entries make no line reference into the
+  registry, so the rule does not read them: `OBSERVATION_HAS_IDENTITY`,
+  `OBSERVATION_HAS_CLASSIFICATION`, `INFERENCE_HAS_TRACK_ID`,
+  `INVALID_QUALITY_HEADING_SOURCE`, `LINEAGE_PAYLOAD_BASED_ON_NOT_SUBSET`,
+  `TASK_ACK_INVALID_STATE`, `LINK_STATUS_MISSING_REASON_CODE`,
+  `RF_WINDOW_MIDPOINT_MISMATCH` and `COMMAND_EVIDENCE_UNRESOLVED`. The
+  CHANGELOG entry, the handoff paragraph and the test module's docstrings
+  now state the rule as it is enforced, and the handoff books whether the
+  nine should cite their blocks; this branch adds no citation. The seeded
+  review's figure of 219 counts the citations into
+  `gateway/src/validators.py` and `gateway/src/gateway.py`; they carry 223
+  line references, which the reading counted, and the module docstring now
+  gives both. The new tests were written before the change and seen failing
+  on the rule as it stood. The branch was rebased onto develop before the
+  fix. The mutants and the full validation ran on the fix under the
+  heavy-run lock and found only the red that develop has between cuts, on
+  the release manifest's pins. A seeded review of the fix then showed that
+  no test told the text check from a substring test, which a blank line
+  passes, so one test row now puts a blank line on a listed line; the
+  review's other corrections are to wording. The branch is a candidate and
+  is not merged.
 - **2026-11-14 (a correction: the gateway documents change moved the runtime
   policy hash).** The gateway documents branch of the same day recorded that
   no rule and no release pin changes. Both statements hold, and one fact was

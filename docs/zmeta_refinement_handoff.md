@@ -319,12 +319,11 @@ findings: `wave/precut-release-facts-2026-11` closes M1;
 `wave/precut-tests-2026-11` closes S4 and N4; `wave/precut-records-2026-11`
 closes M2 as a record (item 8 below), S6 and N2. A fourth branch,
 `wave/precut-gateway-docs-2026-11`, closes N1 and S5 except S5's part in
-`spec/field-dictionary.md`, as its own paragraph below records. Six
+`spec/field-dictionary.md`, as its own paragraph below records. Five
 findings wait for the
 maintainer's word: S2 (the `auto` input lane reports a
 truncated compact or CBOR datagram as `DECODE_AMBIGUOUS`; the review
-advises deciding it before the third field leg, which reads that code),
-S3 (246 displaced line citations in `tools/validation_guidance.yaml`), N3
+advises deciding it before the third field leg, which reads that code), N3
 (a class scoped to version 1.0 whose required corpus holds two 1.1.0
 cases), N5 (two stale lines in `RELEASE_CHECKLIST.md`), N6 (a MAVLink
 quality key named for an unknown heading frame) and N8 (the detail in the
@@ -333,7 +332,11 @@ history changes). S1 (the MAVLink egress projected a command whose
 validity window had not opened) was decided on 2026-11-16 on the
 maintainer's selection: the egress now refuses such a command. The
 behaviours its evidence also measured, the gateway's task dedupe horizon
-and a window already closed at issue, stay open in gap (x) below. Of N7,
+and a window already closed at issue, stay open in gap (x) below. S3 (246
+displaced line citations in `tools/validation_guidance.yaml`) was decided
+on 2026-11-16 on the maintainer's selection: the repair branch
+`wave/guidance-citations-2026-11` is merged, and what it left for a
+reading by hand is listed below its paragraph. Of N7,
 the two detached worktrees were throwaway trees
 and are removed, and `pr/8-review` is in item 6 below. The full register of
 the findings and their dispositions lands with the cut-prep commit, as at
@@ -445,6 +448,59 @@ hash and each lane's contract hash differ from the tree before it, though no
 policy rule differs. A gateway started with a required policy or contract
 hash from the earlier tree exits at startup. Open for the maintainer:
 whether a file that states no rule belongs in the hashed directory.
+
+The branch `wave/guidance-citations-2026-11` (2026-11-14) is the repair of
+finding S3 of the pre-cut range review of 2026-11-14, merged on the
+maintainer's selection of 2026-11-16. It moves 271 of the line references in
+`tools/validation_guidance.yaml` that commits after v1.1.27 left off their
+text, each to the place where the text it named at v1.1.27 now stands: 251
+where that text stands at one place, and 20 where it stands at more than
+one and git's own line mapping from v1.1.27 lands on one of them (from the
+seeded review of 2026-11-14). It adds a registry test that requires every
+citation into `policy/violation-codes.yaml` to name the whole block of a
+code its entry is about, and an entry that cites the registry to cite its
+own code's block; an entry that makes no line reference into the registry
+is outside the rule. Four references that stand as part of a block or
+begin on a comment are listed with the text of the registry line each
+begins on, and the test reports one whose line no longer holds that text.
+Twelve named citations are read at their first line. It is the repair the
+2026-11-10 paragraph above books for the validator, schema and gateway
+citations, and it also covers the registry citations, which that booking
+does not name. The mutants and the full validation ran on it on
+2026-11-16, before the seeded review of that day added one test row, and
+found only the red that develop has between cuts, on the release
+manifest's pins. The gateway's line-count test still holds
+`gateway/src/gateway.py` at 3389 lines; a branch that changes that file's
+length moves its citations in the same change.
+
+Open from that branch, for a reading by hand, none of it moved:
+
+- 12 references the range displaced whose cited text it changed, so that
+  moving one is a judgment about what the citation meant. 5 now begin off
+  their text (guidance lines 52 twice, 754, 1556 and 1559), 5 begin on it
+  and end short of a block that gained lines inside the cited range (1037,
+  1049 twice, 1098 and 1361), and 2 name text the range changed in place
+  (797 and 800).
+- 3 references that named blank lines already at v1.1.27 (guidance lines
+  167 and 1410, `gateway/src/gateway.py:1696`, and 1073,
+  `gateway/src/gateway.py:1477-1478`).
+- 5 references that were off their text before the range: on guidance line
+  167, `tools/validate.py:160` and `gateway/src/gateway.py:2471`; on line
+  499, the 1.1.0 schema's `:1878`; on line 1310, the 1.1.0 schema's
+  `1815-1824`; and the `NON_FINITE_VALUE` entry's schema line, which moved
+  with the text it named then and still names
+  `LINEAGE_FUSION_MEMBERS_NOT_IN_BASED_ON`.
+- No general test reads the citations into `gateway/src/validators.py`,
+  `gateway/src/gateway.py`, the schemas, the tools or the adapters; twelve
+  named rows read a first line each.
+- Whether the nine entries that make no line reference into
+  `policy/violation-codes.yaml` should cite their code's block:
+  `OBSERVATION_HAS_IDENTITY`, `OBSERVATION_HAS_CLASSIFICATION`,
+  `INFERENCE_HAS_TRACK_ID`, `INVALID_QUALITY_HEADING_SOURCE`,
+  `LINEAGE_PAYLOAD_BASED_ON_NOT_SUBSET`, `TASK_ACK_INVALID_STATE`,
+  `LINK_STATUS_MISSING_REASON_CODE`, `RF_WINDOW_MIDPOINT_MISMATCH` and
+  `COMMAND_EVIDENCE_UNRESOLVED`. The registry test does not read an entry
+  that makes none, and this branch moves citations and adds none.
 
 The branch `wave/mavlink-window-refusal-2026-11` (2026-11-16) builds the
 maintainer's selection of 2026-11-16 on finding S1, its option (A), in
