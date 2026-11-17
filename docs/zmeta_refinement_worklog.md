@@ -2,7 +2,8 @@
 
 ## Current Resume Note
 
-- Last updated: 2026-11-16 (the MAVLink egress refuses a command whose
+- Last updated: 2026-11-16 (the MAVLink window refusal's seeded-review
+  follow-up; the MAVLink egress refuses a command whose
   validity window opens after its issue time; 2026-11-14: a correction on
   the runtime policy hash;
   the ASTERIX CAT062 egress adapter;
@@ -44,6 +45,31 @@
   pre-cut dry run; the TAK Protocol Version 1 egress adapter; DECODE_AMBIGUOUS,
   three commits, the third on 2026-11-03; two contract sentences;
   carried-list records pass; heading_deg defined; records pass after 7.6)
+- **2026-11-16 (the MAVLink window refusal's seeded-review follow-up).** A
+  seeded review of the branch, by a fresh reader on a copy with one sealed
+  plant, found the plant and gave two should-fix findings and nine nits in
+  the branch's own text, all applied in a second commit. The handoff's
+  note on S1 takes it out of the findings that wait and says what of its
+  evidence stays open, and the handoff gains the branch's paragraph. The
+  records say that a null `valid_from_ts` is read as absent, as the
+  SAPIENT egress reads it, and that the v1.0 and v1.1.0 schemas refuse a
+  null (measured: both schemas report that None is not of type 'string',
+  and the gateway answers with a `TASK_ACK` `REJECTED` and
+  `SCHEMA_INVALID`). The number and list cases now hold values before
+  issue, so a reader that took a number as epoch seconds or unwrapped a
+  list would fail them. Two tests are added: the two readers are the same
+  code, comments aside, and a later start beside an altitude still raises,
+  which holds the claim that the check runs last. The parity wording names
+  its cases, and the records say that on a command without `valid_from_ts`
+  and with no readable `event.ts` the SAPIENT egress refuses and the
+  MAVLink egress sends. The compatibility statement says a delayed command
+  goes out when issued at its start, since the egress reads no clock. The
+  README and gap (x) name the late end, at a receiver, of a window that
+  opened before `event.ts`. The README names the test file's import of the
+  SAPIENT egress, which class `ZMETA-COMMAND-GOVERNANCE` does not list, and
+  gap (x) books that for the cut. The SAPIENT egress's reader gains a
+  comment that names its copy; its code is unchanged. The test of the
+  projected cases is renamed to fit a window that closed at issue.
 - **2026-11-16 (the MAVLink egress refuses a command whose validity window
   opens after its issue time).** On the maintainer's selection of
   2026-11-16, option (A) of finding S1 of the pre-cut range review of

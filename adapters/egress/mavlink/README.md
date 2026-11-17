@@ -15,7 +15,7 @@ Output: autonomy-agnostic MissionIntent JSON
 |-----------|-------------|
 | An altitude field anywhere inside `target_geo` or `geometry` | `ValueError`; semantics contract 7.8: a `COMMAND_EVENT` carries no vertical intent, the receiving autonomy deconflicts vertical internally |
 | Not a `COMMAND_EVENT`, missing `task_id`/`task_type`/`valid_for_ms`/`requires_deconfliction`, or `requires_deconfliction` is not `True` | `None` |
-| `payload.valid_from_ts` later than `event.ts`, a `valid_from_ts` that cannot be read, or a `valid_from_ts` beside an `event.ts` that is absent or cannot be read | `None`; contract 7.8 starts the window at `valid_from_ts` when present, otherwise at `event.ts`, and the intent carries `valid_for_ms` and no anchor, so a receiver can only start the duration at receipt, which is before a window that opens later. The comparison is strict, as in the SAPIENT egress: a start equal to `event.ts` goes out, and a start 1 ms later is refused. A window that has opened by `event.ts` goes out with `valid_for_ms` and no anchor, and a receiver starts it at receipt; a window that closed before `event.ts` goes out the same way, which the handoff's gap (x) note keeps open. A command without `valid_from_ts` reads no time and goes out as before. |
+| `payload.valid_from_ts` later than `event.ts`, a `valid_from_ts` that cannot be read, or a `valid_from_ts` beside an `event.ts` that is absent or cannot be read | `None`; contract 7.8 starts the window at `valid_from_ts` when present, otherwise at `event.ts`, and the intent carries `valid_for_ms` and no anchor, so a receiver can only start the duration at receipt, which is before a window that opens later. The comparison is strict, as in the SAPIENT egress: a start equal to `event.ts` goes out, and a start 1 ms later is refused. A window that has opened by `event.ts` goes out with `valid_for_ms` and no anchor. A receiver can only start it at receipt, so the receiver's end falls after the window's end by at least the time from `valid_from_ts` to `event.ts`; a window that closed before `event.ts` goes out the same way. The handoff's gap (x) note keeps both open. A command without `valid_from_ts` reads no time and goes out as before. A null `valid_from_ts` is read as absent, as in the SAPIENT egress; the schemas refuse a null at the gateway. |
 | `payload.extensions.risk_adjudication` is a non-empty list (see Risk adjudication below) and `allow_flagged` is not passed | `None` |
 | Non-finite (`NaN`/`inf`) number anywhere in the projected mission | `None`; a non-finite target is a fly-to command with no destination, and it satisfies every structural check |
 
@@ -23,6 +23,14 @@ The authoritative altitude gate is the gateway validator
 (`COMMAND_HAS_ALTITUDE`); the check here is defence in depth and keeps its key
 set a superset of `policy/semantics.yaml`
 `command_event.payload_must_not_contain`.
+
+Two tests in `test_mavlink_intent.py` import the SAPIENT command egress
+(`adapters/egress/sapient/`): one holds the two egresses to the same
+refusals on the window cases, and one holds this module's `_parse_utc` to
+the same code as the SAPIENT egress's. The `ZMETA-COMMAND-GOVERNANCE` test
+command therefore needs that folder present, though the class does not
+list it as a required surface; the handoff's gap (x) note books that for
+the next cut.
 
 ### Risk adjudication (fail-closed by default)
 

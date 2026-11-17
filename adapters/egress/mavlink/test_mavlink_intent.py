@@ -357,13 +357,17 @@ def test_empty_risk_adjudication_list_is_not_a_flag():
 #      opens before issue in every zone and only the offset rule refuses it.
 #      "date-only" ends in Z, as the schema's pattern asks, yet parses with
 #      no offset; read as host-local midnight it opens at or before issue in
-#      every zone.
+#      every zone. The number (11:50:00Z as epoch seconds) and the list's
+#      one element (11:58:00Z) are before issue too, so a reader that took a
+#      number as epoch seconds or unwrapped a list would project them.
 #   H  valid_from_ts is present and event.ts is absent or cannot be read:
 #      refused. "naive" and "date-only" are a day or more after the start
 #      for the same reason.
 #   I  no valid_from_ts and no readable event.ts: the intent as before, the
 #      way the README example and the tests above carry no event.ts.
-#   A null valid_from_ts is read as absent, as the SAPIENT egress reads it.
+#   A null valid_from_ts is read as absent, as the SAPIENT egress reads it;
+#   the schemas refuse a null, so only a caller wired past the gateway sends
+#   one.
 _ISSUE = "2026-11-14T12:00:00Z"
 _ABSENT = object()
 # A ULID task_id, so the SAPIENT egress's own ULID rule does not refuse
@@ -385,8 +389,8 @@ _REFUSED_WINDOWS = [
     ("F", "2026-11-14T12:00:00.001Z", _ISSUE),
     ("G-text", "not-a-time", _ISSUE),
     ("G-empty", "", _ISSUE),
-    ("G-number", 1794880770, _ISSUE),
-    ("G-list", ["2026-11-14T12:10:00Z"], _ISSUE),
+    ("G-number", 1794657000, _ISSUE),
+    ("G-list", ["2026-11-14T11:58:00Z"], _ISSUE),
     ("G-naive-after", "2026-11-14T12:10:00", _ISSUE),
     ("G-naive-day-before", "2026-11-13T12:00:00", _ISSUE),
     ("G-date-only", "2026-11-14Z", _ISSUE),
@@ -454,16 +458,43 @@ def test_a_window_not_open_at_issue_or_not_readable_is_refused(valid_from_ts, ts
     [case[1:] for case in _PROJECTED_WINDOWS],
     ids=[case[0] for case in _PROJECTED_WINDOWS],
 )
-def test_a_window_open_at_issue_or_no_start_projects_as_before(valid_from_ts, ts):
+def test_a_window_opened_by_issue_or_no_start_projects_as_before(valid_from_ts, ts):
     assert zmeta_command_to_mission_intent(_windowed_goto(valid_from_ts, ts)) == _WINDOW_INTENT
 
 
+def test_a_later_start_beside_an_altitude_still_raises():
+    # The window check runs after every other guard, so a command that
+    # raised before the rule still raises: an altitude in target_geo is a
+    # ValueError whatever its window says.
+    event = _windowed_goto("2026-11-14T12:10:00Z", _ISSUE)
+    event["payload"]["target_geo"]["alt_m"] = 120.0
+    with pytest.raises(ValueError):
+        zmeta_command_to_mission_intent(event)
+
+
+def test_the_two_egresses_read_a_time_with_the_same_code():
+    # This module's _parse_utc is a copy of the SAPIENT egress's, since the
+    # adapters do not import each other. Comments aside, the two must stay
+    # the same code, so a change to one copy fails here until the other
+    # follows.
+    import ast
+    import inspect
+
+    from adapters.egress.mavlink import zmeta_command_to_mission_intent as mavlink
+    from adapters.egress.sapient import zmeta_command_to_sapient_task as sapient
+
+    def code_of(function):
+        return ast.dump(ast.parse(inspect.getsource(function)))
+
+    assert code_of(mavlink._parse_utc) == code_of(sapient._parse_utc)
+
+
 def test_the_mavlink_and_sapient_egresses_refuse_the_same_windows():
-    # The two reference command egresses refuse exactly the same windows, so
-    # they cannot drift apart on this rule without a test failing. Every case
-    # here carries an event.ts key (unreadable in H). The SAPIENT egress
-    # refuses an event with no readable ts whether or not it carries a
-    # valid_from_ts, so the I cases and the cases with no event.ts stay out.
+    # The two reference command egresses refuse the same windows among cases
+    # A to H that carry an event.ts key (unreadable in H). They differ by
+    # design on a command without valid_from_ts whose event.ts is absent or
+    # cannot be read: the SAPIENT egress refuses it and this egress sends it
+    # as before, so the I cases and the cases with no event.ts stay out.
     from adapters.egress.sapient.zmeta_command_to_sapient_task import zmeta_command_to_sapient_task
 
     node_id = "0f2c8b4e-9f1d-4e6a-8a3b-1c5d7e9f0a2b"

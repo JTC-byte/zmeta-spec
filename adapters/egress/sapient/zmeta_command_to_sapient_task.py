@@ -100,6 +100,9 @@ def _contains_altitude(value):
 
 
 def _parse_utc(ts):
+    # adapters/egress/mavlink/zmeta_command_to_mission_intent.py holds a
+    # copy of this reader, and adapters/egress/mavlink/test_mavlink_intent.py
+    # fails while the two differ in code, so a change here belongs in both.
     if not isinstance(ts, str):
         # TypeError so the caller's documented None-refusal path handles a
         # non-string ts; bare .endswith would raise AttributeError past it.

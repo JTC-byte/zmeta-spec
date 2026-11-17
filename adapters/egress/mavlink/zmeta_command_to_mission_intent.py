@@ -133,9 +133,10 @@ def _risk_adjudication_records(payload):
 def _parse_utc(ts):
     # A copy of the SAPIENT command egress's reader, _parse_utc in
     # adapters/egress/sapient/zmeta_command_to_sapient_task.py. The adapters
-    # do not import each other, so the reader is copied, and
-    # test_mavlink_intent.py holds the two egresses to the same refusals of
-    # a validity window. A change to one copy belongs in the other.
+    # do not import each other, so the reader is copied. test_mavlink_intent.py
+    # holds the two copies to the same code, comments aside, and the two
+    # egresses to the same refusals on its window cases A to H, so a change
+    # to one copy fails there until the other follows.
     if not isinstance(ts, str):
         # TypeError so the caller's documented None-refusal path handles a
         # non-string ts; bare .endswith would raise AttributeError past it.
@@ -163,7 +164,8 @@ def zmeta_command_to_mission_intent(event, allow_flagged=False):
     hand on (contract 7.8; see the check before the return): a
     payload.valid_from_ts later than event.ts, a valid_from_ts this egress
     cannot read, or a valid_from_ts beside an event.ts that is absent or
-    cannot be read. A command without valid_from_ts is translated as before.
+    cannot be read. A command without valid_from_ts, or with a null one, is
+    translated as before.
 
     Fail-closed by default: a COMMAND_EVENT carrying a gateway-stamped
     payload.extensions.risk_adjudication record (a soft-accepted command,
@@ -267,10 +269,11 @@ def zmeta_command_to_mission_intent(event, allow_flagged=False):
     # valid_from_ts this egress cannot read, or one beside an event.ts it
     # cannot read, is a window it cannot place, refused the same way. A
     # command without valid_from_ts reads no time and goes out as before,
-    # and no clock is read. A window that opened at or before event.ts goes
-    # out with valid_for_ms and no anchor, a window that closed before
-    # event.ts included. The check runs last, so a command that raises above
-    # still raises.
+    # and no clock is read. A null valid_from_ts is read as absent, as the
+    # SAPIENT sibling reads it; the schemas refuse a null at the gateway. A
+    # window that opened at or before event.ts goes out with valid_for_ms
+    # and no anchor, a window that closed before event.ts included. The
+    # check runs last, so a command that raises above still raises.
     valid_from_ts = payload.get("valid_from_ts")
     if valid_from_ts is not None:
         try:
