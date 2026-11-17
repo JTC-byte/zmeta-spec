@@ -338,14 +338,21 @@ findings: `wave/precut-release-facts-2026-11` closes M1;
 `wave/precut-tests-2026-11` closes S4 and N4; `wave/precut-records-2026-11`
 closes M2 as a record (item 8 below), S6 and N2. A fourth branch,
 `wave/precut-gateway-docs-2026-11`, closes N1 and S5 except S5's part in
-`spec/field-dictionary.md`, as its own paragraph below records. Four
+`spec/field-dictionary.md`, as its own paragraph below records. Three
 findings wait for the
-maintainer's word: N3
-(a class scoped to version 1.0 whose required corpus holds two 1.1.0
-cases), N5 (two stale lines in `RELEASE_CHECKLIST.md`), N6 (a MAVLink
-quality key named for an unknown heading frame) and N8 (the detail in the
-bodies of the unpushed commits of 2026-11-14, which only a rewrite of local
-history changes). S1 (the MAVLink egress projected a command whose
+maintainer's word: N5 (two stale lines in `RELEASE_CHECKLIST.md`), N6 (a
+MAVLink quality key named for an unknown heading frame) and N8 (the detail
+in the bodies of the unpushed commits of 2026-11-14, which only a rewrite
+of local history changes). N3 (a class scoped to version 1.0 whose
+required corpus holds two 1.1.0 cases) was decided on 2026-11-16 on the
+maintainer's selection: no CoT projection claimant implements ZMeta 1.0
+only, and on `wave/cot-class-scope-2026-11` the `version_scope` of
+`ZMETA-COT-PROJECTION` names both branches, `["1.0",
+"1.1.0-experimental"]`. Two questions it leaves stay open for him: whether
+`ZMETA-ADAPTER`, whose required adapter harness file holds three 1.1.0
+cases under a scope of `["1.0"]`, follows; and whether
+`ZMETA-COT-PROJECTION` gains a dependency on `ZMETA-V1-1-EXPERIMENTAL`.
+S1 (the MAVLink egress projected a command whose
 validity window had not opened) was decided on 2026-11-16 on the
 maintainer's selection: the egress now refuses such a command. The
 behaviours its evidence also measured, the gateway's task dedupe horizon

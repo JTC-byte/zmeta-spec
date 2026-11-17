@@ -2,7 +2,8 @@
 
 ## Current Resume Note
 
-- Last updated: 2026-11-17 (records: six lines name a read by its date
+- Last updated: 2026-11-17 (the CoT projection class's version scope
+  names both branches; records: six lines name a read by its date
   or subject, the policy README's hash sentence, the relation check's
   timing; the bounded event index's seeded-review
   follow-up; 2026-11-16: the bounded event index brought up to
@@ -55,6 +56,31 @@
   three commits, the third on 2026-11-03; two contract sentences;
   carried-list records pass; heading_deg defined; records pass after 7.6;
   2026-10-02: the reference gateway keeps a bounded event index)
+- **2026-11-17 (the CoT projection class's version scope names both
+  branches).** On the maintainer's selection of 2026-11-16, option A of
+  pre-cut finding N3: no CoT projection claimant implements ZMeta 1.0
+  only. `ZMETA-COT-PROJECTION`'s `version_scope` in
+  `conformance/conformance_classes.yaml` changes from `["1.0"]` to
+  `["1.0", "1.1.0-experimental"]`, the form `ZMETA-VERSION-DISPATCH` and
+  `ZMETA-EXTENSION-REGISTRY` use. Its required fixtures hold 1.1.0
+  events: lines 15 and 16 of `conformance/cot-golden/golden.jsonl` and
+  lines 49, 50 and 52 of `conformance/adapter-harness/must-pass.jsonl`.
+  `tools/validate_conformance_classes.py` reads a scope's value in one
+  check: a claimed class whose scope names `1.1.0-experimental` needs a
+  claim listing it in `zmeta_versions_supported`. The reference gateway's
+  example claim lists both versions, and the class validator passes on the
+  manifest and both example claims. The new
+  `gateway/tests/test_cot_projection_class_scope.py` reads the versions
+  the two fixtures state and holds this class's scope to them, and shows
+  that a claim of the class supporting 1.0 alone is now refused; both of
+  its tests failed on the manifest before the edit. Two mutants (the scope
+  put back to `["1.0"]`, and a branch the manifest does not name) are
+  killed. The test is written for this class alone: `ZMETA-ADAPTER`
+  requires the same harness file under `["1.0"]`, and whether it follows
+  is the maintainer's open question, as is whether `ZMETA-COT-PROJECTION`
+  gains a dependency on `ZMETA-V1-1-EXPERIMENTAL`. The release manifest's
+  pin of the class manifest is stale until the next cut. No schema,
+  policy, contract or runtime code changes.
 - **2026-11-17 (records: six lines name a read by its date or subject;
   the policy README's hash sentence; the relation check's timing).** On
   the maintainer's selections of 2026-11-16. Six tracked lines written
