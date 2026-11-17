@@ -2,6 +2,16 @@
 
 ## [Unreleased]
 
+- 2026-11-17 — **Records after the messages-only rewrite of the unpushed
+  history** (`docs/zmeta_refinement_handoff.md`,
+  `docs/zmeta_refinement_worklog.md`,
+  `gateway/tests/test_auto_lane_ambiguity.py`, `CHANGELOG.md`). The
+  rewrite kept every tree and renamed 43 commits. The six tracked
+  citations of a renamed commit keep the old id and gain the new one. The
+  handoff says that pre-cut findings N5, N6 and N8 were decided on
+  2026-11-16 and that N8 is done. No code, rule, schema, policy or
+  manifest-listed file changes.
+
 - 2026-11-17 — **The `ZMETA-COT-PROJECTION` conformance class's version
   scope names both branches** (`conformance/conformance_classes.yaml`,
   `gateway/tests/test_cot_projection_class_scope.py`, Class B). On the
