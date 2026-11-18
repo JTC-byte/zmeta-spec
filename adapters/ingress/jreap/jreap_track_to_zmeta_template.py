@@ -70,7 +70,7 @@ def jreap_track_dict_to_zmeta_track_state(track: dict) -> dict:
     # separate names and only the first can reach canonical geo. The old
     # behavior fell back to `alt_m` and wrote it unconverted into alt_m,
     # which is the altitude-datum laundering class the MAVLink template
-    # names at adapters/ingress/mavlink/mavlink_to_zmeta_template.py:438-446:
+    # names at adapters/ingress/mavlink/mavlink_to_zmeta_template.py:492-500:
     # present, finite, plausible, and wrong-datum in the Link-16 domain,
     # where native track altitudes are typically barometric/MSL.
     hae_m = track.get("hae_m")

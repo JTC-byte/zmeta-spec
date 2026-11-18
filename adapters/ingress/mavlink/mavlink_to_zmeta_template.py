@@ -419,7 +419,7 @@ def translate_platform_state(
               heading_deg (float, optional): 0-360; None, absent, or outside
                 0-360 (655.35 is the UINT16_MAX "hdg unknown" sentinel a
                 bridge produces by dividing before handing it over) means
-                unknown and omits both heading destinations (no 0.0 default,
+                unknown and is kept in neither quality key (no 0.0 default,
                 and no clamp). A known value is a body angle (hdg) kept as
                 quality.mavlink_hdg_true_north_deg when heading_frame is
                 "TRUE_NORTH" and as quality.mavlink_hdg_frame_unknown_deg
@@ -508,11 +508,11 @@ def translate_platform_state(
     # A heading outside 0-360 is not a bearing in any frame: the commonest
     # arrival is 655.35, the UINT16_MAX "hdg unknown" sentinel divided by 100
     # by a bridge that does the conversion itself. Guarded here as well as in
-    # decode_global_position_int, and on both destinations - the canonical
-    # payload.heading_deg is schema-bounded to 0-360, but the non-canonical
-    # quality.mavlink_hdg_frame_unknown_deg and
-    # quality.mavlink_hdg_true_north_deg are not, so an unguarded sentinel
-    # lands there schema-clean.
+    # decode_global_position_int. hdg never reaches the schema-bounded
+    # payload.heading_deg (contract 6.4, above), and the two keys it can
+    # reach, quality.mavlink_hdg_frame_unknown_deg and
+    # quality.mavlink_hdg_true_north_deg, are unbounded, so an unguarded
+    # sentinel would land schema-clean in whichever one its frame selects.
     heading_deg = _heading_deg_or_none(_get("heading_deg"))
     # An unreported ground speed is omitted, never fabricated as a 0.0
     # ("stationary") default: payload.speed_mps is schema-optional, and

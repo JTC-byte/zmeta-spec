@@ -2,6 +2,23 @@
 
 ## [Unreleased]
 
+- 2026-11-18 — **The MAVLink ingress's older heading passages and the JREAP
+  template's MAVLink citation match the code**
+  (`adapters/ingress/mavlink/mavlink_to_zmeta_template.py`,
+  `adapters/ingress/mavlink/README.md`,
+  `adapters/ingress/jreap/jreap_track_to_zmeta_template.py`, Docs/advisory).
+  Three passages written before MAVLink ingress 1.3.0 said an out-of-range
+  heading is dropped from "both destinations", the canonical
+  `payload.heading_deg` and a quality key. Since 1.3.0 a known `hdg` never
+  reaches `payload.heading_deg`, so the README's sentinel paragraph, the
+  `heading_deg` docstring entry and the comment above the heading guard now
+  say that `hdg` can reach only the two unbounded quality keys, which is why
+  the guard is needed. The JREAP template's comment cited the MAVLink
+  template's altitude-datum passage at lines 438-446; that text now stands at
+  lines 492-500, and the comment cites those. Comments and README text only:
+  no code, behaviour, test, schema, policy, contract, conformance or
+  manifest-listed file changes, and `ADAPTER_VERSION` stays 1.3.1.
+
 - 2026-11-17 — **The ASTERIX CAT062 egress's timing allowance is split into
   two declarations in its configuration**
   (`adapters/egress/asterix/zmeta_to_asterix_cat062.py`,
