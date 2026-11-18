@@ -21,6 +21,7 @@ was driven with them.
 """
 
 import ast
+import inspect
 import json
 import math
 import os
@@ -37,7 +38,8 @@ if str(ROOT) not in sys.path:
 from adapters.egress.asterix import zmeta_to_asterix_cat062 as cat062  # noqa: E402
 from adapters.egress.cot import zmeta_to_cot as cot  # noqa: E402
 
-CONFIG = {"sac": 25, "sic": 7, "monosensor": False, "tentative": False, "simulated": False}
+CONFIG = {"sac": 25, "sic": 7, "monosensor": False, "tentative": False, "simulated": False,
+          "allow_holdover_or_unsynced": False}
 TRACKS = {"track-alpha": 1234, "track-omega": 65535}
 LSB_DEG = 180 / 2**25
 DELETE = object()
@@ -357,23 +359,66 @@ def test_r2_no_number_is_minted():
 
 # --- R3 and the declarations: I062/010, I062/015, I062/080 ------------------------------
 
-@pytest.mark.parametrize(
-    "change",
-    [{"sac": DELETE}, {"sic": DELETE}, {"sac": 256}, {"sic": -1}, {"sac": True}, {"sic": "7"}, {"sac": 25.0},
-     {"monosensor": DELETE}, {"tentative": DELETE}, {"simulated": DELETE}, {"monosensor": 1}, {"tentative": 0},
-     {"simulated": "false"}, {"service_id": 256}, {"service_id": -1}, {"service_id": True}, {"surveillance": 1}],
-    ids=lambda c: ",".join(f"{k}={'absent' if v is DELETE else v!r}" for k, v in c.items()),
-)
-def test_r3_every_declaration_is_required_and_checked(change):
-    config = dict(CONFIG)
+# The values each timing declaration accepts: the accepting counterpart of every value the test below refuses for
+# that key, so that a refusal is the value's and not the key's.
+TIMING_DECLARATIONS_ACCEPT = {
+    "allow_holdover_or_unsynced": (False, True),
+    "sync_state_when_absent": ("LOCKED", "HOLDOVER", "UNSYNCED", None),
+}
+
+
+def declaration_message(change):
+    """The pattern the refusal of a timing declaration's value must match; None for the other declarations, whose
+    messages this test does not pin. Only the removed name's pattern matches the unknown-key message."""
+    if "allow_degraded_timing" in change:
+        return r"does not know the key\(s\) allow_degraded_timing"
+    if change.get("allow_holdover_or_unsynced", True) is DELETE:
+        return r"must declare allow_holdover_or_unsynced$"
+    if "allow_holdover_or_unsynced" in change:
+        return r"^allow_holdover_or_unsynced must be true or false$"
+    if "sync_state_when_absent" in change:
+        return r"^sync_state_when_absent must be exactly LOCKED, HOLDOVER or UNSYNCED, or be left out$"
+    return None
+
+
+def with_change(config, change):
+    config = dict(config)
     for key, value in change.items():
         if value is DELETE:
             config.pop(key)
         else:
             config[key] = value
+    return config
+
+
+@pytest.mark.parametrize(
+    "change",
+    [{"sac": DELETE}, {"sic": DELETE}, {"sac": 256}, {"sic": -1}, {"sac": True}, {"sic": "7"}, {"sac": 25.0},
+     {"monosensor": DELETE}, {"tentative": DELETE}, {"simulated": DELETE}, {"monosensor": 1}, {"tentative": 0},
+     {"simulated": "false"}, {"service_id": 256}, {"service_id": -1}, {"service_id": True}, {"surveillance": 1},
+     {"allow_holdover_or_unsynced": DELETE}, {"allow_holdover_or_unsynced": "false"},
+     {"allow_holdover_or_unsynced": "True"}, {"allow_holdover_or_unsynced": 1}, {"allow_holdover_or_unsynced": 0},
+     {"allow_holdover_or_unsynced": None}, {"allow_holdover_or_unsynced": [True]},
+     {"sync_state_when_absent": "locked"}, {"sync_state_when_absent": "LOCKED "}, {"sync_state_when_absent": ""},
+     {"sync_state_when_absent": "FREEWHEEL"}, {"sync_state_when_absent": True}, {"sync_state_when_absent": 1},
+     {"sync_state_when_absent": ["LOCKED"]}, {"sync_state_when_absent": {"sync_state": "LOCKED"}},
+     {"allow_degraded_timing": True}, {"allow_holdover_or_unsynced": DELETE, "allow_degraded_timing": True}],
+    ids=lambda c: ",".join(f"{k}={'absent' if v is DELETE else v!r}" for k, v in c.items()),
+)
+def test_r3_every_declaration_is_required_and_checked(change):
+    config = with_change(CONFIG, change)
     refused(make_event(), "CAT062_CONFIG_INVALID", config=config)
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match=declaration_message(change)):
         cat062.validate_asterix_config(config)
+    # The accepting counterpart: each timing declaration the case names is accepted with every value it takes.
+    # The removed name allow_degraded_timing takes none: in the configuration it is an unknown key.
+    for key in change:
+        for value in TIMING_DECLARATIONS_ACCEPT.get(key, ()):
+            accepted = dict(CONFIG, **{key: value})
+            declarations = cat062.validate_asterix_config(accepted)
+            assert declarations["allow_holdover_or_unsynced"] is accepted["allow_holdover_or_unsynced"]
+            record, reason = encode(make_event(), config=accepted)
+            assert reason is None and record == MINIMUM_RECORD, (key, value, reason)
 
 
 def test_r3_sac_and_sic_are_written_as_declared():
@@ -385,6 +430,15 @@ def test_r3_sac_and_sic_are_written_as_declared():
 def test_validate_asterix_config_returns_the_declarations():
     assert cat062.validate_asterix_config(dict(CONFIG, service_id=9)) == dict(CONFIG, service_id=9)
     assert cat062.validate_asterix_config(CONFIG) == CONFIG
+    # The allowance is always returned; the statement is returned when declared, and left out when absent or
+    # null, as service_id is.
+    for allowance in (False, True):
+        config = dict(CONFIG, allow_holdover_or_unsynced=allowance)
+        assert cat062.validate_asterix_config(config) == config
+        assert cat062.validate_asterix_config(dict(config, sync_state_when_absent=None)) == config
+        for statement in ("LOCKED", "HOLDOVER", "UNSYNCED"):
+            declared_config = dict(config, sync_state_when_absent=statement)
+            assert cat062.validate_asterix_config(declared_config) == declared_config
 
 
 @pytest.mark.parametrize(
@@ -736,39 +790,52 @@ def test_r10_members_without_a_carrier_do_not_change_the_record():
 )
 def test_p10_timing_that_is_not_locked_is_refused_unless_allowed(timing, reason):
     event = make_event(timing_quality=timing)
+    # The allowance is a declaration in the configuration: false refuses each case with its own reason.
     refused(event, reason)
-    refused(event, reason, allow_degraded_timing=False)
-    if reason == "CAT062_TIMING_MALFORMED":
-        # Unreadable timing fails closed: the allowance never opens it.
-        refused(event, reason, allow_degraded_timing=True)
+    refused(event, reason, config=dict(CONFIG, allow_holdover_or_unsynced=False))
+    allowed = dict(CONFIG, allow_holdover_or_unsynced=True)
+    if reason in ("CAT062_TIMING_MALFORMED", "CAT062_TIMING_ABSENT"):
+        # The allowance covers a stated HOLDOVER or UNSYNCED only. Unreadable timing fails closed, and an event that
+        # carries no timing quality, with nothing declared for it, is refused whatever the allowance says.
+        refused(event, reason, config=allowed)
         return
-    record, got = encode(event, allow_degraded_timing=True)
+    record, got = encode(event, config=allowed)
     # With the allowance the record is the locked event's, byte for byte: it carries no notice of the clock.
     assert got is None and record == MINIMUM_RECORD
 
 
 def test_p10_malformed_timing_never_exports():
-    # From the seeded review of 2026-11-14: the allowance opens HOLDOVER, UNSYNCED and an absent
-    # timing_quality only; a non-mapping and an unknown token are refused whatever it says.
+    # From the seeded review of 2026-11-14: a malformed timing_quality is refused whatever the allowance says, and
+    # whatever the configuration states for events that carry no timing quality.
     for timing in ("LOCKED", ["LOCKED"], None, dict(LOCKED, sync_state="FREEWHEEL")):
-        refused(make_event(timing_quality=timing), "CAT062_TIMING_MALFORMED", allow_degraded_timing=True)
-    for timing in (dict(LOCKED, sync_state="HOLDOVER"), UNSYNCED, DELETE):
-        record, reason = encode(make_event(timing_quality=timing), allow_degraded_timing=True)
+        for statement in (None, "LOCKED", "HOLDOVER", "UNSYNCED"):
+            for allowance in (False, True):
+                config = dict(CONFIG, allow_holdover_or_unsynced=allowance, sync_state_when_absent=statement)
+                refused(make_event(timing_quality=timing), "CAT062_TIMING_MALFORMED", config=config)
+    for timing in (dict(LOCKED, sync_state="HOLDOVER"), UNSYNCED):
+        record, reason = encode(make_event(timing_quality=timing), config=dict(CONFIG, allow_holdover_or_unsynced=True))
         assert reason is None and record == MINIMUM_RECORD
 
 
 def test_p10_locked_timing_exports_without_the_allowance():
-    record, reason = encode(make_event())
+    config = dict(CONFIG, allow_holdover_or_unsynced=False)
+    record, reason = encode(make_event(), config=config)
     assert reason is None and record == MINIMUM_RECORD
     # No threshold on est_error_ms: a locked claim with any stated bound exports.
-    record, reason = encode(make_event(timing_quality=dict(LOCKED, est_error_ms=1.0e9)))
+    record, reason = encode(make_event(timing_quality=dict(LOCKED, est_error_ms=1.0e9)), config=config)
     assert reason is None and record == MINIMUM_RECORD
 
 
-@pytest.mark.parametrize("allowance", ["false", "True", 1, 0, None, [True]])
-def test_p10_only_a_boolean_is_an_allowance(allowance):
-    refused(make_event(timing_quality=UNSYNCED), "CAT062_CONFIG_INVALID", allow_degraded_timing=allowance)
-    refused(make_event(), "CAT062_CONFIG_INVALID", allow_degraded_timing=allowance)
+def test_p10_the_allowance_is_no_longer_a_keyword():
+    # Both timing declarations live in the configuration. The signature names neither, nor the keyword the
+    # allowance once was, and a call that passes that keyword raises TypeError from Python's own argument binding,
+    # before any record leaves.
+    assert list(inspect.signature(cat062.zmeta_state_to_asterix_cat062).parameters) == [
+        "event", "asterix_config", "track_numbers", "export_use", "refusal"]
+    for value in (True, False):
+        with pytest.raises(TypeError, match="allow_degraded_timing"):
+            cat062.zmeta_state_to_asterix_cat062(make_event(timing_quality=UNSYNCED), CONFIG, track_numbers=TRACKS,
+                                                 allow_degraded_timing=value)
 
 
 def test_p10_the_allowance_never_opens_the_risk_gate():
@@ -778,20 +845,198 @@ def test_p10_the_allowance_never_opens_the_risk_gate():
               "policy_decision": "DEGRADED_ACCEPT", "policy_ref": "gateway.failure_modes.timing_loss",
               "effects": {"confidence_reduction_factor": 2.0}, "sync_state": "UNSYNCED"}
     event = make_event(timing_quality=UNSYNCED, extensions={"risk_adjudication": [record]})
-    refused(event, "CAT062_RISK_DEGRADED_ACCEPT", allow_degraded_timing=True)
+    refused(event, "CAT062_RISK_DEGRADED_ACCEPT", config=dict(CONFIG, allow_holdover_or_unsynced=True))
     refused(event, "CAT062_RISK_DEGRADED_ACCEPT")
+    # Nor does a statement: a declared LOCKED for an event that carries no timing quality, with the same record.
+    # Without the record the same event exports, so the refusal is the risk gate's.
+    absent = make_event(timing_quality=DELETE, extensions={"risk_adjudication": [record]})
+    for allowance in (False, True):
+        config = dict(CONFIG, sync_state_when_absent="LOCKED", allow_holdover_or_unsynced=allowance)
+        refused(absent, "CAT062_RISK_DEGRADED_ACCEPT", config=config)
+        exported, reason = encode(make_event(timing_quality=DELETE), config=config)
+        assert reason is None and exported == MINIMUM_RECORD
 
 
 def test_p10_the_order_of_the_gates():
-    # Risk before timing; timing before the time parse; the arguments after the input type.
+    # Risk before timing; timing before the time parse; the configuration after the input type.
     refused(make_event(timing_quality=UNSYNCED, extensions={"risk_adjudication": [{"policy_decision": "WARN_ACCEPT"}]}),
             "CAT062_RISK_WARN_ACCEPT")
     refused(make_event(ts="not a time", timing_quality=UNSYNCED), "CAT062_TIMING_UNSYNCED")
-    refused(make_event(ts="not a time", timing_quality=UNSYNCED), "CAT062_TIME_UNPARSEABLE", allow_degraded_timing=True)
+    refused(make_event(ts="not a time", timing_quality=UNSYNCED), "CAT062_TIME_UNPARSEABLE",
+            config=dict(CONFIG, allow_holdover_or_unsynced=True))
+    refused(make_event(ts="not a time", timing_quality=DELETE), "CAT062_TIMING_ABSENT",
+            config=dict(CONFIG, allow_holdover_or_unsynced=True))
+    refused(make_event(ts="not a time", timing_quality=DELETE), "CAT062_TIME_UNPARSEABLE",
+            config=dict(CONFIG, sync_state_when_absent="LOCKED"))
     observation = make_event(timing_quality=UNSYNCED)
     observation["event"]["event_type"] = "OBSERVATION_EVENT"
-    refused(observation, "CAT062_NOT_TRACK_STATE", allow_degraded_timing="yes")
+    refused(observation, "CAT062_NOT_TRACK_STATE", config=dict(CONFIG, allow_holdover_or_unsynced="yes"))
     refused(make_event(timing_quality=UNSYNCED), "CAT062_CONFIG_INVALID", config=dict(CONFIG, sac=999))
+
+
+# --- P10: the statement for events that carry no timing quality, and the allowance ------------
+
+def declared(statement=None, allowance=False):
+    """CONFIG with the allowance, and with the statement for events that carry no timing quality when one is
+    given."""
+    config = dict(CONFIG, allow_holdover_or_unsynced=allowance)
+    if statement is not None:
+        config["sync_state_when_absent"] = statement
+    return config
+
+
+def test_p10_a_declared_locked_supplies_the_state_an_event_lacks():
+    # An event that carries no timing quality, under a declared LOCKED and the allowance false, exports, and its
+    # record is byte for byte the record of the same event stating LOCKED itself: as clean as the declaration and
+    # no cleaner.
+    record, reason = encode(make_event(timing_quality=DELETE), config=declared("LOCKED"))
+    assert reason is None and record == MINIMUM_RECORD == encode(make_event())[0]
+
+
+@pytest.mark.parametrize(
+    "statement, reason", [("HOLDOVER", "CAT062_TIMING_HOLDOVER"), ("UNSYNCED", "CAT062_TIMING_UNSYNCED")]
+)
+def test_p10_a_declared_holdover_or_unsynced_exports_only_with_the_allowance(statement, reason):
+    event = make_event(timing_quality=DELETE)
+    refused(event, reason, config=declared(statement, allowance=False))
+    record, got = encode(event, config=declared(statement, allowance=True))
+    assert got is None and record == MINIMUM_RECORD
+
+
+def test_p10_nothing_declared_leaves_an_absent_timing_quality_refused():
+    # The allowance covers a stated HOLDOVER or UNSYNCED only, and an event that carries no timing quality states
+    # no sync state of its own.
+    event = make_event(timing_quality=DELETE)
+    for allowance in (False, True):
+        refused(event, "CAT062_TIMING_ABSENT", config=declared(allowance=allowance))
+        # A null statement is left out, as a null service_id is.
+        refused(event, "CAT062_TIMING_ABSENT", config=dict(declared(allowance=allowance), sync_state_when_absent=None))
+
+
+def test_p10_the_statement_never_overrides_an_events_own_timing():
+    for timing, reason in ((UNSYNCED, "CAT062_TIMING_UNSYNCED"),
+                           (dict(LOCKED, sync_state="HOLDOVER"), "CAT062_TIMING_HOLDOVER")):
+        refused(make_event(timing_quality=timing), reason, config=declared("LOCKED"))
+    # An event that states LOCKED exports on its own statement, whatever is declared for events that state none.
+    for statement in ("HOLDOVER", "UNSYNCED"):
+        record, reason = encode(make_event(), config=declared(statement))
+        assert reason is None and record == MINIMUM_RECORD
+
+
+def test_p10_the_statement_never_repairs_a_malformed_timing_quality():
+    for timing in (None, "LOCKED", ["LOCKED"], dict(LOCKED, sync_state="locked"), dict(LOCKED, sync_state="FREEWHEEL"),
+                   {k: v for k, v in LOCKED.items() if k != "sync_state"}):
+        refused(make_event(timing_quality=timing), "CAT062_TIMING_MALFORMED", config=declared("LOCKED", allowance=True))
+
+
+def test_p10_the_statement_in_force_is_the_calls():
+    # The configuration is read on every call, so the statement passed with an event is the one that applies.
+    event = make_event(timing_quality=DELETE)
+    record, reason = encode(event, config=declared("LOCKED"))
+    assert reason is None and record == MINIMUM_RECORD
+    refused(event, "CAT062_TIMING_ABSENT", config=declared())
+    refused(event, "CAT062_TIMING_UNSYNCED", config=declared("UNSYNCED"))
+    record, reason = encode(event, config=declared("LOCKED"))
+    assert reason is None and record == MINIMUM_RECORD
+
+
+@pytest.mark.parametrize(
+    "change",
+    [{"allow_holdover_or_unsynced": "true"}, {"allow_holdover_or_unsynced": None},
+     {"sync_state_when_absent": "locked"}, {"sync_state_when_absent": 1}],
+    ids=lambda c: ",".join(f"{k}={v!r}" for k, v in c.items()),
+)
+def test_p10_the_timing_declarations_are_checked_before_the_simulated_refusal(change):
+    config = with_change(dict(CONFIG, simulated=True), change)
+    refused(make_event(), "CAT062_CONFIG_INVALID", config=config)
+    with pytest.raises(ValueError, match=declaration_message(change)):
+        cat062.validate_asterix_config(config)
+
+
+# Timing quality at the two other per-event paths the reference policy reads, in each shape a path can take there:
+# a member of payload.quality, and the timing fields in payload.quality itself.
+TIMING_ELSEWHERE = [
+    {"timing_quality": dict(UNSYNCED)},
+    {"timing_quality": dict(LOCKED)},
+    {"timing_quality": None},
+    dict(UNSYNCED),
+    dict(LOCKED),
+    {"sync_state": "LOCKED"},
+]
+
+
+def policy_per_event_timing_paths():
+    """The per-event timing paths of the reference policy, policy/semantics.yaml."""
+    import yaml
+
+    with open(ROOT / "policy" / "semantics.yaml", encoding="utf-8") as handle:
+        return yaml.safe_load(handle)["semantics"]["timing_quality"]["per_event_paths"]
+
+
+def test_p10_timing_at_a_path_the_adapter_does_not_read_is_refused_as_absent():
+    # The reference policy reads per-event timing quality at three paths, and this adapter reads the first alone. A
+    # statement never speaks for an event that states its own timing quality, so an event whose timing quality sits
+    # at either other path is refused as absent, whatever is declared and whatever the allowance says.
+    assert policy_per_event_timing_paths() == [
+        "payload.timing_quality", "payload.quality.timing_quality", "payload.quality"]
+    for quality in TIMING_ELSEWHERE:
+        event = make_event(timing_quality=DELETE, quality=quality)
+        for statement in ("LOCKED", "HOLDOVER", "UNSYNCED", None):
+            for allowance in (False, True):
+                refused(event, "CAT062_TIMING_ABSENT", config=declared(statement, allowance))
+
+
+# The timing gate as a table, one row per rule: the event's timing quality, the statement declared for events that
+# carry none, the allowance, and the result (None: the event exports). ANY stands for every value of its column.
+ANY = object()
+STATEMENTS = (None, "LOCKED", "HOLDOVER", "UNSYNCED")
+ALLOWANCES = (False, True)
+TIMING_GATE = [
+    ("LOCKED", ANY, ANY, None),
+    ("HOLDOVER", ANY, False, "CAT062_TIMING_HOLDOVER"),
+    ("HOLDOVER", ANY, True, None),
+    ("UNSYNCED", ANY, False, "CAT062_TIMING_UNSYNCED"),
+    ("UNSYNCED", ANY, True, None),
+    ("malformed", ANY, ANY, "CAT062_TIMING_MALFORMED"),
+    ("absent", None, ANY, "CAT062_TIMING_ABSENT"),
+    ("absent", "LOCKED", ANY, None),
+    ("absent", "HOLDOVER", False, "CAT062_TIMING_HOLDOVER"),
+    ("absent", "HOLDOVER", True, None),
+    ("absent", "UNSYNCED", False, "CAT062_TIMING_UNSYNCED"),
+    ("absent", "UNSYNCED", True, None),
+    ("at another path", ANY, ANY, "CAT062_TIMING_ABSENT"),
+]
+# The payload members of the events for each value of the first column. An event that carries no timing quality
+# may still carry a payload.quality without timing members, or one that is not an object.
+TIMING_EVENTS = {
+    "LOCKED": [{"timing_quality": dict(LOCKED)}],
+    "HOLDOVER": [{"timing_quality": dict(LOCKED, sync_state="HOLDOVER")}],
+    "UNSYNCED": [{"timing_quality": dict(UNSYNCED)}],
+    "malformed": [{"timing_quality": value} for value in (
+        None, "LOCKED", ["LOCKED"], dict(LOCKED, sync_state="locked"), dict(LOCKED, sync_state="FREEWHEEL"),
+        {k: v for k, v in LOCKED.items() if k != "sync_state"})],
+    "absent": [{"timing_quality": DELETE},
+               {"timing_quality": DELETE, "quality": {"geo_status": "VERTICAL_UNAVAILABLE"}},
+               {"timing_quality": DELETE, "quality": "sync_state"}],
+    "at another path": [{"timing_quality": DELETE, "quality": quality} for quality in TIMING_ELSEWHERE],
+}
+
+
+def test_p10_the_timing_gate_table():
+    covered = {}
+    for timing, statement, allowance, result in TIMING_GATE:
+        for s in (STATEMENTS if statement is ANY else (statement,)):
+            for a in (ALLOWANCES if allowance is ANY else (allowance,)):
+                assert (timing, s, a) not in covered, (timing, s, a)
+                covered[(timing, s, a)] = result
+                for members in TIMING_EVENTS[timing]:
+                    record, reason = encode(make_event(**members), config=declared(s, a))
+                    if result is None:
+                        assert reason is None and record == MINIMUM_RECORD, (timing, s, a, members, reason)
+                    else:
+                        assert record is None and reason == result, (timing, s, a, members, reason)
+    # Every combination of the three columns is exactly one row's.
+    assert set(covered) == {(t, s, a) for t in TIMING_EVENTS for s in STATEMENTS for a in ALLOWANCES}
 
 
 def test_r10_the_loss_register_names_every_member_without_a_carrier():
@@ -883,6 +1128,30 @@ def test_p2_the_most_severe_record_names_the_reason():
 )
 def test_p2_records_the_gate_cannot_read_are_refused(extensions):
     refused(make_event(extensions=extensions), "CAT062_RISK_UNREADABLE")
+
+
+# --- the README's usage example ---------------------------------------------------------------
+
+def readme_usage_block():
+    readme = (Path(cat062.__file__).parent / "README.md").read_text(encoding="utf-8")
+    return readme.split("### Usage", 1)[1].split("```python", 1)[1].split("```", 1)[0]
+
+
+def test_the_readme_usage_example_runs_as_printed():
+    block = readme_usage_block()
+    assert "allow_degraded_timing" not in block
+    printed = []
+    namespace = {"event": make_event(track_id="<track_id>"), "print": printed.append}
+    exec(compile(block, "README.md, Usage", "exec"), namespace)
+    assert printed == [] and namespace["block"] == bytes.fromhex("3E 00 15") + MINIMUM_RECORD
+    # Each configuration the example shows passes the startup check and declares the allowance.
+    configs = [value for value in namespace.values() if isinstance(value, dict) and "sac" in value]
+    assert len(configs) == 2, configs
+    for config in configs:
+        assert "allow_holdover_or_unsynced" in config and cat062.validate_asterix_config(config) == config
+    # The second states LOCKED for a node whose events carry no timing quality.
+    record, reason = encode(make_event(timing_quality=DELETE), config=namespace["node_config"])
+    assert reason is None and record == MINIMUM_RECORD
 
 
 # --- R11: no runtime dependency --------------------------------------------------------

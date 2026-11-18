@@ -18,12 +18,12 @@ Status: Reference, on the same basis as the TAK Protocol Version 1 adapter.
 The encoding was checked byte for byte against the BSD-3-Clause `libasterix`
 package (0.37.0, `Cat_062_1_21`) for the two known-answer records and three
 further records, and `libasterix` parses the adapter's output back to the
-same bytes. A scratch run on 2026-11-14 took 809 STATE events of a
+same bytes. A scratch run on 2026-11-17 took 809 STATE events of a
 downstream producer's recorded run and 1,680 STATE events the track
 projector made from 1,680 live ADS-B observations. Every one of them
-carries unsynchronized timing, so with the default every one was refused for
-it; with `allow_degraded_timing=True`, all 809 and all 1,680 were encoded and
-parsed back.
+states unsynchronized timing, so with `allow_holdover_or_unsynced` false
+every one was refused for it; with it true, all 809 and all 1,680 were
+encoded and parsed back.
 No CAT062 consumer (a surveillance data processing system, a display or a
 recorder) has been driven with the bytes from this repository, and the
 adapter opens no connection. The adapter is not among the required surfaces
@@ -36,7 +36,8 @@ from adapters.egress.asterix.zmeta_to_asterix_cat062 import (
     validate_asterix_config, zmeta_state_to_asterix_cat062, cat062_data_block,
 )
 
-config = {"sac": 25, "sic": 7, "monosensor": False, "tentative": False, "simulated": False}
+config = {"sac": 25, "sic": 7, "monosensor": False, "tentative": False, "simulated": False,
+          "allow_holdover_or_unsynced": False}
 validate_asterix_config(config)                   # at startup: raises ValueError for a configuration it cannot run
 
 track_numbers = {"<track_id>": 1234}              # the caller's map; the adapter never mints a number
@@ -46,8 +47,10 @@ if record is None:
     print(refusal["reason"])                      # one of the reasons below
 block = cat062_data_block([record])               # CAT 62, LEN, the records
 
-# Only where the deployment tells its receivers the time basis of the feed (see "Timing"):
-record = zmeta_state_to_asterix_cat062(event, config, track_numbers=track_numbers, allow_degraded_timing=True)
+# For a node whose events carry no timing quality, while the deployment holds a current locked
+# TIME_STATUS from it (see "Timing"). The statement goes with each such event and changes with the status.
+node_config = dict(config, sync_state_when_absent="LOCKED")
+record = zmeta_state_to_asterix_cat062(event, node_config, track_numbers=track_numbers)
 ```
 
 The adapter returns `None` for every refusal and never raises on an event.
@@ -68,7 +71,9 @@ by the deployment. No key has a default, and an unknown key is an error.
 | `monosensor` | I062/080 MON | `true` writes "monosensor track", `false` "multisensor track"; required |
 | `tentative` | I062/080 CNF | `true` writes "tentative track", `false` "confirmed track"; required |
 | `simulated` | none | required; `true` is refused (below) |
+| `allow_holdover_or_unsynced` | none | required; `true` exports an event whose stated sync state is `HOLDOVER` or `UNSYNCED`, `false` refuses it (see "Timing") |
 | `service_id` | I062/015 | 0 to 255, written only when declared |
+| `sync_state_when_absent` | none | optional; exactly `LOCKED`, `HOLDOVER` or `UNSYNCED`: the sync state the deployment states for events that carry no timing quality; left out or null, nothing is stated (see "Timing") |
 
 `track_numbers`, the map of `track_id` to I062/040's number (0 to 65,535), is
 deployment state, as the SAPIENT adapter's `object_map` is. A track the map
@@ -191,47 +196,98 @@ SAPIENT projection carries such labels as `object_info` self-labels.
 CAT062 edition 1.21 has no item for the quality of the time source. I062/070
 is mandatory and states the time of the track as UTC (§5.2.5), so a record
 claims a time basis that an event with an undisciplined clock does not
-claim. The adapter therefore refuses an event whose timing is not locked.
-Locked means `payload.timing_quality` is a mapping whose `sync_state` is
-exactly `LOCKED`. Every other case is refused, with its own reason:
-`HOLDOVER`, `UNSYNCED`, an absent `timing_quality`, and a malformed one (not
-a mapping, or a `sync_state` outside the schema's three tokens). The adapter
-reads no `est_error_ms`: a timing threshold is deployment policy, and reaches
-this adapter through the risk gate.
+claim. The adapter therefore exports an event only when its stated sync
+state is `LOCKED`, or when the deployment allows degraded timing in its
+configuration. Two declarations govern it: `sync_state_when_absent`, a
+statement of the sync state for events that carry no timing quality, and
+`allow_holdover_or_unsynced`, the allowance for a stated `HOLDOVER` or
+`UNSYNCED`.
 
-`allow_degraded_timing=True` exports an event whose timing is in holdover,
-unsynchronized or absent. A malformed `timing_quality` is refused whatever
-the allowance says: input the adapter cannot read fails closed, as everywhere
-else in it. Only the boolean `True` allows; any other value that is not a
-boolean refuses the call, so the string `"false"` never reads as true. The
-one allowance also exports events that state `UNSYNCED` or `HOLDOVER`, so a
-caller that only means to vouch for a node whose timing status it holds
-cannot say so yet. With the allowance on, the record's time
-of track information reads as an ordinary time, with no notice that the
-source clock was unsynchronized, in holdover or undeclared. The deployment
-that sets it is the party telling its receivers so, for example in the
-interface agreement for the feed's SAC/SIC. The allowance never opens the
-risk gate: an event that carries a timing risk record is refused for risk
-whatever the allowance says.
+**The stated sync state.** For an event that carries
+`payload.timing_quality`, it is that member's `sync_state`, and locked means
+a mapping whose `sync_state` is exactly `LOCKED`. A `timing_quality` that is
+not a mapping, or whose `sync_state` is outside the schema's three tokens,
+is malformed and refused whatever is declared: input the adapter cannot read
+fails closed, as everywhere else in it. For an event that carries no timing
+quality, the stated sync state is the declared `sync_state_when_absent`.
+With nothing declared, such an event is refused whatever the allowance says.
+The adapter reads no `est_error_ms`: a timing threshold is deployment
+policy, and reaches this adapter through the risk gate.
+
+**What counts as no timing quality.** The reference policy reads per-event
+timing quality at three paths: `payload.timing_quality`,
+`payload.quality.timing_quality` and `payload.quality`
+(`policy/semantics.yaml`, `per_event_paths`). The adapter reads only the
+first. An event carries no timing quality when it has no
+`payload.timing_quality`, and its `payload.quality`, if that is an object,
+has neither a `timing_quality` nor a `sync_state` member. An event whose
+timing quality sits at one of the other two paths is refused as absent,
+whatever is declared and whatever the allowance says, since the statement
+never speaks for an event that states its own timing quality.
+
+**What the statement asserts.** The declared token is the sync state the
+deployment asserts for the node that produced each event that carries no
+timing quality. It declares `LOCKED` or `HOLDOVER` only when it holds a
+TIME_STATUS from that node with that `sync_state`, current by its freshness
+policy. It declares `UNSYNCED` when that status is `UNSYNCED`, or when it
+holds no current status for the node. Contract 5.3 is the ground: a node
+exposes timing quality per event or periodically through TIME_STATUS, and
+consumers "MUST NOT treat periodic TIME_STATUS as valid indefinitely"; the
+reference ingress fallback writes the same `UNSYNCED` for timing nobody
+stated (`adapters/ingress/time_utils.py`). The adapter verifies none of it:
+the encoder sees one event and no TIME_STATUS, and has no clock. The token
+is compared exactly, so `locked`, `LOCKED ` and any other value are a
+configuration error. Left out, or null, the statement says nothing.
+
+**The statement goes with the event.** The function reads the configuration
+on every call, so the caller states the sync state with each event: a
+deployment whose node changes state passes the changed statement, and a
+deployment with nodes in different states passes each event with its own
+node's statement. A statement fixed at startup for a node whose status can
+change is the deployment's risk, since the adapter cannot see the node drop
+to holdover. A deployment that holds no current status for a node leaves
+the statement out, and that node's events with no timing quality are
+refused, or it states `UNSYNCED` and sets the allowance. No configuration
+needs a `LOCKED` that is not true.
+
+**The allowance.** `allow_holdover_or_unsynced: true` exports an event whose
+stated sync state is `HOLDOVER` or `UNSYNCED`, whether the event states it
+or the declaration states it for an event that carries none; `false`
+refuses each, with its own reason. Like the other declarations, it is
+required and takes only `true` or `false`. It never opens a malformed
+`timing_quality`, or an event refused as absent.
+
+**What the record says.** No item carries either declaration, and the
+adapter adds no mark of them: carrying them in the Reserved Expansion or
+Special Purpose field would make a private dialect of CAT062 (see "Not in
+this adapter"). Under a declared `LOCKED`, the record is byte for byte the
+record of the same event stating `LOCKED` itself, so it claims what the
+declaration claims. With the allowance on, the record's time of track
+information reads as an ordinary time, with no notice that the source clock
+was unsynchronized or in holdover. The deployment that declares a sync
+state, or sets the allowance, is the party telling its receivers so, for
+example in the interface agreement for the feed's SAC/SIC. Neither
+declaration opens the risk gate: an event that carries a timing risk record
+is refused for risk whatever is declared.
 
 A producer whose clock is disciplined says so in `timing_quality`
 (`adapters/AUTHORING.md`, rule 5: degraded timing stays visible), and its
-events then need no allowance.
+events then export with the allowance `false` and nothing stated.
 
 ### Refusals
 
 | Reason | When |
 | --- | --- |
 | `CAT062_NOT_TRACK_STATE` | the input is not a `STATE_EVENT`/`TRACK_STATE` with an event block and a payload |
-| `CAT062_CONFIG_INVALID` | a declaration missing, of the wrong type or out of range; an unknown key; an `export_use` that is not a label; an `allow_degraded_timing` that is not a boolean |
+| `CAT062_CONFIG_INVALID` | a declaration missing, of the wrong type or out of range; an unknown key; an `export_use` that is not a label |
 | `CAT062_SIMULATED_UNSUPPORTED` | `simulated` is `true` |
 | `CAT062_RISK_WARN_ACCEPT`, `CAT062_RISK_DEGRADED_ACCEPT`, `CAT062_RISK_QUARANTINE_ACCEPT`, `CAT062_RISK_REJECTED` | a risk record with that decision |
 | `CAT062_RISK_UNKNOWN_DECISION` | a risk record with any other decision text, or none |
 | `CAT062_RISK_USE_RESTRICTED` | an `IGNORED` record whose uses prohibit, or do not grant, `export_use` |
 | `CAT062_RISK_UNREADABLE` | extensions, records or use labels in a shape the gate cannot read |
-| `CAT062_TIMING_HOLDOVER`, `CAT062_TIMING_UNSYNCED` | `timing_quality.sync_state` is that token, and degraded timing is not allowed |
-| `CAT062_TIMING_ABSENT` | no `timing_quality`, and degraded timing is not allowed |
-| `CAT062_TIMING_MALFORMED` | a `timing_quality` that is not a mapping, or a `sync_state` outside the schema's three tokens, whatever the allowance says |
+| `CAT062_TIMING_HOLDOVER`, `CAT062_TIMING_UNSYNCED` | the stated sync state is that token, from the event's `timing_quality.sync_state` or, for an event that carries no timing quality, from `sync_state_when_absent`, and `allow_holdover_or_unsynced` is `false` |
+| `CAT062_TIMING_ABSENT` | no `payload.timing_quality`, and either no `sync_state_when_absent` declared or timing quality at `payload.quality.timing_quality` or in `payload.quality`, whatever the allowance says |
+| `CAT062_TIMING_MALFORMED` | a `timing_quality` that is not a mapping, or a `sync_state` outside the schema's three tokens, whatever is declared |
 | `CAT062_TIME_UNPARSEABLE` | `event.ts` missing, or not an instant with an offset |
 | `CAT062_TRACK_UNMAPPED` | `track_id` missing, or not in the caller's map |
 | `CAT062_TRACK_NUMBER_INVALID` | the mapped number is not an integer from 0 to 65,535 |
@@ -259,7 +315,7 @@ never equal to the event (contract 4.5.1).
 | source identity | the source block has no item; I062/010 names the sender the deployment declares |
 | confidence | no item; CNF is the deployment's statement and is not derived from it |
 | lineage | `lineage.based_on` and `transform` have no item |
-| timing quality | `payload.timing_quality` has no item, and a locked claim does not export either. An event whose timing is in holdover, unsynchronized or absent is refused unless degraded timing is allowed, and a malformed `timing_quality` is refused whatever the allowance says; with the allowance, the record reads like one from a disciplined clock |
+| timing quality | `payload.timing_quality` has no item, and a locked claim does not export either. An event whose stated sync state is `HOLDOVER` or `UNSYNCED` is refused unless the configuration allows it, an event with no timing quality is refused unless the configuration states a sync state for it, and a malformed `timing_quality` is refused whatever is declared; an exported record reads like one from a disciplined clock, and no item says whether its sync state came from the event or from the deployment's declaration |
 | validity | `payload.valid_for_ms` has no item. The encoder has no clock and encodes a state whose validity has ended like any other, so the sending deployment must stop sending a track when its validity ends; the receiver ages a track by I062/070 under its own rules |
 | class | no item: I062/300 is a fixed table of airport vehicle types, and I062/380's emitter category is derived from the aircraft |
 | source summary, provenance, quality, extensions | no item; a declared 2-D position shows only as the absence of I062/130 |
@@ -278,7 +334,8 @@ never equal to the event (contract 4.5.1).
 
 `test_asterix_cat062_egress.py` holds two known-answer records computed by
 hand from the edition's layouts and LSBs in exact arithmetic, the FSPEC of
-each item set, a test for each rule and each refusal, and a check that the
+each item set, a test for each rule and each refusal, the timing gate as a
+table, a run of the usage example above as printed, and a check that the
 module imports only the standard library and its CoT sibling. A cross-check
 against `libasterix` runs when the environment variable `ASTERIX_SITE` names
 a directory holding the library's `asterix` package; it runs the library in a

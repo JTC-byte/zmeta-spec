@@ -477,17 +477,41 @@ ASTERIX CAT062 edition 1.21 egress adapter (`adapters/egress/asterix/`,
 Class C, Reference) on the maintainer's selection of that day: one
 `STATE_EVENT`/`TRACK_STATE` to one system track record, a data block
 builder, and no new dependency. Its README records each item's source,
-every refusal and the loss register. An event whose timing is in holdover,
-unsynchronized or absent is refused unless the caller passes
-`allow_degraded_timing=True`, and a malformed `timing_quality` is refused
-whatever the allowance says. Open before the next cut: the allowance split in
-two, a statement of the feed's timing status for events that carry none
-(contract 5.3) and an allowance for stated `HOLDOVER` and `UNSYNCED`, and
-moved into the declarations beside SAC and SIC (from the seeded review of
-2026-11-14, accepted by ZMeta and not built on the branch). Open behind it:
-an adapter for ADS-B observations as target reports, a later branch;
-I062/080's first extent, which would let a simulated track be marked; and the
-doctrine log's F11 entries. Not manifest-listed.
+every refusal and the loss register. As that branch built it, an event
+whose timing was in holdover, unsynchronized or absent was refused unless
+the caller passed `allow_degraded_timing=True`, and a malformed
+`timing_quality` was refused whatever the allowance said. The split booked
+here before the next cut, a statement of the feed's timing status for
+events that carry none (contract 5.3) and an allowance for stated
+`HOLDOVER` and `UNSYNCED`, both in the declarations beside SAC and SIC
+(from the seeded review of 2026-11-14, accepted by ZMeta), is built on the
+maintainer's selection of 2026-11-16, as the next paragraph records. Open
+from the branch: an adapter for ADS-B observations as target reports, a
+later branch; I062/080's first extent, which would let a simulated track be
+marked; and the doctrine log's F11-01 and F11-03, F11-02 being decided by
+the same selection. Not manifest-listed.
+
+The branch `wave/asterix-timing-split-2026-11` (2026-11-17) builds that
+split in Class C. The keyword `allow_degraded_timing` is removed, and a
+call that passes it raises `TypeError`. The configuration gains
+`sync_state_when_absent`, optional and exactly `LOCKED`, `HOLDOVER` or
+`UNSYNCED`, the sync state the deployment asserts for the node of an event
+that carries no timing quality (`LOCKED` or `HOLDOVER` only on a current
+TIME_STATUS from that node with that state, `UNSYNCED` for such a status or
+for none), and `allow_holdover_or_unsynced`, a required boolean that
+exports a stated `HOLDOVER` or `UNSYNCED`, whether the event or the
+statement states it. The statement applies only to an event with no timing
+quality at any of the three per-event paths the reference policy reads. The
+adapter reads only `payload.timing_quality`, so an event whose timing
+quality sits at `payload.quality.timing_quality` or in `payload.quality` is
+refused as absent whatever is declared. An event with no timing quality
+and nothing declared is refused whatever the allowance says; under the
+keyword of 2026-11-14 the allowance exported it. No refusal reason is
+added, and `ADAPTER_VERSION` stays 1.0.0. Not built, each a later change
+if wanted: a checked basis for the statement, which would bring a timing
+freshness threshold into the adapter and is the maintainer's to open; and
+reading the other two per-event paths as the gateway reads them, a larger
+change than the booking. Not manifest-listed.
 
 The branch `wave/precut-hash-note-2026-11` (2026-11-14) is a records
 correction. The gateway documents branch edited `policy/README.md`, and the

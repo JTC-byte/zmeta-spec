@@ -2,8 +2,9 @@
 
 ## Current Resume Note
 
-- Last updated: 2026-11-17 (the MAVLink ingress heading key under an
-  asserted frame; records after the messages-only reword:
+- Last updated: 2026-11-17 (the ASTERIX CAT062 egress's timing
+  allowance split into two declarations; the MAVLink ingress heading key
+  under an asserted frame; records after the messages-only reword:
   renamed commit ids cited with their new ids, the pre-cut findings'
   state; the CoT projection class's version scope
   names both branches; records: six lines name a read by its date
@@ -59,6 +60,57 @@
   three commits, the third on 2026-11-03; two contract sentences;
   carried-list records pass; heading_deg defined; records pass after 7.6;
   2026-10-02: the reference gateway keeps a bounded event index)
+- **2026-11-17 (the ASTERIX CAT062 egress's timing allowance split into
+  two declarations).** On the maintainer's selection of 2026-11-16, which
+  keeps the allowance and splits it as ZMeta booked it from the seeded
+  review of 2026-11-14. The one keyword covered two statements: a caller
+  that held a current locked TIME_STATUS for a node whose events carry no
+  timing quality (contract 5.3) could export them only by also exporting
+  events that state `HOLDOVER` or `UNSYNCED`. The keyword
+  `allow_degraded_timing` is removed from
+  `zmeta_state_to_asterix_cat062()`, and a call that passes it raises
+  `TypeError`. The configuration that `validate_asterix_config()` checks
+  gains two declarations beside SAC and SIC. `sync_state_when_absent` is
+  optional and takes exactly `LOCKED`, `HOLDOVER` or `UNSYNCED`, with no
+  case or whitespace folded; left out or null, it states nothing. It is the
+  sync state the deployment asserts for the node that produced an event
+  with no timing quality: `LOCKED` or `HOLDOVER` only on a current
+  TIME_STATUS from that node with that state, and `UNSYNCED` for such a
+  status or when it holds none; the adapter verifies none of it.
+  `allow_holdover_or_unsynced` is required, as no declaration has a
+  default, and takes only `true` or `false`; `true` exports an event whose
+  stated sync state is `HOLDOVER` or `UNSYNCED`, from the event or from the
+  statement. The statement applies only to an event with no timing quality
+  at any of the three per-event paths the reference policy reads
+  (`policy/semantics.yaml`). The adapter reads only
+  `payload.timing_quality`, so an event whose timing quality sits at either
+  other path is refused as `CAT062_TIMING_ABSENT` whatever is declared. An
+  event with no timing quality and nothing declared is refused whatever the
+  allowance says, a malformed `timing_quality` is refused whatever is
+  declared, and neither declaration opens the risk gate. Under a declared
+  `LOCKED` the record is byte for byte the record of the same event stating
+  `LOCKED`, and no item marks either declaration. No refusal reason is
+  added, and `ADAPTER_VERSION` stays 1.0.0, since the adapter is in no
+  release. `adapters/AUTHORING.md` and the adapter harness's own
+  `allow_degraded_timing`, an expectation about an `UNSYNCED` fallback in a
+  fixture's event, are unchanged. The README's usage example declares the
+  allowance and shows a configuration for a node whose locked TIME_STATUS
+  the deployment holds; its configuration table, Timing section, refusal
+  rows and loss register row say the above. The scratch run of 2026-11-14
+  was run again through the declarations, with the same result: with the
+  allowance false, all 809 STATE events of a downstream producer's recorded
+  run and all 1,680 projected from live ADS-B observations are refused as
+  `CAT062_TIMING_UNSYNCED`, and with it true all are encoded and parsed
+  back. Tests first: the configuration the tests use gains the allowance,
+  which the unchanged module refused as an unknown key, so nearly every
+  test in the file failed there. Every new and changed timing test failed
+  on it, and the one case that passed there, the old name refused in the
+  configuration as an unknown key, has a mutant that makes it fail. New
+  tests hold the gate as a table, the statement's limits, a call that
+  passes the removed keyword, the per-event paths the adapter does not
+  read, and the README's usage example run as printed. Doctrine F11-02 is
+  decided, and F11-03 carries a dated note. No schema, policy, contract,
+  conformance or manifest-listed file changes.
 - **2026-11-17 (the MAVLink ingress heading key under an asserted
   frame).** On the maintainer's selection of 2026-11-16, option A of
   pre-cut finding N6. `translate_platform_state()` wrote the retained
