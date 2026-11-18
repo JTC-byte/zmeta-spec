@@ -2,7 +2,8 @@
 
 ## Current Resume Note
 
-- Last updated: 2026-11-18 (three guidance entries' gateway citations
+- Last updated: 2026-11-18 (the gateway's requirements bound cbor2
+  below 6.2; three guidance entries' gateway citations
   moved onto their first text; the MAVLink ingress's older heading
   passages and the JREAP template's MAVLink citation; 2026-11-17: the
   ASTERIX CAT062 egress's timing
@@ -66,6 +67,22 @@
   carried-list records pass; heading_deg defined; records pass after 7.6;
   2026-10-02: the reference gateway keeps a bounded event index;
   2026-10-01: the reference gateway holds a command's `task_id` for its whole validity)
+- **2026-11-18 (the gateway's requirements bound cbor2 below 6.2).**
+  Found by ZMeta in the develop CI run 44356594323 of 2026-11-18. Besides the five
+  release-pin tests, one subtest failed there and nowhere else:
+  `tag5_decimal_nan` in `gateway/tests/test_non_finite_value_scoped.py`,
+  whose refusal read "error decoding bigfloat: mantissa must be an
+  integer, not <class 'float'>" and named neither place nor cause.
+  `gateway/requirements.txt` named `cbor2` unversioned; CI installed
+  6.3.0, the workstation has 6.1.2. Measured in throwaway virtual
+  environments: the test file passes under 6.1.2 and 6.1.5 and fails that
+  subtest alone under 6.2.0, 6.2.1 and 6.3.0, because those releases
+  decode tag 5 themselves and raise before the gateway's value-model scan.
+  The requirement now reads `cbor2>=6.1.2,<6.2`. The alternative, a
+  refusal that names the place under the newer releases, changes
+  `gateway/src/gateway.py`, whose line count is pinned because the
+  guidance file cites it by line; it is booked as its own unit, and the
+  bound is raised after it lands.
 - **2026-11-18 (three guidance entries' gateway citations moved onto their
   first text).** The command dedupe's merge of 2026-11-17 left four
   guidance references and the `COMMAND_EVIDENCE_UNRESOLVED` citation for a
