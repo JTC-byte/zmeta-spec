@@ -36,7 +36,89 @@ ROOT = Path(__file__).resolve().parents[2]
 # object-not-knowledge sentence, new section 21.8 defines declared geo
 # dimensionality, and the section 21 preamble defers extension maturity to
 # the registry. The locked v1.0 sections are untouched by that edit.
-CONTRACT_SHA256 = "eb405618a2cbc1421f0947271f75a5b2716a9d7428d5ae9fe10c0963733048d4"
+# Contract anchor moved 2026-10-07 on the maintainer's go of 2026-10-07 (the
+# conformance-class name): the section 22 class table names
+# ZMETA-GATEWAY-REFERENCE, the id the conformance manifest defines, in place
+# of ZMETA-GATEWAY. One table cell (the class id); no rule text, no section
+# 4 invariant and no class scope text changed.
+# Contract anchor moved 2026-10-27 on the maintainer's go of 2026-10-27 (the
+# last_seen_ts definition, his decision 4 of 2026-10-25 and his contract 2.1
+# patch concurrence of 2026-10-27): section 7.6's Fusion rules gain one bullet
+# defining `last_seen_ts`, a field 7.6 lists and no text defined. It tightens
+# conformance around the reference projector's shipped in-order behaviour;
+# no other rule text, no section 4 invariant and no schema byte changed.
+# Contract anchor moved 2026-11-02 on the maintainer's word of 2026-11-02 (the
+# heading_deg definition: his selection of course over ground on 2026-10-28
+# and of its wording on 2026-11-02, under his contract 2.1 patch reading):
+# section 6.4 gains one paragraph defining `heading_deg` as the course over
+# ground, a member 7.6 and 7.7 list whose frame and range 6.4 gave and whose
+# angle (motion or body) no text named. It narrows which true-north angle the
+# member is, the meaning the reference projector and the egress adapters
+# already carry; no other rule
+# text, no section 4 invariant and no schema byte changed.
+# Contract anchor moved 2026-11-02 (second and third moves of the day) on the
+# maintainer's selections of 2026-11-02: section 4.5.1 gains one bullet (an
+# admission cap under a declared mode is a 4.2 projection that keeps the
+# event_id, provided the policy-scoped record names the mode and carries the
+# replaced values; a record lacking either makes it a replacement; doctrine
+# F4-04), section 7.8 one last command rule (the validity window begins at
+# valid_from_ts when present, otherwise at event.ts, and ends valid_for_ms
+# after that start; handoff gap (x)), and section 4.3 one clause (for a
+# command with valid_from_ts, event.ts is its issue time). Each decides a
+# case the text left open; section 4.5.1 gains one rule and 4.3 one clause,
+# every other section 4 text is unchanged, and no schema byte changed.
+# Contract anchor moved 2026-11-10 on the maintainer's selection of that day:
+# section 3.5 gains one paragraph of two sentences. A JSON text in which one
+# object repeats a member name, at any depth, does not decode to one canonical
+# event and is not a valid encoded event; a decoder that keeps one of the
+# repeated values chooses a reading the text does not state. It states for
+# every implementation the rule the reference decoders have applied since
+# 2026-11-02 (doctrine F7-01), under the contract's own trigger for a
+# clarification (section 2.6: two compliant implementations can interpret the
+# same event differently). No other contract text and no schema byte changed.
+# Contract anchor moved 2026-11-10 (the second move of the day) on the
+# maintainer's selection of that day: the section 7.7 list of prohibited state
+# payload fields gains one name, `observed_at`. Section 7.7 already forbade
+# observation timestamps in a STATE_EVENT payload as a category; the list of
+# names says "include" and did not hold this one, so the reference check,
+# which enforces the list, passed it. The name joins the contract's list and
+# the policy's in the same change, as a patch that tightens conformance around
+# already-defined semantics (section 2.1). No other contract text and no schema
+# byte changed.
+# Contract anchor moved 2026-11-11 on the maintainer's selection of that day:
+# the same section 7.7 list gains `last_seen_ts`. Section 7.6 defines it as the
+# `event.ts` of the latest contributing observation, so it is an observation
+# timestamp, which 7.7 already forbade in a STATE_EVENT payload as a category;
+# the list did not name it, so the reference check passed a STATE that carried
+# it. It stays a required FUSION_EVENT member. The name joins the contract's
+# list and the policy's in the same change, under section 2.1 as before. No
+# other contract text and no schema byte changed.
+# Contract anchor moved 2026-11-11 (the second move of the day) on the
+# maintainer's selection of that day: section 4.2 gains three lines after
+# "Such projections preserve the original `event_id`.", pointing to the
+# section 4.5.1 bullet that makes a reduction of `confidence` or
+# `valid_for_ms` applied at admission under a declared degrade or quarantine
+# mode a projection of the same event, on the condition stated there. Taken
+# alone, 4.2 could be read as making such a cap a replacement that needs a
+# new event; the two sections now read alike (doctrine F4-04). A
+# clarification under section 2.1 that changes no rule. No other contract
+# text and no schema byte changed.
+# Contract anchor moved 2026-11-12 on the maintainer's selection of that day
+# (a contract 2.1 patch): section 7.8 gains one bullet after its last command
+# rule. A same-event projection of a command MUST NOT omit or alter a
+# `payload.valid_from_ts` the source wrote; the permissions of sections 4.2,
+# 4.7, 8.4, 10.4 and 18.2 to remove optional fields or reduce precision do not
+# reach this member, and a conversion into a native command channel (section
+# 15) is not such a projection. The projection catalog has held the member
+# never_mutable since 2026-11-02; the bullet states that rule in the contract.
+# No other contract text and no schema byte changed.
+CONTRACT_SHA256 = "3edd1bc5c054a09f0dff8ebbc084fef92d5713c99b1d29e2f7d218f02640c0f5"
+# The v1.0 reason-code enum stays locked (adjudication of 2026-08-09): the code
+# DECODE_AMBIGUOUS of 2026-11-02 (doctrine F7-01) lives in the 1.1.0 enum only and
+# rides the v1.0 wire as SCHEMA_INVALID with the minted code in
+# metrics.diagnostic_code (policy schema_violation_v1_0_wire_fallback), the route
+# the maintainer selected on 2026-11-02; this anchor returned to 1d2d8416 in the
+# branch's second commit after the first had moved it.
 V1_0_SCHEMA_SHA256 = "1d2d84164b3a8986874e932c0e9369be3bf392a483a8ff261d464f34bd16d7b5"
 
 # Embedded verbatim from the v1.0.5 tag's example corpus. Pre-lock history:

@@ -2,6 +2,7 @@ import copy
 import math
 from collections.abc import Mapping, Sequence
 from collections.abc import Set as AbstractSet
+from datetime import datetime, timezone
 from decimal import Decimal
 
 # Text leaves are Sequences, so they have to be excluded before the Sequence
@@ -129,10 +130,42 @@ def _risk_adjudication_records(payload):
     return []
 
 
+def _parse_utc(ts):
+    # A copy of the SAPIENT command egress's reader, _parse_utc in
+    # adapters/egress/sapient/zmeta_command_to_sapient_task.py. The adapters
+    # do not import each other, so the reader is copied. test_mavlink_intent.py
+    # holds the two copies to the same code, comments aside, and the two
+    # egresses to the same refusals on its window cases A to H, so a change
+    # to one copy fails there until the other follows.
+    if not isinstance(ts, str):
+        # TypeError so the caller's documented None-refusal path handles a
+        # non-string ts; bare .endswith would raise AttributeError past it.
+        raise TypeError(f"ts must be a string, got {type(ts).__name__}")
+    if ts.endswith("Z"):
+        ts = ts[:-1] + "+00:00"
+    parsed = datetime.fromisoformat(ts)
+    if parsed.tzinfo is None:
+        # Gate-clean does not mean offset-carrying: "1969-12-31Z" and
+        # "2026-W01-1Z" satisfy the schema's `Z$` pattern yet parse NAIVE,
+        # and `.astimezone()` on a naive datetime asks the PLATFORM -
+        # silent host-local reinterpretation (a fabricated instant) or
+        # OSError pre-epoch on Windows. ValueError so the caller's
+        # documented None-refusal path handles it (same closure as the
+        # CoT/JREAP siblings, 2026-07-27).
+        raise ValueError(f"ts parses without a UTC offset: {ts!r}")
+    return parsed.astimezone(timezone.utc)
+
+
 def zmeta_command_to_mission_intent(event, allow_flagged=False):
     """
     Convert a ZMeta COMMAND_EVENT to a MissionIntent dict.
     Returns None if the input is not a COMMAND_EVENT or missing required fields.
+    Also returns None for a command whose validity window the intent cannot
+    hand on (contract 7.8; see the check before the return): a
+    payload.valid_from_ts later than event.ts, a valid_from_ts this egress
+    cannot read, or a valid_from_ts beside an event.ts that is absent or
+    cannot be read. A command without valid_from_ts, or with a null one, is
+    translated as before.
 
     Fail-closed by default: a COMMAND_EVENT carrying a gateway-stamped
     payload.extensions.risk_adjudication record (a soft-accepted command,
@@ -225,5 +258,30 @@ def zmeta_command_to_mission_intent(event, allow_flagged=False):
     # the one conduit that guarantee did not cover.
     if _contains_altitude(mission):
         raise ValueError("mission intent must not carry altitude fields")
+
+    # Contract 7.8: a command's validity window begins at
+    # payload.valid_from_ts when present, otherwise at event.ts, and ends
+    # valid_for_ms after that start. The intent carries valid_for_ms and no
+    # anchor, so a receiver can only start the duration at receipt, and a
+    # window that opens after event.ts would start before it opens. Such a
+    # command is refused (None) by the SAPIENT sibling's rule: the
+    # comparison is strict, so a start equal to event.ts goes out. A
+    # valid_from_ts this egress cannot read, or one beside an event.ts it
+    # cannot read, is a window it cannot place, refused the same way. A
+    # command without valid_from_ts reads no time and goes out as before,
+    # and no clock is read. A null valid_from_ts is read as absent, as the
+    # SAPIENT sibling reads it; the schemas refuse a null at the gateway. A
+    # window that opened at or before event.ts goes out with valid_for_ms
+    # and no anchor, a window that closed before event.ts included. The
+    # check runs last, so a command that raises above still raises.
+    valid_from_ts = payload.get("valid_from_ts")
+    if valid_from_ts is not None:
+        try:
+            start_dt = _parse_utc(valid_from_ts)
+            time_dt = _parse_utc(event.get("event", {}).get("ts"))
+        except (ValueError, TypeError, OverflowError, OSError):
+            return None
+        if start_dt > time_dt:
+            return None
 
     return mission

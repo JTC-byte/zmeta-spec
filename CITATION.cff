@@ -7,8 +7,8 @@ authors:
 license: Apache-2.0
 repository-code: "https://github.com/JTC-byte/zmeta-spec"
 url: "https://github.com/JTC-byte/zmeta-spec"
-version: "1.1.26"
-date-released: "2026-09-29"
+version: "1.1.27"
+date-released: "2026-10-27"
 abstract: >-
   ZMeta is a free, open, transport-agnostic semantic standard for resilient
   ISR. It defines one event model, with governed validation, lineage, timing

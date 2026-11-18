@@ -644,5 +644,38 @@ class CdsPublicSchemaTest(unittest.TestCase):
                 self.assertTrue(schema.validate(doc), [str(e) for e in schema.error_log])
 
 
+class ProjectionGuardsTest(unittest.TestCase):
+    """The 2026-10-23 guards run on the standard path before the cds
+    reduction, so the profile inherits them. Run against develop d1a503d
+    with only DEFAULT_MAX_NAME_CHARS defined there, the guard tests failed and
+    the boundary case passed, as the positive control."""
+
+    def test_an_out_of_range_position_refuses(self):
+        for lat, lon in ((91.0, 181.0), (-90.5, 0.0), (0.0, 180.5)):
+            with self.subTest(lat=lat, lon=lon):
+                self.assertIsNone(render(vessel_event(**{"payload.geo.lat": lat, "payload.geo.lon": lon})))
+
+    def test_a_boundary_position_renders(self):
+        xml = render(vessel_event(**{"payload.geo.lat": 90.0, "payload.geo.lon": -180.0}))
+        self.assertIsNotNone(xml)
+        point = parsed(xml).find("point")
+        self.assertEqual((90.0, -180.0), (float(point.get("lat")), float(point.get("lon"))))
+
+    def test_a_name_longer_than_the_bound_refuses(self):
+        bound = cot.DEFAULT_MAX_NAME_CHARS
+        for field in ("payload.callsign", "payload.track_id"):
+            with self.subTest(field=field):
+                self.assertIsNone(render(vessel_event(**{field: "n" * (bound + 1)})))
+                self.assertIsNotNone(render(vessel_event(**{field: "n" * bound})))
+
+    def test_the_name_bound_is_a_known_cds_key(self):
+        # The vessel's uid is 17 characters, so the bound must admit it.
+        config = dict(CDS, max_name_chars=20)
+        self.assertEqual("cds", cot.validate_cot_config(config))
+        self.assertIsNone(render(vessel_event(**{"payload.callsign": "c" * 21}), config))
+        self.assertIsNotNone(render(vessel_event(**{"payload.callsign": "c" * 20}), config))
+        self.assertIsNone(render(vessel_event(), dict(CDS, max_name_chars=16)))
+
+
 if __name__ == "__main__":
     unittest.main()

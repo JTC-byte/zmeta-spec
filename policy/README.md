@@ -2,6 +2,11 @@
 
 Policy-as-config rules used by the reference gateway for enforcement.
 
+The gateway's runtime policy hash covers every file in this directory,
+this README included (`gateway/src/gateway.py`, `_hash_dir`), so an edit
+to this README changes the policy hash and every contract hash built from
+it, with no rule changed.
+
 Files:
 - `roles.yaml` allowed event types per node_role
 - `profiles.yaml` allowed event types per profile
@@ -97,7 +102,14 @@ Notes:
 - Tunable policy modes must not bypass the semantic contract. Soft acceptance
   should carry `risk_dimension`, `policy_mode`, `policy_decision`, policy
   reference, allowed/prohibited uses, and applied effects when data is still
-  forwarded.
+  forwarded. The reference gateway writes that record as one entry of
+  `payload.extensions.risk_adjudication`. When a degrade or quarantine mode
+  caps or reduces a value, the record's `effects` carries the values it
+  replaced as `confidence_claimed`, `valid_for_ms_claimed` or both, which keeps
+  the event's `event_id` under contract 4.5.1, and the external-promotion degrade
+  mode names a reduction factor it declined under `reduction_declined`. The
+  producer's own figure is the claimed value in the first record that
+  carries the member (`gateway/README.md`, Admission records).
 - Use `python tools/lint_policy_risk_modes.py` after policy edits. The lint
   flags `ignore` on material timing, lineage, external-promotion, command,
   trust, or safety risk; the reference policy only allows `ignore` for the

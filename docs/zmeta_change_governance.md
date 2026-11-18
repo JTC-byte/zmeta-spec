@@ -158,8 +158,9 @@ Requirements:
 
 - update docs explaining the changed rule;
 - update conformance fixtures and focused tests;
-- regenerate `release/zmeta-release-manifest.yaml` when any manifest-listed
-  artifact changes;
+- regenerate `release/zmeta-release-manifest.yaml` at the next cut when any
+  manifest-listed artifact changes, and until then say in the commit body
+  that its pins are stale (Branching, below);
 - update example claim hashes when the release manifest builder requires it;
 - update `CHANGELOG.md`, worklog, and handoff;
 - run full kernel conformance and relevant focused tests.
@@ -283,7 +284,9 @@ Three kinds of branch, with one direction of flow between them.
   release cut from `develop`.
 - `develop` is the integration line. Experimental branches merge into it for
   integration testing against the full gate battery, and a release cut is
-  taken from it. `develop` is expected to be green but is not published.
+  taken from it. `develop` is expected to be green apart from the release
+  manifest's pins, which stay stale between cuts (below), and is not
+  published.
 - One branch per experiment or wave, named `exp/<name>` for experimental
   vocabulary and tooling (a versioned-branch candidate, a new modality, a
   diagnostics change under trial) and `wave/<name>` for a governed wave
@@ -300,11 +303,12 @@ integration is reverting the merge on `develop`; the live line is never the
 place a rollback is discovered to be needed.
 
 Release manifest, checksums, and claims are regenerated at the cut on
-`develop` and travel into `main` with it; an experimental branch that
-changes a manifest-listed artifact leaves the manifest stale on purpose and
-says so in its commit body, so the gate reads red on that branch for the
-manifest pins alone. That is the expected state of an unreleased branch,
-not a defect.
+`develop` and travel into `main` with it; an experimental or wave branch
+that changes a manifest-listed artifact leaves the manifest stale on
+purpose and says so in its commit body, so the gate reads red on that
+branch for the manifest pins alone. That is the expected state of an
+unreleased branch, not a defect. After the merge, `develop` reads the same
+pins red until the next cut regenerates the manifest.
 
 Pushing any branch, creating tags, and publishing remain human actions
 (AGENTS.md release limits). An agent creates and commits on local branches
@@ -338,7 +342,8 @@ the existing changes or ask before changing overlapping files.
 3. Add or update machine-checkable fixtures.
 4. Add or update tests.
 5. Update docs and changelog.
-6. Regenerate release manifest and claim hashes if governed artifacts changed.
+6. If governed artifacts changed, leave the release manifest and claim hashes
+   stale, say so in the commit body, and regenerate them at the next cut.
 7. Run validation.
 8. Update worklog and handoff with exact commands and results.
 
@@ -374,7 +379,7 @@ When manifest-listed artifacts change, rebuild with explicit metadata for the
 current release baseline:
 
 ```powershell
-python tools\build_release_manifest.py --release-id zmeta-v1.1.26 --release-name "ZMeta v1.1.26" --release-status formal_release --release-date 2026-09-29 --branch main --update-claims
+python tools\build_release_manifest.py --release-id zmeta-v1.1.27 --release-name "ZMeta v1.1.27" --release-status formal_release --release-date 2026-10-27 --branch main --update-claims
 python tools\validate_release_manifest.py --manifest release\zmeta-release-manifest.yaml
 ```
 

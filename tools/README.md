@@ -103,7 +103,7 @@ is intentionally enabled.
 ### Check Migration Compatibility
 
 ```
-python tools/check_compat.py legacy-events.jsonl --target v1.1.26
+python tools/check_compat.py legacy-events.jsonl --target v1.1.27
 python tools/check_compat.py legacy-events.jsonl --profile L --policy-dir policy
 python tools/check_compat.py legacy-events.jsonl --json
 ```
@@ -113,6 +113,38 @@ subtype vocabulary mismatches, v1.1-only vocabulary used without
 `zmeta_version: "1.1.0"`, missing or degraded timing quality, producer-authority
 misses, profile violations, and CoT projection blockers as separate categories.
 Use it before strict validation when integrating older producers.
+
+A JSON text in which one object repeats a member name is not a valid encoded
+event (contract 3.5). `check_compat.py` reports such a text under the category
+`decode` as `DECODE_AMBIGUOUS` and does not read it to its last value. A
+`.json` document is one JSON text, so one repeated member anywhere in it
+refuses the whole document, reported at line 1; a `.jsonl` file is refused
+line by line.
+`validate.py` and `validate_examples.py` fail the line the same way, and
+`validate_bad_events.py` and `validate_conformance.py` refuse a fixture file
+that carries such a line.
+
+The other reference readers of events and fixtures refuse such a text too.
+`compat_normalize.py` lists the line under `rejected` with the code
+`DECODE_AMBIGUOUS` and writes no output, and it refuses a `.json` document
+whole. `filter_risk.py` stops with the file and line and exits 1, as it does
+for a line that is not JSON. `measure_packet_size.py` refuses the measurement
+with the file and line. `check_adapter.py` reports the line in its fixture
+lint. `validate_adapter_conformance.py`, `validate_encoding_negative.py` (its
+fixture and context files), `validate_precision_policy.py` and
+`validate_projection.py` print `FAIL DECODE_AMBIGUOUS` with the file and
+line and fail the run. The gateway's self-test stops with
+`self-test failed: DECODE_AMBIGUOUS` and the name of its shipped example
+file if that file repeats a member; in a full checkout the example
+validator, which the self-test runs first, refuses the file before that.
+Among the development harnesses, `sim/two_node.py` checks every corpus line
+and `sim/throughput.py` the lines it reads up to its template event; each
+reports a line that repeats a member as `VERDICT: INVALID` with the file
+and line and exits 2 before any node starts, and `sim/two_node.py`
+counts a received datagram that repeats one as `ambiguous` and does not
+read it; `test_workflow_end_to_end.py` stops on a forwarded datagram that
+repeats one. Schema files, the gateway's config file and other repository
+JSON that is not an event or a fixture are read as before.
 
 ### Filter Accepted-Risk Streams
 
@@ -184,11 +216,32 @@ python tools/validate_conformance.py --kernel-gate
 The optional flags validate governed support surfaces without changing default
 strict validation. Use the full command above before publishing a release.
 
+Every stage the command is asked for runs, in order: the must-pass and
+must-fail fixtures, then each sub-check. A failing stage does not stop the
+stages after it. When any stage fails, the last line begins
+`conformance stages:` and names every stage that ran, each `ok` or
+`FAIL (exit N)`, and the command exits with the first failing stage's code. A
+stage that raises still ends the run, with its traceback and status 1, before
+that line is printed. A passing run ends with `conformance ok pass=N fail=M`,
+as before. Between cuts,
+`--kernel-gate` on `develop` or on a branch reads `release_manifest` and
+`release_package` as failing, for the stale manifest's pins
+(`docs/zmeta_change_governance.md`, Branching), and every other stage reads
+`ok`. `gateway/tests/test_kernel_gate_runs_every_stage.py` holds the red to
+the pins: when the gate is red, it fails unless the failing stages are within
+`release_manifest` and `release_package` and every line that begins `FAIL `
+is a hash mismatch of a failing one of them. A branch that renames or removes
+a manifest-listed file turns that test red until the cut, because the gate
+reports the listed file missing. Until 2026-11-14 the command stopped at its
+first failing stage, so on such a tree the stages after the manifest pins did
+not run.
+
 Additional focused conformance validators:
 
 ```
 python tools/validate_bad_events.py --must-fail conformance/bad-events/must-fail.jsonl
 python tools/validate_adapter_conformance.py --fixtures conformance/adapter-harness/must-pass.jsonl
+python tools/validate_cot_golden.py
 ```
 
 `validate_bad_events.py` proves dishonest or unsafe semantic examples are not
@@ -198,6 +251,9 @@ layer separation, UTC-Z timestamps, lineage, promotion evidence, and exact
 output values pinned by per-fixture `expected_values` maps (numeric values
 compare within a 1e-6 absolute tolerance; a boolean never matches a
 non-boolean, so a `true` pin cannot be satisfied by `1`/`1.0` output).
+`validate_cot_golden.py` projects every case of
+`conformance/cot-golden/golden.jsonl` with the reference CoT projection and
+compares the result byte for byte with the golden string or refusal.
 
 ### Check An Adapter (One Command)
 
@@ -268,8 +324,8 @@ replaceable files are fixed.
 ```
 python tools/build_release_manifest.py --output release/zmeta-release-manifest.yaml
 python tools/validate_release_manifest.py --manifest release/zmeta-release-manifest.yaml
-python tools/build_release_package.py --manifest release/zmeta-release-manifest.yaml --output-dir release/package-v1.1.26 --release-id zmeta-v1.1.26 --release-state formal_release --no-signatures --release-notes release/RELEASE_NOTES_v1.1.26.md
-python tools/validate_release_package.py --manifest release/zmeta-release-manifest.yaml --package-dir release/package-v1.1.26
+python tools/build_release_package.py --manifest release/zmeta-release-manifest.yaml --output-dir release/package-v1.1.27 --release-id zmeta-v1.1.27 --release-state formal_release --no-signatures --release-notes release/RELEASE_NOTES_v1.1.27.md
+python tools/validate_release_package.py --manifest release/zmeta-release-manifest.yaml --package-dir release/package-v1.1.27
 python tools/validate_release_package.py --manifest release/zmeta-release-manifest.yaml --templates-only
 ```
 

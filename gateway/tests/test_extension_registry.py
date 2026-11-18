@@ -294,3 +294,154 @@ def test_a_reserved_feature_contract_member_that_a_schema_declares_is_refused(tm
     hits = [i for i in issues if i["code"] == "REGISTRY_RESERVED_SCHEMA_LEAK" and i.get("entry") == "ACOUSTIC_PRESSURE_LEVEL"]
     assert hits, issues
     assert any("pressure_pa" in i["message"] for i in hits), hits
+
+
+def _entry(name):
+    for entry in load_registry()["entries"]:
+        if entry["name"] == name:
+            return entry
+    raise AssertionError(f"{name} is not in the registry")
+
+
+def _both_schemas():
+    return (
+        validate_extension_registry._schema_validator(ROOT / "schema" / "zmeta-event-1.0.schema.json"),
+        validate_extension_registry._schema_validator(ROOT / "schema" / "zmeta-event-1.1.0.schema.json"),
+    )
+
+
+def test_open_source_content_is_a_rejected_modality_and_no_schema_admits_it():
+    # Rejected 2026-11-10. What a lookup of an identifier in open sources
+    # yields is an inference with a receipt observation behind it, not a
+    # modality. The validator's leak probe runs for reserved and proposed
+    # entries only, so this test is what holds a rejected name out of both
+    # schemas.
+    entry = _entry("OSINT")
+    assert entry["status"] == "rejected"
+    assert entry["category"] == "observation_modality"
+    assert entry["review_state"] == "approved"
+    # The validator does not check a name in allowed_event_types against the
+    # event-type vocabulary, so the empty list is pinned here.
+    assert entry["allowed_event_types"] == []
+
+    schema_v1, schema_v1_1 = _both_schemas()
+    probe = validate_extension_registry.observation_event
+    valid = validate_extension_registry._schema_valid
+    # The probe validates for a live modality, so the refusals below belong
+    # to the name and not to the probe's shape.
+    assert valid(probe("RF", "1.0"), schema_v1)
+    assert valid(probe("RF", "1.1.0"), schema_v1_1)
+    assert not valid(probe("OSINT", "1.0"), schema_v1)
+    assert not valid(probe("OSINT", "1.1.0"), schema_v1_1)
+
+
+def test_external_records_collection_is_a_reserved_task_name_and_no_schema_admits_it():
+    # Reserved 2026-11-10. The name is held for a task addressed to a
+    # collector through the command path; it is not task vocabulary.
+    entry = _entry("COLLECT_EXTERNAL_RECORDS")
+    assert entry["status"] == "reserved"
+    assert entry["category"] == "command_task_type"
+    assert entry["allowed_event_types"] == ["COMMAND_EVENT"]
+    assert entry["risk_relevant"] is True
+    assert entry["security_privacy_notes"], "a risk-relevant entry states its security and privacy notes"
+    assert entry["profile_projection_behavior"] == "future_branch_required"
+    assert entry["schema_status"] == "none"
+    assert entry["introduced_in"] is None
+
+    schema_v1, schema_v1_1 = _both_schemas()
+    probe = validate_extension_registry.command_event
+    valid = validate_extension_registry._schema_valid
+    # The probe validates for a live task type in each branch (HOLD in 1.0,
+    # RETURN_TO_BASE in 1.1.0), so the refusals below belong to the name and
+    # not to the probe's shape.
+    assert valid(probe("HOLD", "1.0"), schema_v1)
+    assert valid(probe("RETURN_TO_BASE", "1.1.0"), schema_v1_1)
+    assert not valid(probe("COLLECT_EXTERNAL_RECORDS", "1.0"), schema_v1)
+    assert not valid(probe("COLLECT_EXTERNAL_RECORDS", "1.1.0"), schema_v1_1)
+
+
+def _status_counts_stated(text):
+    """The counts the ontology reference states: (total, {status: count})."""
+    import re
+
+    flat = " ".join(text.split())
+    match = re.search(r"Today's (\d+) entries split ([^.]+)\.", flat)
+    assert match, "the ontology reference no longer carries the sentence \"Today's N entries split ...\""
+    stated = {status: int(count) for count, status in re.findall(r"(\d+) ([a-z]+)", match.group(2))}
+    return int(match.group(1)), stated
+
+
+def test_the_ontology_reference_states_the_registry_counts_as_they_are():
+    # The sentence is a hand-written count of a moving fact. It read 68
+    # entries while the registry held 70 for the length of one edit on
+    # 2026-11-10, which is the failure this test was seen to catch.
+    from collections import Counter
+
+    entries = load_registry()["entries"]
+    actual = Counter(entry["status"] for entry in entries)
+    text = (ROOT / "docs" / "zmeta_ontology_reference.md").read_text(encoding="utf-8")
+    total, stated = _status_counts_stated(text)
+    assert total == len(entries)
+    assert stated == dict(actual)
+    assert sum(stated.values()) == total
+
+
+def test_the_count_readers_read_sentences_that_wrap_across_lines():
+    total, stated = _status_counts_stated(
+        "ladder. Today's 3 entries split 2 reserved,\n1\nrejected. The two adopted"
+    )
+    assert total == 3
+    assert stated == {"reserved": 2, "rejected": 1}
+    assert _probe_counts_stated("allowed event type, 4 of the\n9 reserved and\nproposed entries; names") == (4, 9)
+
+
+def _probe_counts_stated(text):
+    """What the ontology reference says the leak probe runs on: (probed, reserved and proposed)."""
+    import re
+
+    flat = " ".join(text.split())
+    match = re.search(r"(\d+) of the (\d+) reserved and proposed entries", flat)
+    assert match, "the ontology reference no longer says how many reserved and proposed entries the leak probe runs on"
+    return int(match.group(1)), int(match.group(2))
+
+
+def _names_the_leak_probe_runs_on():
+    """The reserved and proposed entries for which the validator builds a probe.
+
+    The validator's own function runs with its schema check wrapped, so the
+    count follows what the validator does and not a copy of its predicates.
+    """
+    schema_v1, schema_v1_1 = _both_schemas()
+    pending = [e for e in load_registry()["entries"] if e["status"] in ("reserved", "proposed")]
+    calls = []
+    real = validate_extension_registry._schema_valid
+
+    def counting(event, validator):
+        calls.append(1)
+        return real(event, validator)
+
+    probed = []
+    validate_extension_registry._schema_valid = counting
+    try:
+        for entry in pending:
+            calls.clear()
+            validate_extension_registry._entry_context_checks(entry, schema_v1, schema_v1_1)
+            feature_scopes = [s for s in (entry.get("payload_scope") or []) if str(s).startswith("payload.features.")]
+            if calls or (entry["category"] == "observation_feature_contract" and feature_scopes):
+                probed.append(entry["name"])
+    finally:
+        validate_extension_registry._schema_valid = real
+    return probed, len(pending)
+
+
+def test_the_ontology_reference_states_how_many_names_the_leak_probe_runs_on():
+    # The sentence read 18 of 46 after the registry had grown to 47 reserved
+    # and proposed entries. An independent review of 2026-11-10 found it, and
+    # this test failed on it before the sentence was corrected.
+    probed, pending = _names_the_leak_probe_runs_on()
+    text = (ROOT / "docs" / "zmeta_ontology_reference.md").read_text(encoding="utf-8")
+    assert _probe_counts_stated(text) == (len(probed), pending)
+    # The wrapped check saw the two names the paragraph relies on, so an empty
+    # or miscounted list cannot pass.
+    assert "SEARCH_PATTERN" in probed
+    assert "COLLECT_EXTERNAL_RECORDS" in probed

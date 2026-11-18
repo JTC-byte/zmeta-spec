@@ -35,6 +35,9 @@ version-discriminated schema plus policy pack:
 - `encoding-negative/`: compact/protobuf invalid-after-decode fixture suites.
 - `bad-events/`: semantic bad-event fixtures for dishonest or unsafe events
   that must not be treated as clean data.
+- `cot-golden/`: what the reference CoT projection gives for every example
+  STATE event under the `standard` and `cds` profiles, the CoT XML or a
+  refusal, checked byte for byte by `tools/validate_cot_golden.py`.
 - `adapter-harness/`: fixture-driven adapter output checks for schema/policy
   validity, layer separation, UTC-Z timestamps, lineage, and external promotion.
 - `profile-precision/`: source/projected fixtures for Profile L/M/H precision

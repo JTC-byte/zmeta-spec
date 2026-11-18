@@ -364,7 +364,7 @@ class_records:
     status: implemented
     version_scope: ["1.0"]
     description: Experimental protobuf wire projection that decodes to canonical JSON before semantic validation.
-    required_encoding_surfaces: ["zmeta_proto.py", "schema/proto/zmeta_event_v1.proto", "spec/protobuf-encoding.md"]
+    required_encoding_surfaces: ["zmeta_proto.py", "zmeta_decode_guard.py", "schema/proto/zmeta_event_v1.proto", "spec/protobuf-encoding.md"]
     required_conformance_fixtures: ["examples/encoding-roundtrip.jsonl", "conformance/profile-projection/must-pass.jsonl", "conformance/profile-projection/must-fail.jsonl", "conformance/encoding-negative/protobuf-must-fail.jsonl", "conformance/encoding-negative/gateway-must-fail.jsonl"]
     required_test_commands: ["python -m pytest -q gateway/tests/test_encoding_roundtrip.py gateway/tests/test_profile_projection_encoding.py", "python tools/validate_encoding_negative.py --compact conformance/encoding-negative/compact-must-fail.jsonl --protobuf conformance/encoding-negative/protobuf-must-fail.jsonl --gateway conformance/encoding-negative/gateway-must-fail.jsonl"]
     dependencies: ["ZMETA-CORE", "ZMETA-PROJECTION-PRESERVATION"]
@@ -389,11 +389,11 @@ class_records:
     class_id: ZMETA-COT-PROJECTION
     display_name: CoT/TAK Projection
     status: implemented
-    version_scope: ["1.0"]
-    description: CoT/TAK state egress projection plus CoT ingress treatment as external report evidence unless Section 4.5.1 promotion policy authorizes STATE_EVENT output; evidence includes adapter-specific tests and the shared adapter harness.
+    version_scope: ["1.0", "1.1.0-experimental"]
+    description: CoT/TAK state egress projection plus CoT ingress treatment as external report evidence unless Section 4.5.1 promotion policy authorizes STATE_EVENT output; evidence includes adapter-specific tests, the shared adapter harness, and the golden CoT outputs of conformance/cot-golden.
     required_adapter_surfaces: ["adapters/egress/cot/zmeta_to_cot.py", "adapters/ingress/cot/cot_to_zmeta_template.py", "adapters/egress/cot/test_zmeta_to_cot.py", "adapters/ingress/cot/test_cot_ingress.py"]
-    required_conformance_fixtures: ["conformance/adapter-harness/must-pass.jsonl"]
-    required_test_commands: ["python -m pytest -q adapters/egress/cot adapters/ingress/cot", "python tools/validate_adapter_conformance.py --fixtures conformance/adapter-harness/must-pass.jsonl"]
+    required_conformance_fixtures: ["conformance/adapter-harness/must-pass.jsonl", "conformance/cot-golden/golden.jsonl"]
+    required_test_commands: ["python -m pytest -q adapters/egress/cot adapters/ingress/cot", "python tools/validate_adapter_conformance.py --fixtures conformance/adapter-harness/must-pass.jsonl", "python tools/validate_cot_golden.py"]
     dependencies: ["ZMETA-CORE", "ZMETA-GATEWAY-REFERENCE", "ZMETA-TIMING-QUALITY", "ZMETA-LINEAGE-POLICY", "ZMETA-EXTERNAL-PROMOTION", "ZMETA-ADAPTER"]
     allowed_claimants: ["adapter", "gateway", "reference_stack"]
     current_repo_support: implemented

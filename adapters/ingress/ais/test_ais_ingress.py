@@ -6,7 +6,10 @@ encodings of "not reported" that, carried as values, would place a stopped
 vessel at the north pole on a due-north heading.
 """
 
+import importlib.util
+import inspect
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -155,7 +158,9 @@ class TestNotAvailableSentinels:
         assert "ais_cog_deg_true" not in features
 
     def test_63_knots_in_a_class_a_report_is_a_real_speed(self):
-        """The message 27 speed sentinel is scoped to message 27."""
+        """The message 27 speed sentinel is scoped to message 27 and to a
+        record with no message type. On a typed Class A report, 63 kt is a real
+        speed."""
         assert translate(type=1, speed=63.0)["payload"]["features"]["ais_sog_kt"] == 63.0
 
     def test_a_message_27_speed_above_its_own_field_is_dropped(self):
@@ -440,3 +445,352 @@ class TestTrackProjectionConsequence:
         assert projector.observe(event) == []
         assert projector.stats["refused_no_geo"] == 1
         assert projector.stats["refused_no_identity"] == 0
+
+
+_ABSENT = object()
+
+
+def typeless(**over):
+    """A position record with no message type that declares its transceiver
+    class: the shape a record source produces when it publishes decoded
+    position reports with the type removed and the class kept. An override
+    of `_ABSENT` removes the key."""
+    out = dict(CLASS_A)
+    del out["type"]
+    out["transceiver_class"] = "A"
+    for key, value in over.items():
+        if value is _ABSENT:
+            out.pop(key, None)
+        else:
+            out[key] = value
+    return out
+
+
+def translate_typeless(**over):
+    return translate_message(typeless(**over), **BASE)
+
+
+class TestRecordsWithNoMessageType:
+    """A record that carries no message type is accepted only on two
+    statements the source made itself: a shipborne transceiver class, A or B,
+    and a usable position. The event says which statement it rests on: it
+    carries `ais_transceiver_class` and no `ais_message_type`, because no
+    type was read and none is inferred. A message that does carry a type is
+    translated exactly as before, and the class is not read on it.
+    """
+
+    def test_a_typeless_record_with_a_class_and_a_position_becomes_an_event(self):
+        """The control. Every refusal in this class is meaningless without it."""
+        event = translate_typeless()
+        assert event is not None
+        assert event["event"]["event_type"] == "OBSERVATION_EVENT"
+        assert event["event"]["event_subtype"] == "NETWORK"
+        features = event["payload"]["features"]
+        assert "ais_message_type" not in features
+        assert features["ais_transceiver_class"] == "A"
+        assert features["ais_mmsi"] == 366123456
+        assert features["protocol"] == "AIS"
+        assert event["zmeta_version"] == "1.1.0"
+        assert event["payload"]["geo"] == {
+            "lat": 33.7405,
+            "lon": -118.2712,
+            "dimensionality": "2D",
+        }
+        assert event["payload"]["quality"]["geo_status"] == "VERTICAL_UNAVAILABLE"
+
+    def test_a_type_key_holding_none_is_the_absent_case(self):
+        event = translate_typeless(type=None)
+        assert event is not None
+        assert "ais_message_type" not in event["payload"]["features"]
+        assert event["payload"]["features"]["ais_transceiver_class"] == "A"
+
+    @pytest.mark.parametrize("declared, token", [("A", "A"), ("B", "B"), (" a ", "A"), ("b", "B"), ("\tB\n", "B")])
+    def test_the_class_is_folded_for_whitespace_and_case(self, declared, token):
+        """The fold the shared timing helper applies to its vocabularies: a
+        token that reads the same to a person is the same token."""
+        event = translate_typeless(transceiver_class=declared)
+        assert event["payload"]["features"]["ais_transceiver_class"] == token
+
+    def test_a_typeless_record_that_declares_no_class_is_refused(self):
+        """A position alone does not show a vessel's report: base stations,
+        aids to navigation and SAR aircraft report positions too, and this
+        adapter consumes none of them."""
+        assert translate_typeless(transceiver_class=_ABSENT) is None
+
+    @pytest.mark.parametrize("bad", ["", " ", "C", "AB", "A B", "SO", 1, True, None, ["A"], {"class": "A"}])
+    def test_a_typeless_record_with_an_unusable_class_is_refused(self, bad):
+        assert translate_typeless(transceiver_class=bad) is None
+
+    @pytest.mark.parametrize("lat, lon", [(_ABSENT, _ABSENT), (91.0, 181.0), (95.0, 10.0), (10.0, 190.0), (None, None)])
+    def test_a_typeless_record_with_no_usable_position_is_refused(self, lat, lon):
+        """With no type to read, the position is the only evidence that the
+        record is a position report: static and voyage data come from the
+        same transceivers and carry none."""
+        assert translate_typeless(lat=lat, lon=lon) is None
+
+    @pytest.mark.parametrize("bad", ["1", "18", True, False, 1.0, 18.0, [1]])
+    def test_a_type_that_is_present_but_not_an_integer_still_refuses(self, bad):
+        """A present but impossible type is a decoder fault. A declared class
+        does not rescue it, the same rule the adapter applies to a present
+        but impossible time channel."""
+        assert translate_typeless(type=bad) is None
+
+    @pytest.mark.parametrize("mtype", [4, 5, 9, 21, 24])
+    def test_a_type_outside_the_position_reports_still_refuses_with_a_class(self, mtype):
+        assert translate_typeless(type=mtype) is None
+
+    @pytest.mark.parametrize("mtype", [1, 18, 27])
+    def test_a_typed_message_is_unchanged_when_it_also_carries_a_class(self, mtype):
+        """The class is read only when the type is absent, so a typed
+        message's output does not depend on it."""
+        with_class = translate(type=mtype, transceiver_class="B")
+        without = translate(type=mtype)
+        assert "ais_transceiver_class" not in with_class["payload"]["features"]
+        assert with_class["payload"]["features"]["ais_message_type"] == mtype
+        for event in (with_class, without):
+            del event["event"]["event_id"]
+        assert with_class == without
+
+    def test_the_general_sentinels_hold_on_a_typeless_record(self):
+        features = translate_typeless(speed=102.3, course=360.0, heading=511)["payload"]["features"]
+        assert "ais_sog_kt" not in features
+        assert "ais_cog_deg_true" not in features
+        assert "ais_heading_deg_true" not in features
+
+    @pytest.mark.parametrize("declared", ["A", "B"])
+    def test_message_27s_sentinels_hold_on_a_typeless_record(self, declared):
+        """With no type, the record may be a message 27, whatever its class,
+        so its not-available encodings apply as well (adapters/AUTHORING.md:
+        read the table for each message type the code path accepts). 63 kt
+        is dropped although a Class A or Class B report of another type would
+        mean it; a real 63 kt is lost, and no vessel is shown making a speed
+        it never reported. The speed half tests the sentinel. The course half
+        holds on every path, since 511 is outside the course bound."""
+        features = translate_typeless(transceiver_class=declared, speed=63.0, course=511.0)["payload"]["features"]
+        assert "ais_sog_kt" not in features
+        assert "ais_cog_deg_true" not in features
+
+    @pytest.mark.parametrize("speed", [62.0, 63.5, 70.0, 102.2])
+    def test_other_speeds_on_a_typeless_record_are_carried(self, speed):
+        """Only the exact message 27 sentinel is dropped. A speed above 62 kt
+        cannot come out of message 27's field, so it is read with the general
+        bound."""
+        assert translate_typeless(speed=speed)["payload"]["features"]["ais_sog_kt"] == speed
+
+    @pytest.mark.parametrize("bad", [0, -1, "366123456", _ABSENT])
+    def test_a_typeless_record_still_needs_a_usable_mmsi(self, bad):
+        assert translate_typeless(mmsi=bad) is None
+
+    def test_a_typeless_record_still_needs_a_reception_time(self):
+        """No `rxtime`, no `timestamp` and no caller clock: no time to date the
+        event, so no event, as for a typed message."""
+        assert translate_message(typeless(rxtime=_ABSENT), platform_id="ais-node-01") is None
+
+    def test_a_typeless_event_validates_against_the_schema_its_stamp_names(self):
+        event = translate_typeless()
+        assert event["zmeta_version"] == "1.1.0"
+        errors = sorted(VALIDATOR_1_1_0.iter_errors(event), key=lambda e: list(e.path))
+        assert not errors, f"schema-invalid: {errors[0].message}"
+
+    def test_a_typeless_event_yields_a_two_dimensional_track(self):
+        from adapters.projector.track.track_projector import TrackProjector
+
+        projector = TrackProjector(platform_id="ais-node-01", confidence=0.9)
+        event = translate_typeless(transceiver_class="B")
+        assert projector.identity_of(event) == "mmsi-366123456"
+        fusion, state = projector.observe(event)
+        assert fusion["event"]["event_type"] == "FUSION_EVENT"
+        assert state["payload"]["geo"] == {
+            "lat": 33.7405,
+            "lon": -118.2712,
+            "dimensionality": "2D",
+        }
+        assert projector.stats["projected_2d"] == 1
+
+    def test_a_mixed_stream_keeps_the_typed_and_the_declared_records(self):
+        messages = [
+            msg(),
+            typeless(mmsi=338111222, transceiver_class="B"),
+            typeless(mmsi=338111333, transceiver_class=_ABSENT),
+            typeless(mmsi=338111444, lat=91.0, lon=181.0),
+            msg(type=5, mmsi=338111555),
+        ]
+        events = translate_stream(messages, **BASE)
+        assert [e["payload"]["features"]["ais_mmsi"] for e in events] == [366123456, 338111222]
+        assert events[0]["payload"]["features"]["ais_message_type"] == 1
+        assert "ais_transceiver_class" not in events[0]["payload"]["features"]
+        assert events[1]["payload"]["features"]["ais_transceiver_class"] == "B"
+        assert "ais_message_type" not in events[1]["payload"]["features"]
+
+
+# The reference validator and policy, loaded the way the MAVLink and SAPIENT
+# ingress suites load them (adapters/ingress/mavlink/test_mavlink_ingress.py).
+_VALIDATORS_PATH = ROOT / "gateway" / "src" / "validators.py"
+_validators_spec = importlib.util.spec_from_file_location("zmeta_validators", _VALIDATORS_PATH)
+gateway_validators = importlib.util.module_from_spec(_validators_spec)
+_validators_spec.loader.exec_module(gateway_validators)
+GATEWAY_POLICY = gateway_validators.load_policy(ROOT / "policy")
+_UNION_SCHEMA = gateway_validators.load_schema(SCHEMA_DIR / "zmeta-event.schema.json")
+_LANE_SCHEMAS = {
+    "1.0": gateway_validators.load_schema(SCHEMA_DIR / "zmeta-event-1.0.schema.json"),
+    "1.1.0": gateway_validators.load_schema(SCHEMA_DIR / "zmeta-event-1.1.0.schema.json"),
+}
+
+
+def reference_violations(event, profile, state=None):
+    """Every violation the reference schema-and-policy validation reports for
+    one event at one profile, as (severity, code) pairs, in the order
+    `tools/validate.py` runs its checks: the schema of the lane the event's
+    stamp names, then, when the schema passes, the role, profile, timing,
+    semantics, lineage, producer-authority, routing and deduplication
+    checks. Every schema violation is a failure, as the tool counts it. The
+    validation state is `state` when one is given and a fresh one otherwise;
+    an event with no failure is recorded in it, as the tool records it. An
+    empty list is a pass with no warning."""
+    severity_map = GATEWAY_POLICY.get("violation_severities", {})
+    version = event.get("zmeta_version")
+    schema = _LANE_SCHEMAS.get(version) if isinstance(version, str) else None
+    _ok, violations = gateway_validators.validate_schema(event, schema or _UNION_SCHEMA, severity_map)
+    found = [("fail", v["code"]) for v in violations]
+    if found:
+        return found
+    policy = GATEWAY_POLICY
+    if state is None:
+        state = gateway_validators.ValidationState()
+    checks = [
+        gateway_validators.validate_role(event, {"roles": policy["roles"], "deny": policy["deny"]}, severity_map),
+        gateway_validators.validate_profile(event, profile, policy["profiles"], severity_map),
+        gateway_validators.validate_timing_quality(
+            event,
+            policy["semantics"],
+            state=state,
+            severity_map=severity_map,
+            timing_freshness_policy=policy.get("timing_freshness", {}),
+            profile=profile,
+        ),
+        gateway_validators.validate_semantics(event, policy["semantics"], severity_map),
+        gateway_validators.validate_lineage(
+            event, policy.get("lineage", {}), state=state, profile=profile, severity_map=severity_map
+        ),
+        gateway_validators.validate_producer_authority(event, policy.get("producer_authority", {}), severity_map),
+        gateway_validators.validate_routing(event, policy["routing"], severity_map),
+        gateway_validators.validate_deduplication(event, state=state, severity_map=severity_map),
+    ]
+    for _ok, violations in checks:
+        found.extend(("warn" if v.get("severity") == "warn" else "fail", v["code"]) for v in violations)
+    if not any(severity == "fail" for severity, _ in found):
+        state.record(event)
+    return found
+
+
+class TestTypelessEventAtTheReferenceValidator:
+    """The schema test above checks the 1.1.0 schema only, and the adapter
+    harness corpus holds the typed shapes only. These hold the typeless event
+    to the reference schema-and-policy validation at profiles H and M, so a
+    change to how the observation deny-list matches key names that refused
+    `ais_transceiver_class` at the gateway fails here, in the adapter's own
+    tests. Two controls show that the same validation refuses the class
+    under a name the policy reserves for identity: `class_name`, which the
+    1.1.0 schema refuses, and `Entity_Class`, a case-varied copy of
+    `entity_class` that the schema passes and the policy's normalised
+    deny-list refuses. Further controls hold the helper itself: the event is
+    refused at profile L and as a duplicate the second time with one state;
+    the helper's eight policy checks are the calls of `tools/validate.py`;
+    the schema is the one the stamp's lane names; and every schema violation
+    is a failure. The role, timing, lineage, producer-authority and routing
+    checks have no behavioural control here, since the typeless event gives
+    none of them a refusal to show; the comparison with the tool's calls is
+    what holds them."""
+
+    @staticmethod
+    def _renamed(new_key):
+        event = translate_typeless()
+        features = event["payload"]["features"]
+        features[new_key] = features.pop("ais_transceiver_class")
+        return event
+
+    @pytest.mark.parametrize("profile", ["H", "M"])
+    def test_a_typeless_event_passes_the_reference_validation(self, profile):
+        event = translate_typeless()
+        assert "ais_transceiver_class" in event["payload"]["features"]
+        assert reference_violations(event, profile) == []
+
+    @pytest.mark.parametrize("profile", ["H", "M"])
+    def test_the_class_renamed_class_name_is_refused(self, profile):
+        found = reference_violations(self._renamed("class_name"), profile)
+        assert found, "the validation passed an observation carrying class_name"
+        assert {code for _, code in found} == {"SCHEMA_INVALID"}, found
+        assert all(severity == "fail" for severity, _ in found), found
+
+    @pytest.mark.parametrize("profile", ["H", "M"])
+    def test_the_class_renamed_entity_class_is_refused_as_identity(self, profile):
+        assert reference_violations(self._renamed("Entity_Class"), profile) == [
+            ("fail", "OBSERVATION_HAS_IDENTITY")
+        ]
+
+    def test_the_typeless_event_is_refused_at_profile_l(self):
+        """The control of the profile check: profile L does not allow an
+        observation, so the same event that passes at H and M is refused there,
+        as `tools/validate.py --profile L` refuses it."""
+        assert reference_violations(translate_typeless(), "L") == [
+            ("fail", "EVENT_TYPE_NOT_ALLOWED_FOR_PROFILE")
+        ]
+
+    def test_the_same_event_twice_is_refused_as_a_duplicate(self):
+        """The control of the deduplication check: with one validation state,
+        as `tools/validate.py` keeps one across a file, the second copy of the
+        event is refused."""
+        event = translate_typeless()
+        state = gateway_validators.ValidationState()
+        assert reference_violations(event, "H", state=state) == []
+        assert reference_violations(event, "H", state=state) == [("fail", "EVENT_DUPLICATE")]
+
+    def test_the_helper_runs_the_checks_of_tools_validate(self):
+        """The helper's eight policy checks are the calls of `tools/validate.py`,
+        in its order and with its arguments, so a check left out of the helper,
+        or given other arguments, fails here. The two texts are compared with
+        whitespace and trailing commas removed and the tool's names mapped to
+        the helper's."""
+        tool = (ROOT / "tools" / "validate.py").read_text(encoding="utf-8")
+        helper = inspect.getsource(reference_violations)
+
+        def checks_list(text):
+            body = re.search(r"checks = \[(.*?)\n\s*\]\n", text, re.DOTALL).group(1)
+            body = re.sub(r"\s+", "", body)
+            return body.replace(",)", ")").rstrip(",")
+
+        expected = checks_list(tool)
+        expected = re.sub(r"\bvalidators\.", "gateway_validators.", expected)
+        expected = re.sub(r"\binstance\b", "event", expected).replace("args.profile", "profile")
+        found = checks_list(helper)
+        assert len(re.findall(r"gateway_validators\.validate_\w+\(", found)) == 8, found
+        assert found == expected
+
+    def test_the_helper_uses_the_schema_of_the_lane_its_stamp_names(self, monkeypatch):
+        """The schema check uses the lane schema the stamp names and the union
+        schema only for a stamp no lane has, as `tools/validate.py` does."""
+        used = []
+        real = gateway_validators.validate_schema
+
+        def recording(event, schema, severity_map):
+            used.append(schema)
+            return real(event, schema, severity_map)
+
+        monkeypatch.setattr(gateway_validators, "validate_schema", recording)
+        event = translate_typeless()
+        reference_violations(event, "H")
+        event["zmeta_version"] = "9.9"
+        reference_violations(event, "H")
+        assert used[0] is _LANE_SCHEMAS["1.1.0"]
+        assert used[1] is _UNION_SCHEMA
+
+    def test_every_schema_violation_is_a_failure(self, monkeypatch):
+        """`tools/validate.py` prints every schema violation as FAIL and counts
+        it failed, whatever its severity, so the helper reports each as a
+        failure."""
+        monkeypatch.setattr(
+            gateway_validators,
+            "validate_schema",
+            lambda event, schema, severity_map: (False, [{"code": "SCHEMA_INVALID", "severity": "warn"}]),
+        )
+        assert reference_violations(translate_typeless(), "H") == [("fail", "SCHEMA_INVALID")]

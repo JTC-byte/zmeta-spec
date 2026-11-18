@@ -80,6 +80,10 @@ class ReasonCodeTest(unittest.TestCase):
         # GEO_ZERO_FILL_SUSPECTED (same zero-fill class, same warn
         # severity) on the v1.0 wire.
         "RF_ZERO_FILL_SUSPECTED",
+        # F7-01 (2026-11-02): the decoders' refusal of an ambiguous datagram,
+        # falling back to SCHEMA_INVALID (the decode-stage legacy code) on the
+        # v1.0 wire; the maintainer selected the post-lock route on 2026-11-02.
+        "DECODE_AMBIGUOUS",
     }
 
     # Codes in policy/violation-codes.yaml that are legitimately NOT

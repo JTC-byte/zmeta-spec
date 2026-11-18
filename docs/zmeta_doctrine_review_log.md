@@ -1507,13 +1507,13 @@ were defects with a known fix and not tensions between gates.
 
 | # | Tension | Gates in play | Status |
 |---|---|---|---|
-| SIM1-01 | `confidence` reaches CoT only as free text, with no structured element | 4, 5 | OPEN |
+| SIM1-01 | `confidence` reaches CoT only as free text, with no structured element | 4, 5 | **HELD-FIRM 2026-11-10** |
 | SIM1-02 | A counter that can only see what arrived is read as a loss counter | 3 | OPEN (observation) |
 | SIM1-03 | The rehearsal corpus exercises a path the real input does not | 5, 7 | OPEN (observation) |
 | SIM1-04 | Operational tooling accumulating inside a data standard | 1, 7 | OPEN (maintainer, criterion set) |
 | SIM1-05 | A v1.0 deployment cannot carry uncertainty the v1.1.0 branch already can | 2, 3 | **CLOSED 2026-08-09** |
 
-### SIM1-01 — `confidence` reaches CoT only as free text · OPEN
+### SIM1-01 — `confidence` reaches CoT only as free text · **HELD-FIRM 2026-11-10 (`<remarks>` stays the whole answer on CoT; a machine consumer reads the ZMeta event)**
 
 `adapters/egress/cot/zmeta_to_cot.py` composes `confidence=<value>` into
 `<remarks>` and emits no structured `<detail>` child carrying it. Captured off
@@ -1549,6 +1549,53 @@ mode discipline 10 exists to prevent.
 confidence by machine, or is the remarks string what a human reads while
 machine consumers take the ZMeta stream? "Nobody parses it" closes this and
 `<remarks>` stays the whole answer.
+
+**Note added 2026-11-10 (the original entry above is left as written):** two
+more places have met this tension. On 2026-11-03 a captured run of 809 STATE
+events from one fusion producer was projected through this repository's CoT
+adapter in a scratch run. Each of the 809 carries a top-level `confidence`,
+and the projection writes it into `<remarks>` as `confidence=<value>` and
+into no structured child. The session record of that day said the projection
+wrote no `<remarks>` for those events. A re-run on 2026-11-10 showed that
+statement to be wrong, and it is corrected here, before it reached any
+tracked record. The maintainer's selection of 2026-11-03, which booked this
+note for the TAK plane's re-pin, was made on that statement. On 2026-11-09
+the TAK Protocol Version 1 egress adapter (`adapters/egress/tak_protocol/`)
+was merged. It is a wire step over the CoT projection and carries
+`<remarks>` in `xmlDetail`, so confidence reaches a TAK Protocol consumer as
+the same free text and through no typed field; the adapter README calls the
+CoT projection's losses "the CoT adapter's register, unchanged by this
+encoding". With the stock path and the second stack that the entry counted,
+the tension has now been met in four places, and the lifecycle below
+requires a terminal status at the third occurrence.
+
+**Decision (2026-11-10):** taken by the maintainer in the repository's
+session on the evidence put to him first: this entry, the two places above
+(the first of them as the session record then described it), and the TAK
+plane's answers to the settling question, read at the plane's main line on
+2026-11-10. No CoT consumer in the plane reads confidence by machine. Its
+egress writes confidence only as text in `<remarks>`, and its one machine
+read is an offline shape check that matches that text. The plane's live
+unit runs the `cds` profile, and under its strict and `cds` profiles its
+guard keeps only `contact`, `track`, `remarks` and `precisionlocation` under
+`<detail>` and removes any other child without refusing the event, so a new
+structured child would not reach a client there. `<remarks>` stays the whole
+answer on CoT, and a machine consumer reads the ZMeta event (design gate 4).
+The correction in the note above was made after his selection. It removes
+the one place where confidence was said to reach CoT nowhere, which had
+been the stronger case for a structured child. This repository's session
+therefore reads the decision as standing on the corrected facts. It put
+the correction to him on the same day, and the decision stands unless he
+says otherwise. The entry re-opens only on new evidence, which a consumer
+that must read confidence by machine from CoT would be.
+
+**Note added 2026-11-11 (the entry above is left as written):** the
+maintainer answered the correction on the evening of 2026-11-10, after the
+decision paragraph above was written. Asked in the repository's session
+whether the decision stands now that the 809 events are known to carry
+`confidence` in `<remarks>`, he confirmed that it stands. The decision
+therefore rests on the corrected facts by his word, and no longer on the
+reading of the repository's session.
 
 ### SIM1-02 — A counter that can only see what arrived is read as a loss counter · OPEN
 
@@ -2042,7 +2089,7 @@ this one. Two adjacent facts belong with it: the candidate carries
 tripwire names the adversarial trust boundary as the trigger, which is
 precisely the deployment class most likely to be evaluating ZMeta.
 
-### C1-07 — Float width is unspecified across conforming encoders · **OPEN — decision-due**
+### C1-07 — Float width is unspecified across conforming encoders · **DECIDED 2026-11-02 (binary64; float64 on the wire; the determinism clause a MUST at adoption)**
 
 `spec/compact-binary-mapping.md:66-73` specifies deterministic CBOR as
 definite-length containers, no indefinite-length forms, and canonically
@@ -2058,6 +2105,28 @@ tree hashes an event. It is load-bearing for anything that later signs one,
 which is why it is recorded next to C1-06 rather than as an encoding footnote.
 The determinism section is also SHOULD-level, so tightening it is a governed
 decision about strength as well as content.
+
+**Decision (2026-11-02):** taken by the maintainer in the repository's session
+on the evidence put to him first (the carried-list pass of 2026-10-29,
+refuted with a seeded error on 2026-11-02). The canonical float width is
+binary64, float64 on the wire; the determinism clause becomes a MUST in the
+version that adopts the `canonical-byte-form` candidate; the value model is
+binary64, so digits a binary64 cannot hold are not content (the question
+the rebuild ruling's hazard 8 put to him; a producer that needs them
+carries them as a string in an explicitly named field). A digest of a
+datagram's received bytes, recorded with its encoding and never offered as
+the event's identity across a re-encoding, does not fire the candidate's
+tripwire; the downstream deployments' shared interim, that they hash
+nothing until their canonical-byte-form ask is decided, is theirs to
+revisit now that this entry decides the form. The text change in
+`spec/compact-binary-mapping.md` rides the `canonical-byte-form` branch,
+opened when the first hashing need appears; `zmeta_cbor.py` already writes
+float64, and the `cbor2` path, which writes shortest floats, is corrected
+on that branch. This reverses the 2026-10-01 recommendation to wait for
+signing, because hazard 8, and a downstream boundary's value-comparison
+check (its B4) and its choice of what to do with digits a binary64 cannot
+hold (its section 18 item 29), waited on it, and the decision changes no
+byte today.
 
 ### C1-08 — A format checker is installed at a dozen sites and validates nothing · **DECIDED 2026-08-10**
 
@@ -2957,7 +3026,7 @@ candidates through this repository's own process and evidence bar, and
 promotes nothing. How each ask was routed is recorded in U1-02 as this
 session's disposition, pending the maintainer's word on the merge.
 
-### U1-02 — How the five asks were routed, and what routing them surfaced · **DECIDED (delegated) 2026-10-01 (merged as routed; maintainer review pending)**
+### U1-02 — How the five asks were routed, and what routing them surfaced · **DECIDED 2026-11-02 (ratified; the delegated decision of 2026-10-01: merged as routed)**
 
 **Observed:** the disposition, pending the maintainer. Two asks open as new
 candidates. The dialect label opens as registry entry DIALECT_LABEL,
@@ -3061,6 +3130,14 @@ carrier on the event names its source dialect, so promotion weighs that
 case as well as lineage dropped at egress. The registry entry and the
 roadmap candidate are corrected.
 
+**Ratification (2026-11-02):** the maintainer ratified the four delegated
+decisions of 2026-10-01 (this entry, F3-03, F3-04 and F3-05) on 2026-11-02
+in the repository's session, on the evidence put to him first (a records
+pass over each entry's texts, refuted with a seeded error). Their status
+moves from DECIDED (delegated) to DECIDED; nothing in the decisions
+changes. The one error this entry's own correction records stands
+corrected.
+
 ## Cycle F3 — 2026-09-29 (fielded evidence: a partner's cross-domain guard passed the CoT projection)
 
 A downstream deployment's two producers, its operational TAK server, one
@@ -3120,7 +3197,7 @@ the advisory gate cannot be met and the locked honesty rule is kept in the
 channel that remains. It sets no precedent for moving structure into text
 where structure can pass.
 
-### F3-03 — `stale` as a fixed window, `how` as a deployment claim · **DECIDED (delegated) 2026-10-01 (the window caps the claim; maintainer review pending)**
+### F3-03 — `stale` as a fixed window, `how` as a deployment claim · **DECIDED 2026-11-02 (ratified; the delegated decision of 2026-10-01: the window caps the claim)**
 
 **Observed:** contract section 14 says CoT and the other display formats
 "must preserve" a list that includes "`payload.valid_for_ms` as
@@ -3177,7 +3254,18 @@ event is past its TTL, so the contract does not address projecting it.
 decisions in this entry were made in the same pass as the code, under the
 delegated go, and stand until the maintainer's review.
 
-### F3-04 — The evidence bar · **DECIDED (delegated) 2026-10-01 (recorded as evidence, n=1; maintainer review pending)**
+**Ratification (2026-11-02):** the maintainer ratified this decision on
+2026-11-02 and it stands as DECIDED. The cap shipped first in v1.1.27 (the
+merge of 2026-10-01 postdates
+the v1.1.26 cut). One deployment's own `cds` egress keeps a 120 s ceiling
+from arrival over a shorter claim, which is the increase in TTL this
+entry's decision says Section 4.2 forbids; it stands by the maintainer's
+answer of 2026-10-13 ("Cap, but keep cds as is") as his held choice,
+recorded as such, until that deployment's partner guard is re-checked at
+its re-pin. The ratification does not wait on that re-check, which gates
+the re-pin and leaves the doctrine untouched.
+
+### F3-04 — The evidence bar · **DECIDED 2026-11-02 (ratified; the delegated decision of 2026-10-01: recorded as evidence, n=1)**
 
 **Observed:** one deployment, one partner's guard, one day, two changes
 applied together and neither tested alone. The registry's promotion bar for
@@ -3201,7 +3289,10 @@ controlled comparison is now available without a switch in this
 repository, because the deployment still runs the window-only shape and
 this profile now carries the claim.
 
-### F3-05 — An asserted affiliation at the boundary · **HELD-FIRM 2026-09-29 (refuse, never retype); opt-in DECIDED (delegated) 2026-10-01 (none; maintainer review pending)**
+**Ratification (2026-11-02):** the maintainer ratified this decision on
+2026-11-02 and it stands as DECIDED.
+
+### F3-05 — An asserted affiliation at the boundary · **HELD-FIRM 2026-09-29 (refuse, never retype); opt-in DECIDED 2026-11-02 (ratified; the delegated decision of 2026-10-01: none)**
 
 **Observed:** the validated packets asserted no affiliation. Nothing in the
 contract decides whether an asserted affiliation may cross a guard.
@@ -3228,6 +3319,9 @@ now counted as `AFFILIATION_ASSERTED`, so a hostile or friendly track that
 did not cross is visible on the sending side as that. The route to passing
 an affiliation is a release profile under `coalition-release-export`,
 whose notes now say so.
+
+**Ratification (2026-11-02):** the maintainer ratified the opt-in decision of
+2026-10-01 on 2026-11-02; the HELD-FIRM refusal of 2026-09-29 is unchanged.
 
 ## Cycle E1 — 2026-10-01 (a deployment's command posture, evidence model and tasking ask)
 
@@ -3568,6 +3662,897 @@ one word of the README and tests.
    ended, as described above. `docs/zmeta_mqtt_binding_guidance.md` says
    "expired commands are rejected, not executed late" and names no actor;
    the reference gateway does not reject them.
+
+## Cycle G1 — 2026-10-02 (the reference gateway's memory)
+
+A candidate left open by the pre-cut review of 2026-07-27: the gateway's
+validation state keeps every forwarded event for as long as the process
+runs. It was deferred then because bounding it is behavior-visible. It was
+measured on 2026-10-01 and built on a branch on 2026-10-02.
+
+### G1-01 — A memory bound changes which lineage parents resolve · **OPEN (built on `exp/gateway-state-bound`; the merge and twelve questions are the maintainer's)**
+
+**Observed:** the lineage check resolves a parent by looking it up among
+the events this gateway has accepted. With no bound, every parent the
+process ever accepted resolves, and the process grows without limit: 488
+MB after 100,000 copies of a 781-byte example event. With a bound, the
+state stays between 16 and 19 MB at 65,536 entries, with a peak of 23 MB
+while its tables are rebuilt, and a parent older than the index no longer
+resolves.
+
+**The tension:** design gate 3 on both sides, and the bound loses one
+refusal. The lineage check says two things about a parent it finds: it
+resolves, or its type is not allowed, which is a refusal. About a parent it
+does not find it can only say unresolved, which the shipped policy ignores
+at profile L and warns on at M and H. A bound therefore turns one refusal
+into a pass, except under `strict_validation` at M and H, where the
+unresolved warning refuses the event. An event citing a parent of the wrong
+type is refused while that parent is in the index, and once the parent has
+left it is forwarded, with a warning at M and H and with nothing at L. A
+producer can force that by sending as many events as the index holds, and
+ordinary traffic does it with no intent: about 27 minutes at the default
+size and 40 events a second. The first draft of this entry said the bound
+"launders nothing"; an independent review showed the sequence, and the
+sentence was wrong. The same refusal could already be avoided by a cheaper
+route that the bound does not change: an event that reuses a forwarded
+command's `event_id` replaces the type the store holds for that id
+(handoff, current gaps, item 10). That lowers the weight of what the bound
+gives up and does not remove it. Against the loss: the refusal never held
+for a parent sent before a restart or through another gateway, the
+command-evidence index made the same trade on 2026-07-27 and says so in its
+policy file, and the unbounded store bought the refusal at a cost no
+deployment was told about, a gateway that has to be restarted, at which
+point every parent is forgotten at once. A correct producer whose parent
+has aged out also looks the same as one citing an id that never existed,
+and under `strict_validation` at profiles M and H its event is refused.
+
+**Built, pending the maintainer's review:** a bounded index of `event_type`
+and `event_subtype`, oldest dropped first; an id longer than 64 characters
+kept as a 16-byte digest, so the bound is on bytes as well as entries; the
+size is a gateway setting with a default of 65,536, a ceiling of 1,048,576,
+and no value that removes the bound; a dropped parent is
+`LINEAGE_PARENT_UNRESOLVED` under the existing policy mode; the offline
+tools keep the unbounded state. No policy file, schema or reason code
+changed. Two tests pin the lost refusal so that it cannot be forgotten.
+
+**Questions that go with the merge:**
+
+1. Is 65,536 the right default? At 40 events a second it covers about 27
+   minutes. A slow track whose STATE_EVENT cites the previous one after a
+   longer gap draws the warning.
+2. Is the lost refusal acceptable as built? `policy/lineage.yaml` could
+   carry the note `policy/command-evidence.yaml` carries, recommending
+   `reject` for an unresolved parent where the type check has to hold. That
+   is a policy-file change and was not made here.
+3. Should the diagnostic tell a parent that left the index from one never
+   seen? A second store of dropped ids would be the growth this change
+   removes. Two options need no growing store: event ids are UUIDv7, so a
+   cited id's embedded time could be compared with the oldest entry (that
+   time is the producer's claim, and the diagnostic would have to say so);
+   or a fixed-size filter of dropped ids, which can answer wrongly at a
+   known rate.
+4. Is a setting the right home? The command-evidence index is sized in the
+   policy pack, where the value is hash-pinned and travels with the
+   contract hash. This one is sized in the gateway config, as an operating
+   limit of one process.
+5. Should a gateway be able to run without the bound? As built it cannot.
+6. Should `ValidationState()` be bounded unless a caller opts out? As
+   built only the reference gateway's `main()` passes the cap. A program
+   that imports `process_message` and builds its own state is unbounded
+   until it passes one.
+7. Should the two index sizes be tied? At the shipped defaults a command
+   citing a parent 5,000 events old is resolved by the lineage check and
+   unresolved by the command-evidence check, whose index holds 4,096. With
+   the event index set below 4,096 the reverse happens. The second
+   reviewer ran both.
+8. Should the gateway fill the two task-id sets at all? It never reads
+   them. They are bounded and digested here so that a caller of
+   `validate_deduplication` on a bounded state still gets an answer.
+9. Should the per-source timing stores be bounded, and by what rule? A
+   quiet source's last TIME_STATUS has to outlive the events around it, so
+   the event index's rule does not fit. `timing_sources` is written and
+   never read.
+10. Should the metrics report how full the index is and how many entries
+    it has dropped? An operator could then tell parents that aged out from
+    ids that never existed without any change to the diagnostic.
+11. Under `strict_validation` the bound refuses correct events that the
+    unbounded store forwarded. Is that acceptable at the default size, or
+    should a strict deployment get a larger default or a startup note?
+12. Should a refused size say whether it came from the flag or the config
+    file, and should the config wizard and the launcher offer the setting?
+
+## Cycle F4 — 2026-10-12 (fielded evidence: a downstream COP's boundary pass and a partner's tactical-network stream)
+
+Four tensions booked at the records pass of 2026-10-12 from the answers
+this repository's session gave downstream between 2026-10-05 and
+2026-10-12 (a COP's UI/UX rework and its boundary pass; a partner's JREAP
+PLI stream, found on 2026-10-12 to be Link 16 J-series words in a vendor
+wrapper). Each is recorded as a tension for the maintainer; none changes a
+document. The private session records carry the full readings and their
+refutations, and, for F4-02, the recommendation that step 3 of the protocol
+asks for; F4-01, F4-03 and F4-04 are booked for the maintainer without one.
+
+### F4-01 — A deterministic detection has no named class between measured fact and inference · **OPEN — for the maintainer**
+
+**Observed:** on 2026-10-05 a downstream COP asked how a satellite
+fire-detection product (described downstream as a deterministic radiometric
+threshold; its algorithm basis is to be verified before a producer is built)
+enters ZMeta. The contract defines the layers by method:
+"Inferences are algorithmic or analytic claims derived from observations."
+(section 1, the operating model), and 7.4's raw-data distinction says "AI detections or
+classifications derived from raw observations are INFERENCE_EVENTs." The
+advisory crosswalk routes the deterministic `geofence_alert` to
+INFERENCE_EVENT as "an analytic claim derived from observations (contract
+7.5)". The maintainer's recorded example of 2026-09-01, held in the COP's
+provenance record, draws the line at AI or ML. The first answer sent
+downstream dropped the word "AI" from 7.4 and reversed that example; it was
+withdrawn and corrected the same day.
+
+**The tension:** the contract's definition is "algorithmic or analytic",
+wider than AI or ML, and no text names a deterministic, non-learned
+detection as a class of its own; contract 11.1 reads with that definition,
+placing an analytic process inside the inference layer
+("`payload.model.name` identifies the model or analytic process."); the
+crosswalk's `eo_detection` row says "A "detection" bundles two ZMeta
+letters." while its `rf_detection` and `sonar_detection` rows route those
+detections to `OBSERVATION_EVENT`. The
+reading given, recorded as a reading:
+the product splits into an IR observation candidate (the radiometry) and an
+INFERENCE_EVENT (the fire call with its confidence); 7.4's observation rules
+and the gateway's payload denylist bar confidence on the observation
+("Top-level `confidence` is prohibited."; 11.2: model confidence
+"is not truth. It is also not observation quality"; the reference gateway's
+observation denylist in `policy/semantics.yaml` lists `confidence`).
+
+**Decision:** none here. The AI-or-ML line against "algorithmic or analytic
+claims" is the maintainer's to settle. Guidance gap (af) is booked in the
+handoff.
+
+### F4-02 — A cooperative broadcast received by relay: the routing table, the crosswalk and contract 24.4 pull apart · **OPEN — for the maintainer (guidance gap (z))**
+
+**Observed:** on 2026-10-09 a partner offered a tactical-network PLI
+stream for an adapter. The routing table in `adapters/AUTHORING.md` sends
+"Cooperative-broadcast decoded telemetry (ADS-B, AIS, rtl_433-class
+decoders)" to `OBSERVATION_EVENT` (NETWORK) and "External tactical tracks"
+to `STATE_EVENT` + promotion; the shipped ADS-B and AIS adapters emit
+observations, and the track projector uses their identifiers as its stock
+identity paths. The advisory crosswalk's row for `ais_track`, `adsb_track`,
+`external_track` and external C2 or COP track feeds routes them to
+`STATE_EVENT` "via the contract 4.5.1 external-promotion path" and says
+"AIS, ADS-B, CoT, JREAP, and vendor COP tracks are external reports or lossy
+projections, not measurements your sensor made."; the correlation pattern
+says "AIS, ADS-B, Link-16-style feeds, CoT/TAK tracks, and vendor COP
+reports are lossy external reports, not sensor observations." and admits
+such reports "never as a fusion identity source without that evidence".
+Contract 24.4 lists "OBSERVATION_EVENT/NETWORK_REPORT or equivalent
+external-report evidence subtype." among what stays future until a version
+branch, schema, policy and conformance tests are approved, and 4.5.1
+anticipates an external report with no ZMeta parent.
+
+**The tension:** the advisory documents call AIS, ADS-B, JREAP and
+Link-16-style feeds external reports, "not sensor observations" and "not
+measurements your sensor made", while the routing table and the shipped
+ADS-B and AIS adapters emit cooperative broadcasts as observations; no
+governed text gives a test that separates a receiver's own decode from a
+relayed self-report; and the parentless case 4.5.1 provides for cannot be
+emitted by the shipped promotion paths without a parent (guidance gap (z),
+booked 2026-10-02). The reading given on 2026-10-09, as a reading: the
+documents put the partner's stream on the promotion side.
+
+**Decision:** none here. The maintainer chose on 2026-10-09 to decide gap
+(z); the options are drafted in the private session record and go to him
+after their refutation. Until then the adapter emits nothing as ZMeta.
+
+### F4-03 — A shipped adapter stamps a source's send time as `event.ts` · **OPEN — for the maintainer**
+
+**Observed:** contract 5.1 (locked): "`event.ts` represents time of
+observation, capture, or validity. It does not represent publish time,
+transmit time, or receive time." The SAPIENT ingress adapter's README says
+its `event.ts` "inherits the unmeasured capture→send gap" and labels it:
+"`coerce_timing_quality()` supplies the deliberately degraded
+`UNKNOWN`/`UNSYNCED` fallback, then `est_error_ms` is widened by the
+registration-declared `maximum_latency`". The partner's
+stream of 2026-10-12 carries one transmit-clock value per message in its
+vendor wrapper, stamped by the sender's replayer; whether the Link 16 words
+inside carry a per-track time is the controlled standard's to say.
+
+**The tension:** a shipped practice sits in tension with a locked clause,
+and a format whose only defined time is a transmit clock would make it
+decisive: the reading given on 2026-10-09 takes the report's own time of
+position when the format carries a full, defined one and otherwise refuses
+the record, which would refuse that whole stream if the words carry none.
+
+**Decision:** none here. Whether an adapter may stamp a source's send time,
+and under what timing-quality label, is the maintainer's; for the partner's
+adapter, on 2026-10-09 he chose to decide it when the data is seen, the
+refuse default holding until then. A reading, not a ruling: the answer
+depends on gap (z), because 5.1
+reads `event.ts` by event type.
+
+### F4-04 — In-place caps on an admitted event against the locked replacement rule · **DECIDED 2026-11-02 (a projection that keeps the `event_id`, provided the record names the mode and carries the replaced values)**
+
+**Observed:** at its pinned release, v1.1.25, a downstream COP's design
+reads events that a reference gateway forwards when a deployment selects the
+quarantine mode for external promotion (the reference policy's mode is
+`reject`) in the gateway's default non-strict validation (under
+`--strict-validation` the event is refused): confidence capped at 0.25 and
+`valid_for_ms` at 1000 inside the forwarded event, beside a
+`payload.extensions.risk_adjudication` record that
+names the mode and the caps.
+Section 4.2 (locked) counts "replacement of source-authored fields" among
+the changes that require "a new event with a new `event_id` and lineage";
+3.4 says adapters and gateways "Preserve source-authored semantic fields
+when projecting or forwarding."; 4.5.1 requires that "Degrade/quarantine
+modes MUST reduce confidence, shorten TTL, cap usable trust, or otherwise
+make the accepted state visibly lower authority than a clean promoted
+state."; 4.2's own projection list lets a profile export ("Profile exports
+MAY be represented as projections of the same event when they only:")
+"Conservatively lower `confidence` or `valid_for_ms` to reflect export-path
+degradation." while keeping its `event_id`, and 3.3's `degrade` action is
+"forward the event with reduced/capped confidence, shortened/capped
+`payload.valid_for_ms`, route/display limits, or equivalent visible
+effects".
+
+**The tension:** 4.2 both counts replacement of a source-authored field as a
+new event and allows a profile export projected from the same event to lower
+`confidence` or `valid_for_ms` conservatively to reflect export-path
+degradation; 4.5.1 requires that the accepted state be made "visibly lower
+authority" under degrade and quarantine modes, by a reduction, a cap on
+usable trust "or otherwise"; 3.3 names `degrade` as a policy action, and 3.4
+requires preservation. The caps such an event carries, 0.25 and 1000, are
+the reference policy's quarantine values
+(`policy/producer-authority.yaml`, `confidence_cap` and `valid_for_ms_cap`)
+applied at admission. Whether a cap applied at admission is the "export-path
+degradation" 4.2 allows on the same event, and whether the source-authored
+value travels with the capped one, no text says; the `risk_adjudication`
+record names the cap, not the source's value, and the COP's design prints
+the capped values as the gateway's.
+
+**Decision (2026-11-02):** taken by the maintainer in the repository's
+session on the evidence put to him first (the carried-list pass of
+2026-10-29, refuted with a seeded error on 2026-11-02; the texts were read
+as silent on admission caps, so the sentence is his choice and the texts
+carried no reading of their own). Section 4.5.1 gains one bullet: a reduction of
+`confidence` or `valid_for_ms` applied at admission under a declared
+degrade or quarantine mode is a projection of the same event under
+Section 4.2 and keeps its `event_id`, provided the policy-scoped record on
+the accepted event names the mode and carries the values it replaced; a
+reduction whose record lacks either is a replacement and requires a new
+event (the second sentence read "carries neither" until the branch's
+seeded refuter showed that a record naming the mode without the values,
+the shape of every timing record then shipped, fell between the two
+sentences; "lacks either" is his selection of 2026-11-02). A contract 2.1
+patch, the maintainer concurring on 2026-11-02: it decides a case the text
+left open without redefining a field, and the condition it adds is the one
+gate 3 (no laundering) needs, the producer's own figure visible beside the
+cap. The reference gateway's `risk_adjudication` record carries
+`confidence_claimed` and `valid_for_ms_claimed` under `effects` for the
+values a cap or reduction changed, on the promotion paths and on both
+timing-degrade paths (the validators' and the gateway's failure mode),
+each with a test seen failing first; a reduction factor below 1, which
+would raise a value, is declined on every path and the promotion record
+says so under `reduction_declined` rather than report a reduction that
+did not run. The records chain: each carries the value its own step
+replaced, so the producer's figure for a member is the claimed value in
+the first record that carries that member, and the event's own value when
+no record does. Three things are booked, not built here: a validator
+check that flags an accepted event whose record lacks the mode or the
+replaced values (the sentence's replacement case), with a governed code
+through the registry route and its must-fail and must-pass vectors; a
+configuration lint that refuses a reduction factor below 1 at load; and a
+clause in 4.2 pointing to this bullet, for the maintainer's word. A
+downstream boundary's check 4 may now admit an in-place cap
+that carries the claimed values (its lane, at its re-pin). The
+lock-baseline contract anchor moves with a dated note; no schema or policy
+byte changes.
+
+Dated 2026-11-11: the clause in 4.2 pointing to this bullet landed on the
+maintainer's selection of that day (branch
+`wave/contract-4-2-clause-2026-11`), as three lines after "Such projections
+preserve the original `event_id`.": a clarification under 2.1 that changes
+no rule. The validator check and the configuration lint above stay booked.
+
+Dated 2026-11-12: the seeded review of that branch noted a tension the
+clause inherits. The list in 4.2 of what a projection of the same event
+may add holds "Add non-semantic export metadata, such as `profile`." and
+the gateway's receipt and publish stamps, while 4.5.1 requires "the
+policy-scoped record on the accepted event" and says that external
+promotion metadata "is not same-event profile projection metadata". The
+clause in 4.2 reaches that record only through "on the condition stated
+there"; it adds no requirement of its own. No change is asked here; the
+tension is logged so that the pattern on 4.2's list stays visible.
+
+## Cycle F5 — 2026-10-23 (fielded evidence: a consumer's federation path read on 2026-10-19)
+
+One tension, found while reading what a consumer's federation path would
+send through this adapter's released projection, and resolved on the
+maintainer's go of 2026-10-19 as adapter hardening. The private session
+records carry the read and its corrections; no partner, host or position
+appears here.
+
+### F5-01 — The projection trusts a position and a name it never validated · **CHANGED 2026-10-23 (two refusals added; the third case already closed 2026-10-01)**
+
+**Observed:** the CoT egress projection's contract is that it projects
+validated events, and every path through the reference gateway validates
+first. A consumer that translates a dialect itself and imports the
+projection at its pin (v1.1.25) never meets the validator. Read against
+that path on 2026-10-19: a position outside the schema's bounds (a maritime
+"position not available" sentinel of 91/181 among them) left as well-formed
+CoT at an impossible place; a callsign or uid of any length left as given;
+and a character XML 1.0 forbids in an identity attribute left as a document
+no parser reads. The consumer's own counts over about four hours of its
+stream that day found no position out of range and, among callsigns, no
+character outside XML 1.0's set and none near the bound; uids were not
+counted. On what was counted the gaps are latent.
+
+**The tension:** design gate 3 (no laundering) and gate 4 (egress is a
+projection of a validated event) both assume the event was validated, and
+an adapter that renders whatever it is handed launders by omission when it
+is called outside that assumption. The honest fix is refusal, the
+projection's documented signal, never a repaired value: a position moved
+into range is a position the event never claimed, a cut uid is a different
+identity, and a cut callsign is a repaired display claim.
+
+**Decision:** the projection refuses a `lat` beyond ±90 or a `lon` beyond
+±180, and a callsign or uid longer than `max_name_chars` (default 256, the
+adapter's deployment default; no CoT or TAK document states a limit), the
+derived `Track <uid>` callsign counted as written. The third case was found
+already closed on `develop` by the 2026-10-01 standard-profile hardening
+(the output is parsed and refused when it does not read; `cds` has refused
+it since v1.1.26), so the branch adds no code for it and records the per-tag
+state: open at v1.1.25, which has no `cds` profile, and at v1.1.26 on the
+standard path until the next cut. Twelve of the fourteen guard tests fail
+on `develop` with only the name constant defined there, and the two
+boundary cases pass as the positive control; every example `STATE_EVENT`
+projects byte for byte as before under both profiles.
+The branch changes no live path until a cut and a consumer's re-pin; the
+consumer's own range check and the producers' ingress guards stay theirs.
+Left to the maintainer with the branch: whether a display string past the
+bound should instead be cut with a stated marker; and three behaviours that
+predate the branch, whether a `track_id` that is not text (which raises out
+of `_esc` at every tag), a present null callsign (written as `None`) and an
+integer beyond float range (which raises in the point-value check) should
+refuse instead, and whether the `cds` profile should stop rewriting an
+in-range Decimal through a float (`_plain_decimal`).
+
+## Cycle F6 — 2026-11-02 (a consumer's question of 2026-10-19: is `heading_deg` the course or the body heading)
+
+One tension, raised by a downstream COP reading the reference projector's
+and the MAVLink template's events side by side, and resolved by the
+maintainer's selections of 2026-10-28 and 2026-11-02. The private session
+records (a ruling in five revisions, three of them refuted with a seeded
+error, and the branch's preparation record) carry the evidence; no partner,
+host or position appears here.
+
+### F6-01 — `heading_deg` had a frame and a range, and no text said which angle it is · **DECIDED 2026-11-02 (the course over ground; the MAVLink template made conformant)**
+
+**Observed:** contract 7.6 lists `estimated_state.heading_deg` and 7.7
+`payload.heading_deg`, each beside `speed_mps`, and 6.4 gives bearings and
+headings their frame and range, but no text said whether the member is the
+course over ground or the direction the body points. The shipped sources
+disagreed. The reference track projector fills it from the ADS-B `track`
+(a ground track), the CoT egress writes it to `<track course>` and the
+SAPIENT egress decomposes it with `speed_mps` into a ground velocity: a
+course in all three (the JREAP egress drops the member). The MAVLink
+template filled it from `GLOBAL_POSITION_INT.hdg`, the autopilot's yaw,
+when a caller asserted a true-north frame: a body angle, and for its own
+README example's inputs (nose at 135 degrees while moving north, lineage
+supplied) a course claim the telemetry contradicts. A consumer asked which
+one the member is on 2026-10-19.
+
+**The tension:** two compliant implementations could read one event
+differently, the threshold contract 2.6 names for a change to the core
+text, and design gate 3 (no laundering) is breached while the text stays
+silent: a consumer that steers by a yaw, or a display that draws a course
+arrow from a body angle, shows a direction the object does not move in.
+Contract 2.1 lets a patch tighten conformance around already-defined
+semantics and forbids redefining an existing field. The maintainer's
+reading, accepted on the record: the member's frame and range were already
+defined, and the sentence narrows which true-north angle it is, as the
+`last_seen_ts` definition of 2026-10-27 tightened a listed member; 2.1's
+prohibitions do not name the making of a previously valid mapping invalid,
+and the one shipped mapping the sentence makes non-conformant is an
+adapter's choice made under the text's silence, outer-ring under 2.6,
+corrected in the same branch. The texts carry the reading as his, not as
+their own entailment.
+
+**Decision:** the maintainer selected the course over ground on 2026-10-28
+and its wording on 2026-11-02, accepting the 2.1 reading on the record.
+Section 6.4 gains one paragraph: `heading_deg` on a `TrackStatePayload` and
+in a `FusionPayload.estimated_state` is the course over ground, the
+direction of the object's motion over the earth's surface, in the frame and
+range above; it is not the direction the body points; a producer that knows
+a body heading or yaw and no course omits `heading_deg` and MAY carry the
+body value in an explicitly named payload-scoped field such as
+`quality.yaw_deg`. The field dictionary says the same. The lock-baseline
+contract anchor moves with a dated note; no schema, policy or validator
+byte changes. The MAVLink template now derives the course from the ground
+velocity at or above a minimum ground speed (a deployment claim, 1.0 m/s by
+default) and keeps `hdg` and yaw in `quality` whatever frame the caller
+asserts, at adapter version 1.3.0 so the lineage transform tells the two
+behaviours apart. The projector and the egress adapters stand as the
+defined mapping. A governed discriminator member for the two meanings was
+considered and not chosen: the definition makes it unnecessary. Consumers
+see the definition at the next cut and their re-pin; until then the
+lineage transform is the discriminator.
+
+## Cycle F7 — 2026-11-02 (the rebuild ruling's hazards 1 and 3: a decode that chooses)
+
+One tension, booked by the boundary-rebuild ruling of 2026-10-13 for the
+maintainer and decided by his selection of 2026-11-02. The private session
+records (the ruling's eleven revisions, the carried-list evidence pass of
+2026-10-29 and its seeded refutation) carry the evidence; no partner, host or
+position appears here.
+
+### F7-01 — The reference decoders chose silently between two readings of one datagram · **DECIDED 2026-11-02 (refuse under `DECODE_AMBIGUOUS`)**
+
+**Observed:** `json.loads` resolves a duplicate key to its last value, so an
+object carrying any key twice, an identity member among them, decoded to one
+value with no trace of the other. The reference protobuf decoder skipped a
+field number the schema does not define at a message level and a known field
+carrying a wire type the schema does not use for it, so the member the
+producer sent was dropped, and it kept the last of a repeated field, so a
+second `source` block replaced the first; the message decoded clean. The
+gateway then validated and forwarded the result. A downstream boundary's
+ratified design (2026-10-12, amended 2026-10-13; not yet built as code, by
+its own record) refuses the JSON case to quarantine under its interim and
+applies the same interim to a protobuf lane it does not enable; the one
+duplicate-key refusal in that repository's code today is its state sender's
+own `refused_json`, itself marked proposed and not deployed.
+
+**The tension:** a decode that chose between two values, or dropped a
+member, produced an event the producer did not send, and forwarding it
+made every consumer behind the gateway agree on the gateway's choice. The
+compact mapping's value-model clause reads against fabricating canonical
+content on its lane (its refusal there is guidance the ruling left to the
+maintainer); the JSON documents are silent on duplicates; design gate 3 (no
+laundering) and contract 3.4 (preserve source-authored fields; schema
+acceptance is not semantic authorization) read against forwarding
+fabricated content with a label. The JSON documents' silence left a gap the
+reference filled by choosing; it granted no permission to choose.
+
+**Decision:** the maintainer selected refusal with a governed code, and on
+the branch's seeded refutation three further words: the post-lock route for
+the code, protobuf repeated fields in scope, the rule stated in the protobuf
+encoding specification. The reference decoders refuse a duplicate JSON key,
+and an unknown, mistyped or repeated (non-repeatable) protobuf field at
+every message level, and the gateway reports the refusal under the new
+diagnostic code `DECODE_AMBIGUOUS` (severity fail), minted through the
+registry route on the post-lock path of 2026-08-09: `policy/violation-codes.yaml`,
+`policy/semantics.yaml` (the allowlist and the `schema_violation_v1_0_wire_fallback`
+row to SCHEMA_INVALID, the decode-stage legacy code), the 1.1.0 schema's
+reason-code enum only (the locked v1.0 enum does not grow; its anchors
+returned to 1d2d8416 in the branch's second commit), the guidance entry,
+`spec/protobuf-encoding.md`'s decoder bounds (the rule and its chosen costs: a
+later schema revision's fields are refused by a decoder on this one until the
+decoder is revised; a generated parser accepts a repeated field this decoder
+refuses), and three
+encoding-negative fixtures. Malformed bytes are reported as malformed, field
+by field, before the ambiguity check; a caller that must read an ambiguous
+message for forensics asks `zmeta_proto.loads` for `unknown_fields="skip"`
+by name (last-wins throughout, payload JSON included), and the gateway never
+does. The producer-side validator, the explainer and the two sender tools
+read JSON the same way (the senders refuse to re-encode a duplicate key into
+a binary lane; the JSON lane sends the bytes verbatim and the gateway
+decides). The rule binds the reference decoders; a consumer that parses the
+bytes itself is its own decoder, and native vendor input read by the ingress
+adapters under `adapters/ingress/` by the vendor's grammar is outside it. The
+downstream boundary's interim and the reference's rule now agree for JSON; it
+may map its own code to this one at its re-pin. Left open, booked in the
+handoff: a contract sentence for the JSON duplicate-key rule (his word; the
+JSON documents are silent); duplicate map keys on the CBOR and compact lanes,
+which this repository's `zmeta_cbor` (the reference CBOR path) and the cbor2
+fallback both resolve last-wins (a change to `zmeta_cbor` here; cbor2 offers
+no hook); trailing CBOR bytes, which `zmeta_cbor` already refuses and only
+the cbor2 fallback ignores. Hazard 8 of the
+same ruling (digits a binary64 cannot hold) was decided with C1-07 on
+2026-11-02.
+
+**Note added 2026-11-10 (the entry above is left as written):** the
+contract sentence this entry left open has landed, on the maintainer's
+selection of 2026-11-10. Contract 3.5 now says that a JSON text in which
+one object repeats a member name, at any depth, does not decode to one
+canonical event and is not a valid encoded event. The entry says the rule
+"binds the reference decoders; a consumer that parses the bytes itself is
+its own decoder". For a duplicate JSON key that no longer holds: a
+contract sentence binds every implementation, so a consumer whose own
+parser keeps the last value is non-conforming on such a text. That reaches
+a member repeated inside a protobuf message's `payload_json`, which is a
+JSON text. The protobuf field cases (an unknown field, a mistyped one, a
+repeated non-repeatable one) stay as the entry describes them, a rule of
+the reference decoders. Four more reference tools read JSON through the
+refusing reader in the same change (`tools/check_compat.py`,
+`tools/validate_examples.py`, `tools/validate_bad_events.py`,
+`tools/validate_conformance.py`). Eight other tools, the gateway's
+self-test reader and three development harnesses still read event or
+fixture JSON to its last value and are booked. Duplicate map keys on the
+CBOR and compact lanes, and trailing CBOR bytes on the cbor2 fallback, stay
+booked as the entry left them.
+
+**Note added 2026-11-16 (the entry above is left as written):** the `auto`
+input lane's refusal follows the maintainer's selection of 2026-11-16 on
+finding S2 of the pre-cut range review of 2026-11-14. After the strict
+protobuf decode refuses a datagram as ambiguous, the `auto` lane reports
+`DECODE_AMBIGUOUS` only when the datagram is one whole protobuf message,
+every key valid and every field complete to its last byte, whose top-level
+field numbers include 2, 3 and 4, whatever their wire types, and any other
+datagram reads `SCHEMA_INVALID`. A message the strict decoder
+refuses as ambiguous that is also cut short or malformed at its top level
+after the refused field, or lacks field 2, 3 or 4, reads `SCHEMA_INVALID` on
+the `auto` lane and `DECODE_AMBIGUOUS` on the `proto` lane. A complete event
+with a stray, mistyped or repeated field reads `DECODE_AMBIGUOUS` on both.
+
+## Cycle F8 — 2026-11-09 (a wire form whose typed fields hold less than the projection writes)
+
+Two tensions met while building the TAK Protocol Version 1 egress adapter
+(`adapters/egress/tak_protocol/`), a wire step over the CoT projection, on
+the maintainer's selection of 2026-11-09. In both the build implemented what
+the documents already permit (protocol step 1) and the entries are OPEN for
+the separate adjudication pass (step 4); they are recorded because the same
+pressure will return with every binary wire form the egress set grows into.
+
+Both entries were adjudicated on 2026-11-10 and are HELD-FIRM. The paragraph
+above stands as it was written on 2026-11-09.
+
+### F8-01 — The typed `PrecisionLocation` message cannot carry the ellipse the CoT projection writes · **HELD-FIRM 2026-11-10 (the element travels whole in `xmlDetail`; no typed election)**
+
+**Observed:** TAK Protocol Version 1 types six detail children. Its
+`PrecisionLocation` message has two fields, `geopointsrc` and `altsrc`. The
+CoT projection's `<precisionlocation>` also carries `ellipse_major`,
+`ellipse_minor` and `ellipse_angle` (it writes the element only when a
+position source is configured and the event carries an ellipse with a
+`semi_major`): the one
+structured place the projection carries the uncertainty's shape rather than
+its circular bound, the standard profile's `remarks` carrying it as text. The
+`takproto` package, the common Python encoder, types the
+element and drops the other attributes without a word. A reader of the typed
+field alone would see a position source and no ellipse; nothing would say an
+ellipse had been written.
+
+**The tension:** a typed consumer reads the typed field, and design gate 5
+(structure is authoritative) names CoT's `<detail>` sub-elements as the
+structured form, which an element in `xmlDetail` still is; design gate 3 (no
+laundering) and contract 3.4 (preserve source-authored fields) forbid
+dropping the attributes in silence. The wire form offers no carrier that is
+both typed and whole.
+
+**The build's reading, for adjudication:** the documents permit the whole
+element in `xmlDetail`, so that is what the build does. A typed child goes to
+its typed field only when the typed message carries the element whole (every
+attribute has a field, none is empty, every numeric field present, no text,
+no children); otherwise the element travels whole in `xmlDetail`, where a
+reader that rebuilds `<detail>` sees it as it was written. The cost is named
+in the adapter README: a consumer that reads only the typed field sees
+nothing for such an event. The same rule sends a `<contact>` with a `phone`
+attribute, an empty attribute (proto3 cannot tell an empty string from an
+absent one), or a `<track>` with one of its two numbers (an absent number
+would read back as 0) whole into `xmlDetail`. A typed element whose numeric
+attribute is not a number, and two elements of one typed kind that both
+qualify for the typed field, refuse the event rather than choose. The
+question for the pass is whether a deployment may elect the typed field and
+the ellipse's loss by name, as the `cds` profile elects other losses. The
+pattern to watch is a binary standard whose typed vocabulary is narrower
+than CoT's attribute space; MISB ST 0601 and ASTERIX will meet it next with
+no `xmlDetail` to fall back on, and there the answer is the loss register.
+
+**Note added 2026-11-10 (the entry above is left as written):** two
+behaviours it describes changed on 2026-11-10, after a review read the
+adapter against the published `.proto` files. The published sender rule
+keeps an element in the XML, and leaves its message field unpopulated, when
+the element appears more times than the field holds or when mapping it
+fails. So two elements of one typed kind, and a typed element whose numeric
+attribute is not a number, now travel in `xmlDetail` and the event is sent,
+where both refused the event before. The published messages also mark every
+item required unless noted, and note only the contact's `endpoint` as
+optional, so a typed child with any other item left out travels whole in
+`xmlDetail`. The tension this entry records, a typed field that cannot
+carry the ellipse, is unchanged, and so is the entry's status.
+
+**Decision (2026-11-10):** taken by the maintainer in the repository's
+session on the evidence put to him first (this entry and the adapter
+README's statement of the cost). The note above was written with the
+adapter change, before this decision was recorded. The build's reading
+stands: a typed child goes to its typed field only when the typed message
+carries the element whole, and otherwise the element travels whole in
+`xmlDetail`. No election key is added. The entry re-opens only on new
+evidence, which a consumer that needs the typed field would be. The pattern
+stays on watch for MISB ST 0601 and ASTERIX, which have no `xmlDetail` to
+fall back on; there the answer is the loss register.
+
+### F8-02 — Millisecond times on a wire for a projection that writes microseconds · **HELD-FIRM 2026-11-10 (the validity end floors, never rounds; the guide rule is written with the next coarser-time wire)**
+
+**Observed:** the protobuf times are unsigned milliseconds since the epoch;
+the CoT projection writes `time`, `start` and `stale` to the microsecond.
+Rounding to the nearest millisecond would move `stale` later than the
+event's own claim, by up to half a millisecond, whenever the dropped
+microseconds reach five hundred (times built from a whole-millisecond `ts`
+and `valid_for_ms` carry none; a producer's own microseconds may).
+
+**The tension:** contract 4.2 lets a projection lower a validity and never
+raise it; contract 14 requires a display projection to preserve
+`valid_for_ms` as stale behaviour. A sub-millisecond lengthening is
+immaterial to any display and would be the simplest code.
+
+**The build's reading, for adjudication:** the documents permit the floor at
+no cost, so the adapter floors every time: `stale` is never later than the
+claim and `time` and `start` never move forward. A mutant that rounds fails
+the suite (the time test). A time before 1970 has no unsigned representation
+and refuses rather than wraps. The question for the pass is only whether the
+rule is stated once for every wire form with coarser time (ASTERIX's 1/128 s
+next), so each adapter applies it and says so.
+
+**Decision (2026-11-10):** taken by the maintainer in the repository's
+session on the evidence put to him first (this entry, the time test and its
+rounding mutant, and the second occurrence below). The floor stands in the
+TAK Protocol adapter. Contract 4.2 lets a projection lower `valid_for_ms`
+and requires a new event for an increase in TTL, so the end of a validity
+never moves later. The guide rule is written with the next wire form that
+carries a validity in coarser time, and is scoped to that requirement. The
+entry re-opens only on new evidence, which a wire form on which the floor
+itself misstates a validity would be.
+
+**Second occurrence, recorded 2026-11-10:** the SAPIENT egress writes the
+event's own time into the timestamp part of its report identifier in
+milliseconds and rounds it
+(`adapters/egress/sapient/zmeta_state_to_sapient_detection.py`). That
+carrier is an event time and not a validity, so the validity rule of
+contract 4.2 is not broken and the adapter is unchanged. The same section
+lets a projection reduce numeric precision and names no direction for the
+reduction, so the two adapters differ on an event time and neither breaks
+it.
+
+## Cycle F9 — 2026-11-10 (rulings of 2026-11-08 on a consumer's design for looking up an observed identifier in outside sources)
+
+One tension met on 2026-11-08 while ruling on a consumer's design for looking
+up an observed identifier in information sources outside its own sensors.
+Nothing was built in this repository. The same rulings led to two registry
+entries on 2026-11-10 (`OSINT`, rejected, and `COLLECT_EXTERNAL_RECORDS`,
+reserved) and to the advisory note `docs/zmeta_enrichment_results_note.md`,
+each on the maintainer's selection of that day. The entry is OPEN for the
+separate adjudication pass (step 4) and is recorded so that the next
+deployment to meet the same pressure is counted.
+
+### F9-01 — A summary over several lookup results is fusion-shaped without a track · **OPEN 2026-11-10 (ruled to an INFERENCE_EVENT that cites observations; adjudication at the next pass)**
+
+**Observed:** a lookup yields one INFERENCE_EVENT with `inference_type`
+ASSOCIATION per source per query. The design then wants one summary claim
+about the entity, composed from several of those results. FUSION_EVENT is
+bound to a track: its payload carries a required `track_id` and `members`
+(contract 7.6). An INFERENCE_EVENT "MUST reference upstream observations
+through lineage" (contract 7.5), and the reference `policy/lineage.yaml`
+admits OBSERVATION_EVENT as the only parent type of an INFERENCE_EVENT, so a
+summary cannot name the results it was composed from as lineage parents.
+
+**The tension:** the summary combines several derived claims, which is what
+fusion does, and it concerns an entity that has no track. Design gate 3 (no
+laundering) wants the summary's dependence on the per-source results to stay
+explicit and filterable. Design gate 1 (alphabet, not dictionary) and the
+promotion bar argue against a new event kind, a new subtype or a wider
+lineage policy on one deployment's design.
+
+**The ruling's reading, for adjudication:** the documents permit the summary
+as an INFERENCE_EVENT whose `lineage.based_on` cites observations. The
+result events it was composed from cannot ride in `payload.based_on`: the
+lineage check reads that member and, in reject mode, refuses any identifier
+that is not in envelope lineage (`policy/lineage.yaml`,
+`payload_based_on_subset_mode: reject`), and envelope lineage for an
+INFERENCE_EVENT admits observations only. Their identifiers can ride in
+another payload-scoped provenance member (contract 9.2), which must not
+override envelope lineage and which no lineage check reads. The cost is
+that the path from the summary to the per-source inferences is then visible
+only in that member. The question for the pass is whether an inference may
+cite inferences as parents, or whether a combination without a track needs
+a form of its own. The recommendation is that no vocabulary and no lineage
+policy moves until a second deployment needs the summary as an event. The
+pattern to watch is an analytics producer that composes other producers'
+inferences.
+
+## Cycle F10 — 2026-11-10 (a track placed at its sensor, and a wire standard's own fallback rule)
+
+Four tensions met on 2026-11-10: three while ruling on a downstream stack's
+camera tracks for a second consumer, and one while fitting the TAK Protocol
+Version 1 egress adapter to the published protocol documents. Nothing in the
+kernel changed. The first three are OPEN for the separate adjudication pass
+(step 4). The fourth was resolved inside the adapter and is recorded as
+CHANGED. The four are logged on the maintainer's selection of 2026-11-10.
+
+### F10-01 — A track placed at its sensor's own site · **OPEN 2026-11-10 (ruled for one consumer route from contract 20.3 and 8.3; adjudication at the next pass)**
+
+**Observed:** a camera processor in a downstream stack, in its code as read
+on 2026-11-10, builds a STATE_EVENT / TRACK_STATE for every detection. With a
+calibration loaded the track's `geo` is the detection's projected ground
+position. Without one the `geo` is the camera's own configured site, marked
+only by a private payload key that carries the token `CONFIGURED`, with no
+uncertainty and the same `confidence`. The stack's own display reads the
+key. No file of the stack's STATE events was read. The reference validator
+accepts any coordinates on a STATE, so it cannot tell such a track from one
+placed on its object. The same stack's EO OBSERVATION_EVENT file holds one
+position across all 60,887 of its events, which is what a sensor's own site
+looks like; by the stack's own note those observations do not leave it.
+
+**The tension:** B1-01 decided on 2026-08-09 that on an OBSERVATION_EVENT
+`payload.geo` is the position of the observation's subject, with the
+normative sentence deferred to a governed wave. That entry speaks of
+observations. For a track, contract 14 has a display preserve `payload.geo`
+"as WGS-84/HAE position" and does not say whose position it is. A
+TRACK_STATE requires `geo`, so a producer that has no position for the
+object either emits no track or fills the member with something. Design
+gate 3 (no laundering) is against a track that looks placed when it is not.
+Contract 20.3 ("Extensions must be safe to ignore") is against a private
+key that a consumer has to read to place the track correctly.
+
+**The ruling's reading, for adjudication:** the documents guide rather than
+decide. A TRACK_STATE's `geo` is where the producer believes the tracked
+object is. A fallback to the sensor's site that only a private key marks
+does not conform once the event leaves its own stack: the key is not safe to
+ignore, and state confidence "MUST account for" a list of inputs that
+includes "Observation quality" (contract 8.3). The ruling names two forms.
+The first, which it recommends, is that the producer emits no track where it
+has no position. The second, under `zmeta_version` 1.1.0, states the area
+the sensor covers as `geo.error_ellipse_m` with a lowered `confidence`; it
+rests on a condition of the ruling's own (an ellipse that contains the
+covered area), it leaves the consumer to draw the area, and the ruling does
+not recommend it. The question for the pass is whether the governed wave
+that lands B1-01's sentence should also state the referent of a STATE's
+`geo`. The EO observation file above is one more row for B1-01's table of
+adapters that put the sensor's own position in an observation's `geo`.
+
+### F10-02 — `payload.quality` on a STATE is an open key · **OPEN 2026-11-10 (an enforcement gap; adjudication at the next pass)**
+
+**Observed:** the 1.1.0 schema declares `quality` on `ObservationPayload`
+alone, and `TrackStatePayload` admits additional properties. A STATE that
+carries `payload.quality.geo_status` with a token outside the vocabulary
+passes the reference check, while the coherence arm that refuses a 2D geo
+beside `AVAILABLE` does apply to a STATE. The registry allows the quality
+block on OBSERVATION_EVENT only. `policy/profile-precision.yaml` lists
+`payload.quality.geo_status` as an immutable path with no event-type scope.
+Fielded STATE events carry the member: on 2026-11-11 a downstream
+consumer's window held 5,152 of 5,295 STATE events with
+`quality.geo_status` `VERTICAL_UNAVAILABLE`.
+
+**The tension:** contract 21.1 says the block is for "observations and other
+payloads that need machine-readable quality metadata". Contract 21.8 holds a
+2D geo and `quality.geo_status` to one coherence rule on any event that
+carries both, and the registry's dimensionality entry allows STATE_EVENT. A
+STATE may therefore carry the token under that rule, and nothing checks the
+token's vocabulary there.
+
+**The reading, for adjudication:** this is a gap in enforcement and not in
+vocabulary. The question for the pass is whether the 1.1.0 schema should
+declare `quality` on the STATE and FUSION payloads (Class B), or whether the
+documents should say that the token is checked on observations only.
+
+### F10-03 — The 2D form's stated purpose against a 2D geo for an estimated position · **OPEN 2026-11-10 (lawful under the rules; adjudication at the next pass)**
+
+**Observed:** contract 21.8 says of the 2D form: "The declaration exists for
+sources whose horizontal fix is real and exact while a geometric vertical
+does not exist to assert". The rules beneath that sentence do not ask for
+exactness, and "`geo.error_ellipse_m` attaches to either form unchanged".
+Fielded events use the form for estimates: an EO producer's tracks carry a
+2D geo with an error ellipse for positions projected onto the ground from an
+image (809 of 809 STATE events of one recorded run), and a downstream
+consumer's window held several thousand STATE events with a 2D geo and an
+ellipse on 2026-11-10.
+
+**The tension:** the rule text permits a 2D position with an ellipse. The
+purpose sentence, and the definition of `VERTICAL_UNAVAILABLE` in 21.1 ("the
+horizontal fix is real and exact"), describe a narrower case. A producer of
+a ground-projected position has no vertical to assert and a horizontal that
+is not exact, and `geo_status` holds one token, so it cannot say both that
+the vertical is unavailable and that the horizontal is an estimate.
+
+**The reading, for adjudication:** the form is lawful for an estimate, and
+the purpose sentence describes the case that introduced it. The question for
+the pass is whether 21.1 and 21.8 should say that a 2D position may be an
+estimate with an ellipse, and which token such a position carries.
+
+### F10-04 — A wire standard's own fallback rule against the adapter's refusal · **CHANGED 2026-11-10 (the adapter follows the published rule; nothing is dropped)**
+
+**Observed:** the TAK Protocol Version 1 egress adapter refused a whole
+event when a typed detail element carried a numeric attribute that was not a
+number, or when two elements of one typed kind both qualified for the typed
+field. Where only one of two qualified it typed that one and sent the other
+as XML. The published sender rule for the protocol keeps such elements in
+the XML and leaves the message field unpopulated, and the published
+receiver rule ignores a typed field whose element is also in the XML.
+
+**The tension:** the adapter's rule is to refuse rather than drop or choose.
+The target standard defines a carrier that drops nothing, the element as it
+was written, and a receiver that follows the standard would have ignored
+the one element the adapter did type.
+
+**Changed 2026-11-10** on the maintainer's selection of that day: the
+adapter follows the published rule. The elements travel whole in
+`xmlDetail` and the event is sent. A refusal remains where the published
+schema has no carrier, or requires a value the event lacks. The pattern to
+watch for the next wire form: where the target standard defines a lossless
+fallback, an adapter uses it. The note under F8-01 records which of that
+entry's sentences this changed.
+
+## Cycle F11 — 2026-11-14 (a display format with no validity item)
+
+Three entries from building the ASTERIX CAT062 egress adapter
+(`adapters/egress/asterix/`), on the maintainer's selection of 2026-11-14:
+two tensions and one finding about the sibling egress adapters. The build
+implemented what the documents permit and what ZMeta ruled for it the same
+day (protocol step 1), and the entries are OPEN for the separate
+adjudication pass (step 4).
+
+### F11-01 — A display format with no item for `valid_for_ms` · **OPEN 2026-11-14 (a registered loss; adjudication at the next pass)**
+
+**Observed:** CAT062 edition 1.21 carries the time of the track state vector
+(I062/070) and the ages of the updates behind it (I062/290, I062/295), and no
+item for how long the state stays valid. A receiver ages a track by I062/070
+under its own rules. `payload.valid_for_ms` therefore has no carrier in the
+adapter's record.
+
+**The tension:** contract 14 lists `payload.valid_for_ms` among what
+CoT/TAK, JREAP-style tactical track JSON, dashboards and "other display
+formats must preserve", as freshness and stale behaviour. A CAT062 record is
+such a format and cannot preserve it. The SAPIENT egress meets the same gap,
+since its DetectionReport has no TTL or stale field, and registers the loss.
+
+**The build's reading, for adjudication:** the documents guide rather than
+decide. Contract 14's sentence on omission names confidence and lineage
+("the original ZMeta event remains authoritative"), not validity. The
+adapter registers the loss, as the SAPIENT adapter does, and takes no clock
+argument, so the encoder stays a pure function; its README says that the
+sending deployment must stop sending a track when its validity ends, since
+the encoder has no clock, and that the receiver ages a track by I062/070
+under its own rules. The question for the pass is
+whether contract 14's "must preserve" admits a named loss for a format with
+no validity item, or whether such a format needs a sender rule stated in the
+contract.
+
+### F11-02 — A mandatory UTC time on a wire with no carrier for timing quality · **OPEN 2026-11-14 (ruled for this adapter: refused unless the caller allows; adjudication at the next pass)**
+
+**Observed:** CAT062 edition 1.21 has no item for the quality of the time
+source, and its I062/070 is mandatory and states the time of the track as
+UTC (§5.2.5). Every event of the two corpora the build ran carries
+`timing_quality.sync_state` `UNSYNCED`: 809 STATE events of a downstream
+producer's recorded run, and 1,680 STATE events projected from live ADS-B
+observations.
+
+**The tension:** contract 4.9 says "ZMeta never implies certainty by
+omission", and names timing uncertainty among what "must be explicit when
+they are relevant to downstream use"; design gate 3 forbids making degraded
+data look clean. Contract 14 accepts a projection that omits what its format
+cannot carry, and design gate 4 calls projections out lossy. Exported as it
+is, a record from an unsynchronized clock reads like one from a disciplined
+clock.
+
+**The ruling's reading, for adjudication:** ZMeta ruled for this adapter on
+2026-11-14 that an event whose timing is not locked (a `sync_state` other
+than exactly `LOCKED`, or no `timing_quality`) is refused, each case with its
+own reason, unless the caller passes `allow_degraded_timing=True`, a name
+taken from the adapter harness, whose allowance there covers `UNSYNCED`
+only. A malformed `timing_quality` is refused whatever the allowance says,
+from the seeded review of 2026-11-14. The allowance is the deployment's
+choice, made in the open (contract 3.3), and it never opens the risk gate.
+The adapter reads no `est_error_ms`, since a timing threshold is a tunable
+rule of deployment policy (contract 3.3). The question for the pass is
+whether the allowance stays, or the rule tightens to a refusal with none.
+
+### F11-03 — The egress adapters treat timing quality four ways · **OPEN 2026-11-14 (findings; no change on this branch)**
+
+**Observed:** the JREAP projection drops `payload.timing_quality` and names
+the loss in its register. The TAK Protocol Version 1 README names timing
+quality absent among the CoT projection's losses. The CoT projection itself
+drops it with no mention in its README or its module. None of the three
+gates on it. The SAPIENT egress labels a state whose `sync_state` is not
+`LOCKED` with a `zmeta.timing_quality` self-label, and exports an event that
+carries no per-event `timing_quality` with no label. The ASTERIX CAT062
+adapter refuses both unless the caller allows them (F11-02).
+
+**The tension:** one unsynchronized STATE leaves the reference projections
+gated, labelled, registered as lost, or dropped with no word, by projection.
+Contract 5.3 says a consumer with no current timing status "SHOULD treat
+timing quality as unknown or stale", which the SAPIENT behaviour for an event
+with no per-event `timing_quality` does not do at the egress.
+
+**For the pass:** whether the sibling projections should state their timing
+behaviour in one place, and whether the CoT projection's README should
+register the loss as the JREAP and SAPIENT registers do.
 
 ## Archive
 

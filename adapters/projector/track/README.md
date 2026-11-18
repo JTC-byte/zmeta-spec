@@ -92,9 +92,12 @@ running. In a live deployment, check `refused_no_identity` before
 concluding a silent map means a broken adapter: it is the one signal
 this limit emits.
 
-**Widening `identity_paths`.** The constructor accepts additional
-`(label, dotted.path)` identity sources beyond the stock ADS-B and AIS
-pair, and that is the supported route for a source whose subjects carry
+**Widening `identity_paths`.** The constructor takes `identity_paths` as
+a sequence of `(label, path)` entries where `path` is a tuple of keys, for
+example `("payload", "features", "adsb_icao24")`; the value passed
+replaces the stock ADS-B and AIS pair (`DEFAULT_IDENTITY_PATHS`), so a
+deployment that wants both includes the stock entries. That is the
+supported route for a source whose subjects carry
 any stable per-emitter key. One warning travels with it (doctrine log
 B1-01): this projector copies observation `geo` into the track position,
 which assumes `geo` is the observed subject's position. The

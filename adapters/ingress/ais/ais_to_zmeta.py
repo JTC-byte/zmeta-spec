@@ -96,7 +96,7 @@ from datetime import datetime
 
 from adapters.ingress.time_utils import coerce_timing_quality, epoch_ms_to_utc_z
 
-ADAPTER_VERSION = "1.0.0"
+ADAPTER_VERSION = "1.1.0"
 DEFAULT_PRODUCER = "rf-sensor-ais-01"
 
 # AIS marine band. Carried natively as context, never as an RF measurement.
@@ -120,7 +120,7 @@ LAT_NOT_AVAILABLE = 91.0
 LON_NOT_AVAILABLE = 181.0
 # Message 27 packs speed and course into smaller fields with their own
 # not-available encodings: 63 for speed, 511 for course. 63 kt is a real
-# speed in a Class A report, so these are checked only for type 27.
+# speed in other reports, so these apply to type 27 and to a typeless record.
 TYPE27_SOG_NOT_AVAILABLE = 63.0
 TYPE27_COG_NOT_AVAILABLE = 511.0
 # The fields themselves bound what a real report can say: speed 0 to 102.2 kt,
@@ -216,6 +216,53 @@ def _quality(geo):
     return {"geo_status": "VERTICAL_UNAVAILABLE"}
 
 
+# Shipborne transceiver classes. A record that carries no message type is read
+# only when it declares one of these (see `_declared_transceiver_class`).
+TRANSCEIVER_CLASSES = frozenset({"A", "B"})
+
+
+def _declared_transceiver_class(msg):
+    """The declared shipborne transceiver class, "A" or "B", or None.
+
+    RECORDS WITH NO MESSAGE TYPE. Some record sources publish decoded position
+    reports with the AIS message type removed and the transmitting
+    transceiver's class kept, one class per record. Such a record does not
+    say which position report it was. Inferring a type from the class (1 for
+    Class A, 18 for Class B) would make an inference look read, so no type is
+    inferred. The record is read only on two statements it makes itself:
+
+    - a shipborne transceiver class, A or B. A position alone does not show a
+      vessel's report: base stations (message 4), aids to navigation (21) and
+      SAR aircraft (9) report positions too, and this adapter consumes none of
+      them;
+    - a usable position, checked in `translate_message`. Static and voyage
+      data (5, 24) come from the same transceivers and carry none.
+
+    The two rule out what the record itself can rule out, and no more. A
+    Class A station's UTC and date response (message 11) also carries a
+    position, and a record source could attach a last-known position to a
+    static record. The rest rests on the record source's word that it
+    publishes position reports, so only such a source's records belong on
+    this path. The record also does not say which report it was, so its
+    position's resolution is unknown: it may be message 27's coarser grid.
+
+    Its event omits `ais_message_type` and carries `ais_transceiver_class`,
+    so the event says which statement the source made, and that the type is
+    unknown. The class is read only when the type is absent: a typed message
+    is translated as it always was, whatever else it carries. With no type,
+    message 27's not-available encodings apply alongside every other type's
+    (`_native_features`).
+
+    The value folds whitespace and case, as the shared timing helper's
+    vocabularies do. Anything else, a non-string included, is no class.
+    """
+    value = msg.get("transceiver_class")
+    if not isinstance(value, str):
+        return None
+    token = value.strip().upper()
+    return token if token in TRANSCEIVER_CLASSES else None
+
+
 def _epoch_s_to_utc_z(epoch_s):
     """Epoch seconds to UTC-Z, or None when the number cannot be a moment."""
     if epoch_s < EPOCH_FLOOR_S:
@@ -262,7 +309,7 @@ def _event_ts(msg, now_epoch_s):
     return None
 
 
-def _native_features(msg, mmsi, receiver_id, position):
+def _native_features(msg, mmsi, receiver_id, position, transceiver_class=None):
     """Everything AIS asserts, under explicitly named native keys."""
     features = {
         "ais_mmsi": mmsi,
@@ -275,6 +322,14 @@ def _native_features(msg, mmsi, receiver_id, position):
     msg_type = msg.get("type")
     if isinstance(msg_type, int) and not isinstance(msg_type, bool):
         features["ais_message_type"] = msg_type
+    if transceiver_class is not None:
+        # Only a record with no message type arrives here with a class. The
+        # class is the statement it was accepted on, so it travels with it.
+        features["ais_transceiver_class"] = transceiver_class
+    # A record with no message type may be a message 27, so message 27's
+    # not-available encodings apply to it as well as every other type's
+    # (adapters/AUTHORING.md: the table of each type the code path accepts).
+    may_be_type_27 = msg_type == 27 or msg_type is None
 
     if position is not None:
         # The exact as-broadcast position, carried here regardless of what
@@ -286,7 +341,7 @@ def _native_features(msg, mmsi, receiver_id, position):
     sog = _finite(msg.get("speed"))
     if sog is not None:
         not_reported = abs(sog - SOG_NOT_AVAILABLE) < 1e-6 or (
-            msg_type == 27 and abs(sog - TYPE27_SOG_NOT_AVAILABLE) < 1e-6
+            may_be_type_27 and abs(sog - TYPE27_SOG_NOT_AVAILABLE) < 1e-6
         )
         sog_max = TYPE27_SOG_MAX_KT if msg_type == 27 else SOG_MAX_KT
         if not not_reported and 0.0 <= sog <= sog_max:
@@ -294,7 +349,7 @@ def _native_features(msg, mmsi, receiver_id, position):
     cog = _finite(msg.get("course"))
     if cog is not None:
         not_reported = abs(cog - COG_NOT_AVAILABLE) < 1e-6 or (
-            msg_type == 27 and abs(cog - TYPE27_COG_NOT_AVAILABLE) < 1e-6
+            may_be_type_27 and abs(cog - TYPE27_COG_NOT_AVAILABLE) < 1e-6
         )
         if not not_reported and 0.0 <= cog < 360.0:
             features["ais_cog_deg_true"] = cog
@@ -368,15 +423,25 @@ def translate_message(
         The event dict, or ``None`` when the message cannot honestly become
         one: not a position report, no MMSI (no subject), or no usable
         reception time, where a time channel that is present but impossible
-        counts as unusable rather than falling through to another clock.
+        counts as unusable rather than falling through to another clock. A
+        record with no message type is also refused unless it declares a
+        shipborne transceiver class and carries a usable position (see
+        `_declared_transceiver_class`).
     """
     if not isinstance(msg, dict):
         return None
 
     msg_type = msg.get("type")
-    if not isinstance(msg_type, int) or isinstance(msg_type, bool):
+    transceiver_class = None
+    if msg_type is None:
+        # No message type. The record is read only on a declared shipborne
+        # transceiver class and a usable position, never on an inferred type.
+        transceiver_class = _declared_transceiver_class(msg)
+        if transceiver_class is None:
+            return None
+    elif not isinstance(msg_type, int) or isinstance(msg_type, bool):
         return None
-    if msg_type not in POSITION_REPORT_TYPES:
+    elif msg_type not in POSITION_REPORT_TYPES:
         return None
 
     # MMSI is the subject. Without it there is nothing to observe about.
@@ -389,6 +454,10 @@ def translate_message(
         return None
 
     position = _position(msg)
+    if msg_type is None and position is None:
+        # With no type to read, a record with no position may be static or
+        # voyage data; it is not read as a position report.
+        return None
     geo = _geo(position)
     # A usable position always uses v1.1.0-only geo vocabulary (the declared
     # 2-D form, doctrine A1-02): the locked v1.0 canonical geo def is
@@ -398,7 +467,7 @@ def translate_message(
     # branch, byte-for-byte what it always was.
     needs_1_1_0 = geo is not None
 
-    features = _native_features(msg, mmsi, receiver_id, position)
+    features = _native_features(msg, mmsi, receiver_id, position, transceiver_class)
     if needs_1_1_0:
         # The locked v1.0 kernel's NETWORK ObservationPayload imposes no
         # feature vocabulary of its own, but v1.1.0's does, and requires

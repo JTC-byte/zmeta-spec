@@ -80,7 +80,7 @@ def fusion(parent_ids, member_ids=None, event_id=None):
             "track_id": "track-1",
             "members": member_ids,
             "stability": 0.6,
-            "last_seen_ts": "2025-01-17T14:30:02Z",
+            "last_seen_ts": "2025-01-17T14:30:00Z",
         },
         "confidence": 0.76,
         "lineage": {"based_on": parent_ids},

@@ -100,6 +100,9 @@ def _contains_altitude(value):
 
 
 def _parse_utc(ts):
+    # adapters/egress/mavlink/zmeta_command_to_mission_intent.py holds a
+    # copy of this reader, and adapters/egress/mavlink/test_mavlink_intent.py
+    # fails while the two differ in code, so a change here belongs in both.
     if not isinstance(ts, str):
         # TypeError so the caller's documented None-refusal path handles a
         # non-string ts; bare .endswith would raise AttributeError past it.
@@ -162,8 +165,10 @@ def zmeta_command_to_sapient_task(event, *, node_id, destination_id, track_to_ob
     Returns:
         Proto3-JSON-shaped SapientMessage dict carrying a Task, or None if
         the event cannot be honestly projected (wrong event type, not
-        deconflicted, missing required fields, non-ULID task_id, or a
-        task type with no SAPIENT verb).
+        deconflicted, missing required fields, non-ULID task_id, a
+        task type with no SAPIENT verb, an unreadable ts or valid_from_ts,
+        or a validity window that opens after event.ts, which SAPIENT's
+        end-only bound cannot carry).
 
     Raises:
         ValueError: if target_geo carries an altitude field (semantics
@@ -259,9 +264,22 @@ def zmeta_command_to_sapient_task(event, *, node_id, destination_id, track_to_ob
     # OSError(EINVAL) on Windows for any pre-1970 instant. A naive
     # pre-epoch ts is the bad-clock symptom arriving without a zone —
     # without this arm it escapes the guard and the projection raises.
+    #
+    # Contract 7.8: the validity window begins at payload.valid_from_ts when
+    # present, otherwise at event.ts, and ends valid_for_ms after that start.
+    # task_end_time is that end. SAPIENT's Task carries an end bound only and
+    # CONTROL_START runs from receipt, so a window that opens after event.ts
+    # has no honest carrier here: projecting it would start the node before
+    # the window, and it is refused (None). A valid_from_ts the egress cannot
+    # read is a window it cannot compute and is refused the same way; no
+    # bound is computed from event.ts in its place.
     try:
         time_dt = _parse_utc(ts)
-        end_dt = time_dt + timedelta(milliseconds=int(valid_for_ms))
+        valid_from_ts = payload.get("valid_from_ts")
+        start_dt = _parse_utc(valid_from_ts) if valid_from_ts is not None else time_dt
+        if start_dt > time_dt:
+            return None
+        end_dt = start_dt + timedelta(milliseconds=int(valid_for_ms))
     except (ValueError, TypeError, OverflowError, OSError):
         return None
 

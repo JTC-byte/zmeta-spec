@@ -12,11 +12,24 @@ python gateway/src/gateway.py --profile=H
 
 Listens on UDP `0.0.0.0:5555` and forwards to `127.0.0.1:5556`.
 
+A profile is required, from `--profile` or the config file's `profile`;
+without one the gateway stops with "profile is required and must be one of
+L, M, H". The default lane is the locked v1.0 schema; a gateway for v1.1.0
+producers adds `--schema-path schema/zmeta-event-1.1.0.schema.json`
+(Schema lanes, below).
+
 Optional helper:
 
 ```
 python tools/run_gateway.py --profile H
 ```
+
+The helper passes on `--config`, `--schema-path`, `--profile` (H when
+neither `--profile` nor `--config` is given), `--emit-cot`,
+`--strict-validation`, the metrics, rate-limit and hash flags, and
+`--self-test`. For the listen, forward and CoT addresses, the policy
+directory, the encodings, the identity flags and the stamping and
+stripping switches, run `gateway/src/gateway.py` itself.
 
 Self-test (schema + policy + examples + encoding):
 
@@ -104,6 +117,7 @@ The config file keys are:
 - `emit_metrics` and `metrics_interval_sec` (periodic gateway metrics logs)
 - `rate_limit_per_sec` (drop packets above receive rate)
 - `rate_limit_producer_per_sec` (drop per-producer above receive rate)
+- `event_index_max_entries` (how many recently accepted events stay resolvable as lineage parents; default 65536, maximum 1048576; see Event index below)
 - `metrics_log_path`, `metrics_log_max_bytes`, `metrics_log_backups` (JSONL metrics logs)
 - `warn_datagram_bytes` (warn when an outgoing datagram exceeds this size; 0 disables)
 - `ts_plausibility_horizon_ms` (warn when `event.ts` sits outside a window around now; 0 disables; see Event timestamp plausibility below)
@@ -131,6 +145,55 @@ untrusted input. A common pattern is compact encoding on Profile L edge links
 the Profile L compact mapping (see `spec/compact-binary-mapping.md`). Use
 `proto` for the experimental protobuf projection described in
 `spec/protobuf-encoding.md`.
+
+### Decode refusals
+
+The gateway refuses a datagram that its decoder would have had to repair to
+read, under the governed diagnostic code `DECODE_AMBIGUOUS` (severity fail;
+doctrine F7-01, 2026-11-02). It forwards nothing for such a datagram and
+emits a `SCHEMA_VIOLATION` diagnostic. Three cases are refused:
+
+- a JSON text in which one object repeats a member name, at any depth
+  (contract 3.5), on the `json` lane, on JSON the `auto` lane reads, and in
+  the JSON a protobuf message carries as its payload;
+- a protobuf message carrying a field number the schema does not define at
+  that level, or a known field number with a wire type the schema does not
+  use for it;
+- a protobuf field that appears twice where the schema allows one;
+  `lineage.based_on` is the one repeated field.
+
+On the `json`, `cbor`, `compact` and `proto` lanes, any other datagram that
+fails to decode is refused as `SCHEMA_INVALID`; the `auto` lane is described
+below. Duplicate map keys on the `cbor` and `compact` lanes are not refused:
+those lanes read the last value. Their refusal waits for a branch after
+the next cut, on the maintainer's selection of 2026-11-11.
+
+On the v1.0 wire the diagnostic's `metrics.reason_code` is `SCHEMA_INVALID`,
+because every diagnostic the gateway mints is stamped `zmeta_version: "1.0"`
+and the locked v1.0 reason-code enum cannot grow. `metrics.diagnostic_code`
+carries `DECODE_AMBIGUOUS` (`policy/semantics.yaml`,
+`schema_violation_v1_0_wire_fallback`). The gateway's metrics count the
+refusal under `DECODE_AMBIGUOUS`, and the code is in the 1.1.0 schema's
+reason-code enum. A consumer that counts refusals reads
+`metrics.diagnostic_code` before `metrics.reason_code`.
+
+The `auto` lane reads a datagram that opens with `{` or `[` as JSON. A
+datagram that opens with `{` or `[` and does not parse as JSON is read as
+CBOR and the compact mapping only, and reads `SCHEMA_INVALID` when that
+decode fails. The lane tries any other datagram as CBOR and the compact
+mapping, then protobuf, and last JSON. When the protobuf read refuses a
+datagram as ambiguous, the `auto` lane reports `DECODE_AMBIGUOUS` only if the
+datagram is one whole protobuf message whose top-level field numbers include
+2, 3 and 4 (`event`, `source`, `payload`), whatever their wire types (the
+maintainer's selection of 2026-11-16). Any other datagram no decoder reads is
+refused as `SCHEMA_INVALID`: a compact or CBOR datagram cut short, a compact
+datagram with one trailing byte, plain text such as `hello world`. A protobuf
+message that the decoder refuses as ambiguous for a stray, mistyped or
+repeated field, and that is also cut short or malformed after that field, or
+lacks one of the three members, reads `SCHEMA_INVALID` on `auto` and
+`DECODE_AMBIGUOUS` on `proto`. Cut short before that field, it reads
+`SCHEMA_INVALID` on both lanes. A deployment that knows its producers'
+encoding can set that lane instead of `auto`.
 
 ### COMMAND_EVENT dedupe
 
@@ -272,7 +335,8 @@ filterable risk fields such as `risk_dimension`, `policy_mode`,
 `policy_decision`, `allowed_uses`, `prohibited_uses`, and effect details. Runtime
 failure-mode degradation also stamps accepted events under
 `payload.extensions.risk_adjudication` so confidence or TTL changes are not
-silent.
+silent. The members a record carries for a capped or reduced value are under
+Admission records, below.
 
 Downstream consumers can filter accepted-risk streams without mutating events:
 
@@ -322,10 +386,121 @@ surfaces, so a consumer can see loss instead of inferring it:
 If the sink never recovers, the marker never lands - a file cannot report its
 own end - which is why the stderr warning and the console counters exist.
 
+### Admission records
+
+When the gateway caps or reduces an accepted event's `confidence` or
+`payload.valid_for_ms` under a declared degrade or quarantine mode, the event
+keeps its `event_id` because its record names the mode and carries the values
+the step replaced (contract 4.5.1, 2026-11-02). The record is one entry of
+`payload.extensions.risk_adjudication`, and the values sit under its
+`effects`:
+
+- `effects.confidence_claimed`: the event's `confidence` before the step,
+  present when the step changed it.
+- `effects.valid_for_ms_claimed`: the event's `payload.valid_for_ms` before
+  the step, present when the step changed it.
+- `effects.reduction_declined`: on the external-promotion degrade path, a
+  mapping from the name of each reduction factor the gateway declined
+  (`confidence_reduction_factor`, `valid_for_ms_reduction_factor`) to its
+  value. A factor is a divisor of the value it reduces. A factor
+  above 0 and below 1 would raise the value, and contract 4.2 makes an
+  increase a new event, so the reducer leaves the value as it is and the
+  record names the factor here instead of among the applied effects.
+
+A value the step left as it was, such as a confidence already under a
+quarantine cap, is not claimed. Four paths write a record with these members:
+the external-promotion degrade and quarantine modes
+(`policy/producer-authority.yaml`), the timing-freshness degradation at
+admission (`policy/timing-freshness.yaml`) and the `timing_loss` failure
+mode on an outgoing STATE. The two timing paths reduce `confidence` only, so
+their records carry `confidence_claimed` alone, and they decline a factor
+above 0 and below 1 with no record on the event. A
+`confidence_reduction_factor` of 0 or less is read as the default 2.0 on the
+promotion and timing-freshness paths and declined on the `timing_loss` path;
+on the promotion path a `valid_for_ms_reduction_factor` of 0 or less is read
+as the confidence factor.
+
+The records chain: each record carries the value its own step replaced. The
+producer's own figure for a member is therefore the claimed value in the
+first record that carries that member, in the order of the
+`risk_adjudication` list, and the event's current value when no record
+carries it.
+
 ### Strict validation
 
 When `strict_validation` is enabled, warnings are treated as failures and the original
 event is not forwarded.
+
+### Event index
+
+The gateway remembers the `event_type` and `event_subtype` of the events it
+accepted most recently, so that the lineage check can resolve a parent an
+incoming event cites in `lineage.based_on`. An event is indexed when it passes
+the inbound checks, before the outgoing checks, encoding and send, so an event
+that is then refused or dropped on the way out is in the index too.
+`event_index_max_entries` sets how many the index remembers: an integer from 1
+to 1048576, default 65536, also settable as `--event-index-max-entries`. When
+the index is full, the oldest entry is dropped. A value outside that range, or
+one that is not an integer (a string, a float, a boolean, null), stops the
+gateway at startup, and a bad value in the config file does so even when the
+flag overrides it. The flag takes plain digits only. Nothing is coerced, and
+no value removes the bound. The gateway prints the size it is running with at
+startup.
+
+A parent that has left the index is reported the same way as a parent this
+gateway never saw: `LINEAGE_PARENT_UNRESOLVED`, under
+`policy/lineage.yaml` `unresolved_parent_mode`. In the shipped policy that is
+ignored at profile L and a warning at profiles M and H, and with
+`strict_validation` enabled the warning refuses the citing event. The
+diagnostic does not say which of the two causes applies. Size the index for
+the oldest parent a producer cites: at 40 events a second the default covers
+about 27 minutes of traffic.
+
+The bound has a cost. While a parent is in the index, the lineage check also
+refuses a citing event whose parent is of a type the policy does not allow
+(`LINEAGE_PARENT_TYPE_INVALID`). Once that parent has left the index the check
+cannot tell it from a parent it never saw, so the citing event is passed
+without a diagnostic at profile L and with a warning at M and H (under
+`strict_validation` that warning still refuses it). A producer can push a
+parent out by sending as many events as the index holds, and ordinary traffic
+does the same with no intent: at the default size and 40 events a second, in
+about 27 minutes. The same was already true of any parent accepted before a
+restart. A deployment that
+needs the refusal to hold sets `unresolved_parent_mode` to `reject` for its
+profile in its own policy pack, which refuses every event that cites a parent
+the index does not hold. `policy/command-evidence.yaml` describes the same
+trade for the command-evidence index.
+
+The index holds no event, and the size of an entry does not depend on what a
+producer wrote: an id longer than 64 characters is kept as a 16-byte digest.
+The same number bounds two sets kept beside the index, the task ids of
+commands and the keys of task acknowledgements. The gateway does not read
+them (its own duplicate handling uses separate time-bounded caches);
+`validate_deduplication` does, for a caller that runs it on a bounded state.
+
+Measured with a 781-byte shipped example event, the validation state held
+about 16 MB when the default index first filled and between 16 and 19 MB over
+the next 330,000 events, with a peak of 23 MB. At the maximum size it held
+230 MB when first full and between 230 and 278 MB afterwards. Its peak was
+339 MB in one run of 3.4 million events and 295 MB in a shorter independent
+run. The size moves within those ranges because the tables behind the index
+are rebuilt from time to time. A gateway without the bound held about 4.9 KB
+for each such event it had accepted, for as long as it ran.
+
+Three stores are outside this bound, and each can hold text as long as a
+producer writes it. The latest TIME_STATUS of each source is kept per source
+and is not evicted: that store grows with the number of distinct sources, and
+each entry is a copy of the metrics the source sent. A set of source keys
+kept beside it grows the same way. The command-evidence check has its own
+index; `policy/command-evidence.yaml` `evidence_index_max_entries` caps how
+many entries it has and not how large an entry is. An entry holds the risk
+labels a producer wrote, and it gains labels when its `event_id` is recorded
+again.
+
+The index is in memory. A restart empties it, and a parent accepted before the
+restart is reported unresolved afterwards. A program that calls
+`process_message` itself builds its own `ValidationState`, and that state is
+unbounded unless the program passes `event_index_max_entries` to it.
 
 ### Event timestamp plausibility
 

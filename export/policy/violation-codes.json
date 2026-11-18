@@ -97,6 +97,10 @@
       "severity": "fail"
     },
     {
+      "code": "DECODE_AMBIGUOUS",
+      "severity": "fail"
+    },
+    {
       "code": "INVALID_TIME_FORMAT",
       "severity": "fail"
     },

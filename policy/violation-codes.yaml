@@ -49,6 +49,8 @@ violation_codes:
     severity: fail
   - code: ENCODING_UNSUPPORTED
     severity: fail
+  - code: DECODE_AMBIGUOUS
+    severity: fail
   - code: INVALID_TIME_FORMAT
     severity: fail
   - code: RF_WINDOW_PAIRING_INVALID

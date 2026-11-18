@@ -297,9 +297,11 @@ and a nested one fails the recursive policy walk:
 - Inference payloads and `payload.claim` must not carry `track_id`,
   `members`, or `estimated_state`.
 - State payloads must not carry `features`, `raw_features`, `modality`,
-  `measurement`, `measurements`, `t_start`, `t_end`, `data_ref`, or
-  `data_refs`; the same nine names are schema-false at the payload top level
-  and inside `extensions`.
+  `measurement`, `measurements`, `t_start`, `t_end`, `observed_at`,
+  `last_seen_ts`, `data_ref`, or `data_refs`. The policy check refuses all
+  eleven at any depth. Nine of them, every name but `observed_at` and
+  `last_seen_ts`, are also schema-false at the payload top level and inside
+  `extensions`.
 - Command payloads must not carry altitude under any of eight contract-named
   keys; the schema prohibits them at the payload top level, inside
   `geometry`, and inside `extensions`, `target_geo` is structurally 2-D, and
@@ -483,7 +485,7 @@ precision, or hide that a projection is degraded.
 **The projection catalog (ENFORCED).** 
 `conformance/profile_projection_field_catalog.yaml` holds 89 field rules
 consumed by `tools/validate_projection.py`, with source-and-projected
-fixture pairs (14 must-pass, 23 must-fail) and 28 stable failure codes.
+fixture pairs (14 must-pass, 25 must-fail) and 28 stable failure codes.
 Risk-adjudication and external-promotion blocks must survive projection
 exactly; the compact promotion handles survive at every profile while
 high-detail fields tier by profile. Two taxonomy notes for honesty: the
@@ -566,7 +568,7 @@ are tunable within the contract, and none can make invalid semantics valid
 | `command-evidence.yaml` | Command citation resolution and prohibited-use blocking |
 | `profiles.yaml` | Profile allowlists |
 | `profile-precision.yaml` | Quantization, immutable paths, utility floors |
-| `violation-codes.yaml` | 61 governed reason codes with severities (9 warn, 52 fail) |
+| `violation-codes.yaml` | 62 governed reason codes with severities (9 warn, 53 fail) |
 
 Severity defaults are fail-closed: a code missing from the severity map
 resolves to `fail`. Under `strict_validation` every accumulated warning
@@ -589,9 +591,8 @@ travels as `GEO_ZERO_FILL_SUSPECTED` with the native code in
 non-claimable, and the validator refuses claims against them, refuses
 implemented classes with zero test commands, checks every referenced path
 against the filesystem, and walks dependency cycles. The contract's own
-§22 table is stale against this manifest: of its 15 rows, 14 match manifest
-classes and one names a class the manifest does not define. Section 14
-records it.
+§22 table names 15 of the manifest's 34 classes and carries no status
+column; 19 classes have no row. Section 14 records it (items 1 and 2).
 
 **Claims are attestations (NORMATIVE, spec/conformance-classes.md;
 ENFORCED shape).** A claim file must carry 18 top-level fields, its full
@@ -629,18 +630,19 @@ formal v1.1.0 vocabulary, `experimental` entries remain provisional
 
 **The status ladder (ENFORCED shape).** Seven statuses: `reserved`,
 `proposed`, `experimental`, `adopted`, `deprecated`, `rejected`,
-`superseded`. Today's 68 entries split 35 reserved, 19 experimental, 11
-proposed, 2 adopted, 1 rejected. The two adopted entries are
+`superseded`. Today's 70 entries split 36 reserved, 19 experimental, 11
+proposed, 2 adopted, 2 rejected. The two adopted entries are
 `ERROR_ELLIPSE_M` and `GEO_DIMENSIONALITY`, both on branch 1.1.0. The
 registry validator enforces surface sufficiency per status, refuses
 reserved or proposed entries that claim implemented schema status, and
 builds synthetic events from reserved names to prove they do not validate
 against either branch schema (`REGISTRY_RESERVED_SCHEMA_LEAK`). That leak
-check covers the categories that map onto schema enums, 18 of the 46
-reserved and proposed entries; names living in open extension space are
-guarded by governance rather than by the leak check. `SEARCH_PATTERN` is
-one: it is filed under `command_task_type`, so the probe runs on its name,
-but its vocabulary is an extension key the probe cannot see.
+check runs on the names that map onto a schema enum by category, by name
+or by allowed event type, 20 of the 47 reserved and proposed entries;
+names living in open extension space are guarded by governance rather than
+by the leak check. `SEARCH_PATTERN` is counted among the 20 and shows the
+limit: it is filed under `command_task_type`, so the probe runs on its
+name, but its vocabulary is an extension key the probe cannot see.
 
 **Promotion has an evidence bar (NORMATIVE, human-adjudicated).** Moving
 reserved or proposed vocabulary into a branch requires at least two
@@ -704,7 +706,7 @@ current tree and can run ahead of this table between releases.
 | What runs in CI? | schema lint, examples (v1.0 and v1.1), roadmap, compat, strict conformance pack, kernel gate, contract hash, packet-size budget, package smoke, self-test, pytest | `.github/workflows/ci.yml` |
 | Conformance classes | 34 defined; 21 implemented, 13 non-claimable | `conformance/conformance_classes.yaml` |
 | Registry entries | 63; 35 reserved, 16 experimental, 9 proposed, 2 adopted, 1 rejected | `spec/extension-registry.yaml` |
-| Governed diagnostics | 61 codes; 9 warn, 52 fail | `policy/violation-codes.yaml` |
+| Governed diagnostics | 62 codes; 9 warn, 53 fail | `policy/violation-codes.yaml` |
 | Ingress adapters | 13 shipped plus the authoring template; 5 marked Production in the aggregator table | `adapters/` |
 | Egress adapters | 5 shipped (CoT is the only one the reference gateway wires directly) | `adapters/egress/`, `gateway/src/gateway.py` |
 | Projectors and packs | 1 projector (track, identity-gated); 3 mapping packs (declarative evidence, no runtime engine) | `adapters/` |
@@ -728,6 +730,14 @@ landed in the same change set as this page.
    authority while the contract carries the stale id; nothing cross-checks
    the two (the manifest's `authority` value is required to exist and never
    read). Booked: contract table correction.
+   **Resolved 2026-10-07 on the maintainer's go of 2026-10-07 (the entry
+   above is left as written):** the contract's section 22 table now names
+   `ZMETA-GATEWAY-REFERENCE`; the conformance classes file and the claims
+   validator stand unchanged. The manifest's `semantic_contract_hash`
+   changes with the next cut, the first semantic-contract edit since
+   v1.1.20. Item 2, booked with this one, stays open: the 15 rows now all
+   name manifest classes, 19 classes have no row, and the table carries
+   no status column; whether the go covers item 2 is the maintainer's.
 2. **The contract's §22 table is stale against the manifest.** 15 rows
    (one naming a class that does not exist) against 34 manifest classes; 20
    classes have no row, and the table carries no status column, so five of

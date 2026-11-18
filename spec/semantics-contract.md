@@ -407,6 +407,10 @@ passes the applicable schema, policy, and conformance requirements. Map order,
 wire field order, compact integer keys, and protobuf field order are not
 semantic.
 
+A JSON text in which one object repeats a member name, at any depth, does not
+decode to one canonical event and is not a valid encoded event. A decoder that
+keeps one of the repeated values chooses a reading the text does not state.
+
 Encoding versions, such as `compact_version`, track wire mapping compatibility.
 They do not change ZMeta semantic meaning.
 
@@ -464,6 +468,9 @@ only:
   degradation.
 
 Such projections preserve the original `event_id`.
+Section 4.5.1 makes a reduction of `confidence` or `valid_for_ms` applied at
+admission under a declared degrade or quarantine mode such a projection, on
+the condition stated there.
 
 Any semantic payload change, reinterpretation, correction, replacement of
 source-authored fields, increase in confidence, increase in TTL, increase in
@@ -492,7 +499,8 @@ Profile, transport, producer, and event type MUST NOT be encoded into
 `event_id`.
 
 The timestamp bits inside UUIDv7 represent identity-generation time only.
-`event.ts` remains the authoritative capture, observation, or validity time.
+`event.ts` remains the authoritative capture, observation, or validity time,
+or, for a command with `valid_from_ts`, its issue time.
 Consumers MUST NOT infer event timing, ordering, or freshness from UUIDv7
 timestamp bits when `event.ts` and timing quality metadata are available.
 
@@ -588,6 +596,12 @@ Enforcement behavior:
 - Degrade/quarantine modes MUST reduce confidence, shorten TTL, cap usable
   trust, or otherwise make the accepted state visibly lower authority than a
   clean promoted state.
+- A reduction of `confidence` or `valid_for_ms` applied at admission under a
+  declared degrade or quarantine mode is a projection of the same event under
+  Section 4.2 and keeps its `event_id`, provided the policy-scoped record on
+  the accepted event names the mode and carries the values it replaced. A
+  reduction whose record lacks either is a replacement and requires a new
+  event.
 - Loop/reflection risk SHOULD remain a hard rejection unless an operator
   deliberately enables a softer response with equivalent audit diagnostics.
 
@@ -872,6 +886,13 @@ Bearings and headings are degrees true north, increasing clockwise, range
 0-360 inclusive. `360` is valid and equivalent to `0`; adapters MAY normalize
 `360` to `0`, but consumers MUST treat both as valid.
 
+`heading_deg` on a `TrackStatePayload` and in a `FusionPayload.estimated_state`
+is the course over ground: the direction of the object's motion over the
+earth's surface, in the frame and range above. It is not the direction the
+body points. A producer that knows a body heading or yaw and no course omits
+`heading_deg` and MAY carry the body value in an explicitly named
+payload-scoped field such as `quality.yaw_deg`.
+
 Canonical `bearing.az_deg` SHALL be degrees true north. Sensor-native frames,
 such as array-relative, platform-relative, or magnetic bearings, MUST be
 converted to true north before canonical emission or the canonical `bearing`
@@ -1126,6 +1147,8 @@ Fusion rules:
   reference the same track.
 - `track_id` values MUST be globally unique.
 - `track_id` values MUST NOT be reused after loss, merge, split, or retirement.
+- `last_seen_ts`: the `event.ts` of the latest contributing observation the fused
+  estimate rests on; it is never later than the fusion's own `event.ts`.
 
 ### 7.7 STATE_EVENT
 
@@ -1159,8 +1182,8 @@ State rules:
 - STATE_EVENT payloads MUST NOT contain raw sensor features, raw measurements,
   observation modalities, observation timestamps, or raw artifact references.
 - Prohibited state payload fields include `features`, `raw_features`,
-  `modality`, `measurement`, `measurements`, `t_start`, `t_end`, `data_ref`,
-  and `data_refs`.
+  `modality`, `measurement`, `measurements`, `t_start`, `t_end`, `observed_at`,
+  `last_seen_ts`, `data_ref`, and `data_refs`.
 - Traceability is provided through `lineage.based_on`, not raw data pointers in
   state payloads.
 - `extensions` MAY carry UI or rendering metadata, but MUST NOT reinterpret
@@ -1209,6 +1232,15 @@ Command rules:
   `alt_msl_m`, `agl_m`, `target_alt_m`, `altitude`, or `target_altitude`.
 - `extensions` MAY carry command-safe vendor metadata, but MUST NOT imply
   vertical control, continuous control, or bypass deconfliction.
+- A command's validity window begins at `payload.valid_from_ts` when present,
+  otherwise at `event.ts`, and ends `payload.valid_for_ms` after that start;
+  the "validity anchor" of Section 5.1 is that start.
+- A same-event projection of a command (Section 4.2) MUST NOT omit or alter
+  a `payload.valid_from_ts` the source wrote. The permissions of Sections
+  4.2, 4.7, 8.4, 10.4 and 18.2 to remove optional fields or reduce
+  precision do not reach this member: without it the window would begin at
+  `event.ts` instead. A conversion into a native command channel (Section
+  15) is not such a projection.
 
 ### 7.9 SYSTEM_EVENT
 
@@ -2255,7 +2287,7 @@ may support more than one class.
 | ZMETA-PROFILE-M | Profile M event-type constraints, selective observation export, timing quality, and no inference export unless a future branch permits it. |
 | ZMETA-PROFILE-H | Full fidelity v1.0 event support with all semantic layers preserved. |
 | ZMETA-ADAPTER | Correct mapping from native formats to semantic layers, timestamp/unit normalization, UUIDv7 generation, lineage transform, rejection of ambiguous inputs, and external-boundary promotion evidence where applicable. |
-| ZMETA-GATEWAY | Schema and policy validation, profile enforcement, source-field preservation, dedupe, timing status handling, risk adjudication labels, contract hash gates, and non-semantic projection behavior. |
+| ZMETA-GATEWAY-REFERENCE | Schema and policy validation, profile enforcement, source-field preservation, dedupe, timing status handling, risk adjudication labels, contract hash gates, and non-semantic projection behavior. |
 | ZMETA-POLICY-ADJUDICATION | Tunable policy decisions using bounded actions, risk dimensions, governed reason codes, allowed/prohibited uses, effect labels, and diagnostic correlation. |
 | ZMETA-EXTERNAL-PROMOTION | Enforcement of external projection promotion requirements for lossy tactical tracks, including promotion metadata, freshness, lineage status, confidence basis, trust reference, and loop/reflection status. |
 | ZMETA-RISK-FILTERING | Consumer/filter behavior for accepted-risk data, including compact self-labels when diagnostics may not travel and enforcement of allowed/prohibited uses. |
