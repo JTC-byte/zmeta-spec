@@ -220,10 +220,16 @@ timing quality at three paths: `payload.timing_quality`,
 (`policy/semantics.yaml`, `per_event_paths`). The adapter reads only the
 first. An event carries no timing quality when it has no
 `payload.timing_quality`, and its `payload.quality`, if that is an object,
-has neither a `timing_quality` nor a `sync_state` member. An event whose
-timing quality sits at one of the other two paths is refused as absent,
-whatever is declared and whatever the allowance says, since the statement
-never speaks for an event that states its own timing quality.
+has neither a `timing_quality` nor a `sync_state` member. An event with no
+`payload.timing_quality` whose timing quality sits at one of the other two
+paths is refused as absent, whatever is declared and whatever the
+allowance says, since the statement never speaks for an event that states
+its own timing quality. An event that carries `payload.timing_quality` is
+read by that member alone, whatever the other paths hold. The reference
+gateway reads the first of the three paths that holds all four timing
+fields, so the two readings differ only for an event whose
+`payload.timing_quality` lacks one of them, which both event schemas
+refuse.
 
 **What the statement asserts.** The declared token is the sync state the
 deployment asserts for the node that produced each event that carries no
@@ -253,9 +259,9 @@ needs a `LOCKED` that is not true.
 **The allowance.** `allow_holdover_or_unsynced: true` exports an event whose
 stated sync state is `HOLDOVER` or `UNSYNCED`, whether the event states it
 or the declaration states it for an event that carries none; `false`
-refuses each, with its own reason. Like the other declarations, it is
-required and takes only `true` or `false`. It never opens a malformed
-`timing_quality`, or an event refused as absent.
+refuses each, with its own reason. Like `monosensor`, `tentative` and
+`simulated`, it is required and takes only `true` or `false`. It never
+opens a malformed `timing_quality`, or an event refused as absent.
 
 **What the record says.** No item carries either declaration, and the
 adapter adds no mark of them: carrying them in the Reserved Expansion or

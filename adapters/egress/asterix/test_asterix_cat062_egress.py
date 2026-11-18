@@ -953,6 +953,26 @@ def test_p10_the_timing_declarations_are_checked_before_the_simulated_refusal(ch
         cat062.validate_asterix_config(config)
 
 
+def test_p10_the_statement_is_a_plain_string():
+    # Only a plain str is a statement, as only a plain bool is an allowance. A str subclass can compare equal to a
+    # token it does not spell, so the value check alone is not exact: one that folds case reads "locked" as
+    # "LOCKED".
+    class FoldsCase(str):
+        def __eq__(self, other):
+            return str.lower(self) == str(other).lower()
+
+        __hash__ = str.__hash__
+
+    for value in (FoldsCase("locked"), FoldsCase("LOCKED")):
+        config = dict(CONFIG, sync_state_when_absent=value)
+        refused(make_event(timing_quality=DELETE), "CAT062_CONFIG_INVALID", config=config)
+        with pytest.raises(ValueError, match=declaration_message({"sync_state_when_absent": value})):
+            cat062.validate_asterix_config(config)
+    # The accepting counterpart: the same token as a plain str.
+    record, reason = encode(make_event(timing_quality=DELETE), config=dict(CONFIG, sync_state_when_absent="LOCKED"))
+    assert reason is None and record == MINIMUM_RECORD
+
+
 # Timing quality at the two other per-event paths the reference policy reads, in each shape a path can take there:
 # a member of payload.quality, and the timing fields in payload.quality itself.
 TIMING_ELSEWHERE = [

@@ -446,10 +446,11 @@ def _timing_refusal(payload, sync_state_when_absent):
     not.
 
     For an event that carries `payload.timing_quality`, the stated sync state
-    is its own `sync_state`, read as it is whatever is declared. For an event
-    that carries no timing quality at any per-event path, it is
-    `sync_state_when_absent`, the deployment's declaration, and with nothing
-    declared the event is refused as absent. An event whose timing quality
+    is its own `sync_state`, read as it is, whatever is declared and whatever
+    the other per-event paths hold. For an event that carries no timing
+    quality at any per-event path, it is `sync_state_when_absent`, the
+    deployment's declaration, and with nothing declared the event is refused
+    as absent. An event with no `payload.timing_quality` whose timing quality
     sits at a per-event path this adapter does not read is refused as absent
     whatever is declared: a declaration never speaks for an event that
     states its own.
@@ -666,13 +667,13 @@ def zmeta_state_to_asterix_cat062(
         adapter cannot run, a risk record the gate refuses, a stated sync
         state of HOLDOVER or UNSYNCED that the configuration does not allow,
         a malformed timing_quality, an event with no timing quality that the
-        configuration states no sync state for, timing quality at a
-        per-event path the adapter does not read, an `event.ts` that is not
-        an instant, an unmapped track or a number outside 0 to 65,535, a
-        missing or impossible position, an incoherent or impossible altitude,
-        an impossible course or speed, a 1_SIGMA ellipse with impossible
-        members, and an altitude or velocity beyond its item's range. This
-        projection never raises.
+        configuration states no sync state for, an event whose only timing
+        quality sits at a per-event path the adapter does not read, an
+        `event.ts` that is not an instant, an unmapped track or a number
+        outside 0 to 65,535, a missing or impossible position, an incoherent
+        or impossible altitude, an impossible course or speed, a 1_SIGMA
+        ellipse with impossible members, and an altitude or velocity beyond
+        its item's range. This projection never raises.
     """
     header = event.get("event") if isinstance(event, Mapping) else None
     payload = event.get("payload") if isinstance(event, Mapping) else None

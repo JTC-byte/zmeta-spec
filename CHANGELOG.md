@@ -20,9 +20,10 @@
   `CAT062_TIMING_ABSENT` whatever the allowance says; under the keyword the
   allowance exported it. The statement never applies to an event that states
   its own timing quality. The adapter reads only `payload.timing_quality`, so
-  an event whose timing quality sits at `payload.quality.timing_quality` or
-  in `payload.quality`, the other per-event paths the reference policy reads,
-  is refused as absent whatever is declared. A malformed `timing_quality`
+  an event with no `payload.timing_quality` whose timing quality sits at
+  `payload.quality.timing_quality` or in `payload.quality`, the other
+  per-event paths the reference policy reads, is refused as absent whatever
+  is declared. A malformed `timing_quality`
   stays refused whatever is declared, and neither declaration opens the risk
   gate. A configuration without `allow_holdover_or_unsynced`, the README's
   earlier example among them, is now refused at startup. No refusal reason is

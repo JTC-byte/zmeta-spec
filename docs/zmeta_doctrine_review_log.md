@@ -4335,8 +4335,8 @@ The adapter reads no `est_error_ms`, since a timing threshold is a tunable
 rule of deployment policy (contract 3.3). The question for the pass is
 whether the allowance stays, or the rule tightens to a refusal with none.
 
-**Decided 2026-11-16** on the maintainer's selection of that day: the
-allowance stays, split as ZMeta booked it from the seeded review of
+**Decision (2026-11-16):** on the maintainer's selection of that day,
+the allowance stays, split as ZMeta booked it from the seeded review of
 2026-11-14, and the split is built on 2026-11-17. The keyword
 `allow_degraded_timing` is removed. The adapter's configuration declares,
 beside SAC and SIC, `sync_state_when_absent`, the sync state the
@@ -4347,9 +4347,10 @@ stated `HOLDOVER` or `UNSYNCED` only. An event with no timing quality and
 nothing declared is refused whatever the allowance says. The statement
 never applies to an event that states its own timing quality at any
 per-event path the reference policy reads; the adapter reads only
-`payload.timing_quality`, so an event whose timing quality sits at another
-of those paths is refused as absent. The tension above is why the gate
-exists, and a record still carries no mark of the clock's state.
+`payload.timing_quality`, so an event with no `payload.timing_quality`
+whose timing quality sits at another of those paths is refused as absent.
+The tension above is why the gate exists, and a record still carries no
+mark of the clock's state.
 
 ### F11-03 — The egress adapters treat timing quality four ways · **OPEN 2026-11-14 (findings; no change on this branch)**
 
@@ -4375,10 +4376,12 @@ register the loss as the JREAP and SAPIENT registers do.
 **Note added 2026-11-17 (the entry above is left as written):** the ASTERIX
 CAT062 adapter's single allowance is split on the maintainer's selection
 of 2026-11-16 (F11-02). It refuses an event whose stated `sync_state` is
-`HOLDOVER` or `UNSYNCED` unless its configuration allows it, and an event
-that carries no per-event timing quality unless its configuration states
-the sync state for such events, which it then gates as if the event had
-stated it. The sibling projections are unchanged.
+`HOLDOVER` or `UNSYNCED` unless its configuration allows it; an event that
+carries no per-event timing quality unless its configuration states the
+sync state for such events, which it then gates as if the event had stated
+it; and an event with no `payload.timing_quality` whose timing quality sits
+at another per-event path, which it does not read. The sibling projections
+are unchanged.
 
 ## Archive
 

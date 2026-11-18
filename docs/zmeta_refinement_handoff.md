@@ -502,9 +502,10 @@ for none), and `allow_holdover_or_unsynced`, a required boolean that
 exports a stated `HOLDOVER` or `UNSYNCED`, whether the event or the
 statement states it. The statement applies only to an event with no timing
 quality at any of the three per-event paths the reference policy reads. The
-adapter reads only `payload.timing_quality`, so an event whose timing
-quality sits at `payload.quality.timing_quality` or in `payload.quality` is
-refused as absent whatever is declared. An event with no timing quality
+adapter reads only `payload.timing_quality`, so an event with no
+`payload.timing_quality` whose timing quality sits at
+`payload.quality.timing_quality` or in `payload.quality` is refused as
+absent whatever is declared. An event with no timing quality
 and nothing declared is refused whatever the allowance says; under the
 keyword of 2026-11-14 the allowance exported it. No refusal reason is
 added, and `ADAPTER_VERSION` stays 1.0.0. Not built, each a later change

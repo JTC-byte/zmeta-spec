@@ -83,8 +83,10 @@
   statement. The statement applies only to an event with no timing quality
   at any of the three per-event paths the reference policy reads
   (`policy/semantics.yaml`). The adapter reads only
-  `payload.timing_quality`, so an event whose timing quality sits at either
-  other path is refused as `CAT062_TIMING_ABSENT` whatever is declared. An
+  `payload.timing_quality`, so an event with no `payload.timing_quality`
+  whose timing quality sits at either other path is refused as
+  `CAT062_TIMING_ABSENT` whatever is declared, and an event that carries
+  `payload.timing_quality` is read by that member alone. An
   event with no timing quality and nothing declared is refused whatever the
   allowance says, a malformed `timing_quality` is refused whatever is
   declared, and neither declaration opens the risk gate. Under a declared
@@ -106,10 +108,13 @@
   test in the file failed there. Every new and changed timing test failed
   on it, and the one case that passed there, the old name refused in the
   configuration as an unknown key, has a mutant that makes it fail. New
-  tests hold the gate as a table, the statement's limits, a call that
-  passes the removed keyword, the per-event paths the adapter does not
-  read, and the README's usage example run as printed. Doctrine F11-02 is
-  decided, and F11-03 carries a dated note. No schema, policy, contract,
+  tests hold the gate as a table, the statement's limits and its exact
+  type, a call that passes the removed keyword, the per-event paths the
+  adapter does not read, and the README's usage example run as printed. A
+  seeded review (one reader, read only, on a copy with one planted error,
+  which it found) returned READY WITH CORRECTIONS, and its corrections are
+  applied. Doctrine F11-02 is decided, and F11-03 carries a dated note. No
+  schema, policy, contract,
   conformance or manifest-listed file changes.
 - **2026-11-17 (the MAVLink ingress heading key under an asserted
   frame).** On the maintainer's selection of 2026-11-16, option A of
