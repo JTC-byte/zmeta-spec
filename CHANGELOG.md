@@ -2,6 +2,33 @@
 
 ## [Unreleased]
 
+- 2026-11-18 — **The ASTERIX CAT062 egress refuses a `timing_quality`
+  without one of its four fields, or with a poisoned error bound**
+  (`adapters/egress/asterix/zmeta_to_asterix_cat062.py`,
+  `adapters/egress/asterix/README.md`,
+  `adapters/egress/asterix/test_asterix_cat062_egress.py`, Class C). A
+  `payload.timing_quality` mapping that lacks any of `time_source`,
+  `sync_state`, `est_error_ms` and `last_sync_ts` is now refused as
+  `CAT062_TIMING_MALFORMED`, whatever is declared and whatever the allowance
+  says. The four names are the reference policy's `required_fields` and
+  each event schema's `timing_quality.required`; the reference gateway takes
+  a per-event path as timing quality only when its dict holds all four as
+  keys. A block whose `est_error_ms` is not a finite number of zero or more
+  is refused the same way, by the test of `adapters/ingress/time_utils.py`,
+  since the reference ingress passes such a bound through untouched for an
+  adapter's refusal gate to reject (`adapters/AUTHORING.md`, rule 5). Before
+  this change such a block exported on its `sync_state`: a block stating
+  `LOCKED` without its other fields exported with the allowance false, and
+  an incomplete block stating `HOLDOVER` or `UNSYNCED` exported under the
+  allowance. The rows of the timing gate that read "a mapping" with a
+  `sync_state` now mean a mapping that holds the four fields with a bound
+  that is not poisoned. No value of `time_source` or `last_sync_ts` is read,
+  and no threshold applies to `est_error_ms`. No refusal reason is added,
+  and `ADAPTER_VERSION` stays 1.0.0, since the adapter is in no release.
+  The README's scratch-run counts are measured again on the changed module
+  and do not change. No schema, policy, contract, conformance or
+  manifest-listed file changes.
+
 - 2026-11-18 — **Three guidance entries cite the gateway code they
   describe** (`tools/validation_guidance.yaml`,
   `gateway/tests/test_validation_guidance.py`, Docs/advisory). The

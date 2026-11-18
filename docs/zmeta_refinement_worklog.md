@@ -2,7 +2,9 @@
 
 ## Current Resume Note
 
-- Last updated: 2026-11-18 (three guidance entries' gateway citations
+- Last updated: 2026-11-18 (the ASTERIX CAT062 egress refuses a
+  `timing_quality` without one of its four fields or with a poisoned
+  bound; three guidance entries' gateway citations
   moved onto their first text; the MAVLink ingress's older heading
   passages and the JREAP template's MAVLink citation; 2026-11-17: the
   ASTERIX CAT062 egress's timing
@@ -66,6 +68,90 @@
   carried-list records pass; heading_deg defined; records pass after 7.6;
   2026-10-02: the reference gateway keeps a bounded event index;
   2026-10-01: the reference gateway holds a command's `task_id` for its whole validity)
+- **2026-11-18 (the ASTERIX CAT062 egress refuses a `timing_quality`
+  without one of its four fields or with a poisoned bound).** Booked from
+  the timing split of 2026-11-17, whose build found that the adapter read
+  `payload.timing_quality.sync_state` alone while the reference gateway
+  takes a per-event path as timing quality only when its dict holds all
+  four required fields (`gateway/src/validators.py` `_has_per_event_timing`,
+  `gateway/src/gateway.py` `_event_timing_quality`). A block such as
+  `{"sync_state": "LOCKED"}` exported as locked with the allowance false,
+  beside a whole `UNSYNCED` block at `payload.quality.timing_quality` that
+  the gateway's reader takes. ZMeta ruled on 2026-11-18, a refuter read the
+  ruling, and the lane adopted the ruling with the refuter's corrections.
+  The adapter now refuses, as `CAT062_TIMING_MALFORMED`, a
+  `payload.timing_quality` mapping that lacks any of `time_source`,
+  `sync_state`, `est_error_ms` and `last_sync_ts`, whatever is declared and
+  whatever the allowance says. The names sit in a module constant beside
+  `_SYNC_STATES`, citing contract 5.3's minimum TIME_STATUS fields, each
+  schema's `timing_quality.required` and `policy/semantics.yaml`
+  `required_fields`; the module reads no policy file. The test is key
+  presence, the gateway's own, so for an event whose payload and
+  `timing_quality` are dicts, as the reference decoders build them, the
+  adapter exports on an event's own timing quality only from the member the
+  gateway's reader takes; another mapping is read by the adapter and
+  skipped by the gateway's readers. Malformed, not absent: the README
+  defines an absent timing quality by the missing key, a declaration never
+  speaks for an event that states its own (R-AX-2 of 2026-11-17), and the
+  existing case without `sync_state` is already malformed. Reading the
+  other two paths as the gateway does stays out: it would reverse the gate
+  table's row for another path, test N8 and mutant MS16, and neither
+  schema holds a TRACK_STATE's second or third path to the `timing_quality`
+  definition, since `TrackStatePayload` defines no `quality` property in
+  either (`schema/zmeta-event-1.0.schema.json:1116-1118`,
+  `schema/zmeta-event-1.1.0.schema.json:1489-1491`). No reference ingress
+  builds an incomplete block (`coerce_timing_quality` always writes the
+  four), and the reference track projector copies its input's block as it
+  is (`adapters/projector/track/track_projector.py:348`, `:413`), so an
+  incomplete block from another producer reaches the adapter through a
+  reference path and is now refused there. The poisoned bound, decided by
+  the lane (zmeta-9) at 14:19 EST on 2026-11-18: `adapters/AUTHORING.md`
+  lines 144-147 and `adapters/ingress/time_utils.py` say a claim whose
+  `est_error_ms` is poisoned (wrong type, non-finite or negative) passes
+  through untouched so that schema validation or an adapter's refusal gate
+  rejects the whole event, and a pipeline that runs this adapter without a
+  gateway, as the README's scratch run does, has no schema stage. The
+  refuter measured such a claim exporting clean through the reference
+  ADS-B ingress and track projector. The check therefore also refuses, as
+  `CAT062_TIMING_MALFORMED`, a block whose `est_error_ms` is not a finite
+  non-negative number, by the test of `time_utils.py`, written in the
+  module; a Python int beyond the float64 range counts as poisoned instead
+  of raising. No other value is checked: `time_source` and `last_sync_ts`
+  are checked for presence only, and no threshold applies to
+  `est_error_ms`. The question sits beside doctrine-log F11-03 (the egress
+  adapters treat timing quality four ways), which this change does not
+  edit; the SAPIENT egress does not refuse a poisoned `LOCKED` block
+  either. No refusal reason is added, and `ADAPTER_VERSION` stays 1.0.0.
+  Behaviour that changes for a caller: an incomplete block stating
+  `HOLDOVER` or `UNSYNCED` exported under the allowance and is now refused.
+  Tests first, run against the unchanged module: 64 failed. They were
+  every row of T1 (each whole block, the 1.1.0 block carrying
+  `est_error_basis` among them, with one of three fields removed: 12 rows),
+  T2 (a `sync_state` alone, and beside a whole `UNSYNCED` block at each
+  other path), T3 (an incomplete `HOLDOVER` or `UNSYNCED` under the
+  allowance), T5 (the constant equals the policy's and both schemas'
+  lists, read from the files), the gate table with the new malformed
+  members, and the 45 poison rows (null, NaN, both infinities, -1, -1e-9,
+  "1.0", true, false, a list and 10**400, on four whole blocks, and case H,
+  the four keys with the other three null). T1's four rows without
+  `sync_state` and T4 (whole blocks export, the 1.1.0 block included;
+  `time_source` and `last_sync_ts` are read for presence only; a bound of
+  0, 3 and 1e9 exports) passed there, as the ruling says. After the
+  change the adapter's test file has 317 passed and 1 skipped, and 318
+  passed with `ASTERIX_SITE` naming libasterix 0.37.0. Twelve mutants on
+  copies of the module (M-TQ-1; M-TQ-2 for each field; M-TQ-3, M-TQ-4 and
+  M-TQ-6; a key count in place of key presence; the poison check removed,
+  and without its finiteness or its sign test) are all killed. The
+  `sync_state` and `est_error_ms` variants of M-TQ-2 are killed by T5
+  alone, since the token check and the poison check refuse a block missing
+  those fields; M-TQ-4 is killed by T1's rows and the gate table, since
+  T3's blocks also lack `est_error_ms`. The scratch run of the README's
+  Status was run again on the changed module on 2026-11-18: all 809 STATE
+  events of the recorded run and all 1,680 projected from live ADS-B
+  observations hold the four fields with an unpoisoned bound, are refused
+  as `CAT062_TIMING_UNSYNCED` with the allowance false, and are encoded and
+  parsed back with it true, as on 2026-11-17. No schema, policy, contract,
+  conformance or manifest-listed file changes.
 - **2026-11-18 (three guidance entries' gateway citations moved onto their
   first text).** The command dedupe's merge of 2026-11-17 left four
   guidance references and the `COMMAND_EVIDENCE_UNRESOLVED` citation for a
