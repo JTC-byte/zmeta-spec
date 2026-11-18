@@ -44,12 +44,13 @@ text each named at develop's tip now stands, gives the four `gateway.py`
 citations of the `TASK_DUPLICATE` entry the ranges their text stands on,
 and moves the gateway's line-count pin from 3424 to 3723 lines. No
 manifest-listed file changes. Open from that branch, for a reading by hand:
-four guidance references name code it re-indented or changed in place and
-are left as they were (guidance lines 1431, 1439 and 1440 on the tail of
-`process_message`, and line 757 on the command-line flags); the
-`COMMAND_EVIDENCE_UNRESOLVED` citation on line 1760 moved with its text and
-still names the first `if timing_state is not None:` (the sixth reference
-of the citation repair's list below); the `TASK_DUPLICATE` entry keeps its
+four guidance references it left as they were (guidance lines 1431, 1439,
+1440 and 757) and the `COMMAND_EVIDENCE_UNRESOLVED` citation on line 1760.
+On 2026-11-18 a reading by hand found that each had named the wrong code
+since before v1.1.26, and moved them, with every `gateway/src/gateway.py`
+reference of the `PROFILE_MISMATCH` and `ENCODING_UNSUPPORTED` entries,
+onto the text the guidance file's first version cited (the paragraph
+"Guidance citations into the gateway" below); the `TASK_DUPLICATE` entry keeps its
 `validators.py` line on `command_task_ids` as it was, and the phrase
 "unlike the unbounded set above" in its line on `TaskDedupeCache.admit`
 leans on that line's note. These stay the maintainer's: whether
@@ -590,7 +591,9 @@ Open from that branch, for a reading by hand, none of it moved:
   (804 and 809).
 - 3 references that named blank lines already at v1.1.27 (guidance lines
   167 and 1419, `gateway/src/gateway.py:1909`, and 1082,
-  `gateway/src/gateway.py:1690-1691`).
+  `gateway/src/gateway.py:1690-1691`). The reference on line 1419, in the
+  `PROFILE_MISMATCH` remediation, moved on 2026-11-18 to the
+  `validate_profile` call it first named.
 - 5 references that were off their text before the range: on guidance line
   167, `tools/validate.py:160` and `gateway/src/gateway.py:2710`; on line
   499, the 1.1.0 schema's `:1878`; on line 1319, the 1.1.0 schema's
@@ -604,10 +607,31 @@ Open from that branch, for a reading by hand, none of it moved:
   is about the later `timing_state.record(instance)`; at the tag v1.1.27 it
   named the same first line (2712, against the record call at 2964 and
   2965). The named row that reads it checks only the text
-  `if timing_state is not None:`, which both places hold.
+  `if timing_state is not None:`, which both places hold. Moved on
+  2026-11-18 to the record call, and the row now reads
+  `timing_state.record(instance)`.
 - No general test reads the citations into `gateway/src/validators.py`,
   `gateway/src/gateway.py`, the schemas, the tools or the adapters; twelve
   named rows read a first line each.
+- **Guidance citations into the gateway** (found 2026-11-18). The
+  guidance file's `gateway/src/gateway.py` references drifted off their
+  text before v1.1.26, and the re-anchorings since v1.1.27 kept each on
+  the text it named at v1.1.27. Mapped by text from the file's first
+  version (b1dcb26, 2026-08-26) onto develop at 38dcdcb, the 31 references
+  that pair with that version stand as follows: none sits on its first
+  text, 18 have their first text once elsewhere, and 13 have it nowhere or
+  in more than one place. On 2026-11-18 the `PROFILE_MISMATCH`,
+  `ENCODING_UNSUPPORTED` and `COMMAND_EVIDENCE_UNRESOLVED` entries were
+  moved onto their first text: 15 references, 11 in their citation lists
+  (8 of the 18 and 3 of the 13) and 4 in the `PROFILE_MISMATCH`
+  remediation. Ten of the 18 remain, in
+  `EVENT_TYPE_NOT_ALLOWED_FOR_PROFILE`, `INVALID_GEO_FIELD`,
+  `SCHEMA_INVALID` (three; two named rows read that entry's gateway
+  references), `SCHEMA_VIOLATION_INVALID_REASON_CODE` and
+  `TIMING_STATUS_UNSYNCED` (four), with the other 10 of the 13 for a
+  reading by hand, the references in remediation prose,
+  the references added after the first version, and the
+  `gateway/src/validators.py` references, which were not measured.
 - Whether the nine entries that make no line reference into
   `policy/violation-codes.yaml` should cite their code's block:
   `OBSERVATION_HAS_IDENTITY`, `OBSERVATION_HAS_CLASSIFICATION`,

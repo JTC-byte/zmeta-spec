@@ -751,10 +751,10 @@ guidance:
       - "policy/violation-codes.yaml:50-51"
       - "spec/compact-binary-mapping.md:11-20"
       - "spec/compact-binary-mapping.md:39-47"
-      - "gateway/src/gateway.py:1666-1679"
-      - "gateway/src/gateway.py:1699-1744"
-      - "gateway/src/gateway.py:2499-2500"
-      - "gateway/src/gateway.py:3076-3086"
+      - "gateway/src/gateway.py:1693-1706"
+      - "gateway/src/gateway.py:1709-1755"
+      - "gateway/src/gateway.py:2751-2752"
+      - "gateway/src/gateway.py:3626-3636"
       - "zmeta_compact.py:869-892"
       - "zmeta_compact.py:594-671"
       - "docs/r1_11_fix_pass_findings.md:1249-1255"
@@ -1416,7 +1416,7 @@ guidance:
       checking against, which at the gateway is its own configured export
       profile passed in as `settings["profile"]`
       (gateway/src/validators.py:3254-3265, called from
-      gateway/src/gateway.py:1909 and gateway/src/gateway.py:2710). The
+      gateway/src/gateway.py:1968 and gateway/src/gateway.py:2964). The
       sanctioned fix is to not carry a stale or mismatched `profile` value
       forward: either omit `profile`, since the check fires only when the
       field is present and an omitted `profile` leaves the runtime
@@ -1428,17 +1428,17 @@ guidance:
       The gateway stamps `profile` from its own configured export profile
       before its egress check by default, but that stamping is configurable
       and does not apply to the inbound check, so an upstream event carrying
-      the wrong `profile` still fails (gateway/src/gateway.py:3023-3027,
-      gateway/src/gateway.py:2124-2125).
+      the wrong `profile` still fails (gateway/src/gateway.py:3571-3575,
+      gateway/src/gateway.py:2224-2225).
     citations:
       - "policy/violation-codes.yaml:102-103"
       - "gateway/src/validators.py:3254-3265"
-      - "gateway/src/gateway.py:1925-1934"
-      - "gateway/src/gateway.py:2710"
-      - "gateway/src/gateway.py:3211"
-      - "gateway/src/gateway.py:3023-3027"
-      - "gateway/src/gateway.py:3042"
-      - "gateway/src/gateway.py:2124-2125"
+      - "gateway/src/gateway.py:1950-1968"
+      - "gateway/src/gateway.py:2964"
+      - "gateway/src/gateway.py:3538"
+      - "gateway/src/gateway.py:3571-3575"
+      - "gateway/src/gateway.py:3590"
+      - "gateway/src/gateway.py:2224-2225"
       - "schema/zmeta-event-1.1.0.schema.json:24-30"
       - "schema/zmeta-event-1.0.schema.json:23-30"
       - "spec/semantics-contract.md:984"
@@ -1757,7 +1757,7 @@ guidance:
       - "gateway/src/validators.py:4293-4308 (a COMMAND_EVENT with no cited parents returns clean; only require_evidence turns absence into LINEAGE_MISMATCH)"
       - "gateway/src/validators.py:30 (DEFAULT_COMMAND_EVIDENCE_INDEX_MAX_ENTRIES = 4096)"
       - "gateway/src/validators.py:317-324 (index write plus oldest-first eviction once the cap is exceeded)"
-      - "gateway/src/gateway.py:2986 (`timing_state.record(instance)` runs after the event's checks and after every fail-path early return, so a parent resolves only for commands that follow it through the gateway)"
+      - "gateway/src/gateway.py:3280 (`timing_state.record(instance)` runs after the event's checks and after every fail-path early return, so a parent resolves only for commands that follow it through the gateway)"
       - "policy/command-evidence.yaml:46-56 (unresolved_parent_mode: warn; 'never seen upstream, or evicted (see evidence_index_max_entries). The honest disposition is UNRESOLVED, never a silent pass.')"
       - "policy/command-evidence.yaml:66-72 (motivating_parent_event_types: INFERENCE_EVENT, FUSION_EVENT, STATE_EVENT)"
       - "policy/command-evidence.yaml:81-87 (evidence_index_max_entries: 4096, oldest entries evicted first, an evicted parent resolves as UNRESOLVED)"
