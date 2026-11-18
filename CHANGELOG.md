@@ -2,6 +2,25 @@
 
 ## [Unreleased]
 
+- 2026-11-18 — **The gateway's requirements bound cbor2 to the releases
+  its tests pass on** (`gateway/requirements.txt`, Reference
+  implementation dependency). The file named `cbor2` with no version, so
+  each install took the newest release. cbor2 6.2.0 and later decode a
+  tag-5 bigfloat whose mantissa is not an integer themselves and raise
+  their own message ("error decoding bigfloat: mantissa must be an
+  integer"), before the gateway's value-model scan runs. The datagram is
+  still refused as `SCHEMA_INVALID`, but the refusal no longer names the
+  place or the cause, which the subtest `tag5_decimal_nan` of
+  `gateway/tests/test_non_finite_value_scoped.py` requires. The develop CI
+  run of 2026-11-18 installed cbor2 6.3.0 and failed that subtest; the
+  workstation's 6.1.2 passed it. The line now reads `cbor2>=6.1.2,<6.2`.
+  Measured on 2026-11-18: the test file passes under 6.1.2 and 6.1.5 and
+  fails that one subtest under 6.2.0, 6.2.1 and 6.3.0. The bound is
+  raised after a separate change makes the refusal name the place under
+  the newer releases. Installs that bundle `zmeta_cbor` are unaffected,
+  since the gateway prefers it. No code, rule, schema, policy, contract,
+  conformance or manifest-listed file changes.
+
 - 2026-11-18 — **Three guidance entries cite the gateway code they
   describe** (`tools/validation_guidance.yaml`,
   `gateway/tests/test_validation_guidance.py`, Docs/advisory). The
