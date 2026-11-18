@@ -856,6 +856,49 @@ class RefusedEarlierTest(DedupeCase):
         self.assert_forwarded(fixed, self.send(fixed, 1, strict_validation=True))
 
 
+class ThroughProcessMessageOnlyTest(DedupeCase):
+    """Five commands that reach the gateway through process_message alone.
+
+    Three are copies that arrive 301 s after the first copy, one second past
+    the 300 s for which the gateway used to hold any task_id. Each command is
+    valid for 600 s: one window opens 600 s after receipt, one opens at
+    event.ts, and one closed before the command was issued. Each copy is a
+    duplicate. Two carry a validity anchor the gateway cannot read, in the two
+    places where the reference MAVLink egress also refuses the command: an
+    unreadable valid_from_ts, and a readable valid_from_ts beside an
+    unreadable event.ts. Each is refused. A gateway that held a task_id for
+    at most 300 s and read no anchor forwards all five.
+    """
+
+    def test_a_copy_at_301_s_of_a_window_that_opens_600_s_after_receipt_is_a_duplicate(self):
+        cmd = command("task-opens-later", valid_for_ms=600000, valid_from_ts=z(WALL + timedelta(seconds=600)))
+        self.assert_forwarded(cmd, self.send(cmd, 0))
+        self.assert_duplicate(cmd, self.send(cmd, 301))
+
+    def test_a_copy_at_301_s_of_a_window_that_opens_at_event_ts_is_a_duplicate(self):
+        cmd = command("task-opens-at-ts", valid_for_ms=600000)
+        self.assert_forwarded(cmd, self.send(cmd, 0))
+        self.assert_duplicate(cmd, self.send(cmd, 301))
+
+    def test_a_copy_at_301_s_of_a_window_that_closed_before_issue_is_a_duplicate(self):
+        # Contract 7.8: the window begins at valid_from_ts, an hour before
+        # event.ts, so it closed 50 minutes before the command was issued.
+        # The gateway does not refuse such a command, and a receiver handed
+        # only the duration counts valid_for_ms from its own receipt.
+        cmd = command("task-closed-before-issue", valid_for_ms=600000, valid_from_ts=z(WALL - timedelta(seconds=3600)))
+        self.assert_forwarded(cmd, self.send(cmd, 0))
+        self.assert_duplicate(cmd, self.send(cmd, 301))
+
+    def test_an_unreadable_valid_from_ts_is_refused(self):
+        cmd = command("task-unreadable-start", valid_for_ms=600000, valid_from_ts=IMPOSSIBLE_DATE)
+        self.assert_refused(cmd, self.send(cmd, 0), UNREADABLE_REASON, "anchor", "payload.valid_from_ts")
+
+    def test_an_unreadable_event_ts_beside_a_readable_valid_from_ts_is_refused(self):
+        cmd = command("task-unreadable-issue", valid_for_ms=600000, valid_from_ts=z(WALL))
+        cmd["event"]["ts"] = IMPOSSIBLE_DATE
+        self.assert_refused(cmd, self.send(cmd, 0), UNREADABLE_REASON, "anchor", "event.ts")
+
+
 class CacheContractTest(unittest.TestCase):
     def setUp(self):
         self.clock = Clock()
