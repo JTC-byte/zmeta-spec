@@ -2,7 +2,8 @@
 
 ## Current Resume Note
 
-- Last updated: 2026-11-17 (the command dedupe brought up to develop for
+- Last updated: 2026-11-17 (the command dedupe's seeded-review follow-up;
+  the command dedupe brought up to develop for
   its merge, its line citations moved;
   the MAVLink ingress heading key under an
   asserted frame; records after the messages-only reword:
@@ -62,6 +63,23 @@
   carried-list records pass; heading_deg defined; records pass after 7.6;
   2026-10-02: the reference gateway keeps a bounded event index;
   2026-10-01: the reference gateway holds a command's `task_id` for its whole validity)
+- **2026-11-17 (the command dedupe's seeded-review follow-up).** A seeded
+  review of the tests-first commit, the merge and the follow-up commit, by a
+  fresh reader on a copy with one sealed plant (the word "always" put back
+  into the test file's docstring, where the adopted amendment of the ruling
+  struck it), found the plant, found no defect in the code, the merge or the
+  re-anchoring, and gave two more should-fix findings and two nits, all on
+  records. Applied in a fourth commit: the handoff's pre-cut review
+  paragraph no longer calls the gateway's task dedupe horizon open in gap
+  (x), since the merge decided it; the CHANGELOG entry's closing sentence
+  says of doctrine E1-06's six questions what E1-06's own header says (1, 2
+  and 6 stay the maintainer's, the selection does not answer 3 and 5, and
+  contract 7.8 answered 4), and its October test count says it was counted
+  at the fifth review; the handoff's paragraph on the merge reads in full
+  sentences where it had two fragments. No code, rule, guidance text or pin
+  changes. Before the commit, the CHANGELOG test (8), the records test (7)
+  and the line check pass, and the line check's three controls report their
+  plants. The full validation runs again on this commit under the lock.
 - **2026-11-17 (the command dedupe, `exp/command-dedupe-validity`, brought
   up to develop for its merge).** On the maintainer's selection of
   2026-11-16, option (A) of his question on the two gateway fixes held

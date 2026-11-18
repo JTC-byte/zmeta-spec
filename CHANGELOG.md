@@ -1222,24 +1222,26 @@
   restart forgets held ids, and an expired command is not refused at the
   gateway. This change went through five rounds of independent review
   before any merge was asked for, and was revised after each; the fifth
-  found no defect in the code. Seventy-one tests in
-  `gateway/tests/test_command_dedupe_validity.py`, fifteen of them through
-  the real `main()` receive loop; 104 mutants killed, among them every
-  survivor the reviews found. The change was held on its branch from
-  2026-10-01 and is merged on the maintainer's selection of 2026-11-16. The
-  merge adds five tests that call `process_message` alone and fail against
-  the gateway before the change (76 tests in the file); states the hold
-  against contract 7.8 in the code, the gateway README, the ontology
-  reference and the tests (the hold covers the window, measured on the
-  gateway's clock, and is wider than it on purpose); and names both
-  settings in `configs/README.md`. It moves the line citations into
-  `gateway/src/gateway.py` in `tools/validation_guidance.yaml` and the
-  handoff to where the text each named now stands, gives the four
-  `gateway.py` citations of the `TASK_DUPLICATE` guidance entry the ranges
-  their text stands on, and moves the gateway's line-count pin from 3424
-  to 3723 lines. Four guidance references name code the change re-indented
-  or changed in place and are left as they were, for a reading by hand.
-  Doctrine E1-06 stays open on questions 1, 2 and 6, the maintainer's.
+  found no defect in the code. At the fifth review the file
+  `gateway/tests/test_command_dedupe_validity.py` held seventy-one tests,
+  fifteen of them through the real `main()` receive loop, and 104 mutants
+  were killed, among them every survivor the reviews found. The change was
+  held on its branch from 2026-10-01 and is merged on the maintainer's
+  selection of 2026-11-16. The merge adds five tests that call
+  `process_message` alone and fail against the gateway before the change (76
+  tests in the file); states the hold against contract 7.8 in the code, the
+  gateway README, the ontology reference and the tests (the hold covers the
+  window, measured on the gateway's clock, and is wider than it on purpose);
+  and names both settings in `configs/README.md`. It moves the line
+  citations into `gateway/src/gateway.py` in
+  `tools/validation_guidance.yaml` and the handoff to where the text each
+  named now stands, gives the four `gateway.py` citations of the
+  `TASK_DUPLICATE` guidance entry the ranges their text stands on, and moves
+  the gateway's line-count pin from 3424 to 3723 lines. Four guidance
+  references name code the change re-indented or changed in place and are
+  left as they were, for a reading by hand. Doctrine E1-06 stays open:
+  questions 1, 2 and 6 stay the maintainer's, the selection does not answer
+  3 and 5, and contract 7.8 answered 4 on 2026-11-02.
 
 ## [1.1.27] - 2026-10-27
 

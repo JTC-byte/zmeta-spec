@@ -42,24 +42,24 @@ adds lines to `gateway/src/gateway.py`, so the same change moves 38 line
 references in `tools/validation_guidance.yaml` and this file to where the
 text each named at develop's tip now stands, gives the four `gateway.py`
 citations of the `TASK_DUPLICATE` entry the ranges their text stands on,
-and moves the gateway's line-count pin from 3424 to 3723 lines. Not
-manifest-listed. Open from that branch, for a reading by hand: four
-guidance references name code it re-indented or changed in place and are
-left as they were (guidance lines 1431, 1439 and 1440 on the tail of
+and moves the gateway's line-count pin from 3424 to 3723 lines. No
+manifest-listed file changes. Open from that branch, for a reading by hand:
+four guidance references name code it re-indented or changed in place and
+are left as they were (guidance lines 1431, 1439 and 1440 on the tail of
 `process_message`, and line 757 on the command-line flags); the
 `COMMAND_EVIDENCE_UNRESOLVED` citation on line 1760 moved with its text and
 still names the first `if timing_state is not None:` (the sixth reference
 of the citation repair's list below); the `TASK_DUPLICATE` entry keeps its
 `validators.py` line on `command_task_ids` as it was, and the phrase
 "unlike the unbounded set above" in its line on `TaskDedupeCache.admit`
-leans on that line's note. The maintainer's: whether `command_max_hold_ms`
-of one day and `command_dedupe_max_entries` of 4096 stand as shipped
-defaults; whether `TASK_REJECTED`, which the merged gateway is the first
-gateway code path to emit and two ingress adapters already write, gets a
-row in `policy/violation-codes.yaml` (a change that moves the policy hash)
-and a guidance entry of its own; and doctrine E1-06's questions 1 and 6,
-the release of a `task_id` when its hold ends and a refusal of a command
-whose validity has ended.
+leans on that line's note. These stay the maintainer's: whether
+`command_max_hold_ms` of one day and `command_dedupe_max_entries` of 4096
+stand as shipped defaults; whether `TASK_REJECTED`, which the merged
+gateway is the first gateway code path to emit and two ingress adapters
+already write, gets a row in `policy/violation-codes.yaml` (a change that
+moves the policy hash) and a guidance entry of its own; and doctrine
+E1-06's questions 1 and 6, the release of a `task_id` when its hold ends
+and a refusal of a command whose validity has ended.
 
 The branch `exp/gateway-state-bound` (2026-10-02; item 8 of the 2026-10-12
 list below), the bounded event index, is merged on the maintainer's
@@ -382,8 +382,10 @@ cases under a scope of `["1.0"]`, follows; and whether
 S1 (the MAVLink egress projected a command whose
 validity window had not opened) was decided on 2026-11-16 on the
 maintainer's selection: the egress now refuses such a command. The
-behaviours its evidence also measured, the gateway's task dedupe horizon
-and a window already closed at issue, stay open in gap (x) below. S3 (246
+behaviours its evidence also measured are in gap (x) below: the gateway's
+task dedupe horizon, decided on the maintainer's selection of 2026-11-16 by
+the merge of `exp/command-dedupe-validity`, and a window already closed at
+issue, which stays open. S3 (246
 displaced line citations in `tools/validation_guidance.yaml`) was decided
 on 2026-11-16 on the maintainer's selection: the repair branch
 `wave/guidance-citations-2026-11` is merged, and what it left for a
