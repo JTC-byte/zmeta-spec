@@ -2,7 +2,9 @@
 
 ## Current Resume Note
 
-- Last updated: 2026-11-18 (the ASTERIX CAT062 egress refuses a
+- Last updated: 2026-11-18 (the ASTERIX CAT062 egress's README on the
+  pole and near it, omission kept and a near-pole rule booked; the ASTERIX
+  CAT062 egress refuses a
   `timing_quality` without one of its four fields or with a poisoned
   bound; three guidance entries' gateway citations
   moved onto their first text; the MAVLink ingress's older heading
@@ -68,6 +70,40 @@
   carried-list records pass; heading_deg defined; records pass after 7.6;
   2026-10-02: the reference gateway keeps a bounded event index;
   2026-10-01: the reference gateway holds a command's `task_id` for its whole validity)
+- **2026-11-18 (the ASTERIX CAT062 egress's README on the pole and near
+  it).** Booked from the review of 2026-11-14 (R-AX-7 of 2026-11-17): what
+  the adapter writes as I062/500 APW at a latitude of exactly 90 degrees,
+  where it writes nothing. ZMeta ruled on 2026-11-18 to write the latitude
+  deviation and a saturated longitude deviation there; a refuter measured
+  the ellipse's positions at and near the pole by sampling, and the lane
+  did not adopt the ruling. At a pole every displacement lowers the
+  latitude, so the latitude spread of the positions is the same for every
+  orientation, while the north marginal the adapter computes varies with
+  the orientation (17 to 51 counts for a 30 m by 10 m ellipse, against a
+  sampled spread of 29 counts about the mean and 53 about the pole); a
+  10 m by 0 m ellipse through the pole puts its positions on two meridians
+  180 degrees apart, where the rule would write a longitude deviation of
+  zero. Omission stays, with the reason now in the README. The README's
+  sentence that neither axis's deviation is stated smaller than the
+  source's, and the same clause of
+  `ASTERIX_EGRESS_LOSS_NOTES["geo_uncertainty"]`, are qualified for
+  positions near a pole, where the linear conversion the adapter uses at
+  every latitude can state the latitude deviation smaller than the
+  ellipse's spread (a 30 m by 10 m ellipse oriented east-west is stated
+  low at 11 m and 112 m from the pole, and not at 1.1 km), and the
+  longitude deviation as zero for an ellipse along the meridian through
+  the pole. The loss register row names both. Booked as its own change,
+  with its own ruling and refutation: a rule for positions near a pole,
+  whose boundary is set by the ellipse's size against its distance to the
+  pole; a candidate writes the latitude deviation as sqrt(a² + b²) over
+  the meridional radius, which does not depend on the orientation, and the
+  longitude deviation at the item's maximum for any ellipse with extent.
+  The contract states no meaning for a direction from true north at a pole
+  (21.2, 6.4), a question for the maintainer that this change does not
+  open. Text only: no code, behaviour, record, test, refusal reason,
+  schema, policy, contract, conformance or manifest-listed file changes;
+  `ADAPTER_VERSION` stays 1.0.0, and the adapter's test file passes as
+  before.
 - **2026-11-18 (the ASTERIX CAT062 egress refuses a `timing_quality`
   without one of its four fields or with a poisoned bound).** Booked from
   the timing split of 2026-11-17, whose build found that the adapter read

@@ -2,6 +2,27 @@
 
 ## [Unreleased]
 
+- 2026-11-18 — **The ASTERIX CAT062 egress's README gives the reason no
+  accuracy is written at a pole, and qualifies its accuracy statement near
+  a pole** (`adapters/egress/asterix/README.md`,
+  `adapters/egress/asterix/zmeta_to_asterix_cat062.py`, Class C, text
+  only). The pole question booked from the review of 2026-11-14 is settled
+  by keeping omission: at a latitude of exactly 90 degrees north or south
+  I062/500 is still not written. The README now says why: at a pole every
+  displacement lowers the latitude, so the latitude spread of an ellipse's
+  positions does not depend on its orientation and is not the north
+  marginal, and the positions of an ellipse with extent lie on many
+  meridians. The README's sentence that neither axis's deviation is stated
+  smaller than the source's, and the same clause of
+  `ASTERIX_EGRESS_LOSS_NOTES["geo_uncertainty"]`, now hold away from the
+  poles: within a few times the ellipse's semi-major axis of a pole the
+  linear conversion can state the latitude deviation smaller than the
+  ellipse's spread, and the longitude deviation as zero for an ellipse
+  along the meridian through the pole. The loss register row names both.
+  A rule for positions near a pole is booked as its own change. No code,
+  behaviour, record, refusal reason, schema, policy, contract, conformance
+  or manifest-listed file changes, and `ADAPTER_VERSION` stays 1.0.0.
+
 - 2026-11-18 — **The ASTERIX CAT062 egress refuses a `timing_quality`
   without one of its four fields, or with a poisoned error bound**
   (`adapters/egress/asterix/zmeta_to_asterix_cat062.py`,

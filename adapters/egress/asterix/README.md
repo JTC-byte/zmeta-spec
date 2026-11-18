@@ -169,15 +169,28 @@ marginals:
 They are converted to degrees with the WGS-84 radii of curvature at the
 target's latitude (the meridional radius for σn, the prime vertical radius
 times the cosine of the latitude for σe), and each is rounded up to the next
-LSB, so neither axis's deviation is stated smaller than the source's. APW has
+LSB, so away from the poles neither axis's deviation is stated smaller than
+the source's. Close to a pole, within a few times the ellipse's semi-major
+axis of it, the linear conversion can state the latitude deviation smaller
+than the spread of the ellipse's positions, and the longitude deviation as
+zero for an ellipse that lies along the meridian through the pole: measured
+on 2026-11-18, a 30 m by 10 m ellipse oriented east-west is stated low in
+latitude at 11 m and at 112 m from the north pole, and not at 1.1 km. The
+adapter applies the same conversion there, and a rule for positions near a
+pole is booked as its own change. APW has
 no cross term, so a receiver reads an ellipse aligned with north and east.
 Along an oblique major axis that reads up to √2 smaller than the source's
 deviation in that direction: an ellipse of 30 m by 10 m at 45 degrees reads
 as 22.4 m on each axis, where the source's deviation along 45 degrees is
 30 m. The loss register names it. A deviation
 beyond the item saturates at its maximum, which the edition reads as that
-value or above. At a latitude of exactly 90 degrees north or south the
-longitude deviation is undefined, and no accuracy is written.
+value or above. At a latitude of exactly 90 degrees north or south no
+accuracy is written. At a pole every displacement lowers the latitude, so
+the latitude spread of the ellipse's positions is the same for every
+orientation and is not the north marginal σn, which depends on the
+orientation from a true north that has no direction there; and the
+positions of any ellipse with extent lie on many meridians. The rule above
+has no value for either component at a pole that states the ellipse.
 
 ### The risk gate
 
@@ -343,7 +356,7 @@ never equal to the event (contract 4.5.1).
 | class | no item: I062/300 is a fixed table of airport vehicle types, and I062/380's emitter category is derived from the aircraft |
 | source summary, provenance, quality, extensions | no item; a declared 2-D position shows only as the absence of I062/130 |
 | risk adjudication | no item carries a self-label, so adjudicated events are refused (the gate above) rather than exported clean |
-| geo uncertainty | APW carries the north and east standard deviations, each rounded up; the orientation and the cross-correlation are lost, so along an oblique major axis a receiver reads up to √2 less than the source's deviation; an ellipse with another probability, or none, writes no accuracy; none at a pole |
+| geo uncertainty | APW carries the north and east standard deviations, each rounded up; the orientation and the cross-correlation are lost, so along an oblique major axis a receiver reads up to √2 less than the source's deviation; an ellipse with another probability, or none, writes no accuracy; none at a pole, where the latitude spread does not depend on the orientation and the positions lie on many meridians; close to a pole, within a few times the semi-major axis, the latitude deviation can be stated below the ellipse's spread, and the longitude deviation as zero for an ellipse along the meridian through the pole |
 | altitude source | SRC is 000, no source |
 | height reliability | MRH is always 1; on a 2-D track it still reads geometric altitude as more reliable, although such a source may have had only a barometric height |
 | track status | MON and CNF are the deployment's statements |

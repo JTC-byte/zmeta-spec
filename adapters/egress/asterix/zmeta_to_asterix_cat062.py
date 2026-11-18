@@ -221,14 +221,20 @@ ASTERIX_EGRESS_LOSS_NOTES = {
     ),
     "geo_uncertainty": (
         "I062/500 carries APW alone: the north and east standard deviations "
-        "of a 1_SIGMA ellipse, in degrees, each rounded up, so neither axis "
-        "is stated smaller than the source's. The orientation and the "
-        "cross-correlation are lost, so a receiver reads an ellipse aligned "
-        "with north and east, which along an oblique major axis is up to "
-        "sqrt(2) smaller than the source's deviation in that direction. An "
-        "ellipse with another probability, or none, writes no accuracy, and "
-        "at a latitude of exactly 90 degrees north or south no accuracy is "
-        "written."
+        "of a 1_SIGMA ellipse, in degrees, each rounded up, so away from the "
+        "poles neither axis is stated smaller than the source's. Close to a "
+        "pole, within a few times the ellipse's semi-major axis of it, the "
+        "linear conversion can state the latitude deviation smaller than the "
+        "spread of the ellipse's positions, and the longitude deviation as "
+        "zero for an ellipse along the meridian through the pole. The "
+        "orientation and the cross-correlation are lost, so a receiver reads "
+        "an ellipse aligned with north and east, which along an oblique "
+        "major axis is up to sqrt(2) smaller than the source's deviation in "
+        "that direction. An ellipse with another probability, or none, "
+        "writes no accuracy, and at a latitude of exactly 90 degrees north "
+        "or south no accuracy is written: there the latitude spread of the "
+        "ellipse's positions is the same for every orientation, and the "
+        "positions of an ellipse with extent lie on many meridians."
     ),
     "altitude_source": (
         "I062/080 SRC is 000, no source: the event does not state how alt_m "

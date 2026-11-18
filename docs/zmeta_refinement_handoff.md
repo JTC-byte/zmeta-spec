@@ -551,7 +551,10 @@ that lacks any of the four timing fields the reference gateway requires of
 a per-event path, or whose `est_error_ms` is poisoned in the sense of
 `adapters/ingress/time_utils.py`, whatever is declared and whatever the
 allowance says, so that the adapter exports on an event's own timing
-quality only from the member the gateway's reader takes.
+quality only from the member the gateway's reader takes. The same branch
+keeps the adapter's omission of I062/500 at a pole, with the reason in its
+README, qualifies the README's accuracy statement near a pole, and books a
+rule for positions near a pole as its own change, open.
 
 The branch `wave/precut-hash-note-2026-11` (2026-11-14) is a records
 correction. The gateway documents branch edited `policy/README.md`, and the
