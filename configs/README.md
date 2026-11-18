@@ -92,6 +92,15 @@ Notes:
     `LINEAGE_PARENT_UNRESOLVED` under `policy/lineage.yaml`
     `unresolved_parent_mode`, which the shipped policy ignores at profile L
     and warns on at M and H. See Event index in `gateway/README.md`.
+  - `command_dedupe_max_entries` sets how many commands' `task_id`s the gateway
+    holds at once (default 4096, an integer from 1 to 1048576). When that many
+    are held, a new command is refused with a `TASK_ACK` in state `REJECTED` and
+    reason `TASK_REJECTED`; no held `task_id` is forgotten to make room. See
+    COMMAND_EVENT dedupe in `gateway/README.md`.
+  - `command_max_hold_ms` sets the longest one command's `task_id` is held,
+    counted from admission (default 86400000, one day; an integer greater than
+    60000 and at most 2678400000). A command whose hold would be longer is
+    refused the same way. See COMMAND_EVENT dedupe in `gateway/README.md`.
   - `metrics_log_path`, `metrics_log_max_bytes`, `metrics_log_backups` enable JSONL metrics logs.
   - `warn_datagram_bytes` logs a metrics warning when an outgoing UDP datagram
     (forward or CoT) exceeds the configured byte threshold (`0` disables, the

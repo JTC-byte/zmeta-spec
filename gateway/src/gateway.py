@@ -244,8 +244,88 @@ def compute_contract_hash(schema_path: Path, policy_dir: Path, semantics_path: P
     return hashes
 
 
+# How many commands' task_ids the gateway holds at once. Sender-controlled
+# cardinality must not grow this cache without bound, so it is capped by
+# count. When it is full a NEW command is refused instead of an old id being
+# forgotten: forgetting an id would let that command's duplicate through,
+# which is the one thing contract 13.2 forbids outright.
+DEFAULT_COMMAND_DEDUPE_MAX_ENTRIES = 4096
+# The longest one command's task_id is held, counted from the moment the
+# command is admitted. `valid_for_ms` has no upper bound in schema, and an
+# id held without limit never gives its slot back, so enough long-lived
+# commands would fill the cache until the gateway was restarted. A command
+# the gateway would have to hold for longer than this is refused instead.
+# Every held id therefore expires, and once new commands stop arriving a
+# full cache clears within this long.
+DEFAULT_COMMAND_MAX_HOLD_MS = 24 * 60 * 60 * 1000
+# Ceilings on the two settings. They keep the deadline arithmetic finite and
+# stop a config value from restoring a hold that in practice never ends.
+MAX_COMMAND_DEDUPE_MAX_ENTRIES = 1024 * 1024
+MAX_COMMAND_MAX_HOLD_MS = 31 * 24 * 60 * 60 * 1000
+# Added to every hold. A command's validity is anchored on timestamps its
+# producer wrote, and the gateway measures the time left on its own wall
+# clock, so a gateway clock running ahead of the producer's would release
+# the id early by the difference. The margin absorbs one minute of that.
+COMMAND_HOLD_MARGIN_MS = 60 * 1000
+
+
+def _positive_int_limit(value, label, maximum):
+    """`value` when it is an int from 1 to `maximum`; ValueError otherwise.
+
+    Stricter than _normalize_int on purpose: these limits decide whether a
+    command is forwarded, so a config value that is null, a boolean, a
+    fraction or a quoted number is refused at startup, not coerced.
+    """
+    if isinstance(value, bool) or not isinstance(value, int) or value <= 0:
+        raise ValueError(f"{label} must be a positive integer")
+    if value > maximum:
+        raise ValueError(f"{label} must be at most {maximum}")
+    return value
+
+
 class TaskDedupeCache:
-    def __init__(self):
+    """Holds each forwarded command's `task_id` until that command can no longer execute.
+
+    Contract 13.2: "Duplicate COMMAND_EVENTs MUST NOT be forwarded for
+    execution a second time." The cache used to hold an id for at most 300 s
+    whatever the command's validity, so a duplicate of a command valid for
+    600 s was forwarded again at 301 s. It now holds the id for the hold the
+    caller computes from the command (see command_hold_ms).
+
+    The hold belongs to the copy that was admitted, because that is the only
+    copy anything can execute. A later copy of a held id is a DUPLICATE and
+    changes nothing: it neither shortens nor lengthens the hold.
+
+    Two limits bound the cache. `max_hold_ms` is the longest one id is held;
+    a command that needs longer is refused (TOO_LONG). `max_entries` is how
+    many ids are held at once; a new command that finds the cache full is
+    refused (FULL). Neither refusal records anything, and the caller must
+    not forward the command: a command forwarded without its id held cannot
+    be protected from its own duplicate.
+
+    What the cache does not do is stated in the gateway README. An id is
+    released when its hold ends, and the same id is then admitted as a new
+    command; contract 13.2 sets no time bound on "a second time", so the
+    release is a reading, recorded as open in the doctrine log (E1-06). The
+    cache is in memory, so a gateway restart forgets every held id.
+    """
+
+    NEW = "new"
+    DUPLICATE = "duplicate"
+    FULL = "full"
+    TOO_LONG = "too_long"
+
+    def __init__(
+        self,
+        max_entries=DEFAULT_COMMAND_DEDUPE_MAX_ENTRIES,
+        max_hold_ms=DEFAULT_COMMAND_MAX_HOLD_MS,
+    ):
+        self.max_entries = _positive_int_limit(
+            max_entries, "command_dedupe_max_entries", MAX_COMMAND_DEDUPE_MAX_ENTRIES
+        )
+        self.max_hold_ms = _positive_int_limit(
+            max_hold_ms, "command_max_hold_ms", MAX_COMMAND_MAX_HOLD_MS
+        )
         self._cache = {}
 
     def _purge(self, now):
@@ -253,14 +333,45 @@ class TaskDedupeCache:
         for key in expired:
             del self._cache[key]
 
-    def check_and_set(self, task_id, ttl_ms):
+    def admit(self, task_id, hold_ms):
+        """Return NEW (id recorded), DUPLICATE (id still held), TOO_LONG or FULL.
+
+        Only NEW may be forwarded. There is no method that answers
+        "duplicate or not": a caller written against one would forward a
+        command this cache had refused to hold.
+        """
+        if (
+            isinstance(hold_ms, bool)
+            or not isinstance(hold_ms, (int, float))
+            or not hold_ms > 0
+        ):
+            raise ValueError("hold_ms must be a positive number")
         now = time.monotonic()
         self._purge(now)
-        expiry = self._cache.get(task_id)
-        if expiry and expiry > now:
-            return True
-        self._cache[task_id] = now + (ttl_ms / 1000.0)
-        return False
+        if task_id in self._cache:
+            # Still held (the purge above removed every hold that has ended).
+            # The copy changes nothing: lengthening the hold on a later copy
+            # would let anyone who repeats held ids keep them held, and the
+            # cache full, for as long as the copies keep coming.
+            return self.DUPLICATE
+        if hold_ms > self.max_hold_ms:
+            return self.TOO_LONG
+        if len(self._cache) >= self.max_entries:
+            return self.FULL
+        self._cache[task_id] = now + (hold_ms / 1000.0)
+        return self.NEW
+
+    def release(self, task_id):
+        """Forget a held id. For a command that was admitted and then did not leave the gateway.
+
+        The receive loop calls this when the command it just admitted was
+        replaced by a diagnostic, could not be encoded, or failed to send, or
+        when an exception ended the datagram before the send. process_message
+        calls it itself when it fails after admission. Nothing can execute
+        that command, so a corrected copy under the same `task_id` is a first
+        copy, not a duplicate.
+        """
+        self._cache.pop(task_id, None)
 
 
 class EventDedupeCache:
@@ -1118,15 +1229,99 @@ def _record_backstop_drop(metrics, exc):
     _warn_stderr(f"WARNING: datagram dropped after unexpected {_exc_detail(exc)}")
 
 
-def ttl_ms_from_payload(payload):
-    ttl_ms = payload.get("valid_for_ms")
+def unreadable_command_anchor(payload, event_ts=None):
+    """Name the validity anchor that is present and cannot be read, or None.
+
+    Both schema lanes admit timestamps this gateway cannot turn into an
+    instant: the 1.0 lane gates `utcDateTime` on a trailing `Z` alone, and
+    the 1.1.0 lane admits impossible calendar dates such as September 31.
+    Another consumer may read such a value its own way (a lenient parser
+    rolls September 31 into October 1), so the gateway cannot know when
+    that command stops being executable.
+    """
+    if event_ts is not None and _parse_utc_z(event_ts) is None:
+        return "event.ts"
+    valid_from_ts = payload.get("valid_from_ts") if isinstance(payload, dict) else None
+    if valid_from_ts is not None and _parse_utc_z(valid_from_ts) is None:
+        return "payload.valid_from_ts"
+    return None
+
+
+def command_hold_ms(payload, now=None, event_ts=None):
+    """Milliseconds, from receipt, for which a command's task_id is held.
+
+    Contract 7.8: "A command's validity window begins at
+    `payload.valid_from_ts` when present, otherwise at `event.ts`, and ends
+    `payload.valid_for_ms` after that start". The hold covers that window,
+    measured on the gateway's clock, and is wider than it on purpose.
+    Contract 13.2 sets no time bound on a duplicate, so the window's end is
+    the least the hold may be. Two receivers can run a command past that
+    end. One that is handed the duration with no anchor, as the reference
+    MAVLink mission intent hands it, counts `valid_for_ms` from its own
+    receipt. One built before the window rule was written may count it from
+    `event.ts` beside a `valid_from_ts`. The hold therefore runs to
+    `valid_for_ms` after the latest of receipt, `event_ts` and
+    `valid_from_ts`, plus COMMAND_HOLD_MARGIN_MS: a command that starts
+    being valid in ten minutes and stays valid for one can still execute
+    eleven minutes after receipt.
+
+    An anchor that is already past adds nothing. An anchor that is present
+    and cannot be read makes the hold infinite (see
+    unreadable_command_anchor), which TaskDedupeCache refuses like any hold
+    longer than its maximum. The value is otherwise uncapped.
+
+    `now` defaults to the wall clock in UTC. A naive `now` is read as UTC.
+
+    A `valid_for_ms` that `int()` cannot read, or reads as zero or less,
+    falls back to 60000, as before; the schema refuses such a command before
+    this is reached, so the fallback only serves a caller that skipped
+    validation.
+    """
+    if unreadable_command_anchor(payload, event_ts) is not None:
+        return math.inf
+    valid_for_ms = payload.get("valid_for_ms") if isinstance(payload, dict) else None
     try:
-        ttl_ms = int(ttl_ms)
-    except (TypeError, ValueError):
-        ttl_ms = 60000
-    if ttl_ms <= 0:
-        ttl_ms = 60000
-    return min(ttl_ms, 300000)
+        valid_for_ms = int(valid_for_ms)
+    except (TypeError, ValueError, OverflowError):
+        valid_for_ms = 60000
+    if valid_for_ms <= 0:
+        valid_for_ms = 60000
+    if not isinstance(now, datetime):
+        now = datetime.now(timezone.utc)
+    elif now.utcoffset() is None:
+        now = now.replace(tzinfo=timezone.utc)
+    lead_ms = 0
+    valid_from_ts = payload.get("valid_from_ts") if isinstance(payload, dict) else None
+    for raw in (event_ts, valid_from_ts):
+        anchor = _parse_utc_z(raw)
+        if anchor is None:
+            continue
+        delta_ms = math.ceil((anchor - now).total_seconds() * 1000)
+        if delta_ms > lead_ms:
+            lead_ms = delta_ms
+    return valid_for_ms + lead_ms + COMMAND_HOLD_MARGIN_MS
+
+
+_COMMAND_DEDUPE_LIMITS = (
+    ("command_dedupe_max_entries", MAX_COMMAND_DEDUPE_MAX_ENTRIES),
+    ("command_max_hold_ms", MAX_COMMAND_MAX_HOLD_MS),
+)
+
+
+def _command_task_id(event):
+    """The `payload.task_id` of a COMMAND_EVENT.
+
+    None for any other event type, whatever its payload carries, and for a
+    command whose `task_id` is missing, empty or not a string.
+    """
+    if not isinstance(event, dict):
+        return None
+    event_block = event.get("event")
+    payload = event.get("payload")
+    if not isinstance(event_block, dict) or event_block.get("event_type") != "COMMAND_EVENT":
+        return None
+    task_id = payload.get("task_id") if isinstance(payload, dict) else None
+    return task_id if isinstance(task_id, str) and task_id else None
 
 
 def _resolve_relative_path(base_dir, value):
@@ -1847,6 +2042,8 @@ def build_settings(root, args, config):
         "metrics_log_backups": DEFAULT_METRICS_LOG_BACKUPS,
         "warn_datagram_bytes": DEFAULT_WARN_DATAGRAM_BYTES,
         "ts_plausibility_horizon_ms": DEFAULT_TS_PLAUSIBILITY_HORIZON_MS,
+        "command_dedupe_max_entries": DEFAULT_COMMAND_DEDUPE_MAX_ENTRIES,
+        "command_max_hold_ms": DEFAULT_COMMAND_MAX_HOLD_MS,
         "stamp_contract_hash": False,
         "gateway_producer": DEFAULT_GATEWAY_PRODUCER,
         "gateway_node_role": DEFAULT_GATEWAY_NODE_ROLE,
@@ -1967,6 +2164,9 @@ def build_settings(root, args, config):
                 "ts_plausibility_horizon_ms",
                 allow_zero=True,
             )
+        for key, maximum in _COMMAND_DEDUPE_LIMITS:
+            if key in config:
+                settings[key] = _positive_int_limit(config[key], key, maximum)
         if "stamp_contract_hash" in config:
             settings["stamp_contract_hash"] = bool(config["stamp_contract_hash"])
         for key in ("gateway_producer", "gateway_node_role"):
@@ -2064,6 +2264,16 @@ def build_settings(root, args, config):
     if args.ts_plausibility_horizon_ms is not None:
         settings["ts_plausibility_horizon_ms"] = _normalize_int(
             args.ts_plausibility_horizon_ms, "ts_plausibility_horizon_ms", allow_zero=True
+        )
+    for key, maximum in _COMMAND_DEDUPE_LIMITS:
+        value = getattr(args, key, None)
+        if value is not None:
+            settings[key] = _positive_int_limit(value, key, maximum)
+    if settings["command_max_hold_ms"] <= COMMAND_HOLD_MARGIN_MS:
+        # Every hold includes the margin, so a maximum this small would
+        # refuse every command.
+        raise ValueError(
+            f"command_max_hold_ms must be greater than {COMMAND_HOLD_MARGIN_MS}"
         )
     if args.stamp_contract_hash:
         settings["stamp_contract_hash"] = True
@@ -2655,6 +2865,11 @@ def process_message(
     now=None,
     gateway_identity=None,
 ):
+    if isinstance(now, datetime) and now.utcoffset() is None:
+        # A caller's naive `now` is read as UTC, here once, for every check
+        # that measures against it (timestamp plausibility, command hold).
+        # An aware `now` in any zone is left alone: it is already an instant.
+        now = now.replace(tzinfo=timezone.utc)
     try:
         instance = _decode_message(message, input_encoding)
     except Exception as exc:
@@ -3000,12 +3215,51 @@ def process_message(
             )
         ]
 
+    admitted_task_id = None
     if event_type == "COMMAND_EVENT":
         payload = instance.get("payload", {})
         task_id = payload.get("task_id")
         if task_id and dedupe_cache:
-            ttl_ms = ttl_ms_from_payload(payload)
-            if dedupe_cache.check_and_set(task_id, ttl_ms):
+            command_event = instance.get("event")
+            command_ts = command_event.get("ts") if isinstance(command_event, dict) else None
+            outcome = dedupe_cache.admit(
+                task_id, command_hold_ms(payload, now=now, event_ts=command_ts)
+            )
+            if outcome in (TaskDedupeCache.TOO_LONG, TaskDedupeCache.FULL):
+                # The id was not held, so this command could not be protected
+                # from its own duplicate. Refuse it, loudly, and say why.
+                unreadable = unreadable_command_anchor(payload, command_ts)
+                if outcome == TaskDedupeCache.TOO_LONG and unreadable is not None:
+                    refusal = {
+                        "reason": "command validity anchor is not a readable UTC instant",
+                        "anchor": unreadable,
+                    }
+                elif outcome == TaskDedupeCache.TOO_LONG:
+                    refusal = {
+                        "reason": "command validity exceeds the dedupe hold limit",
+                        "command_max_hold_ms": dedupe_cache.max_hold_ms,
+                    }
+                else:
+                    refusal = {
+                        "reason": "command dedupe capacity reached",
+                        "command_dedupe_max_entries": dedupe_cache.max_entries,
+                    }
+                if metrics:
+                    metrics.record_violation(
+                        "TASK_REJECTED", event_id=event_id, producer=producer, details=refusal
+                    )
+                return [
+                    build_violation_event(
+                        "TASK_REJECTED",
+                        original=instance,
+                        details=refusal,
+                        contract_hashes=contract_hashes,
+                        stamp_contract_hash=stamp_contract_hash,
+                        policy=policy,
+                        identity=gateway_identity,
+                    )
+                ]
+            if outcome == TaskDedupeCache.DUPLICATE:
                 if metrics:
                     metrics.record_duplicate(task_id=task_id)
                     metrics.record_violation(
@@ -3019,28 +3273,40 @@ def process_message(
                         identity=gateway_identity,
                     )
                 ]
+            admitted_task_id = task_id
 
-    if timing_state is not None:
-        timing_state.record(instance)
+    try:
+        if timing_state is not None:
+            timing_state.record(instance)
 
-    outgoing = [instance]
-    for warning in warnings:
-        if metrics:
-            metrics.record_warning(
-                warning["code"], event_id=event_id, producer=producer, details=warning.get("message")
+        outgoing = [instance]
+        for warning in warnings:
+            if metrics:
+                metrics.record_warning(
+                    warning["code"], event_id=event_id, producer=producer, details=warning.get("message")
+                )
+            outgoing.append(
+                build_warning_event(
+                    warning["code"],
+                    original=instance,
+                    details=warning.get("details"),
+                    contract_hashes=contract_hashes,
+                    stamp_contract_hash=stamp_contract_hash,
+                    policy=policy,
+                    identity=gateway_identity,
+                )
             )
-        outgoing.append(
-            build_warning_event(
-                warning["code"],
-                original=instance,
-                details=warning.get("details"),
-                contract_hashes=contract_hashes,
-                stamp_contract_hash=stamp_contract_hash,
-                policy=policy,
-                identity=gateway_identity,
-            )
-        )
-    return outgoing
+        return outgoing
+    except BaseException:
+        # The command was admitted and is not being returned, so nothing
+        # will forward it. Give its task_id back before the failure
+        # propagates.
+        release = getattr(dedupe_cache, "release", None)
+        if admitted_task_id is not None and callable(release):
+            # A caller's own cache may have no release(); the failure being
+            # propagated must not be replaced by an AttributeError here.
+            release(admitted_task_id)
+        raise
 
 
 def parse_args():
@@ -3074,6 +3340,8 @@ def parse_args():
     parser.add_argument("--metrics-log-backups", type=int)
     parser.add_argument("--warn-datagram-bytes", type=int)
     parser.add_argument("--ts-plausibility-horizon-ms", type=int)
+    parser.add_argument("--command-dedupe-max-entries", type=int)
+    parser.add_argument("--command-max-hold-ms", type=int)
     parser.add_argument("--stamp-contract-hash", action="store_true")
     parser.add_argument("--gateway-producer")
     parser.add_argument("--gateway-node-role")
@@ -3169,7 +3437,13 @@ def main():
     else:
         print("event.ts plausibility check: disabled")
 
-    dedupe_cache = TaskDedupeCache()
+    dedupe_cache = TaskDedupeCache(
+        settings["command_dedupe_max_entries"], settings["command_max_hold_ms"]
+    )
+    print(
+        f"command dedupe: up to {dedupe_cache.max_entries} task_ids held, "
+        f"each for at most {dedupe_cache.max_hold_ms}ms"
+    )
     event_dedupe_cache = EventDedupeCache()
     task_ack_dedupe_cache = TaskAckDedupeCache()
     command_evidence_cfg = policy.get("command_evidence", {})
@@ -3253,6 +3527,9 @@ def main():
         # interrupts (KeyboardInterrupt) and configuration failures that
         # raise SystemExit (_require_cbor/_require_compact/_require_proto)
         # still stop the process rather than becoming per-datagram drops.
+        # The task_id of a command this datagram admitted and has not yet
+        # delivered. Every path that ends without delivering it releases it.
+        pending_task_id = None
         try:
             out_events = process_message(
                 data,
@@ -3273,6 +3550,11 @@ def main():
                 gateway_identity=_identity_from_settings(settings),
             )
             for outgoing in out_events:
+                # A COMMAND_EVENT in out_events is one process_message just
+                # admitted, so its task_id is now held. It is released if the
+                # command is replaced by a diagnostic, cannot be encoded, is
+                # not sent, or an exception ends this datagram first.
+                pending_task_id = _command_task_id(outgoing)
                 should_stamp_timing = _should_apply(
                     settings["profile"], settings["stamp_timing"], settings["stamp_timing_profiles"]
                 )
@@ -3335,6 +3617,9 @@ def main():
                     metrics=metrics,
                 )
                 if payload is None:
+                    if pending_task_id is not None:
+                        dedupe_cache.release(pending_task_id)
+                        pending_task_id = None
                     # Nothing honest can be said about this event on this wire.
                     # Drop the datagram rather than terminate the receive loop.
                     # Reason spelling matches the governed diagnostic code and
@@ -3369,6 +3654,15 @@ def main():
                     event_id=event_block.get("event_id") if isinstance(event_block, dict) else None,
                     producer=source_block.get("producer") if isinstance(source_block, dict) else None,
                 )
+                if pending_task_id is not None and (
+                    not sent or _command_task_id(outgoing) != pending_task_id
+                ):
+                    # The admitted command was replaced by a diagnostic or
+                    # was not sent. Nothing can execute it, so a corrected
+                    # copy under the same task_id is a first copy.
+                    dedupe_cache.release(pending_task_id)
+                # Delivered or released: either way nothing is pending now.
+                pending_task_id = None
                 if sent and metrics:
                     metrics.record_forwarded()
                 if settings["emit_cot"]:
@@ -3410,6 +3704,11 @@ def main():
             if metrics:
                 metrics.maybe_log()
         except Exception as exc:  # noqa: BLE001 - last-resort per-datagram guard
+            # An admitted command that was still pending when the failure
+            # hit was never sent. Release its task_id (a dict pop, which
+            # cannot raise) so a corrected copy is not called a duplicate.
+            if pending_task_id is not None:
+                dedupe_cache.release(pending_task_id)
             # The handler must not re-enter anything that can raise: when the
             # failure inside the try WAS the metrics sink, a bare call back
             # into it raised the identical exception from inside the except

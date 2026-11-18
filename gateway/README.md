@@ -121,6 +121,8 @@ The config file keys are:
 - `metrics_log_path`, `metrics_log_max_bytes`, `metrics_log_backups` (JSONL metrics logs)
 - `warn_datagram_bytes` (warn when an outgoing datagram exceeds this size; 0 disables)
 - `ts_plausibility_horizon_ms` (warn when `event.ts` sits outside a window around now; 0 disables; see Event timestamp plausibility below)
+- `command_dedupe_max_entries` (how many commands' `task_id`s are held at once; default 4096, at most 1048576; see COMMAND_EVENT dedupe below)
+- `command_max_hold_ms` (the longest one command's `task_id` is held, counted from admission; a command that needs a longer hold is refused; default 86400000, one day; greater than 60000 and at most 2678400000; see COMMAND_EVENT dedupe below)
 - `stamp_contract_hash` (include schema, policy, semantic-contract, and combined hashes in gateway-generated system events)
 - `gateway_producer`, `gateway_node_role` (the identity the gateway stamps on the diagnostics it mints; defaults `zmeta-gateway` and `GATEWAY`; see Gateway identity below)
 - `require_schema_hash`, `require_policy_hash`, `require_contract_hash` (startup gate)
@@ -195,10 +197,116 @@ encoding can set that lane instead of `auto`.
 
 ### COMMAND_EVENT dedupe
 
-The gateway deduplicates `COMMAND_EVENT` by `task_id` using an in-memory TTL cache.
-TTL comes from `payload.valid_for_ms` (default 60000 ms, max 300000 ms). Duplicates are
-not forwarded; the gateway emits a `SYSTEM_EVENT` `TASK_ACK` with state `DUPLICATE_IGNORED`
-and metrics including `task_id`, `original_event_id`, and `reason_code=TASK_DUPLICATE`.
+The gateway deduplicates `COMMAND_EVENT` by `payload.task_id` alone, whatever
+the producer or platform, using an in-memory cache. Duplicates are not
+forwarded; the gateway emits a `SYSTEM_EVENT` `TASK_ACK` with state
+`DUPLICATE_IGNORED` and metrics including `task_id`, `original_event_id`, and
+`reason_code=TASK_DUPLICATE`.
+
+Earlier releases held a `task_id` for at most 300000 ms, so a duplicate of a
+command valid for longer was forwarded again after five minutes, which
+contract Section 13.2 forbids ("Duplicate COMMAND_EVENTs MUST NOT be forwarded
+for execution a second time").
+
+**How long a `task_id` is held.** From the moment the command is admitted
+until `payload.valid_for_ms` after the latest of the moment of receipt,
+`event.ts`, and `payload.valid_from_ts`, plus a margin of 60 seconds. Contract
+Section 7.8 defines the validity window. The hold covers that window, measured
+on the gateway's clock, and is wider than it on purpose. Contract 13.2 sets no
+time bound on a duplicate, so the window's end is the least the hold may be.
+Two receivers can run a command past that end. One that is handed the duration
+with no anchor, as the reference MAVLink mission intent hands it, counts
+`valid_for_ms` from its own receipt. One built before the window rule was
+written may count it from `event.ts` beside a `valid_from_ts`. A window that
+closed before the command was issued is still held for `valid_for_ms` plus the
+margin from receipt. The hold belongs to the copy that was admitted, because
+that is the only copy the gateway forwards and so the only copy anything can
+execute. A later copy of a held command is answered as a duplicate and changes
+nothing: it neither shortens nor lengthens the hold.
+
+**Three refusals.** A command is refused with a `TASK_ACK` in state `REJECTED`
+and `reason_code=TASK_REJECTED`, and is not forwarded, when the gateway cannot
+hold its `task_id`:
+
+- **The hold would be too long.** `command_max_hold_ms` (default 86400000, one
+  day) is the longest one `task_id` is held, counted from admission. A command
+  whose hold would be longer is refused with `reason` "command validity
+  exceeds the dedupe hold limit". The hold is `valid_for_ms`, plus any lead
+  time to a future `event.ts` or `valid_from_ts`, plus the 60 second margin,
+  so with the default a command valid for more than 86340000 ms is refused.
+  `valid_for_ms` has no upper bound in schema; without this limit, long-lived
+  commands would hold their slots until the gateway was restarted. The setting
+  must be greater than 60000 and at most 2678400000 (31 days).
+- **A validity anchor cannot be read.** When `payload.valid_from_ts` or
+  `event.ts` is present and is not a UTC instant the gateway can read, the
+  command is refused with `reason` "command validity anchor is not a readable
+  UTC instant" and `anchor` naming the field, unless an earlier check has
+  already refused it. Both schema lanes admit an impossible calendar date
+  such as September 31; the 1.0 lane also admits a leap second and any string
+  ending in `Z`. Another consumer may read the value its own way, so the
+  gateway cannot know when that command stops being executable. The reference
+  MAVLink egress refuses the same cases when `payload.valid_from_ts` is
+  present. The gateway also refuses an unreadable `event.ts` on a command with
+  no `valid_from_ts`, because the window then begins there (Section 7.8).
+- **The cache is full.** `command_dedupe_max_entries` (default 4096, at most
+  1048576) is how many `task_id`s are held at once. When that many are held, a
+  new command is refused with `reason` "command dedupe capacity reached". No
+  held `task_id` is forgotten to make room, because forgetting one would let
+  that command's duplicate through. Every hold is finite and no copy lengthens
+  one, so each slot returns at most `command_max_hold_ms` after its command
+  was admitted. A sender that keeps sending new long-lived commands can still
+  keep the cache full. `rate_limit_per_sec` and `rate_limit_producer_per_sec`
+  slow such a sender; they are off by default and do not prevent it.
+
+A refused command is not held and takes no capacity. A command refused by an
+earlier check (schema, role, producer authority, timing, command evidence,
+strict validation) never reaches the dedupe and does not claim its `task_id`.
+A command that was admitted and then did not leave the gateway gives its
+`task_id` back, so a corrected copy is a first copy. That covers four cases:
+the outgoing check replaced the command with a diagnostic, it could not be
+encoded, the send failed, or an error ended the handling of that datagram
+before the send. An error after the send releases nothing, because the
+command was delivered. The receive loop does this; a program that calls
+`process_message` directly calls `TaskDedupeCache.release(task_id)` itself
+when it does not deliver an admitted command.
+
+Both settings must be integers in range; a null, boolean, fractional or quoted
+value is a startup error. The command-line flags are
+`--command-dedupe-max-entries` and `--command-max-hold-ms`, and the startup
+banner prints both values.
+
+**What the dedupe does not do.** These are limits of the reference gateway,
+stated so a deployment can decide whether they matter to it.
+
+- A `task_id` is released when its hold ends, and the same `task_id` is then
+  treated as a new command and forwarded. A producer that re-issues one task
+  under one `task_id` after the first copy's hold has ended therefore has it
+  forwarded again. Contract Section 13.2 sets no time bound on "a second
+  time", so releasing the `task_id` is the gateway's reading where the
+  contract is silent, and it is recorded as an open question for the
+  maintainer (doctrine log E1-06). `tools/validate.py` applies the other
+  reading to a recorded stream: a later COMMAND_EVENT with a new `event_id`
+  and a `task_id` already seen is reported as `TASK_DUPLICATE`, with no
+  expiry.
+- The cache is in memory. A gateway restart forgets every held `task_id`, and
+  a duplicate that arrives after a restart is forwarded.
+- The time left to a future `event.ts` or `valid_from_ts` is measured on the
+  gateway's wall clock. The margin absorbs a gateway clock up to 60 seconds
+  ahead of the producer's; beyond that, a command whose validity starts in the
+  future is released early by the amount over 60 seconds. The same margin has
+  to cover any delay between the gateway and a consumer that counts
+  `valid_for_ms` from its own receipt; a queue or store-and-forward delay
+  longer than 60 seconds is not covered.
+- The gateway does not refuse a command whose validity has already ended. The
+  contract defines the acknowledgement for that case (`TASK_ACK` state
+  `EXPIRED`, reason `TASK_EXPIRED`). Section 10.7 has edge nodes in Profile L
+  or M, while the deconfliction node is offline, "emit TASK_ACK failure or
+  expiry when applicable", and Section 15 gives "The Comms/Deconfliction Node
+  or command-authorized producer" the duty of "Emitting TASK_ACK lifecycle
+  events". No section says which node checks expiry otherwise, and the
+  reference gateway does not check it.
+- The two limits bound this cache only. They do not bound the gateway's other
+  per-event state.
 
 ### Timing stamps
 
