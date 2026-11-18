@@ -2,6 +2,36 @@
 
 ## [Unreleased]
 
+- 2026-11-17 — **The ASTERIX CAT062 egress's timing allowance is split into
+  two declarations in its configuration**
+  (`adapters/egress/asterix/zmeta_to_asterix_cat062.py`,
+  `adapters/egress/asterix/README.md`,
+  `adapters/egress/asterix/test_asterix_cat062_egress.py`, Class C). On the
+  maintainer's selection of 2026-11-16, which keeps the allowance and splits
+  it as ZMeta booked it from the seeded review of 2026-11-14. The keyword
+  argument `allow_degraded_timing` is removed, and a call that passes it
+  raises `TypeError`. The configuration gains two declarations beside SAC
+  and SIC: `sync_state_when_absent`, optional and exactly `LOCKED`,
+  `HOLDOVER` or `UNSYNCED`, the sync state the deployment states for events
+  that carry no timing quality; and `allow_holdover_or_unsynced`, a required
+  boolean, the allowance renamed and narrowed to a stated `HOLDOVER` or
+  `UNSYNCED`, whether the event or the declaration states it. An event with
+  no timing quality and nothing declared is now refused as
+  `CAT062_TIMING_ABSENT` whatever the allowance says; under the keyword the
+  allowance exported it. The statement never applies to an event that states
+  its own timing quality. The adapter reads only `payload.timing_quality`, so
+  an event with no `payload.timing_quality` whose timing quality sits at
+  `payload.quality.timing_quality` or in `payload.quality`, the other
+  per-event paths the reference policy reads, is refused as absent whatever
+  is declared. A malformed `timing_quality`
+  stays refused whatever is declared, and neither declaration opens the risk
+  gate. A configuration without `allow_holdover_or_unsynced`, the README's
+  earlier example among them, is now refused at startup. No refusal reason is
+  added, and `ADAPTER_VERSION` stays 1.0.0, since the adapter is in no
+  release. The README's scratch-run counts are measured again through the
+  declarations. No schema, policy, contract, conformance or manifest-listed
+  file changes.
+
 - 2026-11-17 — **The MAVLink ingress keeps a heading under an asserted
   frame in a key that names the frame**
   (`adapters/ingress/mavlink/mavlink_to_zmeta_template.py`,

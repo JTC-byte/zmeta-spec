@@ -134,8 +134,14 @@ _TRACK_STATUS_TENTATIVE = 0x02
 # I062/500's primary subfield with subfield #3, APW, alone (§5.2.26, p. 123).
 _ACCURACY_APW_ONLY = 0x20
 
-_CONFIG_REQUIRED = ("sac", "sic", "monosensor", "tentative", "simulated")
-_CONFIG_OPTIONAL = ("service_id",)
+_CONFIG_REQUIRED = ("sac", "sic", "monosensor", "tentative", "simulated", "allow_holdover_or_unsynced")
+_CONFIG_OPTIONAL = ("service_id", "sync_state_when_absent")
+# The schema's three sync_state tokens (contract 5.3), the only values
+# sync_state_when_absent takes.
+_SYNC_STATES = ("LOCKED", "HOLDOVER", "UNSYNCED")
+# The timing refusals the allowance opens: a stated HOLDOVER or UNSYNCED,
+# and nothing else.
+_ALLOWED_TIMING_REFUSALS = (REFUSAL_TIMING_HOLDOVER, REFUSAL_TIMING_UNSYNCED)
 
 # Dropped-concern register for this projection, as the SAPIENT and JREAP
 # egress adapters keep theirs.
@@ -171,12 +177,15 @@ ASTERIX_EGRESS_LOSS_NOTES = {
     "timing_quality": (
         "payload.timing_quality has no item, and a locked claim does not "
         "export either: CAT062 ed. 1.21 has no item for the quality of the "
-        "time source (I062/070, §5.2.5). An event whose timing is in "
-        "holdover, unsynchronized or absent is refused unless the caller "
-        "allows degraded timing, and a malformed timing_quality is refused "
-        "whatever the allowance says; with the allowance, I062/070 reads as "
-        "an ordinary time, with no notice that the source clock was "
-        "unsynchronized, in holdover or undeclared."
+        "time source (I062/070, §5.2.5). An event whose stated sync state "
+        "is HOLDOVER or UNSYNCED is refused unless the configuration allows "
+        "it, an event that carries no timing quality is refused unless the "
+        "configuration states a sync state for it, and a malformed "
+        "timing_quality is refused whatever is declared. An exported "
+        "record's I062/070 reads as an ordinary time, with no notice that "
+        "the source clock was unsynchronized or in holdover, and no item "
+        "says whether the sync state came from the event or from the "
+        "deployment's declaration."
     ),
     "valid_for_ms": (
         "payload.valid_for_ms has no item. The encoder has no clock and "
@@ -298,9 +307,16 @@ def _declarations(asterix_config):
     service_id = asterix_config.get("service_id")
     if service_id is not None and not _octet(service_id):
         return None, REFUSAL_CONFIG_INVALID, "service_id must be an integer from 0 to 255, or be left out"
-    for key in ("monosensor", "tentative", "simulated"):
+    for key in ("monosensor", "tentative", "simulated", "allow_holdover_or_unsynced"):
         if type(asterix_config[key]) is not bool:
             return None, REFUSAL_CONFIG_INVALID, f"{key} must be true or false"
+    statement = asterix_config.get("sync_state_when_absent")
+    if statement is not None and (type(statement) is not str or statement not in _SYNC_STATES):
+        # Compared exactly, with no case or whitespace folded: a statement the
+        # adapter would have to guess at is a configuration error.
+        return None, REFUSAL_CONFIG_INVALID, (
+            "sync_state_when_absent must be exactly LOCKED, HOLDOVER or UNSYNCED, or be left out"
+        )
     if asterix_config["simulated"]:
         return None, REFUSAL_SIMULATED_UNSUPPORTED, (
             "simulated true is refused: marking a track simulated needs I062/080's first extent, "
@@ -309,6 +325,8 @@ def _declarations(asterix_config):
     declarations = {key: asterix_config[key] for key in _CONFIG_REQUIRED}
     if service_id is not None:
         declarations["service_id"] = service_id
+    if statement is not None:
+        declarations["sync_state_when_absent"] = statement
     return declarations, None, None
 
 
@@ -330,9 +348,25 @@ def validate_asterix_config(asterix_config):
         simulated (bool, required): whether the tracks are simulated. True is
             refused: marking a simulated track needs I062/080's first extent,
             which the adapter does not write.
+        allow_holdover_or_unsynced (bool, required): true exports an event
+            whose stated sync state is HOLDOVER or UNSYNCED, whether the
+            event states it or sync_state_when_absent states it for an event
+            that carries none; false refuses it. It never opens the risk
+            gate, a malformed timing_quality, or an event refused as absent.
         service_id (int, 0 to 255, optional): I062/015, written only when
             declared.
-    No key has a default, and an unknown key is an error.
+        sync_state_when_absent ("LOCKED", "HOLDOVER" or "UNSYNCED", optional):
+            the sync state the deployment asserts for the node that produced
+            an event that carries no timing quality at any per-event path.
+            LOCKED or HOLDOVER only on a TIME_STATUS from that node with
+            that sync_state, current by the deployment's freshness policy;
+            UNSYNCED for such a status, or when the deployment holds no
+            current status for the node. Compared exactly. Left out, or
+            null, it states nothing, and such an event is refused. The
+            adapter verifies none of it.
+    No key has a default, and an unknown key is an error. The declarations
+    returned carry the allowance always, and service_id and
+    sync_state_when_absent only when declared.
     """
     declarations, reason, message = _declarations(asterix_config)
     if reason is not None:
@@ -392,23 +426,52 @@ def _risk_refusal(payload, export_use):
     return None
 
 
-def _timing_refusal(payload):
-    """None when the event's timing is locked, otherwise the reason it is not.
+def _timing_elsewhere(payload):
+    """Whether the event states timing quality at a per-event path this
+    adapter does not read.
 
-    Locked means `payload.timing_quality` is a mapping whose `sync_state` is
-    exactly "LOCKED", the boundary the SAPIENT egress adapter uses for its
-    timing label. HOLDOVER and UNSYNCED each have their own reason; an absent
-    `timing_quality` has one; a `timing_quality` that is not a mapping, or a
-    `sync_state` outside the schema's three tokens, has one. No reason echoes
-    an input value, and `est_error_ms` is not read: a timing threshold is
-    deployment policy, which reaches this adapter through the risk gate.
+    The reference policy reads per-event timing quality at three paths,
+    `payload.timing_quality`, `payload.quality.timing_quality` and
+    `payload.quality` (policy/semantics.yaml, per_event_paths). This adapter
+    reads only the first. The other two hold timing quality when
+    `payload.quality` is a mapping with a `timing_quality` or a `sync_state`
+    key, in any shape.
+    """
+    quality = payload.get("quality")
+    return isinstance(quality, Mapping) and ("timing_quality" in quality or "sync_state" in quality)
+
+
+def _timing_refusal(payload, sync_state_when_absent):
+    """None when the stated sync state is LOCKED, otherwise the reason it is
+    not.
+
+    For an event that carries `payload.timing_quality`, the stated sync state
+    is its own `sync_state`, read as it is, whatever is declared and whatever
+    the other per-event paths hold. For an event that carries no timing
+    quality at any per-event path, it is `sync_state_when_absent`, the
+    deployment's declaration, and with nothing declared the event is refused
+    as absent. An event with no `payload.timing_quality` whose timing quality
+    sits at a per-event path this adapter does not read is refused as absent
+    whatever is declared: a declaration never speaks for an event that
+    states its own.
+
+    Locked means exactly "LOCKED", the boundary the SAPIENT egress adapter
+    uses for its timing label. HOLDOVER and UNSYNCED each have their own
+    reason; an absent timing quality has one; a `timing_quality` that is not
+    a mapping, or a `sync_state` outside the schema's three tokens, has one.
+    No reason echoes an input value, and `est_error_ms` is not read: a timing
+    threshold is deployment policy, which reaches this adapter through the
+    risk gate.
     """
     if "timing_quality" not in payload:
-        return REFUSAL_TIMING_ABSENT
-    timing = payload["timing_quality"]
-    if not isinstance(timing, Mapping):
-        return REFUSAL_TIMING_MALFORMED
-    state = timing.get("sync_state")
+        if sync_state_when_absent is None or _timing_elsewhere(payload):
+            return REFUSAL_TIMING_ABSENT
+        state = sync_state_when_absent
+    else:
+        timing = payload["timing_quality"]
+        if not isinstance(timing, Mapping):
+            return REFUSAL_TIMING_MALFORMED
+        state = timing.get("sync_state")
     if state == "LOCKED":
         return None
     if state == "HOLDOVER":
@@ -574,7 +637,6 @@ def zmeta_state_to_asterix_cat062(
     *,
     track_numbers,
     export_use="COALITION_EXPORT",
-    allow_degraded_timing=False,
     refusal=None,
 ):
     """Encode a ZMeta STATE_EVENT/TRACK_STATE as one CAT062 ed. 1.21 record.
@@ -582,21 +644,17 @@ def zmeta_state_to_asterix_cat062(
     Args:
         event: the ZMeta event dict.
         asterix_config: the deployment's declarations (see
-            `validate_asterix_config`).
+            `validate_asterix_config`), read on every call. Two of them
+            govern timing: `sync_state_when_absent` states the sync state
+            for an event that carries no timing quality, and
+            `allow_holdover_or_unsynced` allows a stated HOLDOVER or
+            UNSYNCED (see `_timing_refusal`).
         track_numbers: the caller-owned mapping of `track_id` to I062/040's
             track number, 0 to 65,535. Track numbering is deployment state:
             the adapter never mints a number, and an unmapped track is refused.
         export_use: the use label this export path consumes under (default
             "COALITION_EXPORT", semantics contract 3.3 vocabulary), as in the
             SAPIENT egress adapter.
-        allow_degraded_timing: only the boolean True exports an event whose
-            timing is in holdover, unsynchronized or absent (see
-            `_timing_refusal`); any other value that is not a boolean
-            refuses the call. A malformed timing_quality is refused whatever
-            it says. With it, the record's time reads as an ordinary time,
-            with no notice of the clock's state, and the deployment that
-            sets it is the party telling its receivers so. It never opens
-            the risk gate.
         refusal: an optional dict; a refusal writes its reason under "reason".
 
     Returns:
@@ -606,14 +664,16 @@ def zmeta_state_to_asterix_cat062(
         speed; I062/130 when the geo is 3-D; I062/500 when the ellipse is
         1_SIGMA and the latitude is not a pole. None, with the reason, for an
         event that is not a track state, a configuration or argument the
-        adapter cannot run, a risk record the gate refuses, timing that is not
-        locked (a malformed timing_quality always; holdover, unsynchronized or
-        absent timing unless allowed), an `event.ts` that is not an instant, an
-        unmapped track or a number outside 0 to 65,535, a missing
-        or impossible position, an incoherent or impossible altitude, an
-        impossible course or speed, a 1_SIGMA ellipse with impossible members,
-        and an altitude or velocity beyond its item's range. This projection
-        never raises.
+        adapter cannot run, a risk record the gate refuses, a stated sync
+        state of HOLDOVER or UNSYNCED that the configuration does not allow,
+        a malformed timing_quality, an event with no timing quality that the
+        configuration states no sync state for, an event whose only timing
+        quality sits at a per-event path the adapter does not read, an
+        `event.ts` that is not an instant, an unmapped track or a number
+        outside 0 to 65,535, a missing or impossible position, an incoherent
+        or impossible altitude, an impossible course or speed, a 1_SIGMA
+        ellipse with impossible members, and an altitude or velocity beyond
+        its item's range. This projection never raises.
     """
     header = event.get("event") if isinstance(event, Mapping) else None
     payload = event.get("payload") if isinstance(event, Mapping) else None
@@ -627,22 +687,23 @@ def zmeta_state_to_asterix_cat062(
 
     if not isinstance(export_use, str) or not export_use.strip():
         return _note_refusal(refusal, REFUSAL_CONFIG_INVALID)
-    if type(allow_degraded_timing) is not bool:
-        # Only the boolean True allows: the string "false" must not read as true.
-        return _note_refusal(refusal, REFUSAL_CONFIG_INVALID)
     declarations, reason, _message = _declarations(asterix_config)
     if reason is not None:
         return _note_refusal(refusal, reason)
 
-    # The risk gate comes first and the allowance never opens it: an event
-    # with a timing risk record is refused for risk, allowed or not.
+    # The risk gate comes first, and neither timing declaration opens it: an
+    # event with a timing risk record is refused for risk whatever is declared.
     reason = _risk_refusal(payload, export_use.strip().upper())
     if reason is not None:
         return _note_refusal(refusal, reason)
-    reason = _timing_refusal(payload)
-    if reason is not None and (reason == REFUSAL_TIMING_MALFORMED or not allow_degraded_timing):
-        # A malformed timing_quality never exports: unreadable input fails
-        # closed. The allowance opens HOLDOVER, UNSYNCED and an absent one only.
+    reason = _timing_refusal(payload, declarations.get("sync_state_when_absent"))
+    if reason is not None and (
+        reason not in _ALLOWED_TIMING_REFUSALS or not declarations["allow_holdover_or_unsynced"]
+    ):
+        # The allowance opens a stated HOLDOVER or UNSYNCED only, whether the
+        # event or the declaration states it. A malformed timing_quality never
+        # exports (unreadable input fails closed), nor does an event refused
+        # as absent.
         return _note_refusal(refusal, reason)
 
     time_count = _time_count(header.get("ts"))
