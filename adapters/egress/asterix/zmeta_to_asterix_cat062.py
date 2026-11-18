@@ -139,6 +139,13 @@ _CONFIG_OPTIONAL = ("service_id", "sync_state_when_absent")
 # The schema's three sync_state tokens (contract 5.3), the only values
 # sync_state_when_absent takes.
 _SYNC_STATES = ("LOCKED", "HOLDOVER", "UNSYNCED")
+# The four timing fields a payload.timing_quality must hold: contract 5.3's
+# minimum TIME_STATUS fields, each event schema's timing_quality.required and
+# policy/semantics.yaml timing_quality.required_fields. The reference gateway
+# takes a per-event path as timing quality only when it is a dict holding
+# every one of them as a key. The names are written here because the module
+# reads no policy file.
+_TIMING_FIELDS = ("time_source", "sync_state", "est_error_ms", "last_sync_ts")
 # The timing refusals the allowance opens: a stated HOLDOVER or UNSYNCED,
 # and nothing else.
 _ALLOWED_TIMING_REFUSALS = (REFUSAL_TIMING_HOLDOVER, REFUSAL_TIMING_UNSYNCED)
@@ -214,14 +221,20 @@ ASTERIX_EGRESS_LOSS_NOTES = {
     ),
     "geo_uncertainty": (
         "I062/500 carries APW alone: the north and east standard deviations "
-        "of a 1_SIGMA ellipse, in degrees, each rounded up, so neither axis "
-        "is stated smaller than the source's. The orientation and the "
-        "cross-correlation are lost, so a receiver reads an ellipse aligned "
-        "with north and east, which along an oblique major axis is up to "
-        "sqrt(2) smaller than the source's deviation in that direction. An "
-        "ellipse with another probability, or none, writes no accuracy, and "
-        "at a latitude of exactly 90 degrees north or south no accuracy is "
-        "written."
+        "of a 1_SIGMA ellipse, in degrees, each rounded up, so away from the "
+        "poles neither axis is stated smaller than the source's. Close to a "
+        "pole, within a few times the ellipse's semi-major axis of it, the "
+        "linear conversion can state the latitude deviation smaller than the "
+        "spread of the ellipse's positions, and the longitude deviation as "
+        "zero for an ellipse along the meridian through the pole. The "
+        "orientation and the cross-correlation are lost, so a receiver reads "
+        "an ellipse aligned with north and east, which along an oblique "
+        "major axis is up to sqrt(2) smaller than the source's deviation in "
+        "that direction. An ellipse with another probability, or none, "
+        "writes no accuracy, and at a latitude of exactly 90 degrees north "
+        "or south no accuracy is written: there the latitude spread of the "
+        "ellipse's positions is the same for every orientation, and the "
+        "positions of an ellipse with extent lie on many meridians."
     ),
     "altitude_source": (
         "I062/080 SRC is 000, no source: the event does not state how alt_m "
@@ -426,6 +439,19 @@ def _risk_refusal(payload, export_use):
     return None
 
 
+def _bound_poisoned(est_error_ms):
+    """Whether `est_error_ms` is poisoned: not a finite non-negative number.
+
+    This is the test of `adapters/ingress/time_utils.py` (a number that is not
+    a bool, finite and at least zero), through `_finite`, so a Python int
+    beyond the float64 range counts as poisoned instead of raising. The
+    reference ingress passes a poisoned bound through untouched so that an
+    adapter's refusal gate rejects the whole event (`adapters/AUTHORING.md`,
+    rule 5), and this adapter is such a gate.
+    """
+    return not (_finite(est_error_ms) and est_error_ms >= 0)
+
+
 def _timing_elsewhere(payload):
     """Whether the event states timing quality at a per-event path this
     adapter does not read.
@@ -458,10 +484,21 @@ def _timing_refusal(payload, sync_state_when_absent):
     Locked means exactly "LOCKED", the boundary the SAPIENT egress adapter
     uses for its timing label. HOLDOVER and UNSYNCED each have their own
     reason; an absent timing quality has one; a `timing_quality` that is not
-    a mapping, or a `sync_state` outside the schema's three tokens, has one.
-    No reason echoes an input value, and `est_error_ms` is not read: a timing
-    threshold is deployment policy, which reaches this adapter through the
-    risk gate.
+    a mapping, one that lacks any of the four timing fields, one whose
+    `est_error_ms` is poisoned, or a `sync_state` outside the schema's three
+    tokens, has one. No reason echoes an input value.
+
+    The four fields are the reference gateway's test for per-event timing
+    quality, so for an event whose payload and `timing_quality` are dicts, as
+    the reference decoders build them, the adapter exports on an event's own
+    timing quality only from the member the gateway's reader takes. Another
+    mapping is read here and skipped by the gateway's readers.
+
+    The only values read are `sync_state` and `est_error_ms`, and
+    `est_error_ms` only for the poison test. `time_source` and `last_sync_ts`
+    are checked for presence only. No threshold applies to `est_error_ms`: a
+    timing threshold is deployment policy, which reaches this adapter through
+    the risk gate.
     """
     if "timing_quality" not in payload:
         if sync_state_when_absent is None or _timing_elsewhere(payload):
@@ -470,6 +507,10 @@ def _timing_refusal(payload, sync_state_when_absent):
     else:
         timing = payload["timing_quality"]
         if not isinstance(timing, Mapping):
+            return REFUSAL_TIMING_MALFORMED
+        if any(field not in timing for field in _TIMING_FIELDS):
+            return REFUSAL_TIMING_MALFORMED
+        if _bound_poisoned(timing.get("est_error_ms")):
             return REFUSAL_TIMING_MALFORMED
         state = timing.get("sync_state")
     if state == "LOCKED":

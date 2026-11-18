@@ -1006,6 +1006,123 @@ def test_p10_timing_at_a_path_the_adapter_does_not_read_is_refused_as_absent():
                 refused(event, "CAT062_TIMING_ABSENT", config=declared(statement, allowance))
 
 
+# --- P10: an incomplete or poisoned payload.timing_quality ------------------------------------
+#
+# A payload.timing_quality that lacks one of the four timing fields the reference policy requires
+# (policy/semantics.yaml, timing_quality.required_fields) is not taken as per-event timing quality by the reference
+# gateway's readers, and the adapter refuses it as malformed, whatever is declared and whatever the allowance says.
+# So is one whose est_error_ms is poisoned (not a finite non-negative number), which adapters/AUTHORING.md rule 5
+# and adapters/ingress/time_utils.py pass through untouched for an adapter's refusal gate to reject whole.
+
+TIMING_FIELDS = ("time_source", "sync_state", "est_error_ms", "last_sync_ts")
+HOLDOVER = dict(LOCKED, sync_state="HOLDOVER")
+# A 1.1.0 block with the optional est_error_basis beside the four fields: with one field removed it still holds four
+# keys, so a check that counts keys instead of naming them passes it.
+LOCKED_WITH_BASIS = dict(LOCKED, est_error_basis="MEASURED")
+WHOLE_BLOCKS = (("LOCKED", LOCKED), ("HOLDOVER", HOLDOVER), ("UNSYNCED", UNSYNCED),
+                ("LOCKED with est_error_basis", LOCKED_WITH_BASIS))
+
+
+def without(block, field):
+    return {key: value for key, value in block.items() if key != field}
+
+
+# Each whole block with each of the four fields removed in turn.
+INCOMPLETE = [(f"{name} without {field}", without(block, field)) for name, block in WHOLE_BLOCKS
+              for field in TIMING_FIELDS]
+# The review's probe: a payload.timing_quality holding only a sync_state, alone and beside a whole UNSYNCED block at
+# each of the other two per-event paths, as payload members.
+SYNC_STATE_ONLY = [
+    {"timing_quality": {"sync_state": "LOCKED"}},
+    {"timing_quality": {"sync_state": "LOCKED"}, "quality": {"timing_quality": dict(UNSYNCED)}},
+    {"timing_quality": {"sync_state": "LOCKED"}, "quality": dict(UNSYNCED)},
+]
+# est_error_ms values the reference ingress passes through untouched as poisoned: wrong type, non-finite or
+# negative. A Python int beyond the float64 range, which json.loads builds from a long literal, counts as
+# non-finite.
+POISONED_BOUNDS = [None, float("nan"), float("inf"), float("-inf"), -1, -1.0e-9, "1.0", True, False, [1.0],
+                   10**400]
+POISONED = [(f"{name}, est_error_ms={bound!r:.12}", dict(block, est_error_ms=bound)) for name, block in WHOLE_BLOCKS
+            for bound in POISONED_BOUNDS]
+# Case H: the four keys, sync_state LOCKED and the other three null.
+POISONED.append(("case H", dict(LOCKED, time_source=None, est_error_ms=None, last_sync_ts=None)))
+
+
+def every_declaration():
+    for statement in STATEMENTS:
+        for allowance in ALLOWANCES:
+            yield declared(statement, allowance)
+
+
+@pytest.mark.parametrize("timing", [block for _id, block in INCOMPLETE], ids=[name for name, _b in INCOMPLETE])
+def test_p10_t1_a_timing_quality_without_one_of_the_four_fields_is_malformed(timing):
+    # Refused whatever the statement (none, LOCKED, HOLDOVER, UNSYNCED) and whatever the allowance. The rows without
+    # sync_state are also refused by the token check; T5 is the test that pins sync_state among the four.
+    for config in every_declaration():
+        refused(make_event(timing_quality=timing), "CAT062_TIMING_MALFORMED", config=config)
+
+
+@pytest.mark.parametrize("members", SYNC_STATE_ONLY, ids=["alone", "beside quality.timing_quality", "beside quality"])
+def test_p10_t2_a_sync_state_alone_is_malformed_wherever_else_timing_sits(members):
+    # The reference gateway's reader skips the incomplete member and takes the whole UNSYNCED block at the next path;
+    # the adapter reads payload.timing_quality alone and refuses it, so it never exports what that reader takes as
+    # UNSYNCED.
+    for config in every_declaration():
+        refused(make_event(**members), "CAT062_TIMING_MALFORMED", config=config)
+
+
+@pytest.mark.parametrize("state", ["HOLDOVER", "UNSYNCED"])
+def test_p10_t3_the_allowance_never_opens_an_incomplete_holdover_or_unsynced(state):
+    for statement in STATEMENTS:
+        refused(make_event(timing_quality={"sync_state": state}), "CAT062_TIMING_MALFORMED",
+                config=declared(statement, allowance=True))
+
+
+def test_p10_t4_a_block_holding_the_four_fields_exports_on_its_sync_state():
+    # The accepting counterpart of T1 to T3: the new check refuses a missing field or a poisoned bound and nothing
+    # else. A whole LOCKED block exports under every declaration, with or without est_error_basis.
+    for block in (LOCKED, LOCKED_WITH_BASIS):
+        for config in every_declaration():
+            record, reason = encode(make_event(timing_quality=dict(block)), config=config)
+            assert reason is None and record == MINIMUM_RECORD, (block, config)
+    # A whole HOLDOVER or UNSYNCED block, with or without est_error_basis, exports under the allowance.
+    for block in (HOLDOVER, UNSYNCED, dict(UNSYNCED, est_error_basis="CONVENTION_DEFAULT")):
+        record, reason = encode(make_event(timing_quality=dict(block)), config=declared(allowance=True))
+        assert reason is None and record == MINIMUM_RECORD, block
+    # Presence is the test for time_source and last_sync_ts: their values are not read.
+    for block in (dict(LOCKED, time_source=None, last_sync_ts=None), dict(LOCKED, time_source="FREEWHEEL"),
+                  dict(LOCKED, last_sync_ts="not a time")):
+        record, reason = encode(make_event(timing_quality=block))
+        assert reason is None and record == MINIMUM_RECORD, block
+    # Any finite non-negative bound exports, zero and an integer included: no timing threshold.
+    for bound in (0, 0.0, 3, 1.0e9):
+        record, reason = encode(make_event(timing_quality=dict(LOCKED, est_error_ms=bound)))
+        assert reason is None and record == MINIMUM_RECORD, bound
+
+
+def test_p10_t5_the_four_fields_are_the_policys_and_the_schemas():
+    # The module writes the names itself (it imports only the standard library and its CoT sibling); they are the
+    # reference policy's required_fields and each event schema's timing_quality.required, read from the files.
+    import yaml
+
+    with open(ROOT / "policy" / "semantics.yaml", encoding="utf-8") as handle:
+        policy = yaml.safe_load(handle)["semantics"]["timing_quality"]["required_fields"]
+    assert tuple(cat062._TIMING_FIELDS) == tuple(policy) == TIMING_FIELDS
+    for name in ("zmeta-event-1.0.schema.json", "zmeta-event-1.1.0.schema.json"):
+        with open(ROOT / "schema" / name, encoding="utf-8") as handle:
+            required = json.load(handle)["$defs"]["timing_quality"]["required"]
+        assert tuple(required) == TIMING_FIELDS, name
+
+
+@pytest.mark.parametrize("timing", [block for _id, block in POISONED], ids=[name for name, _b in POISONED])
+def test_p10_a_poisoned_est_error_ms_is_malformed(timing):
+    # Case H and its kin: the four keys present, the bound poisoned. The reference ingress passes such a claim
+    # through untouched so that an adapter's refusal gate rejects it whole (adapters/AUTHORING.md, rule 5), and a
+    # pipeline with no gateway has no schema stage before this adapter.
+    for config in every_declaration():
+        refused(make_event(timing_quality=timing), "CAT062_TIMING_MALFORMED", config=config)
+
+
 # The timing gate as a table, one row per rule: the event's timing quality, the statement declared for events that
 # carry none, the allowance, and the result (None: the event exports). ANY stands for every value of its column.
 ANY = object()
@@ -1034,7 +1151,9 @@ TIMING_EVENTS = {
     "UNSYNCED": [{"timing_quality": dict(UNSYNCED)}],
     "malformed": [{"timing_quality": value} for value in (
         None, "LOCKED", ["LOCKED"], dict(LOCKED, sync_state="locked"), dict(LOCKED, sync_state="FREEWHEEL"),
-        {k: v for k, v in LOCKED.items() if k != "sync_state"})],
+        {k: v for k, v in LOCKED.items() if k != "sync_state"})]
+    + [{"timing_quality": block} for _name, block in INCOMPLETE + POISONED]
+    + SYNC_STATE_ONLY,
     "absent": [{"timing_quality": DELETE},
                {"timing_quality": DELETE, "quality": {"geo_status": "VERTICAL_UNAVAILABLE"}},
                {"timing_quality": DELETE, "quality": "sync_state"}],

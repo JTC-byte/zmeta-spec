@@ -2,6 +2,54 @@
 
 ## [Unreleased]
 
+- 2026-11-18 — **The ASTERIX CAT062 egress's README gives the reason no
+  accuracy is written at a pole, and qualifies its accuracy statement near
+  a pole** (`adapters/egress/asterix/README.md`,
+  `adapters/egress/asterix/zmeta_to_asterix_cat062.py`, Class C, text
+  only). The pole question booked from the review of 2026-11-14 is settled
+  by keeping omission: at a latitude of exactly 90 degrees north or south
+  I062/500 is still not written. The README now says why: at a pole every
+  displacement lowers the latitude, so the latitude spread of an ellipse's
+  positions does not depend on its orientation and is not the north
+  marginal, and the positions of an ellipse with extent lie on many
+  meridians. The README's sentence that neither axis's deviation is stated
+  smaller than the source's, and the same clause of
+  `ASTERIX_EGRESS_LOSS_NOTES["geo_uncertainty"]`, now hold away from the
+  poles: within a few times the ellipse's semi-major axis of a pole the
+  linear conversion can state the latitude deviation smaller than the
+  ellipse's spread, and the longitude deviation as zero for an ellipse
+  along the meridian through the pole. The loss register row names both.
+  A rule for positions near a pole is booked as its own change. No code,
+  behaviour, record, refusal reason, schema, policy, contract, conformance
+  or manifest-listed file changes, and `ADAPTER_VERSION` stays 1.0.0.
+
+- 2026-11-18 — **The ASTERIX CAT062 egress refuses a `timing_quality`
+  without one of its four fields, or with a poisoned error bound**
+  (`adapters/egress/asterix/zmeta_to_asterix_cat062.py`,
+  `adapters/egress/asterix/README.md`,
+  `adapters/egress/asterix/test_asterix_cat062_egress.py`, Class C). A
+  `payload.timing_quality` mapping that lacks any of `time_source`,
+  `sync_state`, `est_error_ms` and `last_sync_ts` is now refused as
+  `CAT062_TIMING_MALFORMED`, whatever is declared and whatever the allowance
+  says. The four names are the reference policy's `required_fields` and
+  each event schema's `timing_quality.required`; the reference gateway takes
+  a per-event path as timing quality only when its dict holds all four as
+  keys. A block whose `est_error_ms` is not a finite number of zero or more
+  is refused the same way, by the test of `adapters/ingress/time_utils.py`,
+  since the reference ingress passes such a bound through untouched for an
+  adapter's refusal gate to reject (`adapters/AUTHORING.md`, rule 5). Before
+  this change such a block exported on its `sync_state`: a block stating
+  `LOCKED` without its other fields exported with the allowance false, and
+  an incomplete block stating `HOLDOVER` or `UNSYNCED` exported under the
+  allowance. The rows of the timing gate that read "a mapping" with a
+  `sync_state` now mean a mapping that holds the four fields with a bound
+  that is not poisoned. No value of `time_source` or `last_sync_ts` is read,
+  and no threshold applies to `est_error_ms`. No refusal reason is added,
+  and `ADAPTER_VERSION` stays 1.0.0, since the adapter is in no release.
+  The README's scratch-run counts are measured again on the changed module
+  and do not change. No schema, policy, contract, conformance or
+  manifest-listed file changes.
+
 - 2026-11-18 — **The gateway's requirements bound cbor2 to the releases
   its tests pass on** (`gateway/requirements.txt`, Reference
   implementation dependency). The file named `cbor2` with no version, so

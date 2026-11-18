@@ -18,7 +18,7 @@ Status: Reference, on the same basis as the TAK Protocol Version 1 adapter.
 The encoding was checked byte for byte against the BSD-3-Clause `libasterix`
 package (0.37.0, `Cat_062_1_21`) for the two known-answer records and three
 further records, and `libasterix` parses the adapter's output back to the
-same bytes. A scratch run on 2026-11-17 took 809 STATE events of a
+same bytes. A scratch run on 2026-11-18 took 809 STATE events of a
 downstream producer's recorded run and 1,680 STATE events the track
 projector made from 1,680 live ADS-B observations. Every one of them
 states unsynchronized timing, so with `allow_holdover_or_unsynced` false
@@ -169,15 +169,28 @@ marginals:
 They are converted to degrees with the WGS-84 radii of curvature at the
 target's latitude (the meridional radius for σn, the prime vertical radius
 times the cosine of the latitude for σe), and each is rounded up to the next
-LSB, so neither axis's deviation is stated smaller than the source's. APW has
+LSB, so away from the poles neither axis's deviation is stated smaller than
+the source's. Close to a pole, within a few times the ellipse's semi-major
+axis of it, the linear conversion can state the latitude deviation smaller
+than the spread of the ellipse's positions, and the longitude deviation as
+zero for an ellipse that lies along the meridian through the pole: measured
+on 2026-11-18, a 30 m by 10 m ellipse oriented east-west is stated low in
+latitude at 11 m and at 112 m from the north pole, and not at 1.1 km. The
+adapter applies the same conversion there, and a rule for positions near a
+pole is booked as its own change. APW has
 no cross term, so a receiver reads an ellipse aligned with north and east.
 Along an oblique major axis that reads up to √2 smaller than the source's
 deviation in that direction: an ellipse of 30 m by 10 m at 45 degrees reads
 as 22.4 m on each axis, where the source's deviation along 45 degrees is
 30 m. The loss register names it. A deviation
 beyond the item saturates at its maximum, which the edition reads as that
-value or above. At a latitude of exactly 90 degrees north or south the
-longitude deviation is undefined, and no accuracy is written.
+value or above. At a latitude of exactly 90 degrees north or south no
+accuracy is written. At a pole every displacement lowers the latitude, so
+the latitude spread of the ellipse's positions is the same for every
+orientation and is not the north marginal σn, which depends on the
+orientation from a true north that has no direction there; and the
+positions of any ellipse with extent lie on many meridians. The rule above
+has no value for either component at a pole that states the ellipse.
 
 ### The risk gate
 
@@ -205,14 +218,23 @@ statement of the sync state for events that carry no timing quality, and
 
 **The stated sync state.** For an event that carries
 `payload.timing_quality`, it is that member's `sync_state`, and locked means
-a mapping whose `sync_state` is exactly `LOCKED`. A `timing_quality` that is
-not a mapping, or whose `sync_state` is outside the schema's three tokens,
-is malformed and refused whatever is declared: input the adapter cannot read
-fails closed, as everywhere else in it. For an event that carries no timing
-quality, the stated sync state is the declared `sync_state_when_absent`.
-With nothing declared, such an event is refused whatever the allowance says.
-The adapter reads no `est_error_ms`: a timing threshold is deployment
-policy, and reaches this adapter through the risk gate.
+a mapping that holds all four timing fields (`time_source`, `sync_state`,
+`est_error_ms` and `last_sync_ts`) and whose `sync_state` is exactly
+`LOCKED`. A `timing_quality` that is not a mapping, that lacks one of the
+four fields, whose `est_error_ms` is not a finite number of zero or more,
+or whose `sync_state` is outside the schema's three tokens, is malformed
+and refused whatever is declared: input the adapter cannot read fails
+closed, as everywhere else in it. The reference ingress passes a poisoned
+`est_error_ms` (wrong type, non-finite or negative) through untouched, so
+that schema validation or an adapter's refusal gate rejects the whole
+event (`adapters/AUTHORING.md`, rule 5), and a pipeline that runs this
+adapter without a gateway has no schema stage before it. For an event that
+carries no timing quality, the stated sync state is the declared
+`sync_state_when_absent`. With nothing declared, such an event is refused
+whatever the allowance says. The adapter reads no value of `time_source`
+or `last_sync_ts` and checks only that each is there, and it applies no
+threshold to `est_error_ms`: a timing threshold is deployment policy, and
+reaches this adapter through the risk gate.
 
 **What counts as no timing quality.** The reference policy reads per-event
 timing quality at three paths: `payload.timing_quality`,
@@ -225,11 +247,19 @@ has neither a `timing_quality` nor a `sync_state` member. An event with no
 paths is refused as absent, whatever is declared and whatever the
 allowance says, since the statement never speaks for an event that states
 its own timing quality. An event that carries `payload.timing_quality` is
-read by that member alone, whatever the other paths hold. The reference
-gateway reads the first of the three paths that holds all four timing
-fields, so the two readings differ only for an event whose
-`payload.timing_quality` lacks one of them, which both event schemas
-refuse.
+read by that member alone, whatever the other paths hold. The member must
+hold all four timing fields, the test by which the reference gateway takes
+a path as per-event timing quality: its readers take the first of the three
+paths whose value is a dict holding all four as keys. For an event whose
+payload and `timing_quality` are dicts, as the reference decoders build
+them, the adapter therefore exports on an event's own timing quality only
+from the member the gateway's reader takes, and where the two readings
+differ (a `payload.timing_quality` that is not an object or lacks a field,
+or timing quality only at another path) the adapter refuses. A caller that
+passes another kind of mapping in process has it read here, while the
+gateway's readers skip any value that is not a dict. The adapter also
+refuses a block with a poisoned `est_error_ms`, which the gateway's readers
+take.
 
 **What the statement asserts.** The declared token is the sync state the
 deployment asserts for the node that produced each event that carries no
@@ -293,7 +323,7 @@ events then export with the allowance `false` and nothing stated.
 | `CAT062_RISK_UNREADABLE` | extensions, records or use labels in a shape the gate cannot read |
 | `CAT062_TIMING_HOLDOVER`, `CAT062_TIMING_UNSYNCED` | the stated sync state is that token, from the event's `timing_quality.sync_state` or, for an event that carries no timing quality, from `sync_state_when_absent`, and `allow_holdover_or_unsynced` is `false` |
 | `CAT062_TIMING_ABSENT` | no `payload.timing_quality`, and either no `sync_state_when_absent` declared or timing quality at `payload.quality.timing_quality` or in `payload.quality`, whatever the allowance says |
-| `CAT062_TIMING_MALFORMED` | a `timing_quality` that is not a mapping, or a `sync_state` outside the schema's three tokens, whatever is declared |
+| `CAT062_TIMING_MALFORMED` | a `timing_quality` that is not a mapping or lacks one of the four timing fields, an `est_error_ms` that is not a finite number of zero or more, or a `sync_state` outside the schema's three tokens, whatever is declared |
 | `CAT062_TIME_UNPARSEABLE` | `event.ts` missing, or not an instant with an offset |
 | `CAT062_TRACK_UNMAPPED` | `track_id` missing, or not in the caller's map |
 | `CAT062_TRACK_NUMBER_INVALID` | the mapped number is not an integer from 0 to 65,535 |
@@ -326,7 +356,7 @@ never equal to the event (contract 4.5.1).
 | class | no item: I062/300 is a fixed table of airport vehicle types, and I062/380's emitter category is derived from the aircraft |
 | source summary, provenance, quality, extensions | no item; a declared 2-D position shows only as the absence of I062/130 |
 | risk adjudication | no item carries a self-label, so adjudicated events are refused (the gate above) rather than exported clean |
-| geo uncertainty | APW carries the north and east standard deviations, each rounded up; the orientation and the cross-correlation are lost, so along an oblique major axis a receiver reads up to √2 less than the source's deviation; an ellipse with another probability, or none, writes no accuracy; none at a pole |
+| geo uncertainty | APW carries the north and east standard deviations, each rounded up; the orientation and the cross-correlation are lost, so along an oblique major axis a receiver reads up to √2 less than the source's deviation; an ellipse with another probability, or none, writes no accuracy; none at a pole, where the latitude spread does not depend on the orientation and the positions lie on many meridians; close to a pole, within a few times the semi-major axis, the latitude deviation can be stated below the ellipse's spread, and the longitude deviation as zero for an ellipse along the meridian through the pole |
 | altitude source | SRC is 000, no source |
 | height reliability | MRH is always 1; on a 2-D track it still reads geometric altitude as more reliable, although such a source may have had only a barometric height |
 | track status | MON and CNF are the deployment's statements |
