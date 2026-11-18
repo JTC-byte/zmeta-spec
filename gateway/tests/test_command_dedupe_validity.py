@@ -7,10 +7,10 @@ was forwarded again when its duplicate arrived at 301 s.
 
 What is pinned here:
 
-- A task_id is held from the moment its command is admitted until that
-  command's validity ends, read the widest way (valid_for_ms after the latest
-  of receipt, event.ts and valid_from_ts), plus a fixed margin for clock
-  disagreement.
+- A task_id is held from the moment its command is admitted until
+  valid_for_ms after the latest of receipt, event.ts and valid_from_ts, plus
+  a fixed margin for clock disagreement. The hold reaches the end of the
+  contract 7.8 window, measured on the gateway's clock.
 - A later copy of a held command is a duplicate and changes nothing. It
   neither shortens nor lengthens the hold.
 - A command is refused, not forwarded, when the gateway cannot hold its
@@ -319,9 +319,9 @@ class HoldCoversTheValidityTest(DedupeCase):
         self.assert_forwarded(cmd, self.send(cmd, 660 + MARGIN_S + 1))
 
     def test_a_future_event_ts_is_held_as_the_validity_anchor(self):
-        # Contract 5.1: a command's event.ts is "the command issue time or
-        # validity anchor". A consumer that anchors validity there can still
-        # execute this command 659 s after the gateway received it.
+        # Contract 7.8: with no valid_from_ts the window begins at
+        # event.ts, so this command can still execute 659 s after the
+        # gateway received it.
         ahead = WALL + timedelta(seconds=600)
         self.state.record(time_status(ahead - timedelta(seconds=20)))
         cmd = command("task-future-ts", valid_for_ms=60000, ts=ahead)

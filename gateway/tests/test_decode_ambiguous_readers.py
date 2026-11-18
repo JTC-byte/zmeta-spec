@@ -325,7 +325,7 @@ class GatewaySelfTestReaderTest(unittest.TestCase):
         # The guidance file cites gateway.py by line in many places; a change
         # that adds or removes lines would have to move them in the same change.
         text = (ROOT / "gateway" / "src" / "gateway.py").read_text(encoding="utf-8")
-        self.assertEqual(3424, text.count("\n"))
+        self.assertEqual(3723, text.count("\n"))
 
 
 # As in test_sim_boundary.py: a release bundle (VERSION.txt at its root) leaves

@@ -248,11 +248,11 @@ requires a new event with new identity and lineage.
 **Deduplication (NORMATIVE, contract §13.2).** Events dedupe by `event_id`
 except where a type has an explicit idempotency key: `COMMAND_EVENT` dedupes
 by `payload.task_id` (duplicates must not be forwarded for execution twice;
-the reference gateway holds each `task_id` in memory for the command's
-validity, then releases it, and emits a `DUPLICATE_IGNORED` acknowledgement
-for a copy that arrives while it is held; the limits of that hold are in
-`gateway/README.md`), and `TASK_ACK` dedupes by task id,
-original event id, and state.
+the reference gateway holds each `task_id` in memory to the end of the
+command's validity window or later, then releases it, and emits a
+`DUPLICATE_IGNORED` acknowledgement for a copy that arrives while it is held;
+the limits of that hold are in `gateway/README.md`), and `TASK_ACK` dedupes by
+task id, original event id, and state.
 
 ## 5. Event Families And Layer Discipline
 

@@ -209,15 +209,20 @@ contract Section 13.2 forbids ("Duplicate COMMAND_EVENTs MUST NOT be forwarded
 for execution a second time").
 
 **How long a `task_id` is held.** From the moment the command is admitted
-until its validity ends, plus a margin of 60 seconds. The validity is read the
-widest way: it ends `payload.valid_for_ms` after the latest of the moment of
-receipt, `event.ts`, and `payload.valid_from_ts`. The contract calls a
-command's `event.ts` "the command issue time or validity anchor" (Section 5.1)
-and gives `valid_from_ts` no rule of its own, so the gateway holds for every
-reading a consumer might take. The hold belongs to the copy that was
-admitted, because that is the only copy the gateway forwards and so the only
-copy anything can execute. A later copy of a held command is answered as a
-duplicate and changes nothing: it neither shortens nor lengthens the hold.
+until `payload.valid_for_ms` after the latest of the moment of receipt,
+`event.ts`, and `payload.valid_from_ts`, plus a margin of 60 seconds. Contract
+Section 7.8 defines the validity window. The hold covers that window, measured
+on the gateway's clock, and is wider than it on purpose. Contract 13.2 sets no
+time bound on a duplicate, so the window's end is the least the hold may be.
+Two receivers can run a command past that end. One that is handed the duration
+with no anchor, as the reference MAVLink mission intent hands it, counts
+`valid_for_ms` from its own receipt. One built before the window rule was
+written may count it from `event.ts` beside a `valid_from_ts`. A window that
+closed before the command was issued is still held for `valid_for_ms` plus the
+margin from receipt. The hold belongs to the copy that was admitted, because
+that is the only copy the gateway forwards and so the only copy anything can
+execute. A later copy of a held command is answered as a duplicate and changes
+nothing: it neither shortens nor lengthens the hold.
 
 **Three refusals.** A command is refused with a `TASK_ACK` in state `REJECTED`
 and `reason_code=TASK_REJECTED`, and is not forwarded, when the gateway cannot
@@ -239,7 +244,10 @@ hold its `task_id`:
   already refused it. Both schema lanes admit an impossible calendar date
   such as September 31; the 1.0 lane also admits a leap second and any string
   ending in `Z`. Another consumer may read the value its own way, so the
-  gateway cannot know when that command stops being executable.
+  gateway cannot know when that command stops being executable. The reference
+  MAVLink egress refuses the same cases when `payload.valid_from_ts` is
+  present. The gateway also refuses an unreadable `event.ts` on a command with
+  no `valid_from_ts`, because the window then begins there (Section 7.8).
 - **The cache is full.** `command_dedupe_max_entries` (default 4096, at most
   1048576) is how many `task_id`s are held at once. When that many are held, a
   new command is refused with `reason` "command dedupe capacity reached". No

@@ -1,6 +1,6 @@
 # ZMeta Refinement Handoff Notes
 
-## CURRENT STATE (2026-10-27): v1.1.27 CUT FROM DEVELOP; ONE GATEWAY FIX HELD ON A BRANCH
+## CURRENT STATE (2026-10-27): v1.1.27 CUT FROM DEVELOP; NO GATEWAY FIX HELD ON A BRANCH
 
 `develop` is cut as v1.1.27 on 2026-10-27 on the maintainer's direction
 given in this repository's session, after the merge of
@@ -26,13 +26,40 @@ as the manifest classifies it:
 `release/VALIDATION_REPORT_v1.1.27.md`. The 2026-10-12 state below counted
 thirteen merges and was stale by the cut; it stands as written.
 
-Held, not merged: `exp/command-dedupe-validity` (ca3d35d; item 7 of the
-2026-10-12 list below), a command-path gateway change and the maintainer's
-merge. It conflicted with `develop` in the doctrine log and the worklog
-when measured on 2026-10-28, to be resolved by hand at the merge; its
-CHANGELOG entry then belongs under
-`[Unreleased]`, not inside the released `[1.1.27]` section where a clean
-merge would put it.
+The branch `exp/command-dedupe-validity` (2026-10-01; item 7 of the
+2026-10-12 list below), a command-path gateway change, is merged on the
+maintainer's selection of 2026-11-16, after the bounded event index, with
+develop merged into it first. The gateway holds a command's `task_id` from
+admission until `valid_for_ms` after the latest of receipt, `event.ts` and
+`valid_from_ts`, plus 60 s, in place of at most 300 s, so the hold reaches
+the end of the contract 7.8 window, measured on the gateway's clock. A
+command it cannot hold (a hold longer than `command_max_hold_ms`, an
+unreadable validity anchor, a full cache) is refused with `TASK_REJECTED`.
+Its records conflicts kept both sides: doctrine E1-06 stands at the end of
+cycle E1, and its CHANGELOG entry, which a clean merge put inside the
+released `[1.1.27]` section, stands last under `[Unreleased]`. The branch
+adds lines to `gateway/src/gateway.py`, so the same change moves 38 line
+references in `tools/validation_guidance.yaml` and this file to where the
+text each named at develop's tip now stands, gives the four `gateway.py`
+citations of the `TASK_DUPLICATE` entry the ranges their text stands on,
+and moves the gateway's line-count pin from 3424 to 3723 lines. Not
+manifest-listed. Open from that branch, for a reading by hand: four
+guidance references name code it re-indented or changed in place and are
+left as they were (guidance lines 1431, 1439 and 1440 on the tail of
+`process_message`, and line 757 on the command-line flags); the
+`COMMAND_EVIDENCE_UNRESOLVED` citation on line 1760 moved with its text and
+still names the first `if timing_state is not None:` (the sixth reference
+of the citation repair's list below); the `TASK_DUPLICATE` entry keeps its
+`validators.py` line on `command_task_ids` as it was, and the phrase
+"unlike the unbounded set above" in its line on `TaskDedupeCache.admit`
+leans on that line's note. The maintainer's: whether `command_max_hold_ms`
+of one day and `command_dedupe_max_entries` of 4096 stand as shipped
+defaults; whether `TASK_REJECTED`, which the merged gateway is the first
+gateway code path to emit and two ingress adapters already write, gets a
+row in `policy/violation-codes.yaml` (a change that moves the policy hash)
+and a guidance entry of its own; and doctrine E1-06's questions 1 and 6,
+the release of a `task_id` when its hold ends and a refusal of a command
+whose validity has ended.
 
 The branch `exp/gateway-state-bound` (2026-10-02; item 8 of the 2026-10-12
 list below), the bounded event index, is merged on the maintainer's
@@ -442,8 +469,9 @@ strip guard gives each protected prefix its own reason
 branch now says that the `auto` lane can report a damaged datagram as
 `DECODE_AMBIGUOUS`. Each edited block keeps its line count, so the file
 stays at the 3389 lines its pin test asserts and no citation into it moves;
-the citation `gateway/src/gateway.py:2669-2685`, moved there with its text
-by the bounded event index's merge of 2026-11-16, names the same branch. New
+the citation `gateway/src/gateway.py:2884-2900`, moved there with its text
+by the bounded event index's merge of 2026-11-16 and again by the command
+dedupe's merge of 2026-11-17, names the same branch. New
 tests read the prefixes, the member names and the wire fallback from the
 code and the policy, and three of them hold the README's account of the
 `auto` lane to the code, so the decision on S2 changes those tests and the
@@ -518,11 +546,12 @@ does not name. The mutants and the full validation ran on it on
 2026-11-16, before the seeded review of that day added one test row, and
 found only the red that develop has between cuts, on the release
 manifest's pins. The gateway's line-count test holds
-`gateway/src/gateway.py` at 3424 lines since the bounded event index's
-merge (3389 before); a branch that changes that file's length moves its
-citations in the same change, as that merge did. The
-`gateway/src/gateway.py` numbers quoted in the list below are the ones
-that merge gave, each naming the text it named before.
+`gateway/src/gateway.py` at 3723 lines since the command dedupe's merge
+(3424 after the bounded event index's merge, 3389 before); a branch that
+changes that file's length moves its citations in the same change, as
+those merges did. The `gateway/src/gateway.py` numbers quoted in the list
+below are the ones the command dedupe's merge gave, each naming the text
+it named before.
 
 Open from that branch, for a reading by hand, none of it moved:
 
@@ -533,10 +562,10 @@ Open from that branch, for a reading by hand, none of it moved:
   1058 twice, 1107 and 1370), and 2 name text the range changed in place
   (804 and 809).
 - 3 references that named blank lines already at v1.1.27 (guidance lines
-  167 and 1419, `gateway/src/gateway.py:1714`, and 1082,
-  `gateway/src/gateway.py:1495-1496`).
+  167 and 1419, `gateway/src/gateway.py:1909`, and 1082,
+  `gateway/src/gateway.py:1690-1691`).
 - 5 references that were off their text before the range: on guidance line
-  167, `tools/validate.py:160` and `gateway/src/gateway.py:2500`; on line
+  167, `tools/validate.py:160` and `gateway/src/gateway.py:2710`; on line
   499, the 1.1.0 schema's `:1878`; on line 1319, the 1.1.0 schema's
   `1815-1824`; and the `NON_FINITE_VALUE` entry's schema line, which moved
   with the text it named then and still names
@@ -708,9 +737,9 @@ Open, in order of proximity:
    (finding N7 of the pre-cut range review of 2026-11-14).
 7. Items 5 through 10 of the 2026-10-12 state below (guidance gaps (a)
    through (af), the two gateway defects held then, the CoT `how` default,
-   the `event_id` recorded twice) carry, item 8 as updated there: its fix,
-   the bounded event index, is merged on the maintainer's selection of
-   2026-11-16, and item 7's fix is still held.
+   the `event_id` recorded twice) carry, items 7 and 8 as updated there:
+   their fixes, the command dedupe hold and the bounded event index, are
+   merged on the maintainer's selection of 2026-11-16.
 8. **The next cut's condition for the `observed_at` refusal, and the re-pin
    order it sets.** The cut that carries the refusal of a STATE whose
    payload holds `observed_at` (the branch `exp/state-observed-at-2026-11`
@@ -793,6 +822,8 @@ The last two landed on 2026-10-01 under the maintainer's grant of that day
 for merges of a session's own finished, verified work, each after an
 independent review.
 
+This paragraph states the branch as it stood on 2026-10-12; it is merged
+on the maintainer's selection of 2026-11-16 (the current state above).
 Held, not merged: `exp/command-dedupe-validity`. The gateway forwards a
 duplicate command once 300 s have passed, against contract 13.2; the branch
 holds a `task_id` for the command's whole validity (doctrine E1-06, OPEN,
@@ -941,11 +972,15 @@ Open, in order of proximity:
    command whose window opens after `event.ts`, by the SAPIENT egress's
    strict comparison, and one whose `valid_from_ts`, or whose `event.ts`
    beside a `valid_from_ts`, it cannot read; a window that has opened by
-   `event.ts` still goes out with `valid_for_ms` and no anchor). Still
-   open: the reference gateway's task dedupe holds a `task_id` from receipt
-   for min(`valid_for_ms`, 300 s), shorter than a window that opens later
-   (the subject of the held branch `exp/command-dedupe-validity`, which
-   waits for the maintainer's word); both reference command egresses send a
+   `event.ts` still goes out with `valid_for_ms` and no anchor). The
+   reference gateway's task dedupe held a `task_id` from receipt for
+   min(`valid_for_ms`, 300 s), shorter than a window that opens later
+   (decided 2026-11-16 on the maintainer's selection: the branch
+   `exp/command-dedupe-validity` is merged, and the gateway holds a
+   `task_id` from admission until `valid_for_ms` after the latest of
+   receipt, `event.ts` and `valid_from_ts`, plus 60 s, so the hold reaches
+   the end of the 7.8 window, measured on the gateway's clock). Still open:
+   both reference command egresses send a
    window already closed at issue (a start before `event.ts` whose end
    precedes it); the MAVLink intent for a window that opened before
    `event.ts` ends, at a receiver that starts it at receipt, at least the
@@ -1075,7 +1110,10 @@ Open, in order of proximity:
    the fire call and its confidence; what counts as an inference where no
    model is involved is the maintainer's to settle (doctrine F4-01). Booked
    at the records pass of 2026-10-12.
-7. **Reference defect, booked for the maintainer (command safety).** The
+7. **Reference defect, booked for the maintainer (command safety).** This
+   paragraph states the defect as it stood on 2026-10-12; the branch that
+   fixes it, described below, is merged on the maintainer's selection of
+   2026-11-16. The
    gateway caps the command dedupe window at 300 s
    (`ttl_ms_from_payload`, `gateway/README.md`), while contract 13.2 says a
    duplicate COMMAND_EVENT "MUST NOT be forwarded for execution a second
@@ -1110,7 +1148,10 @@ Open, in order of proximity:
    (answered 2026-11-02 by 7.8's last command rule, see gap (x); the
    pre-dating question stays);
    whether held ids survive a restart; and whether the gateway refuses a
-   command that has already expired.
+   command that has already expired. With the merge, doctrine E1-06's
+   questions 1, 2 and 6 (the first two and the last above) stay the
+   maintainer's; the selection does not answer 3 and 5; contract 7.8
+   answered 4 on 2026-11-02.
 8. **Reference defect, brought forward for the maintainer (gateway memory).**
    This paragraph states the defect as it stood on 2026-10-12; the branch
    that fixes it, described below, is merged on the maintainer's selection

@@ -3465,7 +3465,7 @@ member restored). Whether an unread failure mode should instead stop the
 gateway at startup, as a mistyped `cot` block does since v1.1.26, is left to
 the maintainer.
 
-### E1-06 — The reference gateway forwarded a duplicate command after 300 s · **OPEN (a fix on `exp/command-dedupe-validity`, revised after each of five independent reviews, the fifth finding no defect in the code; the merge is the maintainer's)**
+### E1-06 — The reference gateway forwarded a duplicate command after 300 s · **OPEN (the fix on `exp/command-dedupe-validity`, revised after each of five independent reviews, the fifth finding no defect in the code, is merged on the maintainer's selection of 2026-11-16; questions 1, 2 and 6 below stay the maintainer's, the selection does not answer 3 and 5, and contract 7.8 answered 4 on 2026-11-02)**
 
 **Observed:** found on 2026-10-01 by an audit of this repository's own
 answers to a downstream implementation, which had been told the reference
@@ -3657,6 +3657,9 @@ one word of the README and tests.
 4. Whether the documents should say how `valid_from_ts` relates to
    `event.ts` and `valid_for_ms`. The field has no rule today; the branch
    holds for every reading.
+   Noted 2026-11-17: contract 7.8 answered this on 2026-11-02 (ead775e).
+   The window begins at `valid_from_ts` when present, otherwise at
+   `event.ts`, and ends `valid_for_ms` after that start.
 5. Whether held ids must survive a restart.
 6. Whether the gateway should refuse a command whose validity has already
    ended, as described above. `docs/zmeta_mqtt_binding_guidance.md` says

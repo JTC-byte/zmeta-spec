@@ -2,7 +2,9 @@
 
 ## Current Resume Note
 
-- Last updated: 2026-11-17 (the MAVLink ingress heading key under an
+- Last updated: 2026-11-17 (the command dedupe brought up to develop for
+  its merge, its line citations moved;
+  the MAVLink ingress heading key under an
   asserted frame; records after the messages-only reword:
   renamed commit ids cited with their new ids, the pre-cut findings'
   state; the CoT projection class's version scope
@@ -60,6 +62,54 @@
   carried-list records pass; heading_deg defined; records pass after 7.6;
   2026-10-02: the reference gateway keeps a bounded event index;
   2026-10-01: the reference gateway holds a command's `task_id` for its whole validity)
+- **2026-11-17 (the command dedupe, `exp/command-dedupe-validity`, brought
+  up to develop for its merge).** On the maintainer's selection of
+  2026-11-16, option (A) of his question on the two gateway fixes held
+  since October, the second after the bounded event index. A test class
+  was written first: five commands handed to `process_message` alone, three
+  copies at 301 s (of a window that opens 600 s after receipt, one that
+  opens at `event.ts`, and one that closed before issue) and the two
+  unreadable anchors the reference MAVLink egress also refuses. All five
+  failed against develop's gateway at 69a9edf, which forwarded every case,
+  and passed against the branch's. Develop at 69a9edf is then merged into
+  the branch. The records conflicts in the doctrine log and this worklog
+  keep both sides in date order: doctrine E1-06 stands at the end of cycle
+  E1, and this worklog's one Last updated line names both sides. The
+  CHANGELOG merged clean but put the branch's entry inside the released
+  1.1.27 section; it moves unchanged to the end of `[Unreleased]`. In the
+  `TASK_DUPLICATE` guidance entry the contract and policy citations and the
+  `command_task_ids` line stay develop's, the schema citation is the
+  branch's, the `validate_deduplication` citation moves from 3485-3495 to
+  3486-3496 (3485 is blank), and the branch's four `gateway.py` citations,
+  written without numbers, get the ranges their text stands on. The code
+  files merge clean, `gateway/src/gateway.py` at 3718 lines. A follow-up
+  commit states the hold against contract 7.8 in the `command_hold_ms`
+  docstring, the gateway README, the test file and the ontology reference,
+  as ruled: the hold covers the 7.8 window, measured on the gateway's
+  clock, and is wider than it on purpose, since a receiver handed only
+  `valid_for_ms` counts it from its own receipt. The README adds that a
+  window that closed before issue is still held for `valid_for_ms` plus
+  the margin from receipt, and that the reference MAVLink egress refuses
+  the same unreadable anchors when `valid_from_ts` is present.
+  `configs/README.md` names both settings. Doctrine E1-06's header says
+  merged and which of its six questions stay the maintainer's (1, 2 and
+  6); its question 4 gains the note that contract 7.8 answered it on
+  2026-11-02. The docstring adds five lines, so `gateway/src/gateway.py`
+  has 3723. The 38 line references that the merge and that change
+  displaced, 34 in the guidance file and 4 in the handoff, move to where
+  the text they named at develop's tip now stands, 34 where that text
+  stands once and 4 where git's own line mapping lands on one of several
+  copies. Four that name code the branch re-indented on the tail of
+  `process_message`, or changed in place among the command-line flags, are
+  left as they were, for a reading by hand. The gateway's line-count pin
+  moves from 3424 to 3723. No hold code, refusal condition, refusal string
+  or manifest-listed file changes. Before the commit, the branch's tests
+  (76), the bounded event index's (62), the guidance tests (33), the
+  reader tests with the line-count pin (18), the CHANGELOG test (8) and the
+  records test (7) pass. The full validation runs on the final commit
+  under the lock, and the merge record gives its results. Open for the
+  maintainer: whether one day and 4096 stand as shipped defaults, and
+  whether `TASK_REJECTED` gets a registry row.
 - **2026-11-17 (the MAVLink ingress heading key under an asserted
   frame).** On the maintainer's selection of 2026-11-16, option A of
   pre-cut finding N6. `translate_platform_state()` wrote the retained

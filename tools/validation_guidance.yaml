@@ -41,11 +41,11 @@ guidance:
       "1.0" nor "1.1.0".
     citations:
       - "gateway/src/validators.py:3189-3201"
-      - "gateway/src/gateway.py:2417-2438"
-      - "gateway/src/gateway.py:2452-2475"
-      - "gateway/src/gateway.py:1770"
-      - "gateway/src/gateway.py:2854"
-      - "gateway/src/gateway.py:2274-2291"
+      - "gateway/src/gateway.py:2627-2648"
+      - "gateway/src/gateway.py:2662-2685"
+      - "gateway/src/gateway.py:1965"
+      - "gateway/src/gateway.py:3069"
+      - "gateway/src/gateway.py:2484-2501"
       - "schema/zmeta-event.schema.json:5-17"
       - "schema/zmeta-event-1.0.schema.json:13-16"
       - "schema/zmeta-event-1.1.0.schema.json:14-17"
@@ -164,7 +164,7 @@ guidance:
       - "gateway/src/validators.py:3266-3275 (unknown-profile branch: message 'unknown profile', details carry profile only)"
       - "gateway/src/validators.py:3276-3285 (allowed = profile_cfg.get('allowed_event_types', []); if event_type not in allowed)"
       - "gateway/src/validators.py:392 (profiles_cfg = load_yaml(policy_dir / 'profiles.yaml'), the runtime source of profiles_policy)"
-      - "gateway/src/gateway.py:1714, gateway/src/gateway.py:2500, tools/validate.py:160 (callers pass the target export/validation profile)"
+      - "gateway/src/gateway.py:1909, gateway/src/gateway.py:2710, tools/validate.py:160 (callers pass the target export/validation profile)"
       - "policy/profiles.yaml:1-21 (L, M, H allowed_event_types)"
       - "policy/violation-codes.yaml:12-13 (severity: fail)"
       - "spec/semantics-contract.md:1554-1575 (Profile L transmits STATE_EVENT/SYSTEM_EVENT/COMMAND_EVENT; prohibits raw observation and INFERENCE_EVENT export)"
@@ -606,7 +606,7 @@ guidance:
       - "schema/zmeta-event-1.1.0.schema.json:785-797"
       - "schema/zmeta-event-1.1.0.schema.json:1882"
       - "schema/zmeta-event-1.0.schema.json:1588"
-      - "gateway/src/gateway.py:2272-2276"
+      - "gateway/src/gateway.py:2482-2486"
       - "gateway/src/validators.py:3617-3639"
       - "gateway/tests/test_reason_codes.py:188-205"
       - "docs/zmeta_doctrine_review_log.md:131-134"
@@ -751,9 +751,9 @@ guidance:
       - "policy/violation-codes.yaml:50-51"
       - "spec/compact-binary-mapping.md:11-20"
       - "spec/compact-binary-mapping.md:39-47"
-      - "gateway/src/gateway.py:1471-1484"
-      - "gateway/src/gateway.py:1504-1549"
-      - "gateway/src/gateway.py:2289-2290"
+      - "gateway/src/gateway.py:1666-1679"
+      - "gateway/src/gateway.py:1699-1744"
+      - "gateway/src/gateway.py:2499-2500"
       - "gateway/src/gateway.py:3076-3086"
       - "zmeta_compact.py:869-892"
       - "zmeta_compact.py:594-671"
@@ -801,9 +801,9 @@ guidance:
       - "spec/semantics-contract.md:410-412"
       - "spec/compact-binary-mapping.md:249-253"
       - "spec/compact-binary-mapping.md:258-260"
-      - "gateway/src/gateway.py:1446-1449"
-      - "gateway/src/gateway.py:1485-1494"
-      - "gateway/src/gateway.py:2669-2685"
+      - "gateway/src/gateway.py:1641-1644"
+      - "gateway/src/gateway.py:1680-1689"
+      - "gateway/src/gateway.py:2884-2900"
       - "zmeta_proto.py:410-463"
       - "zmeta_proto.py:533-559"
       - "zmeta_decode_guard.py:1-45"
@@ -1079,7 +1079,7 @@ guidance:
       - "policy/semantics.yaml:77-80 (system_event.schema_violation_required_metrics_fields: reason_code, original_event_id)"
       - "policy/violation-codes.yaml:72-73 (code SCHEMA_VIOLATION_MISSING_ORIGINAL_EVENT_ID, severity: fail; the file carries only code and severity, no message or hint field)"
       - "gateway/src/validators.py:3832-3866 (live emit site is :3858, where metrics is a dict and a required field is missing; `if \"reason_code\" in missing` takes precedence and `elif \"original_event_id\" in missing` selects this code. The :3842 branch for a non-dict metrics is unreachable under the shipped policy for the same precedence reason)"
-      - "gateway/src/gateway.py:2282, 2284, 2322 (`original_event.get(\"event_id\") or \"UNKNOWN\"`) with gateway/src/gateway.py:1495-1496 naming it the documented UNKNOWN correlation sentinel"
+      - "gateway/src/gateway.py:2492, 2494, 2532 (`original_event.get(\"event_id\") or \"UNKNOWN\"`) with gateway/src/gateway.py:1690-1691 naming it the documented UNKNOWN correlation sentinel"
   - code: SCHEMA_VIOLATION_INVALID_REASON_CODE
     remediation: >-
       A SYSTEM_EVENT whose payload.system_type is SCHEMA_VIOLATION set
@@ -1108,7 +1108,7 @@ guidance:
       - "schema/zmeta-event-1.0.schema.json:1569-1625"
       - "spec/semantics-contract.md:1356-1357"
       - "spec/semantics-contract.md:121-122"
-      - "gateway/src/gateway.py:1770"
+      - "gateway/src/gateway.py:1965"
   - code: TASK_ACK_MISSING_TASK_ID
     remediation: >-
       A TASK_ACK (SYSTEM_EVENT with system_type/event_subtype TASK_ACK) must
@@ -1416,7 +1416,7 @@ guidance:
       checking against, which at the gateway is its own configured export
       profile passed in as `settings["profile"]`
       (gateway/src/validators.py:3254-3265, called from
-      gateway/src/gateway.py:1714 and gateway/src/gateway.py:2500). The
+      gateway/src/gateway.py:1909 and gateway/src/gateway.py:2710). The
       sanctioned fix is to not carry a stale or mismatched `profile` value
       forward: either omit `profile`, since the check fires only when the
       field is present and an omitted `profile` leaves the runtime
@@ -1429,16 +1429,16 @@ guidance:
       before its egress check by default, but that stamping is configurable
       and does not apply to the inbound check, so an upstream event carrying
       the wrong `profile` still fails (gateway/src/gateway.py:3023-3027,
-      gateway/src/gateway.py:1927-1928).
+      gateway/src/gateway.py:2124-2125).
     citations:
       - "policy/violation-codes.yaml:102-103"
       - "gateway/src/validators.py:3254-3265"
-      - "gateway/src/gateway.py:1730-1739"
-      - "gateway/src/gateway.py:2500"
-      - "gateway/src/gateway.py:2996"
+      - "gateway/src/gateway.py:1925-1934"
+      - "gateway/src/gateway.py:2710"
+      - "gateway/src/gateway.py:3211"
       - "gateway/src/gateway.py:3023-3027"
       - "gateway/src/gateway.py:3042"
-      - "gateway/src/gateway.py:1927-1928"
+      - "gateway/src/gateway.py:2124-2125"
       - "schema/zmeta-event-1.1.0.schema.json:24-30"
       - "schema/zmeta-event-1.0.schema.json:23-30"
       - "spec/semantics-contract.md:984"
@@ -1562,12 +1562,12 @@ guidance:
       reserves for a node that actually held synchronization and then lost it.
     citations:
       - "policy/violation-codes.yaml:110-111"
-      - "gateway/src/gateway.py:1616-1671"
-      - "gateway/src/gateway.py:1640-1646"
-      - "gateway/src/gateway.py:1647-1650"
-      - "gateway/src/gateway.py:1651-1664"
-      - "gateway/src/gateway.py:1794"
-      - "gateway/src/gateway.py:1617-1630"
+      - "gateway/src/gateway.py:1811-1866"
+      - "gateway/src/gateway.py:1835-1841"
+      - "gateway/src/gateway.py:1842-1845"
+      - "gateway/src/gateway.py:1846-1859"
+      - "gateway/src/gateway.py:1989"
+      - "gateway/src/gateway.py:1812-1825"
       - "configs/edge-config.json:14-19"
       - "policy/timing-freshness.yaml:37-46"
       - "spec/semantics-contract.md:747-756"
@@ -1677,10 +1677,10 @@ guidance:
       - "schema/zmeta-event-1.1.0.schema.json:1531-1541 (CommandPayload requires `task_id`, type string, minLength 1)"
       - "gateway/src/validators.py:3486-3496 (validate_deduplication: COMMAND_EVENT whose payload.task_id is already in state.command_task_ids yields the TASK_DUPLICATE violation \"COMMAND_EVENT task_id has already been applied\")"
       - "gateway/src/validators.py:49,253 (state.command_task_ids is an unbounded set populated from every COMMAND_EVENT payload.task_id; no TTL on this path)"
-      - "gateway/src/gateway.py:3257-3270 (process_message, COMMAND_EVENT branch: on a dedupe-cache hit, records the TASK_DUPLICATE violation and returns build_duplicate_ack instead of forwarding)"
-      - "gateway/src/gateway.py:2805-2830 (build_duplicate_ack emits SYSTEM_EVENT/TASK_ACK with payload.state=DUPLICATE_IGNORED and metrics.reason_code=TASK_DUPLICATE)"
+      - "gateway/src/gateway.py:3262-3275 (process_message, COMMAND_EVENT branch: on a dedupe-cache hit, records the TASK_DUPLICATE violation and returns build_duplicate_ack instead of forwarding)"
+      - "gateway/src/gateway.py:2810-2835 (build_duplicate_ack emits SYSTEM_EVENT/TASK_ACK with payload.state=DUPLICATE_IGNORED and metrics.reason_code=TASK_DUPLICATE)"
       - "gateway/src/gateway.py:336-362 (TaskDedupeCache.admit returns DUPLICATE while a task_id is held; the live gateway releases the id when its hold ends, unlike the unbounded set above)"
-      - "gateway/src/gateway.py:1250-1297 (command_hold_ms: the hold runs to payload.valid_for_ms after the latest of receipt, event.ts and payload.valid_from_ts, plus a 60000ms margin; a hold longer than command_max_hold_ms, or a command with an unreadable validity anchor, is refused with TASK_REJECTED)"
+      - "gateway/src/gateway.py:1250-1302 (command_hold_ms: the hold runs to payload.valid_for_ms after the latest of receipt, event.ts and payload.valid_from_ts, plus a 60000ms margin; a hold longer than command_max_hold_ms, or a command with an unreadable validity anchor, is refused with TASK_REJECTED)"
       - "policy/violation-codes.yaml:118-119 (TASK_DUPLICATE, severity: fail; no message or hint field)"
       - "policy/semantics.yaml:139,187 (TASK_DUPLICATE in the schema-violation code list and in task_ack_allowed_reason_codes)"
   - code: TASK_ACK_DUPLICATE
@@ -1734,7 +1734,7 @@ guidance:
       - "schema/zmeta-event-1.0.schema.json:649-671"
       - "schema/zmeta-event-1.1.0.schema.json:1923"
       - "policy/semantics.yaml:141,150-151"
-      - "gateway/src/gateway.py:1730-1756"
+      - "gateway/src/gateway.py:1925-1951"
       - "gateway/tests/test_non_finite_value_scoped.py:119-200,327-336"
   - code: COMMAND_EVIDENCE_UNRESOLVED
     remediation: >-
@@ -1757,7 +1757,7 @@ guidance:
       - "gateway/src/validators.py:4293-4308 (a COMMAND_EVENT with no cited parents returns clean; only require_evidence turns absence into LINEAGE_MISMATCH)"
       - "gateway/src/validators.py:30 (DEFAULT_COMMAND_EVIDENCE_INDEX_MAX_ENTRIES = 4096)"
       - "gateway/src/validators.py:317-324 (index write plus oldest-first eviction once the cap is exceeded)"
-      - "gateway/src/gateway.py:2771 (`timing_state.record(instance)` runs after the event's checks and after every fail-path early return, so a parent resolves only for commands that follow it through the gateway)"
+      - "gateway/src/gateway.py:2986 (`timing_state.record(instance)` runs after the event's checks and after every fail-path early return, so a parent resolves only for commands that follow it through the gateway)"
       - "policy/command-evidence.yaml:46-56 (unresolved_parent_mode: warn; 'never seen upstream, or evicted (see evidence_index_max_entries). The honest disposition is UNRESOLVED, never a silent pass.')"
       - "policy/command-evidence.yaml:66-72 (motivating_parent_event_types: INFERENCE_EVENT, FUSION_EVENT, STATE_EVENT)"
       - "policy/command-evidence.yaml:81-87 (evidence_index_max_entries: 4096, oldest entries evicted first, an evicted parent resolves as UNRESOLVED)"

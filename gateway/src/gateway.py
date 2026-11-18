@@ -1250,11 +1250,16 @@ def unreadable_command_anchor(payload, event_ts=None):
 def command_hold_ms(payload, now=None, event_ts=None):
     """Milliseconds, from receipt, for which a command's task_id is held.
 
-    The hold has to outlast every reading of when the command can execute.
-    Contract 5.1 calls a command's `event.ts` "the command issue time or
-    validity anchor", and the contract gives `valid_from_ts` no rule of its
-    own, so a consumer may count `valid_for_ms` from either, and one that
-    ignores both counts it from arrival. The hold therefore runs to
+    Contract 7.8: "A command's validity window begins at
+    `payload.valid_from_ts` when present, otherwise at `event.ts`, and ends
+    `payload.valid_for_ms` after that start". The hold covers that window,
+    measured on the gateway's clock, and is wider than it on purpose.
+    Contract 13.2 sets no time bound on a duplicate, so the window's end is
+    the least the hold may be. Two receivers can run a command past that
+    end. One that is handed the duration with no anchor, as the reference
+    MAVLink mission intent hands it, counts `valid_for_ms` from its own
+    receipt. One built before the window rule was written may count it from
+    `event.ts` beside a `valid_from_ts`. The hold therefore runs to
     `valid_for_ms` after the latest of receipt, `event_ts` and
     `valid_from_ts`, plus COMMAND_HOLD_MARGIN_MS: a command that starts
     being valid in ten minutes and stays valid for one can still execute
