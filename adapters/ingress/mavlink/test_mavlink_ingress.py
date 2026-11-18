@@ -290,8 +290,9 @@ def test_mavlink_readme_usage_example_emits_as_printed():
     # The README's usage example, run as printed. It once set no loop_status
     # and so returned None, while the comment under it described an event: the
     # template refuses a promotion whose reflection verdict did not arrive with
-    # the telemetry (contract 4.5.1). The comment's claims are checked against
-    # what the printed code returns, and the event must pass producer authority.
+    # the telemetry (contract 4.5.1). The values the comment states are written
+    # out here and checked against what the printed code returns; the block must
+    # name the true-north key, and the event must pass producer authority.
     block = _readme_usage_block()
     namespace = {}
     exec(compile(block, "adapters/ingress/mavlink/README.md (Usage)", "exec"), namespace)
@@ -1636,8 +1637,8 @@ def test_mavlink_unknown_heading_sentinel_never_reaches_either_destination():
     # of the same sentinel family. GLOBAL_POSITION_INT.hdg = UINT16_MAX
     # divided by 100 by a bridge is 655.35 deg. On the canonical path the
     # schema's 0-360 bound catches it; quality.mavlink_hdg_frame_unknown_deg
-    # and quality.mavlink_hdg_true_north_deg have no such bound, so it landed
-    # there schema-clean.
+    # has no such bound, so it landed there schema-clean, and
+    # quality.mavlink_hdg_true_north_deg has none either.
     # Wrong-typed headings take the same route, and take it without raising:
     # the guard compares, so a string heading must drop, not crash the adapter.
     for sentinel in (655.35, 720.0, -1.0, "090", True):

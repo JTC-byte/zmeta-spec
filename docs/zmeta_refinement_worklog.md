@@ -90,10 +90,11 @@
   on the missing new key, the README test on the `None` the example
   returned) and the two pins, the case with no frame and the unknown
   heading, passed. Two citations in `tools/validation_guidance.yaml` move
-  with the lines added above them: the LINK_STATUS reason-code entry's two
-  module ranges by ten lines, and the null-island entry's README range by
-  five. The named-citation test failed on the first before the move and
-  passes after, and each moved range reads the lines it named at develop's
+  with the lines added above them: the `LINK_STATUS_INVALID_REASON_CODE`
+  entry's two module ranges by ten lines, and the `GEO_ZERO_FILL_SUSPECTED`
+  entry's README range by five. The named-citation test failed on the
+  first before the move and passes after, and each moved range reads the
+  lines it named at develop's
   tip. The adapter harness fixture
   (`conformance/adapter-harness/must-pass.jsonl` line 10, no frame
   asserted) is unchanged and passes before and after. No schema, policy,
