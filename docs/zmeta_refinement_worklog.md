@@ -2,7 +2,9 @@
 
 ## Current Resume Note
 
-- Last updated: 2026-11-17 (the ASTERIX CAT062 egress's timing
+- Last updated: 2026-11-18 (the MAVLink ingress's older heading
+  passages and the JREAP template's MAVLink citation; 2026-11-17: the
+  ASTERIX CAT062 egress's timing
   allowance split into two declarations; the command dedupe's
   seeded-review follow-up; the command dedupe brought up to develop for
   its merge, its line citations moved; the MAVLink ingress heading key
@@ -63,6 +65,27 @@
   carried-list records pass; heading_deg defined; records pass after 7.6;
   2026-10-02: the reference gateway keeps a bounded event index;
   2026-10-01: the reference gateway holds a command's `task_id` for its whole validity)
+- **2026-11-18 (the MAVLink ingress's older heading passages and the JREAP
+  template's MAVLink citation).** Booked by ZMeta from the seeded review of
+  the MAVLink heading key change on 2026-11-17 (its nit N5) and from that
+  change's citation check. Three passages older than MAVLink ingress 1.3.0
+  said an out-of-range heading is dropped from "both destinations", the
+  canonical `payload.heading_deg` and a quality key:
+  `adapters/ingress/mavlink/README.md` lines 195-198, the `heading_deg`
+  entry of the translator's docstring (line 422) and the comment above the
+  heading guard (lines 511-515). Since 1.3.0 a known `hdg` never reaches
+  `payload.heading_deg`, which contract 6.4 defines as the course over
+  ground. Each passage now says that `hdg` can reach only
+  `quality.mavlink_hdg_frame_unknown_deg` or
+  `quality.mavlink_hdg_true_north_deg`, which no schema bounds, so the guard
+  keeps a sentinel out of them. Each edit keeps its passage's line count,
+  so no other citation into either file moves. The comment at
+  `adapters/ingress/jreap/jreap_track_to_zmeta_template.py:73` cited the
+  MAVLink template's altitude-datum passage at lines 438-446, which earlier
+  changes moved to lines 492-500; it now cites 492-500. Comments and README
+  text only: no code, behaviour, test, schema, policy, contract,
+  conformance or manifest-listed file changes; `ADAPTER_VERSION` stays
+  1.3.1.
 - **2026-11-17 (the ASTERIX CAT062 egress's timing allowance split into
   two declarations).** On the maintainer's selection of 2026-11-16, which
   keeps the allowance and splits it as ZMeta booked it from the seeded

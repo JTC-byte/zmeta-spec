@@ -192,10 +192,10 @@ event = translate_platform_state(
     (`65.535`, what a bridge that divides before handing over produces) as well
     as a non-positive value; `battery_remaining_pct` drops `-1`; and a heading
     outside 0–360, commonly `655.35`, which is the `hdg = UINT16_MAX` sentinel
-    divided by 100, is dropped from both destinations rather than clamped, since the
-    canonical `payload.heading_deg` is schema-bounded but the non-canonical
-    `quality.mavlink_hdg_frame_unknown_deg` and
-    `quality.mavlink_hdg_true_north_deg` are not. Nothing is clamped: a clamp
+    divided by 100, is dropped rather than clamped. A known `hdg` never reaches
+    the schema-bounded `payload.heading_deg`, and the two keys it can reach, the
+    non-canonical `quality.mavlink_hdg_frame_unknown_deg` and
+    `quality.mavlink_hdg_true_north_deg`, are unbounded. Nothing is clamped: a clamp
     would invent a measurement at the top of the scale;
   - `translate_link_status()` requires caller-supplied `latency_ms`,
     `packet_loss_pct` and `throughput_bps` (the three measurements the v1.0
