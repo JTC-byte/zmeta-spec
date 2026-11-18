@@ -17,7 +17,7 @@ import math
 from adapters.ingress.time_utils import coerce_timing_quality, normalize_utc_z, utc_now_z
 from zmeta_uuid import uuid7
 
-ADAPTER_VERSION = "1.3.0"
+ADAPTER_VERSION = "1.3.1"
 SCHEMA_ID = "mavlink-telemetry"
 PROMOTION_POLICY_ID = "PROMOTE-MAVLINK-STATE-V1"
 # The ground speed below which no course is asserted. Contract 6.4 defines
@@ -421,7 +421,9 @@ def translate_platform_state(
                 bridge produces by dividing before handing it over) means
                 unknown and omits both heading destinations (no 0.0 default,
                 and no clamp). A known value is a body angle (hdg) kept as
-                quality.mavlink_hdg_frame_unknown_deg; it never becomes
+                quality.mavlink_hdg_true_north_deg when heading_frame is
+                "TRUE_NORTH" and as quality.mavlink_hdg_frame_unknown_deg
+                when no frame is asserted; it never becomes
                 payload.heading_deg, which contract 6.4 defines as the
                 course over ground (derived from vx and vy, below).
               speed_mps (float, optional): ground speed m/s; None or absent
@@ -448,14 +450,16 @@ def translate_platform_state(
         producer: Producer string (default "mavlink-adapter").
         ts: ISO timestamp (default: current UTC).
         heading_frame: Optional frame assertion for the retained hdg. Only
-            "TRUE_NORTH" is accepted; it is recorded as
-            quality.mavlink_hdg_frame beside the retained value and never
-            promotes hdg into payload.heading_deg (a body angle is not a
-            course).
+            "TRUE_NORTH" is accepted. With it a known hdg is kept as
+            quality.mavlink_hdg_true_north_deg, in place of
+            quality.mavlink_hdg_frame_unknown_deg, and the assertion is
+            recorded as quality.mavlink_hdg_frame beside it. The adapter
+            does not verify the frame, and the assertion never promotes hdg
+            into payload.heading_deg (a body angle is not a course).
         heading_source: Optional label for the retained hdg's reference,
-            recorded as quality.mavlink_hdg_source when heading_frame is
-            "TRUE_NORTH". quality.heading_source is written by the adapter
-            for the ground course only.
+            recorded as quality.mavlink_hdg_source beside an asserted frame
+            only; with no frame asserted it is dropped. quality.heading_source
+            is written by the adapter for the ground course only.
         min_course_speed_mps: Ground speed (m/s) below which no course is
             asserted; default MIN_COURSE_SPEED_MPS, a deployment claim.
 
@@ -506,7 +510,8 @@ def translate_platform_state(
     # by a bridge that does the conversion itself. Guarded here as well as in
     # decode_global_position_int, and on both destinations - the canonical
     # payload.heading_deg is schema-bounded to 0-360, but the non-canonical
-    # quality.mavlink_hdg_frame_unknown_deg is not, so an unguarded sentinel
+    # quality.mavlink_hdg_frame_unknown_deg and
+    # quality.mavlink_hdg_true_north_deg are not, so an unguarded sentinel
     # lands there schema-clean.
     heading_deg = _heading_deg_or_none(_get("heading_deg"))
     # An unreported ground speed is omitted, never fabricated as a 0.0
@@ -682,12 +687,17 @@ def translate_platform_state(
         event["payload"]["quality"]["heading_source"] = (
             "MAVLINK_GLOBAL_POSITION_INT_GROUND_COURSE"
         )
-    if heading_deg is not None:
+    # A known hdg goes under exactly one key. Under an asserted frame the key
+    # names that frame, as contract 6.4 asks of a raw sensor-native angle, and
+    # the assertion and any source label stand beside it; with no frame
+    # asserted the key says the frame is unknown, and a source label is dropped.
+    if heading_deg is not None and heading_frame == "TRUE_NORTH":
+        event["payload"]["quality"]["mavlink_hdg_true_north_deg"] = heading_deg
+        event["payload"]["quality"]["mavlink_hdg_frame"] = "TRUE_NORTH"
+        if heading_source:
+            event["payload"]["quality"]["mavlink_hdg_source"] = heading_source
+    elif heading_deg is not None:
         event["payload"]["quality"]["mavlink_hdg_frame_unknown_deg"] = heading_deg
-        if heading_frame == "TRUE_NORTH":
-            event["payload"]["quality"]["mavlink_hdg_frame"] = "TRUE_NORTH"
-            if heading_source:
-                event["payload"]["quality"]["mavlink_hdg_source"] = heading_source
     return event
 
 

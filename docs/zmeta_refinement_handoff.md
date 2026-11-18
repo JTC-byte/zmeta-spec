@@ -368,6 +368,27 @@ and are removed, and `pr/8-review` is in item 6 below. The full register of
 the findings and their dispositions lands with the cut-prep commit, as at
 earlier cuts.
 
+The branch `wave/mavlink-heading-key-2026-11` (2026-11-17) takes N6 on
+the maintainer's selection of 2026-11-16. The MAVLink ingress template
+wrote the retained `hdg` as `payload.quality.mavlink_hdg_frame_unknown_deg`
+also when the caller asserted `heading_frame="TRUE_NORTH"`, beside
+`quality.mavlink_hdg_frame: "TRUE_NORTH"`. Under an asserted frame it now
+writes `quality.mavlink_hdg_true_north_deg`, with the frame key and, when
+given, `quality.mavlink_hdg_source` beside it, and it writes the
+`_unknown_` key only when no frame is asserted. The key names its frame
+because contract 6.4 asks a raw sensor-native angle to carry its frame in
+its own named field, and the reference track projector already reads a
+frame from a key name (`adsb_track_deg_true`). `ADAPTER_VERSION` moves to
+1.3.1: develop's unreleased 1.3.0 wrote the old pairing from 2026-11-02,
+and the new version keeps any events it made with an asserted frame apart
+from later ones. The maintainer may keep 1.3.0 by stating that no such
+events are held anywhere. The README's usage example now sets the
+`loop_status` the template requires, so it returns the event its comment
+describes, and a test runs it as printed. The adapter harness fixture is
+unchanged, and no manifest-listed file changes. For the cut: the release
+notes' MAVLink paragraph names both keys and says which one an asserted
+frame writes.
+
 The branch `wave/precut-records-2026-11` (2026-11-14), based on
 `wave/precut-tests-2026-11`, is a records branch from the pre-cut range
 review of 2026-11-14. For M2, under the maintainer's selection of

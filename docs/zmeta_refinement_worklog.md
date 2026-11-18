@@ -2,7 +2,8 @@
 
 ## Current Resume Note
 
-- Last updated: 2026-11-17 (records after the messages-only reword:
+- Last updated: 2026-11-17 (the MAVLink ingress heading key under an
+  asserted frame; records after the messages-only reword:
   renamed commit ids cited with their new ids, the pre-cut findings'
   state; the CoT projection class's version scope
   names both branches; records: six lines name a read by its date
@@ -58,6 +59,51 @@
   three commits, the third on 2026-11-03; two contract sentences;
   carried-list records pass; heading_deg defined; records pass after 7.6;
   2026-10-02: the reference gateway keeps a bounded event index)
+- **2026-11-17 (the MAVLink ingress heading key under an asserted
+  frame).** On the maintainer's selection of 2026-11-16, option A of
+  pre-cut finding N6. `translate_platform_state()` wrote the retained
+  `hdg` as `payload.quality.mavlink_hdg_frame_unknown_deg` also when the
+  caller asserted `heading_frame="TRUE_NORTH"`, beside
+  `quality.mavlink_hdg_frame: "TRUE_NORTH"`, so the key's name
+  contradicted its neighbour. Under an asserted frame it now writes
+  `quality.mavlink_hdg_true_north_deg`, with the frame key and, when given,
+  `quality.mavlink_hdg_source` beside it; the `_unknown_` key is written
+  only when no frame is asserted, and the two value keys never appear
+  together. A source label passed with no frame is dropped, as before. The
+  name carries the frame because contract 6.4 asks a raw sensor-native
+  angle to carry its frame in its explicitly named field, and the reference
+  track projector reads a frame from a key name
+  (`adapters/projector/track/track_projector.py`, `adsb_track_deg_true`).
+  A frame value other than `TRUE_NORTH`, if one is ever admitted, gets its
+  own key. `ADAPTER_VERSION` moves to 1.3.1: version 1.3.0 was never
+  released, and on develop it wrote the old pairing from 2026-11-02, so the
+  lineage transform keeps any events it made with an asserted frame apart
+  from later ones. The README names the new key in its table row, its
+  notes and its usage comment; its frame paragraph says that the number is
+  the same body angle under either key, that a consumer that wants the
+  angle whatever its frame reads both keys, that the frame is the
+  deployment's assertion, which the adapter does not verify, and that a
+  source label is recorded only beside an asserted frame. Tests first: five
+  existing tests in `adapters/ingress/mavlink/test_mavlink_ingress.py`
+  carry the new assertions, and a new test runs the README's usage example
+  as printed. On the unchanged module and README four of them failed (three
+  on the missing new key, the README test on the `None` the example
+  returned) and the two pins, the case with no frame and the unknown
+  heading, passed. Two citations in `tools/validation_guidance.yaml` move
+  with the lines added above them: the `LINK_STATUS_INVALID_REASON_CODE`
+  entry's two module ranges by ten lines, and the `GEO_ZERO_FILL_SUSPECTED`
+  entry's README range by five. The named-citation test failed on the
+  first before the move and passes after, and each moved range reads the
+  lines it named at develop's
+  tip. The adapter harness fixture
+  (`conformance/adapter-harness/must-pass.jsonl` line 10, no frame
+  asserted) is unchanged and passes before and after. No schema, policy,
+  contract or manifest-listed file changes. Correction to the entry of
+  2026-11-02 (the `heading_deg` definition and the MAVLink course): it
+  says the README example was "given the lineage it needs to emit at all".
+  The example still returned `None` as printed, because it set no
+  `loop_status`, which the template requires (contract 4.5.1); it emits
+  from this change on.
 - **2026-11-17 (records after the messages-only reword).** The rewrite
   of the unpushed history's commit messages on 2026-11-17 kept every
   tree and renamed 43 commits. A search of every tracked file outside
