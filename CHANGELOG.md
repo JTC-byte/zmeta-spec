@@ -2,6 +2,25 @@
 
 ## [Unreleased]
 
+- 2026-11-18 — **Three guidance entries cite the gateway code they
+  describe** (`tools/validation_guidance.yaml`,
+  `gateway/tests/test_validation_guidance.py`, Docs/advisory). The
+  `PROFILE_MISMATCH`, `ENCODING_UNSUPPORTED` and
+  `COMMAND_EVIDENCE_UNRESOLVED` entries cited `gateway/src/gateway.py`
+  lines that held other code: the command-line flags, the end of
+  `process_message`, a metrics setting, a comment. Their references had
+  drifted before v1.1.26, and later re-anchorings kept them on that text.
+  Each of their 15 references now names the text the guidance file's first
+  version cited: the two `validate_profile` calls, the egress profile stamp
+  and the egress check, the `--no-stamp-profile` switch, the receive loop's
+  profile argument, `_encode_message`, `_encode_outgoing_or_diagnostic`,
+  the wire-safe details, the receive loop's `ENCODING_UNSUPPORTED` drop,
+  and the call that records an event in the timing state. Two named test
+  rows that pinned the drifted text now read the moved lines. The same
+  drift stands in ten more references of five entries, recorded in the
+  handoff. No code, rule, schema, policy, contract, conformance or
+  manifest-listed file changes.
+
 - 2026-11-18 — **The MAVLink ingress's older heading passages and the JREAP
   template's MAVLink citation match the code**
   (`adapters/ingress/mavlink/mavlink_to_zmeta_template.py`,

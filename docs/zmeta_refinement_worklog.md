@@ -2,7 +2,8 @@
 
 ## Current Resume Note
 
-- Last updated: 2026-11-18 (the MAVLink ingress's older heading
+- Last updated: 2026-11-18 (three guidance entries' gateway citations
+  moved onto their first text; the MAVLink ingress's older heading
   passages and the JREAP template's MAVLink citation; 2026-11-17: the
   ASTERIX CAT062 egress's timing
   allowance split into two declarations; the command dedupe's
@@ -65,6 +66,35 @@
   carried-list records pass; heading_deg defined; records pass after 7.6;
   2026-10-02: the reference gateway keeps a bounded event index;
   2026-10-01: the reference gateway holds a command's `task_id` for its whole validity)
+- **2026-11-18 (three guidance entries' gateway citations moved onto their
+  first text).** The command dedupe's merge of 2026-11-17 left four
+  guidance references and the `COMMAND_EVIDENCE_UNRESOLVED` citation for a
+  reading by hand (guidance lines 757, 1431, 1439, 1440 and 1760). The
+  reading found that each named the wrong code before that merge: line
+  757's `ENCODING_UNSUPPORTED` reference named the command-line flags, the
+  three `PROFILE_MISMATCH` references named the end of `process_message`,
+  and line 1760 named the guard of `validate_timing_quality`. The guidance
+  file's first version (b1dcb26, 2026-08-26) cited, for each, the code its
+  prose describes, and that text stands once in
+  `gateway/src/gateway.py` at 38dcdcb. Every `gateway/src/gateway.py`
+  reference of the `PROFILE_MISMATCH` and `ENCODING_UNSUPPORTED` entries was
+  read the same way, and each named other code. All 15 references of the
+  three entries now name their first text: `PROFILE_MISMATCH` the
+  `validate_profile` calls at 1968 and 2964, `validate_outgoing_event` to
+  its profile check (1950-1968), the receive loop's profile argument
+  (3538), the egress stamp (3571-3575), the egress check (3590) and
+  `--no-stamp-profile` (2224-2225); `ENCODING_UNSUPPORTED`
+  `_encode_message` (1693-1706), `_encode_outgoing_or_diagnostic`
+  (1709-1755), the wire-safe details (2751-2752) and the receive loop's
+  drop (3626-3636); `COMMAND_EVIDENCE_UNRESOLVED`
+  `timing_state.record(instance)` (3280). Two of the twelve named rows in
+  `gateway/tests/test_validation_guidance.py` pinned the drifted text, and
+  now read `settings["profile"],` and `timing_state.record(instance)`; the
+  first repeats in its file. A census of the file by the same method
+  (`local/precut_fixes_2026-11-14/q5dd_refs/census_drift.py`) finds the
+  drift in the gateway citations of five more entries, recorded in the
+  handoff with what was not measured. No code, rule, schema, policy,
+  contract, conformance or manifest-listed file changes.
 - **2026-11-18 (the MAVLink ingress's older heading passages and the JREAP
   template's MAVLink citation).** Booked by ZMeta from the seeded review of
   the MAVLink heading key change on 2026-11-17 (its nit N5) and from that

@@ -901,8 +901,13 @@ NAMED_CITATIONS = [
      'code = "TASK_ACK_MISSING_ORIGINAL_EVENT_ID"'),
     ("TASK_ACK_MISSING_ORIGINAL_EVENT_ID", "gateway/src/validators.py", 3,
      'code = "TASK_ACK_MISSING_ORIGINAL_EVENT_ID"'),
-    ("PROFILE_MISMATCH", "gateway/src/gateway.py", 6, "contract_hashes=contract_hashes,"),
-    ("COMMAND_EVIDENCE_UNRESOLVED", "gateway/src/gateway.py", 0, "if timing_state is not None:"),
+    # Moved on 2026-11-18 to the text the guidance's first version (b1dcb26)
+    # cited: the receive loop's profile argument to process_message, and the
+    # line that records the event in the timing state. The first line of the
+    # profile row repeats in its file, so that row does not tell one copy
+    # from another.
+    ("PROFILE_MISMATCH", "gateway/src/gateway.py", 6, 'settings["profile"],'),
+    ("COMMAND_EVIDENCE_UNRESOLVED", "gateway/src/gateway.py", 0, "timing_state.record(instance)"),
 ]
 
 
